@@ -83,3 +83,33 @@ test('HTML report escapes user content',()=>{
   const html=buildHtmlReport({title:'<bad>',device:'Deck & Cart',measurements:[],findings:[]});
   assert.ok(html.includes('&lt;bad&gt;')); assert.ok(html.includes('Deck &amp; Cart')); assert.ok(!html.includes('<bad>'));
 });
+
+
+import { frequencyTrace, speedStabilityMetrics, dropoutMetrics, generateSine, encodeWav16 } from '../app/advanced.js';
+
+test('frequency trace tracks a slowly changing reference tone',()=>{
+  const n=sr*2; const x=new Float32Array(n); let phase=0;
+  for(let i=0;i<n;i++){const f=995+10*(i/(n-1));phase+=2*Math.PI*f/sr;x[i]=.7*Math.sin(phase);}
+  const trace=frequencyTrace(x,sr,{referenceHz:1000,windowSec:.25,hopSec:.25,spanHz:30});
+  assert.ok(trace.length>=7); assert.ok(trace[0].frequencyHz < trace.at(-1).frequencyHz);
+});
+test('speed stability reports drift and modulation',()=>{
+  const trace=[{timeSec:0,frequencyHz:999},{timeSec:1,frequencyHz:1000},{timeSec:2,frequencyHz:1001},{timeSec:3,frequencyHz:1002}];
+  const m=speedStabilityMetrics(trace,{referenceHz:1000,nominalRpm:33.333333});
+  assert.ok(m.driftPercent>0.2 && m.driftPercent<0.4); assert.ok(m.wowFlutterRmsPercent>0); assert.ok(m.meanRpm>33.3);
+});
+test('dropout metrics identify silent sections',()=>{
+  const x=sine(1000,1,.5); for(let i=12000;i<18000;i++)x[i]=0;
+  const d=dropoutMetrics(x,sr,{windowMs:20,dropDb:24});
+  assert.ok(d.dropoutCount>=1); assert.ok(d.dropoutDurationSec>.05);
+});
+test('synthetic sine generator has requested duration and amplitude',()=>{
+  const x=generateSine({frequencyHz:440,sampleRate:48000,durationSec:.5,amplitude:.25});
+  assert.equal(x.length,24000); assert.ok(peak(x)>.249 && peak(x)<=.251);
+});
+test('16-bit WAV encoder writes RIFF/WAVE header',()=>{
+  const wav=encodeWav16({left:generateSine({frequencyHz:440,sampleRate:8000,durationSec:.1,amplitude:.2}),sampleRate:8000});
+  const view=new DataView(wav.buffer,wav.byteOffset,wav.byteLength);
+  const str=(o,n)=>Array.from({length:n},(_,i)=>String.fromCharCode(view.getUint8(o+i))).join('');
+  assert.equal(str(0,4),'RIFF'); assert.equal(str(8,4),'WAVE'); assert.equal(str(12,4),'fmt '); assert.equal(str(36,4),'data');
+});
