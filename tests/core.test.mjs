@@ -178,3 +178,9 @@ test('signal sanity metrics detect DC offset crest factor and missing channel',(
 test('signal sanity flags highly correlated dual mono',()=>{
   const l=sine(440,.25,.5);const m=signalSanityMetrics(l,new Float32Array(l),sr);assert.equal(m.dualMonoSuspected,true);assert.ok(m.spectralCentroidHz>300&&m.spectralCentroidHz<700);
 });
+
+
+test('quick diagnostic blocks healthy interpretation when a stereo channel is missing',()=>{
+  const q=quickDiagnostic({left:sine(1000,.25,.5),right:new Float32Array(Math.floor(sr*.25)),sampleRate:sr});
+  assert.ok(q.findings.some(f=>f.code==='MISSING_CHANNEL'));assert.equal(q.summary.stereoPresent,false);
+});
