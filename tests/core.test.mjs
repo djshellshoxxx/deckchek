@@ -116,7 +116,7 @@ test('16-bit WAV encoder writes RIFF/WAVE header',()=>{
 
 
 import {
-  pitchMapMetrics, transitionMetrics, normalizedLevelTrace, channelSeparationDb, thdPercent,
+  pitchMapMetrics, transitionMetrics, normalizedLevelTrace, repeatabilityMetrics, trendMetrics, channelSeparationDb, thdPercent,
   dvsIntegrityTimeline, normalizedEventMap, reasonFromEvidence
 } from '../app/diagnostics.js';
 
@@ -183,4 +183,12 @@ test('signal sanity flags highly correlated dual mono',()=>{
 test('quick diagnostic blocks healthy interpretation when a stereo channel is missing',()=>{
   const q=quickDiagnostic({left:sine(1000,.25,.5),right:new Float32Array(Math.floor(sr*.25)),sampleRate:sr});
   assert.ok(q.findings.some(f=>f.code==='MISSING_CHANNEL'));assert.equal(q.summary.stereoPresent,false);
+});
+
+
+test('repeatability metrics calculate mean spread and sample count',()=>{
+  const m=repeatabilityMetrics([.1,-.1,.05,-.05]);assert.equal(m.count,4);assert.ok(Math.abs(m.mean)<1e-9);assert.ok(m.stdDev>0);assert.equal(m.range,.2);
+});
+test('trend metrics calculate linear drift per minute',()=>{
+  const m=trendMetrics([{timeMin:0,value:0},{timeMin:5,value:.1},{timeMin:10,value:.2}]);assert.ok(Math.abs(m.slopePerMin-.02)<1e-9);assert.ok(m.rSquared>.999);
 });
