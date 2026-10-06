@@ -70,6 +70,12 @@ No Python, PowerShell, or JUCE is required.
 - [SPEC-09 Implementation Roadmap](docs/SPEC-09-roadmap.md)
 - [SPEC-10 CDJ and Media-Player Diagnostics — Consideration Backlog](docs/SPEC-10-CDJ-media-player-diagnostics.md)
 - [SPEC-11 Product Editions and Diagnostic Categories](docs/SPEC-11-product-editions-and-categories.md)
+- [SPEC-12 Missing-Spec Capability Map](docs/SPEC-12-capability-map.md)
+- [SPEC-13 GUI and User Experience](docs/SPEC-13-gui-ux.md)
+- [SPEC-14 Audio Routing and Physical Wiring](docs/SPEC-14-audio-routing-and-wiring.md)
+- [SPEC-15 Inputs, Outputs, and Data Flow](docs/SPEC-15-input-output-and-data-flow.md)
+- [SPEC-16 End-to-End Workflows and Functional Behavior](docs/SPEC-16-workflows-and-functional-behavior.md)
+- [SPEC-17 Operational Quality, Privacy, and Release Readiness](docs/SPEC-17-operational-quality.md)
 - [Feature Implementation Matrix](docs/FEATURE-MATRIX.md)
 - [Research Notes and Sources](docs/RESEARCH.md)
 
