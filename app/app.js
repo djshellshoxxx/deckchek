@@ -26,6 +26,9 @@ function loadWorkspace(){
   if(!equipment.length) equipment=DEMO_EQUIPMENT.map(x=>({...x}));
 }
 function saveWorkspace(){localStorage.setItem(STORAGE_KEY,JSON.stringify({version:1,equipment,runs:runs.slice(0,250)}));}
+async function invokeNative(command,args={}){const invoke=window.__TAURI__?.core?.invoke;if(!invoke)return null;return invoke(command,args);}
+async function initializeNativePersistence(){try{const path=await invokeNative('initialize_database');if(path)showToast('Desktop persistence connected.');}catch(error){showToast(`SQLite initialization failed: ${error}`);}}
+async function persistNative(run){try{await invokeNative('save_diagnostic_run',{run});}catch(error){showToast(`Run saved to browser storage; SQLite write failed: ${error}`);}}
 function uid(prefix){return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;}
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const toast=document.getElementById('toast');
@@ -102,7 +105,7 @@ async function runSelectedTest(){
   const button=document.getElementById('modal-run');button.disabled=true;button.textContent='Analyzing…';
   try{
     const audio=await decodeAudio(file);const result=analyzeForTest(currentTest,audio);const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
-    const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:file.name,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}saveWorkspace();renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
+    const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:file.name,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}saveWorkspace();await persistNative(run);renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
   }catch(error){showToast(`Analysis failed: ${error.message}`);}finally{button.disabled=false;button.innerHTML='Analyze file <span>→</span>';}
 }
 function exportRun(){const run=runs.find(x=>x.id===selectedRunId)||runs[0];if(!run){showToast('Run a diagnostic before exporting.');return;}const html=buildHtmlReport({title:`DeckChek — ${run.test}`,device:run.device,createdAt:run.createdAt,measurements:run.measurements,findings:run.findings,notes:`Source: ${run.sourceFile}; ${run.sampleRate} Hz; ${run.channels} channel(s).`});const blob=new Blob([html],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`deckchek-${run.test.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${run.id}.html`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -110,7 +113,7 @@ function addEquipment(){const name=prompt('Equipment name/model');if(!name?.trim
 function generateReferenceTone(){const hz=1000,sampleRate=48000;const tone=generateSine({frequencyHz:hz,sampleRate,durationSec:10,amplitude:.35});const wav=encodeWav16({left:tone,right:tone,sampleRate});const blob=new Blob([wav],{type:'audio/wav'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='deckchek-1000hz-reference-10s.wav';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Generated 10 s stereo 1 kHz reference WAV.');}
 async function enumerateAudio(){const select=document.getElementById('input-device');try{const devices=await navigator.mediaDevices?.enumerateDevices?.();const inputs=(devices||[]).filter(d=>d.kind==='audioinput');select.innerHTML='<option value="">No live capture selected</option>'+inputs.map((d,i)=>`<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label||`Audio input ${i+1}`)}</option>`).join('');showToast(`${inputs.length} audio input(s) detected. Live capture remains a later native adapter.`);}catch(error){showToast(`Device enumeration unavailable: ${error.message}`);}}
 
-loadWorkspace();renderEquipment();renderResults();
+loadWorkspace();renderEquipment();renderResults();initializeNativePersistence();
 document.querySelectorAll('.nav-item').forEach(button=>button.addEventListener('click',()=>go(button.dataset.page)));
 document.querySelectorAll('[data-goto]').forEach(button=>button.addEventListener('click',()=>go(button.dataset.goto)));
 document.getElementById('equipment-search')?.addEventListener('input',event=>renderEquipment(event.target.value));
