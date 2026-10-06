@@ -24,8 +24,6 @@ This matrix is the implementation checklist tying requested product features to 
 | Controller | Controller audio I/O and loopback checks | SPEC-11 | Future controller phase |
 | Controller | Motorized control-deck diagnostics | SPEC-11 | Future controller phase |
 | Controller | Supported mapping/software behavior checks | SPEC-11 | Future controller phase |
-| Area | Feature | Primary spec | Planned phase |
-|---|---|---|---|
 | Input | Audio device selection/routing | SPEC-00, SPEC-01 | 0-1 |
 | Input | L/R signal presence | SPEC-01 | 1 |
 | Input | Clipping detection | SPEC-01 | 1 |
