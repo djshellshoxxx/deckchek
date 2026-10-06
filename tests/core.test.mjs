@@ -116,7 +116,7 @@ test('16-bit WAV encoder writes RIFF/WAVE header',()=>{
 
 
 import {
-  pitchMapMetrics, transitionMetrics, channelSeparationDb, thdPercent,
+  pitchMapMetrics, transitionMetrics, normalizedLevelTrace, channelSeparationDb, thdPercent,
   dvsIntegrityTimeline, normalizedEventMap, reasonFromEvidence
 } from '../app/diagnostics.js';
 
@@ -149,4 +149,10 @@ test('normalized event map keeps positions within side bounds',()=>{
 });
 test('reasoning engine preserves alternatives and isolation tests',()=>{
   const r=reasonFromEvidence({channelBalanceDb:3.2,humDb:-34,correlation:.1}); assert.ok(r.some(x=>x.code==='CHANNEL_PATH_IMBALANCE')); assert.ok(r.some(x=>x.code==='HUM_PATH')); assert.ok(r.every(x=>x.alternatives.length>0&&x.isolationTests.length>0));
+});
+
+
+test('normalized level trace follows a start and stop envelope',()=>{
+  const x=new Float32Array(sr);for(let i=0;i<x.length;i++){const t=i/sr;const env=t<.2?t/.2:t<.7?1:Math.max(0,1-(t-.7)/.2);x[i]=env*.5*Math.sin(2*Math.PI*1000*i/sr);}
+  const trace=normalizedLevelTrace(x,sr,{windowMs:20});assert.ok(trace.length>30);assert.ok(trace[0].level<.2);assert.ok(Math.max(...trace.map(x=>x.level))>.95);assert.ok(trace.at(-1).level<.2);
 });
