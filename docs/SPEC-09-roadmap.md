@@ -373,7 +373,7 @@ Recommended v3.0+: synchronized physical trigger/jog latency, low-level S/PDIF i
 
 ## 25. Proposed product editions and category coverage
 
-[SPEC-11](SPEC-11-product-editions-and-categories.md) defines a free MIDI Tester category, paid Vinyl, CDJ / Media Player and Controller editions, and an Ultimate edition containing the three paid modules. These are product packaging targets; the v0.x phases above remain the implementation order. MIDI Tester remains a separate free browser app. Controller edition work builds on its MIDI diagnostics and adds controller, motorized surface and supported audio-path testing.
+[SPEC-11](SPEC-11-product-editions-and-categories.md) defines a free MIDI Tester category, paid Vinyl, CDJ / Media Player and Controller editions, a paid Technician / Engineering edition for cross-category service-bench workflows, and an Ultimate edition containing all four paid modules. These are product packaging targets; the v0.x phases above remain the implementation order. MIDI Tester remains a separate free browser app. Controller edition work builds on its MIDI diagnostics and adds controller, motorized surface and supported audio-path testing.
 
 Hybrid equipment is represented by capability profiles and one shared hardware record. A hybrid analog/DVS turntable is primarily Vinyl, a motorized control deck is primarily Controller, and an all-in-one player/controller may use both Controller and CDJ / Media Player modules. No edition model permits untested capabilities to be reported as passed.
 
@@ -384,3 +384,7 @@ See SPEC-11 for the complete intended test catalog and classification rules.
 Use [OPEN-SOURCE-RESEARCH](OPEN-SOURCE-RESEARCH.md) to accelerate existing phases: evaluate CPAL/hound/RustFFT first, then basic evidence detectors, tone speed/generic scope, runout RPM, full-side candidates and repeat-scan alignment.
 
 [SPEC-18](SPEC-18-open-source-reuse-and-validation.md) and [SPEC-19](SPEC-19-scientific-measurement-and-validation.md) add release gates without making optional decoders, Pro DJ Link, perceptual models, broad codecs or swept-sine measurements beta dependencies. Library candidates are not adopted dependencies. Validate precision and real-music false positives before releasing damage/standards claims.
+
+## 27. Proposed Technician / Engineering edition
+
+[SPEC-11 Section 7.5](SPEC-11-product-editions-and-categories.md#75-deckchek-technician--engineering-edition) defines the professional service-bench scope. The [future-feature backlog](POSSIBLE-FUTURE-FEATURES.md) supplies equipment requirements, sources and validation gates. Reuse shared capture, calibration, analysis, inventory and reporting; implement basic-equipment workflows before optional instrument integrations. This packaging proposal does not add beta blockers or imply implemented service support. Ultimate includes this edition alongside Vinyl, CDJ / Media Player and Controller.
