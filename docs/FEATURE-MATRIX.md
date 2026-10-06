@@ -2,6 +2,30 @@
 
 This matrix is the implementation checklist tying requested product features to the detailed working specifications. Edition packaging and category definitions are proposed in [SPEC-11](SPEC-11-product-editions-and-categories.md); product editions do not change the existing phase sequence in SPEC-09.
 
+## Current implementation snapshot
+
+The table below is intentionally conservative. “Implemented” means code exists and is exercised by deterministic tests; it does not override validation gates in SPEC-08/SPEC-19.
+
+| Capability slice | Status | Notes |
+| --- | --- | --- |
+| Local audio-file analysis | Implemented | Browser/Tauri shell decodes local audio without upload. |
+| Stereo signal Quick Check | Implemented | RMS, clipping, balance, correlation/polarity, hum and dropout evidence. |
+| Reference-tone speed/pitch | Implemented, validation-gated | Frequency, RPM, pitch error, speed trace, drift and short-term variation proxy. |
+| Pitch-map workflow | Implemented | Multi-run slope, nonlinearity, hysteresis and dead-spot candidates. |
+| Startup/brake | Partial | Signal-envelope timing proxy implemented; validated platter-speed transition method remains outstanding. |
+| Cartridge diagnostics | Partial | Balance/polarity and THD estimate implemented; guided crosstalk/separation and full alignment workflows remain. |
+| Generic DVS | Implemented foundation | Scope geometry, levels, correlation and missing-signal timeline; no vendor-specific decoding yet. |
+| Full-side vinyl scan | Implemented foundation | Transient candidates, recurrence, hum/rumble proxy, normalized positions and condition summary; mature classifiers/repeat alignment remain. |
+| Diagnostic reasoning | Implemented foundation | Transparent hypotheses, alternatives and isolation tests; persisted weighted evidence graph remains. |
+| SQLite history | Implemented foundation | Sessions, method-versioned measurements and finding evidence are written in Tauri mode. |
+| Reports and portability | Implemented foundation | HTML report, CSV measurements, workspace JSON import/export and compatible-run A/B report. |
+| Native continuous capture | Not implemented | Required for live beta workflows. |
+| Hardware calibration/uncertainty | Not implemented | Required for calibrated claims. |
+| Venue/CDJ/controller/Technician advanced workflows | Not implemented | Shared measurement primitives can be reused, but category-specific workflows remain. |
+
+See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconciliation.
+
+
 | Area | Feature | Primary spec | Planned phase |
 |---|---|---|---|
 | Editions | Free MIDI Tester capability inventory | SPEC-11 | Existing separate app |
