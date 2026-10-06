@@ -462,3 +462,9 @@ Architecture is considered implemented when:
 - full-side analysis can store time-coded events without retaining audio;
 - database migrations can upgrade a previous schema;
 - reports can reconstruct findings entirely from stored results.
+
+## 18. Research-derived integration and metrology requirements
+
+Apply [SPEC-18](SPEC-18-open-source-reuse-and-validation.md) to component selection, timebase preservation, long-file segmentation and dependency provenance. Apply [SPEC-19](SPEC-19-scientific-measurement-and-validation.md) to spectral units, uncertainty metadata and evidence validation.
+
+Raw capture indices remain canonical across resampled analysis and alignment. Measurement uncertainty, perceived prominence and diagnostic confidence are separate fields/concepts. Capability discovery must represent missing decoding or calibration as unavailable.

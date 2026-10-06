@@ -749,3 +749,9 @@ Third-party data is untrusted and validated before storage.
 - comparisons can reject mismatched methods;
 - venue hierarchy joins correctly;
 - a session snapshot remains unchanged if product catalog later changes.
+
+## Research-derived metadata extensions
+
+Apply [SPEC-19 section 2](SPEC-19-scientific-measurement-and-validation.md) with additive migrations and API fields for measurand, uncertainty status/components, coverage factor, calibration/timebase provenance, detector statistic and standard edition.
+
+Alignment records preserve original and derived coordinates, matched spans, discontinuity masks, residual errors and method version. Candidate detector output and perceptual prominence remain distinct from diagnoses. No speculative SQL migration is introduced by this research change.

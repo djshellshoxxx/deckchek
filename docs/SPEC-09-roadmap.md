@@ -378,3 +378,9 @@ Recommended v3.0+: synchronized physical trigger/jog latency, low-level S/PDIF i
 Hybrid equipment is represented by capability profiles and one shared hardware record. A hybrid analog/DVS turntable is primarily Vinyl, a motorized control deck is primarily Controller, and an all-in-one player/controller may use both Controller and CDJ / Media Player modules. No edition model permits untested capabilities to be reported as passed.
 
 See SPEC-11 for the complete intended test catalog and classification rules.
+
+## 26. Component reuse and scientific validation sequence
+
+Use [OPEN-SOURCE-RESEARCH](OPEN-SOURCE-RESEARCH.md) to accelerate existing phases: evaluate CPAL/hound/RustFFT first, then basic evidence detectors, tone speed/generic scope, runout RPM, full-side candidates and repeat-scan alignment.
+
+[SPEC-18](SPEC-18-open-source-reuse-and-validation.md) and [SPEC-19](SPEC-19-scientific-measurement-and-validation.md) add release gates without making optional decoders, Pro DJ Link, perceptual models, broad codecs or swept-sine measurements beta dependencies. Library candidates are not adopted dependencies. Validate precision and real-music false positives before releasing damage/standards claims.

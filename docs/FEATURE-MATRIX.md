@@ -187,3 +187,18 @@ This matrix is the implementation checklist tying requested product features to 
 ## Rule
 
 A row is not complete merely because a UI element exists. Each implemented feature must meet the "definition of done" in SPEC-09: measurement method, tests, persistence, quality flags, report support, and user-facing setup instructions.
+
+## Research-derived implementation gates
+
+| Requirement | Owning specification | Implementation status |
+| --- | --- | --- |
+| Dependency selection and exact license provenance | SPEC-18 | Specified; integration pending |
+| Canonical PCM timebase and derived-stream mapping | SPEC-18, SPEC-19 | Specified; integration pending |
+| Long WAV segmentation and boundary continuity | SPEC-18 | Specified; validation pending |
+| Runout-click RPM with no flutter claim | SPEC-01, SPEC-18 | Specified; implementation pending |
+| Generic scope vs decoder capability separation | SPEC-02, SPEC-18 | Specified; validation pending |
+| Drift/skip-aware repeat-scan alignment | SPEC-03, SPEC-18 | Specified; validation pending |
+| Measurement uncertainty and calibrated units | SPEC-07, SPEC-19 | Specified; implementation pending |
+| Separate transient, audibility and cause evidence | SPEC-03, SPEC-06, SPEC-19 | Specified; validation pending |
+| Held-out DJ-genre detector benchmarks | SPEC-08, SPEC-19 | Specified; corpus/benchmarks pending |
+| Exact AES6 statistic and method verification | SPEC-01, SPEC-08, SPEC-19 | Experimental until validated |

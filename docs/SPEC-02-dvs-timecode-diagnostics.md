@@ -571,3 +571,9 @@ Implementation is complete when:
 - scratch reversals can be counted from a synthetic velocity trace or supported control signal;
 - unsupported formats degrade gracefully to generic analysis;
 - vendor-specific scores are never misrepresented as the vendor's own internal score.
+
+## Open implementation capability and licensing requirements
+
+Apply [SPEC-18 section 8](SPEC-18-open-source-reuse-and-validation.md). Generic scope/carrier quality and actual format decoding are separate capabilities. Absolute position and decoder lock are unavailable until a compatible decoder is implemented and validated for the exact media profile.
+
+The inspected xwax decoder is GPL-3.0-only and expressly requires separate licensing for proprietary incorporation. Reference study does not approve source translation or copying into this core. Synthetic quadrature validates generic scope, not vendor decoding.

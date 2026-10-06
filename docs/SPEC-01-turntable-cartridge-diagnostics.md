@@ -169,7 +169,7 @@ Raw:
 Weighted:
 - standards-compatible result when an implemented weighting method is selected and validated.
 
-IEC 60386 defines a weighted-peak method for speed fluctuation measurement. DeckChek must name the method used rather than displaying an unexplained "wow/flutter" number.
+IEC 60386 and AES6 define edition-specific speed-fluctuation methods. AES6-2008 specifies a two-sigma statistical meter and deprecates the older quasi-peak meter. DeckChek must name the exact weighting, statistic and validated method rather than displaying an unexplained "wow/flutter" number.
 
 ### 5.2 Frequency bands
 
@@ -711,3 +711,9 @@ A completed implementation must:
 - persist A/B comparisons;
 - preserve method version on all measurements;
 - refuse high-confidence azimuth/anti-skate conclusions without required evidence.
+
+## 27. Research-derived speed and spectrum requirements
+
+[SPEC-18 section 4](SPEC-18-open-source-reuse-and-validation.md) defines an alternate runout-click RPM test. It measures rotation intervals and cannot measure intra-revolution flutter. Missing clicks, polarity and timebase uncertainty must be handled.
+
+[SPEC-19 sections 3–5](SPEC-19-scientific-measurement-and-validation.md) define spectral normalization, calibrated tone estimation and uncertainty. AES6-2008 uses a specified statistical detector; a generic quasi-peak/RMS result is not sufficient. Loopback using a common clock cannot independently verify absolute clock accuracy. Manufacturer comparisons require matching measurement method and known precision.

@@ -458,3 +458,9 @@ Implemented when:
 - venue score references exact setup/test session;
 - reports never imply calibrated SPL unless an SPL source is supplied;
 - two venues can be compared under compatible measurement methods.
+
+## Scientific calibration and transfer-test requirements
+
+Apply [SPEC-19 sections 9–10](SPEC-19-scientific-measurement-and-validation.md). Record sensor mounting, axis, calibration, bandwidth and synchronization. Audio dBFS remains a vibration proxy and does not become acceleration or SPL without calibration. Controlled A/B setup changes support attribution; correlation alone does not identify cause.
+
+Swept-sine transfer testing is a later calibrated feature with reference, latency and stationarity validation. It is not a prerequisite for the beta's passive/guided venue workflow.

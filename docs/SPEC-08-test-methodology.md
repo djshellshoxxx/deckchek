@@ -545,3 +545,9 @@ This methodology is implemented when CI can:
 - run reasoning fixtures;
 - run score regression;
 - fail build on numeric regressions outside tolerance.
+
+## 38. Research-derived independent validation
+
+[SPEC-18 section 10](SPEC-18-open-source-reuse-and-validation.md) and [SPEC-19](SPEC-19-scientific-measurement-and-validation.md) add calibrated FFT/PSD checks, clock/reference uncertainty, long-file continuity, runout-click limitations, false-positive benchmarks and alignment abstention tests.
+
+Use recording-level held-out splits, one-to-one event matching, explicit timestamp tolerance, genre breakdowns and false positives per minute/hour. Keep clip-classification measures separate from event precision/recall. Record listener disagreement and audition conditions. A detector's agreement with its ancestor or another app is not independent ground truth. Standards claims require the full exact method.

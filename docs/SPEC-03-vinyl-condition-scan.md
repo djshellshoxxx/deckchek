@@ -662,3 +662,9 @@ The scanner is implemented when:
 - low-frequency shock events are separated from record-surface impulses;
 - condition map remains usable after raw audio is deleted;
 - report exposes evidence and confidence for every classified defect.
+
+## 37. Scientific detector and alignment validation
+
+Apply [SPEC-19 sections 6–9](SPEC-19-scientific-measurement-and-validation.md): store impulse evidence, perceived prominence and causal hypotheses separately. Neither audible clicks nor high-frequency degradation alone establish physical groove wear. Real-record evaluation must include percussive DJ genres, held-out recording-level splits, annotator uncertainty and false positives per unit time.
+
+Apply [SPEC-18 section 7](SPEC-18-open-source-reuse-and-validation.md) to repeat-scan alignment. Offset-only alignment is insufficient under drift or skips. Retain original timestamps, piecewise mappings, unmatched spans and alignment uncertainty. Normalized side time remains primary; inferred radial geometry is not measured radius.

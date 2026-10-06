@@ -495,3 +495,9 @@ Implemented when:
 - scores show components and coverage;
 - incompatible methods are blocked from direct comparison;
 - every exported conclusion is traceable to stored measurements.
+
+## Scientific interpretation requirements
+
+Apply [SPEC-19](SPEC-19-scientific-measurement-and-validation.md). Reports distinguish measurement uncertainty, algorithm confidence, perceived audibility and cause hypotheses. Unknown uncertainty cannot be displayed as zero. Differences unresolved at available precision cannot support a confident equipment ranking.
+
+Technical event counts remain available without automatically penalizing a readiness score for masked impulses or intentional music. No paper reviewed validates a universal DeckChek health score; score weights and operating thresholds need local validation and versioning.

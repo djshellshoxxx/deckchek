@@ -199,3 +199,12 @@ When adding catalog/specification data:
 4. do not silently normalize incompatible standards;
 5. do not copy proprietary control audio into the repository unless redistribution rights are clear;
 6. distinguish public documentation from DeckChek-derived measurements.
+
+## Expanded research: open source and scientific evidence (2026-10-06)
+
+[OPEN-SOURCE-RESEARCH](OPEN-SOURCE-RESEARCH.md) compares DVS, click detection, RPM, fingerprinting, capture, file and DSP components with explicit reuse decisions.
+[SCIENTIFIC-RESEARCH](SCIENTIFIC-RESEARCH.md) records journal/conference papers, reference books, authoritative standards, actual access, limitations and design implications.
+
+Important refinement to the IEC discussion above: [AES6-2008's official description](https://aes.org/publications/standards-store/?id=15) identifies the two-sigma statistical voltmeter as preferred and the former quasi-peak meter as deprecated. Do not infer conformity from a weighted-RMS or quasi-peak implementation. Exact edition, weighting tolerance, detector and duration must be validated.
+
+[Reference implementation requirements](SPEC-18-open-source-reuse-and-validation.md) and [scientific validation requirements](SPEC-19-scientific-measurement-and-validation.md) supplement the existing specifications. No upstream code or publication files were imported by this research update.

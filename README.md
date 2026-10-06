@@ -99,3 +99,12 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 ## Status
 
 Specification phase.
+
+## Additional engineering research
+
+- [Comparable open source projects and reuse decisions](docs/OPEN-SOURCE-RESEARCH.md)
+- [Scientific journals, books and measurement evidence](docs/SCIENTIFIC-RESEARCH.md)
+- [SPEC-18 Open Source Reuse and Validation](docs/SPEC-18-open-source-reuse-and-validation.md)
+- [SPEC-19 Scientific Measurement and Validation](docs/SPEC-19-scientific-measurement-and-validation.md)
+
+These documents define candidates and validation requirements. Dependencies, detectors and standards conformity remain unimplemented until verified; research additions do not change the product license.
