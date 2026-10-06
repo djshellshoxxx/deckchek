@@ -3,6 +3,7 @@ import {
   quickDiagnostic, scopeMetrics, speedFromReferenceTone
 } from './core.js';
 import { dropoutMetrics, encodeWav16, frequencyTrace, generateSine, speedStabilityMetrics } from './advanced.js';
+import { dvsIntegrityTimeline, normalizedEventMap, pitchMapMetrics, reasonFromEvidence, thdPercent } from './diagnostics.js';
 
 const DEMO_EQUIPMENT=[
   {id:'eq-technics',name:'Technics SL-1200MK2',kind:'Turntable',chain:'Ortofon Concorde MKII · Rane Seventy-Two',tested:'Not tested',status:'Unverified'},
@@ -85,27 +86,75 @@ function analyzeForTest(test,audio){
     if(Math.abs(stability.meanPitchPercent)>.3)findings.push({code:'SPEED_ERROR',title:'Speed differs from reference',detail:`Estimated mean speed error ${stability.meanPitchPercent.toFixed(3)}%.`,severity:Math.abs(stability.meanPitchPercent)>1?'warning':'review',confidence:.85,possibleCauses:['pitch calibration','reference-tone mismatch','platter speed error'],isolationTests:['confirm test-record reference frequency','repeat after warm-up','compare quartz-lock position']});
     if(stability.wowFlutterRmsPercent>.25)findings.push({code:'SPEED_INSTABILITY',title:'Short-term speed variation is elevated',detail:`Measured proxy ${stability.wowFlutterRmsPercent.toFixed(3)}% RMS across analysis windows.`,severity:stability.wowFlutterRmsPercent>.6?'warning':'review',confidence:.7,possibleCauses:['platter/belt/drive instability','record eccentricity','reference source instability'],isolationTests:['repeat with verified test record','compare 33⅓ and 45 RPM','inspect mechanical drive and platter']});
     score=scoreFromFindings(findings);
+  }else if(test==='Pitch map'){
+    const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);
+    const nominalRpm=Number(document.getElementById('nominal-rpm')?.value||33.333333);
+    const s=speedFromReferenceTone(audio.left,audio.sampleRate,{referenceHz,nominalRpm});
+    const position=Number(document.getElementById('pitch-position')?.value||0);
+    const direction=document.getElementById('pitch-direction')?.value||'unknown';
+    measurements.push(
+      normalizeMeasurement({metricId:'pitch_position',label:'Pitch control position',value:position,unit:'%',origin:'user_entered',confidence:1}),
+      normalizeMeasurement({metricId:'measured_pitch_percent',label:'Measured pitch/speed change',value:s.pitchPercent,unit:'%',confidence:.85}),
+      normalizeMeasurement({metricId:'pitch_direction_code',label:'Pitch-map pass direction',value:direction==='up'?1:direction==='down'?-1:0,unit:'code',origin:'user_entered',confidence:1})
+    );
+    if(Math.abs(s.pitchPercent-position)>.5)findings.push({code:'PITCH_TRACKING_ERROR',title:'Pitch control differs from measured speed',detail:`Control position ${position.toFixed(2)}%; measured speed change ${s.pitchPercent.toFixed(3)}%.`,severity:Math.abs(s.pitchPercent-position)>1.5?'warning':'review',confidence:.8,possibleCauses:['pitch calibration','fader nonlinearity','dead zone','reference-tone mismatch'],isolationTests:['repeat at the same position','map both travel directions','verify zero/quartz position']});
+    score=scoreFromFindings(findings);
   }else if(test==='DVS signal'){
-    const s=scopeMetrics(audio.left,audio.right);measurements.push(normalizeMeasurement({metricId:'dvs_scope_circularity',label:'Generic scope circularity',value:s.circularity,unit:'ratio',confidence:.9}),normalizeMeasurement({metricId:'dvs_scope_correlation',label:'Generic scope correlation',value:s.correlation,unit:'ratio',confidence:.9}));
-    if(s.circularity<.45)findings.push({code:'DVS_SCOPE_DEFORMED',title:'Generic DVS scope is strongly asymmetric',detail:`Circularity metric ${s.circularity.toFixed(3)}.`,severity:'review',confidence:.75,possibleCauses:['channel imbalance','phase relationship','tracking or wear','unsupported control signal'],isolationTests:['verify both channels','repeat with known-good control media','use vendor decoder when implemented']});score=scoreFromFindings(findings);
+    const s=scopeMetrics(audio.left,audio.right);
+    const timeline=dvsIntegrityTimeline(audio.left,audio.right,audio.sampleRate,{windowSec:.1});
+    const missing=timeline.filter(x=>!x.signalPresent).length;
+    measurements.push(
+      normalizeMeasurement({metricId:'dvs_scope_circularity',label:'Generic scope circularity',value:s.circularity,unit:'ratio',confidence:.9}),
+      normalizeMeasurement({metricId:'dvs_scope_correlation',label:'Generic scope correlation',value:s.correlation,unit:'ratio',confidence:.9}),
+      normalizeMeasurement({metricId:'dvs_missing_windows',label:'DVS missing-signal windows',value:missing,unit:'windows',confidence:.85})
+    );
+    if(s.circularity<.45)findings.push({code:'DVS_SCOPE_DEFORMED',title:'Generic DVS scope is strongly asymmetric',detail:`Circularity metric ${s.circularity.toFixed(3)}.`,severity:'review',confidence:.75,possibleCauses:['channel imbalance','phase relationship','tracking or wear','unsupported control signal'],isolationTests:['verify both channels','repeat with known-good control media','use vendor decoder when implemented']});
+    if(missing>0)findings.push({code:'DVS_SIGNAL_GAP',title:'DVS signal gaps detected',detail:`${missing} analysis window(s) fell below the generic presence threshold.`,severity:'review',confidence:.8,possibleCauses:['control-media wear','tracking loss','signal-path dropout','intentional silence or unsupported format'],isolationTests:['repeat same region','compare known-good control media','inspect cartridge and signal path']});
+    score=scoreFromFindings(findings);
+  }else if(test==='Channel & cartridge'){
+    const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);
+    const leftThd=thdPercent(audio.left,audio.sampleRate,referenceHz);
+    const rightThd=thdPercent(audio.right,audio.sampleRate,referenceHz);
+    measurements.push(
+      normalizeMeasurement({metricId:'left_thd_percent',label:'Left THD estimate',value:leftThd,unit:'%',confidence:.65}),
+      normalizeMeasurement({metricId:'right_thd_percent',label:'Right THD estimate',value:rightThd,unit:'%',confidence:.65})
+    );
+    if(Math.max(leftThd,rightThd)>5)findings.push({code:'ELEVATED_DISTORTION',title:'Elevated harmonic distortion estimate',detail:`Estimated THD L ${leftThd.toFixed(2)}%, R ${rightThd.toFixed(2)}% at the selected reference frequency.`,severity:'review',confidence:.65,possibleCauses:['mistracking','test-record distortion','input overload','stylus/cartridge condition'],isolationTests:['verify clean reference track','reduce gain and repeat','compare cartridge/channel swap']});
+    score=scoreFromFindings(findings);
   }else if(test==='Vibration check'){
     const low=lowBandEnergyDb(audio.left,audio.sampleRate,80);measurements.push(normalizeMeasurement({metricId:'low_frequency_energy_dbfs',label:'Low-frequency energy proxy',value:low,unit:'dBFS',confidence:.7}));if(low>-35)findings.push({code:'LOW_FREQUENCY_ENERGY',title:'Elevated low-frequency energy',detail:`Low-band proxy measured ${low.toFixed(1)} dBFS.`,severity:'review',confidence:.65,possibleCauses:['booth vibration','acoustic feedback','record warp','handling/footfall'],isolationTests:['capture quiet baseline','repeat with monitors muted','compare isolation treatment']});score=scoreFromFindings(findings);
   }else if(test==='Vinyl side scan'){
-    const v=analyzeVinylSide(audio);measurements.push(normalizeMeasurement({metricId:'vinyl_transients_per_min',label:'Transient events per minute',value:v.transientDensityPerMin,unit:'events/min',confidence:.72}),normalizeMeasurement({metricId:'vinyl_rumble_dbfs',label:'Subsonic/rumble proxy',value:v.rumbleDb,unit:'dBFS',confidence:.65}),normalizeMeasurement({metricId:'vinyl_condition_score',label:'Condition score',value:v.conditionScore,unit:'/100',confidence:.6}));if(v.events.length)findings.push({code:'VINYL_TRANSIENTS',title:`${v.events.length} transient candidates detected`,detail:'Transient candidates are evidence only; clicks, dust, scratches, cueing and musical attacks require confirmation.',severity:v.conditionScore<65?'warning':'review',confidence:.65,possibleCauses:['surface contamination','scratch or groove damage','musical transient','static discharge'],isolationTests:['repeat scan','clean record and compare','check recurrence at platter period']});if(v.recurrence.confidence>.7)findings.push({code:'REPEATING_EVENT',title:'Repeating event pattern detected',detail:`Candidate recurrence period ${v.recurrence.periodSec?.toFixed(3)} s.`,severity:'review',confidence:v.recurrence.confidence,possibleCauses:['repeating scratch','locked/repeating groove','periodic mechanical event'],isolationTests:['repeat scan from same side','compare event position by revolution']});score=v.conditionScore;
+    const v=analyzeVinylSide(audio);const mapped=normalizedEventMap(v.events,v.durationSec);measurements.push(normalizeMeasurement({metricId:'vinyl_transients_per_min',label:'Transient events per minute',value:v.transientDensityPerMin,unit:'events/min',confidence:.72}),normalizeMeasurement({metricId:'vinyl_rumble_dbfs',label:'Subsonic/rumble proxy',value:v.rumbleDb,unit:'dBFS',confidence:.65}),normalizeMeasurement({metricId:'vinyl_condition_score',label:'Condition score',value:v.conditionScore,unit:'/100',confidence:.6}),normalizeMeasurement({metricId:'vinyl_event_count',label:'Mapped transient candidates',value:mapped.length,unit:'events',confidence:.7}));if(v.events.length)findings.push({code:'VINYL_TRANSIENTS',title:`${v.events.length} transient candidates detected`,detail:'Transient candidates are evidence only; clicks, dust, scratches, cueing and musical attacks require confirmation.',severity:v.conditionScore<65?'warning':'review',confidence:.65,possibleCauses:['surface contamination','scratch or groove damage','musical transient','static discharge'],isolationTests:['repeat scan','clean record and compare','check recurrence at platter period']});if(v.recurrence.confidence>.7)findings.push({code:'REPEATING_EVENT',title:'Repeating event pattern detected',detail:`Candidate recurrence period ${v.recurrence.periodSec?.toFixed(3)} s.`,severity:'review',confidence:v.recurrence.confidence,possibleCauses:['repeating scratch','locked/repeating groove','periodic mechanical event'],isolationTests:['repeat scan from same side','compare event position by revolution']});score=v.conditionScore;
   }
   const drop=dropoutMetrics(audio.left,audio.sampleRate,{windowMs:20,dropDb:30});
   measurements.push(normalizeMeasurement({metricId:'dropout_count',label:'Capture/signal dropout regions',value:drop.dropoutCount,unit:'regions',confidence:.8}));
   if(drop.dropoutCount>0)findings.push({code:'SIGNAL_DROPOUT',title:'Signal dropout regions detected',detail:`${drop.dropoutCount} low-level region(s), totaling ${drop.dropoutDurationSec.toFixed(3)} s, fell well below the surrounding signal.`,severity:'review',confidence:.75,possibleCauses:['source dropout','intermittent contact','capture discontinuity','intentional silence'],isolationTests:['repeat capture','inspect contacts/cables','compare source waveform']});
+  const balance=measurements.find(m=>m.metricId==='channel_balance_db')?.value??0;
+  const hum=Math.max(measurements.find(m=>m.metricId==='left_hum_dbfs')?.value??-120,measurements.find(m=>m.metricId==='right_hum_dbfs')?.value??-120);
+  const corr=measurements.find(m=>m.metricId==='correlation')?.value??0;
+  for(const hypothesis of reasonFromEvidence({channelBalanceDb:balance,humDb:hum,correlation:corr,dropoutCount:drop.dropoutCount})){
+    if(findings.some(f=>f.code===hypothesis.code))continue;
+    findings.push({code:hypothesis.code,title:'Diagnostic hypothesis',detail:hypothesis.summary,severity:'review',confidence:hypothesis.confidence,possibleCauses:hypothesis.alternatives,isolationTests:hypothesis.isolationTests});
+  }
   return {measurements,findings,score:Math.min(score,scoreFromFindings(findings))};
 }
 
-function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',name!=='Speed & pitch');document.getElementById('modal-backdrop').classList.remove('hidden');}
+function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge'].includes(name));
+  document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');document.getElementById('modal-backdrop').classList.remove('hidden');}
 async function runSelectedTest(){
   const file=document.getElementById('analysis-file').files?.[0];if(!file){showToast('Select an audio file first.');return;}
   const button=document.getElementById('modal-run');button.disabled=true;button.textContent='Analyzing…';
   try{
     const audio=await decodeAudio(file);const result=analyzeForTest(currentTest,audio);const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
-    const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:file.name,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}saveWorkspace();await persistNative(run);renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
+    const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:file.name,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};
+    if(currentTest==='Pitch map'){
+      const pointFromRun=r=>{const pos=r.measurements.find(m=>m.metricId==='pitch_position')?.value;const measured=r.measurements.find(m=>m.metricId==='measured_pitch_percent')?.value;const directionCode=r.measurements.find(m=>m.metricId==='pitch_direction_code')?.value;return Number.isFinite(pos)&&Number.isFinite(measured)?{position:pos,measuredPercent:measured,direction:directionCode===1?'up':directionCode===-1?'down':'unknown'}:null;};
+      const points=runs.filter(r=>r.test==='Pitch map'&&r.deviceId===run.deviceId).map(pointFromRun).filter(Boolean);const current=pointFromRun(run);if(current)points.push(current);
+      const map=pitchMapMetrics(points);
+      if(Number.isFinite(map.slope))run.measurements.push(normalizeMeasurement({metricId:'pitch_map_slope',label:'Pitch map slope',value:map.slope,unit:'measured/input',confidence:Math.min(1,points.length/6)}));
+      run.measurements.push(normalizeMeasurement({metricId:'pitch_map_nonlinearity',label:'Pitch-map maximum nonlinearity',value:map.maxNonlinearityPercent,unit:'%',confidence:Math.min(1,points.length/6)}),normalizeMeasurement({metricId:'pitch_map_hysteresis',label:'Pitch-map hysteresis',value:map.hysteresisPercent,unit:'%',confidence:Math.min(1,points.length/8)}),normalizeMeasurement({metricId:'pitch_map_dead_spots',label:'Pitch-map dead-spot candidates',value:map.deadSpotCount,unit:'segments',confidence:Math.min(1,points.length/8)}));
+    }
+    runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}saveWorkspace();await persistNative(run);renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
   }catch(error){showToast(`Analysis failed: ${error.message}`);}finally{button.disabled=false;button.innerHTML='Analyze file <span>→</span>';}
 }
 function exportRun(){const run=runs.find(x=>x.id===selectedRunId)||runs[0];if(!run){showToast('Run a diagnostic before exporting.');return;}const html=buildHtmlReport({title:`DeckChek — ${run.test}`,device:run.device,createdAt:run.createdAt,measurements:run.measurements,findings:run.findings,notes:`Source: ${run.sourceFile}; ${run.sampleRate} Hz; ${run.channels} channel(s).`});const blob=new Blob([html],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`deckchek-${run.test.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${run.id}.html`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
