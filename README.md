@@ -1,6 +1,6 @@
 # DeckChek
 
-DeckChek is a cross-platform DJ hardware diagnostic workstation for DJs, technicians, collectors, repair shops, rental fleets, and performers. Its planned editions cover vinyl, CDJs/media players, and DJ controllers, with an Ultimate edition combining all three. The separate MIDI Tester remains a free MIDI diagnostics tool.
+DeckChek is a cross-platform DJ hardware diagnostic workstation for DJs, technicians, collectors, repair shops, rental fleets, and performers. Its planned editions cover vinyl, CDJs/media players, DJ controllers, and technician/engineering workflows, with an Ultimate edition combining all four. The separate MIDI Tester remains a free MIDI diagnostics tool.
 
 DeckChek is not a music player or DJ application. Its job is to measure, compare, diagnose, trend, and document DJ playback hardware and signal paths.
 
@@ -31,7 +31,8 @@ DeckChek should answer questions such as:
 - DeckChek Vinyl: turntables, cartridges, records, vinyl DVS, and vinyl-oriented venue tests.
 - DeckChek CDJ / Media Player: CDJs, file players, transport, pitch, outputs, media and CD/file DVS.
 - DeckChek Controller: DJ controllers, all-in-one systems, motorized control surfaces and supported audio paths.
-- DeckChek Ultimate: all three paid DeckChek editions.
+- DeckChek Technician / Engineering: service-bench diagnostics, generated reference signals, calibration worksheets, fault isolation, repair verification and engineering comparisons across supported turntables, CDJs and controllers.
+- DeckChek Ultimate: all four paid DeckChek editions.
 
 The complete proposed edition boundaries and test coverage are in [SPEC-11 Product Editions and Diagnostic Categories](docs/SPEC-11-product-editions-and-categories.md). Device records are capability-based, so hybrid and all-in-one systems can appear in multiple categories.
 
