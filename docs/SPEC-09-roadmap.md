@@ -360,3 +360,13 @@ A feature is done only when:
 ## 23. Acceptance criteria
 
 Roadmap is complete when every required capability from SPEC-00 through SPEC-08 maps to a phase and MVP has no dependency on a future cloud service or proprietary DVS decoder.
+
+## 24. Proposed CDJ major-release scope
+
+See [SPEC-10: CDJ and Media-Player Diagnostics](SPEC-10-CDJ-media-player-diagnostics.md) for all 30 consideration items and split delivery recommendations. The v0.x phases above remain the engineering sequence; v1.0/v2.0 labels in SPEC-10 describe eventual CDJ scope and are proposals, not commitments.
+
+Recommended v1.0: guided pitch calibration/display checks, tempo stability, zero-reset repeatability, basic analog signal health, generic CD/file DVS integrity, guided isolation, local player/firmware records, basic pair matching and inspection reports. Reuse phases 1, 2, 4, 8 and reporting infrastructure.
+
+Recommended v2.0: fine pitch resolution, reference-aligned cue/loop/transport tests, disc-read timelines, burned-media compatibility, calibrated output tests, PCM comparisons, keylock/FX comparisons, supported decoder extensions and guided stress tests.
+
+Recommended v3.0+: synchronized physical trigger/jog latency, low-level S/PDIF inspection, automated model-specific control and community benchmarks. Each requires its own hardware/backend and validation gates.
