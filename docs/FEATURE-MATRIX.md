@@ -1,7 +1,29 @@
 # DeckChek Feature Matrix
 
-This matrix is the implementation checklist tying requested product features to the detailed working specifications.
+This matrix is the implementation checklist tying requested product features to the detailed working specifications. Edition packaging and category definitions are proposed in [SPEC-11](SPEC-11-product-editions-and-categories.md); product editions do not change the existing phase sequence in SPEC-09.
 
+| Area | Feature | Primary spec | Planned phase |
+|---|---|---|---|
+| Editions | Free MIDI Tester capability inventory | SPEC-11 | Existing separate app |
+| Editions | Vinyl paid edition | SPEC-11, SPEC-01 to SPEC-06 | Package after required phases |
+| Editions | CDJ / Media Player paid edition | SPEC-11, SPEC-10 | Package after required phases |
+| Editions | Controller paid edition | SPEC-11 | After controller tests validated |
+| Editions | Ultimate bundle | SPEC-11 | After all three paid modules |
+| Editions | Capability-based hybrid device profiles | SPEC-11, SPEC-04, SPEC-07 | Shared database phase |
+| MIDI Tester | Live decoded and raw MIDI monitor | SPEC-11 | Existing separate app |
+| MIDI Tester | Input/output device selection and connection log | SPEC-11 | Existing separate app |
+| MIDI Tester | CC inventory, range, distinct values, jitter and jumps | SPEC-11 | Existing separate app |
+| MIDI Tester | Encoder behavior hints and direction changes | SPEC-11 | Existing separate app |
+| MIDI Tester | Held notes, pitch bend and MIDI clock input | SPEC-11 | Existing separate app |
+| MIDI Tester | MIDI Learn and labelled mapping worksheet | SPEC-11 | Existing separate app |
+| MIDI Tester | Note On/Off output and all-channel panic | SPEC-11 | Existing separate app |
+| MIDI Tester | Guided checks, local baseline and JSON export | SPEC-11 | Existing separate app |
+| Controller | MIDI/HID/control-surface diagnostics | SPEC-11 | Future controller phase |
+| Controller | Fader range, dead zone, monotonicity and repeatability | SPEC-11 | Future controller phase |
+| Controller | Encoder, jog, pad and button behavior tests | SPEC-11 | Future controller phase |
+| Controller | Controller audio I/O and loopback checks | SPEC-11 | Future controller phase |
+| Controller | Motorized control-deck diagnostics | SPEC-11 | Future controller phase |
+| Controller | Supported mapping/software behavior checks | SPEC-11 | Future controller phase |
 | Area | Feature | Primary spec | Planned phase |
 |---|---|---|---|
 | Input | Audio device selection/routing | SPEC-00, SPEC-01 | 0-1 |
