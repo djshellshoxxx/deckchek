@@ -41,3 +41,5 @@ export function signalSanityMetrics(left,right,sampleRate){
   const leftRms=rms(left),rightRms=rms(right),leftPeak=peak(left),rightPeak=peak(right),corr=correlation(left,right);const leftDb=dbfs(leftRms),rightDb=dbfs(rightRms);const monoN=Math.min(left.length,right.length);const mono=new Float32Array(monoN);for(let i=0;i<monoN;i++)mono[i]=(left[i]+right[i])*.5;
   return {leftDcOffset:mean(left),rightDcOffset:mean(right),leftCrestFactor:leftRms>EPS?leftPeak/leftRms:0,rightCrestFactor:rightRms>EPS?rightPeak/rightRms:0,leftPresent:leftDb>-70,rightPresent:rightDb>-70,stereoPresent:leftDb>-70&&rightDb>-70,dualMonoSuspected:leftDb>-70&&rightDb>-70&&Math.abs(leftDb-rightDb)<.2&&corr>.995,spectralCentroidHz:spectralCentroidApprox(mono,sampleRate),correlation:corr};
 }
+
+export function toneAmplitude(samples,sampleRate,frequencyHz){return goertzel(samples,sampleRate,frequencyHz);}
