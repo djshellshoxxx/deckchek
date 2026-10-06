@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  rms, dbfs, peak, clippingCount, correlation, channelBalanceDb, signalSanityMetrics,
+  rms, dbfs, peak, clippingCount, correlation, channelBalanceDb, signalSanityMetrics, toneAmplitude,
   estimateToneFrequency, speedFromReferenceTone, humMetrics, scopeMetrics,
   detectTransients, recurrenceMetrics, conditionScore, quickDiagnostic,
   buildHtmlReport, normalizeMeasurement, compareRuns
@@ -116,7 +116,7 @@ test('16-bit WAV encoder writes RIFF/WAVE header',()=>{
 
 
 import {
-  pitchMapMetrics, transitionMetrics, normalizedLevelTrace, repeatabilityMetrics, trendMetrics, channelSeparationDb, thdPercent,
+  pitchMapMetrics, transitionMetrics, normalizedLevelTrace, repeatabilityMetrics, trendMetrics, channelSeparationDb, thdPercent, traceModulationPercent, ellipseMetrics, dvsIntegrityScore, subsonicPeak, compareEventMaps,
   dvsIntegrityTimeline, normalizedEventMap, reasonFromEvidence
 } from '../app/diagnostics.js';
 
@@ -191,4 +191,30 @@ test('repeatability metrics calculate mean spread and sample count',()=>{
 });
 test('trend metrics calculate linear drift per minute',()=>{
   const m=trendMetrics([{timeMin:0,value:0},{timeMin:5,value:.1},{timeMin:10,value:.2}]);assert.ok(Math.abs(m.slopePerMin-.02)<1e-9);assert.ok(m.rSquared>.999);
+});
+
+
+test('tone amplitude isolates requested frequency',()=>{
+  const x=sine(1000,.5,.5);assert.ok(toneAmplitude(x,sr,1000)>.45);assert.ok(toneAmplitude(x,sr,2000)<.01);
+});
+test('expanded pitch map metrics report mapping error and monotonicity',()=>{
+  const m=pitchMapMetrics([{position:-8,measuredPercent:-7.5},{position:-4,measuredPercent:-4},{position:0,measuredPercent:.2},{position:4,measuredPercent:3.8},{position:8,measuredPercent:8.2}]);
+  assert.ok(m.maxMappingErrorPercent>=.49);assert.ok(m.rmsMappingErrorPercent>0);assert.equal(m.monotonicityFailures,0);assert.ok(Math.abs(m.zeroOffsetPercent-.2)<1e-9);
+});
+test('trace modulation finds known revolution synchronous component',()=>{
+  const trace=Array.from({length:100},(_,i)=>({timeSec:i*.1,frequencyHz:1000*(1+.001*Math.sin(2*Math.PI*.5*i*.1))}));
+  const m=traceModulationPercent(trace,{referenceHz:1000,frequencyHz:.5});assert.ok(m>.08&&m<.12);
+});
+test('ellipse metrics recover axis imbalance for quadrature signal',()=>{
+  const l=sine(1000,.25,.8,0),r=sine(1000,.25,.4,Math.PI/2);const e=ellipseMetrics(l,r);assert.ok(e.axisRatio>.45&&e.axisRatio<.55);assert.ok(e.eccentricity>.8&&e.eccentricity<.9);
+});
+test('DVS integrity score penalizes missing windows and clipping',()=>{
+  const good=dvsIntegrityScore({leftPresent:true,rightPresent:true,balanceDb:0,circularity:.95,clippedSamples:0,missingWindowRatio:0,humDb:-70});
+  const bad=dvsIntegrityScore({leftPresent:true,rightPresent:false,balanceDb:10,circularity:.05,clippedSamples:100,missingWindowRatio:.5,humDb:-25});assert.ok(good.score>90);assert.ok(bad.score<50);assert.ok(Object.keys(good.components).length>=5);
+});
+test('subsonic peak locates a warp-rate sine',()=>{
+  const sampleRate=1000,n=sampleRate*10,x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=.5*Math.sin(2*Math.PI*.6*i/sampleRate);const p=subsonicPeak(x,sampleRate,{minHz:.2,maxHz:2,stepHz:.1});assert.ok(Math.abs(p.frequencyHz-.6)<.11);
+});
+test('event map comparison separates persistent and new candidates',()=>{
+  const c=compareEventMaps([{normalizedPosition:.1},{normalizedPosition:.5}],[{normalizedPosition:.105},{normalizedPosition:.8}],{tolerance:.02});assert.equal(c.persistent.length,1);assert.equal(c.resolved.length,1);assert.equal(c.newEvents.length,1);
 });
