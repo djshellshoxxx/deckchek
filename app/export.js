@@ -1,0 +1,4 @@
+function csvCell(value){const s=String(value??'');return /[",\r\n]/.test(s)?`"${s.replaceAll('"','""')}"`:s;}
+export function measurementsToCsv(measurements=[]){const header=['metric_id','label','value','unit','origin','confidence'];const rows=measurements.map(m=>[m.metricId,m.label,m.value,m.unit,m.origin,m.confidence].map(csvCell).join(','));return [header.join(','),...rows].join('\r\n')+'\r\n';}
+export function serializeWorkspaceJson({equipment=[],runs=[]}={}){return JSON.stringify({version:1,exportedAt:new Date().toISOString(),equipment,runs},null,2);}
+export function parseWorkspaceJson(text){const data=JSON.parse(text);if(data?.version!==1||!Array.isArray(data.equipment)||!Array.isArray(data.runs))throw new Error('Unsupported or invalid DeckChek workspace file.');return {version:1,equipment:data.equipment,runs:data.runs};}
