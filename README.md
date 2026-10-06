@@ -36,6 +36,10 @@ DeckChek should answer questions such as:
 10. Preventive Maintenance / Baseline Trending
 11. Report and Evidence Export
 
+## CDJ / media-player diagnostics under consideration
+
+The [CDJ consideration backlog](docs/SPEC-10-CDJ-media-player-diagnostics.md) retains 30 proposed diagnostic and comparison ideas, with recommended v1.0, v2.0 and later scope. The proposed first release reuses pitch mapping, stereo Quick Check, generic CD/file timecode analysis, local player records and comparison reports. Advanced transport, optical-media, cue/jog and digital-output tests are staged separately. These are recommendations, not implemented features or release commitments.
+
 ## Implementation direction
 
 Preferred stack:
@@ -65,6 +69,7 @@ No Python, PowerShell, or JUCE is required.
 - [SPEC-07 Data Model and Local API](docs/SPEC-07-data-model-api.md)
 - [SPEC-08 Test Methodology and Validation](docs/SPEC-08-test-methodology.md)
 - [SPEC-09 Implementation Roadmap](docs/SPEC-09-roadmap.md)
+- [SPEC-10 CDJ and Media-Player Diagnostics — Consideration Backlog](docs/SPEC-10-CDJ-media-player-diagnostics.md)
 - [Feature Implementation Matrix](docs/FEATURE-MATRIX.md)
 - [Research Notes and Sources](docs/RESEARCH.md)
 
