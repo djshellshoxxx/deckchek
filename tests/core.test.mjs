@@ -156,3 +156,16 @@ test('normalized level trace follows a start and stop envelope',()=>{
   const x=new Float32Array(sr);for(let i=0;i<x.length;i++){const t=i/sr;const env=t<.2?t/.2:t<.7?1:Math.max(0,1-(t-.7)/.2);x[i]=env*.5*Math.sin(2*Math.PI*1000*i/sr);}
   const trace=normalizedLevelTrace(x,sr,{windowMs:20});assert.ok(trace.length>30);assert.ok(trace[0].level<.2);assert.ok(Math.max(...trace.map(x=>x.level))>.95);assert.ok(trace.at(-1).level<.2);
 });
+
+
+import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from '../app/export.js';
+
+test('CSV export quotes commas quotes and line breaks',()=>{
+  const csv=measurementsToCsv([{metricId:'x',label:'A, "quoted"\nlabel',value:1.2,unit:'dB',origin:'measured',confidence:.9}]);
+  assert.ok(csv.includes('"A, ""quoted""\nlabel"')); assert.ok(csv.includes('1.2'));
+});
+test('workspace JSON round trip keeps version and arrays',()=>{
+  const text=serializeWorkspaceJson({equipment:[{id:'1'}],runs:[{id:'r'}]});const data=parseWorkspaceJson(text);
+  assert.equal(data.version,1);assert.equal(data.equipment[0].id,'1');assert.equal(data.runs[0].id,'r');
+});
+test('workspace import rejects invalid shape',()=>{assert.throws(()=>parseWorkspaceJson('{"version":1,"equipment":{}}'));});
