@@ -20,7 +20,8 @@ This is a scope specification. It does not claim that the listed tests are alrea
 | **DeckChek Vinyl** | Focused paid edition | Vinyl turntable, cartridge, record, vinyl DVS, and vinyl-oriented venue diagnostics. |
 | **DeckChek CDJ / Media Player** | Focused paid edition, priced in the same general band as Vinyl and Controller | CDJ, optical-disc, USB/SD media-player, CD/file DVS, transport, pitch, and output diagnostics. |
 | **DeckChek Controller** | Focused paid edition, priced in the same general band as Vinyl and CDJ / Media Player | DJ controller, all-in-one, motorized control surface, fader, jog, pad, control-message, and supported audio-path diagnostics. |
-| **DeckChek Ultimate** | Higher-priced bundle | All three paid DeckChek editions: Vinyl, CDJ / Media Player, and Controller. Includes the Controller edition's MIDI diagnostics. |
+| **DeckChek Technician / Engineering** | Professional paid edition; pricing to be determined | Cross-category service-bench and engineering workflows described in Section 7.5, with equipment-aware requirements and evidence reports. |
+| **DeckChek Ultimate** | Higher-priced bundle | All four paid DeckChek editions: Vinyl, CDJ / Media Player, Controller, and Technician / Engineering. Includes the Controller edition's MIDI diagnostics. |
 
 MIDI Tester remains free and usable on its own. Its MIDI measurement functions can be shared with or extended by DeckChek Controller, but the free app is not a reduced trial of the paid physical, audio, or transport diagnostics.
 
@@ -260,9 +261,36 @@ Calibrated voltage, frequency response, distortion or crosstalk requires known r
 
 A guided compatibility check may capture device messages and compare them with user-selected expected functions or a user-provided mapping. It may report missing/changed messages and connection instability. DeckChek must not claim certification for an entire DJ application or automatically modify mappings unless a separately specified, supported integration is added.
 
+### 7.5 DeckChek Technician / Engineering edition
+
+This is a standalone professional capability set for turntable repair technicians, development engineers, audio engineers, repair shops and rental-fleet service teams. It spans supported turntables, CDJs/media players, controllers and their audio paths.
+
+The edition includes the shared device analysis required by its bench workflows without requiring a separate focused-edition purchase. It does not automatically include every consumer-oriented workflow in Vinyl, CDJ / Media Player or Controller; Ultimate combines all four complete scopes. Ordinary diagnostics already assigned to focused editions remain available there.
+
+Proposed scope:
+
+- configurable test-tone, sweep, two-tone, noise and burst generation, WAV reference packs and reproducible stimulus manifests;
+- interface loopback qualification, calibration provenance, measurement floors and method-compatible comparisons;
+- guided fault isolation, tagged component swaps, intermittent-fault capture and cold/warm experiments;
+- model/revision-specific multimeter worksheets for isolated continuity/resistance and verified service readings;
+- guided built-in service tests, manual result entry, photographs and supported device-export imports, including the proposed CDJ jog-load CSV importer;
+- microphone and phone-video comparisons with processing, placement, timing and accuracy limits preserved;
+- electronic gain/response/headroom tests and inverse-RIAA phono-stage testing when the required attenuator and calibration are available;
+- before/after repair verification, serial-number service history, replaced-part records and technical evidence reports;
+- repeatable design experiments, parameter comparisons, repeatability and uncertainty analysis;
+- optional instrument-assisted rotation, torque, runout, vibration and motor-electrical measurements after separate hardware integration and validation.
+
+The [Possible Future Features backlog](POSSIBLE-FUTURE-FEATURES.md) defines the 49 proposed basic-equipment workflows, deferred instrument-assisted candidates, requirements and sources. This edition is a packaging proposal; those candidates are not implemented capabilities or beta dependencies.
+
+Basic equipment is a supported starting point. Select available audio I/O, multimeter functions, microphone, camera, reference media and adapters before choosing a test. Missing equipment makes a test unavailable. Specialized instruments are optional requirements for specific advanced measurements, not prerequisites for the entire edition.
+
+Reports must distinguish direct measurements, device-reported results, manual observations, estimates and simulated algorithm tests. Service limits must match model, revision, region and procedure. Generated electrical tones do not replace groove-based cartridge tests. Service-mode USB availability must be verified; no undocumented remote service API is assumed.
+
+Edition entitlements must never override measurement validity, equipment checks or release gates. No factory-reset, firmware-writing or automatic internal-adjustment feature is included by this proposal.
+
 ## 8. DeckChek Ultimate
 
-Ultimate combines the complete Vinyl, CDJ / Media Player and Controller capability sets. It is intended for users with mixed equipment, technicians, rental operations and buyers evaluating complete DJ rigs.
+Ultimate combines the complete Vinyl, CDJ / Media Player, Controller and Technician / Engineering capability sets. It is intended for users with mixed equipment, technicians, rental operations and buyers evaluating complete DJ rigs.
 
 Ultimate shall provide:
 
@@ -271,7 +299,8 @@ Ultimate shall provide:
 - comparable A/B reports when methods and capture conditions match;
 - holistic chain reports that identify which device/path was tested;
 - access to category-specific workflows without duplicating measurements or stored assets;
-- Controller edition's MIDI diagnostic functions in addition to the separate free MIDI Tester.
+- Controller edition's MIDI diagnostic functions in addition to the separate free MIDI Tester;
+- Technician / Engineering service-bench, repair-verification and engineering workflows, subject to their equipment and validation requirements.
 
 An Ultimate report must retain per-category coverage. It must never calculate one unsupported aggregate hardware-health score from unrelated metrics.
 
@@ -318,7 +347,8 @@ Recommended sequencing:
 3. Deliver Vinyl workflows as turntable/DVS/vinyl capabilities mature.
 4. Deliver CDJ workflows by reusing signal-chain and generic DVS services, then add media-reference alignment.
 5. Deliver Controller diagnostics after MIDI/HID input, external control references and integrated audio loopback are validated.
-6. Package focused paid editions and Ultimate only after every included test meets its acceptance criteria.
+6. Deliver Technician / Engineering bench workflows as their shared analysis, service profiles, stimulus generation and evidence-import paths are validated.
+7. Package focused paid editions, Technician / Engineering and Ultimate only after every included test meets its acceptance criteria.
 
 Each test needs synthetic or known-reference regression fixtures, negative cases, hardware validation appropriate to the claim, persisted provenance, report support and user-facing setup instructions.
 
@@ -330,7 +360,8 @@ The edition and category model is ready for implementation when:
 - no existing test is accidentally dropped by the edition structure;
 - Free MIDI Tester is documented as a standalone MIDI-only product with its current capabilities and clear limits;
 - hybrid/multi-capability devices can appear across categories without duplicating their identity;
-- focused editions and Ultimate can unlock shared modules from a single application build;
+- focused editions, Technician / Engineering and Ultimate can unlock shared modules from a single application build;
+- Technician / Engineering bench workflows include their required shared analysis without an additional focused-edition purchase, and Ultimate includes all four paid scopes;
 - controller-only motorized platters are distinguishable from analog record-playing turntables;
 - all editions distinguish unsupported, unavailable, untested, passed and failed states;
 - future pricing/entitlement implementation has a separately reviewed license and billing specification.
