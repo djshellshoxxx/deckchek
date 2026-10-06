@@ -20,6 +20,7 @@ jobs:
       - run: node --check app/app.js
       - run: node --check app/core.js
       - run: node --check app/advanced.js
+      - run: node --check app/diagnostics.js
 
   rust-tests:
     runs-on: ubuntu-22.04
