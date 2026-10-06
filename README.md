@@ -65,6 +65,7 @@ No Python, PowerShell, or JUCE is required.
 - [SPEC-07 Data Model and Local API](docs/SPEC-07-data-model-api.md)
 - [SPEC-08 Test Methodology and Validation](docs/SPEC-08-test-methodology.md)
 - [SPEC-09 Implementation Roadmap](docs/SPEC-09-roadmap.md)
+- [Feature Implementation Matrix](docs/FEATURE-MATRIX.md)
 - [Research Notes and Sources](docs/RESEARCH.md)
 
 ## Design principles
