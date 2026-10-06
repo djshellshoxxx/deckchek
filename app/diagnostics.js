@@ -48,3 +48,9 @@ export function reasonFromEvidence({channelBalanceDb=0,humDb=-120,correlation=0,
   if(dropoutCount>0)out.push({code:'INTERMITTENT_PATH',confidence:.7,summary:'One or more signal dropout regions were observed.',alternatives:['intermittent connector','media dropout','capture discontinuity','intentional silence'],isolationTests:['repeat capture','flex-test cable/connector','compare alternate source']});
   return out;
 }
+
+export function normalizedLevelTrace(samples,sampleRate,{windowMs=20}={}){
+  const win=Math.max(8,Math.floor(sampleRate*windowMs/1000));const raw=[];let max=0;
+  for(let start=0;start+win<=samples.length;start+=win){let sum=0;for(let i=start;i<start+win;i++)sum+=samples[i]*samples[i];const value=Math.sqrt(sum/win);max=Math.max(max,value);raw.push({timeSec:(start+win/2)/sampleRate,value});}
+  const denom=Math.max(max,1e-12);return raw.map(x=>({timeSec:x.timeSec,level:x.value/denom}));
+}
