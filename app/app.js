@@ -3,7 +3,7 @@ import {
   quickDiagnostic, scopeMetrics, speedFromReferenceTone
 } from './core.js';
 import { dropoutMetrics, encodeWav16, frequencyTrace, generateSine, speedStabilityMetrics } from './advanced.js';
-import { dvsIntegrityTimeline, normalizedEventMap, pitchMapMetrics, reasonFromEvidence, thdPercent } from './diagnostics.js';
+import { dvsIntegrityTimeline, normalizedEventMap, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, thdPercent, transitionMetrics } from './diagnostics.js';
 
 const DEMO_EQUIPMENT=[
   {id:'eq-technics',name:'Technics SL-1200MK2',kind:'Turntable',chain:'Ortofon Concorde MKII · Rane Seventy-Two',tested:'Not tested',status:'Unverified'},
@@ -111,6 +111,18 @@ function analyzeForTest(test,audio){
     if(s.circularity<.45)findings.push({code:'DVS_SCOPE_DEFORMED',title:'Generic DVS scope is strongly asymmetric',detail:`Circularity metric ${s.circularity.toFixed(3)}.`,severity:'review',confidence:.75,possibleCauses:['channel imbalance','phase relationship','tracking or wear','unsupported control signal'],isolationTests:['verify both channels','repeat with known-good control media','use vendor decoder when implemented']});
     if(missing>0)findings.push({code:'DVS_SIGNAL_GAP',title:'DVS signal gaps detected',detail:`${missing} analysis window(s) fell below the generic presence threshold.`,severity:'review',confidence:.8,possibleCauses:['control-media wear','tracking loss','signal-path dropout','intentional silence or unsupported format'],isolationTests:['repeat same region','compare known-good control media','inspect cartridge and signal path']});
     score=scoreFromFindings(findings);
+  }else if(test==='Startup & brake'){
+    const trace=normalizedLevelTrace(audio.left,audio.sampleRate,{windowMs:20});
+    const stopSec=Number(document.getElementById('transition-stop-sec')?.value||Math.max(0,audio.durationSec/2));
+    let stopIndex=0,best=Infinity;for(let i=0;i<trace.length;i++){const diff=Math.abs(trace[i].timeSec-stopSec);if(diff<best){best=diff;stopIndex=i;}}
+    const tm=transitionMetrics(trace,{startIndex:0,stopIndex,readyThreshold:.9,stoppedThreshold:.1});
+    measurements.push(
+      normalizeMeasurement({metricId:'startup_envelope_90_sec',label:'Signal-envelope rise to 90%',value:tm.startupSec??-1,unit:'s',confidence:.55}),
+      normalizeMeasurement({metricId:'brake_envelope_10_sec',label:'Signal-envelope fall to 10%',value:tm.brakeSec??-1,unit:'s',confidence:.55}),
+      normalizeMeasurement({metricId:'transition_stop_marker_sec',label:'User stop/brake marker',value:stopSec,unit:'s',origin:'user_entered',confidence:1})
+    );
+    if(tm.startupSec==null||tm.brakeSec==null)findings.push({code:'TRANSITION_INCOMPLETE',title:'Transition threshold not reached',detail:'The selected recording did not cross one or more envelope thresholds.',severity:'review',confidence:.8,possibleCauses:['incorrect stop marker','recording does not contain full transition','signal level too low'],isolationTests:['repeat from stationary start','capture through complete stop','adjust stop marker']});
+    score=scoreFromFindings(findings);
   }else if(test==='Channel & cartridge'){
     const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);
     const leftThd=thdPercent(audio.left,audio.sampleRate,referenceHz);
@@ -140,7 +152,8 @@ function analyzeForTest(test,audio){
 }
 
 function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge'].includes(name));
-  document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');document.getElementById('modal-backdrop').classList.remove('hidden');}
+  document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');
+  document.getElementById('transition-fields')?.classList.toggle('hidden',name!=='Startup & brake');document.getElementById('modal-backdrop').classList.remove('hidden');}
 async function runSelectedTest(){
   const file=document.getElementById('analysis-file').files?.[0];if(!file){showToast('Select an audio file first.');return;}
   const button=document.getElementById('modal-run');button.disabled=true;button.textContent='Analyzing…';
