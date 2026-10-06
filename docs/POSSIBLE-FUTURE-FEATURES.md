@@ -6,6 +6,10 @@ Audience: DJs, repair technicians, development engineers and audio engineers.
 
 This document retains the proposed basic-equipment features and additional ideas found while searching turntable, CDJ and controller service manuals. Existing diagnostics are extended rather than redefined. See [SPEC-01](SPEC-01-turntable-cartridge-diagnostics.md), [SPEC-05](SPEC-05-venue-surface-diagnostics.md), [SPEC-10](SPEC-10-CDJ-media-player-diagnostics.md), [SPEC-11](SPEC-11-product-editions-and-categories.md), [SPEC-14](SPEC-14-audio-routing-and-wiring.md), [SPEC-18](SPEC-18-open-source-reuse-and-validation.md) and [SPEC-19](SPEC-19-scientific-measurement-and-validation.md).
 
+## Proposed edition mapping
+
+The proposed **DeckChek Technician / Engineering** edition owns these professional bench workflows, including the shared analysis each needs. It is usable without buying a focused edition separately. Existing Vinyl, CDJ / Media Player and Controller diagnostics retain their documented coverage. **Ultimate includes all four paid editions.** See [SPEC-11 Section 7.5](SPEC-11-product-editions-and-categories.md#75-deckchek-technician--engineering-edition). Edition access does not bypass equipment requirements or validation gates; all items here remain future candidates.
+
 ## 1. Equipment tiers and evidence labels
 
 | Tier | Available equipment | Intended use |
