@@ -218,3 +218,9 @@ test('subsonic peak locates a warp-rate sine',()=>{
 test('event map comparison separates persistent and new candidates',()=>{
   const c=compareEventMaps([{normalizedPosition:.1},{normalizedPosition:.5}],[{normalizedPosition:.105},{normalizedPosition:.8}],{tolerance:.02});assert.equal(c.persistent.length,1);assert.equal(c.resolved.length,1);assert.equal(c.newEvents.length,1);
 });
+
+
+import fs from 'node:fs';
+test('application speed branch does not reference DVS-only integrity state',()=>{
+  const source=fs.readFileSync(new URL('../app/app.js',import.meta.url),'utf8');const start=source.indexOf("if(test==='Speed & pitch')");const end=source.indexOf("}else if(",start);assert.ok(start>=0&&end>start);assert.ok(!source.slice(start,end).includes('integrity.score'));
+});
