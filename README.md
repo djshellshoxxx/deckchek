@@ -1,8 +1,8 @@
 # DeckChek
 
-DeckChek is a cross-platform turntable, cartridge, vinyl, DVS/timecode, mixer, audio-interface, and venue diagnostic workstation for DJs, technicians, collectors, repair shops, rental fleets, and vinyl-only performers.
+DeckChek is a cross-platform DJ hardware diagnostic workstation for DJs, technicians, collectors, repair shops, rental fleets, and performers. Its planned editions cover vinyl, CDJs/media players, and DJ controllers, with an Ultimate edition combining all three. The separate MIDI Tester remains a free MIDI diagnostics tool.
 
-The project is intentionally not a music player or DJ application. Its job is to measure, compare, diagnose, trend, and document the physical and electrical health of a vinyl playback/DVS chain.
+DeckChek is not a music player or DJ application. Its job is to measure, compare, diagnose, trend, and document DJ playback hardware and signal paths.
 
 ## Product goals
 
@@ -22,19 +22,15 @@ DeckChek should answer questions such as:
 - How does this cartridge/turntable/mixer/interface combination compare with other measured combinations?
 - Which venue surface or booth arrangement has historically produced the best vinyl stability?
 
-## Core modes
+## Proposed product editions
 
-1. Turntable Diagnostic
-2. Cartridge and Signal-Chain Diagnostic
-3. DVS / Timecode Diagnostic
-4. Full-Side Vinyl Condition Scan
-5. Scratch and Tracking Stress Test
-6. Pitch-Fader Mapping
-7. A/B Deck Matching
-8. Venue / Surface / Feedback Diagnostic
-9. Hardware and Timecode Comparison Database
-10. Preventive Maintenance / Baseline Trending
-11. Report and Evidence Export
+- MIDI Tester — Free: standalone MIDI monitor and basic controller diagnostic tool; current capabilities are listed in its own section in SPEC-11.
+- DeckChek Vinyl: turntables, cartridges, records, vinyl DVS, and vinyl-oriented venue tests.
+- DeckChek CDJ / Media Player: CDJs, file players, transport, pitch, outputs, media and CD/file DVS.
+- DeckChek Controller: DJ controllers, all-in-one systems, motorized control surfaces and supported audio paths.
+- DeckChek Ultimate: all three paid DeckChek editions.
+
+The complete proposed edition boundaries and test coverage are in [SPEC-11 Product Editions and Diagnostic Categories](docs/SPEC-11-product-editions-and-categories.md). Device records are capability-based, so hybrid and all-in-one systems can appear in multiple categories.
 
 ## CDJ / media-player diagnostics under consideration
 
@@ -70,6 +66,7 @@ No Python, PowerShell, or JUCE is required.
 - [SPEC-08 Test Methodology and Validation](docs/SPEC-08-test-methodology.md)
 - [SPEC-09 Implementation Roadmap](docs/SPEC-09-roadmap.md)
 - [SPEC-10 CDJ and Media-Player Diagnostics — Consideration Backlog](docs/SPEC-10-CDJ-media-player-diagnostics.md)
+- [SPEC-11 Product Editions and Diagnostic Categories](docs/SPEC-11-product-editions-and-categories.md)
 - [Feature Implementation Matrix](docs/FEATURE-MATRIX.md)
 - [Research Notes and Sources](docs/RESEARCH.md)
 
