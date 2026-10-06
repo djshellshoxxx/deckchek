@@ -21,6 +21,9 @@ DeckChek should answer questions such as:
 - Has a specific deck, cartridge, or venue setup degraded since its last baseline?
 - How does this cartridge/turntable/mixer/interface combination compare with other measured combinations?
 - Which venue surface or booth arrangement has historically produced the best vinyl stability?
+- Does a CDJ or media player hold speed, read reference media consistently, and produce clean outputs?
+- Are a controller's faders, encoders, jogs, pads, buttons, and MIDI/HID messages behaving consistently?
+- Do the controller's audio outputs and routing pass a repeatable signal-path check?
 
 ## Proposed product editions
 
