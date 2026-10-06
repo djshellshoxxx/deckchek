@@ -1,27 +1,50 @@
 # DeckChek build status
 
-## Current build slice
+DeckChek is no longer a static sample-only prototype. It now contains a local offline-analysis beta path backed by deterministic measurement modules and, in the Tauri desktop build, SQLite persistence.
 
-The first implementation slice adds a Tauri 2 desktop shell and a static, interactive GUI prototype under app/. The prototype includes:
+## Current capabilities
 
-- overview dashboard with activity and equipment sample cards;
-- test center with category filters and setup dialogs;
-- equipment inventory table with live text search;
-- results history with sample reports;
-- audio setup and safe signal-path guidance;
-- responsive layout, keyboard-dismissable dialogs, visible preview-mode notices.
+The UI can analyze local audio files for stereo signal health, reference-tone speed/pitch, pitch-map points, generic DVS integrity, cartridge/reference-tone distortion evidence, startup/brake envelope timing, signal dropouts and full-side vinyl transient candidates. Results are kept as evidence plus transparent findings rather than unconditional fault diagnoses.
 
-All displayed records and results are sample UI data. The prototype does not enumerate audio devices, capture audio, run diagnostic measurements, persist records, or export reports. Do not use its scores as evidence about real hardware.
+Measured runs can be exported as HTML reports and CSV, entire browser workspaces can be exported/imported as versioned JSON, and compatible runs can be compared by identical metric ID and unit. The desktop bridge writes sessions, method-versioned measurements and finding evidence into the existing SQLite schema.
 
-## Run
+The application can enumerate browser-visible audio inputs, but continuous native capture is not yet implemented. Hardware calibration and standards-level validation are also still required.
 
-Install Rust and the platform prerequisites for Tauri 2, then from the repository root run:
+## Run the browser shell
+
+Serve the repository root or app/ through a local HTTP server and open app/index.html. ES modules normally require HTTP rather than file:// loading.
+
+## Run tests
+
+    npm test
+    node --check app/app.js
+    node --check app/core.js
+    node --check app/advanced.js
+    node --check app/diagnostics.js
+    node --check app/export.js
+
+## Run the Tauri desktop shell
+
+Install Rust and the Tauri 2 platform prerequisites, then from the repository root run:
 
     cargo install tauri-cli --version "^2"
     cargo tauri dev
 
-The UI can also be previewed without the desktop shell by serving the app/ directory with any static HTTP server and opening app/index.html.
+For Rust-only verification:
 
-## Next implementation steps\n\n1. Install and verify the Tauri toolchain on Windows, then run a first desktop build.\n2. Add the chosen TypeScript build tool and replace the static page wiring with typed UI modules.\n3. Wire the UI to runtime-status IPC and keep all sample records behind an explicit preview-data provider.\n4. Add a SQLite repository using the existing migration and verify migration compatibility.\n5. Add device enumeration and a safe input-level calibration flow before any diagnostic reads live audio.\n6. Implement one validated measurement vertical slice: stereo channel balance with known test signals and repeatability checks.\n\n## Architecture direction
+    cargo test --manifest-path src-tauri/Cargo.toml
+    cargo check --manifest-path src-tauri/Cargo.toml
 
-The existing product specification selects a Rust core, Tauri desktop shell, TypeScript/HTML/CSS interface, audio input abstraction, FFT/resampling libraries, and SQLite. The Rust layer now has initial serializable domain records for devices, diagnostic runs, measurements and findings, plus a runtime-status IPC command. The current interface does not invoke that command yet. This initial UI intentionally uses plain HTML/CSS/JavaScript so the navigation and interaction model can be reviewed before choosing a frontend toolchain. The next build slice should add a typed frontend build, domain models mapped to database/migrations/0001_initial.sql, and repository boundaries. Audio enumeration and analysis must follow SPEC-08 validation requirements and remain clearly separated from demo values.
+CI contains both JavaScript and Rust jobs. Native Windows packaging still needs target-machine verification.
+
+## Persistence behavior
+
+Static browser mode stores the working equipment/run list in localStorage and supports JSON export/import.
+
+Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies database/migrations/0001_initial.sql, and stores completed diagnostic sessions, analysis methods, measurements and finding evidence.
+
+## Measurement status
+
+The deterministic algorithms are suitable for development and repeatable file analysis. Accuracy claims remain gated by SPEC-08 and SPEC-19. In particular, the current short-term speed metric is a proxy until validated against the exact target wow/flutter method; vibration and damage classifiers remain evidence signals rather than definitive diagnoses.
+
+See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the full implemented/partial/missing list.
