@@ -113,3 +113,40 @@ test('16-bit WAV encoder writes RIFF/WAVE header',()=>{
   const str=(o,n)=>Array.from({length:n},(_,i)=>String.fromCharCode(view.getUint8(o+i))).join('');
   assert.equal(str(0,4),'RIFF'); assert.equal(str(8,4),'WAVE'); assert.equal(str(12,4),'fmt '); assert.equal(str(36,4),'data');
 });
+
+
+import {
+  pitchMapMetrics, transitionMetrics, channelSeparationDb, thdPercent,
+  dvsIntegrityTimeline, normalizedEventMap, reasonFromEvidence
+} from '../app/diagnostics.js';
+
+test('pitch map reports slope, nonlinearity and hysteresis',()=>{
+  const points=[
+    {position:-8,measuredPercent:-7.9,direction:'up'},{position:-4,measuredPercent:-4.1,direction:'up'},
+    {position:0,measuredPercent:.05,direction:'up'},{position:4,measuredPercent:4.2,direction:'up'},
+    {position:8,measuredPercent:8.1,direction:'up'},{position:8,measuredPercent:8.0,direction:'down'},
+    {position:4,measuredPercent:4.0,direction:'down'},{position:0,measuredPercent:-.05,direction:'down'},
+    {position:-4,measuredPercent:-4.0,direction:'down'},{position:-8,measuredPercent:-8.0,direction:'down'}
+  ];
+  const m=pitchMapMetrics(points); assert.ok(m.slope>.98 && m.slope<1.05); assert.ok(m.maxNonlinearityPercent<.35); assert.ok(m.hysteresisPercent<.3);
+});
+test('transition metrics identify startup and brake threshold crossings',()=>{
+  const trace=[0,.1,.35,.7,.95,1,.98,.7,.3,.05,0].map((level,i)=>({timeSec:i*.1,level}));
+  const m=transitionMetrics(trace,{startIndex:0,stopIndex:6,readyThreshold:.9,stoppedThreshold:.1});
+  assert.ok(Math.abs(m.startupSec-.4)<.001); assert.ok(Math.abs(m.brakeSec-.3)<.001);
+});
+test('channel separation converts signal/leak ratio to dB',()=>{assert.ok(Math.abs(channelSeparationDb(.5,.005)-40)<.01);});
+test('THD estimate remains low for clean sine and rises with harmonic',()=>{
+  const clean=sine(1000,1,.5); const dirty=Float32Array.from(clean,(v,i)=>v+.1*Math.sin(2*Math.PI*2000*i/sr));
+  assert.ok(thdPercent(clean,sr,1000)<1); assert.ok(thdPercent(dirty,sr,1000)>10);
+});
+test('DVS integrity timeline flags a muted interval',()=>{
+  const l=sine(1000,1,.5),r=sine(1000,1,.5,Math.PI/2);for(let i=20000;i<28000;i++){l[i]=0;r[i]=0;}
+  const timeline=dvsIntegrityTimeline(l,r,sr,{windowSec:.05}); assert.ok(timeline.some(x=>x.signalPresent===false)); assert.ok(timeline.some(x=>x.signalPresent===true));
+});
+test('normalized event map keeps positions within side bounds',()=>{
+  const m=normalizedEventMap([{timeSec:0},{timeSec:30},{timeSec:60}],60); assert.deepEqual(m.map(x=>x.normalizedPosition),[0,.5,1]);
+});
+test('reasoning engine preserves alternatives and isolation tests',()=>{
+  const r=reasonFromEvidence({channelBalanceDb:3.2,humDb:-34,correlation:.1}); assert.ok(r.some(x=>x.code==='CHANNEL_PATH_IMBALANCE')); assert.ok(r.some(x=>x.code==='HUM_PATH')); assert.ok(r.every(x=>x.alternatives.length>0&&x.isolationTests.length>0));
+});
