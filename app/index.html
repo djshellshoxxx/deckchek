@@ -123,8 +123,9 @@
       <div class="field-grid hidden" id="speed-fields"><label><span>Reference tone</span><input id="reference-hz" type="number" min="20" max="20000" step="0.1" value="1000"></label><label><span>Nominal RPM</span><select id="nominal-rpm"><option value="33.333333">33⅓ RPM</option><option value="45">45 RPM</option><option value="78">78 RPM</option></select></label></div>
       <div class="field-grid hidden" id="pitch-fields"><label><span>Pitch control position (%)</span><input id="pitch-position" type="number" min="-100" max="100" step="0.1" value="0"></label><label><span>Travel direction</span><select id="pitch-direction"><option value="up">Up / increasing</option><option value="down">Down / decreasing</option><option value="unknown">Single point</option></select></label></div>
       <div class="field-grid hidden" id="transition-fields"><label><span>Brake/stop marker (seconds)</span><input id="transition-stop-sec" type="number" min="0" step="0.01" value="3"></label><label><span>Method</span><select disabled><option>Signal-envelope proxy</option></select></label></div>
-      <div class="modal-callout"><b>Local analysis</b><span>The selected file is decoded and analyzed on this device. Raw audio is not uploaded by DeckChek.</span></div>
-      <div class="modal-actions"><button class="button button-outline" id="modal-cancel">Cancel</button><button class="button button-primary" id="modal-run">Analyze file <span>→</span></button></div>
+      <div class="modal-callout"><b>Local analysis</b><span>Analyze a saved audio file, or use bounded native capture in the Tauri desktop build. Full-side scans should use files rather than IPC capture.</span></div>
+      <div class="field-grid"><label><span>Native capture duration (seconds)</span><input id="capture-duration" type="number" min="0.5" max="30" step="0.5" value="5"></label><label><span>Live input</span><span class="setup-help">Uses the input selected in Audio Setup, or the default native input.</span></label></div>
+      <div class="modal-actions"><button class="button button-outline" id="modal-cancel">Cancel</button><button class="button button-outline" id="modal-capture">Capture & analyze</button><button class="button button-primary" id="modal-run">Analyze file <span>→</span></button></div>
     </section>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
