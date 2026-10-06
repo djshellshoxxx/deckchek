@@ -1,9 +1,9 @@
 import {
   analyzeVinylSide, buildHtmlReport, compareRuns, lowBandEnergyDb, normalizeMeasurement,
-  quickDiagnostic, scopeMetrics, speedFromReferenceTone
+  quickDiagnostic, rms, scopeMetrics, speedFromReferenceTone
 } from './core.js';
 import { dropoutMetrics, encodeWav16, frequencyTrace, generateSine, speedStabilityMetrics } from './advanced.js';
-import { dvsIntegrityTimeline, normalizedEventMap, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, thdPercent, transitionMetrics } from './diagnostics.js';
+import { dvsIntegrityTimeline, normalizedEventMap, channelSeparationDb, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, thdPercent, transitionMetrics } from './diagnostics.js';
 import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from './export.js';
 
 const DEMO_EQUIPMENT=[
@@ -124,6 +124,11 @@ function analyzeForTest(test,audio){
     );
     if(tm.startupSec==null||tm.brakeSec==null)findings.push({code:'TRANSITION_INCOMPLETE',title:'Transition threshold not reached',detail:'The selected recording did not cross one or more envelope thresholds.',severity:'review',confidence:.8,possibleCauses:['incorrect stop marker','recording does not contain full transition','signal level too low'],isolationTests:['repeat from stationary start','capture through complete stop','adjust stop marker']});
     score=scoreFromFindings(findings);
+  }else if(test==='Channel separation'){
+    const active=document.getElementById('separation-active')?.value||'left';const activeLevel=active==='left'?rms(audio.left):rms(audio.right);const leakLevel=active==='left'?rms(audio.right):rms(audio.left);const separation=channelSeparationDb(activeLevel,leakLevel);
+    measurements.push(normalizeMeasurement({metricId:'channel_separation_db',label:`${active==='left'?'Left':'Right'}-track channel separation`,value:separation,unit:'dB',confidence:.8}),normalizeMeasurement({metricId:'separation_reference_channel',label:'Isolated reference channel',value:active==='left'?0:1,unit:'code',origin:'user_entered',confidence:1}));
+    findings.push({code:'SEPARATION_CONTEXT',title:'Channel-separation result requires reference context',detail:`Measured broadband separation is ${separation.toFixed(2)} dB for the declared isolated-${active} track. Compare against the documented test record and calibrated interface baseline before attributing loss to the cartridge.`,severity:'informational',confidence:.9,possibleCauses:['cartridge crosstalk','azimuth/alignment','test-record leakage','interface or mixer crosstalk'],isolationTests:['measure interface loopback isolation','repeat opposite-channel track','compare known-good cartridge']});
+    score=scoreFromFindings(findings);
   }else if(test==='Channel & cartridge'){
     const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);
     const leftThd=thdPercent(audio.left,audio.sampleRate,referenceHz);
@@ -154,7 +159,8 @@ function analyzeForTest(test,audio){
 
 function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge'].includes(name));
   document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');
-  document.getElementById('transition-fields')?.classList.toggle('hidden',name!=='Startup & brake');document.getElementById('modal-backdrop').classList.remove('hidden');}
+  document.getElementById('transition-fields')?.classList.toggle('hidden',name!=='Startup & brake');
+  document.getElementById('separation-fields')?.classList.toggle('hidden',name!=='Channel separation');document.getElementById('modal-backdrop').classList.remove('hidden');}
 async function finalizeAnalysis(audio,sourceName,qualityFindings=[]){
   const result=analyzeForTest(currentTest,audio);result.findings.push(...qualityFindings);result.score=Math.min(result.score,scoreFromFindings(result.findings));
   const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
