@@ -24,7 +24,15 @@ This matrix is the implementation checklist tying requested product features to 
 | Controller | Controller audio I/O and loopback checks | SPEC-11 | Future controller phase |
 | Controller | Motorized control-deck diagnostics | SPEC-11 | Future controller phase |
 | Controller | Supported mapping/software behavior checks | SPEC-11 | Future controller phase |
-| Input | Audio device selection/routing | SPEC-00, SPEC-01 | 0-1 |
+| GUI | Navigation, screen states, accessible live monitoring and results | SPEC-13 | Shared foundation |
+| Wiring | Physical route graph, safe input guidance, capture point declaration | SPEC-14 | Shared foundation |
+| Audio routing | Device enumeration, channel map, calibration and disconnect behavior | SPEC-14 | 0-1 |
+| Input/output | Audio, MIDI/HID, references, sensors, data persistence and export contracts | SPEC-15 | Shared foundation |
+| Workflow | Session lifecycle, preflight, pause/stop, recovery and result finalization | SPEC-16 | Shared foundation |
+| Functional behavior | Edition/capability planning, reports, comparisons and unavailable-state rules | SPEC-16 | Shared foundation |
+| Operations | Crash recovery, storage failure, migration, privacy and support bundles | SPEC-17 | All phases |
+| Release quality | Installer/update/uninstall, security checks and release gates | SPEC-17 | Release gates |
+| Input | Audio device selection/routing | SPEC-00, SPEC-01, SPEC-14 | 0-1 |
 | Input | L/R signal presence | SPEC-01 | 1 |
 | Input | Clipping detection | SPEC-01 | 1 |
 | Input | Capture dropout/discontinuity detection | SPEC-00 | 1 |
