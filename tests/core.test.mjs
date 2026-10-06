@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  rms, dbfs, peak, clippingCount, correlation, channelBalanceDb,
+  rms, dbfs, peak, clippingCount, correlation, channelBalanceDb, signalSanityMetrics,
   estimateToneFrequency, speedFromReferenceTone, humMetrics, scopeMetrics,
   detectTransients, recurrenceMetrics, conditionScore, quickDiagnostic,
   buildHtmlReport, normalizeMeasurement, compareRuns
@@ -169,3 +169,12 @@ test('workspace JSON round trip keeps version and arrays',()=>{
   assert.equal(data.version,1);assert.equal(data.equipment[0].id,'1');assert.equal(data.runs[0].id,'r');
 });
 test('workspace import rejects invalid shape',()=>{assert.throws(()=>parseWorkspaceJson('{"version":1,"equipment":{}}'));});
+
+
+test('signal sanity metrics detect DC offset crest factor and missing channel',()=>{
+  const l=sine(1000,.25,.5);for(let i=0;i<l.length;i++)l[i]+=.1;const r=new Float32Array(l.length);
+  const m=signalSanityMetrics(l,r,sr);assert.ok(Math.abs(m.leftDcOffset-.1)<.01);assert.ok(m.leftCrestFactor>1.2);assert.equal(m.rightPresent,false);assert.equal(m.stereoPresent,false);
+});
+test('signal sanity flags highly correlated dual mono',()=>{
+  const l=sine(440,.25,.5);const m=signalSanityMetrics(l,new Float32Array(l),sr);assert.equal(m.dualMonoSuspected,true);assert.ok(m.spectralCentroidHz>300&&m.spectralCentroidHz<700);
+});
