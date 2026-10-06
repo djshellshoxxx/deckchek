@@ -155,21 +155,40 @@ function analyzeForTest(test,audio){
 function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge'].includes(name));
   document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');
   document.getElementById('transition-fields')?.classList.toggle('hidden',name!=='Startup & brake');document.getElementById('modal-backdrop').classList.remove('hidden');}
+async function finalizeAnalysis(audio,sourceName,qualityFindings=[]){
+  const result=analyzeForTest(currentTest,audio);result.findings.push(...qualityFindings);result.score=Math.min(result.score,scoreFromFindings(result.findings));
+  const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
+  const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:sourceName,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};
+  if(currentTest==='Pitch map'){
+    const pointFromRun=r=>{const pos=r.measurements.find(m=>m.metricId==='pitch_position')?.value;const measured=r.measurements.find(m=>m.metricId==='measured_pitch_percent')?.value;const directionCode=r.measurements.find(m=>m.metricId==='pitch_direction_code')?.value;return Number.isFinite(pos)&&Number.isFinite(measured)?{position:pos,measuredPercent:measured,direction:directionCode===1?'up':directionCode===-1?'down':'unknown'}:null;};
+    const points=runs.filter(r=>r.test==='Pitch map'&&r.deviceId===run.deviceId).map(pointFromRun).filter(Boolean);const current=pointFromRun(run);if(current)points.push(current);
+    const map=pitchMapMetrics(points);
+    if(Number.isFinite(map.slope))run.measurements.push(normalizeMeasurement({metricId:'pitch_map_slope',label:'Pitch map slope',value:map.slope,unit:'measured/input',confidence:Math.min(1,points.length/6)}));
+    run.measurements.push(normalizeMeasurement({metricId:'pitch_map_nonlinearity',label:'Pitch-map maximum nonlinearity',value:map.maxNonlinearityPercent,unit:'%',confidence:Math.min(1,points.length/6)}),normalizeMeasurement({metricId:'pitch_map_hysteresis',label:'Pitch-map hysteresis',value:map.hysteresisPercent,unit:'%',confidence:Math.min(1,points.length/8)}),normalizeMeasurement({metricId:'pitch_map_dead_spots',label:'Pitch-map dead-spot candidates',value:map.deadSpotCount,unit:'segments',confidence:Math.min(1,points.length/8)}));
+  }
+  runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}
+  saveWorkspace();await persistNative(run);renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
+}
 async function runSelectedTest(){
   const file=document.getElementById('analysis-file').files?.[0];if(!file){showToast('Select an audio file first.');return;}
   const button=document.getElementById('modal-run');button.disabled=true;button.textContent='Analyzing…';
+  try{await finalizeAnalysis(await decodeAudio(file),file.name);}
+  catch(error){showToast(`Analysis failed: ${error.message}`);}
+  finally{button.disabled=false;button.innerHTML='Analyze file <span>→</span>';}
+}
+async function runLiveCapture(){
+  const button=document.getElementById('modal-capture');const durationSec=Number(document.getElementById('capture-duration')?.value||5);
+  if(!window.__TAURI__?.core?.invoke){showToast('Native capture is available in the Tauri desktop build.');return;}
+  button.disabled=true;button.textContent='Capturing…';
   try{
-    const audio=await decodeAudio(file);const result=analyzeForTest(currentTest,audio);const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
-    const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:file.name,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};
-    if(currentTest==='Pitch map'){
-      const pointFromRun=r=>{const pos=r.measurements.find(m=>m.metricId==='pitch_position')?.value;const measured=r.measurements.find(m=>m.metricId==='measured_pitch_percent')?.value;const directionCode=r.measurements.find(m=>m.metricId==='pitch_direction_code')?.value;return Number.isFinite(pos)&&Number.isFinite(measured)?{position:pos,measuredPercent:measured,direction:directionCode===1?'up':directionCode===-1?'down':'unknown'}:null;};
-      const points=runs.filter(r=>r.test==='Pitch map'&&r.deviceId===run.deviceId).map(pointFromRun).filter(Boolean);const current=pointFromRun(run);if(current)points.push(current);
-      const map=pitchMapMetrics(points);
-      if(Number.isFinite(map.slope))run.measurements.push(normalizeMeasurement({metricId:'pitch_map_slope',label:'Pitch map slope',value:map.slope,unit:'measured/input',confidence:Math.min(1,points.length/6)}));
-      run.measurements.push(normalizeMeasurement({metricId:'pitch_map_nonlinearity',label:'Pitch-map maximum nonlinearity',value:map.maxNonlinearityPercent,unit:'%',confidence:Math.min(1,points.length/6)}),normalizeMeasurement({metricId:'pitch_map_hysteresis',label:'Pitch-map hysteresis',value:map.hysteresisPercent,unit:'%',confidence:Math.min(1,points.length/8)}),normalizeMeasurement({metricId:'pitch_map_dead_spots',label:'Pitch-map dead-spot candidates',value:map.deadSpotCount,unit:'segments',confidence:Math.min(1,points.length/8)}));
-    }
-    runs.unshift(run);selectedRunId=run.id;if(device){device.tested=new Date().toLocaleDateString();device.status=result.score>=85?'Good':'Review';}saveWorkspace();await persistNative(run);renderEquipment(document.getElementById('equipment-search').value);renderResults();document.getElementById('modal-backdrop').classList.add('hidden');go('results');showToast(`${currentTest} complete · ${result.measurements.length} measurements · ${result.findings.length} findings`);
-  }catch(error){showToast(`Analysis failed: ${error.message}`);}finally{button.disabled=false;button.innerHTML='Analyze file <span>→</span>';}
+    const select=document.getElementById('input-device');const deviceName=select?.dataset.backend==='native'&&select.value?select.value:null;
+    const payload=await invokeNative('capture_native_audio',{deviceName,durationSec});
+    const audio={left:Float32Array.from(payload.left||[]),right:Float32Array.from(payload.right||[]),sampleRate:payload.sampleRate,channels:payload.channels,durationSec:(payload.left?.length||0)/Math.max(1,payload.sampleRate)};
+    if(!audio.left.length)throw new Error('Native capture returned no samples.');
+    const quality=(payload.streamErrors||[]).length?[{code:'CAPTURE_STREAM_ERROR',title:'Audio stream reported errors',detail:(payload.streamErrors||[]).join('; '),severity:'review',confidence:1,possibleCauses:['device/driver interruption','buffer scheduling issue'],isolationTests:['repeat capture','check device connection and driver']}]:[];
+    await finalizeAnalysis(audio,`Native capture · ${payload.deviceName||'audio input'}`,quality);
+  }catch(error){showToast(`Capture failed: ${error}`);}
+  finally{button.disabled=false;button.innerHTML='Capture & analyze';}
 }
 function downloadText(filename,text,type='text/plain'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function exportWorkspace(){downloadText('deckchek-workspace.json',serializeWorkspaceJson({equipment,runs}),'application/json');showToast('Workspace exported.');}
@@ -179,7 +198,16 @@ function compareLatest(){const a=runs[0];if(!a){showToast('At least two compatib
 function exportRun(){const run=runs.find(x=>x.id===selectedRunId)||runs[0];if(!run){showToast('Run a diagnostic before exporting.');return;}const html=buildHtmlReport({title:`DeckChek — ${run.test}`,device:run.device,createdAt:run.createdAt,measurements:run.measurements,findings:run.findings,notes:`Source: ${run.sourceFile}; ${run.sampleRate} Hz; ${run.channels} channel(s).`});const blob=new Blob([html],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`deckchek-${run.test.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${run.id}.html`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function addEquipment(){const name=prompt('Equipment name/model');if(!name?.trim())return;const kind=prompt('Category (Turntable, Media player, Controller, Mixer, Audio interface)','Turntable')||'Other';const chain=prompt('Signal chain / notes','')||'';equipment.push({id:uid('eq'),name:name.trim(),kind:kind.trim(),chain:chain.trim(),tested:'Not tested',status:'Unverified'});saveWorkspace();renderEquipment();showToast('Equipment added locally.');}
 function generateReferenceTone(){const hz=1000,sampleRate=48000;const tone=generateSine({frequencyHz:hz,sampleRate,durationSec:10,amplitude:.35});const wav=encodeWav16({left:tone,right:tone,sampleRate});const blob=new Blob([wav],{type:'audio/wav'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='deckchek-1000hz-reference-10s.wav';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Generated 10 s stereo 1 kHz reference WAV.');}
-async function enumerateAudio(){const select=document.getElementById('input-device');try{const devices=await navigator.mediaDevices?.enumerateDevices?.();const inputs=(devices||[]).filter(d=>d.kind==='audioinput');select.innerHTML='<option value="">No live capture selected</option>'+inputs.map((d,i)=>`<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label||`Audio input ${i+1}`)}</option>`).join('');showToast(`${inputs.length} audio input(s) detected. Live capture remains a later native adapter.`);}catch(error){showToast(`Device enumeration unavailable: ${error.message}`);}}
+async function enumerateAudio(){const select=document.getElementById('input-device');
+  try{
+    const native=await invokeNative('list_native_audio_inputs');
+    if(Array.isArray(native)){
+      select.dataset.backend='native';select.innerHTML='<option value="">Default native input</option>'+native.map(d=>`<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}${d.isDefault?' · default':''}</option>`).join('');
+      showToast(`${native.length} native audio input(s) detected.`);return;
+    }
+  }catch(error){showToast(`Native enumeration failed: ${error}`);}
+  try{const devices=await navigator.mediaDevices?.enumerateDevices?.();const inputs=(devices||[]).filter(d=>d.kind==='audioinput');select.dataset.backend='web';select.innerHTML='<option value="">No live capture selected</option>'+inputs.map((d,i)=>`<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label||`Audio input ${i+1}`)}</option>`).join('');showToast(`${inputs.length} browser audio input(s) detected. Desktop native capture requires Tauri.`);}catch(error){showToast(`Device enumeration unavailable: ${error.message}`);}
+}
 
 loadWorkspace();renderEquipment();renderResults();initializeNativePersistence();
 document.querySelectorAll('.nav-item').forEach(button=>button.addEventListener('click',()=>go(button.dataset.page)));
@@ -188,7 +216,7 @@ document.getElementById('equipment-search')?.addEventListener('input',event=>ren
 document.querySelectorAll('[data-test]').forEach(button=>button.addEventListener('click',()=>openTest(button.dataset.test)));
 document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('selected',item===button));document.querySelectorAll('.test-card').forEach(card=>card.classList.toggle('hidden',button.dataset.filter!=='all'&&card.dataset.kind!==button.dataset.filter));}));
 document.querySelectorAll('.notice-close').forEach(button=>button.addEventListener('click',()=>button.closest('.notice').remove()));
-const backdrop=document.getElementById('modal-backdrop');document.getElementById('modal-close').addEventListener('click',()=>backdrop.classList.add('hidden'));document.getElementById('modal-cancel').addEventListener('click',()=>backdrop.classList.add('hidden'));backdrop.addEventListener('click',event=>{if(event.target===backdrop)backdrop.classList.add('hidden');});document.getElementById('modal-run').addEventListener('click',runSelectedTest);document.getElementById('add-equipment').addEventListener('click',addEquipment);document.querySelector('.add-equipment')?.addEventListener('click',addEquipment);document.getElementById('calibrate').addEventListener('click',enumerateAudio);document.getElementById('generate-tone')?.addEventListener('click',generateReferenceTone);document.getElementById('export-results').addEventListener('click',exportRun);
+const backdrop=document.getElementById('modal-backdrop');document.getElementById('modal-close').addEventListener('click',()=>backdrop.classList.add('hidden'));document.getElementById('modal-cancel').addEventListener('click',()=>backdrop.classList.add('hidden'));backdrop.addEventListener('click',event=>{if(event.target===backdrop)backdrop.classList.add('hidden');});document.getElementById('modal-run').addEventListener('click',runSelectedTest);document.getElementById('modal-capture')?.addEventListener('click',runLiveCapture);document.getElementById('add-equipment').addEventListener('click',addEquipment);document.querySelector('.add-equipment')?.addEventListener('click',addEquipment);document.getElementById('calibrate').addEventListener('click',enumerateAudio);document.getElementById('generate-tone')?.addEventListener('click',generateReferenceTone);document.getElementById('export-results').addEventListener('click',exportRun);
 document.getElementById('export-csv')?.addEventListener('click',exportCsv);
 document.getElementById('compare-results')?.addEventListener('click',compareLatest);
 document.getElementById('export-workspace')?.addEventListener('click',exportWorkspace);
