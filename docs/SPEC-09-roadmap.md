@@ -370,3 +370,11 @@ Recommended v1.0: guided pitch calibration/display checks, tempo stability, zero
 Recommended v2.0: fine pitch resolution, reference-aligned cue/loop/transport tests, disc-read timelines, burned-media compatibility, calibrated output tests, PCM comparisons, keylock/FX comparisons, supported decoder extensions and guided stress tests.
 
 Recommended v3.0+: synchronized physical trigger/jog latency, low-level S/PDIF inspection, automated model-specific control and community benchmarks. Each requires its own hardware/backend and validation gates.
+
+## 25. Proposed product editions and category coverage
+
+[SPEC-11](SPEC-11-product-editions-and-categories.md) defines a free MIDI Tester category, paid Vinyl, CDJ / Media Player and Controller editions, and an Ultimate edition containing the three paid modules. These are product packaging targets; the v0.x phases above remain the implementation order. MIDI Tester remains a separate free browser app. Controller edition work builds on its MIDI diagnostics and adds controller, motorized surface and supported audio-path testing.
+
+Hybrid equipment is represented by capability profiles and one shared hardware record. A hybrid analog/DVS turntable is primarily Vinyl, a motorized control deck is primarily Controller, and an all-in-one player/controller may use both Controller and CDJ / Media Player modules. No edition model permits untested capabilities to be reported as passed.
+
+See SPEC-11 for the complete intended test catalog and classification rules.
