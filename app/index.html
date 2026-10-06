@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0d12">
+  <title>DeckChek — Hardware Diagnostic Workstation</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <a class="brand" href="#" aria-label="DeckChek home"><span class="brand-mark">D</span><span class="brand-copy"><strong>DECKCHEK</strong><small>HARDWARE LAB</small></span></a>
+      <div class="rail-label">WORKSPACE</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-page="overview"><span>◫</span> Overview</button>
+        <button class="nav-item" data-page="tests"><span>⌁</span> Test center <b class="nav-count">04</b></button>
+        <button class="nav-item" data-page="equipment"><span>▤</span> Equipment</button>
+        <button class="nav-item" data-page="results"><span>▥</span> Results</button>
+        <button class="nav-item" data-page="setup"><span>⚙</span> Audio setup</button>
+      </nav>
+      <div class="rail-spacer"></div>
+      <div class="edition"><span class="edition-dot"></span><div><small>EDITION</small><strong>VINYL · PREVIEW</strong></div></div>
+      <div class="profile"><span class="avatar">SD</span><div><strong>Local workspace</strong><small>Data stays on this device</small></div><span class="more">•••</span></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb"><span>Workspace</span><i>/</i><strong id="crumb-current">Overview</strong></div>
+        <div class="top-actions"><span class="local-badge"><span></span> LOCAL ONLY</span><button class="icon-button" aria-label="Help">?</button></div>
+      </header>
+
+      <section class="page active" id="page-overview">
+        <div class="page-heading">
+          <div><div class="eyebrow">MONDAY, OCTOBER 6, 2026 <span class="eyebrow-line"></span> SESSION 09:42</div><h1>Good morning, Sheldon.</h1><p class="subhead">Your hardware bench is ready. Pick up where you left off.</p></div>
+          <button class="button button-primary" data-goto="tests"><span>＋</span> Start a test</button>
+        </div>
+
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Preview interface</strong><span>Audio devices and live measurements are not connected yet. The readings shown below are sample data.</span></div><button class="notice-close" aria-label="Dismiss notice">×</button></div>
+
+        <div class="metrics">
+          <article class="metric-card"><div class="metric-top"><span>TESTS THIS MONTH</span><span class="metric-symbol blue">⌁</span></div><strong>24</strong><div class="metric-foot"><span class="positive">↑ 18%</span><span>vs. last month</span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>REGISTERED DECKS</span><span class="metric-symbol green">▤</span></div><strong>06</strong><div class="metric-foot"><span>Across 3 categories</span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>NEEDS ATTENTION</span><span class="metric-symbol amber">!</span></div><strong>02</strong><div class="metric-foot"><span class="attention">Review recent findings</span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>LAST SESSION</span><span class="metric-symbol violet">◷</span></div><strong class="metric-date">Oct 04</strong><div class="metric-foot"><span>Technics SL-1200MK2</span></div></article>
+        </div>
+
+        <div class="content-grid">
+          <section class="panel test-panel">
+            <div class="panel-heading"><div><div class="section-kicker">QUICK ACCESS</div><h2>Start a diagnostic</h2></div><button class="text-button" data-goto="tests">View all tests <span>→</span></button></div>
+            <div class="test-list">
+              <button class="test-row" data-test="Speed & pitch"><span class="test-icon blue">◉</span><span class="test-text"><strong>Speed & pitch</strong><small>Wow, flutter, RPM, pitch range</small></span><span class="test-time">~ 2 MIN</span><span class="arrow">→</span></button>
+              <button class="test-row" data-test="Stereo balance"><span class="test-icon green">◧</span><span class="test-text"><strong>Stereo balance</strong><small>Channel level, phase, noise floor</small></span><span class="test-time">~ 1 MIN</span><span class="arrow">→</span></button>
+              <button class="test-row" data-test="DVS signal"><span class="test-icon violet">⌁</span><span class="test-text"><strong>DVS signal</strong><small>Scope shape, tracking, stability</small></span><span class="test-time">~ 2 MIN</span><span class="arrow">→</span></button>
+              <button class="test-row" data-test="Vibration check"><span class="test-icon amber">⌇</span><span class="test-text"><strong>Vibration check</strong><small>Booth resonance & feedback risk</small></span><span class="test-time">~ 3 MIN</span><span class="arrow">→</span></button>
+            </div>
+          </section>
+          <section class="panel session-panel">
+            <div class="panel-heading"><div><div class="section-kicker">RECENT ACTIVITY</div><h2>Latest sessions</h2></div><button class="text-button" data-goto="results">All results <span>→</span></button></div>
+            <div class="session-list">
+              <button class="session-row" data-result="Technics SL-1200MK2"><span class="session-status pass">✓</span><span class="session-text"><strong>Technics SL-1200MK2</strong><small>Speed & pitch · Today, 9:18 AM</small></span><span class="score"><strong>94</strong><small>/100</small></span></button>
+              <button class="session-row" data-result="Pioneer PLX-1000"><span class="session-status warn">!</span><span class="session-text"><strong>Pioneer PLX-1000</strong><small>Stereo balance · Yesterday</small></span><span class="score warn-score"><strong>72</strong><small>/100</small></span></button>
+              <button class="session-row" data-result="Technics SL-1200MK2"><span class="session-status pass">✓</span><span class="session-text"><strong>Technics SL-1200MK2</strong><small>DVS signal · Oct 02, 2026</small></span><span class="score"><strong>98</strong><small>/100</small></span></button>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel bench-panel">
+          <div class="panel-heading"><div><div class="section-kicker">YOUR BENCH</div><h2>Equipment overview</h2></div><button class="text-button" data-goto="equipment">Manage equipment <span>→</span></button></div>
+          <div class="equipment-strip">
+            <button class="equipment-card" data-equipment="Technics SL-1200MK2"><span class="equipment-type">TURNTABLE <b>● ACTIVE</b></span><strong>Technics SL-1200MK2</strong><small>Ortofon Concorde MKII · Rane Seventy-Two</small><span class="equipment-bottom"><span>Last tested Oct 06</span><span class="health good">GOOD</span></span></button>
+            <button class="equipment-card" data-equipment="Pioneer PLX-1000"><span class="equipment-type">TURNTABLE <b>● ACTIVE</b></span><strong>Pioneer PLX-1000</strong><small>Shure M44-7 · Allen & Heath Xone:96</small><span class="equipment-bottom"><span>Last tested Oct 05</span><span class="health review">REVIEW</span></span></button>
+            <button class="equipment-card add-equipment"><span class="add-circle">＋</span><strong>Add equipment</strong><small>Register a deck, cartridge, mixer or interface</small></button>
+          </div>
+        </section>
+        <footer class="footer"><span>DECKCHEK™ <span class="muted">·</span> BUILD 0.1.0-UI</span><span>Measurements require a calibrated audio input chain.</span><button data-goto="setup">Configure audio →</button></footer>
+      </section>
+
+      <section class="page" id="page-tests">
+        <div class="page-heading compact-heading"><div><div class="eyebrow">DIAGNOSTICS <span class="eyebrow-line"></span> VINYL EDITION</div><h1>Test center</h1><p class="subhead">Choose a repeatable check for your turntable, cartridge, or signal path.</p></div></div>
+        <div class="filter-row"><div class="segmented"><button class="selected" data-filter="all">All tests <span>8</span></button><button data-filter="turntable">Turntable</button><button data-filter="signal">Signal path</button><button data-filter="venue">Venue</button></div><span class="demo-label"><span></span> SAMPLE WORKFLOW</span></div>
+        <div class="test-cards">
+          <article class="test-card" data-kind="turntable"><span class="test-icon blue">◉</span><span class="duration">2 MIN</span><h3>Speed & pitch</h3><p>Check platter RPM, wow and flutter, pitch range and fader tracking using a reference tone.</p><div class="test-tags"><span>33⅓ / 45 RPM</span><span>Pitch map</span></div><button class="button button-outline start-test" data-test="Speed & pitch">Set up test <span>→</span></button></article>
+          <article class="test-card" data-kind="signal"><span class="test-icon green">◧</span><span class="duration">1 MIN</span><h3>Stereo balance</h3><p>Compare left and right levels, polarity, noise floor and hum under controlled input.</p><div class="test-tags"><span>L / R</span><span>Phase</span></div><button class="button button-outline start-test" data-test="Stereo balance">Set up test <span>→</span></button></article>
+          <article class="test-card" data-kind="turntable"><span class="test-icon violet">⌁</span><span class="duration">2 MIN</span><h3>DVS signal</h3><p>Inspect control-tone scope, signal level, noise and dropouts with supported timecode.</p><div class="test-tags"><span>Control vinyl</span><span>Tracking</span></div><button class="button button-outline start-test" data-test="DVS signal">Set up test <span>→</span></button></article>
+          <article class="test-card" data-kind="venue"><span class="test-icon amber">⌇</span><span class="duration">3 MIN</span><h3>Vibration & feedback</h3><p>Measure low-frequency movement and compare isolation or booth placement changes.</p><div class="test-tags"><span>Venue</span><span>Compare runs</span></div><button class="button button-outline start-test" data-test="Vibration check">Set up test <span>→</span></button></article>
+          <article class="test-card" data-kind="turntable"><span class="test-icon blue">⌖</span><span class="duration">4 MIN</span><h3>Channel & cartridge</h3><p>Run a guided set of alignment, azimuth and channel separation measurements.</p><div class="test-tags"><span>Cartridge</span><span>Guided</span></div><button class="button button-outline start-test" data-test="Channel & cartridge">Set up test <span>→</span></button></article>
+          <article class="test-card" data-kind="signal"><span class="test-icon amber">≈</span><span class="duration">2 MIN</span><h3>Ground & hum isolation</h3><p>Capture mains hum and broadband noise, then isolate likely points in the chain.</p><div class="test-tags"><span>Noise floor</span><span>Isolation</span></div><button class="button button-outline start-test" data-test="Ground & hum isolation">Set up test <span>→</span></button></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-equipment">
+        <div class="page-heading compact-heading"><div><div class="eyebrow">INVENTORY <span class="eyebrow-line"></span> LOCAL RECORDS</div><h1>Equipment</h1><p class="subhead">Keep a history for each deck and the signal chain connected to it.</p></div><button class="button button-primary" id="add-equipment"><span>＋</span> Add equipment</button></div>
+        <div class="toolbar"><label class="search"><span>⌕</span><input id="equipment-search" placeholder="Search equipment..." aria-label="Search equipment"></label><select aria-label="Filter category"><option>All categories</option><option>Turntable</option><option>Media player</option><option>Controller</option><option>Audio interface</option></select><span class="toolbar-count">6 ITEMS</span></div>
+        <div class="table-wrap"><table><thead><tr><th>DEVICE</th><th>CATEGORY</th><th>SIGNAL CHAIN</th><th>LAST TESTED</th><th>STATUS</th><th></th></tr></thead><tbody id="equipment-table"></tbody></table></div>
+        <div class="empty-state hidden" id="equipment-empty">No equipment matches that search.</div>
+      </section>
+
+      <section class="page" id="page-results">
+        <div class="page-heading compact-heading"><div><div class="eyebrow">HISTORY <span class="eyebrow-line"></span> LOCAL REPORTS</div><h1>Results</h1><p class="subhead">Review sample sessions, findings, and measurement notes.</p></div><button class="button button-outline" id="export-results">Export report <span>↗</span></button></div>
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Sample sessions</strong><span>These example results are placeholders. No hardware has been measured by this preview.</span></div></div>
+        <div class="table-wrap results-table"><table><thead><tr><th>SESSION</th><th>TEST</th><th>DATE</th><th>SCORE</th><th>FINDING</th><th></th></tr></thead><tbody>
+          <tr><td><strong>Technics SL-1200MK2</strong></td><td>Speed & pitch</td><td>Oct 06, 2026</td><td><span class="result-score good">94</span></td><td>Within reference range</td><td><button class="row-action" data-result="Technics SL-1200MK2">View →</button></td></tr>
+          <tr><td><strong>Pioneer PLX-1000</strong></td><td>Stereo balance</td><td>Oct 05, 2026</td><td><span class="result-score review">72</span></td><td>Right channel lower by 1.8 dB</td><td><button class="row-action" data-result="Pioneer PLX-1000">View →</button></td></tr>
+          <tr><td><strong>Technics SL-1200MK2</strong></td><td>DVS signal</td><td>Oct 02, 2026</td><td><span class="result-score good">98</span></td><td>Stable signal; no dropouts</td><td><button class="row-action" data-result="Technics SL-1200MK2">View →</button></td></tr>
+          <tr><td><strong>Booth A · Main room</strong></td><td>Vibration check</td><td>Sep 28, 2026</td><td><span class="result-score review">81</span></td><td>Resonance near 62 Hz</td><td><button class="row-action" data-result="Booth A">View →</button></td></tr>
+        </tbody></table></div>
+      </section>
+
+      <section class="page" id="page-setup">
+        <div class="page-heading compact-heading"><div><div class="eyebrow">PREFERENCES <span class="eyebrow-line"></span> INPUT CONFIGURATION</div><h1>Audio setup</h1><p class="subhead">Select the measurement input and review the recommended wiring.</p></div></div>
+        <div class="setup-layout">
+          <div class="panel setup-card"><div class="panel-heading"><div><div class="section-kicker">DEVICE ROUTING</div><h2>Measurement input</h2></div><span class="device-state"><i></i> NOT CONNECTED</span></div><label class="field-label" for="input-device">Input device</label><select id="input-device"><option>No audio device selected</option><option>System default (demo)</option></select><div class="field-grid"><label><span>Input channels</span><select><option>1–2 (Stereo)</option><option>3–4</option></select></label><label><span>Sample rate</span><select><option>48,000 Hz</option><option>44,100 Hz</option><option>96,000 Hz</option></select></label></div><label class="field-label">Input calibration</label><div class="calibration"><span>Not calibrated</span><button class="button button-outline" id="calibrate">Run calibration</button></div><div class="setup-help">Calibration is required before readings can be treated as measured values. The prototype cannot access audio hardware.</div></div>
+          <div class="panel wiring-card"><div class="section-kicker">RECOMMENDED SIGNAL PATH</div><h2>Connect your turntable</h2><div class="wiring-flow"><div><b>01</b><strong>Turntable</strong><small>Phono or line output</small></div><span>→</span><div><b>02</b><strong>Preamp</strong><small>RIAA stage if phono</small></div><span>→</span><div><b>03</b><strong>Interface</strong><small>Line input, stereo</small></div></div><div class="wiring-note"><span>!</span><p>Never connect a speaker output directly to an audio interface input. Use a proper line output and keep monitor levels low during calibration.</p></div><button class="text-button" data-goto="setup">Read wiring & safety spec <span>↗</span></button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="modal-backdrop" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" id="modal-close" aria-label="Close">×</button><div class="section-kicker" id="modal-kicker">TEST SETUP</div><h2 id="modal-title">Speed & pitch</h2><p id="modal-copy">Select the deck and review the measurement path before starting.</p>
+      <label class="field-label" for="modal-deck">Equipment</label><select id="modal-deck"></select>
+      <div class="modal-callout"><b>Preview mode</b><span>This prototype does not read the selected audio device. Continue to view a sample workflow only.</span></div>
+      <div class="modal-actions"><button class="button button-outline" id="modal-cancel">Cancel</button><button class="button button-primary" id="modal-run">Show sample result <span>→</span></button></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
