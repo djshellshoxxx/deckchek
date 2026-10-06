@@ -54,3 +54,6 @@ export function normalizedLevelTrace(samples,sampleRate,{windowMs=20}={}){
   for(let start=0;start+win<=samples.length;start+=win){let sum=0;for(let i=start;i<start+win;i++)sum+=samples[i]*samples[i];const value=Math.sqrt(sum/win);max=Math.max(max,value);raw.push({timeSec:(start+win/2)/sampleRate,value});}
   const denom=Math.max(max,1e-12);return raw.map(x=>({timeSec:x.timeSec,level:x.value/denom}));
 }
+
+export function repeatabilityMetrics(values=[]){const v=values.filter(Number.isFinite);if(!v.length)return {count:0,mean:NaN,stdDev:NaN,min:NaN,max:NaN,range:NaN};const mean=v.reduce((a,b)=>a+b,0)/v.length;const stdDev=Math.sqrt(v.reduce((a,b)=>a+(b-mean)*(b-mean),0)/v.length);const min=Math.min(...v),max=Math.max(...v);return {count:v.length,mean,stdDev,min,max,range:max-min};}
+export function trendMetrics(points=[]){const v=points.filter(p=>Number.isFinite(p.timeMin)&&Number.isFinite(p.value));if(v.length<2)return {count:v.length,slopePerMin:NaN,intercept:NaN,rSquared:NaN};const fit=linearRegression(v.map(p=>({x:p.timeMin,y:p.value})));const mean=v.reduce((a,p)=>a+p.value,0)/v.length;let ssTot=0,ssRes=0;for(const p of v){const pred=fit.intercept+fit.slope*p.timeMin;ssTot+=(p.value-mean)**2;ssRes+=(p.value-pred)**2;}return {count:v.length,slopePerMin:fit.slope,intercept:fit.intercept,rSquared:ssTot>1e-12?1-ssRes/ssTot:1};}
