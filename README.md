@@ -108,3 +108,7 @@ Specification phase.
 - [SPEC-19 Scientific Measurement and Validation](docs/SPEC-19-scientific-measurement-and-validation.md)
 
 These documents define candidates and validation requirements. Dependencies, detectors and standards conformity remain unimplemented until verified; research additions do not change the product license.
+
+## Possible future features
+
+The [service-bench consideration backlog](docs/POSSIBLE-FUTURE-FEATURES.md) records 49 proposed turntable, CDJ and controller workflows, plus deferred instrument-assisted engineering tests. It includes software-generated tones, multimeter worksheets, microphone and phone-video comparisons, CDJ service-result/CSV imports and controller checks, with equipment requirements, measurement limits, source links and validation gates. These are future candidates, not implemented capabilities or beta dependencies.
