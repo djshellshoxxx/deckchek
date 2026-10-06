@@ -90,7 +90,7 @@ function analyzeForTest(test,audio){
     );
     if(Math.abs(stability.meanPitchPercent)>.3)findings.push({code:'SPEED_ERROR',title:'Speed differs from reference',detail:`Estimated mean speed error ${stability.meanPitchPercent.toFixed(3)}%.`,severity:Math.abs(stability.meanPitchPercent)>1?'warning':'review',confidence:.85,possibleCauses:['pitch calibration','reference-tone mismatch','platter speed error'],isolationTests:['confirm test-record reference frequency','repeat after warm-up','compare quartz-lock position']});
     if(stability.wowFlutterRmsPercent>.25)findings.push({code:'SPEED_INSTABILITY',title:'Short-term speed variation is elevated',detail:`Measured proxy ${stability.wowFlutterRmsPercent.toFixed(3)}% RMS across analysis windows.`,severity:stability.wowFlutterRmsPercent>.6?'warning':'review',confidence:.7,possibleCauses:['platter/belt/drive instability','record eccentricity','reference source instability'],isolationTests:['repeat with verified test record','compare 33⅓ and 45 RPM','inspect mechanical drive and platter']});
-    score=Math.min(scoreFromFindings(findings),integrity.score);
+    score=scoreFromFindings(findings);
   }else if(test==='Quartz lock'){
     const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);const nominalRpm=Number(document.getElementById('nominal-rpm')?.value||33.333333);const mode=document.getElementById('quartz-mode')?.value||'locked';const s=speedFromReferenceTone(audio.left,audio.sampleRate,{referenceHz,nominalRpm});
     measurements.push(normalizeMeasurement({metricId:'quartz_speed_error_percent',label:`${mode==='locked'?'Quartz/reset':'Free center'} speed error`,value:s.pitchPercent,unit:'%',confidence:.85}),normalizeMeasurement({metricId:'quartz_mode_code',label:'Quartz test state',value:mode==='locked'?1:0,unit:'code',origin:'user_entered',confidence:1}),normalizeMeasurement({metricId:'quartz_rpm',label:'Measured platter speed',value:s.rpm,unit:'RPM',confidence:.85}));
@@ -127,7 +127,7 @@ function analyzeForTest(test,audio){
     );
     if(s.circularity<.45)findings.push({code:'DVS_SCOPE_DEFORMED',title:'Generic DVS scope is strongly asymmetric',detail:`Circularity metric ${s.circularity.toFixed(3)}.`,severity:'review',confidence:.75,possibleCauses:['channel imbalance','phase relationship','tracking or wear','unsupported control signal'],isolationTests:['verify both channels','repeat with known-good control media','use vendor decoder when implemented']});
     if(missing>0)findings.push({code:'DVS_SIGNAL_GAP',title:'DVS signal gaps detected',detail:`${missing} analysis window(s) fell below the generic presence threshold.`,severity:'review',confidence:.8,possibleCauses:['control-media wear','tracking loss','signal-path dropout','intentional silence or unsupported format'],isolationTests:['repeat same region','compare known-good control media','inspect cartridge and signal path']});
-    score=scoreFromFindings(findings);
+    score=Math.min(scoreFromFindings(findings),integrity.score);
   }else if(test==='Startup & brake'){
     const trace=normalizedLevelTrace(audio.left,audio.sampleRate,{windowMs:20});
     const stopSec=Number(document.getElementById('transition-stop-sec')?.value||Math.max(0,audio.durationSec/2));
