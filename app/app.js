@@ -3,7 +3,7 @@ import {
   quickDiagnostic, rms, scopeMetrics, speedFromReferenceTone
 } from './core.js';
 import { dropoutMetrics, encodeWav16, frequencyTrace, generateSine, speedStabilityMetrics } from './advanced.js';
-import { dvsIntegrityTimeline, normalizedEventMap, channelSeparationDb, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, thdPercent, transitionMetrics } from './diagnostics.js';
+import { dvsIntegrityTimeline, normalizedEventMap, channelSeparationDb, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, repeatabilityMetrics, thdPercent, transitionMetrics, trendMetrics } from './diagnostics.js';
 import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from './export.js';
 
 const DEMO_EQUIPMENT=[
@@ -87,6 +87,14 @@ function analyzeForTest(test,audio){
     if(Math.abs(stability.meanPitchPercent)>.3)findings.push({code:'SPEED_ERROR',title:'Speed differs from reference',detail:`Estimated mean speed error ${stability.meanPitchPercent.toFixed(3)}%.`,severity:Math.abs(stability.meanPitchPercent)>1?'warning':'review',confidence:.85,possibleCauses:['pitch calibration','reference-tone mismatch','platter speed error'],isolationTests:['confirm test-record reference frequency','repeat after warm-up','compare quartz-lock position']});
     if(stability.wowFlutterRmsPercent>.25)findings.push({code:'SPEED_INSTABILITY',title:'Short-term speed variation is elevated',detail:`Measured proxy ${stability.wowFlutterRmsPercent.toFixed(3)}% RMS across analysis windows.`,severity:stability.wowFlutterRmsPercent>.6?'warning':'review',confidence:.7,possibleCauses:['platter/belt/drive instability','record eccentricity','reference source instability'],isolationTests:['repeat with verified test record','compare 33⅓ and 45 RPM','inspect mechanical drive and platter']});
     score=scoreFromFindings(findings);
+  }else if(test==='Quartz lock'){
+    const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);const nominalRpm=Number(document.getElementById('nominal-rpm')?.value||33.333333);const mode=document.getElementById('quartz-mode')?.value||'locked';const s=speedFromReferenceTone(audio.left,audio.sampleRate,{referenceHz,nominalRpm});
+    measurements.push(normalizeMeasurement({metricId:'quartz_speed_error_percent',label:`${mode==='locked'?'Quartz/reset':'Free center'} speed error`,value:s.pitchPercent,unit:'%',confidence:.85}),normalizeMeasurement({metricId:'quartz_mode_code',label:'Quartz test state',value:mode==='locked'?1:0,unit:'code',origin:'user_entered',confidence:1}),normalizeMeasurement({metricId:'quartz_rpm',label:'Measured platter speed',value:s.rpm,unit:'RPM',confidence:.85}));
+    score=scoreFromFindings(findings);
+  }else if(test==='Warm-up speed'){
+    const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);const nominalRpm=Number(document.getElementById('nominal-rpm')?.value||33.333333);const elapsed=Number(document.getElementById('warmup-elapsed-min')?.value||0);const s=speedFromReferenceTone(audio.left,audio.sampleRate,{referenceHz,nominalRpm});
+    measurements.push(normalizeMeasurement({metricId:'warmup_elapsed_min',label:'Elapsed warm-up time',value:elapsed,unit:'min',origin:'user_entered',confidence:1}),normalizeMeasurement({metricId:'warmup_speed_error_percent',label:'Warm-up speed error',value:s.pitchPercent,unit:'%',confidence:.85}),normalizeMeasurement({metricId:'warmup_rpm',label:'Warm-up measured RPM',value:s.rpm,unit:'RPM',confidence:.85}));
+    score=scoreFromFindings(findings);
   }else if(test==='Pitch map'){
     const referenceHz=Number(document.getElementById('reference-hz')?.value||1000);
     const nominalRpm=Number(document.getElementById('nominal-rpm')?.value||33.333333);
@@ -157,14 +165,26 @@ function analyzeForTest(test,audio){
   return {measurements,findings,score:Math.min(score,scoreFromFindings(findings))};
 }
 
-function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge'].includes(name));
+function openTest(name){currentTest=name;document.getElementById('modal-title').textContent=name;document.getElementById('modal-copy').textContent='Choose equipment and an audio file. DeckChek will analyze the file locally and save the evidence record on this device.';const select=document.getElementById('modal-deck');select.innerHTML=equipment.map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');document.getElementById('analysis-file').value='';document.getElementById('speed-fields')?.classList.toggle('hidden',!['Speed & pitch','Pitch map','Channel & cartridge','Quartz lock','Warm-up speed'].includes(name));
   document.getElementById('pitch-fields')?.classList.toggle('hidden',name!=='Pitch map');
   document.getElementById('transition-fields')?.classList.toggle('hidden',name!=='Startup & brake');
-  document.getElementById('separation-fields')?.classList.toggle('hidden',name!=='Channel separation');document.getElementById('modal-backdrop').classList.remove('hidden');}
+  document.getElementById('separation-fields')?.classList.toggle('hidden',name!=='Channel separation');
+  document.getElementById('quartz-fields')?.classList.toggle('hidden',name!=='Quartz lock');
+  document.getElementById('warmup-fields')?.classList.toggle('hidden',name!=='Warm-up speed');document.getElementById('modal-backdrop').classList.remove('hidden');}
 async function finalizeAnalysis(audio,sourceName,qualityFindings=[]){
   const result=analyzeForTest(currentTest,audio);result.findings.push(...qualityFindings);result.score=Math.min(result.score,scoreFromFindings(result.findings));
   const device=equipment.find(x=>x.id===document.getElementById('modal-deck').value)||equipment[0];
   const run={id:uid('run'),deviceId:device?.id||null,device:device?.name||'Unassigned',test:currentTest,createdAt:new Date().toISOString(),sourceFile:sourceName,durationSec:audio.durationSec,sampleRate:audio.sampleRate,channels:audio.channels,measurements:result.measurements,findings:result.findings,score:result.score};
+  if(currentTest==='Quartz lock'){
+    const row=r=>({mode:(r.measurements.find(m=>m.metricId==='quartz_mode_code')?.value??1)===1?'locked':'free',error:r.measurements.find(m=>m.metricId==='quartz_speed_error_percent')?.value});
+    const current=row(run);const prior=runs.filter(r=>r.test==='Quartz lock'&&r.deviceId===run.deviceId).map(row);const all=[...prior,current];const locked=repeatabilityMetrics(all.filter(x=>x.mode==='locked').map(x=>x.error));const free=repeatabilityMetrics(all.filter(x=>x.mode==='free').map(x=>x.error));
+    if(locked.count)run.measurements.push(normalizeMeasurement({metricId:'quartz_lock_mean_error_percent',label:'Quartz/reset mean error',value:locked.mean,unit:'%',confidence:Math.min(1,locked.count/10)}),normalizeMeasurement({metricId:'quartz_lock_repeat_std_percent',label:'Quartz/reset repeatability σ',value:locked.stdDev,unit:'%',confidence:Math.min(1,locked.count/10)}));
+    if(locked.count&&free.count)run.measurements.push(normalizeMeasurement({metricId:'center_to_lock_delta_percent',label:'Free-center to quartz/reset delta',value:locked.mean-free.mean,unit:'%',confidence:Math.min(1,Math.min(locked.count,free.count)/3)}));
+  }
+  if(currentTest==='Warm-up speed'){
+    const point=r=>({timeMin:r.measurements.find(m=>m.metricId==='warmup_elapsed_min')?.value,value:r.measurements.find(m=>m.metricId==='warmup_speed_error_percent')?.value});const points=runs.filter(r=>r.test==='Warm-up speed'&&r.deviceId===run.deviceId).map(point);points.push(point(run));const trend=trendMetrics(points);
+    if(Number.isFinite(trend.slopePerMin))run.measurements.push(normalizeMeasurement({metricId:'warmup_drift_percent_per_min',label:'Warm-up drift trend',value:trend.slopePerMin,unit:'%/min',confidence:Math.min(1,trend.count/5)}),normalizeMeasurement({metricId:'warmup_trend_r2',label:'Warm-up trend fit R²',value:trend.rSquared,unit:'ratio',confidence:Math.min(1,trend.count/5)}));
+  }
   if(currentTest==='Pitch map'){
     const pointFromRun=r=>{const pos=r.measurements.find(m=>m.metricId==='pitch_position')?.value;const measured=r.measurements.find(m=>m.metricId==='measured_pitch_percent')?.value;const directionCode=r.measurements.find(m=>m.metricId==='pitch_direction_code')?.value;return Number.isFinite(pos)&&Number.isFinite(measured)?{position:pos,measuredPercent:measured,direction:directionCode===1?'up':directionCode===-1?'down':'unknown'}:null;};
     const points=runs.filter(r=>r.test==='Pitch map'&&r.deviceId===run.deviceId).map(pointFromRun).filter(Boolean);const current=pointFromRun(run);if(current)points.push(current);
