@@ -78,6 +78,7 @@ No Python, PowerShell, or JUCE is required.
 - [SPEC-16 End-to-End Workflows and Functional Behavior](docs/SPEC-16-workflows-and-functional-behavior.md)
 - [SPEC-17 Operational Quality, Privacy, and Release Readiness](docs/SPEC-17-operational-quality.md)
 - [Feature Implementation Matrix](docs/FEATURE-MATRIX.md)
+- [Implementation Status](docs/IMPLEMENTATION-STATUS.md)
 - [Research Notes and Sources](docs/RESEARCH.md)
 
 ## Design principles
@@ -99,7 +100,9 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 
 ## Status
 
-Specification phase.
+DeckChek is now an offline-analysis beta foundation. The desktop/browser shell can analyze local audio files, persist evidence, run several deterministic diagnostics, compare compatible runs, and export HTML/CSV/JSON. Native continuous capture and a number of hardware-specific and validation-gated workflows remain incomplete.
+
+See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation.
 
 ## Additional engineering research
 
