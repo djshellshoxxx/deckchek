@@ -3,6 +3,7 @@ mod commands;
 mod audio;
 mod capture;
 mod db;
+mod devices;
 mod midi;
 mod system_check;
 pub mod domain;
@@ -20,7 +21,9 @@ pub fn run() {
             catalog::catalog_list, catalog::catalog_upsert, catalog::catalog_delete,
             system_check::system_scan_drivers, system_check::system_scan_events, system_check::system_scan_dj_logs,
             midi::midi_list_ports, midi::midi_open_input, midi::midi_close_input, midi::midi_send,
-            midi::midi_close_all, midi::midi_status
+            midi::midi_close_all, midi::midi_status,
+            devices::device_profiles_sync, devices::device_test_result_save, devices::device_test_results,
+            devices::device_midi_map_save, devices::device_midi_map_get
         ])
         .run(tauri::generate_context!())
         .expect("error while running DeckChek");
