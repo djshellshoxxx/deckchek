@@ -1,0 +1,1145 @@
+{
+  "schemaVersion": 1,
+  "id": "pioneer-djm-a9",
+  "manufacturer": "Pioneer DJ",
+  "model": "DJM-A9",
+  "aliases": [
+    "DJM A9"
+  ],
+  "category": "mixer",
+  "summary": "4-channel professional club mixer with built-in USB sound card (multi-channel), rekordbox and Serato DVS support, and USB MIDI control.",
+  "identityNotes": "No ambiguity on the model. Official MIDI list and manual were not retrievable (hosts blocked); a mirrored manual PDF exists but could not be fetched. MIDI map is therefore learn-mode.",
+  "image": {
+    "file": "pioneer-djm-a9.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration (no free-licensed photo could be fetched)",
+    "license": "original work, project licence",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "DJM-A9 operating instructions (mirror)",
+      "type": "user-manual",
+      "url": "https://www.rent.djcenter.ee/images/kasutusjuhendid/Pioneer-DJM-A9.pdf",
+      "language": "en",
+      "notes": "Third-party mirror, seen in search results; not fetched."
+    },
+    {
+      "title": "DJM-A9 operating instructions (mirror 2)",
+      "type": "user-manual",
+      "url": "https://cdn01.4wall.com/cms/rentals/files/f6835eb526b3d2.pdf",
+      "language": "en",
+      "notes": "Third-party mirror."
+    },
+    {
+      "title": "Pioneer DJ support",
+      "type": "driver",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en",
+      "notes": "Drivers/firmware/MIDI list."
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "language": "en",
+      "notes": "No public service manual found."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": "0x2B73",
+      "productIds": [],
+      "classCompliant": false,
+      "notes": "Dual USB (B and C) per retailer listing. Vendor/product IDs unconfirmed."
+    },
+    "midi": {
+      "usbMidi": true,
+      "din": false,
+      "portNamePatterns": [
+        "DJM-A9"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [
+        44100,
+        48000,
+        96000
+      ],
+      "bitDepth": 32
+    },
+    "analog": [
+      "MASTER 1 (XLR)",
+      "MASTER 2 (RCA)",
+      "BOOTH",
+      "PHONES",
+      "MIC 1/2",
+      "PHONO/LINE per channel",
+      "SEND/RETURN",
+      "REC OUT"
+    ]
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Pioneer DJ DJM-A9 ASIO driver",
+      "asioName": null,
+      "deviceNamePatterns": [
+        "DJM-A9",
+        "DJM A9"
+      ],
+      "provider": "Pioneer DJ Corporation",
+      "latestKnownVersion": null,
+      "url": "https://www.pioneerdj.com/en/support/",
+      "required": true,
+      "notes": "Name inferred from Pioneer naming; version unconfirmed."
+    }
+  ],
+  "software": [
+    {
+      "name": "rekordbox",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "DVS supported per product positioning."
+    },
+    {
+      "name": "Serato DJ Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "DVS via DJM-A9 USB sound card."
+    },
+    {
+      "name": "Pioneer DJ firmware updater",
+      "role": "firmware-updater",
+      "minVersion": null,
+      "notes": ""
+    }
+  ],
+  "specs": [
+    {
+      "key": "sample_rate",
+      "label": "Sampling rate",
+      "value": 96000,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "https://www.idjnow.com/pioneer-dj-djm-a9-mixer.html (retailer)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "bit_depth",
+      "label": "A/D and D/A converter",
+      "value": 32,
+      "unit": "bit",
+      "tolerance": null,
+      "source": "https://www.idjnow.com/pioneer-dj-djm-a9-mixer.html (retailer)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "freq_resp",
+      "label": "Frequency response (LINE)",
+      "value": "20-40000",
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "https://www.idjnow.com/pioneer-dj-djm-a9-mixer.html (retailer)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "snr_usb",
+      "label": "S/N USB / digital in",
+      "value": 114,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "retailer",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "snr_line",
+      "label": "S/N LINE",
+      "value": 105,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "retailer",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "snr_phono",
+      "label": "S/N PHONO",
+      "value": 88,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "retailer",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "snr_mic",
+      "label": "S/N MIC",
+      "value": 79,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "retailer",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "usb_stereo_channels",
+      "label": "USB stereo channels",
+      "value": 4,
+      "unit": "",
+      "tolerance": null,
+      "source": "retailer",
+      "confidence": "unverified",
+      "notes": null
+    }
+  ],
+  "timecode": {
+    "formats": [
+      {
+        "name": "Serato CV02.5",
+        "vendor": "Serato",
+        "carrierHz": 1000,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Via PHONO input and USB sound card.",
+        "source": "Serato",
+        "confidence": "unverified"
+      }
+    ]
+  },
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "djma9-driver",
+      "category": "driver",
+      "title": "DJM-A9 Windows driver installed and healthy",
+      "why": "Without the Pioneer DJ ASIO driver the device falls back to generic Windows audio (high latency, missing channels) or does not appear in DJ software.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the device by USB and power it on.",
+        "Run the check; it matches Device Manager names against the profile.",
+        "If not present, install the current driver from Pioneer DJ support and reboot."
+      ],
+      "equipment": [
+        "USB cable",
+        "Windows PC"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-driver-signed",
+      "category": "driver",
+      "title": "Driver signed, status OK and ASIO registered",
+      "why": "Unsigned or errored drivers cause crackles, disconnects and ASIO devices missing from the DJ software audio menu.",
+      "method": "driver:check",
+      "params": {
+        "focus": "signed,status,asio"
+      },
+      "steps": [
+        "Run the driver check after the device is powered.",
+        "Review signed / status / ASIO registration results."
+      ],
+      "equipment": [
+        "Windows PC"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-firmware",
+      "category": "software",
+      "title": "DJM-A9 firmware version up to date",
+      "why": "Old firmware can cause MIDI/jog/DVS faults fixed in later releases.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open the Pioneer DJ firmware/updater utility for DJM-A9, or the DJ software settings page that shows firmware.",
+        "Note installed firmware version and compare with latest on the Pioneer DJ support page (not auto-checked; version unverified in research).",
+        "Tick when firmware is current or update completed."
+      ],
+      "equipment": [
+        "Pioneer DJ support firmware download"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-software-rekordbox",
+      "category": "software",
+      "title": "rekordbox installed, no recent crashes",
+      "why": "Crashes or log errors in rekordbox often explain dropouts that look like hardware faults.",
+      "method": "software:check",
+      "params": {
+        "software": "rekordbox"
+      },
+      "steps": [
+        "Run the rekordbox log scan.",
+        "Review crash count (90 days) and log errors."
+      ],
+      "equipment": [
+        "rekordbox"
+      ],
+      "severity": "major",
+      "software": "rekordbox",
+      "pass": {
+        "metricId": "software_crashes_90d",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-software-serato",
+      "category": "software",
+      "title": "Serato DJ Pro installed, no recent crashes",
+      "why": "Crashes or log errors in Serato DJ Pro often explain dropouts that look like hardware faults.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run the Serato DJ Pro log scan.",
+        "Review crash count (90 days) and log errors."
+      ],
+      "equipment": [
+        "Serato DJ Pro"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": {
+        "metricId": "software_crashes_90d",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-master-out",
+      "category": "audio",
+      "title": "Master output signal health",
+      "why": "Checks XLR/RCA master path.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "MASTER 1/2"
+      },
+      "steps": [
+        "Play a test tone from USB ch1 in your DJ software.",
+        "Connect MASTER to an audio interface.",
+        "Run Signal health for 10 s."
+      ],
+      "equipment": [
+        "Audio interface"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-booth",
+      "category": "audio",
+      "title": "Booth output signal health",
+      "why": "Booth out feeds the DJ monitor.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "BOOTH"
+      },
+      "steps": [
+        "Connect BOOTH out to an interface.",
+        "Run with tone on master."
+      ],
+      "equipment": [
+        "Audio interface"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-phones",
+      "category": "audio",
+      "title": "Headphone output L/R",
+      "why": "Dead channel on headphones.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "PHONES"
+      },
+      "steps": [
+        "Cue a channel, listen on both sides, or measure with adapter."
+      ],
+      "equipment": [
+        "Headphones"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ground-hum",
+      "category": "safety",
+      "title": "Ground and hum (master)",
+      "why": "Ground loops and poor grounds.",
+      "method": "quick:Ground & hum",
+      "params": {},
+      "steps": [
+        "All channels down, master up.",
+        "Run Ground & hum; connect and disconnect turntable ground wires."
+      ],
+      "equipment": [
+        "Interface"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-latency",
+      "category": "latency",
+      "title": "USB ASIO round-trip latency",
+      "why": "Checks driver buffer behaviour.",
+      "method": "quick:Signal health",
+      "params": {
+        "loopback": true,
+        "asio": true
+      },
+      "steps": [
+        "Route USB ch1 output to a mixer line input via a loop of the master out into a LINE input.",
+        "Run measurement at buffer 128/256."
+      ],
+      "equipment": [
+        "Loopback cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch1-usb",
+      "category": "audio",
+      "title": "Channel 1 USB return signal health",
+      "why": "Verifies channel 1 returns audio to the DJ software on the USB sound card.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH1 USB"
+      },
+      "steps": [
+        "Set CH1 input selector to USB.",
+        "Play a stereo test tone to CH1.",
+        "Run Signal health on the channel's USB return/master."
+      ],
+      "equipment": [
+        "Test tone"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch1-analog",
+      "category": "mixer",
+      "title": "Channel 1 analog input (phono/line) signal health",
+      "why": "Checks the A/D path used for DVS.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH1 PHONO/LINE"
+      },
+      "steps": [
+        "Connect a deck or player to CH1 analog input; set selector to PHONO or LINE accordingly.",
+        "Play a source.",
+        "Run Signal health on its USB return."
+      ],
+      "equipment": [
+        "Source"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch2-usb",
+      "category": "audio",
+      "title": "Channel 2 USB return signal health",
+      "why": "Verifies channel 2 returns audio to the DJ software on the USB sound card.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH2 USB"
+      },
+      "steps": [
+        "Set CH2 input selector to USB.",
+        "Play a stereo test tone to CH2.",
+        "Run Signal health on the channel's USB return/master."
+      ],
+      "equipment": [
+        "Test tone"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch2-analog",
+      "category": "mixer",
+      "title": "Channel 2 analog input (phono/line) signal health",
+      "why": "Checks the A/D path used for DVS.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH2 PHONO/LINE"
+      },
+      "steps": [
+        "Connect a deck or player to CH2 analog input; set selector to PHONO or LINE accordingly.",
+        "Play a source.",
+        "Run Signal health on its USB return."
+      ],
+      "equipment": [
+        "Source"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch3-usb",
+      "category": "audio",
+      "title": "Channel 3 USB return signal health",
+      "why": "Verifies channel 3 returns audio to the DJ software on the USB sound card.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH3 USB"
+      },
+      "steps": [
+        "Set CH3 input selector to USB.",
+        "Play a stereo test tone to CH3.",
+        "Run Signal health on the channel's USB return/master."
+      ],
+      "equipment": [
+        "Test tone"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch3-analog",
+      "category": "mixer",
+      "title": "Channel 3 analog input (phono/line) signal health",
+      "why": "Checks the A/D path used for DVS.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH3 PHONO/LINE"
+      },
+      "steps": [
+        "Connect a deck or player to CH3 analog input; set selector to PHONO or LINE accordingly.",
+        "Play a source.",
+        "Run Signal health on its USB return."
+      ],
+      "equipment": [
+        "Source"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch4-usb",
+      "category": "audio",
+      "title": "Channel 4 USB return signal health",
+      "why": "Verifies channel 4 returns audio to the DJ software on the USB sound card.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH4 USB"
+      },
+      "steps": [
+        "Set CH4 input selector to USB.",
+        "Play a stereo test tone to CH4.",
+        "Run Signal health on the channel's USB return/master."
+      ],
+      "equipment": [
+        "Test tone"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-ch4-analog",
+      "category": "mixer",
+      "title": "Channel 4 analog input (phono/line) signal health",
+      "why": "Checks the A/D path used for DVS.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH4 PHONO/LINE"
+      },
+      "steps": [
+        "Connect a deck or player to CH4 analog input; set selector to PHONO or LINE accordingly.",
+        "Play a source.",
+        "Run Signal health on its USB return."
+      ],
+      "equipment": [
+        "Source"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-tc-ch1",
+      "category": "timecode",
+      "title": "Timecode check CH1 (Serato CV02.5)",
+      "why": "Verifies DVS on this channel: carrier, phase, balance.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable with Serato control vinyl to CH1 PHONO input and enable DVS channel mapping.",
+        "Play vinyl at 33 rpm, pitch 0."
+      ],
+      "equipment": [
+        "Serato CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "djma9-tc-ch2",
+      "category": "timecode",
+      "title": "Timecode check CH2 (Serato CV02.5)",
+      "why": "Verifies DVS on this channel: carrier, phase, balance.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable with Serato control vinyl to CH2 PHONO input and enable DVS channel mapping.",
+        "Play vinyl at 33 rpm, pitch 0."
+      ],
+      "equipment": [
+        "Serato CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "djma9-tc-ch3",
+      "category": "timecode",
+      "title": "Timecode check CH3 (Serato CV02.5)",
+      "why": "Verifies DVS on this channel: carrier, phase, balance.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable with Serato control vinyl to CH3 PHONO input and enable DVS channel mapping.",
+        "Play vinyl at 33 rpm, pitch 0."
+      ],
+      "equipment": [
+        "Serato CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "djma9-tc-ch4",
+      "category": "timecode",
+      "title": "Timecode check CH4 (Serato CV02.5)",
+      "why": "Verifies DVS on this channel: carrier, phase, balance.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable with Serato control vinyl to CH4 PHONO input and enable DVS channel mapping.",
+        "Play vinyl at 33 rpm, pitch 0."
+      ],
+      "equipment": [
+        "Serato CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "djma9-dvs-signal",
+      "category": "dvs",
+      "title": "DVS signal integrity (generic)",
+      "why": "Checks dropouts/imbalance on DVS channel.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Play control vinyl; scratch 20 s.",
+        "Run DVS signal."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-balance",
+      "category": "mixer",
+      "title": "Channel L/R balance and hum per channel",
+      "why": "Stereo imbalance or hum on individual channels.",
+      "method": "quick:Signal health",
+      "params": {
+        "perChannel": true
+      },
+      "steps": [
+        "Feed identical stereo tone to each channel.",
+        "Set trims/faders/EQ flat.",
+        "Run Signal health per channel and compare."
+      ],
+      "equipment": [
+        "Test tone"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-isolator",
+      "category": "mixer",
+      "title": "Isolator / EQ band cut check",
+      "why": "Dead or leaking EQ bands.",
+      "method": "quick:Signal health",
+      "params": {
+        "sweep": true
+      },
+      "steps": [
+        "Play pink noise or a sweep through a channel.",
+        "Cut LOW, MID, HI in turn and confirm each band drops.",
+        "Repeat on all channels."
+      ],
+      "equipment": [
+        "Pink noise"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-midi-coverage",
+      "category": "midi",
+      "title": "MIDI coverage: every control reports",
+      "why": "A dead control (broken pot, fader track, switch, pad) never sends MIDI.",
+      "method": "midi:coverage",
+      "params": {
+        "groups": [
+          "Channel 1",
+          "Channel 2",
+          "Channel 3",
+          "Channel 4",
+          "Master",
+          "FX",
+          "Crossfader",
+          "Browse"
+        ]
+      },
+      "steps": [
+        "Open the MIDI test and select this device's MIDI port.",
+        "Exercise every control once in sequence, each pad/button/knob/fader.",
+        "Review any control not seen and any unexpected message."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_controls_seen_percent",
+        "op": ">=",
+        "value": 100,
+        "value2": null,
+        "unit": "%",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-button-bounce",
+      "category": "midi",
+      "title": "Switch bounce / stuck check (cue, FX and assign buttons)",
+      "why": "Worn switches double-trigger (bounce) or stick, causing false cue/play triggers.",
+      "method": "midi:button",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Press each button/pad once firmly, then once lightly.",
+        "Hold one for 3 seconds then release.",
+        "Review bounce count and stuck state."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_button_stuck",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "djma9-led",
+      "category": "midi",
+      "title": "Channel, FX and meter LEDs light correctly",
+      "why": "Dead LEDs hide state (cue, loop, pad bank).",
+      "method": "midi:led",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Start the LED test; the app lights each LED.",
+        "Confirm each lights and has the expected colour/brightness; mark failures."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-crossfader",
+      "category": "midi",
+      "title": "Crossfader: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. Magnetic/contactless wear still shows as jitter or cut-out.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "crossfader"
+      },
+      "steps": [
+        "Move Crossfader slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-midi-jitter",
+      "category": "midi",
+      "title": "MIDI timing jitter under constant motion",
+      "why": "Timing jitter or USB hub congestion makes jogs/scratching feel uneven.",
+      "method": "midi:latency",
+      "params": {},
+      "steps": [
+        "Connect the device directly to a PC USB port (no hub).",
+        "Rotate the main continuous control at a steady speed for 10 seconds.",
+        "Review inter-message jitter."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch1_fader",
+      "category": "midi",
+      "title": "Channel fader 1: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch1_fader"
+      },
+      "steps": [
+        "Move Channel fader 1 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch2_fader",
+      "category": "midi",
+      "title": "Channel fader 2: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch2_fader"
+      },
+      "steps": [
+        "Move Channel fader 2 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch3_fader",
+      "category": "midi",
+      "title": "Channel fader 3: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch3_fader"
+      },
+      "steps": [
+        "Move Channel fader 3 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch4_fader",
+      "category": "midi",
+      "title": "Channel fader 4: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch4_fader"
+      },
+      "steps": [
+        "Move Channel fader 4 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch1_trim",
+      "category": "midi",
+      "title": "Channel 1 trim knob: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch1_trim"
+      },
+      "steps": [
+        "Move Channel 1 trim knob slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch2_trim",
+      "category": "midi",
+      "title": "Channel 2 trim knob: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch2_trim"
+      },
+      "steps": [
+        "Move Channel 2 trim knob slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch3_trim",
+      "category": "midi",
+      "title": "Channel 3 trim knob: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch3_trim"
+      },
+      "steps": [
+        "Move Channel 3 trim knob slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-ch4_trim",
+      "category": "midi",
+      "title": "Channel 4 trim knob: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch4_trim"
+      },
+      "steps": [
+        "Move Channel 4 trim knob slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-fader-master_level",
+      "category": "midi",
+      "title": "Master level: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "master_level"
+      },
+      "steps": [
+        "Move Master level slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-eq-knobs",
+      "category": "midi",
+      "title": "EQ and Color FX knobs sweep (all channels)",
+      "why": "Noisy pots.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch1_eq_hi"
+      },
+      "steps": [
+        "Sweep HI, MID, LOW and COLOR FX on each channel (repeat per control id).",
+        "Review jitter."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-faders",
+      "category": "mechanical",
+      "title": "Crossfader and channel fader feel",
+      "why": "Dirty/worn faders.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Crossfader cuts cleanly at both ends and moves smoothly.",
+        "Channel faders no side-play.",
+        "Curve selectors work."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-connectors",
+      "category": "mechanical",
+      "title": "Rear connectors and USB",
+      "why": "Dropouts from loose jacks.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "XLR/RCA/TRS jacks firm.",
+        "USB B and USB C seated.",
+        "Phono/line selectors and ground screws OK.",
+        "Mic inputs and level knobs work."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "djma9-knobs",
+      "category": "mechanical",
+      "title": "Knobs, jog dial, buttons",
+      "why": "Wear.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Knobs not loose or wobbly.",
+        "Encoder/jog dial clicks correctly.",
+        "No sticky buttons."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}
