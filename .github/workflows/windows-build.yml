@@ -8,6 +8,10 @@ on:
       - v*
   workflow_dispatch:
 
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -49,6 +53,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: DeckChek Beta Demo ${{ github.ref_name }}
+          prerelease: true
+          body: |
+            DeckChek beta demo for Windows 10/11 (x64).
+
+            - `deckchek.exe`: standalone portable app, no install needed (requires the WebView2 runtime, preinstalled on Windows 10/11).
+            - `DeckChek_*_x64-setup.exe`: installer (recommended).
+            - `DeckChek_*_x64_en-US.msi`: MSI installer.
+
+            Beta: measurements are not yet validated against reference hardware. The binaries are unsigned, so Windows SmartScreen may warn: click "More info" then "Run anyway".
           files: |
             src-tauri/target/release/deckchek.exe
             src-tauri/target/release/bundle/nsis/*.exe
