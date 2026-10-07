@@ -222,5 +222,5 @@ test('event map comparison separates persistent and new candidates',()=>{
 
 import fs from 'node:fs';
 test('application speed branch does not reference DVS-only integrity state',()=>{
-  const source=fs.readFileSync(new URL('../app/app.js',import.meta.url),'utf8');const start=source.indexOf("if(test==='Speed & pitch')");const end=source.indexOf("}else if(",start);assert.ok(start>=0&&end>start);assert.ok(!source.slice(start,end).includes('integrity.score'));
+  const source=fs.readFileSync(new URL('../app/ui/analysis.js',import.meta.url),'utf8');const start=source.indexOf("if (test === 'Speed & pitch')");const end=source.indexOf("} else if (",start);assert.ok(start>=0&&end>start);assert.ok(!source.slice(start,end).includes('integrity.score'));
 });
