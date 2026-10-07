@@ -87,7 +87,7 @@ async function a11yAudit(page) {
   });
 }
 
-const NAV = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'calibration', 'equipment', 'history'];
+const NAV = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'calibration', 'system', 'equipment', 'history'];
 
 async function shot(page, name) { await page.waitForTimeout(150); await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false }); }
 
@@ -97,7 +97,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   const errors = watchConsole(page, 'browser');
   await page.goto(base);
   await page.waitForSelector('.rail-item');
-  check('rail has 8 nav items', (await page.locator('.rail-item').count()) === 8);
+  check('rail has 9 nav items', (await page.locator('.rail-item').count()) === 9);
   check('dark theme by default', (await page.getAttribute('html', 'data-theme')) === 'dark');
   check('help button wired by ui-assistance', (await page.locator('#cdlOptionsBtn').count()) === 1);
 
@@ -109,6 +109,17 @@ async function browserMode(browser, base, wav, wav3k, extra) {
     check(`a11y names + target sizes: ${id}`, !audit.unnamed.length && !audit.small.length, [...audit.unnamed, ...audit.small].slice(0, 3).join(' | '));
     await shot(page, `${id}-dark`);
   }
+
+  await page.click('.rail-item[data-screen="system"]');
+  await page.waitForSelector('#sys-unsupported');
+  check('System Health shows unsupported state without Tauri', /Windows desktop app/.test(await page.locator('#sys-unsupported').innerText()));
+  check('System Health: Run full scan disabled when unsupported', await page.locator('#sys-run').isDisabled());
+  check('System nav sits between Calibration and Equipment', await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map(b => b.dataset.screen).join(',').includes('calibration,system,equipment')));
+  await page.keyboard.press('Control+7');
+  check('Ctrl+7 opens System Health, Ctrl+8 Equipment', await page.locator('#screen-system').isVisible());
+  await page.keyboard.press('Control+8');
+  check('Ctrl+8 navigates to Equipment', await page.locator('#screen-equipment').isVisible());
+  check('shortcuts help lists Ctrl+1…9', (await page.locator('#helpDialog').innerHTML()).includes('<kbd>9</kbd>'));
 
   // Quick Check with a generated 1 kHz WAV
   await page.click('.rail-item[data-screen="quick"]');
@@ -286,6 +297,25 @@ function tauriMock() {
     },
     list_runs: () => db.runs.map(r => ({ id: r.id, sessionType: r.sessionType, test: r.test, startedAt: r.createdAt, status: 'completed', score: r.score, measurementCount: r.measurements.length, hypothesisCount: r.findings.length })),
     get_run: ({ id }) => { const r = db.runs.find(x => x.id === id); return r && { id: r.id, test: r.test, startedAt: r.createdAt, score: r.score, measurements: r.measurements, hypotheses: r.findings.map(f => ({ key: f.code, summary: `${f.title}: ${f.detail}`, severity: f.severity, confidence: f.confidence, alternatives: f.alternatives, isolationTests: f.isolationTests, support: [{ measurementIds: (f.supportedBy || []).map(m => `${r.id}:${m}`) }], contradictions: [] })) }; },
+    system_scan_drivers: () => ({ supported: true, scannedAt: new Date().toISOString(), errors: [], drivers: [
+      { deviceName: 'Pioneer DDJ-FLX4', deviceClass: 'MEDIA', manufacturer: 'Pioneer DJ', driverProvider: 'AlphaTheta', driverVersion: '1.2.3.0', driverDate: '2025-02-11T00:00:00Z', infName: 'oem12.inf', hardwareId: 'USB\\VID_2B73&PID_0003', isSigned: true, signer: 'AlphaTheta Corp', status: 'Error', problemCode: 43, present: true },
+      { deviceName: 'Budget USB Audio Codec', deviceClass: 'MEDIA', manufacturer: 'Generic Audio Ltd', driverProvider: 'Generic Audio Ltd', driverVersion: '0.9.1.0', driverDate: '2018-05-02T00:00:00Z', infName: 'oem7.inf', hardwareId: 'USB\\VID_1234&PID_0001', isSigned: false, signer: null, status: 'OK', problemCode: 0, present: true },
+      { deviceName: 'Focusrite USB Audio', deviceClass: 'MEDIA', manufacturer: 'Focusrite', driverProvider: 'Focusrite', driverVersion: '4.143.0.0', driverDate: '2025-08-20T00:00:00Z', infName: 'oem3.inf', hardwareId: 'USB\\VID_1235&PID_8211', isSigned: true, signer: 'Focusrite Audio Engineering', status: 'OK', problemCode: 0, present: true },
+      { deviceName: 'Speakers (Realtek Audio)', deviceClass: 'AudioEndpoint', manufacturer: 'Microsoft', driverProvider: 'Microsoft', driverVersion: '10.0.22631.1', driverDate: '2024-06-21T00:00:00Z', infName: 'audioendpoint.inf', hardwareId: 'SWD\\MMDEVAPI', isSigned: true, signer: 'Microsoft Windows', status: 'OK', problemCode: 0, present: true }],
+      asioDrivers: [
+        { name: 'Focusrite USB ASIO', clsid: '{9C5E8E3B-0000-4A5F-9F3A-000000000001}', dllPath: 'C:\\Program Files\\Focusrite\\FocusriteUSBASIO64.dll', dllExists: true, signatureStatus: 'Valid', signer: 'Focusrite Audio Engineering' },
+        { name: 'Old Interface ASIO', clsid: '{9C5E8E3B-0000-4A5F-9F3A-000000000002}', dllPath: 'C:\\Program Files\\OldInterface\\oldasio.dll', dllExists: false, signatureStatus: null, signer: null }] }),
+    system_scan_events: ({ days }) => { const now = Date.now(); return { supported: true, scannedAt: new Date().toISOString(), days, errors: [], events: [
+      ...[1, 5, 26].map(h => ({ log: 'System', provider: 'Service Control Manager', eventId: 7034, level: 'Error', timeCreated: new Date(now - h * 3600e3).toISOString(), message: 'The Windows Audio service terminated unexpectedly. It has done this 1 time(s).', category: 'audio', appName: null, faultingModule: null, exceptionCode: null })),
+      { log: 'Application', provider: 'Application Error', eventId: 1000, level: 'Error', timeCreated: new Date(now - 30 * 3600e3).toISOString(), message: 'Faulting application name: Serato DJ Pro.exe, Faulting module name: FocusriteUSBASIO64.dll, Exception code: 0xc0000005', category: 'djApp', appName: 'Serato DJ Pro.exe', faultingModule: 'FocusriteUSBASIO64.dll', exceptionCode: '0xc0000005' }] }; },
+    system_scan_dj_logs: () => { const now = Date.now(); return { supported: true, scannedAt: new Date().toISOString(), errors: [], apps: [
+      { app: 'Serato DJ Pro', exeNames: ['Serato DJ Pro.exe'], installed: true, locations: [{ path: 'C:\\Users\\dj\\AppData\\Local\\CrashDumps', exists: true }], files: [
+        { path: 'C:\\Users\\dj\\AppData\\Local\\CrashDumps\\Serato DJ Pro.exe.4120.dmp', kind: 'crashDump', modified: new Date(now - 30 * 3600e3).toISOString(), sizeBytes: 48234496, matches: [], tail: [] }] },
+      { app: 'Traktor Pro', exeNames: ['Traktor.exe'], installed: true, locations: [{ path: 'C:\\Users\\dj\\Documents\\Native Instruments\\Traktor 3.11\\Logs', exists: true }], files: [
+        { path: 'C:\\Users\\dj\\Documents\\Native Instruments\\Traktor 3.11\\Logs\\Traktor.log', kind: 'log', modified: new Date(now - 2 * 3600e3).toISOString(), sizeBytes: 182000,
+          matches: Array.from({ length: 14 }, (_, i) => ({ lineNo: 100 + i * 7, line: `2026-10-06 21:0${i % 10}:11 [Audio] buffer underrun on ASIO device, ${i + 3} frames late`, severity: 'warning' })), tail: ['21:09:58 [Audio] stream restarted', '21:10:11 [Audio] buffer underrun on ASIO device'] }] },
+      { app: 'rekordbox', exeNames: ['rekordbox.exe'], installed: true, locations: [], files: [] },
+      { app: 'VirtualDJ', exeNames: ['VirtualDJ.exe'], installed: false, locations: [], files: [] }] }; },
     save_scan_alignment: ({ alignment }) => ({ id: 'al-1', scanAId: 'a', scanBId: 'b' }),
   };
   window.__TAURI__ = {
@@ -299,6 +329,52 @@ function tauriMock() {
       { kind: 'audiooutput', deviceId: 'default', label: 'Default' }, { kind: 'audiooutput', deviceId: 'o1', label: 'Speakers' },
       { kind: 'audiooutput', deviceId: 'o2', label: 'USB Interface' }, { kind: 'audioinput', deviceId: 'i1', label: 'Mic' }];
   } catch { /* leave real devices */ }
+}
+
+async function systemHealth(page) {
+  await page.click('.rail-item[data-screen="system"]');
+  await page.waitForSelector('#sys-headline', { timeout: 10000 });
+  const text = sel => page.locator(sel).first().innerText();
+  const all = await page.locator('#screen-system').innerText();
+  check('System: verdict summary renders (problems)', /problem/i.test(await text('#sys-headline')) && await page.locator('#sys-verdict .chip').first().innerText().then(t => /PROBLEMS/.test(t)));
+  check('System: verdict card comes before the sections', await page.evaluate(() => document.getElementById('sys-verdict').compareDocumentPosition(document.getElementById('sys-area-drivers')) & Node.DOCUMENT_POSITION_FOLLOWING));
+  check('System: code-43 device finding', await page.locator('.sys-finding[data-id*="code-43"]').count() === 1 && /USB port/.test(await text('.sys-finding[data-id*="code-43"]')));
+  check('System: unsigned driver finding', await page.locator('.sys-finding[data-id$="-unsigned"]').count() === 1);
+  check('System: missing ASIO DLL finding', /missing file/i.test(all) && await page.locator('.sys-finding[data-id$="asio-old-interface-asio-missing"]').count() === 1);
+  check('System: driver table lists devices with signed + status chips', await page.locator('#sys-driver-table tbody tr').count() === 4 && /Unsigned/i.test(await text('#sys-driver-table')) && /code 43/i.test(await text('#sys-driver-table')));
+  check('System: ASIO table shows missing DLL', /Missing/i.test(await text('#sys-asio-table')));
+  check('System: Audiosrv failure grouped (3 events -> 1 finding)', await page.locator('.sys-finding[data-id*="service-control-manager-7034"] .finding-head h3').first().innerText().then(t => /3×/.test(t)));
+  await page.locator('.sys-finding[data-id*="service-control-manager-7034"] summary:has-text("Raw events")').click();
+  check('System: raw events expander shows rows', await page.locator('.sys-finding[data-id*="service-control-manager-7034"] .sys-details[open] tbody tr').count() === 3);
+  check('System: Serato crash dump finding', await page.locator('.sys-app[data-app="Serato DJ Pro"] .sys-finding[data-id$="-crash"]').count() === 1 && /crashed on/.test(await text('.sys-app[data-app="Serato DJ Pro"]')));
+  check('System: Traktor underruns -> dropout guidance', /buffer size/.test(await text('.sys-app[data-app="Traktor Pro"] .sys-finding[data-id$="dropouts"]')));
+  check('System: rekordbox ok card, VirtualDJ not detected', await page.locator('.sys-app[data-app="rekordbox"] .sys-finding[data-severity="ok"]').count() === 1 && /Not detected: VirtualDJ/.test(all));
+  await page.locator('.sys-app[data-app="Traktor Pro"] > .sys-details > summary').focus();
+  await page.keyboard.press('Enter');
+  check('System: details expander works from keyboard', await page.locator('.sys-app[data-app="Traktor Pro"] details[open] .sys-tail').count() === 1);
+  check('System: every finding has meaning + action headings', await page.evaluate(() => [...document.querySelectorAll('.sys-finding')].every(f => /what this means/i.test(f.innerText) && /what to do/i.test(f.innerText))));
+  const audit = await a11yAudit(page);
+  check('System: a11y names + target sizes', !audit.unnamed.length && !audit.small.length, [...audit.unnamed, ...audit.small].slice(0, 3).join(' | '));
+  check('System: scan status line present', /Last scan/.test(await text('#sys-status')));
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+e')]);
+  const reportPath = await dl.path();
+  const report = fs.readFileSync(reportPath, 'utf8');
+  check('System: Ctrl+E exports HTML report', /system-health.*\.html$/.test(dl.suggestedFilename()) && /What to do/.test(report) && /Serato DJ Pro crashed/.test(report));
+  await page.locator('#sys-rescan-events').click();
+  await page.waitForSelector('#sys-rescan-events:not([disabled])');
+  check('System: per-area rescan works', await page.locator('.sys-finding[data-id*="service-control-manager-7034"]').count() === 1);
+  await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
+  await shot(page, 'system-health-dark');
+  await page.screenshot({ path: path.join(SHOTS, 'system-health-full-dark.png'), fullPage: false });
+  await page.setViewportSize({ width: 1440, height: 2400 });
+  await page.screenshot({ path: path.join(SHOTS, 'system-health-tall-dark.png') });
+  await page.click('#theme-toggle');
+  await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
+  await shot(page, 'system-health-tall-light');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
+  await shot(page, 'system-health-light');
+  await page.click('#theme-toggle');
 }
 
 async function desktopMode(browser, base) {
@@ -337,6 +413,7 @@ async function desktopMode(browser, base) {
   check('output selector shown when outputs are available', await page.locator('#cal-out-field').isVisible());
   check('output selector lists devices', (await page.locator('#cal-output option').count()) === 3);
   check('calibration Run loopback enabled in desktop', !(await page.locator('#cal-start').isDisabled()));
+  await systemHealth(page);
   await page.click('.rail-item[data-screen="history"]');
   await page.waitForSelector('#hist-rows .run-main');
   await page.locator('#hist-rows .run-main').first().click();
