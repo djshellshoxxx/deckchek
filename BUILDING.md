@@ -35,7 +35,23 @@ For Rust-only verification:
     cargo test --manifest-path src-tauri/Cargo.toml
     cargo check --manifest-path src-tauri/Cargo.toml
 
-CI contains both JavaScript and Rust jobs. Native Windows packaging still needs target-machine verification.
+CI contains both JavaScript and Rust jobs.
+
+## Windows build
+
+Automated CI builds produce a portable standalone executable and Windows installer packages (NSIS and MSI installers). These artifacts are available from the GitHub Actions workflow runs.
+
+To build locally on Windows:
+
+1. Install the Rust MSVC toolchain (if not already present)
+2. Ensure WebView2 is available (built-in on Windows 10/11)
+3. Install Tauri CLI: `cargo install tauri-cli --version "^2"`
+4. Build the application: `cargo tauri build`
+
+Outputs are generated in `src-tauri/target/release/`:
+- `deckchek.exe` — Portable standalone executable
+- `bundle/nsis/*.exe` — NSIS installer packages
+- `bundle/msi/*.msi` — MSI installer packages
 
 ## Persistence behavior
 
