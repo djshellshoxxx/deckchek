@@ -4,11 +4,12 @@ import {fitTone,refineToneFrequency} from './calibration.js';
 
 const XWAX='xwax src/timecoder.c format table (https://github.com/xwax/xwax)';
 const MIXXX='https://mixxx.org/news/2021-12-22-dvs-internals-pt2/';
+const MIXXX3='https://mixxx.org/news/2025-08-27-dvs-internals-pt3/';
 /** Built-in formats. confidence: 'confirmed' = matches xwax/Mixxx documentation; 'unverified' = not independently confirmed. */
 export const TIMECODE_FORMATS=[
   {name:'Serato CV02.5',vendor:'Serato',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Serato control vinyl/CD, 1 kHz carrier at 33 1/3 rpm (xwax serato_2a/2b/cd).',source:XWAX+'; '+MIXXX,confidence:'confirmed'},
   {name:'Traktor Scratch MK1',vendor:'Native Instruments',carrierHz:2000,atRpm:33.333333,quadrature:true,notes:'2 kHz carrier (xwax traktor_a/b, which cover the MK1 timecode).',source:XWAX,confidence:'confirmed'},
-  {name:'Traktor Scratch MK2',vendor:'Native Instruments',carrierHz:2000,atRpm:33.333333,quadrature:true,notes:'2 kHz carrier at 33 1/3 rpm; MK2 uses a different position code but the same carrier frequency.',source:MIXXX,confidence:'confirmed'},
+  {name:'Traktor Scratch MK2',vendor:'Native Instruments',carrierHz:2500,atRpm:33.333333,quadrature:true,notes:'2.5 kHz carrier at 33 1/3 rpm per Mixxx Traktor MK2 support (PR 14569, DVS internals Pt. 3) and xwax-devel discussion; not independently measured. The MK1 value is 2 kHz.',source:MIXXX3+'; https://github.com/mixxxdj/mixxx/pull/14569',confidence:'unverified'},
   {name:'rekordbox RB-VS1',vendor:'AlphaTheta (Pioneer DJ)',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Carrier frequency of rekordbox control vinyl is not documented in xwax/Mixxx sources; 1 kHz is an assumption. Verify with a known-good disc.',source:null,confidence:'unverified'},
   {name:'MixVibes DVS V2',vendor:'MixVibes',carrierHz:1300,atRpm:33.333333,quadrature:true,notes:'xwax mixvibes_v2 resolution 1300.',source:XWAX,confidence:'confirmed'},
   {name:'Serato CV02 (xwax serato_2a)',vendor:'Serato',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Mixxx/xwax-compatible Serato timecode.',source:XWAX,confidence:'confirmed'},

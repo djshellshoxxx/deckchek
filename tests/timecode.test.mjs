@@ -16,7 +16,9 @@ const get=(res,id)=>res.measurements.find(m=>m.metricId===id).value;
 test('format table has confirmed carriers and merge works',()=>{
   const by=n=>TIMECODE_FORMATS.find(f=>f.name===n);
   assert.equal(by('Serato CV02.5').carrierHz,1000);
-  assert.equal(by('Traktor Scratch MK2').carrierHz,2000);
+  assert.equal(by('Traktor Scratch MK1').carrierHz,2000);
+  assert.equal(by('Traktor Scratch MK2').carrierHz,2500);
+  assert.equal(by('Traktor Scratch MK2').confidence,'unverified');
   assert.equal(by('rekordbox RB-VS1').confidence,'unverified');
   const m=mergeFormats([{name:'Custom',carrierHz:1500},{name:'serato cv02.5',carrierHz:1001}]);
   assert.equal(m.find(f=>f.name==='Custom').carrierHz,1500);
@@ -38,8 +40,8 @@ test('clean 1 kHz Serato at nominal speed',()=>{
   assert.ok(r.trace.length>=15);
 });
 
-test('+2% speed, 70 deg phase, 3 dB imbalance on Traktor 2 kHz',()=>{
-  const r=analyzeTimecode(synth({hz:2040,phaseDeg:70,imbalanceDb:3,noise:.002}),{format:'Traktor Scratch MK2'});
+test('+2% speed, 70 deg phase, 3 dB imbalance on Traktor MK2 2.5 kHz',()=>{
+  const r=analyzeTimecode(synth({hz:2550,phaseDeg:70,imbalanceDb:3,noise:.002}),{format:'Traktor Scratch MK2'});
   assert.ok(Math.abs(get(r,'tc_speed_error_percent')-2)<.05);
   assert.ok(Math.abs(get(r,'tc_phase_deg')-70)<1);
   assert.ok(Math.abs(get(r,'tc_phase_error_deg')-20)<1);

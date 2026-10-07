@@ -217,8 +217,68 @@ pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<Vec<Sy
         }
         out.push(SyncedProfile { profile_id: id, manufacturer_id, product_id, version, created, changed, asset_id });
     }
+    let shipped: Vec<String> = out.iter().map(|p| p.profile_id.clone()).collect();
+    prune_retired_profiles(&tx, &shipped, &now)?;
     tx.commit().map_err(e2s)?;
     Ok(out)
+}
+
+/// What `prune_retired_profiles` removed.
+#[derive(Debug, Default, PartialEq)]
+pub struct PruneSummary {
+    pub profiles: Vec<String>,
+    pub assets_deleted: Vec<String>,
+    pub assets_retired: Vec<String>,
+}
+
+const AUTO_ASSET_NOTE: &str = "Created from the DeckChek device library.";
+
+/// Remove library entries whose profile no longer ships. The auto-created "My <model>" asset is deleted when nothing
+/// refers to it, otherwise soft-deleted (is_deleted=1, retired_date set). A device_profile row that saved test results
+/// still reference is kept so the history stays valid (foreign key). An empty shipped set prunes nothing.
+pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) -> Result<PruneSummary, String> {
+    let mut summary = PruneSummary::default();
+    if shipped.is_empty() {
+        return Ok(summary);
+    }
+    let rows: Vec<(String, Option<String>)> = {
+        let mut stmt = conn.prepare("SELECT id, product_id FROM device_profile").map_err(e2s)?;
+        let it = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?))).map_err(e2s)?;
+        it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
+    };
+    let n = |sql: &str, id: &str| -> Result<i64, String> { conn.query_row(sql, [id], |r| r.get(0)).map_err(e2s) };
+    for (id, product_id) in rows.into_iter().filter(|(id, _)| !shipped.contains(id)) {
+        if let Some(pid) = &product_id {
+            let assets: Vec<String> = {
+                let mut stmt = conn
+                    .prepare("SELECT id FROM asset WHERE product_id = ?1 AND is_deleted = 0 AND notes LIKE ?2 || '%'")
+                    .map_err(e2s)?;
+                let it = stmt.query_map(params![pid, AUTO_ASSET_NOTE], |r| r.get(0)).map_err(e2s)?;
+                it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
+            };
+            for aid in assets {
+                let used = n("SELECT COUNT(*) FROM device_test_result WHERE asset_id = ?1", &aid)?
+                    + n("SELECT COUNT(*) FROM asset_midi_map WHERE asset_id = ?1", &aid)?
+                    + n("SELECT COUNT(*) FROM setup_component WHERE asset_id = ?1", &aid)?
+                    + n("SELECT COUNT(*) FROM asset_settings_snapshot WHERE asset_id = ?1", &aid)?
+                    + n("SELECT COUNT(*) FROM maintenance_event WHERE asset_id = ?1", &aid)?;
+                if used > 0 {
+                    conn.execute("UPDATE asset SET is_deleted = 1, retired_date = COALESCE(retired_date, substr(?2, 1, 10)), updated_at = ?2 WHERE id = ?1", params![aid, now]).map_err(e2s)?;
+                    summary.assets_retired.push(aid);
+                } else {
+                    conn.execute("DELETE FROM asset WHERE id = ?1", [&aid]).map_err(e2s)?;
+                    summary.assets_deleted.push(aid);
+                }
+            }
+        }
+        conn.execute("DELETE FROM product_spec WHERE id LIKE ?1 || ':spec:%'", [&id]).map_err(e2s)?;
+        if n("SELECT COUNT(*) FROM device_test_result WHERE profile_id = ?1", &id)? == 0 {
+            conn.execute("UPDATE asset_midi_map SET profile_id = NULL WHERE profile_id = ?1", [&id]).map_err(e2s)?;
+            conn.execute("DELETE FROM device_profile WHERE id = ?1", [&id]).map_err(e2s)?;
+            summary.profiles.push(id);
+        }
+    }
+    Ok(summary)
 }
 
 fn result_row(r: &rusqlite::Row) -> rusqlite::Result<Value> {
@@ -396,6 +456,40 @@ mod tests {
         assert!(third[0].changed && third[0].version == 2 && third[0].asset_id.is_none());
         assert!(!third[1].changed);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM asset"), before[3]);
+    }
+
+    #[test]
+    fn sync_prunes_profiles_that_no_longer_ship() {
+        let mut c = mem();
+        let all = vec![profile("keep-a", "Acme", "A-1"), profile("gone-unused", "Acme", "B-2"), profile("gone-used", "Acme", "C-3")];
+        let first = sync_profiles(&mut c, &all).unwrap();
+        let used_asset = first[2].asset_id.clone().unwrap();
+        save_result(&c, &DeviceTestResultInput {
+            id: None, asset_id: used_asset.clone(), profile_id: "gone-used".into(), test_id: "t".into(), session_id: None,
+            status: "pass".into(), detail: None, created_at: None,
+        })
+        .unwrap();
+        // an empty shipped set (library failed to load) must not wipe anything
+        sync_profiles(&mut c, &[]).unwrap();
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 3);
+
+        sync_profiles(&mut c, &all[..1]).unwrap();
+        // unused profile: row, specs and asset are gone
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-unused'"), 0);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM product_spec WHERE id LIKE 'gone-unused:spec:%'"), 0);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset WHERE id = ?1".replace("?1", &format!("'{}'", first[1].asset_id.as_ref().unwrap())).as_str()), 0);
+        // profile with saved results: asset soft-deleted and retired, history and profile row kept
+        let (deleted, retired): (i64, Option<String>) = c.query_row("SELECT is_deleted, retired_date FROM asset WHERE id = ?1", [&used_asset], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        assert_eq!(deleted, 1);
+        assert!(retired.is_some());
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result"), 1);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-used'"), 1);
+        // shipped profile untouched
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'keep-a'"), 1);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset WHERE id = ?1".replace("?1", &format!("'{}'", first[0].asset_id.as_ref().unwrap())).as_str()), 1);
+        // a second sync is stable
+        sync_profiles(&mut c, &all[..1]).unwrap();
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 2);
     }
 
     #[test]

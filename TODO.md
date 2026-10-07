@@ -37,14 +37,14 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Dark/light themes and keyboard shortcuts.
 - [x] Windows standalone build with portable exe and installer packages.
 - [x] Playwright UI smoke test (62 checks).
-- [x] Device library (0.0.3): profiles synced to the catalog, "My <model>" units, Devices screen, per-device test plans and runners, device_test_result persistence, learned MIDI maps, device HTML reports.
+- [x] Device library (0.0.3, 0.0.4 removes the M-Audio profile and prunes retired profiles on sync): profiles synced to the catalog, "My <model>" units, Devices screen, per-device test plans and runners, device_test_result persistence, learned MIDI maps, device HTML reports.
 
 ## Active beta validation gates
 
 - [ ] Real-hardware validation of thresholds and accuracy against known references (SPEC-08/19).
 - [ ] Test on a physical Windows machine with real audio interfaces.
 - [x] Loopback calibration output-device selector.
-- [ ] Run every device test plan on the user's own gear; confirm unit identities (DDJ-S8, SL-1200MK4, Torq Conectiv, Xone:23 vs 23C) and replace unverified specs/thresholds with confirmed values.
+- [ ] Run every device test plan on the user's own gear; confirm unit identities (DDJ-S8, SL-1200MK4; Xone:23C and Traktor MK2 vinyl are owner-confirmed, MK2 carrier 2500 Hz still to be measured) and replace unverified specs/thresholds with confirmed values.
 - [ ] Ship published MIDI maps where official MIDI message lists can be obtained (DJM-A9, PLX-CRSS12, TWELVE MK2).
 - [ ] Verify the Tauri opener for document links (currently falls back to copying the URL in the desktop app).
 - [x] History shows metric labels and asset names for native runs.

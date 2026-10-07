@@ -320,10 +320,8 @@ async function devicesBrowser(page, wav, extra) {
   await shot(page, 'device-test-inspector-dark');
   await openDevice(page, 'technics-sl-1200mk4');
   check('Devices: Technics identity note (SL-1200MK4 assumed)', /SL-1200MK4/.test(await page.locator('.dev-identity').innerText()));
-  await openDevice(page, 'm-audio-torq-conectiv');
-  check('Devices: M-Audio identity note (Torq Conectiv assumed)', /Conectiv/.test(await page.locator('.dev-identity').innerText()));
   await openDevice(page, 'allen-heath-xone-23');
-  check('Devices: Xone:23 vs 23C identity note', /23C/.test(await page.locator('.dev-identity').innerText()));
+  check('Devices: Xone:23C identity confirmed by owner', /Confirmed by the owner/.test(await page.locator('.dev-identity').innerText()));
 
   // manual:inspection checklist
   await openDevice(page, 'pioneer-ddj-s8');
