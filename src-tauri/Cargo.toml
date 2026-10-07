@@ -19,3 +19,4 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 cpal = "0.16"
 rtrb = "0.3"
 tauri = { version = "2", features = [] }
+midir = "0.10"
