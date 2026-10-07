@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 1,
+  "id": "serato-control-vinyl-cv025",
+  "manufacturer": "Serato",
+  "model": "Control Vinyl CV02.5",
+  "aliases": [
+    "Serato NoiseMap Control Vinyl",
+    "CV02.5",
+    "CV 2.5"
+  ],
+  "category": "timecode-media",
+  "summary": "Serato timecode control vinyl (NoiseMap signal) used for DVS control of Serato DJ Pro.",
+  "identityNotes": "CV02.5 NoiseMap is current; older Serato Scratch Live CV02 / CV02.5 may differ in level. Colour variants share the same signal.",
+  "image": {
+    "file": "serato-control-vinyl-cv025.svg",
+    "kind": "illustration",
+    "source": "Original illustration created for DeckChek",
+    "license": "Original work (project)",
+    "author": "DeckChek project"
+  },
+  "documents": [
+    {
+      "title": "How Does Timecode Vinyl Actually Work? (Pt. 3, Mixxx)",
+      "type": "support-article",
+      "url": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
+      "language": "en",
+      "notes": "Third-party analysis of Serato timecode."
+    },
+    {
+      "title": "Thomann 7in control vinyl listing",
+      "type": "spec-sheet",
+      "url": "https://m.thomann.de/cz/serato_7_control_vinyl_blue.htm",
+      "language": "en",
+      "notes": "Retailer: 4 min per side for 7 in."
+    }
+  ],
+  "connectivity": {
+    "usb": null,
+    "midi": null,
+    "audio": null,
+    "analog": []
+  },
+  "drivers": [],
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "DVS with supported hardware; calibration, ABS/REL/INT modes."
+    },
+    {
+      "name": "Serato Scratch Live",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Legacy."
+    }
+  ],
+  "specs": [
+    {
+      "key": "carrier",
+      "label": "Carrier frequency",
+      "value": 1000,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "mixxx.org DVS internals pt.3",
+      "confidence": "confirmed",
+      "notes": "At 33 1/3 rpm; AM-modulated LFSR code."
+    },
+    {
+      "key": "carrier_45",
+      "label": "Carrier at 45 rpm",
+      "value": 1350,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "Derived: 1000 x 45/33.333",
+      "confidence": "unverified",
+      "notes": "Proportional scaling."
+    },
+    {
+      "key": "quadrature",
+      "label": "L/R phase offset",
+      "value": 90,
+      "unit": "deg",
+      "tolerance": null,
+      "source": "General quadrature principle (mixxx.org series)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "side_7in",
+      "label": "7in side length",
+      "value": 4,
+      "unit": "min",
+      "tolerance": null,
+      "source": "Thomann listing (search snippet)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "noisemap_level",
+      "label": "NoiseMap level vs prior",
+      "value": 6,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "Thomann listing (search snippet)",
+      "confidence": "unverified",
+      "notes": "Remastered 6 dB louder."
+    }
+  ],
+  "timecode": {
+    "formats": [
+      {
+        "name": "Serato CV02.5",
+        "vendor": "Serato",
+        "carrierHz": 1000,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "NoiseMap control tone; lead-in length not found.",
+        "source": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
+        "confidence": "unverified"
+      }
+    ]
+  },
+  "midi": null,
+  "tests": [
+    {
+      "id": "cv-format",
+      "category": "timecode",
+      "title": "Timecode format check CV02.5 at 33 1/3",
+      "why": "Confirms carrier frequency, phase and balance.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Place vinyl on a turntable at 33, quartz lock, pitch 0.",
+        "Connect turntable to DVS interface line/phono per its setting.",
+        "Start the test and play the signal ~30 s."
+      ],
+      "equipment": [
+        "Serato CV02.5 vinyl, turntable"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-carrier",
+      "category": "timecode",
+      "title": "Carrier frequency",
+      "why": "Detects wrong format or wrong speed.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "As above."
+      ],
+      "equipment": [
+        "CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-quadrature",
+      "category": "timecode",
+      "title": "Quadrature phase 90 degrees",
+      "why": "Phase error causes direction errors.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "As above."
+      ],
+      "equipment": [
+        "CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-balance",
+      "category": "timecode",
+      "title": "L/R amplitude balance",
+      "why": "Imbalance suggests cartridge fault or vinyl wear.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "As above."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-snr",
+      "category": "timecode",
+      "title": "Carrier SNR",
+      "why": "Low SNR indicates wear, dirt or noise.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "As above."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-dropouts",
+      "category": "timecode",
+      "title": "Dropouts",
+      "why": "Dropouts cause timecode loss.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Play the whole side or at least 2 minutes."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-45",
+      "category": "timecode",
+      "title": "45 rpm behaviour",
+      "why": "Vinyl should be playable at 45; carrier scales with speed.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 45
+      },
+      "steps": [
+        "Set turntable to 45 rpm and repeat."
+      ],
+      "equipment": [
+        "CV02.5 vinyl"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-dvs",
+      "category": "dvs",
+      "title": "DVS signal integrity",
+      "why": "General sine-pair check.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Play timecode on each deck."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-side-scan",
+      "category": "dvs",
+      "title": "Vinyl side scan",
+      "why": "Walks the side to find worn/damaged zones and the lead-in.",
+      "method": "vinyl:Vinyl side scan",
+      "params": {},
+      "steps": [
+        "Place stylus at lead-in; let it play to the end; do not skip."
+      ],
+      "equipment": [
+        "CV02.5 vinyl"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-visual",
+      "category": "mechanical",
+      "title": "Visual wear inspection",
+      "why": "Scratches, warp and dust cause dropouts.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "No deep scratches across the grooves.",
+        "Record is flat (no warp).",
+        "Clean with carbon fibre brush.",
+        "Time markers visible.",
+        "Label centre not loose."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "cv-sw-calib",
+      "category": "software",
+      "title": "Serato calibration / threshold",
+      "why": "Calibrate for each deck to set noise threshold.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Serato DJ Pro: Setup > DVS > Calibrate.",
+        "Adjust until the scope shows two clean circles and signal bars full."
+      ],
+      "equipment": [
+        "Serato DJ Pro, DVS interface"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "cv-sw-mode",
+      "category": "software",
+      "title": "Absolute vs relative mode",
+      "why": "Absolute mode needs good lead-in position; relative ignores position.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Switch ABS/REL/INT in Serato (with DVS).",
+        "Drop the needle in different places; ABS should jump to matching time."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "cv-sw-installed",
+      "category": "software",
+      "title": "Serato DJ Pro installed",
+      "why": "Needed for DVS.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run check."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": {
+        "metricId": "software_installed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": null,
+        "source": "Required"
+      }
+    },
+    {
+      "id": "cv-sw-errors",
+      "category": "software",
+      "title": "Serato log errors",
+      "why": "Logs can show lost timecode or driver errors.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run check after a DVS session."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": "Serato DJ Pro",
+      "pass": null
+    }
+  ]
+}
