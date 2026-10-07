@@ -2,7 +2,7 @@
 
 import { esc, formatNumber } from './dom.js';
 
-const W = 640, H = 220, PAD = { l: 52, r: 14, t: 14, b: 30 };
+const W = 640, H = 230, PAD = { l: 56, r: 14, t: 26, b: 30 };
 
 function scale(domain, range) {
   const [d0, d1] = domain, [r0, r1] = range, k = (r1 - r0) / ((d1 - d0) || 1);
@@ -12,7 +12,8 @@ function extent(values, padFrac = .08, minSpan = 1e-9) {
   const v = values.filter(Number.isFinite);
   if (!v.length) return [0, 1];
   let lo = Math.min(...v), hi = Math.max(...v);
-  const span = Math.max(hi - lo, minSpan);
+  if (hi - lo < minSpan) { const mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+  const span = hi - lo || 1;
   return [lo - span * padFrac, hi + span * padFrac];
 }
 function ticks([a, b], n = 5) {
@@ -35,9 +36,9 @@ function svg(inner, label, { width = W, height = H } = {}) {
 }
 
 /** Line plot of {t, v} points. */
-export function linePlot(points, { title, xLabel = 'time (s)', yLabel = '', zeroLine = false, marker = null, dots = false } = {}) {
+export function linePlot(points, { title, xLabel = 'time (s)', yLabel = '', zeroLine = false, marker = null, dots = false, minSpan = 1e-9 } = {}) {
   if (!points?.length) return '<p class="muted">No data.</p>';
-  const xDomain = extent(points.map(p => p.t), 0), yDomain = extent(points.map(p => p.v).concat(zeroLine ? [0] : []));
+  const xDomain = extent(points.map(p => p.t), 0), yDomain = extent(points.map(p => p.v).concat(zeroLine ? [0] : []), .08, minSpan);
   const x = scale(xDomain, [PAD.l, W - PAD.r]), y = scale(yDomain, [H - PAD.b, PAD.t]);
   const d = points.filter(p => Number.isFinite(p.v)).map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
   return svg(`${frame({ x, y, xLabel, yLabel, xDomain, yDomain, title })}
@@ -96,5 +97,5 @@ export function eventMapPlot(events, { previous = null, title = 'Transient event
 export function responsePlot(response, { title = 'Loopback response' } = {}) {
   const pts = (response || []).filter(p => Number.isFinite(p.deltaDb)).map(p => ({ t: Math.log10(p.hz), v: p.deltaDb }));
   if (!pts.length) return '<p class="muted">No response data.</p>';
-  return linePlot(pts, { title, xLabel: 'log₁₀ frequency (Hz)', yLabel: 'Δ dB', zeroLine: true, dots: true });
+  return linePlot(pts, { title, xLabel: 'log₁₀ frequency (Hz)', yLabel: 'Δ dB', zeroLine: true, dots: true, minSpan: 1 });
 }

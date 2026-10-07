@@ -47,6 +47,10 @@ class WorkflowScreen {
         return false;
       },
       onExport: () => this.run ? exportRunHtml(this.run) : toast('Run an analysis first — then Ctrl+E exports its report.'),
+      onEnter: () => {
+        if (this.step === 'setup' && this.primaryBtn && !this.primaryBtn.disabled) { this.primaryBtn.click(); return true; }
+        return false;
+      },
     };
   }
 
@@ -77,7 +81,7 @@ class WorkflowScreen {
     }
     this.stepper = h('ol', { class: 'stepper', 'aria-label': 'Progress' });
     this.section.append(this.stepper);
-    this.banner = h('div', { class: 'banner-slot', 'aria-live': 'assertive' });
+    this.banner = h('div', { class: 'banner-slot' });
     this.section.append(this.banner);
     this.panels = {};
     for (const [id] of STEPS) { this.panels[id] = h('div', { class: `step-panel step-${id}`, hidden: true }); this.section.append(this.panels[id]); }
@@ -139,7 +143,7 @@ class WorkflowScreen {
     srcCard.innerHTML = `<h2 id="${d.id}-src" class="card-title">1 · Choose a source</h2>`;
     const choices = h('div', { class: 'source-choices', role: 'radiogroup', 'aria-label': 'Audio source' });
     const mk = (id, title, sub, ic, disabled) => {
-      const b = h('button', { type: 'button', role: 'radio', class: 'source', 'aria-checked': String(this.source === id), 'aria-disabled': disabled ? 'true' : null, 'data-source': id });
+      const b = h('button', { type: 'button', role: 'radio', class: 'source', 'aria-checked': String(this.source === id), 'aria-disabled': disabled ? 'true' : null, 'data-source': id, tabindex: this.source === id ? '0' : '-1' });
       b.innerHTML = `<span class="source-icon">${icon(ic, { size: 26 })}</span><span class="source-text"><strong>${esc(title)}</strong><span>${esc(sub)}</span></span>${disabled ? '<span class="badge">DESKTOP APP</span>' : ''}`;
       b.addEventListener('click', () => { if (disabled) { toast('Live capture is available in the DeckChek desktop app. Load a recorded file to analyse it here.', { type: 'info' }); return; } this.source = id; this.renderSetup(); });
       return b;
@@ -147,6 +151,15 @@ class WorkflowScreen {
     choices.append(
       mk('live', 'Live capture', live ? `From ${currentDeviceName()} · meters, clip latch, quality counters` : 'Available in the desktop app', 'mic', !live),
       mk('file', 'Load audio file', 'WAV, AIFF, FLAC or MP3 recorded from this chain', 'file', false));
+    choices.addEventListener('keydown', e => {
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+      e.preventDefault();
+      const next = this.source === 'live' ? 'file' : 'live';
+      if (next === 'live' && !live) return;
+      this.source = next;
+      this.renderSetup();
+      this.panels.setup.querySelector(`.source[data-source="${next}"]`)?.focus();
+    });
     srcCard.append(choices);
     if (this.source === 'file') srcCard.append(this.fileDrop());
     else {
@@ -212,14 +225,15 @@ class WorkflowScreen {
   }
 
   equipmentField() {
-    const label = h('label', { class: 'field' }, h('span', { class: 'field-label', text: 'Equipment under test' }));
-    this.equipSelect = h('select', { 'data-param': 'device' });
+    const id = `${this.def.id}-equipment`;
+    const wrap = h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: 'Equipment under test' }));
+    this.equipSelect = h('select', { id, 'data-param': 'device' });
     this.equipSelect.append(h('option', { value: '', text: 'Unassigned' }));
     this.equipSelect.addEventListener('change', () => { this.equipmentId = this.equipSelect.value; });
-    label.append(this.equipSelect, h('span', { class: 'field-help', html: 'Results are tracked per asset. <button type="button" class="link" data-go="equipment">Manage equipment</button>' }));
-    label.querySelector('[data-go]').addEventListener('click', () => go('equipment'));
+    const manage = h('button', { type: 'button', class: 'btn btn-ghost btn-sm field-action', html: `${icon('equipment', { size: 16 })}<span>Manage equipment</span>`, onclick: () => go('equipment') });
+    wrap.append(this.equipSelect, h('div', { class: 'field-help-row' }, h('span', { class: 'field-help', text: 'Results are tracked per asset.' }), manage));
     this.populateEquipment();
-    return label;
+    return wrap;
   }
 
   async populateEquipment() {
@@ -487,6 +501,8 @@ class WorkflowScreen {
       ],
     }));
     this.setStep('results');
+    const v = this.panels.results.querySelector('.verdict');
+    announce(`${v?.querySelector('.chip')?.textContent || ''}. ${v?.querySelector('.verdict-headline')?.textContent || ''} Score ${run.score} of 100.`);
   }
 
   showTips() {

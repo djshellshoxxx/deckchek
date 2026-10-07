@@ -88,10 +88,10 @@ function findingCard(f, run, index) {
 function evidenceSection(run) {
   const ev = run.evidence || localRun(run.id)?.evidence || {};
   const blocks = [];
-  if (ev.speedTrace?.length) blocks.push(['Speed deviation over time', linePlot(ev.speedTrace, { title: 'Speed deviation', yLabel: 'deviation %', zeroLine: true }), true]);
-  if (ev.pitchPoints?.length) blocks.push(['Pitch map', linePlot(ev.pitchPoints.map(p => ({ t: p.position, v: p.measuredPercent })).sort((a, b) => a.t - b.t), { title: 'Pitch map', xLabel: 'control position %', yLabel: 'measured %', zeroLine: true, dots: true }), true]);
-  if (ev.trendPoints?.length) blocks.push(['Warm-up trend', linePlot(ev.trendPoints.sort((a, b) => a.t - b.t), { title: 'Warm-up speed error', xLabel: 'elapsed (min)', yLabel: 'error %', zeroLine: true, dots: true }), true]);
-  if (ev.levelTrace?.points?.length) blocks.push(['Signal envelope', linePlot(ev.levelTrace.points, { title: 'Normalized level', yLabel: 'level', marker: ev.levelTrace.markerSec }), true]);
+  if (ev.speedTrace?.length) blocks.push(['Speed deviation over time', linePlot(ev.speedTrace, { title: 'Speed deviation', yLabel: 'deviation %', zeroLine: true, minSpan: .05 }), true]);
+  if (ev.pitchPoints?.length) blocks.push(['Pitch map', linePlot(ev.pitchPoints.map(p => ({ t: p.position, v: p.measuredPercent })).sort((a, b) => a.t - b.t), { title: 'Pitch map', xLabel: 'control position %', yLabel: 'measured %', zeroLine: true, dots: true, minSpan: 1 }), true]);
+  if (ev.trendPoints?.length) blocks.push(['Warm-up trend', linePlot(ev.trendPoints.sort((a, b) => a.t - b.t), { title: 'Warm-up speed error', xLabel: 'elapsed (min)', yLabel: 'error %', zeroLine: true, dots: true, minSpan: .05 }), true]);
+  if (ev.levelTrace?.points?.length) blocks.push(['Signal envelope', linePlot(ev.levelTrace.points, { title: 'Normalized level', yLabel: 'level', marker: ev.levelTrace.markerSec, minSpan: 1 }), true]);
   if (ev.lissajous?.length) blocks.push(['Timecode scope', `<div class="scope-wrap">${scopePlot(ev.lissajous)}</div>`, true]);
   if (run.eventMap?.length || run.test === 'Vinyl side scan') {
     const prev = run.repeatScan ? localRun(run.repeatScan.previousId)?.eventMap : null;

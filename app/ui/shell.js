@@ -186,6 +186,7 @@ function onKeydown(event) {
   if (ctrl && key.toLowerCase() === 's' && screen.onSave) { event.preventDefault(); screen.onSave(); return; }
   if (key === 'Escape') { if (screen.onEscape?.()) event.preventDefault(); else if (inspectorOpen() && isNarrow()) setInspector(false); return; }
   if (key === 'F1') { event.preventDefault(); $('#helpBtn')?.click(); return; }
+  if (key === 'Enter' && !ctrl && !event.altKey && (event.target === document.body || event.target?.id === 'main') && screen.onEnter?.()) { event.preventDefault(); return; }
   if (isTyping(event.target) || ctrl || event.altKey) return;
   if (key === ' ' && screen.onSpace) {
     if (event.target?.tagName === 'BUTTON' && !event.target.dataset.spaceOk) return; // let buttons activate natively

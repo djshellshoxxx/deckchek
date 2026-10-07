@@ -22,7 +22,7 @@ export function createCalibrationScreen(section) {
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('calibration', { size: 24 })}</span><div><h1 tabindex="-1">Calibration</h1>
       <p class="lede">Measure your interface with a loopback cable so results can be corrected for gain, channel mismatch and clock error — and carry honest ± uncertainty.</p></div></div></header>
-    <div class="banner-slot" aria-live="assertive"></div>
+    <div class="banner-slot"></div>
     <div class="cal-grid">
       <div class="cal-main">
         <section class="card" aria-labelledby="cal-prep"><h2 id="cal-prep" class="card-title">1 · Patch the loopback</h2>
