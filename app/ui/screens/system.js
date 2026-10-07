@@ -285,6 +285,8 @@ export function createSystemScreen(section) {
 
   return {
     onShow() {
+      document.getElementById('inspector-title').textContent = 'About System Health';
+      document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>Reads Windows' own records about your audio setup. Nothing is changed on your computer.</p><h3>Drivers</h3><p>Every audio and DJ-hardware driver, whether it is digitally signed, and whether Windows reports the device as working (Device Manager problem codes).</p><h3>Event logs</h3><p>Audio, USB and driver errors from the System log, and crashes or freezes of DJ programs from the Application log, for the last 14 days.</p><h3>DJ software logs</h3><p>Log files and crash reports written by Serato, Traktor, rekordbox, VirtualDJ, Mixxx, djay and Engine DJ.</p><h3>Reading the results</h3><p>Each finding says what it means and what to do. Errors usually explain crashes, dropouts or missing devices; warnings are worth fixing before a gig.</p></div>`;
       state.unsupported = !bridge.isAvailable();
       if (!state.started && !state.unsupported) runAll(); else render();
       clearInterval(state.timer);
