@@ -187,11 +187,32 @@ test('catalog-store fallback: profile sync is idempotent and creates one asset p
   assert.ok(second.every(r => !r.created && !r.changed && !r.assetId));
   assert.equal((await store.list('asset')).length, PROFILES.length);
   assert.equal((await store.list('product')).length, PROFILES.length);
-  const changed = await store.syncDeviceProfiles([{ ...PROFILES[0], summary: 'changed' }]);
+  const changed = await store.syncDeviceProfiles([{ ...PROFILES[0], summary: 'changed' }, ...PROFILES.slice(1)]);
   assert.equal(changed[0].version, 2);
   const state = JSON.parse(storage.getItem('deckchek.catalog.v1'));
   assert.ok(state.productSpecs.some(s => s.provenanceType === 'manufacturer-doc'));
   assert.ok(state.productSpecs.some(s => s.provenanceType === 'research-unverified'));
+});
+
+test('catalog-store fallback: profile sync prunes retired profiles and their auto assets', async () => {
+  const storage = memStorage();
+  const store = createCatalogStore({ invoke: null, storage });
+  const [a, b, c] = PROFILES.slice(0, 3);
+  const first = await store.syncDeviceProfiles([a, b, c]);
+  await store.saveDeviceTestResult({ assetId: first[2].assetId, profileId: c.id, testId: 't1', status: 'pass' });
+  assert.deepEqual((await store.syncDeviceProfiles([])), [], 'empty shipped set prunes nothing');
+  assert.equal((await store.list('asset')).length, 3);
+  await store.syncDeviceProfiles([a]);
+  const assets = await store.list('asset');
+  assert.deepEqual(assets.map(x => x.id), [first[0].assetId], 'unused and used-but-retired assets are hidden');
+  const state = JSON.parse(storage.getItem('deckchek.catalog.v1'));
+  assert.ok(!state.deviceProfiles[b.id], 'profile without results removed');
+  assert.ok(state.deviceProfiles[c.id], 'profile with saved results kept for history');
+  assert.ok(!state.catalog.asset.some(x => x.id === first[1].assetId), 'unused auto asset deleted');
+  const retired = state.catalog.asset.find(x => x.id === first[2].assetId);
+  assert.ok(retired.isDeleted && retired.retiredDate, 'asset with results is soft-deleted');
+  assert.ok(!state.productSpecs.some(sp => String(sp.id).startsWith(`${b.id}:spec:`)));
+  assert.equal((await store.listDeviceTestResults(first[2].assetId)).length, 1);
 });
 
 test('catalog-store fallback: device results and learned maps round trip', async () => {

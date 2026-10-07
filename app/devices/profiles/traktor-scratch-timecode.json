@@ -2,16 +2,17 @@
   "schemaVersion": 1,
   "id": "traktor-scratch-timecode",
   "manufacturer": "Native Instruments",
-  "model": "Traktor Scratch control vinyl MK1 / MK2 and control CD",
+  "model": "Traktor Scratch Control Vinyl MK2",
   "aliases": [
-    "Traktor Scratch Pro control vinyl",
     "Traktor Scratch MK2",
+    "Traktor Scratch Pro control vinyl MK2",
+    "Traktor Scratch control vinyl",
     "Traktor Scratch MK1 vinyl",
     "Traktor Scratch control CD"
   ],
   "category": "timecode-media",
-  "summary": "Native Instruments timecode vinyl and CDs used with Traktor Scratch Pro / Traktor Pro to control digital tracks with turntables or CDJs.",
-  "identityNotes": "The user did not say whether their records are MK1 or MK2; both are profiled. MK2 (2010) is newer; modern Traktor Pro reads both. Carrier frequencies conflict between retailer text and community sources, see specs. Side lengths and lead-in could not be confirmed from primary sources.",
+  "summary": "Native Instruments Traktor Scratch control vinyl MK2 (the owner's timecode record) for Traktor Scratch Pro / Traktor Pro; MK1 vinyl and the control CD are listed as secondary formats.",
+  "identityNotes": "Confirmed by the owner: the control vinyl is Traktor Scratch Control Vinyl MK2. MK1 and the control CD stay listed as secondary formats (modern Traktor Pro reads both). MK2 carrier: Mixxx's Traktor MK2 work (PR 14569, DVS internals Pt. 3) and xwax list discussion give 2500 Hz, which the tests use; an older retailer text says 2 kHz (that is the MK1 value). Marked unverified because source pages could not be opened. Side lengths and lead-in could not be confirmed from primary sources.",
   "image": {
     "file": "traktor-scratch-timecode.svg",
     "kind": "illustration",
@@ -20,6 +21,20 @@
     "author": "DeckChek"
   },
   "documents": [
+    {
+      "title": "Mixxx PR 14569: Initial Traktor MK2 vinyl/CD support",
+      "type": "support-article",
+      "url": "https://github.com/mixxxdj/mixxx/pull/14569",
+      "language": "en",
+      "notes": "MK2 timecode definitions; 2500 Hz carrier (from search snippet; page not opened)."
+    },
+    {
+      "title": "xwax-devel: Traktor scratch mk2 vinyl",
+      "type": "support-article",
+      "url": "https://sourceforge.net/p/xwax/mailman/message/29827458/",
+      "language": "en",
+      "notes": "Mailing-list discussion; resolution 2500 in traktor_b fixed speed (search snippet)."
+    },
     {
       "title": "DJ TechTools: timecode explained",
       "type": "support-article",
@@ -92,13 +107,13 @@
     },
     {
       "key": "mk2_carrier_hz",
-      "label": "MK2 carrier frequency",
+      "label": "MK2 carrier frequency (used by tests)",
       "value": 2500,
       "unit": "Hz",
       "tolerance": null,
-      "source": "https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white",
+      "source": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
       "confidence": "unverified",
-      "notes": "Retail text calls it 2 kHz carrier but other source quotes about 2.5 kHz; confirm by measurement with timecode:format-check."
+      "notes": "Search snippets of the Mixxx DVS internals Pt. 3 article, Mixxx PR 14569 (Initial Traktor MK2 support) and an xwax-devel thread state a 2500 Hz MK2 carrier (2.5x Serato's 1 kHz; setting resolution 2500 in xwax's traktor_b fixed speed but not decoding). The retailer text (PSSL) saying 2 kHz is likely the MK1 value. Confirm by measurement with timecode:format-check."
     },
     {
       "key": "quadrature",
@@ -144,26 +159,26 @@
   "timecode": {
     "formats": [
       {
-        "name": "Traktor Scratch MK1",
-        "vendor": "Native Instruments",
-        "carrierHz": 2000,
-        "atRpm": 33.333,
-        "quadrature": true,
-        "leadInSec": null,
-        "notes": "Absolute and relative modes supported.",
-        "source": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
-        "confidence": "confirmed"
-      },
-      {
         "name": "Traktor Scratch MK2",
         "vendor": "Native Instruments",
         "carrierHz": 2500,
         "atRpm": 33.333,
         "quadrature": true,
         "leadInSec": null,
-        "notes": "Higher-frequency carrier for better slow-speed tracking; absolute mode; side A about 12 min, B about 17 min (unverified).",
-        "source": "https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white",
+        "notes": "Owner format. 2500 Hz carrier per Mixxx PR 14569 / DVS internals Pt. 3 and xwax-devel discussion (search snippets; sources not opened). MK2 uses offset modulation and a 110-bit LFSR. Side A about 12 min, B about 17 min (unverified).",
+        "source": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/; https://github.com/mixxxdj/mixxx/pull/14569",
         "confidence": "unverified"
+      },
+      {
+        "name": "Traktor Scratch MK1",
+        "vendor": "Native Instruments",
+        "carrierHz": 2000,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Secondary format (older MK1 vinyl). Absolute and relative modes supported.",
+        "source": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
+        "confidence": "confirmed"
       },
       {
         "name": "Traktor Scratch control CD",
@@ -227,7 +242,7 @@
     {
       "id": "tc-mk1-format",
       "category": "timecode",
-      "title": "Traktor Scratch MK1 format check (33 1/3)",
+      "title": "Traktor Scratch MK1 (secondary) format check (33 1/3)",
       "why": "Carrier frequency, quadrature phase, L/R balance and SNR show whether the vinyl, cartridge and input stage deliver a decodable signal.",
       "method": "timecode:format-check",
       "params": {
@@ -251,7 +266,7 @@
     {
       "id": "tc-mk1-45",
       "category": "timecode",
-      "title": "Traktor Scratch MK1 at 45 rpm",
+      "title": "Traktor Scratch MK1 (secondary) at 45 rpm",
       "why": "Speed tracking at 45 rpm (carrier scales with speed).",
       "method": "timecode:format-check",
       "params": {

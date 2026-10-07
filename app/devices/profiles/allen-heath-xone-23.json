@@ -2,15 +2,19 @@
   "schemaVersion": 1,
   "id": "allen-heath-xone-23",
   "manufacturer": "Allen & Heath",
-  "model": "Xone:23",
+  "model": "Xone:23C",
   "aliases": [
+    "Xone:23",
     "Xone 23",
+    "Xone 23C",
     "XONE:23",
-    "Xone:23C (USB variant)"
+    "XONE:23C",
+    "Allen & Heath Xone:23C",
+    "Xone:23C USB"
   ],
   "category": "mixer",
-  "summary": "2+2 channel analog DJ mixer with 3-band total-kill EQ, VCF filters, balanced XLR main outputs and booth/record outputs; the Xone:23C adds a USB soundcard.",
-  "identityNotes": "The user did not say whether it is the analog Xone:23 or the Xone:23C (built-in 24-bit/96 kHz 4-stereo-channel USB soundcard plus X:LINK). Profiled as the analog Xone:23; 23C-only tests are marked in the title ('Xone:23C only'). To tell them apart: the 23C has a USB B socket and an X:LINK port on the rear panel. Both share identical analog features and layout. No MIDI DIN ports on either.",
+  "summary": "2+2 channel DJ mixer with 3-band total-kill EQ, VCF filters, balanced XLR main outputs, booth/record outputs and a built-in 24-bit/96 kHz four-stereo-channel USB soundcard (plus X:LINK), usable as the audio interface for Traktor Scratch Pro DVS.",
+  "identityNotes": "Confirmed by the owner: the unit is the Xone:23C (with the built-in USB soundcard), not the analog-only Xone:23. The profile id stays 'allen-heath-xone-23' so existing databases keep their unit and results. Analog layout and features are shared with the Xone:23. No MIDI DIN ports. The 23C has a USB B socket and an X:LINK port on the rear panel.",
   "image": {
     "file": "allen-heath-xone-23.svg",
     "kind": "illustration",
@@ -24,14 +28,14 @@
       "type": "user-manual",
       "url": "https://www.markertek.com/Attachments/Manuals/Allen%20&%20Heath/XONE23-Manual.pdf",
       "language": "en",
-      "notes": "Retailer hosted copy of A&H manual."
+      "notes": "Retailer hosted copy of the A&H Xone:23 manual (analog sections shared with the 23C)."
     },
     {
       "title": "Xone:23C user manual",
       "type": "user-manual",
       "url": "https://www.adorama.com/col/productManuals/AHXONE23C.pdf",
       "language": "en",
-      "notes": "23C additions: USB soundcard, X:LINK."
+      "notes": "Primary manual for this unit: USB soundcard, ASIO driver install, X:LINK."
     },
     {
       "title": "Xone:23C brochure",
@@ -53,42 +57,76 @@
       "url": "https://forum.djtechtools.com/t/xone-23c-vs-xone-23-soundcard/66647",
       "language": "en",
       "notes": "Community comparison."
+    },
+    {
+      "title": "Xone:23C user guide (A&H)",
+      "type": "user-manual",
+      "url": "https://www.allen-heath.com/content/uploads/2023/06/AP9433_5_X23C_UG.pdf",
+      "language": "en",
+      "notes": "Manufacturer-hosted guide (seen in search results, not opened)."
+    },
+    {
+      "title": "Xone:23C driver release notes (v2.9.95.2)",
+      "type": "support-article",
+      "url": "https://www.allen-heath.com/content/uploads/2023/06/X23C_DSRN_29952_2.pdf",
+      "language": "en",
+      "notes": "Windows driver release notes (seen in search results, not opened); file X23C_v29952.exe."
+    },
+    {
+      "title": "gehrcke.de: Xone:23C hidden technical detail and quirks",
+      "type": "support-article",
+      "url": "https://gehrcke.de/2014/07/allen-heath-xone23c-hidden-technical-detail-and-quirks/",
+      "language": "en",
+      "notes": "Community teardown of the USB send/return routing; also describes Bit accurate vs Core Audio driver modes."
     }
   ],
   "connectivity": {
     "usb": {
-      "present": false,
+      "present": true,
       "vendorId": null,
       "productIds": [],
       "classCompliant": null,
-      "notes": "Analog Xone:23 has no USB. Xone:23C has a USB B port (24-bit/96 kHz, 4 stereo channels); A&H publishes its own Windows ASIO driver (version unverified); USB IDs unconfirmed."
+      "notes": "USB B socket on the rear panel (built-in USB soundcard). A&H's 'XONE:23C USB ASIO driver' is needed to reach all soundcard channels on Windows; the driver also offers a 'Core Audio' mode described as fully class compliant (documented for macOS; behaviour of the plain Windows class-compliant path is unverified). USB vendor/product IDs unconfirmed."
     },
     "midi": null,
-    "audio": null,
+    "audio": {
+      "usbChannelsIn": 4,
+      "usbChannelsOut": 4,
+      "sampleRatesHz": [
+        44100,
+        48000,
+        96000
+      ],
+      "bitDepth": 24,
+      "notes": "4 stereo channels is confirmed (A&H brochure, retailers); the split of 2 stereo sends (1+2, 3+4, from the PC into the mixer) and the return/record side as 4 in / 4 out, and the exact sample-rate list, are unverified."
+    },
     "analog": [
       "2x stereo channels with phono/line",
       "mic input (XLR)",
       "main out balanced XLR",
       "booth out",
       "record out",
-      "headphone outputs"
+      "headphone outputs",
+      "USB B (soundcard)",
+      "X:LINK"
     ]
   },
   "drivers": [
     {
       "os": "windows",
-      "name": "Allen & Heath Xone:23C USB driver (23C only)",
-      "asioName": null,
+      "name": "Allen & Heath XONE:23C USB ASIO driver",
+      "asioName": "XONE:23C USB ASIO driver (exact ASIO entry name unverified)",
       "deviceNamePatterns": [
         "Xone:23C",
         "XONE:23C",
+        "XONE:23C USB",
         "Allen & Heath Xone"
       ],
       "provider": "Allen & Heath",
-      "latestKnownVersion": null,
+      "latestKnownVersion": "2.9.95.2 (X23C_v29952.exe, per A&H release notes found by search; check for newer)",
       "url": "https://www.allen-heath.com/hardware/xone-series/xone23c/",
-      "required": false,
-      "notes": "Only required for the Xone:23C; analog Xone:23 needs no driver. Page could not be opened; confirm version and whether the 23C is class compliant on Windows."
+      "required": true,
+      "notes": "Install the A&H driver before connecting. 'Bit accurate' mode controls the audio clocks for the lowest latency and jitter; 'Core Audio' mode is class compliant and allows aggregation with other soundcards at slightly higher latency/jitter (per search summaries of the manual). Page could not be opened; confirm version and Windows 10/11 support."
     }
   ],
   "software": [
@@ -96,7 +134,7 @@
       "name": "Traktor Pro",
       "role": "dvs",
       "minVersion": null,
-      "notes": "Mixer is used with Traktor through an external interface (Audio 8 DJ). 23C is Traktor Certified per retailers (https://mannys.com.au/allen-and-heath-xone-23c-traktor-certified-dj-mixer-w-usb-i-o)."
+      "notes": "The 23C is listed as Traktor certified by retailers (e.g. https://mannys.com.au/allen-and-heath-xone-23c-traktor-certified-dj-mixer-w-usb-i-o) although another source says it is not NI approved hardware; either way Traktor Scratch Pro uses the 23C soundcard through its ASIO driver (Preferences > Audio Setup). Timecode vinyl is MK2 (owner confirmed)."
     }
   ],
   "specs": [
@@ -172,13 +210,13 @@
     },
     {
       "key": "usb_23c",
-      "label": "USB soundcard (23C only)",
+      "label": "USB soundcard",
       "value": "24-bit / 96 kHz, 4 stereo channels",
       "unit": "",
       "tolerance": null,
       "source": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
       "confidence": "confirmed",
-      "notes": null
+      "notes": "Built in to this unit (23C)."
     }
   ],
   "timecode": null,
@@ -531,10 +569,337 @@
       "pass": null
     },
     {
+      "id": "x23c-driver",
+      "category": "driver",
+      "title": "USB driver installed and healthy",
+      "why": "Without the A&H driver the soundcard channels are not available to Traktor.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the 23C directly to a USB port on the PC (no hub) and switch it on.",
+        "Run the driver check.",
+        "If missing, install the XONE:23C USB ASIO driver from Allen & Heath and reboot."
+      ],
+      "equipment": [
+        "Xone:23C",
+        "USB cable"
+      ],
+      "severity": "critical",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "x23c-driver-signed",
+      "category": "driver",
+      "title": "Driver signature",
+      "why": "An unsigned or legacy driver may be blocked by Windows 10/11.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check and read the signature result."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_signed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "x23c-driver-status",
+      "category": "driver",
+      "title": "Device status OK (no Code 10/43)",
+      "why": "Catches failed enumeration, power or cable faults.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check; open Device Manager if status is not OK."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "x23c-asio",
+      "category": "driver",
+      "title": "ASIO driver registered",
+      "why": "Traktor needs the ASIO driver to list the 23C in Preferences > Audio Setup.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check.",
+        "In Traktor Preferences > Audio Setup the Audio Device list should show the XONE:23C USB ASIO entry."
+      ],
+      "equipment": [
+        "Xone:23C",
+        "Traktor Pro"
+      ],
+      "severity": "critical",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "asio_registered",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "x23c-usb-port",
+      "category": "usb",
+      "title": "USB port, cable and bus",
+      "why": "Hubs, long cables or a shared USB controller cause dropouts and clicks on the USB soundcard.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Use a short USB cable straight into the PC, not a hub.",
+        "Prefer a port on a different controller from storage devices.",
+        "Flex the cable at both connectors while audio plays: no dropouts."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23c-usb-out",
+      "category": "usb",
+      "title": "USB soundcard signal health: PC to mixer (send 1+2, 3+4)",
+      "why": "Checks that the PC audio reaches the mixer USB channels, in the playback direction.",
+      "method": "quick:Signal health",
+      "params": {
+        "usb": true,
+        "direction": "out"
+      },
+      "steps": [
+        "Select the 23C ASIO device in the app and route a test signal to USB send 1+2, then 3+4.",
+        "Set the channel input switch to USB and record the mixer main/record output into the PC with another interface, or use the 23C return path.",
+        "Both channels must show signal at similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Xone:23C",
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-usb-in",
+      "category": "usb",
+      "title": "USB soundcard signal health: mixer to PC (returns)",
+      "why": "Checks the record/return direction: audio the mixer sends back over USB.",
+      "method": "quick:Signal health",
+      "params": {
+        "usb": true,
+        "direction": "in"
+      },
+      "steps": [
+        "Feed a line or phono source into a mixer channel and set that channel/return source to USB.",
+        "Record the 23C as the input device; run signal health on each USB input pair.",
+        "Both channels must show signal at similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Xone:23C",
+        "Audio source"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-usb-noise",
+      "category": "usb",
+      "title": "USB soundcard noise floor",
+      "why": "Idle noise or interference from the USB bus on the return channels.",
+      "method": "quick:Signal health",
+      "params": {
+        "usb": true,
+        "silence": true
+      },
+      "steps": [
+        "Select the 23C as input, no source playing, channel gains at normal.",
+        "Run signal health and read the noise floor."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23c-latency",
+      "category": "latency",
+      "title": "Round-trip latency at the working buffer size",
+      "why": "DVS needs low latency for tight scratching; the A&H driver trades latency against clock jitter (Bit accurate vs Core Audio modes).",
+      "method": "manual:inspection",
+      "params": {
+        "measure": "round-trip loopback"
+      },
+      "steps": [
+        "Route a USB send back to a USB return through the mixer (or use a loopback via the analog outputs and another input).",
+        "Set the driver/ASIO buffer to the working setting and, in the driver panel, try Bit accurate mode for lowest latency.",
+        "In Traktor Audio Setup read the reported latency (ms); record it and any dropouts at that buffer."
+      ],
+      "equipment": [
+        "Xone:23C",
+        "Traktor Pro"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-sw-traktor",
+      "category": "software",
+      "title": "Traktor Pro install and crash/log scan",
+      "why": "Traktor crash logs often name the audio driver.",
+      "method": "software:check",
+      "params": {
+        "software": "Traktor Pro"
+      },
+      "steps": [
+        "Run the software check after a play session.",
+        "Open Documents\\Native Instruments\\Traktor <ver>\\Logs for details."
+      ],
+      "equipment": [
+        "Traktor Pro"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "software_installed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical check"
+      }
+    },
+    {
+      "id": "x23c-tc-mk2-a",
+      "category": "timecode",
+      "title": "Traktor MK2 vinyl timecode on USB inputs: Deck A (33 1/3)",
+      "why": "Confirms the 23C soundcard returns a decodable quadrature timecode signal from MK2 control vinyl on this USB input pair.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 33.333333,
+        "input": "USB return 1/2"
+      },
+      "steps": [
+        "Connect the turntable phono output to the mixer channel PHONO input (ground wire attached) and set the channel source so the signal is returned over USB (DVS/Traktor routing).",
+        "In the app select the 23C USB input pair 1/2 and play the MK2 timecode side at 33 1/3 rpm, pitch 0.",
+        "Run the check for at least 20 s."
+      ],
+      "equipment": [
+        "Traktor Scratch Control Vinyl MK2",
+        "Turntable",
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-tc-mk2-b",
+      "category": "timecode",
+      "title": "Traktor MK2 vinyl timecode on USB inputs: Deck B (33 1/3)",
+      "why": "Confirms the 23C soundcard returns a decodable quadrature timecode signal from MK2 control vinyl on this USB input pair.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 33.333333,
+        "input": "USB return 3/4"
+      },
+      "steps": [
+        "Connect the turntable phono output to the mixer channel PHONO input (ground wire attached) and set the channel source so the signal is returned over USB (DVS/Traktor routing).",
+        "In the app select the 23C USB input pair 3/4 and play the MK2 timecode side at 33 1/3 rpm, pitch 0.",
+        "Run the check for at least 20 s."
+      ],
+      "equipment": [
+        "Traktor Scratch Control Vinyl MK2",
+        "Turntable",
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-tc-mk2-45",
+      "category": "timecode",
+      "title": "Traktor MK2 vinyl timecode on USB inputs at 45 rpm",
+      "why": "Speed tracking at 45 rpm through the 23C soundcard.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 45,
+        "input": "USB return 1/2"
+      },
+      "steps": [
+        "Set the deck to 45 rpm and repeat the check on Deck A."
+      ],
+      "equipment": [
+        "Traktor Scratch Control Vinyl MK2"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-tc-calibrate",
+      "category": "software",
+      "title": "Timecode calibration in Traktor using the 23C",
+      "why": "The Traktor Timecode Setup scopes show whether level and phono/line gain through the mixer are right for the MK2 vinyl.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "In Traktor Preferences > Audio Setup choose the XONE:23C ASIO device; in Timecode Setup choose MK2 for each deck and assign the USB input pairs.",
+        "Play the timecode and press Calibrate; both scopes should be clean circles.",
+        "Check Absolute, Relative and Internal modes by loading a track."
+      ],
+      "equipment": [
+        "Traktor Pro",
+        "Traktor Scratch Control Vinyl MK2"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
       "id": "x23-dvs-line",
       "category": "dvs",
-      "title": "DVS through the mixer line inputs",
-      "why": "With analog Xone:23 the audio interface sits outside the mixer; timecode passes through LINE inputs.",
+      "title": "DVS through the mixer line inputs (external interface)",
+      "why": "Alternative path: when an external interface (e.g. Audio 8 DJ) is used instead of the 23C soundcard, timecode passes through the LINE inputs.",
       "method": "dvs:DVS signal",
       "params": {},
       "steps": [
@@ -548,80 +913,6 @@
       "severity": "minor",
       "software": "Traktor Pro",
       "pass": null
-    },
-    {
-      "id": "x23c-driver",
-      "category": "driver",
-      "title": "Xone:23C only: USB driver and ASIO",
-      "why": "Only the 23C has a USB soundcard and needs a Windows driver.",
-      "method": "driver:check",
-      "params": {
-        "condition": "only if the unit is a Xone:23C"
-      },
-      "steps": [
-        "Connect the 23C by USB.",
-        "Run the driver check."
-      ],
-      "equipment": [
-        "Xone:23C"
-      ],
-      "severity": "major",
-      "software": "Traktor Pro",
-      "pass": {
-        "metricId": "driver_present",
-        "op": "equals",
-        "value": 1,
-        "value2": null,
-        "unit": "bool",
-        "source": "DeckChek logical presence check (not a published spec)"
-      }
-    },
-    {
-      "id": "x23c-signal",
-      "category": "usb",
-      "title": "Xone:23C only: USB soundcard signal health",
-      "why": "Checks the 4-stereo-channel soundcard in both directions.",
-      "method": "quick:Signal health",
-      "params": {
-        "condition": "only if the unit is a Xone:23C",
-        "usb": true
-      },
-      "steps": [
-        "Select the 23C as the audio device in Traktor.",
-        "Play each USB channel and record the return inputs."
-      ],
-      "equipment": [
-        "Xone:23C"
-      ],
-      "severity": "minor",
-      "software": "Traktor Pro",
-      "pass": null
-    },
-    {
-      "id": "x23c-asio",
-      "category": "driver",
-      "title": "Xone:23C only: ASIO registered",
-      "why": "Traktor needs the ASIO driver.",
-      "method": "driver:check",
-      "params": {
-        "condition": "only if the unit is a Xone:23C"
-      },
-      "steps": [
-        "Run the driver check."
-      ],
-      "equipment": [
-        "Xone:23C"
-      ],
-      "severity": "major",
-      "software": "Traktor Pro",
-      "pass": {
-        "metricId": "asio_registered",
-        "op": "equals",
-        "value": 1,
-        "value2": null,
-        "unit": "bool",
-        "source": "DeckChek logical presence check (not a published spec)"
-      }
     }
   ]
 }

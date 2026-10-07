@@ -1,4 +1,4 @@
-# Traktor Scratch timecode media (MK1, MK2, control CD)
+# Traktor Scratch Control Vinyl MK2 (owner-confirmed; MK1 and control CD secondary)
 
 Research limits: page fetch was blocked; facts come from search summaries.
 
@@ -8,12 +8,14 @@ Research limits: page fetch was blocked; facts come from search summaries.
 - https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white (MK2 marketing)
 - NI timecode setup guide: https://support.native-instruments.com/support/solutions/articles/69000879426-traktor-pro-3-timecode-setup-guide
 - NI log location: https://support.native-instruments.com/support/solutions/articles/69000882545-traktor-crashes (Documents\Native Instruments\Traktor <ver>\Logs)
-- Mixxx DVS internals (not opened): https://mixxx.org/news/2025-08-27-dvs-internals-pt3/
+- Mixxx PR 14569 Initial Traktor MK2 support (search snippet): https://github.com/mixxxdj/mixxx/pull/14569
+- xwax-devel thread (search snippet): https://sourceforge.net/p/xwax/mailman/message/29827458/
+- Mixxx DVS internals Pt. 3 (snippet, not opened): https://mixxx.org/news/2025-08-27-dvs-internals-pt3/
 
 ## Key facts
 | Item | MK1 | MK2 |
 |---|---|---|
-| Carrier | 2 kHz (confirmed) | 2 kHz per retailer vs ~2.5 kHz per other source: unverified, measure it |
+| Carrier | 2 kHz (confirmed) | 2500 Hz per Mixxx PR 14569, DVS internals Pt. 3 and xwax-devel (unverified: pages not opened; the retailer "2 kHz" is likely the MK1 value). Tests use 2500 Hz; measure to confirm |
 | Quadrature | yes (stereo sine pair) | yes |
 | Modes | Absolute / Relative / Internal | same |
 | Side length | not found | A about 12 min, B about 17 min (unverified) |
@@ -28,4 +30,4 @@ Carrier/speed, phase, balance, SNR, dropouts for each generation at 33 and 45 rp
 Absolute-position code integrity (needs Traktor); CD variant carrier unknown.
 
 ## Ambiguities
-MK1 vs MK2 ownership unknown; carrier of MK2; control CD format.
+Ownership settled: MK2 (owner confirmed). Still open: MK2 carrier confirmation by measurement, side lengths, control CD format.

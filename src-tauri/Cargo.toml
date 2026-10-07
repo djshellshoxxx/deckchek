@@ -1,6 +1,6 @@
 [package]
 name = "deckchek"
-version = "0.0.3"
+version = "0.0.4"
 description = "DJ hardware diagnostic workstation"
 authors = ["Circuit Drift Labs"]
 edition = "2021"

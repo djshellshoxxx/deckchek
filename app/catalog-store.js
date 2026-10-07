@@ -124,7 +124,42 @@ export function syncProfilesLocal(state, profiles, now = new Date().toISOString(
     if (created) assetId = upsertRecord(state, 'asset', { productId: product.id, nickname: `My ${model}`, notes: 'Created from the DeckChek device library. Rename it and add the serial number in Equipment.' }, now).id;
     out.push({ profileId: id, manufacturerId: m.id, productId: product.id, version, created, changed, assetId });
   }
+  pruneRetiredProfilesLocal(state, out.map(o => o.profileId), now);
   return out;
+}
+
+const AUTO_ASSET_NOTE = 'Created from the DeckChek device library.';
+
+/**
+ * Remove library entries whose profile no longer ships. The auto-created "My <model>" asset is deleted when nothing
+ * refers to it, otherwise soft-deleted (isDeleted + retiredDate). A profile row that saved test results still point at
+ * is kept so the history stays valid. An empty shipped set (library failed to load) prunes nothing.
+ * Mirrors prune_retired_profiles in src-tauri/src/devices.rs.
+ */
+export function pruneRetiredProfilesLocal(state, shippedIds, now = new Date().toISOString()) {
+  const shipped = new Set(shippedIds || []);
+  const summary = { profiles: [], assetsDeleted: [], assetsRetired: [] };
+  if (!shipped.size) return summary;
+  for (const id of Object.keys(state.deviceProfiles)) {
+    if (shipped.has(id)) continue;
+    const { productId } = state.deviceProfiles[id];
+    let keepProfile = false;
+    for (const a of state.catalog.asset.filter(x => x.productId === productId && !x.isDeleted && String(x.notes || '').startsWith(AUTO_ASSET_NOTE))) {
+      const used = state.deviceResults.some(r => r.assetId === a.id) || state.midiMaps[a.id]
+        || state.catalog.setup.some(su => (su.components || []).some(c => c.assetId === a.id));
+      if (used) {
+        Object.assign(a, { isDeleted: true, retiredDate: a.retiredDate || now.slice(0, 10), updatedAt: now });
+        summary.assetsRetired.push(a.id);
+      } else {
+        state.catalog.asset.splice(state.catalog.asset.indexOf(a), 1);
+        summary.assetsDeleted.push(a.id);
+      }
+    }
+    if (state.deviceResults.some(r => r.profileId === id)) keepProfile = true;
+    state.productSpecs = state.productSpecs.filter(sp => !String(sp.id).startsWith(`${id}:spec:`));
+    if (!keepProfile) { delete state.deviceProfiles[id]; summary.profiles.push(id); }
+  }
+  return summary;
 }
 
 export function saveDeviceResultLocal(state, input, now = new Date().toISOString()) {
@@ -149,7 +184,7 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
     async list(entity, filter) {
       assertEntity(entity);
       if (invoke) return invoke('catalog_list', { entity, filter: filter ?? null });
-      const rows = filterRecords(entity, loadState(storage).catalog[entity], filter);
+      const rows = filterRecords(entity, loadState(storage).catalog[entity], filter).filter(r => !r.isDeleted);
       return rows.map(r => ({ ...r }));
     },
     async upsert(entity, record) {
