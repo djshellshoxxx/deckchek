@@ -100,9 +100,17 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 
 ## Status
 
-DeckChek is now an offline-analysis beta foundation. The desktop/browser shell can analyze local audio files, persist evidence, run several deterministic diagnostics, compare compatible runs, and export HTML/CSV/JSON. Native continuous capture and a number of hardware-specific and validation-gated workflows remain incomplete.
+DeckChek is now a live-capture and offline-analysis beta. The Windows desktop shell supports continuous native audio capture, real-time level meters, loopback calibration with uncertainty propagation, catalog persistence, and deterministic diagnostics with evidence-first reporting. Files can be analyzed in a browser; results export as HTML/CSV/JSON.
 
 See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation.
+
+## Download the Windows beta
+
+Automated Windows builds (portable deckchek.exe, NSIS and MSI installers) are available from:
+- **GitHub Actions**: Latest workflow run artifacts on the `main` branch
+- **GitHub Releases**: Tagged releases (v*) with published installers
+
+Real-hardware validation remains in progress (SPEC-08/19). macOS build is out of scope for this beta.
 
 ## Additional engineering research
 

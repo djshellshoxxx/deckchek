@@ -25,18 +25,25 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] JavaScript regression tests plus Rust migration/persistence tests.
 - [x] CI definition for JS and Rust checks.
 - [x] Fully local UI assets/CSP.
+- [x] Native continuous stereo capture with bounded buffering and capture-quality counters.
+- [x] Interface loopback/gain calibration and uncertainty propagation.
+- [x] Catalog CRUD for manufacturer/product/asset/setup/venue with starter seeding.
+- [x] Evidence graph persistence (hypothesis/support/contradiction).
+- [x] Repeat-scan alignment and confirmation for vinyl event candidates.
+- [x] Guided L/R isolated-track crosstalk/channel-separation workflow.
+- [x] Full GUI rebuild with nav rail, guided Setup→Capture→Results flows.
+- [x] Calibration, Equipment and History screens.
+- [x] Live meters with peak hold and clip latch.
+- [x] Dark/light themes and keyboard shortcuts.
+- [x] Windows standalone build with portable exe and installer packages.
+- [x] Playwright UI smoke test (56 checks).
 
-## Active beta blockers
+## Active beta validation gates
 
-- [ ] Confirm native Windows Tauri build and installer on a target Windows machine.
-- [ ] Add native continuous stereo capture with bounded buffering and capture-quality counters.
-- [ ] Add interface loopback/gain calibration and uncertainty propagation.
-- [ ] Wire normalized product/asset/setup database editors.
-- [ ] Add guided L/R isolated-track crosstalk/channel-separation workflow.
-- [ ] Add repeat-scan alignment and confirmation for vinyl event candidates.
-- [ ] Add persisted evidence/hypothesis support and contradiction graph.
-- [ ] Add accessibility/runtime checks for dialogs, navigation, empty states and device failures.
-- [ ] Validate thresholds and numeric accuracy against known hardware/reference fixtures.
+- [ ] Real-hardware validation of thresholds and accuracy against known references (SPEC-08/19).
+- [ ] Test on a physical Windows machine with real audio interfaces.
+- [ ] Loopback calibration plays on default output only.
+- [ ] History shows metric ids/asset ids for native-only runs (being fixed).
 
 ## Later spec work
 
@@ -48,4 +55,4 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.
 - [ ] Controller/MIDI/HID DeckChek workflows.
 - [ ] Technician/Engineering service worksheets and model-specific workflows.
-- [ ] PDF reports, update/signing/release validation and support bundles.
+- [ ] PDF reports, code signing, auto-update and support bundles.
