@@ -1,140 +1,101 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0a0d12">
-  <title>DeckChek — Hardware Diagnostic Workstation</title>
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0E1013">
+  <title>DeckChek</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="shell">
-    <aside class="rail">
-      <a class="brand" href="#" aria-label="DeckChek home"><span class="brand-mark">D</span><span class="brand-copy"><strong>DECKCHEK</strong><small>HARDWARE LAB</small></span></a>
-      <div class="rail-label">WORKSPACE</div>
-      <nav class="nav" aria-label="Main navigation">
-        <button class="nav-item active" data-page="overview"><span>◫</span> Overview</button>
-        <button class="nav-item" data-page="tests"><span>⌁</span> Test center <b class="nav-count">04</b></button>
-        <button class="nav-item" data-page="equipment"><span>▤</span> Equipment</button>
-        <button class="nav-item" data-page="results"><span>▥</span> Results</button>
-        <button class="nav-item" data-page="setup"><span>⚙</span> Audio setup</button>
-      </nav>
-      <div class="rail-spacer"></div>
-      <div class="edition"><span class="edition-dot"></span><div><small>EDITION</small><strong>VINYL · PREVIEW</strong></div></div>
-      <div class="profile"><span class="avatar">SD</span><div><strong>Local workspace</strong><small>Data stays on this device</small></div><span class="more">•••</span></div>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="app" id="app">
+    <nav class="rail" aria-label="Workflows">
+      <div class="brand" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none"><rect x="1" y="1" width="32" height="32" rx="9" class="brand-bg"/><circle cx="17" cy="17" r="9.5" class="brand-ring"/><circle cx="17" cy="17" r="2.6" class="brand-dot"/><path d="M17 7.5a9.5 9.5 0 0 1 9.5 9.5" class="brand-arc"/></svg>
+      </div>
+      <ul class="rail-list" id="rail-list" role="list"></ul>
+    </nav>
+
+    <header class="topbar">
+      <div class="product"><strong>DeckChek</strong><span class="beta">BETA</span></div>
+      <div class="device-bar" role="group" aria-label="Input device">
+        <label class="topfield"><span class="topfield-label">Input</span><select id="device-select"></select></label>
+        <button type="button" class="btn btn-ghost btn-icon" id="device-refresh" aria-label="Refresh input devices" data-tooltip="Refresh input devices"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/></svg></button>
+        <label class="topfield"><span class="topfield-label">Rate</span><select id="rate-select" data-tooltip="Sample rate used to match a calibration profile"><option value="44100">44.1 kHz</option><option value="48000">48 kHz</option><option value="88200">88.2 kHz</option><option value="96000">96 kHz</option></select></label>
+        <button type="button" class="chip-button" id="cal-chip"></button>
+      </div>
+      <div class="app-actions">
+        <button type="button" class="btn btn-ghost btn-icon" id="theme-toggle" aria-label="Switch theme"></button>
+        <button type="button" class="btn btn-ghost btn-icon" id="inspector-toggle" aria-controls="inspector" aria-expanded="false" aria-label="Toggle details panel" data-tooltip="Details panel (I)"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+        <button type="button" class="btn btn-ghost btn-icon" id="helpBtn" aria-label="Help and keyboard shortcuts" data-tooltip="Help and shortcuts (? or F1)"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.6M12 17.2h.01"/></svg></button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="screen" id="screen-quick" hidden></section>
+      <section class="screen" id="screen-speed" hidden></section>
+      <section class="screen" id="screen-cartridge" hidden></section>
+      <section class="screen" id="screen-dvs" hidden></section>
+      <section class="screen" id="screen-vinyl" hidden></section>
+      <section class="screen" id="screen-calibration" hidden></section>
+      <section class="screen" id="screen-equipment" hidden></section>
+      <section class="screen" id="screen-history" hidden></section>
+    </main>
+
+    <aside class="inspector" id="inspector" aria-labelledby="inspector-title">
+      <div class="inspector-head"><h2 id="inspector-title">Details</h2><button type="button" class="btn btn-ghost btn-icon" id="inspector-close" aria-label="Close details panel"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="inspector-body" id="inspector-body"></div>
     </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <div class="crumb"><span>Workspace</span><i>/</i><strong id="crumb-current">Overview</strong></div>
-        <div class="top-actions"><span class="local-badge"><span></span> LOCAL ONLY</span><button class="icon-button" aria-label="Help">?</button></div>
-      </header>
+    <footer class="statusbar" aria-label="Status">
+      <div class="status-meter" id="status-meter"></div>
+      <span class="status-item" id="status-capture"></span>
+      <span class="status-item status-device"><span class="muted">Input</span> <span id="status-device"></span></span>
+      <span class="status-item status-runtime" id="status-runtime"></span>
+    </footer>
+  </div>
+  <div class="scrim" id="scrim" hidden></div>
 
-      <section class="page active" id="page-overview">
-        <div class="page-heading">
-          <div><div class="eyebrow">LOCAL WORKSPACE <span class="eyebrow-line"></span> PREVIEW BUILD</div><h1>Good morning, Sheldon.</h1><p class="subhead">Your hardware bench is ready. Pick up where you left off.</p></div>
-          <button class="button button-primary" data-goto="tests"><span>＋</span> Start a test</button>
-        </div>
+  <div class="toasts" id="toasts"></div>
+  <div class="sr-only" id="sr-polite" aria-live="polite" aria-atomic="true"></div>
+  <div class="sr-only" id="sr-assertive" aria-live="assertive" aria-atomic="true"></div>
 
-        <div class="notice"><span class="notice-icon">i</span><div><strong>Preview interface</strong><span>Audio devices and live measurements are not connected yet. The readings shown below are sample data.</span></div><button class="notice-close" aria-label="Dismiss notice">×</button></div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+    <form method="dialog" class="dialog-form">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <p id="confirm-body"></p>
+      <div class="dialog-actions"><button class="btn btn-secondary" id="confirm-cancel" value="cancel">Cancel</button><button class="btn btn-danger" id="confirm-ok" value="confirm">Delete</button></div>
+    </form>
+  </dialog>
 
-        <div class="metrics">
-          <article class="metric-card"><div class="metric-top"><span>TESTS THIS MONTH</span><span class="metric-symbol blue">⌁</span></div><strong>24</strong><div class="metric-foot"><span class="positive">↑ 18%</span><span>vs. last month</span></div></article>
-          <article class="metric-card"><div class="metric-top"><span>REGISTERED DECKS</span><span class="metric-symbol green">▤</span></div><strong>06</strong><div class="metric-foot"><span>Across 3 categories</span></div></article>
-          <article class="metric-card"><div class="metric-top"><span>NEEDS ATTENTION</span><span class="metric-symbol amber">!</span></div><strong>02</strong><div class="metric-foot"><span class="attention">Review recent findings</span></div></article>
-          <article class="metric-card"><div class="metric-top"><span>LAST SESSION</span><span class="metric-symbol violet">◷</span></div><strong class="metric-date">Oct 04</strong><div class="metric-foot"><span>Technics SL-1200MK2</span></div></article>
-        </div>
-
-        <div class="content-grid">
-          <section class="panel test-panel">
-            <div class="panel-heading"><div><div class="section-kicker">QUICK ACCESS</div><h2>Start a diagnostic</h2></div><button class="text-button" data-goto="tests">View all tests <span>→</span></button></div>
-            <div class="test-list">
-              <button class="test-row" data-test="Speed & pitch"><span class="test-icon blue">◉</span><span class="test-text"><strong>Speed & pitch</strong><small>Wow, flutter, RPM, pitch range</small></span><span class="test-time">~ 2 MIN</span><span class="arrow">→</span></button>
-              <button class="test-row" data-test="Stereo balance"><span class="test-icon green">◧</span><span class="test-text"><strong>Stereo balance</strong><small>Channel level, phase, noise floor</small></span><span class="test-time">~ 1 MIN</span><span class="arrow">→</span></button>
-              <button class="test-row" data-test="DVS signal"><span class="test-icon violet">⌁</span><span class="test-text"><strong>DVS signal</strong><small>Scope shape, tracking, stability</small></span><span class="test-time">~ 2 MIN</span><span class="arrow">→</span></button>
-              <button class="test-row" data-test="Vibration check"><span class="test-icon amber">⌇</span><span class="test-text"><strong>Vibration check</strong><small>Booth resonance & feedback risk</small></span><span class="test-time">~ 3 MIN</span><span class="arrow">→</span></button>
-            </div>
-          </section>
-          <section class="panel session-panel">
-            <div class="panel-heading"><div><div class="section-kicker">RECENT ACTIVITY</div><h2>Latest sessions</h2></div><button class="text-button" data-goto="results">All results <span>→</span></button></div>
-            <div class="session-list">
-              <button class="session-row" data-result="Technics SL-1200MK2"><span class="session-status pass">✓</span><span class="session-text"><strong>Technics SL-1200MK2</strong><small>Speed & pitch · Today, 9:18 AM</small></span><span class="score"><strong>94</strong><small>/100</small></span></button>
-              <button class="session-row" data-result="Pioneer PLX-1000"><span class="session-status warn">!</span><span class="session-text"><strong>Pioneer PLX-1000</strong><small>Stereo balance · Yesterday</small></span><span class="score warn-score"><strong>72</strong><small>/100</small></span></button>
-              <button class="session-row" data-result="Technics SL-1200MK2"><span class="session-status pass">✓</span><span class="session-text"><strong>Technics SL-1200MK2</strong><small>DVS signal · Oct 02, 2026</small></span><span class="score"><strong>98</strong><small>/100</small></span></button>
-            </div>
-          </section>
-        </div>
-
-        <section class="panel bench-panel">
-          <div class="panel-heading"><div><div class="section-kicker">YOUR BENCH</div><h2>Equipment overview</h2></div><button class="text-button" data-goto="equipment">Manage equipment <span>→</span></button></div>
-          <div class="equipment-strip">
-            <button class="equipment-card" data-equipment="Technics SL-1200MK2"><span class="equipment-type">TURNTABLE <b>● ACTIVE</b></span><strong>Technics SL-1200MK2</strong><small>Ortofon Concorde MKII · Rane Seventy-Two</small><span class="equipment-bottom"><span>Last tested Oct 06</span><span class="health good">GOOD</span></span></button>
-            <button class="equipment-card" data-equipment="Pioneer PLX-1000"><span class="equipment-type">TURNTABLE <b>● ACTIVE</b></span><strong>Pioneer PLX-1000</strong><small>Shure M44-7 · Allen & Heath Xone:96</small><span class="equipment-bottom"><span>Last tested Oct 05</span><span class="health review">REVIEW</span></span></button>
-            <button class="equipment-card add-equipment"><span class="add-circle">＋</span><strong>Add equipment</strong><small>Register a deck, cartridge, mixer or interface</small></button>
-          </div>
+  <dialog id="helpDialog" aria-labelledby="help-title">
+    <form method="dialog" class="cdl-help-shell">
+      <header><h2 id="help-title">DeckChek help</h2><button class="btn btn-secondary" value="close" aria-label="Close help">Close</button></header>
+      <div class="cdl-help-body">
+        <section>
+          <h3>How DeckChek works</h3>
+          <p>Pick a workflow on the left. Each one walks you through <strong>Setup</strong> (what you need, wiring, source), <strong>Capture</strong> (live meters with clip latch) and <strong>Results</strong> (verdict first, then readings with ± uncertainty, findings and raw evidence). In the browser preview, load a recorded file instead of capturing live.</p>
+          <h3>Keyboard shortcuts</h3>
+          <table class="shortcut-table">
+            <tbody>
+              <tr><th scope="row"><kbd>Space</kbd></th><td>Start / stop capture (Capture step)</td></tr>
+              <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel capture, close panel or dialog</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>8</kbd></th><td>Switch workflow / screen</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>E</kbd></th><td>Export the current report</td></tr>
+              <tr><th scope="row"><kbd>I</kbd></th><td>Toggle the details panel</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></th><td>Clear clip indicators</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></th><td>Toggle light / dark theme</td></tr>
+              <tr><th scope="row"><kbd>?</kbd> or <kbd>F1</kbd></th><td>This help</td></tr>
+            </tbody>
+          </table>
         </section>
-        <footer class="footer"><span>DECKCHEK™ <span class="muted">·</span> BUILD 0.1.0-UI</span><span>Measurements require a calibrated audio input chain.</span><button data-goto="setup">Configure audio →</button></footer>
-      </section>
+      </div>
+    </form>
+  </dialog>
 
-      <section class="page" id="page-tests">
-        <div class="page-heading compact-heading"><div><div class="eyebrow">DIAGNOSTICS <span class="eyebrow-line"></span> VINYL EDITION</div><h1>Test center</h1><p class="subhead">Choose a repeatable check for your turntable, cartridge, or signal path.</p></div></div>
-        <div class="filter-row"><div class="segmented"><button class="selected" data-filter="all">All tests <span>8</span></button><button data-filter="turntable">Turntable</button><button data-filter="signal">Signal path</button><button data-filter="venue">Venue</button></div><span class="demo-label"><span></span> SAMPLE WORKFLOW</span></div>
-        <div class="test-cards">
-          <article class="test-card" data-kind="turntable"><span class="test-icon blue">◉</span><span class="duration">2 MIN</span><h3>Speed & pitch</h3><p>Check platter RPM, wow and flutter, pitch range and fader tracking using a reference tone.</p><div class="test-tags"><span>33⅓ / 45 RPM</span><span>Pitch map</span></div><button class="button button-outline start-test" data-test="Speed & pitch">Set up test <span>→</span></button></article>
-          <article class="test-card" data-kind="signal"><span class="test-icon green">◧</span><span class="duration">1 MIN</span><h3>Stereo balance</h3><p>Compare left and right levels, polarity, noise floor and hum under controlled input.</p><div class="test-tags"><span>L / R</span><span>Phase</span></div><button class="button button-outline start-test" data-test="Stereo balance">Set up test <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon violet">⌁</span><span class="duration">2 MIN</span><h3>DVS signal</h3><p>Inspect control-tone scope, signal level, noise and dropouts with supported timecode.</p><div class="test-tags"><span>Control vinyl</span><span>Tracking</span></div><button class="button button-outline start-test" data-test="DVS signal">Set up test <span>→</span></button></article>
-          <article class="test-card" data-kind="venue"><span class="test-icon amber">⌇</span><span class="duration">3 MIN</span><h3>Vibration & feedback</h3><p>Measure low-frequency movement and compare isolation or booth placement changes.</p><div class="test-tags"><span>Venue</span><span>Compare runs</span></div><button class="button button-outline start-test" data-test="Vibration check">Set up test <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon blue">⌖</span><span class="duration">4 MIN</span><h3>Channel & cartridge</h3><p>Run guided channel balance, polarity and reference-tone distortion measurements.</p><div class="test-tags"><span>Cartridge</span><span>Guided</span></div><button class="button button-outline start-test" data-test="Channel & cartridge">Analyze file <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon blue">↔</span><span class="duration">MULTI-RUN</span><h3>Pitch map</h3><p>Record pitch-control positions in both directions and measure slope, nonlinearity, hysteresis and dead-spot candidates.</p><div class="test-tags"><span>Pitch fader</span><span>Calibration</span></div><button class="button button-outline start-test" data-test="Pitch map">Add map point <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon amber">◷</span><span class="duration">CAPTURE</span><h3>Startup & brake</h3><p>Measure repeatable signal-envelope rise and fall timing around a user-marked brake point.</p><div class="test-tags"><span>Transition proxy</span><span>Repeatability</span></div><button class="button button-outline start-test" data-test="Startup & brake">Analyze transition <span>→</span></button></article>
-          <article class="test-card" data-kind="signal"><span class="test-icon green">⇄</span><span class="duration">TEST RECORD</span><h3>Channel separation</h3><p>Use an isolated left-only or right-only test track to measure broadband cartridge/path crosstalk.</p><div class="test-tags"><span>Crosstalk</span><span>Reference track</span></div><button class="button button-outline start-test" data-test="Channel separation">Analyze reference <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon blue">◇</span><span class="duration">REPEAT</span><h3>Quartz lock</h3><p>Compare free-center and quartz/reset speed, then track lock-state repeatability across runs.</p><div class="test-tags"><span>Zero point</span><span>Repeatability</span></div><button class="button button-outline start-test" data-test="Quartz lock">Add lock run <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon violet">↗</span><span class="duration">5–30 MIN</span><h3>Warm-up speed</h3><p>Record reference-tone speed at elapsed checkpoints and calculate the cold-to-stable drift trend.</p><div class="test-tags"><span>Drift</span><span>Trend</span></div><button class="button button-outline start-test" data-test="Warm-up speed">Add checkpoint <span>→</span></button></article>
-          <article class="test-card" data-kind="signal"><span class="test-icon amber">≈</span><span class="duration">2 MIN</span><h3>Ground & hum isolation</h3><p>Measure 50/60 Hz mains-family energy, stereo levels, clipping and related evidence.</p><div class="test-tags"><span>Noise floor</span><span>Isolation</span></div><button class="button button-outline start-test" data-test="Ground & hum isolation">Analyze file <span>→</span></button></article>
-          <article class="test-card" data-kind="turntable"><span class="test-icon violet">▥</span><span class="duration">FULL SIDE</span><h3>Vinyl side scan</h3><p>Analyze a complete side for transient candidates, recurring events, rumble, hum and condition trends.</p><div class="test-tags"><span>Damage map</span><span>Repeat scan</span></div><button class="button button-outline start-test" data-test="Vinyl side scan">Analyze file <span>→</span></button></article>
-        </div>
-      </section>
-
-      <section class="page" id="page-equipment">
-        <div class="page-heading compact-heading"><div><div class="eyebrow">INVENTORY <span class="eyebrow-line"></span> LOCAL RECORDS</div><h1>Equipment</h1><p class="subhead">Keep a history for each deck and the signal chain connected to it.</p></div><button class="button button-primary" id="add-equipment"><span>＋</span> Add equipment</button></div>
-        <div class="toolbar"><label class="search"><span>⌕</span><input id="equipment-search" placeholder="Search equipment..." aria-label="Search equipment"></label><select aria-label="Filter category"><option>All categories</option><option>Turntable</option><option>Media player</option><option>Controller</option><option>Audio interface</option></select><span class="toolbar-count">6 ITEMS</span></div>
-        <div class="table-wrap"><table><thead><tr><th>DEVICE</th><th>CATEGORY</th><th>SIGNAL CHAIN</th><th>LAST TESTED</th><th>STATUS</th><th></th></tr></thead><tbody id="equipment-table"></tbody></table></div>
-        <div class="empty-state hidden" id="equipment-empty">No equipment matches that search.</div>
-      </section>
-
-      <section class="page" id="page-results">
-        <div class="page-heading compact-heading"><div><div class="eyebrow">HISTORY <span class="eyebrow-line"></span> LOCAL REPORTS</div><h1>Results</h1><p class="subhead">Review measured sessions, findings, comparisons, and portable evidence.</p></div><div class="header-actions"><button class="button button-outline" id="compare-results">Compare latest</button><button class="button button-outline" id="export-csv">Export CSV</button><button class="button button-outline" id="export-results">Export report <span>↗</span></button></div></div>
-        <div class="notice"><span class="notice-icon">i</span><div><strong>Local evidence history</strong><span>Measured file analyses are stored in this local workspace. Findings remain hypotheses until isolation tests confirm a cause.</span></div></div>
-        <div class="table-wrap results-table"><table><thead><tr><th>SESSION</th><th>TEST</th><th>DATE</th><th>SCORE</th><th>FINDING</th><th></th></tr></thead><tbody id="results-body"></tbody></table></div>
-      </section>
-
-      <section class="page" id="page-setup">
-        <div class="page-heading compact-heading"><div><div class="eyebrow">PREFERENCES <span class="eyebrow-line"></span> INPUT CONFIGURATION</div><h1>Audio setup</h1><p class="subhead">Select the measurement input and review the recommended wiring.</p></div></div>
-        <div class="setup-layout">
-          <div class="panel setup-card"><div class="panel-heading"><div><div class="section-kicker">DEVICE ROUTING</div><h2>Measurement input</h2></div><span class="device-state"><i></i> NOT CONNECTED</span></div><label class="field-label" for="input-device">Input device</label><select id="input-device"><option>No audio device selected</option><option>System default (demo)</option></select><div class="field-grid"><label><span>Input channels</span><select><option>1–2 (Stereo)</option><option>3–4</option></select></label><label><span>Sample rate</span><select><option>48,000 Hz</option><option>44,100 Hz</option><option>96,000 Hz</option></select></label></div><label class="field-label">Input calibration</label><div class="calibration"><span>Not calibrated</span><button class="button button-outline" id="calibrate">Run calibration</button></div><div class="setup-help">The browser/Tauri shell can enumerate inputs, while this build performs verified analysis from local audio files. Native continuous capture remains isolated behind the future audio adapter.</div><div class="reference-tools"><button class="button button-outline" id="export-workspace">Export workspace</button><button class="button button-outline" id="import-workspace">Import workspace</button><input id="workspace-import" class="hidden" type="file" accept="application/json,.json"><button class="button button-outline" id="generate-tone">Generate 1 kHz reference WAV</button><span>10 s · stereo · 48 kHz · -9.1 dBFS peak</span></div></div>
-          <div class="panel wiring-card"><div class="section-kicker">RECOMMENDED SIGNAL PATH</div><h2>Connect your turntable</h2><div class="wiring-flow"><div><b>01</b><strong>Turntable</strong><small>Phono or line output</small></div><span>→</span><div><b>02</b><strong>Preamp</strong><small>RIAA stage if phono</small></div><span>→</span><div><b>03</b><strong>Interface</strong><small>Line input, stereo</small></div></div><div class="wiring-note"><span>!</span><p>Never connect a speaker output directly to an audio interface input. Use a proper line output and keep monitor levels low during calibration.</p></div><button class="text-button" data-goto="setup">Read wiring & safety spec <span>↗</span></button></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div class="modal-backdrop hidden" id="modal-backdrop" role="presentation">
-    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <button class="modal-close" id="modal-close" aria-label="Close">×</button><div class="section-kicker" id="modal-kicker">TEST SETUP</div><h2 id="modal-title">Speed & pitch</h2><p id="modal-copy">Select the deck and review the measurement path before starting.</p>
-      <label class="field-label" for="modal-deck">Equipment</label><select id="modal-deck"></select>
-      <label class="field-label" for="analysis-file">Audio file</label><input id="analysis-file" type="file" accept="audio/*,.wav,.aiff,.aif,.mp3,.flac">
-      <div class="field-grid hidden" id="speed-fields"><label><span>Reference tone</span><input id="reference-hz" type="number" min="20" max="20000" step="0.1" value="1000"></label><label><span>Nominal RPM</span><select id="nominal-rpm"><option value="33.333333">33⅓ RPM</option><option value="45">45 RPM</option><option value="78">78 RPM</option></select></label></div>
-      <div class="field-grid hidden" id="pitch-fields"><label><span>Pitch control position (%)</span><input id="pitch-position" type="number" min="-100" max="100" step="0.1" value="0"></label><label><span>Travel direction</span><select id="pitch-direction"><option value="up">Up / increasing</option><option value="down">Down / decreasing</option><option value="unknown">Single point</option></select></label></div>
-      <div class="field-grid hidden" id="transition-fields"><label><span>Brake/stop marker (seconds)</span><input id="transition-stop-sec" type="number" min="0" step="0.01" value="3"></label><label><span>Method</span><select disabled><option>Signal-envelope proxy</option></select></label></div>
-      <div class="field-grid hidden" id="separation-fields"><label><span>Declared isolated test-record channel</span><select id="separation-active"><option value="left">Left only</option><option value="right">Right only</option></select></label><label><span>Interpretation</span><span class="setup-help">Requires a documented isolated-channel reference track and should be corrected against interface/path crosstalk.</span></label></div>
-      <div class="field-grid hidden" id="quartz-fields"><label><span>Quartz test state</span><select id="quartz-mode"><option value="locked">Quartz/reset engaged</option><option value="free">Fader centered, lock/reset not engaged</option></select></label><label><span>Procedure</span><span class="setup-help">Repeat both states several times. DeckChek accumulates mean error and repeatability.</span></label></div>
-      <div class="field-grid hidden" id="warmup-fields"><label><span>Elapsed since cold start (minutes)</span><input id="warmup-elapsed-min" type="number" min="0" max="120" step="0.5" value="0"></label><label><span>Procedure</span><span class="setup-help">Keep the same reference track and route for every checkpoint.</span></label></div>
-      <div class="modal-callout"><b>Local analysis</b><span>Analyze a saved audio file, or use bounded native capture in the Tauri desktop build. Full-side scans should use files rather than IPC capture.</span></div>
-      <div class="field-grid"><label><span>Native capture duration (seconds)</span><input id="capture-duration" type="number" min="0.5" max="30" step="0.5" value="5"></label><label><span>Live input</span><span class="setup-help">Uses the input selected in Audio Setup, or the default native input.</span></label></div>
-      <div class="modal-actions"><button class="button button-outline" id="modal-cancel">Cancel</button><button class="button button-outline" id="modal-capture">Capture & analyze</button><button class="button button-primary" id="modal-run">Analyze file <span>→</span></button></div>
-    </section>
-  </div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="./app.js"></script>
-<script type="module" src="./ui-assistance.js"></script>\n</body>
+  <script type="module" src="./ui-assistance.js"></script>
+</body>
 </html>
