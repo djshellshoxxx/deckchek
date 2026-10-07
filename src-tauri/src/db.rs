@@ -267,13 +267,14 @@ pub fn get_run(conn: &Connection, id: &str) -> Result<Option<Value>, String> {
     };
 
     let mut stmt = conn.prepare(
-        "SELECT id, metric_key, state, numeric_value, text_value, unit, confidence, uncertainty, quality_flags_json FROM measurement WHERE session_id = ?1 ORDER BY metric_key, id",
+        "SELECT m.id, m.metric_key, m.state, m.numeric_value, m.text_value, m.unit, m.confidence, m.uncertainty, m.quality_flags_json, am.description FROM measurement m LEFT JOIN analysis_method am ON am.id = m.method_id WHERE m.session_id = ?1 ORDER BY m.metric_key, m.id",
     ).map_err(e2s)?;
     let measurements = stmt.query_map([id], |r| {
         let flags: String = r.get(8)?;
         Ok(json!({
             "id": r.get::<_, String>(0)?,
             "metricId": r.get::<_, String>(1)?,
+            "label": r.get::<_, Option<String>>(9)?,
             "origin": r.get::<_, String>(2)?,
             "value": r.get::<_, Option<f64>>(3)?,
             "text": r.get::<_, Option<String>>(4)?,
@@ -581,6 +582,14 @@ mod tests {
         assert_eq!(list_runs(&c, None).unwrap().len(), 2);
         let run = get_run(&c, "r1").unwrap().unwrap();
         assert_eq!(run["measurements"].as_array().unwrap().len(), 3);
+        // label persisted via analysis_method.description; falls back to the metric id when none was supplied
+        assert_eq!(run["measurements"][0]["label"], "a");
+        let mut labelled = graph_run("r3", "2026-10-08T08:00:00Z");
+        labelled.measurements[0].label = Some("Alpha level".into());
+        persist_run(&mut c, &labelled).unwrap();
+        let r3 = get_run(&c, "r3").unwrap().unwrap();
+        assert_eq!(r3["measurements"][0]["metricId"], "a");
+        assert!(r3["measurements"][0]["label"].is_string());
         let h = &run["hypotheses"][0];
         assert_eq!(h["status"], "contested");
         assert_eq!(h["support"][0]["measurementIds"].as_array().unwrap().len(), 2);
