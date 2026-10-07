@@ -36,14 +36,14 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Live meters with peak hold and clip latch.
 - [x] Dark/light themes and keyboard shortcuts.
 - [x] Windows standalone build with portable exe and installer packages.
-- [x] Playwright UI smoke test (56 checks).
+- [x] Playwright UI smoke test (62 checks).
 
 ## Active beta validation gates
 
 - [ ] Real-hardware validation of thresholds and accuracy against known references (SPEC-08/19).
 - [ ] Test on a physical Windows machine with real audio interfaces.
-- [ ] Loopback calibration plays on default output only.
-- [ ] History shows metric ids/asset ids for native-only runs (being fixed).
+- [x] Loopback calibration output-device selector.
+- [x] History shows metric labels and asset names for native runs.
 
 ## Later spec work
 

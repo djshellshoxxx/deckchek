@@ -30,8 +30,8 @@ This file records implementation state separately from product specifications. A
 - Windows standalone build: portable deckchek.exe plus NSIS and MSI installer packages from CI.
 - SQLite desktop persistence using database/migrations/0001_initial.sql with session_type NOT NULL fix.
 - Local 1 kHz stereo WAV fixture generator.
-- JavaScript deterministic regression suite (61 tests) and Rust persistence tests (25 tests).
-- CI definition for JavaScript tests/syntax checks and Rust cargo test/check; Playwright UI smoke test (56 checks).
+- JavaScript deterministic regression suite (62 tests) and Rust persistence tests (25 tests).
+- CI definition for JavaScript tests/syntax checks and Rust cargo test/check; Playwright UI smoke test (62 checks).
 
 ## Implemented but still validation-gated
 
@@ -50,8 +50,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 
 ## Partial
 
-- Loopback playback currently uses default output only; venue-specific calibration not yet supported.
-- History display shows metric ids and asset ids for native-only runs (fix in progress).
+- Venue-specific calibration not yet supported.
 - Generic DVS integrity works; vendor-specific Serato/Traktor/rekordbox/open decoders are not implemented.
 - Full-side vinyl scanning produces event candidates and recurrence evidence; skip/locked-groove, non-fill, warp, off-center classifiers are not complete.
 - Quartz repeatability/warm-up trends are exposed; drag/recovery and true torque workflows are not complete.
