@@ -24,6 +24,7 @@ jobs:
       - run: node --check app/calibration.js
       - run: node --check app/export.js
       - run: node --check app/capture.js
+      - run: node --check app/catalog-store.js
 
   rust-tests:
     runs-on: ubuntu-22.04
