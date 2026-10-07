@@ -1,0 +1,505 @@
+{
+  "schemaVersion": 1,
+  "id": "technics-sl-1200mk4",
+  "manufacturer": "Technics",
+  "model": "SL-1200MK4",
+  "aliases": [
+    "SL-1200 MK4",
+    "tech 12 mk4",
+    "Technics 1200 MK4",
+    "SL-1210MK4"
+  ],
+  "category": "turntable",
+  "summary": "Direct-drive, quartz-controlled DJ turntable (1997-2002) with 33/45/78 rpm and ±8 % pitch.",
+  "identityNotes": "User said 'tech 12 mk4'; assumed SL-1200MK4. Alternatives: SL-1210MK2/M3D/MK5 (differing colour/curve), SL-1200MK5 (2002+), SL-1200GR (2022). Check rear label.",
+  "image": {
+    "file": "technics-sl-1200mk4.svg",
+    "kind": "illustration",
+    "source": "Original illustration created for DeckChek",
+    "license": "Original work (project)",
+    "author": "DeckChek project"
+  },
+  "documents": [
+    {
+      "title": "SL-1200MK2 Service Manual (steampoweredradio)",
+      "type": "service-manual",
+      "url": "https://steampoweredradio.com/pdf/technics/manuals/Technics%20SL-1200MK2%20Service%20Manual.pdf",
+      "language": "en",
+      "notes": "Sister model; SL-1200MK4 manual not located. Linked only, not read."
+    },
+    {
+      "title": "Technics SL-1200 service manuals (elektrotanya)",
+      "type": "service-manual",
+      "url": "https://elektrotanya.com/technics_sl-1200_sm.pdf/download.html",
+      "language": "en",
+      "notes": "Not verified to be MK4."
+    },
+    {
+      "title": "Technics SL-1200MK4 on hifi-wiki",
+      "type": "spec-sheet",
+      "url": "https://hifi-wiki.com/index.php/Technics_SL-1200_MK4",
+      "language": "en",
+      "notes": "Secondary source for spec table."
+    }
+  ],
+  "connectivity": {
+    "usb": null,
+    "midi": null,
+    "audio": null,
+    "analog": [
+      "Phono RCA out",
+      "Ground wire"
+    ]
+  },
+  "drivers": [],
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "With audio interface and control vinyl."
+    }
+  ],
+  "specs": [
+    {
+      "key": "speeds",
+      "label": "Speeds",
+      "value": "33 1/3, 45, 78",
+      "unit": "rpm",
+      "tolerance": null,
+      "source": "hifi-wiki.com Technics SL-1200 MK4 (search snippet)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "pitch_range",
+      "label": "Pitch range",
+      "value": "±8",
+      "unit": "%",
+      "tolerance": null,
+      "source": "hifi-wiki.com (search snippet)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "wow_flutter",
+      "label": "Wow and flutter",
+      "value": "0.025",
+      "unit": "% WRMS",
+      "tolerance": null,
+      "source": "hifi-wiki.com (search snippet)",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "rumble_unweighted",
+      "label": "Rumble (unweighted)",
+      "value": "-56",
+      "unit": "dB",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "rumble_weighted",
+      "label": "Rumble (rated)",
+      "value": "-78",
+      "unit": "dB",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "start_torque",
+      "label": "Starting torque",
+      "value": "1.5",
+      "unit": "kg·cm",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "start_time",
+      "label": "Start-up time to 33 1/3",
+      "value": "0.7",
+      "unit": "s",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "tonearm_length",
+      "label": "Pivot-to-stylus",
+      "value": "230",
+      "unit": "mm",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "overhang",
+      "label": "Overhang",
+      "value": "15",
+      "unit": "mm",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "offset",
+      "label": "Offset angle",
+      "value": "22",
+      "unit": "deg",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "cartridge_weight",
+      "label": "Cartridge weight range",
+      "value": "3.5-13 / 11-20.5 (incl. headshell)",
+      "unit": "g",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "power",
+      "label": "Power",
+      "value": "13.5",
+      "unit": "W",
+      "tolerance": null,
+      "source": "hifi-wiki.com",
+      "confidence": "unverified",
+      "notes": null
+    }
+  ],
+  "timecode": null,
+  "midi": null,
+  "tests": [
+    {
+      "id": "sl-speed-33",
+      "category": "speed",
+      "title": "Speed accuracy 33 1/3 rpm",
+      "why": "Wrong speed detunes records.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "referenceHz": 1000,
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Pitch fader at 0 (centre click), quartz lock on.",
+        "Play a 1 kHz test record or Serato CV02.5 into the line input.",
+        "Run the test."
+      ],
+      "equipment": [
+        "1 kHz test record or CV02.5"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-speed-45",
+      "category": "speed",
+      "title": "Speed accuracy 45 rpm",
+      "why": "Same at 45 rpm.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "referenceHz": 1000,
+        "nominalRpm": 45
+      },
+      "steps": [
+        "Select 45, quartz lock, record at 1 kHz reference.",
+        "Run."
+      ],
+      "equipment": [
+        "45 rpm test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-speed-78",
+      "category": "speed",
+      "title": "Speed accuracy 78 rpm",
+      "why": "MK4 has a 78 rpm position.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "referenceHz": 1000,
+        "nominalRpm": 78
+      },
+      "steps": [
+        "Select 78 rpm and play a 78 test disc or strobe."
+      ],
+      "equipment": [
+        "78 rpm reference"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-pitch-map",
+      "category": "pitch",
+      "title": "Pitch fader map ±8 %",
+      "why": "Verifies ±8 % travel.",
+      "method": "speed:Pitch map",
+      "params": {
+        "pitchPositions": [
+          -8,
+          -4,
+          0,
+          4,
+          8
+        ]
+      },
+      "steps": [
+        "At each fader position measure the speed.",
+        "Quartz lock click position should equal 0 %."
+      ],
+      "equipment": [
+        "1 kHz test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-quartz",
+      "category": "speed",
+      "title": "Quartz lock behaviour",
+      "why": "Fader at centre detent should lock speed.",
+      "method": "speed:Quartz lock",
+      "params": {},
+      "steps": [
+        "Set fader to centre detent with quartz lock indicator lit.",
+        "Run for 5 minutes and watch drift."
+      ],
+      "equipment": [
+        "1 kHz test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-warmup",
+      "category": "speed",
+      "title": "Warm-up drift",
+      "why": "Motor/electronics drift.",
+      "method": "speed:Warm-up speed",
+      "params": {},
+      "steps": [
+        "Run unit 20 minutes."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-startup",
+      "category": "speed",
+      "title": "Start-up and brake time",
+      "why": "Published start-up ~0.7 s (to 33 rpm).",
+      "method": "speed:Startup & brake",
+      "params": {},
+      "steps": [
+        "Press Start/Stop, time to full speed; press stop, time to stand-still; repeat 3x."
+      ],
+      "equipment": [
+        "Test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-wf",
+      "category": "speed",
+      "title": "Wow & flutter",
+      "why": "Published figure 0.025 % WRMS (unverified).",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "referenceHz": 3000,
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Play a 3 kHz test tone record; note flutter figure."
+      ],
+      "equipment": [
+        "3 kHz test record"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-vib",
+      "category": "mechanical",
+      "title": "Platter and plinth vibration",
+      "why": "Bearing wear or motor issue.",
+      "method": "quick:Vibration",
+      "params": {},
+      "steps": [
+        "Place a phone on the platter or plinth while running."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-signal",
+      "category": "audio",
+      "title": "Signal health",
+      "why": "Dropouts/clipping from cartridge/connections.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Play a record with stylus; connect to line/phono input."
+      ],
+      "equipment": [
+        "Audio interface or mixer phono input"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-hum",
+      "category": "safety",
+      "title": "Ground & hum",
+      "why": "Missing ground lead causes hum.",
+      "method": "quick:Ground & hum",
+      "params": {},
+      "steps": [
+        "Connect the ground wire to the mixer ground terminal.",
+        "Run the test with stylus on record and stopped."
+      ],
+      "equipment": [
+        "Ground wire"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-chan",
+      "category": "cartridge",
+      "title": "Channel balance & cartridge",
+      "why": "Unequal channels indicate wiring/cartridge fault.",
+      "method": "cartridge:Channel & cartridge",
+      "params": {},
+      "steps": [
+        "Play a stereo test record."
+      ],
+      "equipment": [
+        "Test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-sep",
+      "category": "cartridge",
+      "title": "Channel separation",
+      "why": "Poor separation indicates cartridge wear or alignment.",
+      "method": "cartridge:Channel separation",
+      "params": {},
+      "steps": [
+        "Play a left-only/right-only test band."
+      ],
+      "equipment": [
+        "Test record"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-arm",
+      "category": "mechanical",
+      "title": "Tonearm & mechanical inspection",
+      "why": "Tonearm play, VTA, anti-skate and cueing damper.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Counterweight sets tracking force; check using a stylus gauge.",
+        "Anti-skate dial set equal to tracking force.",
+        "Arm height (VTA) adjustable ~6 mm; arm level when playing.",
+        "No lateral/vertical play in arm bearings.",
+        "Cueing lever lowers arm smoothly.",
+        "Platter spins without rub; strobe dots visible.",
+        "Dust cover, feet and headshell contacts intact.",
+        "RCA leads and ground wire undamaged."
+      ],
+      "equipment": [
+        "Stylus gauge"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-brake",
+      "category": "mechanical",
+      "title": "Brake feel",
+      "why": "Electronic brake adjustment.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Press Stop at 33 and 45; platter should stop smoothly without reversing."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-rumble",
+      "category": "mechanical",
+      "title": "Rumble noise",
+      "why": "Spec: -78 dB (rated) / -56 dB unweighted (unverified).",
+      "method": "quick:Vibration",
+      "params": {},
+      "steps": [
+        "Lower stylus onto a silent groove at high gain; listen for bass rumble."
+      ],
+      "equipment": [
+        "Blank/silent record"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "sl-lamp",
+      "category": "mechanical",
+      "title": "Strobe, lamp & indicators",
+      "why": "Failed strobe lamp prevents quartz-lock check.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Strobe lamp lights.",
+        "Pitch LED lights.",
+        "Start/Stop works at 33/45/78."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}

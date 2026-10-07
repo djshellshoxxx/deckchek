@@ -1,0 +1,837 @@
+{
+  "schemaVersion": 1,
+  "id": "rane-twelve-mk2",
+  "manufacturer": "Rane DJ",
+  "model": "TWELVE MK2",
+  "aliases": [
+    "Rane Twelve MKII",
+    "Twelve MK2"
+  ],
+  "category": "controller",
+  "summary": "Motorized 12-inch vinyl-style MIDI DJ controller with platter, strip search, pitch fader and performance pads; no audio interface.",
+  "identityNotes": "MK2 (MKII) assumed; user manual v1.1 exists. Original MK1 differs. Egress limits prevented reading the manual in this session, so details come from search snippets and are flagged unverified.",
+  "image": {
+    "file": "rane-twelve-mk2.svg",
+    "kind": "illustration",
+    "source": "Original illustration created for DeckChek",
+    "license": "Original work (project)",
+    "author": "DeckChek project"
+  },
+  "documents": [
+    {
+      "title": "Twelve MKII User Guide v1.1",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/rane/twelveMKII/Twelve_MKII-UserGuide-v1.1.pdf",
+      "language": "en",
+      "notes": "Not fetched in this session; read it to confirm specs/controls."
+    },
+    {
+      "title": "Rane DJ Twelve FAQ",
+      "type": "support-article",
+      "url": "https://support.rane.com/support/solutions/articles/69000814170-rane-dj-twelve-frequently-asked-questions",
+      "language": "en",
+      "notes": "Not fetched; MK1 FAQ possibly also relevant."
+    },
+    {
+      "title": "Algoriddim forum: Rane Twelve MK2 MIDI mapping",
+      "type": "support-article",
+      "url": "https://community.algoriddim.com/t/rane-twelve-mk2-behavior-midi-mapping/13098",
+      "language": "en",
+      "notes": "Community partial mapping, not official."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null,
+      "notes": "USB-C. Vendor/product IDs and class compliance not confirmed."
+    },
+    "midi": {
+      "usbMidi": true,
+      "din": false,
+      "portNamePatterns": [
+        "Twelve",
+        "RANE TWELVE"
+      ]
+    },
+    "audio": null,
+    "analog": []
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Rane Twelve driver (if required)",
+      "asioName": null,
+      "deviceNamePatterns": [
+        "Rane Twelve",
+        "TWELVE"
+      ],
+      "provider": "inMusic / Rane",
+      "latestKnownVersion": null,
+      "url": "https://rane.com/downloads",
+      "required": false,
+      "notes": "Unverified whether a Windows driver is needed; Serato/inMusic devices usually class-compliant MIDI. Confirm on the Rane downloads page."
+    }
+  ],
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "controller",
+      "minVersion": null,
+      "notes": "Native support. Minimum version unverified."
+    },
+    {
+      "name": "Traktor Pro",
+      "role": "controller",
+      "minVersion": null,
+      "notes": "Via MIDI mapping."
+    },
+    {
+      "name": "Virtual DJ",
+      "role": "controller",
+      "minVersion": null,
+      "notes": "Via built-in or MIDI mapping."
+    },
+    {
+      "name": "Rane firmware updater",
+      "role": "firmware-updater",
+      "minVersion": null,
+      "notes": "Updater tool exists per Rane support; confirm download name."
+    }
+  ],
+  "specs": [
+    {
+      "key": "pitch_ranges",
+      "label": "Pitch ranges",
+      "value": "±8 / ±16 / ±50",
+      "unit": "%",
+      "tolerance": null,
+      "source": "Retailer spec listing (Galaxus/Thomann snippets via search)",
+      "confidence": "unverified",
+      "notes": "Confirm in user guide."
+    },
+    {
+      "key": "speeds",
+      "label": "Platter speeds",
+      "value": "33 1/3, 45",
+      "unit": "rpm",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "platter_diameter",
+      "label": "Platter",
+      "value": "12",
+      "unit": "in",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "starting_torque_low",
+      "label": "Starting torque low",
+      "value": "3.4",
+      "unit": "kg·cm",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "starting_torque_high",
+      "label": "Starting torque high",
+      "value": "5.0",
+      "unit": "kg·cm",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "constant_torque_low",
+      "label": "Constant torque low",
+      "value": "1.2",
+      "unit": "kg·cm",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "constant_torque_high",
+      "label": "Constant torque high",
+      "value": "3.4",
+      "unit": "kg·cm",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "motor",
+      "label": "Motor",
+      "value": "16-pole 3-phase quartz direct drive",
+      "unit": "",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "usb",
+      "label": "Connector",
+      "value": "USB-C",
+      "unit": "",
+      "tolerance": null,
+      "source": "Retailer spec listing",
+      "confidence": "unverified",
+      "notes": null
+    }
+  ],
+  "timecode": null,
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": [
+      {
+        "id": "platter_motion",
+        "label": "Platter rotation (jog)",
+        "group": "Platter",
+        "type": "platter",
+        "message": null,
+        "range": null,
+        "led": false,
+        "notes": "Relative/absolute encoding unknown; platter position resolution to be measured by midi:jog."
+      },
+      {
+        "id": "platter_touch",
+        "label": "Platter touch",
+        "group": "Platter",
+        "type": "jog-touch",
+        "message": null,
+        "range": null,
+        "led": false,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "strip_search",
+        "label": "Strip search",
+        "group": "Platter",
+        "type": "touch-strip",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "pitch_fader",
+        "label": "Pitch fader",
+        "group": "Pitch",
+        "type": "fader",
+        "message": null,
+        "range": [
+          0,
+          127
+        ],
+        "led": false,
+        "notes": "Resolution (7/14-bit) unknown; measured by midi:fader."
+      },
+      {
+        "id": "pitch_range",
+        "label": "Pitch range button",
+        "group": "Pitch",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "pitch_reset",
+        "label": "Pitch reset/key lock",
+        "group": "Pitch",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "speed_33_45",
+        "label": "33/45 speed select",
+        "group": "Motor",
+        "type": "switch",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "play",
+        "label": "Play/Pause",
+        "group": "Transport",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "cue",
+        "label": "Cue",
+        "group": "Transport",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "sync",
+        "label": "Sync",
+        "group": "Transport",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "shift",
+        "label": "Shift",
+        "group": "Transport",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": false,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "hotcue_pads",
+        "label": "Hot cue / performance pads (1-8)",
+        "group": "Pads",
+        "type": "pad",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Count and layout to be confirmed against the unit; map each pad individually in the app."
+      },
+      {
+        "id": "loop_buttons",
+        "label": "Loop / beat-jump buttons",
+        "group": "Loop",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "platter_mode",
+        "label": "Vinyl/platter mode button",
+        "group": "Platter",
+        "type": "button",
+        "message": null,
+        "range": null,
+        "led": true,
+        "notes": "Message not published; capture with MIDI learn."
+      },
+      {
+        "id": "torque_adjust",
+        "label": "Motor torque / platter brake adjust control",
+        "group": "Motor",
+        "type": "knob",
+        "message": null,
+        "range": null,
+        "led": false,
+        "notes": "If physical control present; verify on unit."
+      }
+    ]
+  },
+  "tests": [
+    {
+      "id": "twelve-driver",
+      "category": "driver",
+      "title": "Windows driver / device present",
+      "why": "Detects missing or unsigned drivers that stop the unit being recognised.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the Twelve MK2 with its USB-C cable directly to the PC (not a hub).",
+        "Run the check.",
+        "If absent, install the Rane Twelve driver from Rane support and reconnect."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": null,
+        "source": "Presence is required for operation; see docs/devices/rane-twelve-mk2.md"
+      }
+    },
+    {
+      "id": "twelve-driver-status",
+      "category": "driver",
+      "title": "Driver status OK",
+      "why": "A device with a Code 10/43 error will not enumerate MIDI.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check.",
+        "Open Device Manager and confirm no warning icon on the Rane Twelve entry."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": null,
+        "source": "Generic Windows driver health"
+      }
+    },
+    {
+      "id": "twelve-usb-enum",
+      "category": "usb",
+      "title": "USB enumeration & cable",
+      "why": "Intermittent disconnects point to cable, port or power faults.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Plug into a rear USB port; try a second port and a different USB-C cable.",
+        "Move the platter and tap buttons while watching for disconnect chimes.",
+        "Confirm the unit stays in Device Manager / MIDI port list for 2 minutes."
+      ],
+      "equipment": [
+        "Spare USB-C cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-software-serato",
+      "category": "software",
+      "title": "Serato DJ Pro detects Twelve MK2",
+      "why": "Native support requires current Serato DJ Pro.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Install current Serato DJ Pro.",
+        "Run the software check; then launch Serato with the Twelve connected."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": {
+        "metricId": "software_installed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": null,
+        "source": "Serato DJ Pro supports the Twelve MK2 natively (Rane product page, unverified wording)"
+      }
+    },
+    {
+      "id": "twelve-software-crash",
+      "category": "software",
+      "title": "DJ software stability",
+      "why": "Repeated crashes with the controller attached suggest driver or USB problems.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run the check."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "twelve-midi-coverage",
+      "category": "midi",
+      "title": "MIDI coverage: all controls",
+      "why": "Finds dead buttons, pads or strip zones and learns unknown messages.",
+      "method": "midi:coverage",
+      "params": {},
+      "steps": [
+        "Open the test and touch/press every control once, including shifted functions.",
+        "Rotate the platter both ways, touch the strip search end to end, move the pitch fader fully."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_controls_seen_percent",
+        "op": ">=",
+        "value": 100,
+        "value2": null,
+        "unit": "%",
+        "source": "All controls should respond"
+      }
+    },
+    {
+      "id": "twelve-midi-unexpected",
+      "category": "midi",
+      "title": "Unexpected MIDI messages",
+      "why": "Stray messages while idle indicate noisy sensors.",
+      "method": "midi:coverage",
+      "params": {},
+      "steps": [
+        "Hands off the unit for 30 seconds with the platter stopped."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-pitch-fader",
+      "category": "midi",
+      "title": "Pitch fader sweep & resolution",
+      "why": "Dirty or worn track causes jumps; resolution determines fine pitch control.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "pitch_fader"
+      },
+      "steps": [
+        "Move the pitch fader slowly end to end and back three times.",
+        "Repeat on each pitch range if the range changes the message."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-pitch-fader-res",
+      "category": "midi",
+      "title": "Pitch fader resolution (bits)",
+      "why": "Reports whether 7- or 14-bit; informational as manufacturer value unpublished.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "pitch_fader"
+      },
+      "steps": [
+        "Sweep slowly at the lowest speed you can."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-pitch-jitter",
+      "category": "midi",
+      "title": "Pitch fader jitter at rest",
+      "why": "Jitter makes tempo wander in software.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "pitch_fader"
+      },
+      "steps": [
+        "Leave the fader at a fixed position for 20 seconds."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-platter-rev",
+      "category": "midi",
+      "title": "Platter position resolution (ticks/rev)",
+      "why": "Low resolution makes scratching feel steppy.",
+      "method": "midi:jog",
+      "params": {
+        "controlId": "platter_motion"
+      },
+      "steps": [
+        "With motor off, turn the platter one slow full revolution clockwise, then one anticlockwise."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-platter-dir",
+      "category": "midi",
+      "title": "Platter direction errors",
+      "why": "Direction flips indicate encoder faults.",
+      "method": "midi:jog",
+      "params": {
+        "controlId": "platter_motion"
+      },
+      "steps": [
+        "Slow revolution each way."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_jog_direction_errors",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": null,
+        "source": "Direction must be consistent"
+      }
+    },
+    {
+      "id": "twelve-platter-touch",
+      "category": "midi",
+      "title": "Platter touch sensing",
+      "why": "Needed for scratch mode engage/release.",
+      "method": "midi:button",
+      "params": {
+        "controlIds": [
+          "platter_touch"
+        ]
+      },
+      "steps": [
+        "Touch and release the platter top repeatedly."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_button_stuck",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": null,
+        "source": "No stuck state"
+      }
+    },
+    {
+      "id": "twelve-buttons",
+      "category": "midi",
+      "title": "Buttons: bounce & stuck",
+      "why": "Chatter causes double triggers.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Press each button 5 times at normal pace."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-leds",
+      "category": "midi",
+      "title": "LED feedback",
+      "why": "Verifies host-to-device MIDI output.",
+      "method": "midi:led",
+      "params": {},
+      "steps": [
+        "Confirm each lit button/pad changes as the app commands."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-midi-jitter",
+      "category": "latency",
+      "title": "MIDI timing jitter during platter motion",
+      "why": "Jitter in platter messages causes uneven scratch feel.",
+      "method": "midi:latency",
+      "params": {},
+      "steps": [
+        "Spin the platter at constant speed (or let the motor run) for 15 seconds."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-strip",
+      "category": "midi",
+      "title": "Strip search full length",
+      "why": "Dead spots on the touch strip prevent track searching.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "strip_search"
+      },
+      "steps": [
+        "Slide a finger along the strip end to end slowly, three times."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-speed-3345",
+      "category": "speed",
+      "title": "Motor speed 33 1/3 and 45 rpm",
+      "why": "Speed error causes pitch mismatch vs software deck.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Place a Serato CV02.5 (or 1 kHz-referenced signal source such as a timecode disc under lines) on the platter if a timecode-reading path is available; otherwise use a strobe disc.",
+        "Select 33, measure; repeat at 45 with nominalRpm 45."
+      ],
+      "equipment": [
+        "Reference record or strobe disc"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-startup-brake",
+      "category": "speed",
+      "title": "Start-up and brake time",
+      "why": "Slow start or sticky brake affects mixing and stop effects.",
+      "method": "speed:Startup & brake",
+      "params": {},
+      "steps": [
+        "Start and stop the platter with torque on low, then high; repeat 3x."
+      ],
+      "equipment": [
+        "Stopwatch or the app timer"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-pitch-map",
+      "category": "pitch",
+      "title": "Pitch fader vs actual platter speed",
+      "why": "Compares ±8/±16/±50 % ranges with measured speed.",
+      "method": "speed:Pitch map",
+      "params": {
+        "pitchPositions": [
+          -8,
+          -4,
+          0,
+          4,
+          8
+        ]
+      },
+      "steps": [
+        "Set range ±8 %; move fader to marked positions and measure speed at each.",
+        "Repeat in ±16 and ±50 % (scale positions)."
+      ],
+      "equipment": [
+        "Reference signal"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-warmup",
+      "category": "speed",
+      "title": "Warm-up speed drift",
+      "why": "Drift while motor warms.",
+      "method": "speed:Warm-up speed",
+      "params": {},
+      "steps": [
+        "Let the platter run 20 minutes."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-vibration",
+      "category": "mechanical",
+      "title": "Platter vibration",
+      "why": "Motor or bearing wear.",
+      "method": "quick:Vibration",
+      "params": {},
+      "steps": [
+        "Place a phone/probe on the plinth with platter running."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-inspect",
+      "category": "mechanical",
+      "title": "Mechanical & visual inspection",
+      "why": "Platter wobble, loose slipmat, damaged USB port and worn buttons.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Platter sits flat and rotates without rubbing or wobble.",
+        "Slipmat/control surface undamaged.",
+        "Pitch fader moves smoothly, no crackle.",
+        "USB-C port firm in socket.",
+        "Rubber feet and housing intact.",
+        "No unusual motor noise at either speed."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-fw",
+      "category": "software",
+      "title": "Firmware up to date (Rane/inMusic updater)",
+      "why": "Outdated firmware can cause missing features with new software.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open the Rane firmware updater or Serato's device settings.",
+        "Note the installed firmware version and whether an update is offered.",
+        "Do not unplug during update."
+      ],
+      "equipment": [
+        "Rane Twelve firmware updater (see documents)"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "twelve-traktor",
+      "category": "software",
+      "title": "Traktor / Virtual DJ MIDI operation",
+      "why": "Confirms generic MIDI usage works outside Serato.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open Traktor or VirtualDJ with the device selected.",
+        "Confirm platter and pitch move the deck; note mapping source used."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    }
+  ]
+}
