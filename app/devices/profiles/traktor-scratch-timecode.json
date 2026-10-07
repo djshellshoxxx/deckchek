@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "id": "traktor-scratch-timecode",
+  "manufacturer": "Native Instruments",
+  "model": "Traktor Scratch control vinyl MK1 / MK2 and control CD",
+  "aliases": [
+    "Traktor Scratch Pro control vinyl",
+    "Traktor Scratch MK2",
+    "Traktor Scratch MK1 vinyl",
+    "Traktor Scratch control CD"
+  ],
+  "category": "timecode-media",
+  "summary": "Native Instruments timecode vinyl and CDs used with Traktor Scratch Pro / Traktor Pro to control digital tracks with turntables or CDJs.",
+  "identityNotes": "The user did not say whether their records are MK1 or MK2; both are profiled. MK2 (2010) is newer; modern Traktor Pro reads both. Carrier frequencies conflict between retailer text and community sources, see specs. Side lengths and lead-in could not be confirmed from primary sources.",
+  "image": {
+    "file": "traktor-scratch-timecode.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration",
+    "license": "original work",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "DJ TechTools: timecode explained",
+      "type": "support-article",
+      "url": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
+      "language": "en",
+      "notes": "General timecode explanation, 2 kHz Traktor carrier."
+    },
+    {
+      "title": "DJ TechTools forum: Traktor control vinyl MK1 and MK2",
+      "type": "support-article",
+      "url": "https://forum.djtechtools.com/t/traktor-control-vinyl-mk1-and-mk2/68964",
+      "language": "en",
+      "notes": "Community comparison."
+    },
+    {
+      "title": "NI Traktor Pro 3 timecode setup guide",
+      "type": "support-article",
+      "url": "https://support.native-instruments.com/support/solutions/articles/69000879426-traktor-pro-3-timecode-setup-guide",
+      "language": "en",
+      "notes": "Official setup/calibration steps."
+    },
+    {
+      "title": "NI: Traktor crashes (log location)",
+      "type": "support-article",
+      "url": "https://support.native-instruments.com/support/solutions/articles/69000882545-traktor-crashes",
+      "language": "en",
+      "notes": "Mentions Documents/Native Instruments/Traktor X/Logs."
+    },
+    {
+      "title": "PSSL: Traktor Scratch MK2 vinyl",
+      "type": "spec-sheet",
+      "url": "https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white",
+      "language": "en",
+      "notes": "Retailer marketing text."
+    }
+  ],
+  "connectivity": {
+    "usb": null,
+    "midi": null,
+    "audio": null,
+    "analog": [
+      "2-channel stereo timecode signal read as phono or line"
+    ]
+  },
+  "drivers": [],
+  "software": [
+    {
+      "name": "Traktor Pro",
+      "role": "dvs",
+      "minVersion": "Traktor Scratch Pro 2 or later for MK2",
+      "notes": "Preferences > Timecode Setup (select MK1/MK2, calibrate, per-deck input), Preferences > Audio Setup, Deck 'Absolute/Relative/Internal' mode buttons. Logs under Documents\\Native Instruments\\Traktor <version>\\Logs."
+    },
+    {
+      "name": "Traktor Scratch Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Older name of the DVS licence; TSP2 reads MK1 and MK2."
+    }
+  ],
+  "specs": [
+    {
+      "key": "mk1_carrier_hz",
+      "label": "MK1 carrier frequency",
+      "value": 2000,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
+      "confidence": "confirmed",
+      "notes": "Described as two sine waves of 2 kHz; Serato is 1 kHz."
+    },
+    {
+      "key": "mk2_carrier_hz",
+      "label": "MK2 carrier frequency",
+      "value": 2500,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white",
+      "confidence": "unverified",
+      "notes": "Retail text calls it 2 kHz carrier but other source quotes about 2.5 kHz; confirm by measurement with timecode:format-check."
+    },
+    {
+      "key": "quadrature",
+      "label": "Phase relation",
+      "value": "90",
+      "unit": "deg",
+      "tolerance": null,
+      "source": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
+      "confidence": "unverified",
+      "notes": "Standard for stereo timecode (quadrature sine pair); source not opened."
+    },
+    {
+      "key": "mk2_side_a_min",
+      "label": "MK2 side A timecode length",
+      "value": 12,
+      "unit": "min",
+      "tolerance": null,
+      "source": "https://forum.djtechtools.com/t/traktor-control-vinyl-mk1-and-mk2/68964",
+      "confidence": "unverified",
+      "notes": "From search summary; side B 17 min."
+    },
+    {
+      "key": "mk2_side_b_min",
+      "label": "MK2 side B timecode length",
+      "value": 17,
+      "unit": "min",
+      "tolerance": null,
+      "source": "https://forum.djtechtools.com/t/traktor-control-vinyl-mk1-and-mk2/68964",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "modes",
+      "label": "Tracking modes",
+      "value": "Absolute, Relative, Internal",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://support.native-instruments.com/support/solutions/articles/69000879426-traktor-pro-3-timecode-setup-guide",
+      "confidence": "confirmed",
+      "notes": null
+    }
+  ],
+  "timecode": {
+    "formats": [
+      {
+        "name": "Traktor Scratch MK1",
+        "vendor": "Native Instruments",
+        "carrierHz": 2000,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Absolute and relative modes supported.",
+        "source": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
+        "confidence": "confirmed"
+      },
+      {
+        "name": "Traktor Scratch MK2",
+        "vendor": "Native Instruments",
+        "carrierHz": 2500,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Higher-frequency carrier for better slow-speed tracking; absolute mode; side A about 12 min, B about 17 min (unverified).",
+        "source": "https://www.pssl.com/products/ni-traktor-scratch-pro-control-vinyl-mk2-white",
+        "confidence": "unverified"
+      },
+      {
+        "name": "Traktor Scratch control CD",
+        "vendor": "Native Instruments",
+        "carrierHz": null,
+        "atRpm": null,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Carrier assumed to match the vinyl generation (MK1/MK2); CD is played at nominal speed 0 pitch; no value confirmed.",
+        "source": "https://djtechtools.com/2009/08/03/timecode-exlplained-basic",
+        "confidence": "unverified"
+      }
+    ]
+  },
+  "midi": null,
+  "tests": [
+    {
+      "id": "tc-mk2-format",
+      "category": "timecode",
+      "title": "Traktor Scratch MK2 format check (33 1/3)",
+      "why": "Carrier frequency, quadrature phase, L/R balance and SNR show whether the vinyl, cartridge and input stage deliver a decodable signal.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Clean the record and stylus.",
+        "Play the timecode side on a turntable at 33 1/3 rpm, pitch 0.",
+        "Run the check for at least 20 s per deck."
+      ],
+      "equipment": [
+        "Traktor Scratch MK2 control vinyl",
+        "Turntable",
+        "Phono/line input of a DVS interface"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-mk2-45",
+      "category": "timecode",
+      "title": "Traktor Scratch MK2 at 45 rpm",
+      "why": "Speed tracking at 45 rpm (carrier scales with speed).",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 45
+      },
+      "steps": [
+        "Set the deck to 45 rpm and repeat the format check."
+      ],
+      "equipment": [
+        "Traktor Scratch MK2 control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-mk1-format",
+      "category": "timecode",
+      "title": "Traktor Scratch MK1 format check (33 1/3)",
+      "why": "Carrier frequency, quadrature phase, L/R balance and SNR show whether the vinyl, cartridge and input stage deliver a decodable signal.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK1",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Clean the record and stylus.",
+        "Play the timecode side on a turntable at 33 1/3 rpm, pitch 0.",
+        "Run the check for at least 20 s per deck."
+      ],
+      "equipment": [
+        "Traktor Scratch MK1 control vinyl",
+        "Turntable",
+        "Phono/line input of a DVS interface"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-mk1-45",
+      "category": "timecode",
+      "title": "Traktor Scratch MK1 at 45 rpm",
+      "why": "Speed tracking at 45 rpm (carrier scales with speed).",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK1",
+        "nominalRpm": 45
+      },
+      "steps": [
+        "Set the deck to 45 rpm and repeat the format check."
+      ],
+      "equipment": [
+        "Traktor Scratch MK1 control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-dvs-signal",
+      "category": "dvs",
+      "title": "DVS signal: both decks",
+      "why": "Generic integrity of the sine pair: dropouts, imbalance, noise.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Play control media on each deck for a full minute.",
+        "Run DVS signal and read dropouts/level."
+      ],
+      "equipment": [
+        "Control vinyl or CD"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-vinyl-scan",
+      "category": "dvs",
+      "title": "Vinyl side scan for damage",
+      "why": "Scratches, warps or wear cause dropouts at a repeatable position on the side.",
+      "method": "vinyl:Vinyl side scan",
+      "params": {},
+      "steps": [
+        "Play the full timecode side from lead-in to end while the app records.",
+        "Note positions of dropouts and compare with visible damage."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-sep",
+      "category": "cartridge",
+      "title": "Cartridge channel separation with control vinyl",
+      "why": "Channel crosstalk >~ 20 dB destroys quadrature decoding.",
+      "method": "cartridge:Channel separation",
+      "params": {
+        "source": "timecode"
+      },
+      "steps": [
+        "Play the timecode side; run the test."
+      ],
+      "equipment": [
+        "Control vinyl",
+        "Turntable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "tc-pitch",
+      "category": "speed",
+      "title": "Speed accuracy from timecode carrier",
+      "why": "A turntable running fast/slow shows up as carrier shift; compare against nominal pitch 0 and platter speed.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "referenceHz": null,
+        "nominalRpm": 33.333333,
+        "note": "reference carrier for the medium in use, see timecode block"
+      },
+      "steps": [
+        "Select the medium carrier frequency in the app (MK1 vs MK2).",
+        "Run at 33 1/3 and 45 rpm."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-cal",
+      "category": "software",
+      "title": "Timecode calibration in Traktor",
+      "why": "The Timecode Setup panel measures the signal and sets input gain; it fails on bad signal/wiring.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "In Traktor open Preferences > Timecode Setup, pick MK1 or MK2 for each deck.",
+        "Start playback of the timecode and press Calibrate; wait until both L and R scopes are a clean circle.",
+        "Note the signal quality shown and adjust the input gain/phono-line setting if it fails.",
+        "Test Absolute, Relative and Internal modes by loading a track and watching the deck."
+      ],
+      "equipment": [
+        "Traktor Pro",
+        "Control media"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-sw-check",
+      "category": "software",
+      "title": "Traktor install and log scan",
+      "why": "Looks for crashes and log errors around audio device and timecode errors.",
+      "method": "software:check",
+      "params": {
+        "software": "Traktor Pro"
+      },
+      "steps": [
+        "Run the software check.",
+        "Open Documents\\Native Instruments\\Traktor <ver>\\Logs for details."
+      ],
+      "equipment": [
+        "Traktor Pro"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "software_installed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical check"
+      }
+    },
+    {
+      "id": "tc-abs-lead",
+      "category": "timecode",
+      "title": "Absolute mode and lead-in sanity",
+      "why": "Absolute mode only works when the needle lands in the timecode area; positions repeat across the lead-in.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Drop the needle at the very start of the side and note Traktor shows a start position.",
+        "Drop in the middle: absolute position should match the same groove position each time.",
+        "Lift/replace at the end of the side."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "tc-visual",
+      "category": "mechanical",
+      "title": "Record condition",
+      "why": "Warp, scratches and dust are the usual cause of timecode loss.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect both sides for scratches, warp and dust.",
+        "Check the record sits flat on the platter with a slipmat.",
+        "Compare two copies if available."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}

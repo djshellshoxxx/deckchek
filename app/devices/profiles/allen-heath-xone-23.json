@@ -1,0 +1,627 @@
+{
+  "schemaVersion": 1,
+  "id": "allen-heath-xone-23",
+  "manufacturer": "Allen & Heath",
+  "model": "Xone:23",
+  "aliases": [
+    "Xone 23",
+    "XONE:23",
+    "Xone:23C (USB variant)"
+  ],
+  "category": "mixer",
+  "summary": "2+2 channel analog DJ mixer with 3-band total-kill EQ, VCF filters, balanced XLR main outputs and booth/record outputs; the Xone:23C adds a USB soundcard.",
+  "identityNotes": "The user did not say whether it is the analog Xone:23 or the Xone:23C (built-in 24-bit/96 kHz 4-stereo-channel USB soundcard plus X:LINK). Profiled as the analog Xone:23; 23C-only tests are marked in the title ('Xone:23C only'). To tell them apart: the 23C has a USB B socket and an X:LINK port on the rear panel. Both share identical analog features and layout. No MIDI DIN ports on either.",
+  "image": {
+    "file": "allen-heath-xone-23.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration",
+    "license": "original work",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "Xone:23 user manual",
+      "type": "user-manual",
+      "url": "https://www.markertek.com/Attachments/Manuals/Allen%20&%20Heath/XONE23-Manual.pdf",
+      "language": "en",
+      "notes": "Retailer hosted copy of A&H manual."
+    },
+    {
+      "title": "Xone:23C user manual",
+      "type": "user-manual",
+      "url": "https://www.adorama.com/col/productManuals/AHXONE23C.pdf",
+      "language": "en",
+      "notes": "23C additions: USB soundcard, X:LINK."
+    },
+    {
+      "title": "Xone:23C brochure",
+      "type": "spec-sheet",
+      "url": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
+      "language": "en",
+      "notes": "Quoted specs (frequency response, THD)."
+    },
+    {
+      "title": "DJ TechTools Xone:23 overview",
+      "type": "support-article",
+      "url": "https://djtechtools.com/2014/01/25/allen-heath-xone23-extended-overview",
+      "language": "en",
+      "notes": "Feature overview."
+    },
+    {
+      "title": "DJ TechTools forum: 23C vs 23 + soundcard",
+      "type": "support-article",
+      "url": "https://forum.djtechtools.com/t/xone-23c-vs-xone-23-soundcard/66647",
+      "language": "en",
+      "notes": "Community comparison."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": false,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null,
+      "notes": "Analog Xone:23 has no USB. Xone:23C has a USB B port (24-bit/96 kHz, 4 stereo channels); A&H publishes its own Windows ASIO driver (version unverified); USB IDs unconfirmed."
+    },
+    "midi": null,
+    "audio": null,
+    "analog": [
+      "2x stereo channels with phono/line",
+      "mic input (XLR)",
+      "main out balanced XLR",
+      "booth out",
+      "record out",
+      "headphone outputs"
+    ]
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Allen & Heath Xone:23C USB driver (23C only)",
+      "asioName": null,
+      "deviceNamePatterns": [
+        "Xone:23C",
+        "XONE:23C",
+        "Allen & Heath Xone"
+      ],
+      "provider": "Allen & Heath",
+      "latestKnownVersion": null,
+      "url": "https://www.allen-heath.com/hardware/xone-series/xone23c/",
+      "required": false,
+      "notes": "Only required for the Xone:23C; analog Xone:23 needs no driver. Page could not be opened; confirm version and whether the 23C is class compliant on Windows."
+    }
+  ],
+  "software": [
+    {
+      "name": "Traktor Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Mixer is used with Traktor through an external interface (Audio 8 DJ). 23C is Traktor Certified per retailers (https://mannys.com.au/allen-and-heath-xone-23c-traktor-certified-dj-mixer-w-usb-i-o)."
+    }
+  ],
+  "specs": [
+    {
+      "key": "freq_resp",
+      "label": "Frequency response",
+      "value": "10 Hz - 50 kHz",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
+      "confidence": "confirmed",
+      "notes": "Quoted in the 23C brochure as +/- 0 dB; analog stage shared with Xone:23."
+    },
+    {
+      "key": "thd_n",
+      "label": "THD+N",
+      "value": 0.01,
+      "unit": "%",
+      "tolerance": null,
+      "source": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
+      "confidence": "confirmed",
+      "notes": null
+    },
+    {
+      "key": "main_noise",
+      "label": "Main mix out noise",
+      "value": -85,
+      "unit": "dBu",
+      "tolerance": null,
+      "source": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
+      "confidence": "confirmed",
+      "notes": "un-weighted 22 Hz-22 kHz"
+    },
+    {
+      "key": "headroom",
+      "label": "Signal headroom",
+      "value": 20,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "https://www.juno.co.uk/junodaily/2014/09/24/allen-heath-xone23",
+      "confidence": "confirmed",
+      "notes": "retailer summary"
+    },
+    {
+      "key": "max_out",
+      "label": "Maximum main output (balanced XLR)",
+      "value": 28,
+      "unit": "dBu",
+      "tolerance": null,
+      "source": "https://www.juno.co.uk/junodaily/2014/09/24/allen-heath-xone23",
+      "confidence": "confirmed",
+      "notes": "retailer summary"
+    },
+    {
+      "key": "vcf_range",
+      "label": "VCF filter cutoff range",
+      "value": "20 Hz - 20 kHz",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://djtechtools.com/2014/01/25/allen-heath-xone23-extended-overview",
+      "confidence": "confirmed",
+      "notes": null
+    },
+    {
+      "key": "eq",
+      "label": "EQ",
+      "value": "3-band total kill",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://www.markertek.com/Attachments/Manuals/Allen%20&%20Heath/XONE23-Manual.pdf",
+      "confidence": "confirmed",
+      "notes": "EQ centre frequencies not confirmed"
+    },
+    {
+      "key": "usb_23c",
+      "label": "USB soundcard (23C only)",
+      "value": "24-bit / 96 kHz, 4 stereo channels",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://www.fullcompass.com/common/files/21614-AllenHeathXone23CBrochure.pdf",
+      "confidence": "confirmed",
+      "notes": null
+    }
+  ],
+  "timecode": null,
+  "midi": null,
+  "tests": [
+    {
+      "id": "x23-ch1-signal",
+      "category": "mixer",
+      "title": "Channel 1 signal health: line and phono",
+      "why": "Isolates a dead or noisy channel input stage.",
+      "method": "quick:Signal health",
+      "params": {
+        "channel": 1,
+        "inputs": [
+          "line",
+          "phono"
+        ]
+      },
+      "steps": [
+        "Feed a stereo source into channel 1 LINE, set the input switch to LINE, trim at 12 o'clock.",
+        "Take main output (record out or master) into the PC input; run signal health.",
+        "Repeat with PHONO and a turntable."
+      ],
+      "equipment": [
+        "Audio source",
+        "Turntable",
+        "Interface input"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch1-gain",
+      "category": "mixer",
+      "title": "Channel 1 gain structure and meter",
+      "why": "Verifies trim and fader give usable range with no clipping before the master.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play music at 0 dB; turn channel 1 trim up until the channel LED meter just peaks green/amber.",
+        "Sweep trim fully down: signal gone; fully up: no distortion at peaks if channel fader is down.",
+        "Compare to the other channel with the same source."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch1-eq",
+      "category": "mixer",
+      "title": "Channel 1 EQ and kill",
+      "why": "The Xone:23 EQs are total-kill; a kill that leaves signal means a faulty pot or switch.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play full-range music.",
+        "Turn HI fully down: highs vanish; MID fully down: mid vanishes; LO fully down: bass vanishes.",
+        "Turn each fully up: boost without distortion; centre detent is flat.",
+        "Rotate each pot slowly: no crackle or dropouts."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch1-fader",
+      "category": "mixer",
+      "title": "Channel 1 line fader",
+      "why": "Worn faders crackle or lose a channel.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play music, move the fader slowly end to end: no crackle, no channel loss, smooth travel.",
+        "Check silence at fully down."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch2-signal",
+      "category": "mixer",
+      "title": "Channel 2 signal health: line and phono",
+      "why": "Isolates a dead or noisy channel input stage.",
+      "method": "quick:Signal health",
+      "params": {
+        "channel": 2,
+        "inputs": [
+          "line",
+          "phono"
+        ]
+      },
+      "steps": [
+        "Feed a stereo source into channel 2 LINE, set the input switch to LINE, trim at 12 o'clock.",
+        "Take main output (record out or master) into the PC input; run signal health.",
+        "Repeat with PHONO and a turntable."
+      ],
+      "equipment": [
+        "Audio source",
+        "Turntable",
+        "Interface input"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch2-gain",
+      "category": "mixer",
+      "title": "Channel 2 gain structure and meter",
+      "why": "Verifies trim and fader give usable range with no clipping before the master.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play music at 0 dB; turn channel 2 trim up until the channel LED meter just peaks green/amber.",
+        "Sweep trim fully down: signal gone; fully up: no distortion at peaks if channel fader is down.",
+        "Compare to the other channel with the same source."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch2-eq",
+      "category": "mixer",
+      "title": "Channel 2 EQ and kill",
+      "why": "The Xone:23 EQs are total-kill; a kill that leaves signal means a faulty pot or switch.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play full-range music.",
+        "Turn HI fully down: highs vanish; MID fully down: mid vanishes; LO fully down: bass vanishes.",
+        "Turn each fully up: boost without distortion; centre detent is flat.",
+        "Rotate each pot slowly: no crackle or dropouts."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-ch2-fader",
+      "category": "mixer",
+      "title": "Channel 2 line fader",
+      "why": "Worn faders crackle or lose a channel.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play music, move the fader slowly end to end: no crackle, no channel loss, smooth travel.",
+        "Check silence at fully down."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-balance-main",
+      "category": "mixer",
+      "title": "Main output L/R balance",
+      "why": "A level mismatch between left and right output indicates a channel fault.",
+      "method": "quick:Signal health",
+      "params": {
+        "output": "main"
+      },
+      "steps": [
+        "Play a mono 1 kHz tone through channel 1, all EQ centre.",
+        "Record main output and compare L and R."
+      ],
+      "equipment": [
+        "1 kHz tone",
+        "Interface input"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-crosstalk",
+      "category": "cartridge",
+      "title": "Channel crosstalk through mixer",
+      "why": "Poor L/R separation or inter-channel bleed.",
+      "method": "cartridge:Channel separation",
+      "params": {
+        "path": "mixer"
+      },
+      "steps": [
+        "Feed L-only signal; measure R at main out; repeat."
+      ],
+      "equipment": [
+        "L/R test signal"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-hum",
+      "category": "safety",
+      "title": "Hum with phono connected",
+      "why": "Ground-loop hum when turntables connect to the phono input.",
+      "method": "quick:Ground & hum",
+      "params": {
+        "input": "phono"
+      },
+      "steps": [
+        "Connect turntable and its ground wire to the mixer ground terminal.",
+        "Fader up, platter running, stylus lifted; run the test.",
+        "Test with the ground wire disconnected for comparison."
+      ],
+      "equipment": [
+        "Turntable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-vcf",
+      "category": "mixer",
+      "title": "VCF filter (high-pass/low-pass) sweep",
+      "why": "The Xone filter is voltage controlled with frequency and resonance; faulty pots cause jumps.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Engage the filter on a channel / master as available.",
+        "Sweep frequency knob end to end: smooth sweep, nominal 20 Hz to 20 kHz range.",
+        "Increase resonance: self-oscillation at max is normal on Xone filters; no crackle."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-xfader",
+      "category": "mixer",
+      "title": "Crossfader: travel and curve switch",
+      "why": "Crossfader wear causes channel dropout, hence scratching noise.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play different sources on channels 1 and 2 with assign switches set to crossfader.",
+        "Move the crossfader end to end slowly: no crackle or dropouts, both ends silent.",
+        "Flip the curve switch (gradual / sharp): cut-in point should move towards the edge.",
+        "Test with fader reverse switch if present."
+      ],
+      "equipment": [
+        "Two sources"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-cue",
+      "category": "mixer",
+      "title": "Headphone cue and split",
+      "why": "Cue routing faults are hard to see on the main output.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Press CUE on channel 1 and then 2: only that channel is in the headphones.",
+        "Turn the cue mix / master knob: blends cue and master.",
+        "Check cue volume: no hiss at low levels, no crackle when rotating."
+      ],
+      "equipment": [
+        "Headphones"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-outputs",
+      "category": "mixer",
+      "title": "Outputs: XLR main, booth, record",
+      "why": "Each output is a separate stage.",
+      "method": "quick:Signal health",
+      "params": {
+        "outputs": [
+          "main XLR",
+          "booth",
+          "record"
+        ]
+      },
+      "steps": [
+        "Record each output in turn with the same source; compare levels and noise."
+      ],
+      "equipment": [
+        "XLR/RCA cables"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-mic",
+      "category": "mixer",
+      "title": "Mic input and talkover",
+      "why": "Optional but included in channel features.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect a dynamic mic; speak; confirm level, EQ and no hum."
+      ],
+      "equipment": [
+        "Microphone"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-switches",
+      "category": "mechanical",
+      "title": "Switches, jacks and pots",
+      "why": "Dust and wear are the typical faults in mixers.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Wiggle each RCA/XLR/jack under signal: no crackle.",
+        "Toggle every input and assign switch; confirm the LED/function.",
+        "Rotate every pot through its range with music playing."
+      ],
+      "equipment": [
+        "Music source"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "x23-dvs-line",
+      "category": "dvs",
+      "title": "DVS through the mixer line inputs",
+      "why": "With analog Xone:23 the audio interface sits outside the mixer; timecode passes through LINE inputs.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Connect the Traktor interface outputs to mixer channel LINE inputs and play a deck.",
+        "Play control vinyl on a turntable into the interface and confirm the returned deck audio is clean on the mixer channel."
+      ],
+      "equipment": [
+        "Audio interface",
+        "Control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-driver",
+      "category": "driver",
+      "title": "Xone:23C only: USB driver and ASIO",
+      "why": "Only the 23C has a USB soundcard and needs a Windows driver.",
+      "method": "driver:check",
+      "params": {
+        "condition": "only if the unit is a Xone:23C"
+      },
+      "steps": [
+        "Connect the 23C by USB.",
+        "Run the driver check."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "x23c-signal",
+      "category": "usb",
+      "title": "Xone:23C only: USB soundcard signal health",
+      "why": "Checks the 4-stereo-channel soundcard in both directions.",
+      "method": "quick:Signal health",
+      "params": {
+        "condition": "only if the unit is a Xone:23C",
+        "usb": true
+      },
+      "steps": [
+        "Select the 23C as the audio device in Traktor.",
+        "Play each USB channel and record the return inputs."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "x23c-asio",
+      "category": "driver",
+      "title": "Xone:23C only: ASIO registered",
+      "why": "Traktor needs the ASIO driver.",
+      "method": "driver:check",
+      "params": {
+        "condition": "only if the unit is a Xone:23C"
+      },
+      "steps": [
+        "Run the driver check."
+      ],
+      "equipment": [
+        "Xone:23C"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "asio_registered",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    }
+  ]
+}
