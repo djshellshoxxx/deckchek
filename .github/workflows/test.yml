@@ -17,14 +17,12 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
-      - run: node --check app/app.js
-      - run: node --check app/core.js
-      - run: node --check app/advanced.js
-      - run: node --check app/diagnostics.js
-      - run: node --check app/calibration.js
-      - run: node --check app/export.js
-      - run: node --check app/capture.js
-      - run: node --check app/catalog-store.js
+      - name: Syntax-check every app module
+        run: |
+          find app -name '*.js' -print0 | while IFS= read -r -d '' f; do
+            echo "node --check $f"
+            node --check "$f"
+          done
 
   rust-tests:
     runs-on: ubuntu-22.04

@@ -8,7 +8,7 @@ The UI can analyze local audio files for stereo signal health, reference-tone sp
 
 Measured runs can be exported as HTML reports and CSV, entire browser workspaces can be exported/imported as versioned JSON, and compatible runs can be compared by identical metric ID and unit. The desktop bridge writes sessions, method-versioned measurements and finding evidence into the existing SQLite schema.
 
-The application can enumerate browser-visible audio inputs, but continuous native capture is not yet implemented. Hardware calibration and standards-level validation are also still required.
+The desktop build captures live from native inputs with level meters, clip latching and capture-quality counters, and can calibrate the interface with a loopback profile that corrects readings and propagates ± uncertainty. The browser shell analyses recorded files only. Standards-level validation is still required.
 
 ## Run the browser shell
 
@@ -17,11 +17,24 @@ Serve the repository root or app/ through a local HTTP server and open app/index
 ## Run tests
 
     npm test
-    node --check app/app.js
-    node --check app/core.js
-    node --check app/advanced.js
-    node --check app/diagnostics.js
-    node --check app/export.js
+    find app -name '*.js' -exec node --check {} \;
+
+## UI smoke test (Playwright, local only)
+
+`tools/ui-smoke.mjs` serves `app/` with a tiny Node HTTP server (sending the
+same CSP as the Tauri build), drives it in headless Chromium and saves
+screenshots of every screen (dark, plus light variants) to `/tmp/deckchek-shots`
+(override with `SHOTS_DIR`). It covers browser mode (file analysis for Quick
+Check, Speed & Pitch, DVS and two Vinyl scans, equipment CRUD, history A/B
+compare, theme persistence, help, the 900 px drawer layout and keyboard
+shortcuts) and a mocked desktop mode (`window.__TAURI__` stub) that exercises
+live capture, meters, clip latch, capture-quality counters and native run
+persistence. It fails on any console error.
+
+It needs a globally installed Playwright with Chromium already present and is
+not part of CI (the Linux CI runners have no browsers configured):
+
+    NODE_PATH=$(npm root -g) node tools/ui-smoke.mjs
 
 ## Run the Tauri desktop shell
 
