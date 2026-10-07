@@ -1,0 +1,836 @@
+{
+  "schemaVersion": 1,
+  "id": "traktor-audio-8-dj",
+  "manufacturer": "Native Instruments",
+  "model": "Traktor Audio 8 DJ",
+  "aliases": [
+    "Audio 8 DJ",
+    "AUDIO 8 DJ"
+  ],
+  "category": "audio-interface",
+  "summary": "USB bus-powered 8-in/8-out 24-bit/96 kHz DJ audio interface with two switchable phono/line input pairs and DIN MIDI, built for Traktor Scratch DVS.",
+  "identityNotes": "The user names it 'Traktor Audio 8 DJ'; NI sold it as 'Audio 8 DJ' (Traktor Scratch Pro bundle). No hardware revisions found. Exact connector layout (which input pairs have phono preamps) is unverified because the manual could not be opened; the manual mentions two switchable phono preamps and 8 RCA in / 8 RCA out.",
+  "image": {
+    "file": "traktor-audio-8-dj.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration",
+    "license": "original work",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "Audio 8 DJ Operation Manual (mirror)",
+      "type": "user-manual",
+      "url": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "language": "en",
+      "notes": "Technical specifications section is about pp. 21-23; search summary only."
+    },
+    {
+      "title": "Audio 8 DJ driver 3.1.0 listing",
+      "type": "driver",
+      "url": "https://drivers.softpedia.com/get/audio-dj-gear/Native-Instruments-Traktor-Audio-8-DJ-Driver-310.shtml",
+      "language": "en",
+      "notes": "Third-party mirror of NI driver 3.1.0; use NI Native Access/support site for the current driver."
+    },
+    {
+      "title": "Audio 8 DJ manual (Juno PDF)",
+      "type": "user-manual",
+      "url": "https://imagescdn.juno.co.uk/manual/354445-01U.pdf",
+      "language": "en",
+      "notes": "Retailer-hosted PDF."
+    },
+    {
+      "title": "Native Instruments shipping Audio 8 DJ",
+      "type": "support-article",
+      "url": "https://rekkerd.org/native-instruments-shipping-audio-8-dj/",
+      "language": "en",
+      "notes": "Launch article."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": "0x17CC",
+      "productIds": [],
+      "classCompliant": false,
+      "notes": "NI vendor ID 0x17CC from general knowledge; product ID not confirmed. Needs the NI driver (not class compliant)."
+    },
+    "midi": {
+      "usbMidi": false,
+      "din": true,
+      "portNamePatterns": [
+        "Audio 8 DJ",
+        "AUDIO 8 DJ MIDI"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": 8,
+      "usbChannelsOut": 8,
+      "sampleRatesHz": [
+        44100,
+        48000,
+        96000
+      ],
+      "bitDepth": 24
+    },
+    "analog": [
+      "2x switchable PHONO/LINE RCA stereo input pairs (verify count)",
+      "additional line RCA input pairs (8 inputs total)",
+      "4x stereo RCA outputs (8 outputs total)",
+      "headphone output (unverified)",
+      "DIN MIDI in/out",
+      "ground terminal"
+    ]
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Traktor Audio 8 DJ driver",
+      "asioName": "Traktor Audio 8 DJ ASIO Driver (name unverified)",
+      "deviceNamePatterns": [
+        "Audio 8 DJ",
+        "Traktor Audio 8"
+      ],
+      "provider": "Native Instruments",
+      "latestKnownVersion": "3.1.0 (per third-party listing; check NI for newer)",
+      "url": "https://drivers.softpedia.com/get/audio-dj-gear/Native-Instruments-Traktor-Audio-8-DJ-Driver-310.shtml",
+      "required": true,
+      "notes": "Installs ASIO driver and Control Panel (phono input gain selector, software lock, soundcard latency settings). Driver reported improved on USB 3.0 ports on Windows 7/8. Windows 10/11 officially supported status unverified; NI treats it as legacy hardware."
+    }
+  ],
+  "software": [
+    {
+      "name": "Traktor Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Traktor Scratch Pro DVS; Audio Setup selects the Audio 8 DJ ASIO driver, Timecode Setup tab calibrates the deck inputs."
+    }
+  ],
+  "specs": [
+    {
+      "key": "usb_channels_in",
+      "label": "USB inputs",
+      "value": 8,
+      "unit": "ch",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html (spec section)",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "usb_channels_out",
+      "label": "USB outputs",
+      "value": 8,
+      "unit": "ch",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "sample_rates",
+      "label": "Sample rates",
+      "value": "44.1, 48, 96",
+      "unit": "kHz",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "confirmed",
+      "notes": "Also stated by retailer pages e.g. https://www.zzounds.com/item--NINAUDIO8DJ"
+    },
+    {
+      "key": "bit_depth",
+      "label": "Resolution",
+      "value": 24,
+      "unit": "bit",
+      "tolerance": null,
+      "source": "https://www.zzounds.com/item--NINAUDIO8DJ",
+      "confidence": "confirmed",
+      "notes": "Cirrus Logic AD/DA converters"
+    },
+    {
+      "key": "line_in_impedance",
+      "label": "Line input impedance",
+      "value": 47,
+      "unit": "kOhm",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "phono_in_impedance",
+      "label": "Phono input impedance",
+      "value": "47 kOhm / 1 MOhm (as summarised)",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "max_output",
+      "label": "Maximum output level",
+      "value": 9.7,
+      "unit": "dBu",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "thd_n",
+      "label": "Output THD+N",
+      "value": "0.008 - 0.012",
+      "unit": "%",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "dyn_range_out",
+      "label": "Output dynamic range",
+      "value": ">100",
+      "unit": "dB",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "crosstalk",
+      "label": "Input crosstalk",
+      "value": "-87 (as summarised)",
+      "unit": "dB",
+      "tolerance": null,
+      "source": "https://www.manualslib.com/manual/1300692/Native-Instruments-Audio-8-Dj.html",
+      "confidence": "unverified",
+      "notes": "Value taken from a search-result summary of the cited document; the primary document could not be opened during research (fetch blocked), so verify against the manual."
+    },
+    {
+      "key": "bus_power",
+      "label": "Power",
+      "value": "USB bus powered",
+      "unit": "",
+      "tolerance": null,
+      "source": "https://www.bhphotovideo.com/c/product/480075-REG/Native_Instruments_12872_Audio_8_DJ.html",
+      "confidence": "confirmed",
+      "notes": null
+    }
+  ],
+  "timecode": null,
+  "midi": null,
+  "tests": [
+    {
+      "id": "a8-driver-present",
+      "category": "driver",
+      "title": "Audio 8 DJ driver installed and healthy",
+      "why": "No driver, unsigned driver or an error state in Device Manager is the most common reason Traktor shows no Audio 8 DJ.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the Audio 8 DJ directly to a USB 2.0/3.0 port on the PC (no hub).",
+        "Run the driver check.",
+        "If missing, install the Traktor Audio 8 DJ driver and reboot."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ",
+        "USB cable"
+      ],
+      "severity": "critical",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "a8-driver-signed",
+      "category": "driver",
+      "title": "Driver signature",
+      "why": "An unsigned or legacy driver may be blocked or crash on Windows 10/11 (Secure Boot / HVCI).",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check and read the signature result."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_signed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "a8-driver-status",
+      "category": "driver",
+      "title": "Device status OK (no Code 10/43)",
+      "why": "Catches failed enumeration, power or cable faults.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check; open Device Manager if status is not OK."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "a8-asio-registered",
+      "category": "driver",
+      "title": "ASIO driver registered",
+      "why": "Traktor Scratch needs the ASIO driver to appear in Preferences > Audio Setup.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Run the driver check.",
+        "In Traktor Preferences > Audio Setup the Audio Device list should show the Audio 8 DJ ASIO entry."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "critical",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "asio_registered",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical presence check (not a published spec)"
+      }
+    },
+    {
+      "id": "a8-usb-port",
+      "category": "usb",
+      "title": "USB port, cable and bus power",
+      "why": "The interface is USB bus powered; hubs, long cables or shared controllers cause dropouts and clicks.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Use the supplied/short USB cable straight into the PC, not a hub or keyboard port.",
+        "Prefer a port on a different controller from other audio/USB-3 storage devices.",
+        "Flex the cable at the connector while audio plays: no dropouts.",
+        "Power LED on the unit stays steady."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-control-panel",
+      "category": "driver",
+      "title": "Control panel: sample rate, latency, software lock",
+      "why": "The control panel holds the latency/buffer setting and phono gain selectors; wrong values give clicks or low timecode level.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open the Audio 8 DJ control panel (Start menu / system tray).",
+        "Note the sample rate (44.1/48/96 kHz) and set it equal to the Traktor audio setup.",
+        "Set the latency to a value that plays 10 minutes of music without clicks.",
+        "Confirm the software-lock option is not blocking another application."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in12-line",
+      "category": "audio",
+      "title": "Signal health: Input 1/2 (Deck A) LINE",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 1/2 (Deck A) LINE",
+        "mode": "line"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to LINE.",
+        "Feed a stereo line source (phone, CD player or mixer output) at nominal level.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in12-phono",
+      "category": "audio",
+      "title": "Signal health: Input 1/2 (Deck A) PHONO",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 1/2 (Deck A) PHONO",
+        "mode": "phono"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to PHONO.",
+        "Connect a turntable with cartridge (ground wire attached) and play a 1 kHz / test record or music.",
+        "Check that the control-panel phono gain is set for your cartridge.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables",
+        "Turntable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in34-line",
+      "category": "audio",
+      "title": "Signal health: Input 3/4 (Deck B) LINE",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 3/4 (Deck B) LINE",
+        "mode": "line"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to LINE.",
+        "Feed a stereo line source (phone, CD player or mixer output) at nominal level.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in34-phono",
+      "category": "audio",
+      "title": "Signal health: Input 3/4 (Deck B) PHONO",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 3/4 (Deck B) PHONO",
+        "mode": "phono"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to PHONO.",
+        "Connect a turntable with cartridge (ground wire attached) and play a 1 kHz / test record or music.",
+        "Check that the control-panel phono gain is set for your cartridge.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables",
+        "Turntable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in56-line",
+      "category": "audio",
+      "title": "Signal health: Input 5/6 LINE",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 5/6 LINE",
+        "mode": "line"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to LINE.",
+        "Feed a stereo line source (phone, CD player or mixer output) at nominal level.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-in78-line",
+      "category": "audio",
+      "title": "Signal health: Input 7/8 LINE",
+      "why": "Finds a dead channel, wrong switch position, bad RCA or noisy preamp for this input pair.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "Input 7/8 LINE",
+        "mode": "line"
+      },
+      "steps": [
+        "Set the PHONO/LINE switch for this pair to LINE.",
+        "Feed a stereo line source (phone, CD player or mixer output) at nominal level.",
+        "Run the signal health test; both channels must show signal, similar level, no clipping or dropouts."
+      ],
+      "equipment": [
+        "Audio source",
+        "RCA cables"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-out1",
+      "category": "audio",
+      "title": "Signal health: output pair 1/2",
+      "why": "Verifies each analog output pair passes a clean stereo signal.",
+      "method": "quick:Signal health",
+      "params": {
+        "output": "Out 1-2",
+        "loopback": true
+      },
+      "steps": [
+        "Patch Out 1-2 RCA to a free line input of the Audio 8 DJ (loopback) or to a mixer channel and record that.",
+        "Play a 1 kHz tone/music from the DJ app to this output only.",
+        "Run the signal health test and confirm both channels equal."
+      ],
+      "equipment": [
+        "RCA loopback cables"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-out3",
+      "category": "audio",
+      "title": "Signal health: output pair 3/4",
+      "why": "Verifies each analog output pair passes a clean stereo signal.",
+      "method": "quick:Signal health",
+      "params": {
+        "output": "Out 3-4",
+        "loopback": true
+      },
+      "steps": [
+        "Patch Out 3-4 RCA to a free line input of the Audio 8 DJ (loopback) or to a mixer channel and record that.",
+        "Play a 1 kHz tone/music from the DJ app to this output only.",
+        "Run the signal health test and confirm both channels equal."
+      ],
+      "equipment": [
+        "RCA loopback cables"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-out5",
+      "category": "audio",
+      "title": "Signal health: output pair 5/6",
+      "why": "Verifies each analog output pair passes a clean stereo signal.",
+      "method": "quick:Signal health",
+      "params": {
+        "output": "Out 5-6",
+        "loopback": true
+      },
+      "steps": [
+        "Patch Out 5-6 RCA to a free line input of the Audio 8 DJ (loopback) or to a mixer channel and record that.",
+        "Play a 1 kHz tone/music from the DJ app to this output only.",
+        "Run the signal health test and confirm both channels equal."
+      ],
+      "equipment": [
+        "RCA loopback cables"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-out7",
+      "category": "audio",
+      "title": "Signal health: output pair 7/8",
+      "why": "Verifies each analog output pair passes a clean stereo signal.",
+      "method": "quick:Signal health",
+      "params": {
+        "output": "Out 7-8",
+        "loopback": true
+      },
+      "steps": [
+        "Patch Out 7-8 RCA to a free line input of the Audio 8 DJ (loopback) or to a mixer channel and record that.",
+        "Play a 1 kHz tone/music from the DJ app to this output only.",
+        "Run the signal health test and confirm both channels equal."
+      ],
+      "equipment": [
+        "RCA loopback cables"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-phono-separation",
+      "category": "cartridge",
+      "title": "Phono channel separation (cartridge + preamp)",
+      "why": "Distinguishes cartridge/wiring crosstalk from preamp or input faults.",
+      "method": "cartridge:Channel separation",
+      "params": {
+        "source": "test record L-only/R-only band",
+        "input": "phono"
+      },
+      "steps": [
+        "Set the deck input to PHONO.",
+        "Play the left-only then right-only band of a test record.",
+        "Run the test for each deck."
+      ],
+      "equipment": [
+        "Turntable",
+        "Test record with L/R separation bands"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-phono-hum",
+      "category": "safety",
+      "title": "Ground and hum on phono inputs",
+      "why": "A floating turntable ground gives 50/60 Hz hum, only visible on phono inputs.",
+      "method": "quick:Ground & hum",
+      "params": {
+        "input": "phono"
+      },
+      "steps": [
+        "Connect turntable ground wire to the interface ground terminal.",
+        "Lift the stylus, start the platter, run the test.",
+        "Compare with ground wire disconnected to prove it is ground related."
+      ],
+      "equipment": [
+        "Turntable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-line-noise",
+      "category": "audio",
+      "title": "Noise floor with inputs open (line)",
+      "why": "Establishes the idle noise of the line inputs/converters.",
+      "method": "quick:Signal health",
+      "params": {
+        "input": "line",
+        "silence": true
+      },
+      "steps": [
+        "Disconnect all cables from the line inputs, set switch to LINE.",
+        "Run signal health and read noise floor."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-latency",
+      "category": "latency",
+      "title": "Round-trip latency at chosen buffer",
+      "why": "DVS needs low latency for tight scratching.",
+      "method": "manual:inspection",
+      "params": {
+        "measure": "round-trip loopback"
+      },
+      "steps": [
+        "Loop output 1/2 to input 1/2 (LINE).",
+        "Set the control-panel latency to your working setting.",
+        "In Traktor Audio Setup read the reported latency (ms)."
+      ],
+      "equipment": [
+        "RCA loopback cable"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "a8-midi-din",
+      "category": "midi",
+      "title": "DIN MIDI in/out through-port",
+      "why": "The MIDI DIN ports are only shown to Windows through the driver; a dead port breaks external gear sync.",
+      "method": "midi:coverage",
+      "params": {
+        "groups": [
+          "DIN MIDI"
+        ]
+      },
+      "steps": [
+        "Connect a MIDI cable from DIN OUT to DIN IN (loop), or an external controller/keyboard to DIN IN.",
+        "Send notes from the controller or from a MIDI tool and exercise each key/control.",
+        "Check the messages are seen without unexpected data."
+      ],
+      "equipment": [
+        "MIDI DIN cable",
+        "Controller or keyboard"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": {
+        "metricId": "midi_controls_seen_percent",
+        "op": ">=",
+        "value": 100,
+        "value2": null,
+        "unit": "%",
+        "source": "DeckChek logical check"
+      }
+    },
+    {
+      "id": "a8-tc-mk2",
+      "category": "timecode",
+      "title": "Timecode format check: Traktor Scratch MK2 through phono input",
+      "why": "Confirms the interface preamp delivers a valid 2-channel quadrature timecode.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK2",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Set input to PHONO (vinyl) or LINE (CDJ).",
+        "Play MK2 control vinyl at 33 1/3, stylus in the lead-in or plain area.",
+        "Run the check on each deck."
+      ],
+      "equipment": [
+        "Traktor Scratch MK2 control vinyl",
+        "Turntable"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "a8-tc-mk1",
+      "category": "timecode",
+      "title": "Timecode format check: Traktor Scratch MK1",
+      "why": "Same for MK1 vinyl.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Traktor Scratch MK1",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Play MK1 control vinyl as above."
+      ],
+      "equipment": [
+        "Traktor Scratch MK1 control vinyl"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "a8-dvs",
+      "category": "dvs",
+      "title": "DVS signal integrity (both decks)",
+      "why": "Detects dropouts, level imbalance, dirty needle on real vinyl or CD.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Play control media on Deck A, run, repeat for Deck B."
+      ],
+      "equipment": [
+        "Traktor control vinyl or CD"
+      ],
+      "severity": "major",
+      "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "a8-sw-traktor",
+      "category": "software",
+      "title": "Traktor Pro install and crash/log scan",
+      "why": "Traktor crash logs often name the audio driver.",
+      "method": "software:check",
+      "params": {
+        "software": "Traktor Pro"
+      },
+      "steps": [
+        "Run the software check after a play session."
+      ],
+      "equipment": [
+        "Traktor Pro"
+      ],
+      "severity": "minor",
+      "software": "Traktor Pro",
+      "pass": {
+        "metricId": "software_installed",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek logical check"
+      }
+    },
+    {
+      "id": "a8-jacks",
+      "category": "mechanical",
+      "title": "Jacks and switches inspection",
+      "why": "Worn RCAs and switch contacts cause crackle.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Wiggle each RCA plug in its socket while audio plays: no crackle.",
+        "Toggle each PHONO/LINE switch and confirm it clicks to both positions.",
+        "Check the headphone jack and the ground terminal tighten correctly.",
+        "Check the case for cracks and USB socket for play."
+      ],
+      "equipment": [
+        "Traktor Audio 8 DJ"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "a8-headphone",
+      "category": "audio",
+      "title": "Headphone output",
+      "why": "Confirms the headphone amp and any monitor routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect headphones to the front headphone jack.",
+        "Play music; check both channels, clean level control, no hiss."
+      ],
+      "equipment": [
+        "Headphones"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}
