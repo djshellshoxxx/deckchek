@@ -14,6 +14,10 @@ import { announce, toast } from '../live.js';
 import { go, setCaptureStatus, currentDeviceName, showInspector } from '../shell.js';
 
 const STEPS = [['setup', 'Setup'], ['capture', 'Capture'], ['results', 'Results']];
+const instances = new Map(); // workflow id -> WorkflowScreen (for device tests)
+
+/** The live workflow screen for an id (created by shell.go). */
+export const workflowInstance = id => instances.get(id) || null;
 const DURATIONS = [5, 10, 20, 30, 60, 120, 300];
 
 export function createWorkflowScreen(def) {
@@ -32,6 +36,8 @@ class WorkflowScreen {
     this.session = null;
     this.captured = null;
     this.run = null;
+    this.deviceTest = null;
+    instances.set(def.id, this);
     this.render();
     on('catalog', () => this.populateEquipment());
   }
@@ -80,6 +86,8 @@ class WorkflowScreen {
       this.modeGroup = group;
       header.append(group);
     }
+    this.deviceSlot = h('div', { class: 'device-run-slot' });
+    this.section.append(this.deviceSlot);
     this.stepper = h('ol', { class: 'stepper', 'aria-label': 'Progress' });
     this.section.append(this.stepper);
     this.banner = h('div', { class: 'banner-slot' });
@@ -195,8 +203,8 @@ class WorkflowScreen {
     footer.append(h('span', { class: 'muted small', text: this.source === 'file' ? (this.file ? `Ready: ${this.file.name}` : 'Choose a file to continue.') : 'Next: watch the meters and start recording.' }), primary);
     left.append(footer);
 
-    // Side: checklist + wiring
-    right.innerHTML = `
+    // Side: checklist + wiring (device tests lead with the profile's own steps)
+    right.innerHTML = `${this.deviceTest ? deviceStepsMarkup(this.deviceTest) : ''}
       <section class="card card-quiet" aria-labelledby="${d.id}-needs"><h2 id="${d.id}-needs" class="card-title">What you need</h2>
         <ul class="checklist">${d.needs.map(n => `<li>${icon('check', { size: 16 })}<span>${esc(n)}</span></li>`).join('')}</ul></section>
       <section class="card card-quiet" aria-labelledby="${d.id}-wiring"><h2 id="${d.id}-wiring" class="card-title">Wiring</h2>
@@ -486,6 +494,7 @@ class WorkflowScreen {
       catch (error) { toast(`Scan comparison shown, but the alignment record was not saved: ${error?.message || error}`, { type: 'warn' }); }
     }
     this.showResults(run);
+    if (this.deviceTest) await this.completeDeviceTest(run, saved);
     if (!saved.ok) toast(`Saved locally only — history database write failed: ${saved.error}`, { type: 'error' });
     else toast(`${run.test} saved to History · ${run.measurements.length} measurements, ${run.findings.length} findings.`, { type: 'success' });
   }
@@ -499,11 +508,58 @@ class WorkflowScreen {
         { label: 'CSV', icon: 'download', onClick: () => exportRunCsv(run) },
         { label: 'New test', icon: 'refresh', onClick: () => { this.run = null; this.setStep('setup'); } },
         { label: 'Open in History', icon: 'history', onClick: () => { active.historyFocus = run.id; go('history'); } },
+        ...(this.deviceTest ? [{ label: this.deviceTest.backLabel || 'Back to device', icon: 'arrowRight', onClick: () => this.leaveDeviceTest('back') }] : []),
       ],
     }));
     this.setStep('results');
     const v = this.panels.results.querySelector('.verdict');
     announce(`${v?.querySelector('.chip')?.textContent || ''}. ${v?.querySelector('.verdict-headline')?.textContent || ''} Score ${run.score} of 100.`);
+  }
+
+  // ---------- device tests (opened from the Devices screen) ----------
+  /** ctx: {deviceName, unitName, testTitle, mode, values, notes, steps, equipment, why, assetId, queueText, backLabel, onComplete(run, saved), onBack(), onCancel()} */
+  beginDeviceTest(ctx) {
+    if (this.session) { toast('Stop the current capture before starting a device test.', { type: 'warn' }); return false; }
+    this.deviceTest = ctx;
+    for (const [k, v] of Object.entries(ctx.values || {})) this.params[`${ctx.mode}:${k}`] = v;
+    this.equipmentId = ctx.assetId || '';
+    this.run = null;
+    this.setMode(ctx.mode);
+    this.renderDeviceBanner();
+    return true;
+  }
+
+  renderDeviceBanner(result = null) {
+    const dt = this.deviceTest;
+    if (!dt) { this.deviceSlot.replaceChildren(); return; }
+    const status = result ? { pass: 'pass', fail: 'fail', unknown: 'review', skipped: 'info' }[result.status] || 'info' : null;
+    const el = h('div', { class: `banner banner-device${result ? ` banner-device-${status}` : ''}`, role: 'status', id: 'device-test-banner' });
+    el.innerHTML = `${result ? chip(status, result.status === 'unknown' ? 'REVIEW' : null) : `<span class="banner-device-icon">${icon('devices', { size: 22 })}</span>`}
+      <div class="banner-text"><strong>Running ${esc(dt.unitName || dt.deviceName)} · ${esc(dt.testTitle)}</strong>
+      <span>${result ? `Saved to the ${esc(dt.deviceName)} test plan — ${esc(result.detail || '')}` : `${dt.queueText ? `${esc(dt.queueText)} · ` : ''}Settings are prefilled from the device profile; the result is saved to this unit's test plan.`}</span></div>`;
+    const bar = h('div', { class: 'banner-actions' });
+    bar.append(h('button', { type: 'button', class: `btn ${result ? 'btn-primary' : 'btn-secondary'} btn-sm`, id: 'device-test-back', text: result ? (dt.backLabel || 'Back to device') : 'Back to device', onclick: () => this.leaveDeviceTest(result ? 'back' : 'pause') }));
+    if (!result) bar.append(h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Cancel device test', onclick: () => this.leaveDeviceTest('cancel') }));
+    el.append(bar);
+    this.deviceSlot.replaceChildren(el);
+  }
+
+  async completeDeviceTest(run, saved) {
+    const dt = this.deviceTest;
+    try {
+      const result = await dt.onComplete(run, saved);
+      dt.done = true;
+      this.renderDeviceBanner(result);
+    } catch (error) {
+      toast(`The run was saved, but the device test result was not: ${error?.message || error}`, { type: 'error' });
+    }
+  }
+
+  leaveDeviceTest(how) {
+    const dt = this.deviceTest;
+    if (!dt) return;
+    if (how !== 'pause') { this.deviceTest = null; this.renderDeviceBanner(); this.renderSetup(); }
+    if (how === 'cancel') dt.onCancel?.(); else dt.onBack?.(how);
   }
 
   showTips() {
@@ -519,6 +575,13 @@ class WorkflowScreen {
 function showInspectorQuiet(title, body) {
   document.getElementById('inspector-title').textContent = title;
   document.getElementById('inspector-body').replaceChildren(body);
+}
+
+function deviceStepsMarkup(dt) {
+  return `<section class="card card-device" aria-labelledby="device-steps-title"><h2 id="device-steps-title" class="card-title">${icon('devices', { size: 18 })}<span>${esc(dt.deviceName)} test steps</span></h2>
+    <ol class="dev-steplist">${(dt.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+    ${(dt.equipment || []).length ? `<h3 class="dev-sub">You need</h3><ul class="checklist">${dt.equipment.map(e => `<li>${icon('check', { size: 16 })}<span>${esc(e)}</span></li>`).join('')}</ul>` : ''}
+    ${(dt.notes || []).length ? `<h3 class="dev-sub">From the profile</h3><dl class="kv">${dt.notes.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}</section>`;
 }
 
 export function emptyState({ icon: ic, title, text, action = null }) {

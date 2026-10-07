@@ -20,7 +20,7 @@ export function newId() {
 }
 
 export function emptyState() {
-  return { catalog: Object.fromEntries(ENTITIES.map(e => [e, []])), runs: [], alignments: [] };
+  return { catalog: Object.fromEntries(ENTITIES.map(e => [e, []])), runs: [], alignments: [], deviceProfiles: {}, productSpecs: [], deviceResults: [], midiMaps: {} };
 }
 
 export function loadState(storage) {
@@ -88,6 +88,58 @@ export function buildAlignmentRecord(input, id = newId()) {
   return { id: input.id || id, scanAId: input.scanA?.id || newId(), scanBId: input.scanB?.id || newId(), ...input };
 }
 
+// ---------- device library (fallback parity with src-tauri/src/devices.rs) ----------
+export const RESULT_STATUSES = ['pass', 'fail', 'unknown', 'skipped'];
+const PRODUCT_CATEGORY = { turntable: 'turntable', controller: 'controller', mixer: 'mixer', 'audio-interface': 'audio_interface', 'timecode-media': 'dvs_media', software: 'software' };
+export const productCategory = c => PRODUCT_CATEGORY[c] || 'other';
+export const specProvenance = confidence => (confidence === 'confirmed' ? 'manufacturer-doc' : 'research-unverified');
+const trimmed = v => (typeof v === 'string' && v.trim() ? v.trim() : null);
+
+/** Upsert manufacturer/product/specs/profile rows; first sight of a profile also creates a "My <model>" asset. */
+export function syncProfilesLocal(state, profiles, now = new Date().toISOString()) {
+  const out = [];
+  for (const p of profiles || []) {
+    const id = trimmed(p?.id), manufacturer = trimmed(p?.manufacturer), model = trimmed(p?.model);
+    if (!id) throw new Error('profile.id is required');
+    if (!manufacturer || !model) throw new Error(`${id}: manufacturer and model are required`);
+    const lower = s => s.toLowerCase();
+    let m = state.catalog.manufacturer.find(x => lower(x.name || '') === lower(manufacturer));
+    if (!m) m = upsertRecord(state, 'manufacturer', { name: manufacturer, website: null, notes: 'Added from the DeckChek device library' }, now);
+    const existing = state.deviceProfiles[id];
+    let product = existing && state.catalog.product.find(x => x.id === existing.productId);
+    product ||= state.catalog.product.find(x => x.manufacturerId === m.id && lower(x.model || '') === lower(model));
+    const url = (p.documents || []).map(d => trimmed(d?.url)).find(u => u && u.startsWith('http')) || null;
+    product = upsertRecord(state, 'product', { ...(product || {}), manufacturerId: m.id, category: productCategory(p.category), model, description: trimmed(p.summary), sourceUrl: url || product?.sourceUrl || null }, now);
+    state.productSpecs = state.productSpecs.filter(s => !(s.productId === product.id && String(s.id).startsWith(`${id}:spec:`)));
+    (p.specs || []).forEach((sp, i) => {
+      if (!trimmed(sp?.key)) return;
+      const src = trimmed(sp.source);
+      state.productSpecs.push({ id: `${id}:spec:${i}:${sp.key}`, productId: product.id, key: sp.key, value: sp.value ?? null, unit: sp.unit ?? null, provenanceType: specProvenance(sp.confidence), sourceTitle: src && !src.startsWith('http') ? src : null, sourceUrl: src && src.startsWith('http') ? src : null, retrievedAt: now });
+    });
+    const json = JSON.stringify(p);
+    const created = !existing, changed = !existing || existing.json !== json;
+    const version = !existing ? 1 : changed ? existing.version + 1 : existing.version;
+    state.deviceProfiles[id] = { id, productId: product.id, json, version, loadedAt: now };
+    let assetId = null;
+    if (created) assetId = upsertRecord(state, 'asset', { productId: product.id, nickname: `My ${model}`, notes: 'Created from the DeckChek device library. Rename it and add the serial number in Equipment.' }, now).id;
+    out.push({ profileId: id, manufacturerId: m.id, productId: product.id, version, created, changed, assetId });
+  }
+  return out;
+}
+
+export function saveDeviceResultLocal(state, input, now = new Date().toISOString()) {
+  if (!RESULT_STATUSES.includes(input?.status)) throw new Error(`invalid status '${input?.status}' (expected pass, fail, unknown or skipped)`);
+  if (!trimmed(input.testId)) throw new Error('testId is required');
+  const sessionKnown = input.sessionId && state.runs.some(r => r.id === input.sessionId);
+  const row = { id: input.id || newId(), assetId: input.assetId, profileId: input.profileId, testId: input.testId, sessionId: sessionKnown ? input.sessionId : null, status: input.status, detail: input.detail ?? {}, createdAt: input.createdAt || now };
+  state.deviceResults = [row, ...state.deviceResults.filter(r => r.id !== row.id)];
+  return { ...row };
+}
+
+export function listDeviceResultsLocal(state, assetId = null) {
+  return state.deviceResults.filter(r => !assetId || r.assetId === assetId).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(r => ({ ...r }));
+}
+
 const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? globalThis.__TAURI__?.core?.invoke ?? null;
 
 export function createCatalogStore({ invoke = nativeInvoke(), storage = globalThis.localStorage } = {}) {
@@ -122,6 +174,28 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
     async saveRun(run) {
       if (invoke) return invoke('save_diagnostic_run', { run });
       mutate(s => { s.runs = [run, ...s.runs.filter(r => r.id !== run.id)]; });
+    },
+    /** Sync researched device profiles into the catalog (idempotent). */
+    async syncDeviceProfiles(profiles) {
+      if (invoke) return invoke('device_profiles_sync', { profiles });
+      return mutate(s => syncProfilesLocal(s, profiles));
+    },
+    async saveDeviceTestResult(result) {
+      if (invoke) return invoke('device_test_result_save', { result });
+      return mutate(s => saveDeviceResultLocal(s, result));
+    },
+    async listDeviceTestResults(assetId = null) {
+      if (invoke) return invoke('device_test_results', { assetId });
+      return listDeviceResultsLocal(loadState(storage), assetId);
+    },
+    async saveMidiMap(assetId, profileId, map) {
+      if (invoke) return invoke('device_midi_map_save', { assetId, profileId, map });
+      if (!map || typeof map !== 'object' || Array.isArray(map)) throw new Error('map must be an object');
+      return mutate(s => { s.midiMaps[assetId] = { assetId, profileId, map, updatedAt: new Date().toISOString() }; return { ...s.midiMaps[assetId] }; });
+    },
+    async getMidiMap(assetId) {
+      if (invoke) return invoke('device_midi_map_get', { assetId });
+      return loadState(storage).midiMaps[assetId] || null;
     },
     async saveScanAlignment(alignment) {
       if (invoke) return invoke('save_scan_alignment', { alignment });

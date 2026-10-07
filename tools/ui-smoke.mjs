@@ -87,7 +87,8 @@ async function a11yAudit(page) {
   });
 }
 
-const NAV = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'calibration', 'system', 'equipment', 'history'];
+const NAV = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'calibration', 'system', 'devices', 'equipment', 'history'];
+const DEVICE_SHOTS = '/home/user/deckchek-shots';
 
 async function shot(page, name) { await page.waitForTimeout(150); await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false }); }
 
@@ -97,7 +98,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   const errors = watchConsole(page, 'browser');
   await page.goto(base);
   await page.waitForSelector('.rail-item');
-  check('rail has 9 nav items', (await page.locator('.rail-item').count()) === 9);
+  check('rail has 10 nav items', (await page.locator('.rail-item').count()) === 10);
   check('dark theme by default', (await page.getAttribute('html', 'data-theme')) === 'dark');
   check('help button wired by ui-assistance', (await page.locator('#cdlOptionsBtn').count()) === 1);
 
@@ -114,12 +115,18 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   await page.waitForSelector('#sys-unsupported');
   check('System Health shows unsupported state without Tauri', /Windows desktop app/.test(await page.locator('#sys-unsupported').innerText()));
   check('System Health: Run full scan disabled when unsupported', await page.locator('#sys-run').isDisabled());
-  check('System nav sits between Calibration and Equipment', await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map(b => b.dataset.screen).join(',').includes('calibration,system,equipment')));
+  check('Devices nav sits between System and Equipment', await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map(b => b.dataset.screen).join(',').includes('calibration,system,devices,equipment,history')));
   await page.keyboard.press('Control+7');
-  check('Ctrl+7 opens System Health, Ctrl+8 Equipment', await page.locator('#screen-system').isVisible());
+  check('Ctrl+7 opens System Health', await page.locator('#screen-system').isVisible());
   await page.keyboard.press('Control+8');
-  check('Ctrl+8 navigates to Equipment', await page.locator('#screen-equipment').isVisible());
-  check('shortcuts help lists Ctrl+1…9', (await page.locator('#helpDialog').innerHTML()).includes('<kbd>9</kbd>'));
+  check('Ctrl+8 navigates to Devices', await page.locator('#screen-devices').isVisible());
+  await page.keyboard.press('Control+9');
+  check('Ctrl+9 navigates to Equipment', await page.locator('#screen-equipment').isVisible());
+  await page.keyboard.press('Control+0');
+  check('Ctrl+0 navigates to History', await page.locator('#screen-history').isVisible());
+  check('Devices rail tooltip shows Ctrl+8', (await page.getAttribute('.rail-item[data-screen="devices"]', 'data-tooltip')) === 'Devices (Ctrl+8)');
+  const helpHtml = await page.locator('#helpDialog').innerHTML();
+  check('shortcuts help lists Ctrl+1…9 and 0', helpHtml.includes('<kbd>9</kbd>') && helpHtml.includes('<kbd>0</kbd>') && /8 Devices/.test(helpHtml));
 
   // Quick Check with a generated 1 kHz WAV
   await page.click('.rail-item[data-screen="quick"]');
@@ -203,13 +210,14 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   await page.fill('#eq-f-serialNumber', 'GE7AB001');
   await page.click('#eq-editor button[type="submit"]');
   await page.waitForSelector('#eq-rows .record-main');
-  check('equipment asset created', (await page.locator('#eq-rows .record-main').first().innerText()).includes('Deck 1'));
+  check('equipment asset created (alongside the device-library units)', (await page.locator('#eq-rows .record-main', { hasText: 'Deck 1' }).count()) === 1);
+  const assetCount = await page.locator('#eq-rows .record-main').count();
   await shot(page, 'equipment-edit-dark');
   await page.locator('#eq-rows .btn-danger-ghost').first().click();
   await page.waitForSelector('#confirm-dialog[open]');
   check('delete asks for confirmation (focus on Cancel)', await page.evaluate(() => document.activeElement?.id === 'confirm-cancel'));
   await page.keyboard.press('Escape');
-  check('Esc closes confirm without deleting', (await page.locator('#eq-rows .record-main').count()) === 1);
+  check('Esc closes confirm without deleting', (await page.locator('#eq-rows .record-main').count()) === assetCount);
 
   // History
   await page.click('.rail-item[data-screen="history"]');
@@ -223,6 +231,8 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   await page.waitForSelector('#hist-detail .compare');
   check('A/B compare renders', (await page.locator('#hist-detail .compare table').count()) === 1);
   await shot(page, 'history-compare-dark');
+
+  await devicesBrowser(page, wav, extra);
 
   // Theme toggle + light screenshots
   await page.click('#theme-toggle');
@@ -261,10 +271,207 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   return errors;
 }
 
+const PROFILE_IDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'devices', 'index.json'), 'utf8')).profiles;
+async function deviceShot(page, name) { await page.evaluate(() => { document.activeElement?.blur(); document.getElementById('toasts')?.replaceChildren(); }); await shot(page, name); fs.mkdirSync(DEVICE_SHOTS, { recursive: true }); fs.copyFileSync(path.join(SHOTS, `${name}.png`), path.join(DEVICE_SHOTS, `${name}.png`)); }
+const openDevice = async (page, id) => {
+  await page.click('.rail-item[data-screen="devices"]');
+  if (await page.locator('#dev-back').count()) await page.click('#dev-back');
+  if (await page.locator('#dev-run-back').count()) { await page.click('#dev-run-back'); await page.click('#dev-back'); }
+  await page.click(`.dev-card[data-device="${id}"] .dev-card-main`);
+  await page.waitForSelector('#dev-plan .dev-test');
+};
+
+// Device library in browser mode (localStorage store): grid, every device page, checklist + guided workflow tests.
+async function devicesBrowser(page, wav, extra) {
+  await page.click('.rail-item[data-screen="devices"]');
+  await page.waitForSelector('.dev-card');
+  check('Devices: one card per profile', (await page.locator('.dev-card').count()) === PROFILE_IDS.length, `${await page.locator('.dev-card').count()}`);
+  check('Devices: unverified-spec badges shown', (await page.locator('.dev-card .badge-unverified').count()) >= 8);
+  check('Devices: cards show category, test count and images', (await page.locator('.dev-card .dev-cat').count()) === PROFILE_IDS.length && (await page.locator('.dev-card .dev-thumb img').count()) === PROFILE_IDS.length);
+  const imgsOk = await page.evaluate(() => [...document.querySelectorAll('.dev-thumb img')].every(i => i.complete && i.naturalWidth > 0));
+  check('Devices: card images load under CSP', imgsOk);
+  const store = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1') || '{}'));
+  check('Devices: first run synced profiles and created one "My <model>" asset each', Object.keys(store.deviceProfiles || {}).length === PROFILE_IDS.length && (store.catalog?.asset || []).filter(a => /^My /.test(a.nickname)).length === PROFILE_IDS.length);
+  check('Devices: product specs carry provenance', (store.productSpecs || []).some(x => x.provenanceType === 'research-unverified') && (store.productSpecs || []).some(x => x.provenanceType === 'manufacturer-doc'));
+  await page.fill('#dev-search', 'technics');
+  check('Devices: search filters the grid', (await page.locator('.dev-card').count()) === 1);
+  await page.fill('#dev-search', '');
+  const audit = await a11yAudit(page);
+  check('Devices: a11y names + target sizes (grid)', !audit.unnamed.length && !audit.small.length, [...audit.unnamed, ...audit.small].slice(0, 3).join(' | '));
+  await deviceShot(page, 'devices-library-dark');
+
+  for (const id of PROFILE_IDS) {
+    await openDevice(page, id);
+    const tests = await page.locator('#dev-plan .dev-test').count();
+    const runnable = await page.locator('#dev-plan button[data-run-test]:not([disabled])').count();
+    const specs = await page.locator('#dev-specs tr[data-spec]').count();
+    check(`Devices: ${id} detail renders plan, specs and docs`, tests > 5 && runnable === tests && specs > 0 && (await page.locator('#dev-docs').innerText()).length > 10, `${tests} tests, ${runnable} runnable, ${specs} specs`);
+  }
+  await openDevice(page, 'pioneer-ddj-s8');
+  check('Devices: DDJ-S8 identity note shown prominently', /could not be found/.test(await page.locator('.dev-identity').innerText()));
+  check('Devices: MIDI learn-mode explanation', (await page.locator('#dev-midi .dev-learn-explain').count()) === 1);
+  check('Devices: spec table marks unverified specs', (await page.locator('#dev-specs .chip-warn').count()) >= 3);
+  const da = await a11yAudit(page);
+  check('Devices: a11y names + target sizes (detail)', !da.unnamed.length && !da.small.length, [...da.unnamed, ...da.small].slice(0, 3).join(' | '));
+  await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
+  await deviceShot(page, 'device-detail-dark');
+  await page.locator('#dev-plan .dev-test[data-test="ddjs8-midi-coverage"] .dev-test-main').click();
+  check('Devices: test details open in the inspector', /Pass criterion/.test(await page.locator('#inspector-body').innerText()));
+  await shot(page, 'device-test-inspector-dark');
+  await openDevice(page, 'technics-sl-1200mk4');
+  check('Devices: Technics identity note (SL-1200MK4 assumed)', /SL-1200MK4/.test(await page.locator('.dev-identity').innerText()));
+  await openDevice(page, 'm-audio-torq-conectiv');
+  check('Devices: M-Audio identity note (Torq Conectiv assumed)', /Conectiv/.test(await page.locator('.dev-identity').innerText()));
+  await openDevice(page, 'allen-heath-xone-23');
+  check('Devices: Xone:23 vs 23C identity note', /23C/.test(await page.locator('.dev-identity').innerText()));
+
+  // manual:inspection checklist
+  await openDevice(page, 'pioneer-ddj-s8');
+  await page.click('button[data-run-test="ddjs8-jogs"]');
+  await page.waitForSelector('.dev-checklist');
+  check('Manual: Save disabled until every item answered', await page.locator('#dev-check-save').isDisabled());
+  const items = page.locator('.dev-check-item');
+  await items.nth(0).locator('[data-answer="ok"]').click();
+  await items.nth(1).locator('[data-answer="problem"]').click();
+  await items.nth(2).locator('[data-answer="na"]').click();
+  await page.fill('.dev-notes textarea', 'Jog top wobbles slightly');
+  await page.click('#dev-check-save');
+  await page.waitForSelector('#dev-run-result .banner-result');
+  check('Manual: a Problem answer saves FAIL', /FAIL/.test(await page.locator('#dev-run-result').innerText()));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1')).deviceResults);
+  check('Manual: device_test_result stored with notes and answers', saved.length === 1 && saved[0].status === 'fail' && saved[0].detail.notes === 'Jog top wobbles slightly' && saved[0].detail.checklist[1].answer === 'problem');
+  await deviceShot(page, 'device-manual-result-dark');
+  await page.click('#dev-run-done');
+  await page.waitForSelector('#dev-plan .dev-test');
+  check('Manual: device page shows the FAIL status and progress', /FAIL/.test(await page.locator('.dev-test[data-test="ddjs8-jogs"]').innerText()));
+
+  // driver:check without Tauri: desktop-only state, skip records a skipped result
+  await page.click('button[data-run-test="ddjs8-driver"]');
+  await page.waitForSelector('#dev-scan-run');
+  check('Driver check: browser shows desktop-only state with Run disabled', await page.locator('#dev-scan-run').isDisabled() && /Windows app/.test(await page.locator('#dev-runner').innerText()));
+  await page.click('#dev-run-back');
+
+  // quick:Signal health dispatches to the guided workflow, saves a linked result and returns
+  await openDevice(page, 'pioneer-ddj-s8');
+  await page.click('button[data-run-test="ddjs8-usb-master"]');
+  await page.waitForSelector('#screen-quick:not([hidden]) #device-test-banner');
+  check('Workflow test: Quick Check opens with the device banner', /Running My DDJ-S8 · Master output signal health/.test(await page.locator('#device-test-banner').innerText()));
+  check('Workflow test: profile steps shown in Setup', /Play a test tone in Serato/.test(await page.locator('#screen-quick .card-device').innerText()) && /Master out/.test(await page.locator('#screen-quick .card-device').innerText()));
+  await shot(page, 'device-workflow-setup-dark');
+  await page.setInputFiles('#quick-file', wav);
+  await page.click('#quick-analyze');
+  await page.waitForSelector('#screen-quick .step-results:not([hidden]) .verdict', { timeout: 20000 });
+  await page.waitForFunction(() => /Saved to the/.test(document.getElementById('device-test-banner')?.innerText || ''), null, { timeout: 5000 }).catch(() => {});
+  check('Workflow test: results banner confirms the saved device result', /Saved to the Pioneer DJ DDJ-S8 test plan/.test(await page.locator('#device-test-banner').innerText()));
+  const wfRes = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1')).deviceResults.find(r => r.testId === 'ddjs8-usb-master'));
+  check('Workflow test: result linked to the saved run (session id)', !!wfRes?.sessionId && wfRes.detail.runId === wfRes.sessionId && wfRes.detail.measurements.length > 3, JSON.stringify(wfRes?.status));
+  await page.click('#device-test-back');
+  await page.waitForSelector('#screen-devices:not([hidden]) #dev-plan .dev-test');
+  check('Workflow test: returns to the device page with a status', !/NOT RUN/.test(await page.locator('.dev-test[data-test="ddjs8-usb-master"] .dev-test-status').innerText()));
+  check('Workflow test: banner cleared on the workflow screen', await page.evaluate(() => !document.querySelector('#screen-quick #device-test-banner')));
+
+  // timecode:format-check from a recorded quadrature file (1 kHz = Serato CV02.5 at 33 1/3)
+  await openDevice(page, 'serato-control-vinyl-cv025');
+  await page.click('button[data-run-test="cv-quadrature"]');
+  await page.waitForSelector('#tc-format');
+  check('Timecode: format and speed prefilled from params', (await page.inputValue('#tc-format')) === 'Serato CV02.5' && (await page.inputValue('#tc-rpm')) === '33.333333');
+  await page.setInputFiles('#tc-file', extra.dvs);
+  await page.click('#tc-analyze');
+  await page.waitForSelector('#dev-run-result .banner-result', { timeout: 20000 });
+  const tcText = await page.locator('#dev-runner').innerText();
+  check('Timecode: readouts, scope and plain-English findings', /Carrier frequency/.test(tcText) && /L\/R phase difference/.test(tcText) && (await page.locator('#dev-runner .scope-wrap svg').count()) === 1 && /healthy|What this means/.test(tcText));
+  const tcRes = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1')).deviceResults.find(r => r.testId === 'cv-quadrature'));
+  check('Timecode: clean quadrature saves PASS with ~1000 Hz carrier', tcRes?.status === 'pass' && Math.abs(tcRes.detail.measurements.find(m => m.metricId === 'tc_carrier_hz').value - 1000) < 2, `${tcRes?.status}`);
+  await shot(page, 'device-timecode-dark');
+  await page.click('#dev-run-done');
+  await openDevice(page, 'pioneer-ddj-s8');
+
+  // report export
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+e')]);
+  const report = fs.readFileSync(await dl.path(), 'utf8');
+  check('Device report: Ctrl+E exports HTML with statuses and the unverified-spec disclaimer', /deckchek-device-ddj-s8/.test(dl.suggestedFilename()) && /Unverified specifications/.test(report) && /FAIL/.test(report) && /Jog wheel inspection/.test(report));
+
+  // light theme screenshots
+  await page.click('#theme-toggle');
+  await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
+  await shot(page, 'device-detail-light');
+  await page.click('#dev-back');
+  await page.waitForSelector('.dev-card');
+  await shot(page, 'devices-library-light');
+  await page.click('#theme-toggle');
+}
+
+// Device library in desktop mode (mocked Tauri: device commands, driver scan, MIDI bridge).
+async function devicesDesktop(page) {
+  await page.click('.rail-item[data-screen="devices"]');
+  await page.waitForSelector('.dev-card');
+  const db = await page.evaluate(() => ({ profiles: Object.keys(window.__mockDb.deviceProfiles).length, assets: window.__mockDb.catalog.asset.length }));
+  check('Desktop devices: device_profiles_sync stored every profile and created assets', db.profiles === PROFILE_IDS.length && db.assets === PROFILE_IDS.length, JSON.stringify(db));
+
+  // driver:check with the mocked system scan
+  await openDevice(page, 'pioneer-ddj-s8');
+  await page.click('button[data-run-test="ddjs8-driver"]');
+  await page.click('#dev-scan-run');
+  await page.waitForSelector('#dev-run-result .banner-result');
+  check('Driver check: scan evaluated (DDJ-S8 not in scan -> Driver not found)', /Driver not found/.test(await page.locator('#dev-runner').innerText()));
+  const drv = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-driver'));
+  check('Driver check: device_test_result_save stored FAIL with driver_present = 0', drv?.status === 'fail' && drv.detail.measurements.find(m => m.metricId === 'driver_present')?.value === 0);
+  await shot(page, 'device-driver-dark');
+
+  // midi:coverage, learn mode with a mocked MIDI port
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  await page.click('button[data-run-test="ddjs8-midi-coverage"]');
+  await page.waitForSelector('#midi-port');
+  check('MIDI: port auto-selected from portNamePatterns', (await page.inputValue('#midi-port')) === 'DDJ-S8 MIDI 1');
+  await page.waitForFunction(() => window.__mockMidi.open.includes('DDJ-S8 MIDI 1'));
+  check('MIDI: port opened', true);
+  await page.evaluate(() => { const e = window.__emitMidi; e([0x90, 11, 127]); e([0x80, 11, 0]); for (let v = 0; v <= 127; v += 8) e([0xB0, 31, v]); e([0x90, 12, 127]); e([0x80, 12, 0]); });
+  await page.waitForFunction(() => document.querySelectorAll('.dev-learn-row').length === 3);
+  check('MIDI learn: discovered controls listed', (await page.locator('.dev-learn-row').count()) === 3);
+  await page.fill('#learn-name-1', 'Play deck 1');
+  await page.selectOption('#learn-ctl-2', 'crossfader');
+  await page.check('#learn-led-1');
+  await page.click('#midi-save-map');
+  await page.waitForFunction(() => window.__mockDb.midiMaps && Object.keys(window.__mockDb.midiMaps).length === 1);
+  const map = await page.evaluate(() => Object.values(window.__mockDb.midiMaps)[0].map);
+  check('MIDI learn: learned map saved to the asset', map.controls.length === 2 && map.controls.some(c => c.id === 'crossfader' && c.message.number === 31) && map.controls.some(c => c.label === 'Play deck 1' && c.led));
+  await shot(page, 'device-midi-learn-dark');
+  await page.click('#midi-finish');
+  await page.waitForSelector('#dev-run-result .banner-result');
+  const cov1 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-midi-coverage'));
+  check('MIDI coverage (learn): result saved as REVIEW with discovered count', cov1?.status === 'unknown' && cov1.detail.discovered === 3);
+  // second run uses the learned map
+  await page.click('#dev-run-result button:has-text("Run again")');
+  await page.waitForSelector('.dev-tile');
+  check('MIDI coverage: re-run uses the learned map (tiles)', (await page.locator('.dev-tile').count()) === 2);
+  await page.evaluate(() => { const e = window.__emitMidi; e([0x90, 11, 127]); e([0x80, 11, 0]); e([0xB0, 31, 0]); e([0xB0, 31, 127]); });
+  await page.waitForFunction(() => document.querySelectorAll('.dev-tile.seen').length === 2);
+  await page.click('#midi-finish');
+  await page.waitForFunction(() => window.__mockDb.deviceResults.filter(r => r.testId === 'ddjs8-midi-coverage').length === 2);
+  const cov2 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-midi-coverage'));
+  check('MIDI coverage (mapped): all controls seen -> PASS', cov2.status === 'pass' && cov2.detail.measurements.find(m => m.metricId === 'midi_controls_seen_percent')?.value === 100, cov2.status);
+  await shot(page, 'device-midi-coverage-dark');
+
+  // no MIDI device present -> clear empty state
+  await page.evaluate(() => { window.__mockMidi.ports = []; });
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  await page.click('button[data-run-test="ddjs8-jog-jog1"]');
+  await page.waitForSelector('#midi-empty');
+  check('MIDI: clear state when no MIDI port is present', /No MIDI device found/.test(await page.locator('#midi-empty').innerText()));
+  const ma = await a11yAudit(page);
+  check('MIDI: a11y names + target sizes', !ma.unnamed.length && !ma.small.length, [...ma.unnamed, ...ma.small].slice(0, 3).join(' | '));
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  check('Desktop devices: progress reflects saved results', /FAIL/.test(await page.locator('.dev-test[data-test="ddjs8-driver"]').innerText()) && /PASS/.test(await page.locator('.dev-test[data-test="ddjs8-midi-coverage"]').innerText()));
+}
+
 // Minimal Tauri mock: catalog/run commands in memory, synthetic live capture.
 function tauriMock() {
   const listeners = {};
-  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [] }, runs: [] };
+  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
+  const midiState = { ports: ['Focusrite USB MIDI', 'DDJ-S8 MIDI 1'], open: [], sent: [] };
   let running = false, started = 0, timer = null;
   const sr = 48000;
   const emit = (name, payload) => (listeners[name] || []).forEach(cb => cb({ payload }));
@@ -317,12 +524,38 @@ function tauriMock() {
       { app: 'rekordbox', exeNames: ['rekordbox.exe'], installed: true, locations: [], files: [] },
       { app: 'VirtualDJ', exeNames: ['VirtualDJ.exe'], installed: false, locations: [], files: [] }] }; },
     save_scan_alignment: ({ alignment }) => ({ id: 'al-1', scanAId: 'a', scanBId: 'b' }),
+    device_profiles_sync: ({ profiles }) => profiles.map(p => {
+      const known = db.deviceProfiles[p.id];
+      const productId = `prod-${p.id}`;
+      if (!db.catalog.product.some(x => x.id === productId)) db.catalog.product.push({ id: productId, model: p.model, category: p.category });
+      let assetId = null;
+      if (!known) { assetId = `asset-${p.id}`; db.catalog.asset.push({ id: assetId, productId, nickname: `My ${p.model}` }); }
+      db.deviceProfiles[p.id] = { productId, version: 1 };
+      return { profileId: p.id, manufacturerId: 'm', productId, version: 1, created: !known, changed: !known, assetId };
+    }),
+    device_test_result_save: ({ result }) => {
+      if (!['pass', 'fail', 'unknown', 'skipped'].includes(result.status)) throw `invalid status ${result.status}`;
+      const row = { ...result, id: result.id || `res-${db.deviceResults.length + 1}`, sessionId: db.runs.some(r => r.id === result.sessionId) ? result.sessionId : null, createdAt: new Date(Date.now() + db.deviceResults.length).toISOString() };
+      db.deviceResults.unshift(row); return row;
+    },
+    device_test_results: ({ assetId }) => db.deviceResults.filter(r => !assetId || r.assetId === assetId),
+    device_midi_map_save: ({ assetId, profileId, map }) => (db.midiMaps[assetId] = { assetId, profileId, map, updatedAt: new Date().toISOString() }),
+    device_midi_map_get: ({ assetId }) => db.midiMaps[assetId] || null,
+    midi_list_ports: () => ({ inputs: midiState.ports.map((name, index) => ({ index, name })), outputs: midiState.ports.map((name, index) => ({ index, name })) }),
+    midi_open_input: ({ name }) => { if (!midiState.ports.includes(name)) throw `MIDI input not found: ${name}`; midiState.open.push(name); return null; },
+    midi_close_input: ({ name }) => { midiState.open = midiState.open.filter(n => n !== name); return null; },
+    midi_close_all: () => { midiState.open = []; return null; },
+    midi_send: ({ name, bytes }) => { midiState.sent.push({ name, bytes }); return null; },
+    midi_status: () => ({ openInputs: midiState.open, openOutputs: [], dropped: 0, emitted: 0 }),
   };
   window.__TAURI__ = {
     core: { invoke: async (cmd, args) => { if (!handlers[cmd]) throw `unknown command ${cmd}`; return handlers[cmd](args || {}); } },
     event: { listen: async (name, cb) => { (listeners[name] ||= []).push(cb); return () => { listeners[name] = listeners[name].filter(x => x !== cb); }; } },
   };
   window.__mockDb = db;
+  window.__mockMidi = midiState;
+  let midiT = 1000;
+  window.__emitMidi = bytes => { midiT += 2500; emit('midi-message', [{ port: midiState.open.at(-1) || 'DDJ-S8 MIDI 1', timestampUs: midiT, bytes }]); };
   try {
     if (!('setSinkId' in AudioContext.prototype)) AudioContext.prototype.setSinkId = async () => {};
     navigator.mediaDevices.enumerateDevices = async () => [
@@ -414,6 +647,7 @@ async function desktopMode(browser, base) {
   check('output selector lists devices', (await page.locator('#cal-output option').count()) === 3);
   check('calibration Run loopback enabled in desktop', !(await page.locator('#cal-start').isDisabled()));
   await systemHealth(page);
+  await devicesDesktop(page);
   await page.click('.rail-item[data-screen="history"]');
   await page.waitForSelector('#hist-rows .run-main');
   await page.locator('#hist-rows .run-main').first().click();

@@ -41,6 +41,7 @@
       <section class="screen" id="screen-vinyl" hidden></section>
       <section class="screen" id="screen-calibration" hidden></section>
       <section class="screen" id="screen-system" hidden></section>
+      <section class="screen" id="screen-devices" hidden></section>
       <section class="screen" id="screen-equipment" hidden></section>
       <section class="screen" id="screen-history" hidden></section>
     </main>
@@ -77,14 +78,14 @@
       <div class="cdl-help-body">
         <section>
           <h3>How DeckChek works</h3>
-          <p>Pick a workflow on the left. Each one walks you through <strong>Setup</strong> (what you need, wiring, source), <strong>Capture</strong> (live meters with clip latch) and <strong>Results</strong> (verdict first, then readings with ± uncertainty, findings and raw evidence). In the browser preview, load a recorded file instead of capturing live.</p>
+          <p><strong>Devices</strong> holds your own gear with a researched test plan per device; results are saved per unit. Or pick a workflow on the left. Each one walks you through <strong>Setup</strong> (what you need, wiring, source), <strong>Capture</strong> (live meters with clip latch) and <strong>Results</strong> (verdict first, then readings with ± uncertainty, findings and raw evidence). In the browser preview, load a recorded file instead of capturing live.</p>
           <h3>Keyboard shortcuts</h3>
           <table class="shortcut-table">
             <tbody>
               <tr><th scope="row"><kbd>Space</kbd></th><td>Start / stop capture (Capture step)</td></tr>
-              <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel capture, close panel or dialog</td></tr>
-              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>9</kbd></th><td>Switch workflow / screen</td></tr>
-              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>E</kbd></th><td>Export the current report (on System Health: the system report)</td></tr>
+              <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel capture, close panel or dialog; on Devices, go back one level</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>9</kbd>, <kbd>0</kbd></th><td>Switch screen in rail order: 1–5 workflows, 6 Calibration, 7 System Health, 8 Devices, 9 Equipment, 0 History</td></tr>
+              <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>E</kbd></th><td>Export the current report (System Health: the system report; Devices: the device report for the selected unit)</td></tr>
               <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>S</kbd></th><td>Save run (runs autosave) and mark it as the baseline</td></tr>
               <tr><th scope="row"><kbd>I</kbd></th><td>Toggle the details panel</td></tr>
               <tr><th scope="row"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></th><td>Clear clip indicators</td></tr>

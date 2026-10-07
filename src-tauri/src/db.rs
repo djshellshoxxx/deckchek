@@ -5,7 +5,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::{fs, path::{Path, PathBuf}};
 use tauri::{AppHandle, Manager};
 
-const MIGRATION_0001: &str = include_str!("../../database/migrations/0001_initial.sql");
+/// Ordered schema migrations. Each runs once (inside a transaction) and is
+/// recorded in `schema_migration`; append new files here in version order.
+pub const MIGRATIONS: &[(i64, &str)] = &[
+    (1, include_str!("../../database/migrations/0001_initial.sql")),
+    (2, include_str!("../../database/migrations/0002_device_library.sql")),
+];
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,8 +83,38 @@ pub fn open_database(path: &Path) -> Result<Connection, String> {
     Ok(conn)
 }
 
+/// Apply every migration in [`MIGRATIONS`] that is not yet recorded, in order.
+/// Idempotent: re-running is a no-op. A failing migration is rolled back and
+/// stops the run so later migrations never apply on top of a broken schema.
 pub fn apply_migrations(conn: &Connection) -> Result<(), String> {
-    conn.execute_batch(MIGRATION_0001).map_err(|e| e.to_string())
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL, app_version TEXT);")
+        .map_err(|e| e.to_string())?;
+    for (version, sql) in MIGRATIONS {
+        let applied: i64 = conn
+            .query_row("SELECT COUNT(*) FROM schema_migration WHERE version = ?1", [version], |r| r.get(0))
+            .map_err(|e| e.to_string())?;
+        if applied > 0 {
+            continue;
+        }
+        conn.execute_batch(&format!("BEGIN;\n{sql}\nCOMMIT;")).map_err(|e| {
+            let _ = conn.execute_batch("ROLLBACK;");
+            format!("migration {version} failed: {e}")
+        })?;
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migration(version, applied_at, app_version) VALUES (?1, CURRENT_TIMESTAMP, ?2)",
+            params![version, env!("CARGO_PKG_VERSION")],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Versions recorded in `schema_migration` below the seed marker, ascending.
+#[cfg(test)]
+pub fn applied_migrations(conn: &Connection) -> Result<Vec<i64>, String> {
+    let mut stmt = conn.prepare("SELECT version FROM schema_migration WHERE version < 1000 ORDER BY version").map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([], |r| r.get(0)).map_err(|e| e.to_string())?;
+    rows.collect::<rusqlite::Result<Vec<i64>>>().map_err(|e| e.to_string())
 }
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -454,6 +489,37 @@ mod tests {
             |r| r.get(0),
         ).unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn migrations_apply_in_order_and_are_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        apply_migrations(&conn).unwrap();
+        let versions: Vec<i64> = MIGRATIONS.iter().map(|(v, _)| *v).collect();
+        assert!(versions.windows(2).all(|w| w[0] < w[1]), "MIGRATIONS must be sorted by version");
+        assert_eq!(applied_migrations(&conn).unwrap(), versions);
+        // device library tables exist after 0002
+        for t in ["device_profile", "device_test_result", "asset_midi_map"] {
+            let n: i64 = conn.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0)).unwrap();
+            assert_eq!(n, 1, "{t} missing");
+        }
+        // second run is a no-op
+        apply_migrations(&conn).unwrap();
+        let rows: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migration WHERE version < 1000", [], |r| r.get(0)).unwrap();
+        assert_eq!(rows as usize, MIGRATIONS.len());
+    }
+
+    #[test]
+    fn upgrades_a_version_1_database_without_losing_data() {
+        let conn = Connection::open_in_memory().unwrap();
+        // a 0.0.2 database: only 0001 applied
+        conn.execute_batch(MIGRATIONS[0].1).unwrap();
+        conn.execute("INSERT INTO manufacturer (id, name, created_at, updated_at) VALUES ('m1', 'Keep Me', 'now', 'now')", []).unwrap();
+        assert_eq!(applied_migrations(&conn).unwrap(), vec![1]);
+        apply_migrations(&conn).unwrap();
+        assert_eq!(applied_migrations(&conn).unwrap(), vec![1, 2]);
+        let name: String = conn.query_row("SELECT name FROM manufacturer WHERE id='m1'", [], |r| r.get(0)).unwrap();
+        assert_eq!(name, "Keep Me");
     }
 
     #[test]
