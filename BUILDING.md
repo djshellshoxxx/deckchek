@@ -4,11 +4,11 @@ DeckChek is no longer a static sample-only prototype. It now contains a local of
 
 ## Current capabilities
 
-The UI can analyze local audio files for stereo signal health, reference-tone speed/pitch, pitch-map points, generic DVS integrity, cartridge/reference-tone distortion evidence, startup/brake envelope timing, signal dropouts and full-side vinyl transient candidates. Results are kept as evidence plus transparent findings rather than unconditional fault diagnoses.
+The UI can analyze local audio files or native audio input for stereo signal health, reference-tone speed/pitch, pitch-map points, generic DVS integrity, cartridge/reference-tone distortion evidence, startup/brake envelope timing, signal dropouts and full-side vinyl transient candidates. Results are kept as evidence plus transparent findings rather than unconditional fault diagnoses.
 
 Measured runs can be exported as HTML reports and CSV, entire browser workspaces can be exported/imported as versioned JSON, and compatible runs can be compared by identical metric ID and unit. The desktop bridge writes sessions, method-versioned measurements and finding evidence into the existing SQLite schema.
 
-The desktop build captures live from native inputs with level meters, clip latching and capture-quality counters, and can calibrate the interface with a loopback profile that corrects readings and propagates ± uncertainty. The browser shell analyses recorded files only. Standards-level validation is still required.
+The desktop build captures live from native inputs with a lock-free ring buffer, ~20 Hz level-event updates, clip latching, capture-quality counters, and can calibrate the interface with a loopback profile that corrects readings and propagates ± uncertainty via GUM-style error propagation. The browser shell analyzes recorded files only. Real-hardware validation against known references is still required (SPEC-08/19).
 
 ## Run the browser shell
 
