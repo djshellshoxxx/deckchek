@@ -8,6 +8,8 @@ import { createWorkflowScreen } from './ui/workflows/flow.js';
 import { createCalibrationScreen } from './ui/screens/calibration.js';
 import { createSystemScreen } from './ui/screens/system.js';
 import { createEquipmentScreen } from './ui/screens/equipment.js';
+import { createDevicesScreen } from './ui/screens/devices.js';
+import { ensureLibrary } from './ui/devices/library-state.js';
 import { createHistoryScreen } from './ui/screens/history.js';
 import { migrateLocalRuns } from './ui/persistence.js';
 import { toast } from './ui/live.js';
@@ -17,6 +19,7 @@ const SCREENS = [
   ...WORKFLOWS.map(def => ({ id: def.id, title: def.title, short: def.short, icon: def.icon, create: createWorkflowScreen(def) })),
   { id: 'calibration', title: 'Calibration', short: 'Calibrate', icon: 'calibration', create: createCalibrationScreen },
   { id: 'system', title: 'System Health', short: 'System', icon: 'system', create: createSystemScreen },
+  { id: 'devices', title: 'Devices', short: 'Devices', icon: 'devices', create: createDevicesScreen },
   { id: 'equipment', title: 'Equipment', short: 'Equipment', icon: 'equipment', create: createEquipmentScreen },
   { id: 'history', title: 'History', short: 'History', icon: 'history', create: createHistoryScreen },
 ];
@@ -31,7 +34,8 @@ function start() {
   initShell(SCREENS);
   const initial = SCREENS.some(s => s.id === settings.screen) ? settings.screen : 'quick';
   go(initial);
-  initNativePersistence().then(migrateLocalRuns).catch(() => {});
+  // First run: sync every device profile into the catalog and create one asset per device ("My <model>").
+  initNativePersistence().then(migrateLocalRuns).catch(() => {}).then(() => ensureLibrary()).catch(() => {});
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });

@@ -7,7 +7,7 @@ import { store, emit } from '../state.js';
 import { toast, announce } from '../live.js';
 import { confirmDialog } from '../shell.js';
 
-const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['other', 'Other']];
+const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['dvs_media', 'DVS / timecode media'], ['software', 'Software'], ['other', 'Other']];
 const ROLES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['mixer', 'Mixer'], ['interface', 'Interface'], ['dvs_interface', 'DVS interface'], ['preamp', 'Preamp'], ['media_player', 'Media player'], ['other', 'Other']];
 
 const ENTITIES = {
