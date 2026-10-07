@@ -26,11 +26,11 @@ pub struct AudioCapturePayload {
     pub stream_errors: Vec<String>,
 }
 
-fn sample_i16(value: i16) -> f32 {
+pub(crate) fn sample_i16(value: i16) -> f32 {
     value as f32 / 32768.0
 }
 
-fn sample_u16(value: u16) -> f32 {
+pub(crate) fn sample_u16(value: u16) -> f32 {
     (value as f32 - 32768.0) / 32768.0
 }
 
@@ -67,7 +67,7 @@ pub fn list_native_audio_inputs() -> Result<Vec<AudioInputInfo>, String> {
     Ok(out)
 }
 
-fn choose_input(device_name: Option<&str>) -> Result<cpal::Device, String> {
+pub(crate) fn choose_input(device_name: Option<&str>) -> Result<cpal::Device, String> {
     let host = cpal::default_host();
     if let Some(target) = device_name {
         let devices = host.input_devices().map_err(|e| e.to_string())?;
