@@ -22,6 +22,7 @@ jobs:
       - run: node --check app/advanced.js
       - run: node --check app/diagnostics.js
       - run: node --check app/export.js
+      - run: node --check app/catalog-store.js
 
   rust-tests:
     runs-on: ubuntu-22.04
