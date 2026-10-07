@@ -7,7 +7,7 @@ import { loopbackStimulus, analyzeLoopback, serializeProfile, deserializeProfile
 import { encodeWav16 } from '../../advanced.js';
 import { generateSine } from '../../advanced.js';
 import { settings, saveProfile, listProfiles, deleteProfile, on } from '../state.js';
-import { startLiveSession, playStereo, decodeAudioFile, classifyCaptureError, liveAvailable } from '../audio-io.js';
+import { startLiveSession, playStereo, listOutputDevices, decodeAudioFile, classifyCaptureError, liveAvailable } from '../audio-io.js';
 import { createStereoMeter } from '../meters.js';
 import { linePlot, responsePlot } from '../plots.js';
 import { announce, toast } from '../live.js';
@@ -27,10 +27,11 @@ export function createCalibrationScreen(section) {
       <div class="cal-main">
         <section class="card" aria-labelledby="cal-prep"><h2 id="cal-prep" class="card-title">1 · Patch the loopback</h2>
           <ol class="wiring wiring-loop"><li><span class="wiring-node"><strong>Interface OUT L/R</strong><span>line output</span></span><span class="wiring-arrow">${icon('arrowRight', { size: 16 })}</span></li><li><span class="wiring-node"><strong>Cable</strong><span>L→L, R→R</span></span><span class="wiring-arrow">${icon('arrowRight', { size: 16 })}</span></li><li><span class="wiring-node"><strong>Interface IN L/R</strong><span>line input</span></span></li></ol>
-          <p class="hint hint-warn">${icon('warn', { size: 16 })}<span>Turn monitors and headphones down — the stimulus includes a chirp and a 10 kHz step. Set the system output to the same interface.</span></p>
+          <p class="hint hint-warn">${icon('warn', { size: 16 })}<span>Turn monitors and headphones down — the stimulus includes a chirp and a 10 kHz step. Choose the interface as the output device below (or set it as the system output).</span></p>
           <div class="field-grid">
             <label class="field"><span class="field-label">Stimulus level (dBFS)</span><select id="cal-level"><option value="-26">−26</option><option value="-20" selected>−20 (recommended)</option><option value="-12">−12</option></select></label>
             <label class="field"><span class="field-label">Tone duration</span><select id="cal-duration"><option value="2" selected>2 s</option><option value="4">4 s</option><option value="8">8 s</option></select></label>
+            <label class="field" id="cal-out-field" hidden><span class="field-label">Output device</span><select id="cal-output"><option value="">System default output</option></select></label>
             <div class="field"><span class="field-label">Profile target</span><span class="field-static" id="cal-target"></span></div>
           </div>
         </section>
@@ -41,7 +42,7 @@ export function createCalibrationScreen(section) {
               <div class="alt-actions"><span class="muted small">Or use a recording:</span>
                 <button type="button" class="btn btn-secondary btn-sm" id="cal-download">${icon('download', { size: 16 })}<span>Stimulus WAV</span></button>
                 <button type="button" class="btn btn-secondary btn-sm" id="cal-import">${icon('upload', { size: 16 })}<span>Import recorded loopback</span></button></div>
-              <p class="muted small">For a recording: play the stimulus WAV out of the interface while recording its input, trim so the file starts within 0.5 s of the stimulus, then import it.</p>
+              <p class="muted small">For a recording: play the stimulus WAV out of the interface while recording its input, trim so the file starts within 10 s of the stimulus, then import it.</p>
             </div></div>
         </section>
         <section class="card" aria-labelledby="cal-prof" id="cal-profile-card"><h2 id="cal-prof" class="card-title">3 · Profile</h2><div id="cal-profile"></div></section>
@@ -64,9 +65,19 @@ export function createCalibrationScreen(section) {
   function renderTarget() {
     const t = target();
     $('#cal-target').textContent = `${t.deviceName} @ ${t.sampleRate} Hz`;
-    $('#cal-state').textContent = liveAvailable() ? `Ready. DeckChek will capture from ${t.deviceName} and play on the default output.` : 'Live loopback is available in the desktop app.';
+    $('#cal-state').textContent = liveAvailable() ? `Ready. DeckChek will capture from ${t.deviceName} and play on ${$('#cal-output').selectedOptions[0]?.textContent || 'the default output'}.` : 'Live loopback is available in the desktop app.';
     const start = $('#cal-start');
     start.disabled = !liveAvailable();
+  }
+  async function populateOutputs() {
+    const field = $('#cal-out-field'), sel = $('#cal-output');
+    const outs = await listOutputDevices();
+    field.hidden = outs.length === 0;
+    if (!outs.length) return;
+    const prev = sel.value;
+    sel.replaceChildren(h('option', { value: '', text: 'System default output' }), ...outs.filter(o => o.id !== 'default').map(o => h('option', { value: o.id, text: o.label })));
+    sel.value = [...sel.options].some(o => o.value === prev) ? prev : '';
+    renderTarget();
   }
   function stimulus(sampleRate = settings.sampleRate) {
     return loopbackStimulus({ sampleRate, durationSec: Number($('#cal-duration').value), levelDbfs: Number($('#cal-level').value) });
@@ -98,7 +109,7 @@ export function createCalibrationScreen(section) {
       await new Promise(r => setTimeout(r, 300));
       st.textContent = 'Playing stimulus — keep the cable connected…';
       announce('Playing calibration stimulus');
-      state.playback = await playStereo(stimUse);
+      state.playback = await playStereo(stimUse, { sinkId: $('#cal-output').value });
       await Promise.race([state.playback.done, new Promise(r => setTimeout(r, (lenSec + 2) * 1000))]);
       await new Promise(r => setTimeout(r, 400));
       st.textContent = 'Analyzing…';
@@ -127,7 +138,7 @@ export function createCalibrationScreen(section) {
     try {
       const audio = await decodeAudioFile(file);
       const stim = stimulus(audio.sampleRate);
-      const profile = analyzeLoopback(audio, stim.meta, { deviceName: target().deviceName });
+      const profile = analyzeLoopback(audio, stim.meta, { deviceName: target().deviceName, maxLagSec: 10 });
       showProfile(profile, audio.sampleRate);
       toast(`Analysed ${file.name}.`, { type: profile.valid ? 'success' : 'warn' });
     } catch (error) { showError('Could not analyse the recording', String(error?.message || error)); }
@@ -208,6 +219,7 @@ export function createCalibrationScreen(section) {
   on('calibration', () => { renderTarget(); renderList(); });
   on('settings', ({ key }) => { if (key === 'deviceName' || key === 'sampleRate') renderTarget(); });
   renderTarget();
+  $('#cal-output').addEventListener('change', renderTarget);
   renderList();
   $('#cal-profile').append(emptyState({ icon: 'calibration', title: 'No profile analysed yet', text: 'Run the loopback or import a recording to see gain, mismatch, noise floor, latency and clock error.' }));
 
@@ -216,6 +228,7 @@ export function createCalibrationScreen(section) {
     onEscape: () => { if (state.running) { state.playback?.stop(); return true; } return false; },
     onExport: () => state.profile ? download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(state.profile), 'application/json') : toast('Analyse a loopback first — then Ctrl+E exports the profile.'),
     onShow: () => {
+      populateOutputs();
       document.getElementById('inspector-title').textContent = 'About calibration';
       document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>A loopback measures the interface itself: per-channel gain, L/R mismatch, noise floor, latency and playback/capture clock error.</p><h3>How it is used</h3><p>When a profile matches the selected input and sample rate, level, balance, speed and frequency readings are corrected and their ± uncertainty uses the measured components. Otherwise results are marked <span class="badge badge-uncal">UNCAL</span> with default components.</p><h3>Clock note</h3><p>Loopback shares one clock, so ppm reflects the path, not absolute timebase accuracy.</p></div>`;
     },

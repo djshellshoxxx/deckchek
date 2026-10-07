@@ -45,7 +45,11 @@ export function detectMarkerLag(captured,marker,sampleRate,{maxLagSec=.5,startSa
   const tl=marker.length,maxLag=Math.min(Math.floor(maxLagSec*sampleRate),captured.length-startSample-tl);if(maxLag<1)return {lag:null,strength:0};
   let te=0;for(const v of marker)te+=v*v;const pre=new Float64Array(captured.length+1);for(let i=0;i<captured.length;i++)pre[i+1]=pre[i]+captured[i]*captured[i];
   const nc=new Float64Array(maxLag+1);let best=0;
-  for(let lag=0;lag<=maxLag;lag++){let d=0;const o=startSample+lag;for(let i=0;i<tl;i++)d+=marker[i]*captured[o+i];const e=pre[o+tl]-pre[o];nc[lag]=e>1e-18?d/Math.sqrt(te*e):0;if(nc[lag]>nc[best])best=lag;}
+  const score=lag=>{let d=0;const o=startSample+lag;for(let i=0;i<tl;i++)d+=marker[i]*captured[o+i];const e=pre[o+tl]-pre[o];return nc[lag]=e>1e-18?d/Math.sqrt(te*e):0;};
+  if(maxLag>2*sampleRate){ // wide search: coarse stride, then exhaustive refinement around the best candidates
+    const step=4;let top=0;for(let lag=0;lag<=maxLag;lag+=step){if(score(lag)>nc[top])top=lag;}
+    const lo=Math.max(0,top-step),hi=Math.min(maxLag,top+step);best=top;for(let lag=lo;lag<=hi;lag++)if(score(lag)>nc[best])best=lag;
+  }else for(let lag=0;lag<=maxLag;lag++){if(score(lag)>nc[best])best=lag;}
   let lag=best;if(best>0&&best<maxLag){const a=nc[best-1],b=nc[best],c=nc[best+1],den=a-2*b+c;if(Math.abs(den)>1e-12)lag=best+.5*(a-c)/den;}
   return {lag,strength:nc[best]};
 }
@@ -105,13 +109,13 @@ function responseDeltas(L,R,meta,shift,sr,ppm,gainRef){
 }
 function emptyProfile(sr,deviceName,createdAt){return {version:1,deviceName,sampleRate:sr,createdAt,gainDb:{left:null,right:null},mismatchDb:null,noiseFloorDbfs:null,thdnPercent:null,latencyMs:null,clockPpm:null,response:[],uncertainty:{gainDb:null,mismatchDb:null,noiseFloorDb:null,clockPpm:null,latencyMs:null,thdnPercent:null,k:2},valid:false,issues:[],notes:[]};}
 /** Analyze a loopback capture against its stimulus meta and return an interface calibration profile. */
-export function analyzeLoopback(captured,meta,{deviceName='',createdAt=new Date().toISOString(),maxMismatchDb=1,minSnrDb=40}={}){
+export function analyzeLoopback(captured,meta,{deviceName='',createdAt=new Date().toISOString(),maxMismatchDb=1,minSnrDb=40,maxLagSec=.5}={}){
   const sr=captured.sampleRate||meta.sampleRate,p=emptyProfile(sr,deviceName,createdAt),L=captured.left,R=captured.right;
   p.notes.push('Loopback shares the interface clock domain; clockPpm reflects playback/capture path error, not absolute timebase accuracy.');
   if(sr!==meta.sampleRate)p.issues.push(issue('SAMPLE_RATE_MISMATCH',`Capture ${sr} Hz differs from stimulus ${meta.sampleRate} Hz.`));
   const clip=clippingCount(L)+clippingCount(R);if(clip>0)p.issues.push(issue('CLIPPING',`${clip} samples reached full scale; gain results are unreliable.`));
   const mono=new Float32Array(Math.min(L.length,R.length));for(let i=0;i<mono.length;i++)mono[i]=L[i]+R[i];
-  const marker=markerSignal(sr,meta.amplitude),det=detectMarkerLag(mono,marker,sr,{startSample:meta.markerStart});
+  const marker=markerSignal(sr,meta.amplitude),det=detectMarkerLag(mono,marker,sr,{startSample:meta.markerStart,maxLagSec});
   if(dbfs(Math.max(peak(L),peak(R)))<-70){p.issues.push(issue('NO_SIGNAL','No usable signal captured; check routing and input gain.'));return finish(p);}
   if(det.strength<.3){p.issues.push(issue('NO_MARKER','Latency marker not found in capture.'));return finish(p);}
   const shift=Math.round(det.lag),lagSamples=det.lag;p.latencyMs=lagSamples/sr*1000;

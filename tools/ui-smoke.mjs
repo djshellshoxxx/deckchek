@@ -121,6 +121,11 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   check('readouts show uncertainty', (await page.locator('#screen-quick .readout-unc').first().innerText()).includes('±'));
   check('uncalibrated badge visible', (await page.locator('#screen-quick .badge-uncal').count()) > 0);
   await shot(page, 'quick-results-dark');
+  await page.keyboard.press('Control+s');
+  await page.waitForFunction(() => /baseline/i.test(document.getElementById('toasts').innerText), null, { timeout: 5000 }).catch(() => {});
+  check('Ctrl+S confirms save as baseline (toast)', /baseline/i.test(await page.locator('#toasts').innerText()));
+  check('Ctrl+S stored baseline flag', await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.workspace.v1') || '{}').runs?.some(r => r.baseline) ?? false));
+  check('shortcuts help lists Ctrl+S', (await page.locator('#helpDialog').innerHTML()).includes('<kbd>S</kbd>'));
   const ra = await a11yAudit(page);
   check('a11y names + target sizes: results', !ra.unnamed.length && !ra.small.length, [...ra.unnamed, ...ra.small].slice(0, 3).join(' | '));
   check('results announced via live region', (await page.locator('#sr-polite').innerText()).length > 0);
@@ -164,6 +169,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
 
   // Calibration from an imported (digital) loopback recording
   await page.click('.rail-item[data-screen="calibration"]');
+  check('output selector hidden when no output devices are listed', await page.locator('#cal-out-field').isHidden());
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#cal-import')]);
   await chooser.setFiles(extra.loopback);
   await page.waitForSelector('#cal-profile .verdict');
@@ -287,6 +293,12 @@ function tauriMock() {
     event: { listen: async (name, cb) => { (listeners[name] ||= []).push(cb); return () => { listeners[name] = listeners[name].filter(x => x !== cb); }; } },
   };
   window.__mockDb = db;
+  try {
+    if (!('setSinkId' in AudioContext.prototype)) AudioContext.prototype.setSinkId = async () => {};
+    navigator.mediaDevices.enumerateDevices = async () => [
+      { kind: 'audiooutput', deviceId: 'default', label: 'Default' }, { kind: 'audiooutput', deviceId: 'o1', label: 'Speakers' },
+      { kind: 'audiooutput', deviceId: 'o2', label: 'USB Interface' }, { kind: 'audioinput', deviceId: 'i1', label: 'Mic' }];
+  } catch { /* leave real devices */ }
 }
 
 async function desktopMode(browser, base) {
@@ -321,6 +333,9 @@ async function desktopMode(browser, base) {
   check('findings carry supportedBy metric ids', linked);
   await shot(page, 'quick-results-desktop-dark');
   await page.click('.rail-item[data-screen="calibration"]');
+  await page.waitForFunction(() => !document.querySelector('#cal-out-field').hidden, null, { timeout: 5000 }).catch(() => {});
+  check('output selector shown when outputs are available', await page.locator('#cal-out-field').isVisible());
+  check('output selector lists devices', (await page.locator('#cal-output option').count()) === 3);
   check('calibration Run loopback enabled in desktop', !(await page.locator('#cal-start').isDisabled()));
   await page.click('.rail-item[data-screen="history"]');
   await page.waitForSelector('#hist-rows .run-main');

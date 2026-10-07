@@ -5,6 +5,7 @@ import { buildHtmlReport, compareRuns, normalizeMeasurement } from '../core.js';
 import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from '../export.js';
 import { store, workspace, saveWorkspace, emit } from './state.js';
 import { download, slug, isNative } from './dom.js';
+import { toast } from './live.js';
 
 /** Shape a run for save_diagnostic_run (numeric uncertainty, finite values only). */
 export function toPersistRun(run) {
@@ -39,6 +40,16 @@ export async function persistRun(run) {
     emit('history');
     return { ok: false, error: String(error?.message || error) };
   }
+}
+
+/** Ctrl+S: confirm the run is saved and mark it as the baseline for its test (one baseline per test). */
+export async function saveRunAsBaseline(run) {
+  if (!run) { toast('Nothing to save yet — run an analysis first.', { type: 'info' }); return false; }
+  for (const r of workspace.runs) if (r.id !== run.id && r.test === run.test && r.baseline) delete r.baseline;
+  run.baseline = true;
+  const res = await persistRun(run);
+  toast(res.ok ? `Saved. This ${run.test} run is now your baseline.` : `Saved locally as baseline; database save failed: ${res.error}`, { type: res.ok ? 'success' : 'warn' });
+  return res.ok;
 }
 
 /** Record a repeat-scan alignment between this vinyl scan and the previous one. */

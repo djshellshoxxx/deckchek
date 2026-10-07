@@ -8,7 +8,7 @@ import { settings, store, workspace, findProfile, on, active } from '../state.js
 import { decodeAudioFile, startLiveSession, classifyCaptureError, liveAvailable } from '../audio-io.js';
 import { createStereoMeter, levelBus } from '../meters.js';
 import { buildRun } from '../analysis.js';
-import { persistRun, saveRepeatScanAlignment, exportRunHtml, exportRunCsv } from '../persistence.js';
+import { persistRun, saveRunAsBaseline, saveRepeatScanAlignment, exportRunHtml, exportRunCsv } from '../persistence.js';
 import { renderResults, qualityPanel } from '../results.js';
 import { announce, toast } from '../live.js';
 import { go, setCaptureStatus, currentDeviceName, showInspector } from '../shell.js';
@@ -47,6 +47,7 @@ class WorkflowScreen {
         return false;
       },
       onExport: () => this.run ? exportRunHtml(this.run) : toast('Run an analysis first — then Ctrl+E exports its report.'),
+      onSave: () => { saveRunAsBaseline(this.run); },
       onEnter: () => {
         if (this.step === 'setup' && this.primaryBtn && !this.primaryBtn.disabled) { this.primaryBtn.click(); return true; }
         return false;
