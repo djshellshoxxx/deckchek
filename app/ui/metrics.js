@@ -43,6 +43,19 @@ export const METRIC_INFO = {
   capture_overrun_samples: { rule: v => v === 0 ? 'pass' : 'warn', target: '0 samples', why: 'Samples dropped by the capture buffer.' },
 };
 
+const LABEL_OVERRIDES = {
+  left_level_dbfs: 'Left level', right_level_dbfs: 'Right level', channel_balance_db: 'Channel balance L-R',
+  correlation: 'Stereo correlation', rpm: 'Platter speed', left_thd_percent: 'Left THD', right_thd_percent: 'Right THD',
+  left_hum_dbfs: 'Left hum', right_hum_dbfs: 'Right hum', wow_flutter_rms_percent: 'Wow & flutter (RMS)',
+};
+/** Human label for a metric id when no stored label exists. */
+export function metricLabel(id) {
+  if (LABEL_OVERRIDES[id]) return LABEL_OVERRIDES[id];
+  const words = String(id ?? '').replace(/_(dbfs|db|percent|sec|hz)$/i, '').split('_').filter(Boolean);
+  const text = words.join(' ');
+  return text ? text[0].toUpperCase() + text.slice(1) : String(id ?? '');
+}
+
 export function metricStatus(m) {
   const info = METRIC_INFO[m?.metricId];
   if (!info?.rule || typeof m.value !== 'number' || !Number.isFinite(m.value)) return null;

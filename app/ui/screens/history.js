@@ -5,8 +5,8 @@
 import { h, esc, formatNumber, formatDate, pickFile } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { store, localRun, on, active } from '../state.js';
-import { verdictFor } from '../metrics.js';
-import { exportRunHtml, exportRunCsv, exportRunJson, compareTwo, exportComparisonHtml, exportWorkspace, importWorkspace } from '../persistence.js';
+import { verdictFor, metricLabel } from '../metrics.js';
+import { saveRunAsBaseline, exportRunHtml, exportRunCsv, exportRunJson, compareTwo, exportComparisonHtml, exportWorkspace, importWorkspace } from '../persistence.js';
 import { renderResults } from '../results.js';
 import { WORKFLOWS } from '../workflows/definitions.js';
 import { toast, announce } from '../live.js';
@@ -19,9 +19,8 @@ function normalizeRun(raw, summary) {
   if (!raw) return null;
   const local = localRun(raw.id);
   if (local) return local; // full record incl. evidence and labels
-  const labelOf = id => id;
-  const measurements = (raw.measurements || []).map(m => ({
-    metricId: m.metricId, label: m.label || labelOf(m.metricId), value: m.value ?? m.text, unit: m.unit || '', origin: m.origin,
+    const measurements = (raw.measurements || []).map(m => ({
+    metricId: m.metricId, label: m.label && m.label !== m.metricId ? m.label : metricLabel(m.metricId), value: m.value ?? m.text, unit: m.unit || '', origin: m.origin,
     confidence: m.confidence, uncertainty: m.uncertainty, qualityFlags: m.qualityFlags || [], calibrated: (m.qualityFlags || []).includes('calibrated'),
   }));
   const stripRun = id => String(id).replace(`${raw.id}:`, '');
@@ -125,7 +124,15 @@ export function createHistoryScreen(section) {
     const summary = state.runs.find(r => r.id === id);
     const local = localRun(id);
     if (local) return local;
-    return normalizeRun(await store.getRun(id), summary);
+    const run = normalizeRun(await store.getRun(id), summary);
+    if (run && run.device && run.device !== '—') {
+      try {
+        const assets = await store.list('asset');
+        const a = assets.find(x => x.id === run.device);
+        if (a) run.device = a.nickname || a.name || run.device;
+      } catch { /* keep id */ }
+    }
+    return run;
   }
 
   async function openRun(id) {
@@ -196,6 +203,7 @@ export function createHistoryScreen(section) {
       document.getElementById('inspector-title').textContent = 'About history';
       document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>Runs are saved automatically after analysis${store.native ? ' to the local DeckChek database' : ' in this browser'}.</p><h3>Evidence links</h3><p>Each finding lists the measurements that <strong>support</strong> it and any that <strong>contradict</strong> it. Select one to inspect it.</p><h3>A/B compare</h3><p>Tick two runs. Only metrics with identical ids and units are compared.</p></div>`;
     },
+    onSave: () => { saveRunAsBaseline(state.selected); },
     onExport: () => state.selected ? exportRunHtml(state.selected) : toast('Select a run first — then Ctrl+E exports its report.'),
     onEscape: () => { if (state.compare.size) { state.compare.clear(); renderList(); return true; } return false; },
   };

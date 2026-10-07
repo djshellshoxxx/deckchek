@@ -183,7 +183,7 @@ function onKeydown(event) {
   if (ctrl && event.shiftKey && key.toLowerCase() === 'c') { event.preventDefault(); clearAllClips(); announce('Clip indicators cleared'); return; }
   if ((ctrl || event.altKey) && /^[1-8]$/.test(key)) { event.preventDefault(); go(order[Number(key) - 1], { focus: true }); return; }
   if (ctrl && key.toLowerCase() === 'e') { event.preventDefault(); if (screen.onExport) screen.onExport(); else toast('Nothing to export on this screen yet.'); return; }
-  if (ctrl && key.toLowerCase() === 's' && screen.onSave) { event.preventDefault(); screen.onSave(); return; }
+  if (ctrl && key.toLowerCase() === 's') { event.preventDefault(); if (screen.onSave) screen.onSave(); else toast('Nothing to save on this screen — runs autosave to History.'); return; }
   if (key === 'Escape') { if (screen.onEscape?.()) event.preventDefault(); else if (inspectorOpen() && isNarrow()) setInspector(false); return; }
   if (key === 'F1') { event.preventDefault(); $('#helpBtn')?.click(); return; }
   if (key === 'Enter' && !ctrl && !event.altKey && (event.target === document.body || event.target?.id === 'main') && screen.onEnter?.()) { event.preventDefault(); return; }

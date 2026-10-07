@@ -141,3 +141,13 @@ test('unknown metrics keep null uncertainty, thd and separation get estimates', 
   const thd=applyCalibration({metricId:'left_thd_percent',value:.3,unit:'%'},p,ctx);assert.ok(thd.uncertainty.standard>0);assert.equal(thd.value,.3);
   const sep=applyCalibration({metricId:'channel_separation_db',value:35,unit:'dB'},p,ctx);assert.ok(sep.uncertainty.standard>0);assert.equal(sep.uncertainty.unit,'dB');
 });
+
+test('imported recording with a 3 s leading offset needs the wider marker window', ()=>{
+  const s=loopbackStimulus({sampleRate:SR,durationSec:1.5});
+  const cap=simulate(s,{gainL:-2,gainR:-2.5,delay:3*SR,noise:3e-4});
+  const narrow=analyzeLoopback(cap,s.meta);
+  assert.ok(narrow.issues.some(i=>i.code==='NO_MARKER'),'default window must not find a 3 s offset');
+  const p=analyzeLoopback(cap,s.meta,{maxLagSec:10});
+  assert.equal(p.valid,true,JSON.stringify(p.issues));
+  near(p.latencyMs,3000,1);near(p.gainDb.left,-2,.1);
+});

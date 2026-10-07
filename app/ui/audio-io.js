@@ -141,12 +141,28 @@ export async function startLiveSession({ deviceName = null, maxSeconds = 60, onL
   };
 }
 
-/** Play a stereo buffer on the default output via WebAudio. Returns {done, stop}. */
-export async function playStereo({ left, right, sampleRate }) {
+/** True when output-device routing (AudioContext.setSinkId) is available. */
+export function outputSelectionSupported() {
+  const C = globalThis.AudioContext;
+  return Boolean(C?.prototype && 'setSinkId' in C.prototype && globalThis.navigator?.mediaDevices?.enumerateDevices);
+}
+
+/** List audio output devices ([] when unsupported or enumeration fails). */
+export async function listOutputDevices() {
+  if (!outputSelectionSupported()) return [];
+  try {
+    const all = await navigator.mediaDevices.enumerateDevices();
+    return all.filter(d => d.kind === 'audiooutput').map((d, i) => ({ id: d.deviceId, label: d.label || (d.deviceId === 'default' ? 'System default' : `Output ${i + 1}`) }));
+  } catch { return []; }
+}
+
+/** Play a stereo buffer via WebAudio on the default output, or on sinkId when given. Returns {done, stop}. */
+export async function playStereo({ left, right, sampleRate }, { sinkId = '' } = {}) {
   const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!Context) throw new Error('Web Audio playback is unavailable.');
   let ctx;
   try { ctx = new Context({ sampleRate }); } catch { ctx = new Context(); }
+  if (sinkId && typeof ctx.setSinkId === 'function') { try { await ctx.setSinkId(sinkId); } catch { /* fall back to default output */ } }
   await ctx.resume?.();
   const buffer = ctx.createBuffer(2, left.length, sampleRate);
   buffer.copyToChannel(left, 0); buffer.copyToChannel(right || left, 1);
