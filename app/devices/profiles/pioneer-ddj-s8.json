@@ -1,0 +1,820 @@
+{
+  "schemaVersion": 1,
+  "id": "pioneer-ddj-s8",
+  "manufacturer": "Pioneer DJ",
+  "model": "DDJ-S8",
+  "aliases": [
+    "DDJ S8"
+  ],
+  "category": "controller",
+  "summary": "Serato DJ controller with built-in mixer and USB audio interface (model details unverified; see identity notes).",
+  "identityNotes": "The model name 'DDJ-S8' could not be found in any search result or official source. Pioneer's known Serato controllers are DDJ-SB3, DDJ-SR2, DDJ-SX3, DDJ-SZ2 and DDJ-REV series. Profile is a provisional controller template; layout (2 jogs, 2-4 channels, DVS inputs) is assumed. Confirm model label on the unit before relying on it.",
+  "image": {
+    "file": "pioneer-ddj-s8.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration (no free-licensed photo could be fetched)",
+    "license": "original work, project licence",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "Pioneer DJ support",
+      "type": "driver",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en",
+      "notes": "Search for DDJ-S8 manuals/drivers; no DDJ-S8 page found."
+    },
+    {
+      "title": "Serato DVS hardware support",
+      "type": "support-article",
+      "url": "https://support.serato.com/hc/en-us/articles/203401184-Does-my-mixer-controller-interface-support-DVS-in-Serato-DJ-Pro",
+      "language": "en",
+      "notes": "Seen in search results only."
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "language": "en",
+      "notes": "No public service manual found."
+    },
+    {
+      "title": "MIDI message list",
+      "type": "midi-message-list",
+      "url": "",
+      "language": "en",
+      "notes": "No public MIDI list found for DDJ-S8."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": "0x2B73",
+      "productIds": [],
+      "classCompliant": false,
+      "notes": "Vendor ID unconfirmed; Pioneer DJ uses 0x2B73 (newer) and 0x08E4 (Pioneer Corp. legacy)."
+    },
+    "midi": {
+      "usbMidi": true,
+      "din": false,
+      "portNamePatterns": [
+        "DDJ-S8"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [
+        44100
+      ],
+      "bitDepth": 24
+    },
+    "analog": [
+      "Master out",
+      "Booth out",
+      "Headphones",
+      "Mic",
+      "PHONO/LINE inputs (assumed)"
+    ]
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Pioneer DJ DDJ-S8 ASIO driver (assumed)",
+      "asioName": null,
+      "deviceNamePatterns": [
+        "DDJ-S8",
+        "DDJ S8"
+      ],
+      "provider": "Pioneer DJ Corporation",
+      "latestKnownVersion": null,
+      "url": "https://www.pioneerdj.com/en/support/",
+      "required": true,
+      "notes": "Unconfirmed."
+    }
+  ],
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "controller",
+      "minVersion": null,
+      "notes": "Controller and DVS (Serato DJ Pro DVS expansion pack needed for control vinyl on many hardware units)."
+    },
+    {
+      "name": "Pioneer DJ firmware updater",
+      "role": "firmware-updater",
+      "minVersion": null,
+      "notes": "If published."
+    }
+  ],
+  "specs": [
+    {
+      "key": "sample_rate",
+      "label": "Sampling rate (comparable DDJ-SZ)",
+      "value": 44100,
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "https://www.pioneerdj.com/en/news/2014/ddj-sz/ (different model)",
+      "confidence": "unverified",
+      "notes": "Taken from DDJ-SZ, not DDJ-S8."
+    },
+    {
+      "key": "freq_resp",
+      "label": "Frequency response (comparable DDJ-SZ)",
+      "value": "20-20000",
+      "unit": "Hz",
+      "tolerance": null,
+      "source": "DDJ-SZ operating instructions",
+      "confidence": "unverified",
+      "notes": "Different model."
+    },
+    {
+      "key": "snr",
+      "label": "S/N (USB, comparable DDJ-SZ)",
+      "value": 111,
+      "unit": "dB",
+      "tolerance": null,
+      "source": "DDJ-SZ operating instructions",
+      "confidence": "unverified",
+      "notes": "Different model."
+    }
+  ],
+  "timecode": {
+    "formats": [
+      {
+        "name": "Serato CV02.5",
+        "vendor": "Serato",
+        "carrierHz": 1000,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Standard Serato control vinyl via line/phono input.",
+        "source": "Serato",
+        "confidence": "unverified"
+      }
+    ]
+  },
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "ddjs8-driver",
+      "category": "driver",
+      "title": "DDJ-S8 Windows driver installed and healthy",
+      "why": "Without the Pioneer DJ ASIO driver the device falls back to generic Windows audio (high latency, missing channels) or does not appear in DJ software.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the device by USB and power it on.",
+        "Run the check; it matches Device Manager names against the profile.",
+        "If not present, install the current driver from Pioneer DJ support and reboot."
+      ],
+      "equipment": [
+        "USB cable",
+        "Windows PC"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-driver-signed",
+      "category": "driver",
+      "title": "Driver signed, status OK and ASIO registered",
+      "why": "Unsigned or errored drivers cause crackles, disconnects and ASIO devices missing from the DJ software audio menu.",
+      "method": "driver:check",
+      "params": {
+        "focus": "signed,status,asio"
+      },
+      "steps": [
+        "Run the driver check after the device is powered.",
+        "Review signed / status / ASIO registration results."
+      ],
+      "equipment": [
+        "Windows PC"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-firmware",
+      "category": "software",
+      "title": "DDJ-S8 firmware version up to date",
+      "why": "Old firmware can cause MIDI/jog/DVS faults fixed in later releases.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open the Pioneer DJ firmware/updater utility for DDJ-S8, or the DJ software settings page that shows firmware.",
+        "Note installed firmware version and compare with latest on the Pioneer DJ support page (not auto-checked; version unverified in research).",
+        "Tick when firmware is current or update completed."
+      ],
+      "equipment": [
+        "Pioneer DJ support firmware download"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-software-serato",
+      "category": "software",
+      "title": "Serato DJ Pro installed, no recent crashes",
+      "why": "Crashes or log errors in Serato DJ Pro often explain dropouts that look like hardware faults.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run the Serato DJ Pro log scan.",
+        "Review crash count (90 days) and log errors."
+      ],
+      "equipment": [
+        "Serato DJ Pro"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": {
+        "metricId": "software_crashes_90d",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-usb-master",
+      "category": "audio",
+      "title": "Master output signal health",
+      "why": "Verifies master out path L/R, level and noise.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "Master out"
+      },
+      "steps": [
+        "Connect master output to an audio interface input or recorder.",
+        "Play a test tone in Serato at 0 dB and set master to nominal.",
+        "Run Signal health 10 s."
+      ],
+      "equipment": [
+        "Audio interface",
+        "RCA/TRS cables"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-phones",
+      "category": "audio",
+      "title": "Headphone output check",
+      "why": "Detects dead channel or noise on headphones.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "Phones"
+      },
+      "steps": [
+        "Play a test tone, cue ch1 to headphones.",
+        "Measure headphone out with an adapter into an interface or listen on known-good phones.",
+        "Run Signal health or tick channels L/R."
+      ],
+      "equipment": [
+        "Headphones"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-ground-hum",
+      "category": "safety",
+      "title": "Ground and hum on master out",
+      "why": "Ground loops give 50/60 Hz hum.",
+      "method": "quick:Ground & hum",
+      "params": {},
+      "steps": [
+        "Silence all channels, master up.",
+        "Run Ground & hum with and without a laptop charger."
+      ],
+      "equipment": [
+        "Audio interface"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-latency",
+      "category": "latency",
+      "title": "USB audio round-trip latency (ASIO)",
+      "why": "High buffer sizes cause audible lag in cue/scratch.",
+      "method": "quick:Signal health",
+      "params": {
+        "loopback": true,
+        "asio": true
+      },
+      "steps": [
+        "Loop master output to a mixer line input routed to deck channel (or use the loopback if available).",
+        "Select the Pioneer ASIO driver, buffer 256 samples.",
+        "Run the loopback measurement."
+      ],
+      "equipment": [
+        "Loopback cable"
+      ],
+      "severity": "minor",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-dvs-line-ch1",
+      "category": "dvs",
+      "title": "DVS/Line input channel 1 signal health",
+      "why": "Phono/line inputs feed the DVS timecode; a bad input breaks DVS.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH1 PHONO/LINE"
+      },
+      "steps": [
+        "Connect turntable or CDJ to CH1 rear input; set input selector to PHONO or LINE as appropriate.",
+        "Play control vinyl (or CDJ timecode CD).",
+        "Run Signal health on the CH1 USB return."
+      ],
+      "equipment": [
+        "Control vinyl or timecode CD"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-dvs-line-ch2",
+      "category": "dvs",
+      "title": "DVS/Line input channel 2 signal health",
+      "why": "As above for deck 2.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "CH2 PHONO/LINE"
+      },
+      "steps": [
+        "Connect source to CH2 rear input.",
+        "Play control vinyl.",
+        "Run Signal health."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-tc-cv025-ch1",
+      "category": "timecode",
+      "title": "Timecode check CH1 (Serato CV02.5)",
+      "why": "Checks carrier frequency, phase, balance and dropouts of the turntable cartridge into the interface.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable with Serato control vinyl to CH1.",
+        "Set DVS inputs in Serato.",
+        "Play vinyl at 33 rpm, pitch 0."
+      ],
+      "equipment": [
+        "Serato CV02.5 control vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-tc-cv025-ch2",
+      "category": "timecode",
+      "title": "Timecode check CH2 (Serato CV02.5)",
+      "why": "As above, deck 2.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect a turntable to CH2.",
+        "Play vinyl at 33 rpm."
+      ],
+      "equipment": [
+        "Serato CV02.5 control vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-dvs-signal",
+      "category": "dvs",
+      "title": "DVS signal integrity (generic)",
+      "why": "Dropouts/imbalance cause track skipping.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Play control vinyl, scratch back and forth 20 s.",
+        "Run DVS signal."
+      ],
+      "equipment": [
+        "Control vinyl"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "ddjs8-midi-coverage",
+      "category": "midi",
+      "title": "MIDI coverage: every control reports",
+      "why": "A dead control (broken pot, fader track, switch, pad) never sends MIDI.",
+      "method": "midi:coverage",
+      "params": {
+        "groups": [
+          "Deck 1",
+          "Deck 2",
+          "Mixer",
+          "Browse",
+          "FX",
+          "Pads"
+        ]
+      },
+      "steps": [
+        "Open the MIDI test and select this device's MIDI port.",
+        "Exercise every control once in sequence, each pad/button/knob/fader.",
+        "Review any control not seen and any unexpected message."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_controls_seen_percent",
+        "op": ">=",
+        "value": 100,
+        "value2": null,
+        "unit": "%",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-button-bounce",
+      "category": "midi",
+      "title": "Switch bounce / stuck check (pads, transport and mixer buttons)",
+      "why": "Worn switches double-trigger (bounce) or stick, causing false cue/play triggers.",
+      "method": "midi:button",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Press each button/pad once firmly, then once lightly.",
+        "Hold one for 3 seconds then release.",
+        "Review bounce count and stuck state."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_button_stuck",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-led",
+      "category": "midi",
+      "title": "Pad, button and meter LEDs light correctly",
+      "why": "Dead LEDs hide state (cue, loop, pad bank).",
+      "method": "midi:led",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Start the LED test; the app lights each LED.",
+        "Confirm each lights and has the expected colour/brightness; mark failures."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-jog-jog1",
+      "category": "midi",
+      "title": "Jog wheel deck 1: ticks per revolution and direction",
+      "why": "Encoder/optical faults give missing ticks or reversed counts that cause scratch and nudge errors.",
+      "method": "midi:jog",
+      "params": {
+        "controlId": "jog1"
+      },
+      "steps": [
+        "Rotate Jog wheel deck 1 one slow revolution clockwise, then one counter-clockwise.",
+        "Review ticks per revolution and direction errors."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_jog_direction_errors",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-jog-jog2",
+      "category": "midi",
+      "title": "Jog wheel deck 2: ticks per revolution and direction",
+      "why": "Encoder/optical faults give missing ticks or reversed counts that cause scratch and nudge errors.",
+      "method": "midi:jog",
+      "params": {
+        "controlId": "jog2"
+      },
+      "steps": [
+        "Rotate Jog wheel deck 2 one slow revolution clockwise, then one counter-clockwise.",
+        "Review ticks per revolution and direction errors."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_jog_direction_errors",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "ddjs8-fader-crossfader",
+      "category": "midi",
+      "title": "Crossfader: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. Crossfader wear causes cut-out.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "crossfader"
+      },
+      "steps": [
+        "Move Crossfader slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-fader-ch1_fader",
+      "category": "midi",
+      "title": "Channel fader 1: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch1_fader"
+      },
+      "steps": [
+        "Move Channel fader 1 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-fader-ch2_fader",
+      "category": "midi",
+      "title": "Channel fader 2: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "ch2_fader"
+      },
+      "steps": [
+        "Move Channel fader 2 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-fader-tempo1",
+      "category": "midi",
+      "title": "Tempo slider deck 1: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "tempo1"
+      },
+      "steps": [
+        "Move Tempo slider deck 1 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-fader-tempo2",
+      "category": "midi",
+      "title": "Tempo slider deck 2: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "tempo2"
+      },
+      "steps": [
+        "Move Tempo slider deck 2 slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-fader-master_level",
+      "category": "midi",
+      "title": "Master level knob: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. ",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "master_level"
+      },
+      "steps": [
+        "Move Master level knob slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-eq",
+      "category": "midi",
+      "title": "EQ and filter knobs sweep",
+      "why": "Noisy or dead pots in EQ/filter are common wear items.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "eq_ch1_hi"
+      },
+      "steps": [
+        "Sweep HI, MID, LOW and FILTER on each channel end to end.",
+        "Review jitter and resolution per control (repeat for each control id)."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-midi-jitter",
+      "category": "midi",
+      "title": "MIDI timing jitter under constant motion",
+      "why": "Timing jitter or USB hub congestion makes jogs/scratching feel uneven.",
+      "method": "midi:latency",
+      "params": {},
+      "steps": [
+        "Connect the device directly to a PC USB port (no hub).",
+        "Rotate the main continuous control at a steady speed for 10 seconds.",
+        "Review inter-message jitter."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-channel-balance",
+      "category": "mixer",
+      "title": "Mixer channel balance and hum",
+      "why": "Checks each channel's L/R balance through the internal mixer.",
+      "method": "quick:Signal health",
+      "params": {
+        "perChannel": true
+      },
+      "steps": [
+        "Play the same stereo test tone on each deck.",
+        "Raise each channel fader to unity with EQ flat.",
+        "Run Signal health per channel; compare balance."
+      ],
+      "equipment": [
+        "Audio interface"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-jogs",
+      "category": "mechanical",
+      "title": "Jog wheel inspection",
+      "why": "Rough bearings or loose jog tops spoil scratching.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Jog spins smoothly, no grinding.",
+        "Jog top has no wobble or cracks.",
+        "Platter side touch works on pressure."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-faders",
+      "category": "mechanical",
+      "title": "Crossfader and fader feel",
+      "why": "Scratchy or loose faders.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Crossfader moves smoothly and cuts cleanly at both ends.",
+        "Channel faders and tempo sliders smooth, no side play.",
+        "Crossfader curve/reverse switches function."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "ddjs8-connectors",
+      "category": "mechanical",
+      "title": "Rear connectors and USB",
+      "why": "Loose jacks cause dropouts and hum.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "USB, RCA, TRS/XLR master and phones jacks firm.",
+        "Mic input with level knob works.",
+        "Power or USB cable seated; no case cracks."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}

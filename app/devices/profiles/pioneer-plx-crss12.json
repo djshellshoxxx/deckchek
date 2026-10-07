@@ -1,0 +1,957 @@
+{
+  "schemaVersion": 1,
+  "id": "pioneer-plx-crss12",
+  "manufacturer": "Pioneer DJ",
+  "model": "PLX-CRSS12",
+  "aliases": [
+    "Cross 12",
+    "CRSS12"
+  ],
+  "category": "turntable",
+  "summary": "Direct-drive hybrid turntable with built-in digital vinyl (DVS) over USB for rekordbox and Serato DJ Pro, four performance pads, and normal analog playback.",
+  "identityNotes": "Single revision assumed; no MK2 known. Research was limited: official Pioneer DJ, Serato, Wikimedia and manual hosts were blocked, so most values come from retailer listings and press coverage and are flagged unverified.",
+  "image": {
+    "file": "pioneer-plx-crss12.svg",
+    "kind": "illustration",
+    "source": "original DeckChek illustration (no free-licensed photo could be fetched)",
+    "license": "original work, project licence",
+    "author": "DeckChek"
+  },
+  "documents": [
+    {
+      "title": "PLX-CRSS12 product page",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/turntable/plx-crss12/black/overview/",
+      "language": "en",
+      "notes": "Official page; not retrievable in this environment."
+    },
+    {
+      "title": "PLX-CRSS12 launch announcement",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/news/2023/plx-crss12-professional-direct-drive-turntable-with-dvs-control/",
+      "language": "en",
+      "notes": "Seen in search results only (snippet)."
+    },
+    {
+      "title": "PLX-CRSS12 support downloads",
+      "type": "driver",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en",
+      "notes": "Operating instructions, drivers, firmware. Exact URL per product unverified."
+    },
+    {
+      "title": "Serato hardware page",
+      "type": "support-article",
+      "url": "https://serato.com/dj/hardware/pioneer-plx-crss12",
+      "language": "en",
+      "notes": "Serato DVS support; not retrievable here."
+    },
+    {
+      "title": "VirtualDJ setup manual",
+      "type": "support-article",
+      "url": "https://virtualdj.com/manuals/hardware/pioneer/plxcrss12/setup.html",
+      "language": "en",
+      "notes": "Third-party; not retrievable here."
+    },
+    {
+      "title": "Pioneer NZ specifications",
+      "type": "spec-sheet",
+      "url": "https://pioneernz.co.nz/pages/specifications-plx-crss12",
+      "language": "en",
+      "notes": "Distributor spec page, source of wow/flutter, S/N, start time."
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "language": "en",
+      "notes": "No public service manual found."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": "0x2B73",
+      "productIds": [],
+      "classCompliant": false,
+      "notes": "Vendor ID is Pioneer DJ's (0x2B73) by convention; product ID not confirmed. USB-C. Whether USB audio is class-compliant is unverified; a Pioneer driver is assumed for ASIO on Windows."
+    },
+    "midi": {
+      "usbMidi": true,
+      "din": false,
+      "portNamePatterns": [
+        "PLX-CRSS12",
+        "CRSS12"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [
+        44100,
+        48000
+      ],
+      "bitDepth": 24
+    },
+    "analog": [
+      "PHONO/LINE output (RCA, switchable) - unverified detail",
+      "Ground lead",
+      "USB-C"
+    ]
+  },
+  "drivers": [
+    {
+      "os": "windows",
+      "name": "Pioneer DJ PLX-CRSS12 driver / Pioneer DJ ASIO",
+      "asioName": null,
+      "deviceNamePatterns": [
+        "PLX-CRSS12",
+        "CRSS12",
+        "Pioneer DJ"
+      ],
+      "provider": "Pioneer DJ Corporation",
+      "latestKnownVersion": null,
+      "url": "https://www.pioneerdj.com/en/support/",
+      "required": true,
+      "notes": "Official driver name and version not confirmed (support site blocked). Check download page for current version."
+    }
+  ],
+  "software": [
+    {
+      "name": "rekordbox",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Built-in DVS and performance pads; DVS is available when the CRSS12 is connected (per press coverage)."
+    },
+    {
+      "name": "Serato DJ Pro",
+      "role": "dvs",
+      "minVersion": null,
+      "notes": "Per press coverage a DVS-certified mixer/interface may still be required for Serato; verify at Serato hardware page."
+    },
+    {
+      "name": "Pioneer DJ firmware updater",
+      "role": "firmware-updater",
+      "minVersion": null,
+      "notes": "If published."
+    }
+  ],
+  "specs": [
+    {
+      "key": "wow_flutter",
+      "label": "Wow and flutter",
+      "value": 0.15,
+      "unit": "% WRMS",
+      "tolerance": null,
+      "source": "Retailer/aggregator spec listing surfaced via web search (B&H / pioneernz.co.nz); official Pioneer DJ pages were blocked from this research environment (JIS WTD)",
+      "confidence": "unverified",
+      "notes": "Listed 'or less'."
+    },
+    {
+      "key": "snr",
+      "label": "Signal to noise ratio",
+      "value": 65,
+      "unit": "dB (DIN-B)",
+      "tolerance": null,
+      "source": "Retailer/aggregator spec listing surfaced via web search (B&H / pioneernz.co.nz); official Pioneer DJ pages were blocked from this research environment",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "start_time",
+      "label": "Start time (33 1/3 rpm)",
+      "value": 0.3,
+      "unit": "s",
+      "tolerance": null,
+      "source": "Retailer/aggregator spec listing surfaced via web search (B&H / pioneernz.co.nz); official Pioneer DJ pages were blocked from this research environment",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "pitch_ranges",
+      "label": "Pitch ranges",
+      "value": "±8, ±16, ±50",
+      "unit": "%",
+      "tolerance": null,
+      "source": "Retailer/aggregator spec listing surfaced via web search (B&H / pioneernz.co.nz); official Pioneer DJ pages were blocked from this research environment",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "speeds",
+      "label": "Speeds",
+      "value": "33 1/3, 45",
+      "unit": "rpm",
+      "tolerance": null,
+      "source": "product knowledge",
+      "confidence": "unverified",
+      "notes": "78 rpm not stated."
+    },
+    {
+      "key": "drive",
+      "label": "Drive system",
+      "value": "direct drive",
+      "unit": "",
+      "tolerance": null,
+      "source": "Retailer/aggregator spec listing surfaced via web search (B&H / pioneernz.co.nz); official Pioneer DJ pages were blocked from this research environment",
+      "confidence": "unverified",
+      "notes": null
+    },
+    {
+      "key": "usb_audio",
+      "label": "USB audio format",
+      "value": null,
+      "unit": "",
+      "tolerance": null,
+      "source": "not found",
+      "confidence": "unverified",
+      "notes": "Sample rate/channel count not confirmed; likely stereo 44.1/48 kHz, 24-bit."
+    }
+  ],
+  "timecode": {
+    "formats": [
+      {
+        "name": "Internal Digital Vinyl signal (Serato mode)",
+        "vendor": "Serato",
+        "carrierHz": null,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Reviews say the unit generates its own timecode via the clamp/internal generator without control vinyl; which exact timecode signal (e.g. Serato CV02.5 at 1 kHz vs a Pioneer-specific carrier) is unconfirmed.",
+        "source": "https://wearecrossfader.co.uk/blog/pioneer-dj-plx-crss12-review/ (via search snippet)",
+        "confidence": "unverified"
+      },
+      {
+        "name": "rekordbox DVS internal signal",
+        "vendor": "Pioneer DJ",
+        "carrierHz": null,
+        "atRpm": 33.333,
+        "quadrature": true,
+        "leadInSec": null,
+        "notes": "Format name and carrier unconfirmed.",
+        "source": "press coverage",
+        "confidence": "unverified"
+      }
+    ]
+  },
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "crss12-driver",
+      "category": "driver",
+      "title": "PLX-CRSS12 Windows driver installed and healthy",
+      "why": "Without the Pioneer DJ ASIO driver the device falls back to generic Windows audio (high latency, missing channels) or does not appear in DJ software.",
+      "method": "driver:check",
+      "params": {},
+      "steps": [
+        "Connect the device by USB and power it on.",
+        "Run the check; it matches Device Manager names against the profile.",
+        "If not present, install the current driver from Pioneer DJ support and reboot."
+      ],
+      "equipment": [
+        "USB cable",
+        "Windows PC"
+      ],
+      "severity": "critical",
+      "software": null,
+      "pass": {
+        "metricId": "driver_present",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-driver-signed",
+      "category": "driver",
+      "title": "Driver signed, status OK and ASIO registered",
+      "why": "Unsigned or errored drivers cause crackles, disconnects and ASIO devices missing from the DJ software audio menu.",
+      "method": "driver:check",
+      "params": {
+        "focus": "signed,status,asio"
+      },
+      "steps": [
+        "Run the driver check after the device is powered.",
+        "Review signed / status / ASIO registration results."
+      ],
+      "equipment": [
+        "Windows PC"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "driver_status_ok",
+        "op": "equals",
+        "value": 1,
+        "value2": null,
+        "unit": "bool",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-firmware",
+      "category": "software",
+      "title": "PLX-CRSS12 firmware version up to date",
+      "why": "Old firmware can cause MIDI/jog/DVS faults fixed in later releases.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open the Pioneer DJ firmware/updater utility for PLX-CRSS12, or the DJ software settings page that shows firmware.",
+        "Note installed firmware version and compare with latest on the Pioneer DJ support page (not auto-checked; version unverified in research).",
+        "Tick when firmware is current or update completed."
+      ],
+      "equipment": [
+        "Pioneer DJ support firmware download"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-software-rekordbox",
+      "category": "software",
+      "title": "rekordbox installed, no recent crashes",
+      "why": "Crashes or log errors in rekordbox often explain dropouts that look like hardware faults.",
+      "method": "software:check",
+      "params": {
+        "software": "rekordbox"
+      },
+      "steps": [
+        "Run the rekordbox log scan.",
+        "Review crash count (90 days) and log errors."
+      ],
+      "equipment": [
+        "rekordbox"
+      ],
+      "severity": "major",
+      "software": "rekordbox",
+      "pass": {
+        "metricId": "software_crashes_90d",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-software-serato",
+      "category": "software",
+      "title": "Serato DJ Pro installed, no recent crashes",
+      "why": "Crashes or log errors in Serato DJ Pro often explain dropouts that look like hardware faults.",
+      "method": "software:check",
+      "params": {
+        "software": "Serato DJ Pro"
+      },
+      "steps": [
+        "Run the Serato DJ Pro log scan.",
+        "Review crash count (90 days) and log errors."
+      ],
+      "equipment": [
+        "Serato DJ Pro"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": {
+        "metricId": "software_crashes_90d",
+        "op": "<=",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-usb-audio",
+      "category": "audio",
+      "title": "USB audio return (DVS signal) signal health",
+      "why": "Confirms the USB audio path delivers a clean, level-balanced stereo signal into the DJ software.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "PLX-CRSS12 USB"
+      },
+      "steps": [
+        "Connect the CRSS12 via USB-C and select it as audio device in rekordbox or Serato.",
+        "Set the deck to digital vinyl/DVS mode and press START.",
+        "Run Signal health on the CRSS12 USB input for 10 seconds."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-analog-out",
+      "category": "audio",
+      "title": "Analog PHONO/LINE output signal health (both channels)",
+      "why": "Checks the analog output path (RCA) for channel loss, imbalance or noise independent of USB.",
+      "method": "quick:Signal health",
+      "params": {
+        "inputs": "mixer channel fed by CRSS12"
+      },
+      "steps": [
+        "Connect the CRSS12 RCA output to a mixer line/phono input and set the input selector accordingly (check the PHONO/LINE switch on the unit).",
+        "Play a known record or test record.",
+        "Run Signal health on that mixer channel."
+      ],
+      "equipment": [
+        "Mixer or audio interface",
+        "Test record"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-ground-hum",
+      "category": "safety",
+      "title": "Ground and hum check (analog out)",
+      "why": "A missing ground wire or bad RCA cable produces 50/60 Hz hum.",
+      "method": "quick:Ground & hum",
+      "params": {},
+      "steps": [
+        "Connect the analog output and the ground lead to the mixer GND post (ground lead behaviour for this model unverified).",
+        "Lower the tonearm onto an inactive area / lift tonearm and play.",
+        "Run Ground & hum; compare with ground lead connected and removed."
+      ],
+      "equipment": [
+        "Mixer",
+        "RCA and ground leads"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-vibration",
+      "category": "mechanical",
+      "title": "Motor and bearing vibration",
+      "why": "Platter or motor vibration feeds rumble to the cartridge and the timecode signal.",
+      "method": "quick:Vibration",
+      "params": {},
+      "steps": [
+        "Place the turntable on a stable surface with feet adjusted.",
+        "Run Vibration with platter spinning at 33 rpm, then 45 rpm, tonearm lifted."
+      ],
+      "equipment": [
+        "Test record optional"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-speed-33",
+      "category": "speed",
+      "title": "Speed accuracy at 33 1/3 rpm (pitch 0%)",
+      "why": "Checks the quartz-locked motor against nominal speed.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "nominalRpm": 33.333333,
+        "referenceHz": 1000,
+        "pitchPosition": 0
+      },
+      "steps": [
+        "Set speed to 33 rpm and pitch to 0 (centre click).",
+        "Play a 1 kHz test record or, in Digital Vinyl mode, the generated timecode through the speed test.",
+        "Run the test for 30 seconds."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-speed-45",
+      "category": "speed",
+      "title": "Speed accuracy at 45 rpm (pitch 0%)",
+      "why": "Checks 45 rpm quartz lock.",
+      "method": "speed:Speed & pitch",
+      "params": {
+        "nominalRpm": 45,
+        "referenceHz": 1000,
+        "pitchPosition": 0
+      },
+      "steps": [
+        "Set speed to 45 rpm, pitch 0.",
+        "Run the test for 30 seconds."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-pitch-map-8",
+      "category": "pitch",
+      "title": "Pitch map, range ±8%",
+      "why": "Verifies the slider tracks linearly and reaches ±8% (documented range).",
+      "method": "speed:Pitch map",
+      "params": {
+        "nominalRpm": 33.333333,
+        "range": 8,
+        "pitchPositions": [
+          -8,
+          -4,
+          0,
+          4,
+          8
+        ]
+      },
+      "steps": [
+        "Select the ±8% range.",
+        "At each listed slider position run the Pitch map step.",
+        "Review error per position."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-pitch-map-16",
+      "category": "pitch",
+      "title": "Pitch map, range ±16%",
+      "why": "Verifies ±16% range.",
+      "method": "speed:Pitch map",
+      "params": {
+        "nominalRpm": 33.333333,
+        "range": 16,
+        "pitchPositions": [
+          -16,
+          -8,
+          0,
+          8,
+          16
+        ]
+      },
+      "steps": [
+        "Select ±16%.",
+        "Run each position."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-pitch-map-50",
+      "category": "pitch",
+      "title": "Pitch map, range ±50%",
+      "why": "Verifies ±50% wide range, used for scratch/tape-stop effects.",
+      "method": "speed:Pitch map",
+      "params": {
+        "nominalRpm": 33.333333,
+        "range": 50,
+        "pitchPositions": [
+          -50,
+          -25,
+          0,
+          25,
+          50
+        ]
+      },
+      "steps": [
+        "Select ±50%.",
+        "Run each position."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-quartz-lock",
+      "category": "speed",
+      "title": "Quartz lock stability",
+      "why": "The platter should hold speed at pitch 0 with quartz lock engaged; drift indicates motor/PLL faults.",
+      "method": "speed:Quartz lock",
+      "params": {
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Enable quartz lock if the unit has a toggle (unverified for this model).",
+        "Run Quartz lock for 2 minutes at 33 rpm."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-warmup",
+      "category": "speed",
+      "title": "Warm-up speed drift",
+      "why": "Motor drifting as it warms indicates driver faults.",
+      "method": "speed:Warm-up speed",
+      "params": {
+        "nominalRpm": 33.333333,
+        "durationMin": 15
+      },
+      "steps": [
+        "Start from cold, run at 33 rpm.",
+        "Run Warm-up speed for 15 minutes."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-startstop",
+      "category": "speed",
+      "title": "Start time and brake",
+      "why": "Spec states 0.3 s start time; slow or lazy start/brake indicates motor or torque issues.",
+      "method": "speed:Startup & brake",
+      "params": {
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Stop the platter, press START/STOP; run Startup & brake.",
+        "Compare start time to the 0.3 s figure (retailer-quoted; official unverified)."
+      ],
+      "equipment": [
+        "1 kHz test record or timecode"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-tc-serato",
+      "category": "timecode",
+      "title": "Internal Digital Vinyl signal: Serato mode",
+      "why": "Verifies the internally generated control signal is clean for Serato DJ Pro.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect USB, open Serato DJ Pro, set the deck to Digital Vinyl mode.",
+        "Press START/STOP so the platter spins.",
+        "Run format-check on the USB input. Format shown is an assumption (Serato CV02.5); see research notes."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "crss12-tc-rb",
+      "category": "timecode",
+      "title": "Internal Digital Vinyl signal: rekordbox mode",
+      "why": "Verifies the control signal is clean for rekordbox DVS.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "rekordbox DVS",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect USB, open rekordbox in Performance mode and enable the CRSS12 deck.",
+        "Press START/STOP.",
+        "Run format-check. The exact rekordbox format name is unverified."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": "rekordbox",
+      "pass": null
+    },
+    {
+      "id": "crss12-dvs-serato",
+      "category": "dvs",
+      "title": "DVS signal integrity in Serato DJ Pro",
+      "why": "Dropouts or channel imbalance cause the track to skip or lose position.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Digital Vinyl mode in Serato; spin the platter, then scratch back and forth for 20 seconds.",
+        "Run DVS signal."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "crss12-dvs-rb",
+      "category": "dvs",
+      "title": "DVS signal integrity in rekordbox",
+      "why": "Same as above for rekordbox.",
+      "method": "dvs:DVS signal",
+      "params": {},
+      "steps": [
+        "Enable DVS in rekordbox.",
+        "Spin and scratch for 20 seconds.",
+        "Run DVS signal."
+      ],
+      "equipment": [
+        "USB-C cable"
+      ],
+      "severity": "major",
+      "software": "rekordbox",
+      "pass": null
+    },
+    {
+      "id": "crss12-dvs-scratch-sw",
+      "category": "dvs",
+      "title": "Scratch response and platter touch",
+      "why": "Platter touch/motion should map to track position without lag.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "In each software, load a track and hold the platter: track should stop; release: track resumes.",
+        "Back-cue and forward-cue at slow speed and check for stutter, drift or position jumps.",
+        "Tick if response is immediate with no skipping."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": "Serato DJ Pro",
+      "pass": null
+    },
+    {
+      "id": "crss12-midi-coverage",
+      "category": "midi",
+      "title": "MIDI coverage: every control reports",
+      "why": "A dead control (broken pot, fader track, switch, pad) never sends MIDI.",
+      "method": "midi:coverage",
+      "params": {
+        "groups": [
+          "Deck",
+          "Pads"
+        ]
+      },
+      "steps": [
+        "Open the MIDI test and select this device's MIDI port.",
+        "Exercise every control once in sequence, each pad/button/knob/fader.",
+        "Review any control not seen and any unexpected message."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_controls_seen_percent",
+        "op": ">=",
+        "value": 100,
+        "value2": null,
+        "unit": "%",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-button-bounce",
+      "category": "midi",
+      "title": "Switch bounce / stuck check (START/STOP, pads, mode buttons)",
+      "why": "Worn switches double-trigger (bounce) or stick, causing false cue/play triggers.",
+      "method": "midi:button",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Press each button/pad once firmly, then once lightly.",
+        "Hold one for 3 seconds then release.",
+        "Review bounce count and stuck state."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_button_stuck",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-led",
+      "category": "midi",
+      "title": "Performance pad and button LEDs light correctly",
+      "why": "Dead LEDs hide state (cue, loop, pad bank).",
+      "method": "midi:led",
+      "params": {
+        "controlIds": []
+      },
+      "steps": [
+        "Start the LED test; the app lights each LED.",
+        "Confirm each lights and has the expected colour/brightness; mark failures."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-jog-platter",
+      "category": "midi",
+      "title": "Platter (MIDI/DVS motion): ticks per revolution and direction",
+      "why": "Encoder/optical faults give missing ticks or reversed counts that cause scratch and nudge errors.",
+      "method": "midi:jog",
+      "params": {
+        "controlId": "platter"
+      },
+      "steps": [
+        "Rotate Platter (MIDI/DVS motion) one slow revolution clockwise, then one counter-clockwise.",
+        "Review ticks per revolution and direction errors."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": {
+        "metricId": "midi_jog_direction_errors",
+        "op": "equals",
+        "value": 0,
+        "value2": null,
+        "unit": "count",
+        "source": "DeckChek test definition (not a manufacturer spec)"
+      }
+    },
+    {
+      "id": "crss12-fader-pitch",
+      "category": "midi",
+      "title": "Pitch fader: full travel, monotonic, low jitter",
+      "why": "Worn tracks or dirty pots cause jumps, dead zones or jitter. Spec ranges ±8/±16/±50%.",
+      "method": "midi:fader",
+      "params": {
+        "controlId": "pitch"
+      },
+      "steps": [
+        "Move Pitch fader slowly end to end, then back, three times.",
+        "Pause at the middle for 2 seconds.",
+        "Review min/max, monotonicity, jitter and resolution."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-midi-jitter",
+      "category": "midi",
+      "title": "MIDI timing jitter under constant motion",
+      "why": "Timing jitter or USB hub congestion makes jogs/scratching feel uneven.",
+      "method": "midi:latency",
+      "params": {},
+      "steps": [
+        "Connect the device directly to a PC USB port (no hub).",
+        "Rotate the main continuous control at a steady speed for 10 seconds.",
+        "Review inter-message jitter."
+      ],
+      "equipment": [
+        "USB cable"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-platter",
+      "category": "mechanical",
+      "title": "Platter and spindle inspection",
+      "why": "Damage to the platter or the magnet clamp affects the generated signal and speed.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Platter sits flat, no wobble or rubbing.",
+        "Slipmat present, not worn or ripped.",
+        "Spindle / MAGVEL-CLAMP intact, no looseness (clamp described by reviewers; unverified in manual)."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-tonearm",
+      "category": "mechanical",
+      "title": "Tonearm, headshell and cartridge",
+      "why": "Tonearm play or a damaged stylus degrades analog playback and tracking.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Tonearm moves freely vertically and laterally with no play.",
+        "Headshell connectors secure, wires tight.",
+        "Stylus tip clean, no bent cantilever.",
+        "Counterweight and anti-skate settings match the cartridge."
+      ],
+      "equipment": [],
+      "severity": "major",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-controls",
+      "category": "mechanical",
+      "title": "Controls, pads, pitch fader and connectors",
+      "why": "Worn pads, faders or USB-C and RCA ports cause dropouts.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Pads and buttons click evenly, none sticky.",
+        "Pitch fader smooth with a centre detent, no scratchiness.",
+        "Start-Stop, speed select and range buttons respond.",
+        "USB-C port and RCA/ground connectors firm, no wobble.",
+        "Feet and body: no cracks, dust cover seated."
+      ],
+      "equipment": [],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    },
+    {
+      "id": "crss12-cartridge-channel",
+      "category": "cartridge",
+      "title": "Cartridge channel check (analog)",
+      "why": "Detects dead or reversed channel in the analog path.",
+      "method": "cartridge:Channel & cartridge",
+      "params": {},
+      "steps": [
+        "Play a channel-check test record on the analog output.",
+        "Run Channel & cartridge."
+      ],
+      "equipment": [
+        "Test record"
+      ],
+      "severity": "minor",
+      "software": null,
+      "pass": null
+    }
+  ]
+}
