@@ -6,6 +6,7 @@ import { settings } from './ui/state.js';
 import { WORKFLOWS } from './ui/workflows/definitions.js';
 import { createWorkflowScreen } from './ui/workflows/flow.js';
 import { createCalibrationScreen } from './ui/screens/calibration.js';
+import { createSystemScreen } from './ui/screens/system.js';
 import { createEquipmentScreen } from './ui/screens/equipment.js';
 import { createHistoryScreen } from './ui/screens/history.js';
 import { migrateLocalRuns } from './ui/persistence.js';
@@ -15,6 +16,7 @@ import { isNative } from './ui/dom.js';
 const SCREENS = [
   ...WORKFLOWS.map(def => ({ id: def.id, title: def.title, short: def.short, icon: def.icon, create: createWorkflowScreen(def) })),
   { id: 'calibration', title: 'Calibration', short: 'Calibrate', icon: 'calibration', create: createCalibrationScreen },
+  { id: 'system', title: 'System Health', short: 'System', icon: 'system', create: createSystemScreen },
   { id: 'equipment', title: 'Equipment', short: 'Equipment', icon: 'equipment', create: createEquipmentScreen },
   { id: 'history', title: 'History', short: 'History', icon: 'history', create: createHistoryScreen },
 ];

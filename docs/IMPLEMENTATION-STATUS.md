@@ -23,7 +23,7 @@ This file records implementation state separately from product specifications. A
 - Guided Setup→Capture→Results workflows for Quick Check, Speed & Pitch, Cartridge, DVS and Vinyl Scan.
 - Calibration, Equipment and History screens with list/detail views.
 - Live meters with peak hold and clip latch; run history A/B comparison.
-- Keyboard shortcuts (Space, Esc, Ctrl+E, Ctrl+1..8) with focus management and aria-live regions.
+- Keyboard shortcuts (Space, Esc, Ctrl+E, Ctrl+1..9) with focus management and aria-live regions.
 - Catalog CRUD for manufacturer, product, asset, setup and venue; starter catalog seeding; evidence graph persistence (hypothesis/support/contradiction); repeat-scan alignment persistence; run history.
 - HTML diagnostic reports with verdict-first layout and ±uncertainty badges.
 - CSV measurement export and JSON workspace export/import (versioned).
