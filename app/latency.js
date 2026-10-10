@@ -519,10 +519,10 @@ export function createLatencyTuner({ invoke } = {}) {
       return call('stress_run', { deviceName, outDevice, bufferFrames, seconds, cpuLoadPct, gapFloorMs, sampleRate, step });
     },
     /** Plays the chirp stimulus through audio_out and returns the raw result plus the analysis. */
-    async measure({ deviceName = null, outDevice = null, bufferFrames = null, sampleRate = 48000, levelDbfs = DEFAULT_LEVEL_DBFS, repeats = REPEATS, step = null, typedPanelFrames = null } = {}) {
+    async measure({ deviceName = null, outDevice = null, bufferFrames = null, sampleRate = 48000, levelDbfs = DEFAULT_LEVEL_DBFS, repeats = REPEATS, step = null, typedPanelFrames = null, pairs = null } = {}) {
       const stim = chirpStimulus(sampleRate, { repeats, levelDbfs });
       const result = await call('latency_play_and_capture', {
-        deviceName, outDevice, stimulus: { sampleRate, left: Array.from(stim.left), right: [] }, bufferFrames, levelDbfs: stim.meta.levelDbfs, step,
+        deviceName, outDevice, stimulus: { sampleRate, left: Array.from(stim.left), right: [] }, bufferFrames, levelDbfs: stim.meta.levelDbfs, step, ...(pairs ? { pairs } : {}),
       });
       if (!result?.captured) return { result, analysis: null, comparison: null };
       const analysis = measureRoundTrip(result.captured, stim.meta, { alignment: result.alignment });

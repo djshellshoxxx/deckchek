@@ -685,6 +685,9 @@ pub struct RoundTripRequest {
     pub level_dbfs: Option<f32>,
     pub tail_sec: Option<f64>,
     pub step: Option<u32>,
+    /// First channel (1-based, odd) of the input pair to analyse; default is pair 1-2 (FS-00 §4.7).
+    #[serde(default)]
+    pub pairs: Option<Vec<u16>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1061,7 +1064,16 @@ impl Tuner {
         let mut acc = None;
         let mut input = input;
         if let Some(meta) = &in_notes.meta {
-            acc = Some(Accumulator::with_pairs((meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize, &crate::audio::input_pairs(2)[..1]));
+            let chosen = match crate::audio::resolve_pairs(r.pairs.as_deref(), meta.channels, &meta.device_name) {
+                Ok(p) => p,
+                Err(message) => {
+                    if let Some(side) = input.take() {
+                        side.handle.close();
+                    }
+                    return Err(invalid(&message));
+                }
+            };
+            acc = Some(Accumulator::with_pairs((meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize, &chosen[..1]));
             let req = PlayRequest::Buffer(
                 stim.clone(),
                 BufferOpts { level_dbfs: level, cap_dbfs: None, looped: false, ramp_ms: Some(audio_out::MIN_RAMP_MS) },
@@ -2093,9 +2105,10 @@ pub async fn latency_play_and_capture(
     buffer_frames: Option<u32>,
     level_dbfs: Option<f32>,
     step: Option<u32>,
+    pairs: Option<Vec<u16>>,
 ) -> Result<RoundTripResult, CaptureError> {
     let lease = state.lease.clone();
-    let req = RoundTripRequest { device_name, out_device, stimulus, buffer_frames, level_dbfs, tail_sec: None, step };
+    let req = RoundTripRequest { device_name, out_device, stimulus, buffer_frames, level_dbfs, tail_sec: None, step, pairs };
     // One DeckChek voice at a time: the tuner's engine shares the global output
     // group, so its play fades out the global voice, but only once the run has
     // the run slot and the capture lease (a busy input leaves the tone alone).
@@ -2394,7 +2407,7 @@ mod tests {
     }
 
     fn rt_req(stim: BufferInput, frames: Option<u32>, level: Option<f32>) -> RoundTripRequest {
-        RoundTripRequest { device_name: None, out_device: None, stimulus: stim, buffer_frames: frames, level_dbfs: level, tail_sec: Some(0.1), step: None }
+        RoundTripRequest { device_name: None, out_device: None, stimulus: stim, buffer_frames: frames, level_dbfs: level, tail_sec: Some(0.1), step: None, pairs: None }
     }
 
     fn peak_index(v: &[f32]) -> (usize, f32) {
@@ -2726,6 +2739,19 @@ mod tests {
         let rtl = idx as f64 - (4_800.0 + a.frames);
         assert_eq!(rtl, (256 + 256 + 37) as f64);
         assert_eq!(r.quality.frames_captured as usize, cap.left.len());
+    }
+
+    #[test]
+    fn round_trip_pair_outside_the_device_is_refused_and_releases_the_lease() {
+        let f = Fake::new(Policy::Honour, Policy::Honour);
+        let lease = CaptureLease::default();
+        let mut req = rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), Some(-20.0));
+        req.pairs = Some(vec![3]);
+        let CaptureError::Message(err) = tuner(&f).round_trip(&lease, &req, &no_progress).unwrap_err() else { panic!("expected a message") };
+        assert!(err.starts_with("LATENCY_INVALID") && err.contains("Input pair 3-4 is not available"), "{err}");
+        assert!(!lease.is_held());
+        req.pairs = Some(vec![1]);
+        assert_eq!(tuner(&f).round_trip(&lease, &req, &no_progress).unwrap().ended, RunEnd::Completed);
     }
 
     #[test]
