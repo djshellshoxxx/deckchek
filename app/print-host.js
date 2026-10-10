@@ -60,6 +60,15 @@ function waitForImages(root) {
   })));
 }
 
+/** Same-origin report stylesheets (the `<link>` fallback of report-pdf.js) must load before printing. */
+function waitForStylesheets(document) {
+  const links = Array.from(document.querySelectorAll('link[data-print-content]')).filter((l) => !l.sheet);
+  return Promise.all(links.map((link) => new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  })));
+}
+
 function adopt(doc, document) {
   document.querySelectorAll('[data-print-content]').forEach((el) => el.remove());
   for (const el of Array.from(doc.head.querySelectorAll('style, link'))) {
@@ -76,7 +85,7 @@ function adopt(doc, document) {
 }
 
 export function createPrintHost(win) {
-  const host = { state: 'idle', error: null, version: 1, render };
+  const host = { state: 'idle', error: null, version: 2, render };
   function render(html) {
     host.state = 'loading';
     host.error = null;
@@ -89,8 +98,8 @@ export function createPrintHost(win) {
       host.error = String((e && e.message) || e).slice(0, 200);
       return host.state;
     }
-    const fonts = win.document.fonts && win.document.fonts.ready ? win.document.fonts.ready : Promise.resolve();
-    withTimeout(Promise.all([fonts, waitForImages(win.document)]), ASSET_TIMEOUT_MS)
+    // Stylesheets first: fonts.ready only covers fonts the (styled) layout actually requests.
+    withTimeout(waitForStylesheets(win.document).then(() => Promise.all([win.document.fonts && win.document.fonts.ready, waitForImages(win.document)])), ASSET_TIMEOUT_MS)
       // One macrotask so layout settles; rAF is not used because it stalls in hidden windows.
       .then(() => new Promise((resolve) => setTimeout(resolve, 0)))
       .then(() => { host.state = 'ready'; }, (e) => {
