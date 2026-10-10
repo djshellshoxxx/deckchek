@@ -10,7 +10,8 @@ import { confirmDialog } from '../shell.js';
 import { settings, store, active } from '../state.js';
 import { listOutputDevices, outputSelectionSupported, liveAvailable } from '../audio-io.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
-import { PROTOCOL_V1, SCRATCH_DEFAULTS, createScratchApi, summarizeScratch, skipSafety, compareScores, protocolTimeline } from '../../scratch.js';
+import { PROTOCOL_V1, SCRATCH_DEFAULTS, createScratchApi, summarizeScratch, skipSafety, compareScores, groupScratchRuns, protocolTimeline } from '../../scratch.js';
+import { createRecordsApi } from '../workflows/wearmap.js';
 import { createScratchRunner, SKIP_CALIBRATION, BPM_RANGE, METRONOME_LEAD_SEC } from '../workflows/scratch.js';
 
 const COMPONENT_LABEL = { continuity: 'Lock continuity', recovery: 'Recovery time', direction: 'Direction accuracy', stability: 'Signal stability', skips: 'Needle skips' };
@@ -150,7 +151,7 @@ export function renderResultView(host, v, { meta = '' } = {}) {
 
 export function createScratchScreen(section) {
   const api = createScratchApi();
-  const st = { tab: 'test', runs: null, detail: null, cartridges: [], outputs: [], form: { format: TIMECODE_FORMATS.find(f => /CV02/.test(f.name))?.name || TIMECODE_FORMATS[0].name, bpm: BPM_RANGE.default, cartridgeAssetId: '', trackingForceG: '', tonearmNote: '', levelDbfs: SCRATCH_DEFAULTS.metronomeDbfs, sinkId: '', volumeAck: false }, cmp: { a: '', b: '' } };
+  const st = { tab: 'test', runs: null, detail: null, cartridges: [], setups: [], sides: [], outputs: [], form: { setupId: '', recordSideId: '', format: TIMECODE_FORMATS.find(f => /CV02/.test(f.name))?.name || TIMECODE_FORMATS[0].name, bpm: BPM_RANGE.default, cartridgeAssetId: '', trackingForceG: '', tonearmNote: '', levelDbfs: SCRATCH_DEFAULTS.metronomeDbfs, sinkId: '', volumeAck: false }, cmp: { a: '', b: '' } };
   let runner = null, lastPhase = null;
   const live = liveAvailable();
 
@@ -198,6 +199,16 @@ export function createScratchScreen(section) {
       st.cartridges = assets.filter(a => cart.has(a.productId)).map(a => ({ id: a.id, label: a.nickname || [name(a.productId)?.model].filter(Boolean).join(' ') || 'Cartridge' }));
     } catch { st.cartridges = []; }
   }
+  async function loadSetupsAndSides() {
+    try { st.setups = (await store.list('setup')).map(u => ({ id: u.id, label: u.name || 'Setup' })); } catch { st.setups = []; }
+    try {
+      const copies = await (st.recordsApi ||= createRecordsApi()).list();
+      st.sides = copies.filter(c => !c.retired).flatMap(c => (c.sides || []).map(sd => ({ id: sd.id, label: `${c.title || 'Control vinyl'}${c.nickname ? ` (${c.nickname})` : ''} · side ${sd.sideLabel}` })));
+    } catch { st.sides = []; }
+  }
+  const setupLabel = id => st.setups.find(u => u.id === id)?.label || 'Unknown setup';
+  const sideLabel = id => st.sides.find(u => u.id === id)?.label || 'Unknown control vinyl';
+  const linkText = o => `${o.setupId ? ` · ${setupLabel(o.setupId)}` : ''}${o.recordSideId ? ` · ${sideLabel(o.recordSideId)}` : ''}`;
   const cartridgeLabel = id => (id ? st.cartridges.find(c => c.id === id)?.label || 'Unknown cartridge' : 'Not recorded');
   async function loadRuns() {
     try { st.runs = await api.list({ protocolVersion: PROTOCOL_V1.v }); st.runsError = null; } catch (error) { st.runs = []; st.runsError = error?.message || String(error); }
@@ -233,7 +244,7 @@ export function createScratchScreen(section) {
   function formValues() {
     const f = st.form;
     return { format: f.format, bpm: Number(f.bpm), deviceName: settings.deviceName || null, levelDbfs: Number(f.levelDbfs), sinkId: f.sinkId,
-      cartridgeAssetId: f.cartridgeAssetId || null, setupId: null, trackingForceG: f.trackingForceG === '' ? null : Number(f.trackingForceG), tonearmNote: f.tonearmNote.trim() || null };
+      cartridgeAssetId: f.cartridgeAssetId || null, setupId: f.setupId || null, recordSideId: f.recordSideId || null, trackingForceG: f.trackingForceG === '' ? null : Number(f.trackingForceG), tonearmNote: f.tonearmNote.trim() || null };
   }
   function validateForm() {
     const f = st.form, problems = [];
@@ -260,6 +271,8 @@ export function createScratchScreen(section) {
             <div class="field"><label class="field-label" for="sc-format">Timecode format</label><select id="sc-format">${TIMECODE_FORMATS.map(t => `<option${t.name === f.format ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
             <div class="field"><label class="field-label" for="sc-bpm">Tempo (BPM)</label><input id="sc-bpm" type="number" inputmode="decimal" min="${BPM_RANGE.min}" max="${BPM_RANGE.max}" step="1" value="${esc(f.bpm)}" aria-describedby="sc-bpm-h"><span class="field-help" id="sc-bpm-h">Default ${BPM_RANGE.default}. Compare runs only at the same tempo.</span></div>
             <div class="field"><label class="field-label" for="sc-cart">Cartridge</label><select id="sc-cart"><option value="">Not recorded</option>${st.cartridges.map(c => `<option value="${esc(c.id)}"${c.id === f.cartridgeAssetId ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select><span class="field-help">Cartridges come from Equipment; add one there to compare cartridges.</span></div>
+            <div class="field"><label class="field-label" for="sc-setup">Setup</label><select id="sc-setup"><option value="">Not recorded</option>${st.setups.map(c => `<option value="${esc(c.id)}"${c.id === f.setupId ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select><span class="field-help">Setups come from Equipment; pick one to compare setups.</span></div>
+            <div class="field"><label class="field-label" for="sc-side">Control vinyl copy and side</label><select id="sc-side"><option value="">Not recorded</option>${st.sides.map(c => `<option value="${esc(c.id)}"${c.id === f.recordSideId ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select><span class="field-help">Copies come from the Control vinyl screen; pick one to compare copies of the same disc.</span></div>
             <div class="field"><label class="field-label" for="sc-force">Tracking force (g, optional)</label><input id="sc-force" type="number" inputmode="decimal" min="0" max="10" step="0.1" value="${esc(f.trackingForceG)}"></div>
             <div class="field field-wide"><label class="field-label" for="sc-note">Setup note (optional)</label><input id="sc-note" type="text" maxlength="200" value="${esc(f.tonearmNote)}" placeholder="Mixer, software, tonearm height…"></div>
           </div></section>
@@ -279,7 +292,7 @@ export function createScratchScreen(section) {
       <div class="step-footer"><span class="muted small">Shortcuts: <kbd>Enter</kbd> next · <kbd>M</kbd> mute click · <kbd>Esc</kbd> abort</span>
         <button type="button" class="btn btn-primary btn-lg" id="sc-start"${live ? '' : ' disabled aria-disabled="true"'}>${icon('play', { size: 18 })}<span>Check baseline</span></button></div>`;
     const bind = (id, key, conv = v => v) => q(id).addEventListener('input', e => { f[key] = conv(e.target.value); });
-    bind('#sc-format', 'format'); bind('#sc-bpm', 'bpm'); bind('#sc-cart', 'cartridgeAssetId'); bind('#sc-force', 'trackingForceG'); bind('#sc-note', 'tonearmNote'); bind('#sc-out', 'sinkId');
+    bind('#sc-format', 'format'); bind('#sc-bpm', 'bpm'); bind('#sc-cart', 'cartridgeAssetId'); bind('#sc-setup', 'setupId'); bind('#sc-side', 'recordSideId'); bind('#sc-force', 'trackingForceG'); bind('#sc-note', 'tonearmNote'); bind('#sc-out', 'sinkId');
     q('#sc-level').addEventListener('input', e => { f.levelDbfs = Number(e.target.value); q('#sc-level-v').textContent = `${f.levelDbfs} dBFS`; });
     q('#sc-vol').addEventListener('change', e => { f.volumeAck = e.target.checked; });
     q('#sc-start').addEventListener('click', startBaseline);
@@ -406,7 +419,7 @@ export function createScratchScreen(section) {
     panel.innerHTML = `<div id="sc-result"></div>
       <p class="small muted" id="sc-saved">${state.saved ? `<span class="scratch-saved">${icon('check', { size: 14 })} Saved to History.</span>` : r.patterns.length ? esc(state.saveError ? `Not saved: ${state.saveError}` : '') : 'Nothing saved: no pattern was completed.'}</p>
       <div class="step-footer"><button type="button" class="btn btn-secondary" id="sc-hist">Open history</button><button type="button" class="btn btn-primary" id="sc-again">${icon('refresh', { size: 18 })}<span>Run again</span></button></div>`;
-    renderResultView(q('#sc-result'), viewOfResult(r, state.plot, state.plot?.startSec ?? 0), { meta: `${cartridgeLabel(state.config.cartridgeAssetId)} · ${r.format} · ${r.bpm} BPM · protocol v${PROTOCOL_V1.v}` });
+    renderResultView(q('#sc-result'), viewOfResult(r, state.plot, state.plot?.startSec ?? 0), { meta: `${cartridgeLabel(state.config.cartridgeAssetId)}${linkText(state.config)} · ${r.format} · ${r.bpm} BPM · protocol v${PROTOCOL_V1.v}` });
     q('#sc-hist').addEventListener('click', () => { runner.reset(); selectTab('history'); });
     q('#sc-again').addEventListener('click', () => runner.reset());
     announce(r.patterns.length ? `Result: score ${Math.round(r.score)} out of 100. ${r.summary}` : 'Not enough was completed to score.', { assertive: true });
@@ -421,7 +434,7 @@ export function createScratchScreen(section) {
   // ---------- history ----------
   async function renderHistory() {
     panel.innerHTML = '<p class="muted"><span class="spinner" aria-hidden="true"></span> Loading runs…</p>';
-    await Promise.all([loadRuns(), loadCartridges()]);
+    await Promise.all([loadRuns(), loadCartridges(), loadSetupsAndSides()]);
     if (st.tab !== 'history') return;
     if (st.detail) return renderDetail();
     if (st.runsError) { panel.innerHTML = `<div class="banner banner-fail" role="alert">${icon('fail', { size: 22 })}<div class="banner-text"><strong>Could not load scratch runs.</strong><span>${esc(st.runsError)}</span></div></div>`; return; }
@@ -443,7 +456,7 @@ export function createScratchScreen(section) {
     panel.innerHTML = `<div class="toolbar"><button type="button" class="btn btn-secondary" id="sc-back">${icon('chevronLeft', { size: 18 })}<span>All runs</span></button>
       <span class="muted small">${esc(dateText(run.createdAt))}</span></div><div id="sc-result"></div>
       <p class="small muted">${run.trackingForceG ? `Tracking force ${num(run.trackingForceG, 1)} g. ` : ''}${esc(run.tonearmNote || '')} The velocity trace is kept only for the run just completed.</p>`;
-    renderResultView(q('#sc-result'), viewOfRun(run, events), { meta: `${cartridgeLabel(run.cartridgeAssetId)} · ${run.format} · ${run.bpm} BPM · protocol v${run.protocolVersion}` });
+    renderResultView(q('#sc-result'), viewOfRun(run, events), { meta: `${cartridgeLabel(run.cartridgeAssetId)}${linkText(run)} · ${run.format} · ${run.bpm} BPM · protocol v${run.protocolVersion}` });
     q('#sc-back').addEventListener('click', () => { st.detail = null; renderHistory(); });
     q('#sc-back').focus();
   }
@@ -456,13 +469,12 @@ export function createScratchScreen(section) {
   // ---------- compare ----------
   async function renderCompare() {
     panel.innerHTML = '<p class="muted"><span class="spinner" aria-hidden="true"></span> Loading runs…</p>';
-    await Promise.all([loadRuns(), loadCartridges()]);
+    await Promise.all([loadRuns(), loadCartridges(), loadSetupsAndSides()]);
     if (st.tab !== 'compare') return;
-    const full = (st.runs || []).filter(r => r.completed && Number.isFinite(r.score));
-    const groups = new Map();
-    for (const r of full) { const key = `${r.cartridgeAssetId || ''}|${r.format}|${r.bpm}`; if (!groups.has(key)) groups.set(key, { key, label: `${cartridgeLabel(r.cartridgeAssetId)} · ${r.format} · ${r.bpm} BPM`, scores: [] }); groups.get(key).scores.push(r.score); }
-    const list = [...groups.values()];
-    if (list.length < 2) { panel.innerHTML = `<div class="empty">${icon('compare', { size: 48 })}<h2>Not enough runs to compare</h2><p>Complete full runs for two different setups (for example two cartridges, same format and tempo). Three repeats of each give a fair comparison. Partial runs are left out.</p></div>`; return; }
+    const list = groupScratchRuns(st.runs || [], { cartridge: cartridgeLabel, setup: setupLabel, side: sideLabel });
+    const groups = new Map(list.map(g => [g.key, g]));
+
+    if (list.length < 2) { panel.innerHTML = `<div class="empty">${icon('compare', { size: 48 })}<h2>Not enough runs to compare</h2><p>Complete full runs for two different setups (for example two cartridges, two setups or two copies of the control vinyl, same format and tempo). Three repeats of each give a fair comparison. Partial runs are left out.</p></div>`; return; }
     if (!groups.has(st.cmp.a)) st.cmp.a = list[0].key;
     if (!groups.has(st.cmp.b) || st.cmp.b === st.cmp.a) st.cmp.b = list.find(g => g.key !== st.cmp.a).key;
     const A = groups.get(st.cmp.a), B = groups.get(st.cmp.b), c = compareScores(A.scores, B.scores);
@@ -492,7 +504,7 @@ export function createScratchScreen(section) {
   document.addEventListener('keydown', onKey, true); // capture phase: Esc silences the click before anything else runs
 
   renderTabs();
-  Promise.all([loadCartridges(), listOutputDevices().then(o => { st.outputs = o; }).catch(() => {})]).then(() => { if (st.tab === 'test' && (!runner || runner.state.phase === 'setup')) renderPhase(true); });
+  Promise.all([loadCartridges(), loadSetupsAndSides(), listOutputDevices().then(o => { st.outputs = o; }).catch(() => {})]).then(() => { if (st.tab === 'test' && (!runner || runner.state.phase === 'setup')) renderPhase(true); });
   renderPhase(true);
 
   return {
