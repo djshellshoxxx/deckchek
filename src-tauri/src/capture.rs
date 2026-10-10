@@ -1,7 +1,25 @@
-//! Continuous native stereo capture.
+//! Continuous native stereo capture, the process-wide capture lease and
+//! streaming capture (FS-00 §4.7).
 //!
 //! Data flow: CPAL callback (no alloc, no locks) -> SPSC ring (`rtrb`) ->
-//! consumer thread -> preallocated bounded stereo buffers + level events.
+//! consumer thread -> either preallocated bounded stereo buffers + level
+//! events (`start_live_capture`), or fixed-size stereo blocks sent over a
+//! `tauri::ipc::Channel` (`start_stream_capture`).
+//!
+//! Lease: one capture at a time per process (FS-00 §6.2). Live and stream
+//! sessions acquire it internally; other features may hold it explicitly via
+//! `capture_lease_acquire`. A busy request fails with a structured
+//! `CAPTURE_BUSY` error `{code, message, holder, since, kind, deviceName, leaseId}`;
+//! every other error stays a plain string (backward compatible).
+//!
+//! Stream wire format (one `Raw` channel message per block, little endian):
+//! `0 magic "DCSB" | 4 u16 version=1 | 6 u16 flags (1=final, 2=discontinuity)
+//! | 8 u32 seq | 12 u32 sampleRate | 16 u32 frames | 20 u32 droppedBlocks
+//! | 24 u32 streamErrors | 28 u32 reserved | 32 f64 overrunSamples
+//! | 40 f64 framesCaptured | 48 f32[frames] left | f32[frames] right`.
+//! Backpressure: the webview acknowledges each block (`stream_capture_ack`);
+//! at most `MAX_LAG_BLOCKS` blocks may be unacknowledged or queued, beyond
+//! that the oldest queued block is dropped and counted in `droppedBlocks`.
 
 use crate::audio::{choose_input, sample_i16, sample_u16, AudioCapturePayload};
 use cpal::{
@@ -11,14 +29,18 @@ use cpal::{
 use rtrb::{Consumer, Producer, RingBuffer};
 use serde::Serialize;
 use std::{
+    collections::VecDeque,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering::Relaxed},
-        mpsc, Arc, Mutex,
+        atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering::Relaxed},
+        mpsc, Arc, Mutex, MutexGuard,
     },
     thread::{self, JoinHandle},
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Emitter, State};
+use tauri::{
+    ipc::{Channel, InvokeResponseBody},
+    AppHandle, Emitter, State,
+};
 
 pub const CLIP_THRESHOLD: f32 = 0.999;
 pub const MAX_ERROR_MESSAGES: usize = 20;
@@ -124,6 +146,8 @@ pub struct Shared {
     max_gap_us: AtomicU64,
     last_callback_us: AtomicU64,
     error_messages: Mutex<Vec<String>>,
+    /// Set when the device disappeared; stream sessions end themselves.
+    fatal: AtomicBool,
 }
 
 impl Shared {
@@ -151,6 +175,15 @@ impl Shared {
             }
             list.push(message);
         }
+    }
+
+    pub fn record_fatal(&self, message: String) {
+        self.fatal.store(true, Relaxed);
+        self.record_error(message);
+    }
+
+    pub fn is_fatal(&self) -> bool {
+        self.fatal.load(Relaxed)
     }
 
     pub fn snapshot(&self) -> CaptureQuality {
@@ -266,6 +299,539 @@ impl Accumulator {
     }
 }
 
+// ------------------------------------------------------------- capture lease
+
+pub const CAPTURE_BUSY: &str = "CAPTURE_BUSY";
+/// Holder recorded for `start_live_capture` calls that name none.
+pub const DEFAULT_LIVE_HOLDER: &str = "live-capture";
+/// Holder recorded for `start_stream_capture` calls that name none.
+pub const DEFAULT_STREAM_HOLDER: &str = "stream-capture";
+pub const MAX_HOLDER_LEN: usize = 64;
+
+static NEXT_LEASE_ID: AtomicU64 = AtomicU64::new(1);
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// Locks a mutex, recovering the data if a previous holder panicked. The
+/// guarded values here stay consistent across a panic (plain slots).
+fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LeaseKind {
+    /// Held by `start_live_capture`.
+    Live,
+    /// Held by `start_stream_capture`.
+    Stream,
+    /// Held explicitly through `capture_lease_acquire`.
+    External,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseGrant {
+    pub lease_id: u64,
+    pub holder: String,
+    pub device_name: Option<String>,
+    /// Unix epoch milliseconds.
+    pub since: u64,
+    pub kind: LeaseKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaseStatus {
+    pub held: bool,
+    pub lease_id: Option<u64>,
+    pub holder: Option<String>,
+    pub device_name: Option<String>,
+    pub since: Option<u64>,
+    pub kind: Option<LeaseKind>,
+}
+
+/// Structured `CAPTURE_BUSY` error (FS-00 AC-5).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureBusy {
+    pub code: &'static str,
+    pub message: String,
+    pub holder: String,
+    pub since: u64,
+    pub kind: LeaseKind,
+    pub device_name: Option<String>,
+    pub lease_id: u64,
+}
+
+impl CaptureBusy {
+    fn from_grant(g: &LeaseGrant) -> Self {
+        Self {
+            code: CAPTURE_BUSY,
+            // Keeps "already running" / "busy" so older error mapping still
+            // classifies it as a busy input.
+            message: format!("The audio input is busy: \"{}\" is already running.", g.holder),
+            holder: g.holder.clone(),
+            since: g.since,
+            kind: g.kind,
+            device_name: g.device_name.clone(),
+            lease_id: g.lease_id,
+        }
+    }
+}
+
+/// Command error: a busy lease serialises as an object, anything else as the
+/// plain string the commands always returned.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum CaptureError {
+    Busy(CaptureBusy),
+    Message(String),
+}
+
+impl From<String> for CaptureError {
+    fn from(value: String) -> Self {
+        Self::Message(value)
+    }
+}
+
+impl From<&str> for CaptureError {
+    fn from(value: &str) -> Self {
+        Self::Message(value.to_string())
+    }
+}
+
+/// Holder ids are short machine names such as `live-monitor` or `wear-map`.
+pub fn validate_holder(holder: &str) -> Result<String, String> {
+    let h = holder.trim();
+    if h.is_empty() || h.len() > MAX_HOLDER_LEN {
+        return Err(format!("Capture holder must be 1-{MAX_HOLDER_LEN} characters."));
+    }
+    if !h.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ':')) {
+        return Err("Capture holder may only use letters, digits, '-', '_', '.' and ':'.".to_string());
+    }
+    Ok(h.to_string())
+}
+
+/// The process-wide capture lease (FS-00 §6.2): non-blocking acquire, one
+/// holder at a time, regardless of device.
+#[derive(Clone, Default)]
+pub struct CaptureLease(Arc<Mutex<Option<LeaseGrant>>>);
+
+impl CaptureLease {
+    pub fn acquire(
+        &self,
+        holder: &str,
+        device_name: Option<String>,
+        kind: LeaseKind,
+    ) -> Result<LeaseGrant, CaptureError> {
+        let holder = validate_holder(holder)?;
+        let mut slot = lock(&self.0);
+        if let Some(current) = slot.as_ref() {
+            return Err(CaptureError::Busy(CaptureBusy::from_grant(current)));
+        }
+        let grant = LeaseGrant {
+            lease_id: NEXT_LEASE_ID.fetch_add(1, Relaxed),
+            holder,
+            device_name,
+            since: now_ms(),
+            kind,
+        };
+        *slot = Some(grant.clone());
+        Ok(grant)
+    }
+
+    /// Releases the lease if `lease_id` still holds it. Idempotent.
+    pub fn release(&self, lease_id: u64) -> bool {
+        let mut slot = lock(&self.0);
+        if slot.as_ref().is_some_and(|g| g.lease_id == lease_id) {
+            *slot = None;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn current(&self) -> Option<LeaseGrant> {
+        lock(&self.0).clone()
+    }
+
+    pub fn is_held(&self) -> bool {
+        lock(&self.0).is_some()
+    }
+
+    pub fn status(&self) -> LeaseStatus {
+        match self.current() {
+            Some(g) => LeaseStatus {
+                held: true,
+                lease_id: Some(g.lease_id),
+                holder: Some(g.holder),
+                device_name: g.device_name,
+                since: Some(g.since),
+                kind: Some(g.kind),
+            },
+            None => LeaseStatus { held: false, lease_id: None, holder: None, device_name: None, since: None, kind: None },
+        }
+    }
+}
+
+// ------------------------------------------------------- stream primitives
+
+pub const STREAM_MAGIC: [u8; 4] = *b"DCSB";
+pub const STREAM_VERSION: u16 = 1;
+pub const STREAM_HEADER_BYTES: usize = 48;
+pub const FLAG_FINAL: u16 = 1;
+pub const FLAG_DISCONTINUITY: u16 = 2;
+/// Webview lag (unacknowledged + queued blocks) tolerated before dropping.
+pub const MAX_LAG_BLOCKS: usize = 5;
+pub const DEFAULT_BLOCK_MS: u32 = 1000;
+pub const MIN_BLOCK_MS: u32 = 20;
+pub const MAX_BLOCK_MS: u32 = 5000;
+const PUMP_IDLE: Duration = Duration::from_millis(5);
+
+pub fn clamp_block_ms(value: Option<u32>) -> u32 {
+    value.unwrap_or(DEFAULT_BLOCK_MS).clamp(MIN_BLOCK_MS, MAX_BLOCK_MS)
+}
+
+pub fn block_frames(sample_rate: u32, block_ms: u32) -> usize {
+    ((sample_rate as u64 * block_ms as u64 + 500) / 1000).max(1) as usize
+}
+
+/// Per-block quality, cumulative since the stream started.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockQuality {
+    pub dropped_blocks: u32,
+    pub stream_errors: u32,
+    pub overrun_samples: u64,
+    pub frames_captured: u64,
+    /// Blocks were dropped between the previous delivered block and this one.
+    pub discontinuity: bool,
+    /// Last block of the stream (stopped, device lost or preempted).
+    #[serde(rename = "final")]
+    pub final_block: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StreamBlock {
+    pub seq: u32,
+    pub left: Vec<f32>,
+    pub right: Vec<f32>,
+}
+
+pub fn encode_block(seq: u32, sample_rate: u32, q: &BlockQuality, left: &[f32], right: &[f32]) -> Vec<u8> {
+    let frames = left.len().min(right.len());
+    let mut out = Vec::with_capacity(STREAM_HEADER_BYTES + frames * 8);
+    let flags = (q.final_block as u16 * FLAG_FINAL) | (q.discontinuity as u16 * FLAG_DISCONTINUITY);
+    out.extend_from_slice(&STREAM_MAGIC);
+    out.extend_from_slice(&STREAM_VERSION.to_le_bytes());
+    out.extend_from_slice(&flags.to_le_bytes());
+    out.extend_from_slice(&seq.to_le_bytes());
+    out.extend_from_slice(&sample_rate.to_le_bytes());
+    out.extend_from_slice(&(frames as u32).to_le_bytes());
+    out.extend_from_slice(&q.dropped_blocks.to_le_bytes());
+    out.extend_from_slice(&q.stream_errors.to_le_bytes());
+    out.extend_from_slice(&0u32.to_le_bytes());
+    out.extend_from_slice(&(q.overrun_samples as f64).to_le_bytes());
+    out.extend_from_slice(&(q.frames_captured as f64).to_le_bytes());
+    for x in &left[..frames] {
+        out.extend_from_slice(&x.to_le_bytes());
+    }
+    for x in &right[..frames] {
+        out.extend_from_slice(&x.to_le_bytes());
+    }
+    out
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct DecodedBlock {
+    pub seq: u32,
+    pub sample_rate: u32,
+    pub quality: BlockQuality,
+    pub left: Vec<f32>,
+    pub right: Vec<f32>,
+}
+
+/// Inverse of `encode_block` (the JS bridge has the production decoder).
+#[cfg(test)]
+pub fn decode_block(b: &[u8]) -> Result<DecodedBlock, String> {
+    let u16_at = |o: usize| u16::from_le_bytes([b[o], b[o + 1]]);
+    let u32_at = |o: usize| u32::from_le_bytes(b[o..o + 4].try_into().unwrap());
+    let f64_at = |o: usize| f64::from_le_bytes(b[o..o + 8].try_into().unwrap());
+    if b.len() < STREAM_HEADER_BYTES || b[0..4] != STREAM_MAGIC {
+        return Err("not a stream block".into());
+    }
+    if u16_at(4) != STREAM_VERSION {
+        return Err("unsupported version".into());
+    }
+    let flags = u16_at(6);
+    let frames = u32_at(16) as usize;
+    if b.len() != STREAM_HEADER_BYTES + frames * 8 {
+        return Err("length mismatch".into());
+    }
+    let read = |start: usize| -> Vec<f32> {
+        (0..frames)
+            .map(|i| f32::from_le_bytes(b[start + i * 4..start + i * 4 + 4].try_into().unwrap()))
+            .collect()
+    };
+    Ok(DecodedBlock {
+        seq: u32_at(8),
+        sample_rate: u32_at(12),
+        quality: BlockQuality {
+            dropped_blocks: u32_at(20),
+            stream_errors: u32_at(24),
+            overrun_samples: f64_at(32) as u64,
+            frames_captured: f64_at(40) as u64,
+            discontinuity: flags & FLAG_DISCONTINUITY != 0,
+            final_block: flags & FLAG_FINAL != 0,
+        },
+        left: read(STREAM_HEADER_BYTES),
+        right: read(STREAM_HEADER_BYTES + frames * 4),
+    })
+}
+
+/// Acknowledgement-based backpressure. Blocks are sent while fewer than
+/// `max_lag` are unacknowledged; the rest wait in a queue. When
+/// unacknowledged + queued exceeds `max_lag`, the oldest queued block is
+/// dropped, counted, and the next delivered block is flagged discontinuous.
+#[derive(Debug)]
+pub struct BlockQueue {
+    pending: VecDeque<StreamBlock>,
+    in_flight: VecDeque<u32>,
+    max_lag: usize,
+    dropped: u32,
+    gap: bool,
+}
+
+impl BlockQueue {
+    pub fn new(max_lag: usize) -> Self {
+        Self { pending: VecDeque::new(), in_flight: VecDeque::new(), max_lag: max_lag.max(1), dropped: 0, gap: false }
+    }
+
+    pub fn push(&mut self, block: StreamBlock) {
+        self.pending.push_back(block);
+        while self.in_flight.len() + self.pending.len() > self.max_lag && !self.pending.is_empty() {
+            self.pending.pop_front();
+            self.dropped += 1;
+            self.gap = true;
+        }
+    }
+
+    /// Cumulative acknowledgement: every in-flight block with seq <= `seq`.
+    pub fn ack(&mut self, seq: u32) {
+        while self.in_flight.front().is_some_and(|&s| s <= seq) {
+            self.in_flight.pop_front();
+        }
+    }
+
+    /// Next block to send (with its discontinuity flag), if the window allows.
+    pub fn next(&mut self) -> Option<(StreamBlock, bool)> {
+        if self.in_flight.len() >= self.max_lag {
+            return None;
+        }
+        let block = self.pending.pop_front()?;
+        self.in_flight.push_back(block.seq);
+        Some((block, std::mem::take(&mut self.gap)))
+    }
+
+    /// Everything still queued, ignoring the window (used when the stream ends).
+    pub fn drain_all(&mut self) -> Vec<(StreamBlock, bool)> {
+        let mut out = Vec::with_capacity(self.pending.len());
+        while let Some(block) = self.pending.pop_front() {
+            self.in_flight.push_back(block.seq);
+            out.push((block, std::mem::take(&mut self.gap)));
+        }
+        out
+    }
+
+    pub fn take_gap(&mut self) -> bool {
+        std::mem::take(&mut self.gap)
+    }
+
+    pub fn dropped(&self) -> u32 {
+        self.dropped
+    }
+
+    #[cfg(test)]
+    pub fn in_flight(&self) -> usize {
+        self.in_flight.len()
+    }
+
+    #[cfg(test)]
+    pub fn queued(&self) -> usize {
+        self.pending.len()
+    }
+}
+
+/// Where encoded blocks go: a webview `Channel` in the app, a closure in tests.
+pub trait BlockSink: Send + 'static {
+    fn send_block(&self, bytes: Vec<u8>) -> Result<(), String>;
+}
+
+impl BlockSink for Channel<InvokeResponseBody> {
+    fn send_block(&self, bytes: Vec<u8>) -> Result<(), String> {
+        self.send(InvokeResponseBody::Raw(bytes)).map_err(|e| e.to_string())
+    }
+}
+
+/// Shared between the pump thread and the ack/stop commands.
+#[derive(Debug)]
+pub struct StreamCtl {
+    pub stop: AtomicBool,
+    /// Highest acknowledged seq, -1 before the first ack.
+    pub acked: AtomicI64,
+}
+
+impl Default for StreamCtl {
+    fn default() -> Self {
+        Self { stop: AtomicBool::new(false), acked: AtomicI64::new(-1) }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StreamEnd {
+    Stopped,
+    DeviceLost,
+    SinkClosed,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamSummary {
+    pub stream_id: u64,
+    pub ended: StreamEnd,
+    pub blocks_sent: u32,
+    /// Seq of the final block, which the bridge waits for before resolving.
+    pub last_seq: Option<u32>,
+    pub dropped_blocks: u32,
+    pub frames_captured: u64,
+    pub overrun_samples: u64,
+    pub stream_errors: u64,
+    pub stream_error_messages: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PumpConfig {
+    pub channels: usize,
+    pub sample_rate: u32,
+    pub block_frames: usize,
+    pub max_lag: usize,
+    pub idle: Duration,
+}
+
+struct PumpOut {
+    sent: u32,
+    last_seq: Option<u32>,
+    dropped: u32,
+    frames: u64,
+    ended: StreamEnd,
+}
+
+/// Consumer side of a stream: ring -> fixed-size blocks -> backpressure queue
+/// -> sink. Runs until `ctl.stop`, a fatal device error, or a sink failure;
+/// then flushes queued blocks plus the partial block, the last one flagged
+/// final (an empty final block when nothing is left).
+fn run_pump<S: BlockSink>(
+    consumer: &mut Consumer<f32>,
+    cfg: PumpConfig,
+    sink: &S,
+    shared: &Shared,
+    ctl: &StreamCtl,
+) -> PumpOut {
+    let channels = cfg.channels.max(1);
+    let bf = cfg.block_frames.max(1);
+    let mut queue = BlockQueue::new(cfg.max_lag);
+    let mut left = Vec::with_capacity(bf);
+    let mut right = Vec::with_capacity(bf);
+    let (mut seq, mut frames_total, mut sent, mut last_seq) = (0u32, 0u64, 0u32, None);
+    let quality = |queue: &BlockQueue, frames_total: u64, gap: bool, last: bool| BlockQuality {
+        dropped_blocks: queue.dropped(),
+        stream_errors: shared.stream_errors.load(Relaxed).min(u32::MAX as u64) as u32,
+        overrun_samples: shared.overrun_samples.load(Relaxed),
+        frames_captured: frames_total,
+        discontinuity: gap,
+        final_block: last,
+    };
+    let ended = loop {
+        let stopping = ctl.stop.load(Relaxed);
+        let avail = consumer.slots();
+        let n = avail - avail % channels;
+        if n > 0 {
+            if let Ok(chunk) = consumer.read_chunk(n) {
+                let mut it = chunk.into_iter();
+                while let Some(l) = it.next() {
+                    let r = if channels > 1 { it.next().unwrap_or(l) } else { l };
+                    for _ in 2..channels {
+                        it.next();
+                    }
+                    left.push(l);
+                    right.push(r);
+                    frames_total += 1;
+                    if left.len() == bf {
+                        let block = StreamBlock {
+                            seq,
+                            left: std::mem::replace(&mut left, Vec::with_capacity(bf)),
+                            right: std::mem::replace(&mut right, Vec::with_capacity(bf)),
+                        };
+                        seq = seq.wrapping_add(1);
+                        queue.push(block);
+                    }
+                }
+            }
+        }
+        shared.frames_captured.store(frames_total, Relaxed);
+        let acked = ctl.acked.load(Relaxed);
+        if acked >= 0 {
+            queue.ack(acked as u32);
+        }
+        let mut failed = false;
+        while let Some((block, gap)) = queue.next() {
+            let bytes = encode_block(block.seq, cfg.sample_rate, &quality(&queue, frames_total, gap, false), &block.left, &block.right);
+            if let Err(e) = sink.send_block(bytes) {
+                shared.record_error(format!("Stream delivery failed: {e}"));
+                failed = true;
+                break;
+            }
+            sent += 1;
+            last_seq = Some(block.seq);
+        }
+        if failed {
+            break StreamEnd::SinkClosed;
+        }
+        if stopping {
+            break StreamEnd::Stopped;
+        }
+        if shared.is_fatal() {
+            break StreamEnd::DeviceLost;
+        }
+        thread::sleep(cfg.idle);
+    };
+    if ended != StreamEnd::SinkClosed {
+        let mut rest = queue.drain_all();
+        if !left.is_empty() || rest.is_empty() {
+            let gap = queue.take_gap();
+            rest.push((StreamBlock { seq, left: std::mem::take(&mut left), right: std::mem::take(&mut right) }, gap));
+        }
+        let count = rest.len();
+        for (i, (block, gap)) in rest.into_iter().enumerate() {
+            let q = quality(&queue, frames_total, gap, i + 1 == count);
+            if sink.send_block(encode_block(block.seq, cfg.sample_rate, &q, &block.left, &block.right)).is_err() {
+                break;
+            }
+            sent += 1;
+            last_seq = Some(block.seq);
+        }
+    }
+    PumpOut { sent, last_seq, dropped: queue.dropped(), frames: frames_total, ended }
+}
+
 // ------------------------------------------------------------- session / IO
 
 #[derive(Debug, Serialize, Clone)]
@@ -275,6 +841,8 @@ pub struct LiveCaptureInfo {
     pub sample_rate: u32,
     pub channels: u16,
     pub max_seconds: f32,
+    /// Lease held by this session (added in M6; older callers ignore it).
+    pub lease_id: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -294,12 +862,41 @@ pub struct LiveCaptureStatus {
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct LevelEvent {
+pub(crate) struct LevelEvent {
     #[serde(flatten)]
     levels: Levels,
     elapsed_sec: f32,
     overrun_samples: u64,
 }
+
+#[derive(Debug, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamInfo {
+    /// Equals the lease id of the session.
+    pub stream_id: u64,
+    pub holder: String,
+    pub device_name: String,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub block_ms: u32,
+    pub block_frames: u32,
+}
+
+/// What an opened input reports back to the session.
+#[derive(Debug, Clone)]
+pub struct SourceInfo {
+    pub device_name: String,
+    pub sample_rate: u32,
+    pub channels: u16,
+}
+
+type Ready = Result<(SourceInfo, Consumer<f32>), String>;
+type LevelSink = Box<dyn Fn(&LevelEvent) + Send>;
+
+/// Runs on the dedicated stream thread: opens a source, reports `Ready`, keeps
+/// the source alive until `stop`. The device opener is used in the app; tests
+/// use a synthetic opener.
+pub type Opener = Box<dyn FnOnce(Arc<Shared>, Arc<AtomicBool>, mpsc::Sender<Ready>) + Send>;
 
 struct Session {
     info: LiveCaptureInfo,
@@ -311,12 +908,27 @@ struct Session {
     consumer_thread: JoinHandle<Accumulator>,
 }
 
-#[derive(Clone, Default)]
-pub struct LiveCaptureState(Arc<Mutex<Option<Session>>>);
+struct StreamSession {
+    info: StreamInfo,
+    shared: Arc<Shared>,
+    ctl: Arc<StreamCtl>,
+    stream_stop: Arc<AtomicBool>,
+    stream_thread: JoinHandle<()>,
+    pump_thread: JoinHandle<PumpOut>,
+}
 
-/// Whether a live capture session is open (FS-08 refuses restore meanwhile).
+/// Managed capture state: the live session slot, the stream session slot and
+/// the process-wide `CaptureLease` they both acquire.
+#[derive(Clone, Default)]
+pub struct LiveCaptureState {
+    session: Arc<Mutex<Option<Session>>>,
+    stream: Arc<Mutex<Option<StreamSession>>>,
+    pub(crate) lease: CaptureLease,
+}
+
+/// Whether any capture holds the input (FS-08 refuses restore meanwhile).
 pub(crate) fn is_running(state: &LiveCaptureState) -> bool {
-    state.0.lock().map(|slot| slot.is_some()).unwrap_or(true)
+    state.lease.is_held() || state.session.lock().map(|slot| slot.is_some()).unwrap_or(true)
 }
 
 fn build_stream<T>(
@@ -340,64 +952,102 @@ where
                 let dropped = push_frames(&mut producer, data, channels, convert);
                 cb_shared.record_overrun(dropped);
             },
-            move |e| shared.record_error(e.to_string()),
+            move |e| match e {
+                cpal::StreamError::DeviceNotAvailable => shared.record_fatal(e.to_string()),
+                other => shared.record_error(other.to_string()),
+            },
             None,
         )
         .map_err(|e| e.to_string())
 }
 
-type Ready = Result<(LiveCaptureInfo, Consumer<f32>), String>;
-
-fn stream_thread_main(
-    device_name: Option<String>,
-    max_seconds: f32,
-    shared: Arc<Shared>,
-    stop: Arc<AtomicBool>,
-    ready: mpsc::Sender<Ready>,
-) {
-    let setup = || -> Result<(cpal::Stream, LiveCaptureInfo, Consumer<f32>), String> {
-        let device = choose_input(device_name.as_deref())?;
-        let name = device.name().unwrap_or_else(|_| "Unnamed audio input".to_string());
-        let supported = device.default_input_config().map_err(|e| e.to_string())?;
-        let format = supported.sample_format();
-        let config: cpal::StreamConfig = supported.into();
-        if config.channels == 0 {
-            return Err("Input device reported zero channels.".to_string());
+/// The device config for a requested sample rate (default config otherwise).
+fn pick_config(device: &cpal::Device, sample_rate: Option<u32>) -> Result<cpal::SupportedStreamConfig, String> {
+    let default = device.default_input_config().map_err(|e| e.to_string())?;
+    let Some(rate) = sample_rate else { return Ok(default) };
+    if default.sample_rate().0 == rate {
+        return Ok(default);
+    }
+    let usable = |f: SampleFormat| matches!(f, SampleFormat::F32 | SampleFormat::I16 | SampleFormat::U16);
+    let mut best: Option<(u8, cpal::SupportedStreamConfigRange)> = None;
+    for range in device.supported_input_configs().map_err(|e| e.to_string())? {
+        if range.min_sample_rate().0 > rate || range.max_sample_rate().0 < rate || !usable(range.sample_format()) || range.channels() == 0 {
+            continue;
         }
-        let ring_samples = (config.sample_rate.0 as usize).max(4096) * config.channels as usize;
-        let (producer, consumer) = RingBuffer::<f32>::new(ring_samples);
-        let stream = match format {
-            SampleFormat::F32 => build_stream::<f32>(&device, &config, producer, shared.clone(), |v| v),
-            SampleFormat::I16 => build_stream::<i16>(&device, &config, producer, shared.clone(), sample_i16),
-            SampleFormat::U16 => build_stream::<u16>(&device, &config, producer, shared.clone(), sample_u16),
-            other => Err(format!("Input sample format {other:?} is not supported for live capture.")),
-        }?;
-        stream.play().map_err(|e| e.to_string())?;
-        let info = LiveCaptureInfo {
-            device_name: name,
-            sample_rate: config.sample_rate.0,
-            channels: config.channels,
-            max_seconds,
-        };
-        Ok((stream, info, consumer))
-    };
+        let score = 2 * (range.channels() == default.channels()) as u8 + (range.sample_format() == default.sample_format()) as u8;
+        if best.as_ref().is_none_or(|(s, _)| score > *s) {
+            best = Some((score, range));
+        }
+    }
+    best.map(|(_, r)| r.with_sample_rate(cpal::SampleRate(rate)))
+        .ok_or_else(|| format!("Sample rate {rate} Hz is not supported by this input."))
+}
 
-    match setup() {
-        Ok((stream, info, consumer)) => {
-            let _ = ready.send(Ok((info, consumer)));
-            while !stop.load(Relaxed) {
-                thread::sleep(Duration::from_millis(10));
+/// Opener for a real cpal input device.
+fn device_source(device_name: Option<String>, sample_rate: Option<u32>) -> Opener {
+    Box::new(move |shared, stop, ready| {
+        let setup = || -> Result<(cpal::Stream, SourceInfo, Consumer<f32>), String> {
+            let device = choose_input(device_name.as_deref())?;
+            let name = device.name().unwrap_or_else(|_| "Unnamed audio input".to_string());
+            let supported = pick_config(&device, sample_rate)?;
+            let format = supported.sample_format();
+            let config: cpal::StreamConfig = supported.into();
+            if config.channels == 0 {
+                return Err("Input device reported zero channels.".to_string());
             }
-            drop(stream);
+            let ring_samples = (config.sample_rate.0 as usize).max(4096) * config.channels as usize;
+            let (producer, consumer) = RingBuffer::<f32>::new(ring_samples);
+            let stream = match format {
+                SampleFormat::F32 => build_stream::<f32>(&device, &config, producer, shared.clone(), |v| v),
+                SampleFormat::I16 => build_stream::<i16>(&device, &config, producer, shared.clone(), sample_i16),
+                SampleFormat::U16 => build_stream::<u16>(&device, &config, producer, shared.clone(), sample_u16),
+                other => Err(format!("Input sample format {other:?} is not supported for live capture.")),
+            }?;
+            stream.play().map_err(|e| e.to_string())?;
+            let info = SourceInfo { device_name: name, sample_rate: config.sample_rate.0, channels: config.channels };
+            Ok((stream, info, consumer))
+        };
+        match setup() {
+            Ok((stream, info, consumer)) => {
+                let _ = ready.send(Ok((info, consumer)));
+                while !stop.load(Relaxed) {
+                    thread::sleep(Duration::from_millis(10));
+                }
+                drop(stream);
+            }
+            Err(e) => {
+                let _ = ready.send(Err(e));
+            }
         }
+    })
+}
+
+/// Spawns the source thread and waits (<= 10 s) for it to open.
+fn open_source(opener: Opener, shared: Arc<Shared>, stop: Arc<AtomicBool>) -> Result<(SourceInfo, Consumer<f32>, JoinHandle<()>), String> {
+    let (tx, rx) = mpsc::channel();
+    let thread = {
+        let stop = stop.clone();
+        thread::Builder::new()
+            .name("deckchek-capture-stream".into())
+            .spawn(move || opener(shared, stop, tx))
+            .map_err(|e| e.to_string())?
+    };
+    let ready = rx
+        .recv_timeout(Duration::from_secs(10))
+        .map_err(|_| "Timed out opening the audio input.".to_string())
+        .and_then(|r| r);
+    match ready {
+        Ok((info, consumer)) => Ok((info, consumer, thread)),
         Err(e) => {
-            let _ = ready.send(Err(e));
+            stop.store(true, Relaxed);
+            let _ = thread.join();
+            Err(e)
         }
     }
 }
 
 fn consumer_thread_main(
-    app: AppHandle,
+    emit: LevelSink,
     mut consumer: Consumer<f32>,
     info: LiveCaptureInfo,
     shared: Arc<Shared>,
@@ -417,90 +1067,78 @@ fn consumer_thread_main(
         }
         if last_emit.elapsed() >= LEVEL_INTERVAL {
             last_emit = Instant::now();
-            let _ = app.emit(
-                "capture-levels",
-                LevelEvent {
-                    levels: acc.window.take(),
-                    elapsed_sec: started.elapsed().as_secs_f32(),
-                    overrun_samples: shared.overrun_samples.load(Relaxed),
-                },
-            );
+            emit(&LevelEvent {
+                levels: acc.window.take(),
+                elapsed_sec: started.elapsed().as_secs_f32(),
+                overrun_samples: shared.overrun_samples.load(Relaxed),
+            });
         }
         thread::sleep(Duration::from_millis(5));
     }
     acc
 }
 
-fn start_blocking(
-    app: AppHandle,
-    state: LiveCaptureState,
+fn start_live_with(
+    state: &LiveCaptureState,
+    holder: Option<&str>,
     device_name: Option<String>,
     max_seconds: f32,
-) -> Result<LiveCaptureInfo, String> {
-    let mut slot = state.0.lock().map_err(|_| "Capture state poisoned.".to_string())?;
-    if slot.is_some() {
-        return Err("A live capture is already running.".to_string());
-    }
-    let max_seconds = clamp_max_seconds(max_seconds);
-    let shared = Arc::new(Shared::default());
-    let stream_stop = Arc::new(AtomicBool::new(false));
-    let consumer_stop = Arc::new(AtomicBool::new(false));
-    let (tx, rx) = mpsc::channel();
-
-    let stream_thread = {
-        let (shared, stop) = (shared.clone(), stream_stop.clone());
-        thread::Builder::new()
-            .name("deckchek-capture-stream".into())
-            .spawn(move || stream_thread_main(device_name, max_seconds, shared, stop, tx))
-            .map_err(|e| e.to_string())?
-    };
-    let ready = rx
-        .recv_timeout(Duration::from_secs(10))
-        .map_err(|_| "Timed out opening the audio input.".to_string())
-        .and_then(|r| r);
-    let (info, consumer) = match ready {
-        Ok(v) => v,
-        Err(e) => {
-            stream_stop.store(true, Relaxed);
-            let _ = stream_thread.join();
-            return Err(e);
+    opener: Opener,
+    emit: LevelSink,
+) -> Result<LiveCaptureInfo, CaptureError> {
+    let grant = state.lease.acquire(holder.unwrap_or(DEFAULT_LIVE_HOLDER), device_name, LeaseKind::Live)?;
+    let result = (|| -> Result<LiveCaptureInfo, CaptureError> {
+        let mut slot = lock(&state.session);
+        if slot.is_some() {
+            // Unreachable while the lease is honoured; kept as a guard.
+            return Err("A live capture is already running.".into());
         }
-    };
-
-    let started = Instant::now();
-    let consumer_thread = {
-        let (info, shared, stop) = (info.clone(), shared.clone(), consumer_stop.clone());
-        thread::Builder::new()
-            .name("deckchek-capture-consumer".into())
-            .spawn(move || consumer_thread_main(app, consumer, info, shared, stop, started))
-            .map_err(|e| e.to_string())?
-    };
-    *slot = Some(Session {
-        info: info.clone(),
-        started,
-        shared,
-        stream_stop,
-        consumer_stop,
-        stream_thread,
-        consumer_thread,
-    });
-    Ok(info)
+        let max_seconds = clamp_max_seconds(max_seconds);
+        let shared = Arc::new(Shared::default());
+        let stream_stop = Arc::new(AtomicBool::new(false));
+        let consumer_stop = Arc::new(AtomicBool::new(false));
+        let (source, consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone())?;
+        let info = LiveCaptureInfo {
+            device_name: source.device_name,
+            sample_rate: source.sample_rate,
+            channels: source.channels,
+            max_seconds,
+            lease_id: grant.lease_id,
+        };
+        let started = Instant::now();
+        let consumer_thread = {
+            let (info, shared, stop) = (info.clone(), shared.clone(), consumer_stop.clone());
+            thread::Builder::new()
+                .name("deckchek-capture-consumer".into())
+                .spawn(move || consumer_thread_main(emit, consumer, info, shared, stop, started))
+        };
+        let consumer_thread = match consumer_thread {
+            Ok(t) => t,
+            Err(e) => {
+                stream_stop.store(true, Relaxed);
+                let _ = stream_thread.join();
+                return Err(e.to_string().into());
+            }
+        };
+        *slot = Some(Session { info: info.clone(), started, shared, stream_stop, consumer_stop, stream_thread, consumer_thread });
+        Ok(info)
+    })();
+    if result.is_err() {
+        state.lease.release(grant.lease_id);
+    }
+    result
 }
 
-fn stop_blocking(state: LiveCaptureState) -> Result<LiveCaptureResult, String> {
-    let session = state
-        .0
-        .lock()
-        .map_err(|_| "Capture state poisoned.".to_string())?
+fn stop_blocking(state: &LiveCaptureState) -> Result<LiveCaptureResult, String> {
+    let session = lock(&state.session)
         .take()
         .ok_or_else(|| "No live capture is running.".to_string())?;
     session.stream_stop.store(true, Relaxed);
     let _ = session.stream_thread.join();
     session.consumer_stop.store(true, Relaxed);
-    let acc = session
-        .consumer_thread
-        .join()
-        .map_err(|_| "Capture consumer thread panicked.".to_string())?;
+    let joined = session.consumer_thread.join();
+    state.lease.release(session.info.lease_id);
+    let acc = joined.map_err(|_| "Capture consumer thread panicked.".to_string())?;
     let quality = session.shared.snapshot();
     Ok(LiveCaptureResult {
         payload: AudioCapturePayload {
@@ -515,30 +1153,165 @@ fn stop_blocking(state: LiveCaptureState) -> Result<LiveCaptureResult, String> {
     })
 }
 
+fn start_stream_with<S: BlockSink>(
+    state: &LiveCaptureState,
+    holder: Option<&str>,
+    device_name: Option<String>,
+    block_ms: Option<u32>,
+    opener: Opener,
+    sink: S,
+) -> Result<StreamInfo, CaptureError> {
+    let grant = state.lease.acquire(holder.unwrap_or(DEFAULT_STREAM_HOLDER), device_name, LeaseKind::Stream)?;
+    let result = (|| -> Result<StreamInfo, CaptureError> {
+        let mut slot = lock(&state.stream);
+        // A session that ended by itself (device lost, webview gone) has
+        // already released the lease; reap it.
+        if let Some(old) = slot.take() {
+            finish_stream(state, old);
+        }
+        let block_ms = clamp_block_ms(block_ms);
+        let shared = Arc::new(Shared::default());
+        let stream_stop = Arc::new(AtomicBool::new(false));
+        let (source, mut consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone())?;
+        let bf = block_frames(source.sample_rate, block_ms);
+        let info = StreamInfo {
+            stream_id: grant.lease_id,
+            holder: grant.holder.clone(),
+            device_name: source.device_name,
+            sample_rate: source.sample_rate,
+            channels: source.channels,
+            block_ms,
+            block_frames: bf as u32,
+        };
+        let ctl = Arc::new(StreamCtl::default());
+        let cfg = PumpConfig { channels: source.channels as usize, sample_rate: source.sample_rate, block_frames: bf, max_lag: MAX_LAG_BLOCKS, idle: PUMP_IDLE };
+        let pump_thread = {
+            let (shared, ctl, stream_stop, lease, lease_id) = (shared.clone(), ctl.clone(), stream_stop.clone(), state.lease.clone(), grant.lease_id);
+            thread::Builder::new().name("deckchek-capture-pump".into()).spawn(move || {
+                let out = run_pump(&mut consumer, cfg, &sink, &shared, &ctl);
+                // Auto-release when the stream ends or errors (FS-00 §6.2).
+                stream_stop.store(true, Relaxed);
+                lease.release(lease_id);
+                out
+            })
+        };
+        let pump_thread = match pump_thread {
+            Ok(t) => t,
+            Err(e) => {
+                stream_stop.store(true, Relaxed);
+                let _ = stream_thread.join();
+                return Err(e.to_string().into());
+            }
+        };
+        *slot = Some(StreamSession { info: info.clone(), shared, ctl, stream_stop, stream_thread, pump_thread });
+        Ok(info)
+    })();
+    if result.is_err() {
+        state.lease.release(grant.lease_id);
+    }
+    result
+}
+
+/// Stops the source first (so every captured frame reaches the ring), then the
+/// pump, which flushes and sends the final block.
+fn finish_stream(state: &LiveCaptureState, s: StreamSession) -> StreamSummary {
+    s.stream_stop.store(true, Relaxed);
+    let _ = s.stream_thread.join();
+    s.ctl.stop.store(true, Relaxed);
+    let out = s.pump_thread.join();
+    state.lease.release(s.info.stream_id);
+    let q = s.shared.snapshot();
+    let (sent, last_seq, dropped, frames, ended) = match out {
+        Ok(o) => (o.sent, o.last_seq, o.dropped, o.frames, o.ended),
+        Err(_) => (0, None, 0, q.frames_captured, StreamEnd::SinkClosed),
+    };
+    StreamSummary {
+        stream_id: s.info.stream_id,
+        ended,
+        blocks_sent: sent,
+        last_seq,
+        dropped_blocks: dropped,
+        frames_captured: frames,
+        overrun_samples: q.overrun_samples,
+        stream_errors: q.stream_errors,
+        stream_error_messages: q.stream_error_messages,
+    }
+}
+
+fn stop_stream_blocking(state: &LiveCaptureState) -> Result<StreamSummary, String> {
+    let session = lock(&state.stream)
+        .take()
+        .ok_or_else(|| "No stream capture is running.".to_string())?;
+    Ok(finish_stream(state, session))
+}
+
+fn ack_stream(state: &LiveCaptureState, stream_id: u64, seq: u32) {
+    if let Some(s) = lock(&state.stream).as_ref() {
+        if s.info.stream_id == stream_id {
+            s.ctl.acked.fetch_max(seq as i64, Relaxed);
+        }
+    }
+}
+
+/// Stops whatever holds the lease ("Stop <holder> and continue"). Returns the
+/// grant that was stopped, or None when the input was free.
+fn preempt_blocking(state: &LiveCaptureState) -> Option<LeaseGrant> {
+    let current = state.lease.current()?;
+    match current.kind {
+        LeaseKind::Live => {
+            let _ = stop_blocking(state);
+        }
+        LeaseKind::Stream => {
+            let _ = stop_stream_blocking(state);
+        }
+        LeaseKind::External => {}
+    }
+    state.lease.release(current.lease_id);
+    Some(current)
+}
+
+/// Releases an explicitly acquired lease. Live and stream leases end with
+/// their session (stop or preempt), never through this call.
+fn release_external(state: &LiveCaptureState, lease_id: u64) -> bool {
+    match state.lease.current() {
+        Some(g) if g.lease_id == lease_id && g.kind == LeaseKind::External => state.lease.release(lease_id),
+        _ => false,
+    }
+}
+
+// ---------------------------------------------------------------- commands
+
 #[tauri::command]
 pub async fn start_live_capture(
     app: AppHandle,
     state: State<'_, LiveCaptureState>,
     device_name: Option<String>,
     max_seconds: f32,
-) -> Result<LiveCaptureInfo, String> {
+    holder: Option<String>,
+) -> Result<LiveCaptureInfo, CaptureError> {
     let state = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || start_blocking(app, state, device_name, max_seconds))
-        .await
-        .map_err(|e| e.to_string())?
+    let emit: LevelSink = Box::new(move |e: &LevelEvent| {
+        let _ = app.emit("capture-levels", e);
+    });
+    tauri::async_runtime::spawn_blocking(move || {
+        let opener = device_source(device_name.clone(), None);
+        start_live_with(&state, holder.as_deref(), device_name, max_seconds, opener, emit)
+    })
+    .await
+    .map_err(|e| CaptureError::Message(e.to_string()))?
 }
 
 #[tauri::command]
 pub async fn stop_live_capture(state: State<'_, LiveCaptureState>) -> Result<LiveCaptureResult, String> {
     let state = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || stop_blocking(state))
+    tauri::async_runtime::spawn_blocking(move || stop_blocking(&state))
         .await
         .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
 pub fn live_capture_status(state: State<'_, LiveCaptureState>) -> Result<LiveCaptureStatus, String> {
-    let slot = state.0.lock().map_err(|_| "Capture state poisoned.".to_string())?;
+    let slot = state.session.lock().map_err(|_| "Capture state poisoned.".to_string())?;
     Ok(match slot.as_ref() {
         Some(s) => LiveCaptureStatus {
             running: true,
@@ -551,6 +1324,76 @@ pub fn live_capture_status(state: State<'_, LiveCaptureState>) -> Result<LiveCap
             quality: CaptureQuality::default(),
         },
     })
+}
+
+#[tauri::command]
+pub fn capture_lease_acquire(
+    state: State<'_, LiveCaptureState>,
+    holder: String,
+    device_name: Option<String>,
+) -> Result<LeaseGrant, CaptureError> {
+    state.lease.acquire(&holder, device_name, LeaseKind::External)
+}
+
+#[tauri::command]
+pub fn capture_lease_release(state: State<'_, LiveCaptureState>, lease_id: u64) -> bool {
+    release_external(state.inner(), lease_id)
+}
+
+#[tauri::command]
+pub fn capture_lease_status(state: State<'_, LiveCaptureState>) -> LeaseStatus {
+    state.lease.status()
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PreemptResult {
+    pub stopped: Option<LeaseGrant>,
+}
+
+/// Stops the current holder and emits `capture-preempted` with its grant.
+#[tauri::command]
+pub async fn capture_preempt(app: AppHandle, state: State<'_, LiveCaptureState>) -> Result<PreemptResult, String> {
+    let state = state.inner().clone();
+    let stopped = tauri::async_runtime::spawn_blocking(move || preempt_blocking(&state))
+        .await
+        .map_err(|e| e.to_string())?;
+    if let Some(g) = &stopped {
+        let _ = app.emit("capture-preempted", g);
+    }
+    Ok(PreemptResult { stopped })
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn start_stream_capture(
+    state: State<'_, LiveCaptureState>,
+    device_name: Option<String>,
+    sample_rate: Option<u32>,
+    block_ms: Option<u32>,
+    holder: Option<String>,
+    channel: Channel<InvokeResponseBody>,
+) -> Result<StreamInfo, CaptureError> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let opener = device_source(device_name.clone(), sample_rate);
+        start_stream_with(&state, holder.as_deref(), device_name, block_ms, opener, channel)
+    })
+    .await
+    .map_err(|e| CaptureError::Message(e.to_string()))?
+}
+
+#[tauri::command]
+pub fn stream_capture_ack(state: State<'_, LiveCaptureState>, stream_id: u64, seq: u32) {
+    ack_stream(state.inner(), stream_id, seq);
+}
+
+#[tauri::command]
+pub async fn stop_stream_capture(state: State<'_, LiveCaptureState>) -> Result<StreamSummary, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || stop_stream_blocking(&state))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]
@@ -680,5 +1523,633 @@ mod tests {
         for k in ["framesCaptured", "overrunSamples", "clippedSamplesL", "clippedSamplesR", "streamErrors", "truncated", "callbackCount", "maxCallbackGapMs"] {
             assert!(v.get(k).is_some(), "missing {k}");
         }
+    }
+
+    // ------------------------------------------------------------ lease
+
+    fn synth_value(n: u64) -> f32 {
+        (n % 65536) as f32 / 65536.0
+    }
+
+    #[derive(Clone, Copy)]
+    enum Pace {
+        /// One callback per buffer period, like a real device (overruns if the pump lags).
+        Realtime,
+        /// As fast as the ring accepts, never overrunning (fast deterministic tests).
+        Lossless,
+    }
+
+    #[derive(Clone, Copy)]
+    struct Synth {
+        sample_rate: u32,
+        channels: u16,
+        callback_frames: usize,
+        pace: Pace,
+        limit_frames: Option<u64>,
+        fatal_after: Option<u64>,
+    }
+
+    impl Synth {
+        fn lossless(sample_rate: u32, limit_frames: u64) -> Self {
+            Self { sample_rate, channels: 2, callback_frames: 64, pace: Pace::Lossless, limit_frames: Some(limit_frames), fatal_after: None }
+        }
+    }
+
+    /// Synthetic input: left = ramp `synth_value(n)`, right = -left, extra
+    /// channels 9.0. Goes through the same ring/`push_frames` path as cpal.
+    fn synthetic_source(s: Synth) -> Opener {
+        Box::new(move |shared, stop, ready| {
+            let ch = s.channels as usize;
+            let (mut producer, consumer) = RingBuffer::<f32>::new((s.sample_rate as usize).max(4096) * ch);
+            let info = SourceInfo { device_name: "Synthetic 48k".into(), sample_rate: s.sample_rate, channels: s.channels };
+            let _ = ready.send(Ok((info, consumer)));
+            let mut buf = vec![0f32; s.callback_frames * ch];
+            let (origin, mut n, mut k) = (Instant::now(), 0u64, 0u64);
+            let period = s.callback_frames as f64 / s.sample_rate as f64;
+            while !stop.load(Relaxed) {
+                if s.fatal_after.is_some_and(|f| n >= f) && !shared.is_fatal() {
+                    shared.record_fatal("The requested device is no longer available.".into());
+                }
+                let left_to_make = s.limit_frames.map_or(u64::MAX, |l| l.saturating_sub(n));
+                if left_to_make == 0 || shared.is_fatal() {
+                    thread::sleep(Duration::from_millis(1));
+                    continue;
+                }
+                let frames = (s.callback_frames as u64).min(left_to_make) as usize;
+                for i in 0..frames {
+                    let v = synth_value(n + i as u64);
+                    for c in 0..ch {
+                        buf[i * ch + c] = match c { 0 => v, 1 => -v, _ => 9.0 };
+                    }
+                }
+                match s.pace {
+                    Pace::Realtime => {
+                        let due = origin + Duration::from_secs_f64((k + 1) as f64 * period);
+                        if let Some(wait) = due.checked_duration_since(Instant::now()) {
+                            thread::sleep(wait);
+                        }
+                    }
+                    Pace::Lossless => {
+                        while producer.slots() < frames * ch && !stop.load(Relaxed) {
+                            thread::sleep(Duration::from_micros(200));
+                        }
+                    }
+                }
+                shared.record_callback(origin.elapsed().as_micros() as u64);
+                let dropped = push_frames(&mut producer, &buf[..frames * ch], ch, |v| v);
+                shared.record_overrun(dropped);
+                n += frames as u64;
+                k += 1;
+            }
+        })
+    }
+
+    fn failing_source(message: &'static str) -> Opener {
+        Box::new(move |_shared, _stop, ready| {
+            let _ = ready.send(Err(message.to_string()));
+        })
+    }
+
+    fn no_levels() -> LevelSink {
+        Box::new(|_| {})
+    }
+
+    struct FnSink<F>(F);
+    impl<F: Fn(Vec<u8>) -> Result<(), String> + Send + 'static> BlockSink for FnSink<F> {
+        fn send_block(&self, bytes: Vec<u8>) -> Result<(), String> {
+            (self.0)(bytes)
+        }
+    }
+
+    /// A sink that records decoded blocks.
+    fn collecting_sink() -> (impl BlockSink, Arc<Mutex<Vec<DecodedBlock>>>) {
+        let got = Arc::new(Mutex::new(Vec::new()));
+        let g = got.clone();
+        (FnSink(move |b: Vec<u8>| {
+            g.lock().unwrap().push(decode_block(&b).unwrap());
+            Ok(())
+        }), got)
+    }
+
+    fn wait_until(timeout: Duration, mut cond: impl FnMut() -> bool) -> bool {
+        let end = Instant::now() + timeout;
+        while Instant::now() < end {
+            if cond() {
+                return true;
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+        cond()
+    }
+
+    fn busy(e: CaptureError) -> CaptureBusy {
+        match e {
+            CaptureError::Busy(b) => b,
+            other => panic!("expected CAPTURE_BUSY, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lease_is_exclusive_and_reports_holder_and_since() {
+        let lease = CaptureLease::default();
+        let before = now_ms();
+        let g = lease.acquire("wear-map", Some("In 1/2".into()), LeaseKind::External).unwrap();
+        assert!(g.since >= before && g.since <= now_ms());
+        let b = busy(lease.acquire("live-monitor", None, LeaseKind::Stream).unwrap_err());
+        assert_eq!((b.code, b.holder.as_str(), b.since, b.kind, b.lease_id), (CAPTURE_BUSY, "wear-map", g.since, LeaseKind::External, g.lease_id));
+        assert_eq!(b.device_name.as_deref(), Some("In 1/2"));
+        assert!(b.message.contains("busy") && b.message.contains("already running"), "old busy classification still matches");
+        let st = lease.status();
+        assert!(st.held && st.holder.as_deref() == Some("wear-map") && st.lease_id == Some(g.lease_id) && st.kind == Some(LeaseKind::External));
+        assert!(!lease.release(g.lease_id + 1000), "wrong id does not release");
+        assert!(lease.release(g.lease_id));
+        assert!(!lease.release(g.lease_id), "release is idempotent");
+        assert_eq!(lease.status(), LeaseStatus { held: false, lease_id: None, holder: None, device_name: None, since: None, kind: None });
+        let g2 = lease.acquire("live-monitor", None, LeaseKind::Stream).unwrap();
+        assert!(g2.lease_id > g.lease_id, "lease ids are never reused");
+    }
+
+    #[test]
+    fn holder_ids_are_validated() {
+        assert_eq!(validate_holder("  live-monitor ").unwrap(), "live-monitor");
+        for ok in ["fs13:wear_map", "a", "x.y"] {
+            assert!(validate_holder(ok).is_ok(), "{ok}");
+        }
+        for bad in ["", "   ", "has space", "<script>", "ünï", &"x".repeat(MAX_HOLDER_LEN + 1)] {
+            assert!(validate_holder(bad).is_err(), "{bad}");
+        }
+        let lease = CaptureLease::default();
+        assert!(matches!(lease.acquire("bad holder", None, LeaseKind::External), Err(CaptureError::Message(_))));
+        assert!(!lease.is_held());
+    }
+
+    #[test]
+    fn errors_serialize_busy_as_object_and_others_as_plain_strings() {
+        let lease = CaptureLease::default();
+        lease.acquire("live-monitor", None, LeaseKind::Stream).unwrap();
+        let v = serde_json::to_value(lease.acquire("x", None, LeaseKind::Live).unwrap_err()).unwrap();
+        let mut keys: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
+        keys.sort_unstable();
+        assert_eq!(keys, ["code", "deviceName", "holder", "kind", "leaseId", "message", "since"]);
+        assert_eq!(v["code"], "CAPTURE_BUSY");
+        assert_eq!(v["kind"], "stream");
+        assert_eq!(serde_json::to_value(CaptureError::from("Audio input not found: X")).unwrap(), serde_json::json!("Audio input not found: X"));
+    }
+
+    #[test]
+    fn backup_sees_any_lease_holder_as_running() {
+        let state = LiveCaptureState::default();
+        assert!(!is_running(&state));
+        let g = state.lease.acquire("hum-hunter", None, LeaseKind::External).unwrap();
+        assert!(is_running(&state));
+        assert!(release_external(&state, g.lease_id));
+        assert!(!is_running(&state));
+    }
+
+    // ------------------------------------------------------ live sessions
+
+    #[test]
+    fn live_capture_holds_the_lease_and_releases_it_on_stop() {
+        let state = LiveCaptureState::default();
+        let levels = Arc::new(AtomicU64::new(0));
+        let lv = levels.clone();
+        let emit: LevelSink = Box::new(move |_| {
+            lv.fetch_add(1, Relaxed);
+        });
+        let info = start_live_with(&state, None, None, 5.0, synthetic_source(Synth::lossless(48000, 4800)), emit).unwrap();
+        assert_eq!((info.sample_rate, info.channels, info.max_seconds), (48000, 2, 5.0));
+        let st = state.lease.status();
+        assert_eq!((st.holder.as_deref(), st.kind, st.lease_id), (Some(DEFAULT_LIVE_HOLDER), Some(LeaseKind::Live), Some(info.lease_id)));
+        assert!(is_running(&state));
+
+        // AC-5: every other capture path gets CAPTURE_BUSY naming the holder.
+        let b = busy(start_live_with(&state, Some("pre-gig"), None, 5.0, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap_err());
+        assert_eq!(b.holder, DEFAULT_LIVE_HOLDER);
+        let (sink, _) = collecting_sink();
+        let b = busy(start_stream_with(&state, Some("wear-map"), None, None, synthetic_source(Synth::lossless(48000, 10)), sink).unwrap_err());
+        assert_eq!((b.holder.as_str(), b.kind, b.lease_id), (DEFAULT_LIVE_HOLDER, LeaseKind::Live, info.lease_id));
+        assert!(busy(state.lease.acquire("hum-hunter", None, LeaseKind::External).unwrap_err()).since > 0);
+        assert!(!release_external(&state, info.lease_id), "a live lease is only released by stopping the session");
+
+        assert!(wait_until(Duration::from_secs(5), || state.session.lock().unwrap().as_ref().unwrap().shared.snapshot().frames_captured == 4800));
+        thread::sleep(LEVEL_INTERVAL * 2);
+        let r = stop_blocking(&state).unwrap();
+        assert_eq!(r.payload.left.len(), 4800);
+        assert!(r.payload.left.iter().enumerate().all(|(i, &v)| v == synth_value(i as u64)));
+        assert!(r.payload.right.iter().zip(&r.payload.left).all(|(&r, &l)| r == -l));
+        assert!(levels.load(Relaxed) >= 1, "capture-levels still emitted");
+        assert!(!state.lease.is_held() && !is_running(&state));
+        assert!(stop_blocking(&state).is_err());
+        let again = start_live_with(&state, Some("pre-gig"), None, 1.0, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap();
+        assert_eq!(state.lease.status().holder.as_deref(), Some("pre-gig"));
+        stop_blocking(&state).unwrap();
+        assert!(again.lease_id > info.lease_id);
+    }
+
+    #[test]
+    fn failed_open_releases_the_lease_and_keeps_plain_error_text() {
+        let state = LiveCaptureState::default();
+        let e = start_live_with(&state, None, None, 5.0, failing_source("Audio input not found: X"), no_levels()).unwrap_err();
+        assert_eq!(e, CaptureError::Message("Audio input not found: X".into()));
+        assert!(!state.lease.is_held());
+        let (sink, got) = collecting_sink();
+        let e = start_stream_with(&state, None, None, None, failing_source("No default audio input is available."), sink).unwrap_err();
+        assert_eq!(e, CaptureError::Message("No default audio input is available.".into()));
+        assert!(!state.lease.is_held() && got.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn preempt_stops_a_live_session_and_frees_the_input() {
+        let state = LiveCaptureState::default();
+        assert!(preempt_blocking(&state).is_none(), "nothing to stop");
+        let info = start_live_with(&state, None, None, 5.0, synthetic_source(Synth::lossless(48000, 480)), no_levels()).unwrap();
+        let stopped = preempt_blocking(&state).unwrap();
+        assert_eq!((stopped.lease_id, stopped.kind), (info.lease_id, LeaseKind::Live));
+        assert!(state.session.lock().unwrap().is_none() && !state.lease.is_held());
+        let (sink, _) = collecting_sink();
+        start_stream_with(&state, Some("live-monitor"), None, None, synthetic_source(Synth::lossless(48000, 10)), sink).unwrap();
+        stop_stream_blocking(&state).unwrap();
+    }
+
+    #[test]
+    fn preempt_releases_an_external_lease() {
+        let state = LiveCaptureState::default();
+        let g = state.lease.acquire("latency-tuner", None, LeaseKind::External).unwrap();
+        assert_eq!(preempt_blocking(&state).unwrap(), g);
+        assert!(!state.lease.is_held());
+        assert!(!release_external(&state, g.lease_id));
+    }
+
+    // ---------------------------------------------------- stream primitives
+
+    #[test]
+    fn block_size_is_clamped_and_rounded() {
+        assert_eq!(clamp_block_ms(None), 1000);
+        assert_eq!(clamp_block_ms(Some(0)), MIN_BLOCK_MS);
+        assert_eq!(clamp_block_ms(Some(60_000)), MAX_BLOCK_MS);
+        assert_eq!(clamp_block_ms(Some(250)), 250);
+        assert_eq!(block_frames(48000, 1000), 48000);
+        assert_eq!(block_frames(44100, 20), 882);
+        assert_eq!(block_frames(44100, 25), 1103, "1102.5 rounds half up");
+        assert_eq!(block_frames(1, 20), 1, "never zero");
+    }
+
+    #[test]
+    fn block_encoding_round_trips_with_flags() {
+        let q = BlockQuality { dropped_blocks: 3, stream_errors: 2, overrun_samples: 1 << 40, frames_captured: 123_456_789, discontinuity: true, final_block: true };
+        let (l, r) = (vec![0.25f32, -1.0, f32::MIN_POSITIVE], vec![1.0f32, 0.0, -0.5]);
+        let b = encode_block(u32::MAX, 96000, &q, &l, &r);
+        assert_eq!(b.len(), STREAM_HEADER_BYTES + 3 * 8);
+        let d = decode_block(&b).unwrap();
+        assert_eq!(d, DecodedBlock { seq: u32::MAX, sample_rate: 96000, quality: q, left: l, right: r });
+        let empty = encode_block(0, 48000, &BlockQuality::default(), &[], &[]);
+        assert_eq!(empty.len(), STREAM_HEADER_BYTES);
+        assert!(decode_block(&empty[..40]).is_err());
+        assert!(decode_block(b"XXXX0000000000000000000000000000000000000000000000").is_err());
+    }
+
+    #[test]
+    fn block_queue_sends_within_the_window() {
+        let mut q = BlockQueue::new(MAX_LAG_BLOCKS);
+        for seq in 0..5 {
+            q.push(StreamBlock { seq, left: vec![], right: vec![] });
+            let (b, gap) = q.next().unwrap();
+            assert_eq!((b.seq, gap), (seq, false));
+        }
+        assert_eq!((q.in_flight(), q.queued()), (5, 0));
+        assert!(q.next().is_none());
+        q.ack(1);
+        assert_eq!(q.in_flight(), 3);
+        q.ack(0);
+        assert_eq!(q.in_flight(), 3, "stale ack is harmless");
+        q.ack(4);
+        assert_eq!((q.in_flight(), q.dropped()), (0, 0));
+    }
+
+    #[test]
+    fn block_queue_drops_oldest_queued_beyond_five_blocks_of_lag() {
+        let mut q = BlockQueue::new(MAX_LAG_BLOCKS);
+        for seq in 0..3 {
+            q.push(StreamBlock { seq, left: vec![], right: vec![] });
+            q.next().unwrap();
+        }
+        // Webview stalls with 3 in flight: 2 more may queue (lag 5), then the oldest queued goes.
+        for seq in 3..9 {
+            q.push(StreamBlock { seq, left: vec![], right: vec![] });
+        }
+        assert_eq!((q.in_flight(), q.queued(), q.dropped()), (3, 2, 4));
+        let (b, gap) = q.next().unwrap();
+        assert_eq!((b.seq, gap), (7, true), "seq 3..6 dropped; next delivered block is flagged");
+        let (b, gap) = q.next().unwrap();
+        assert_eq!((b.seq, gap), (8, false));
+        assert!(q.next().is_none(), "5 unacknowledged: window closed");
+        for seq in 9..20 {
+            q.push(StreamBlock { seq, left: vec![], right: vec![] });
+        }
+        assert_eq!((q.queued(), q.dropped()), (0, 15), "nothing can queue while 5 are in flight");
+        q.ack(2);
+        assert_eq!(q.in_flight(), 2);
+        for seq in 20..24 {
+            q.push(StreamBlock { seq, left: vec![], right: vec![] });
+        }
+        assert_eq!(q.dropped(), 16);
+        // drain_all ignores the window and carries the pending gap.
+        let rest = q.drain_all();
+        assert_eq!(rest.iter().map(|(b, g)| (b.seq, *g)).collect::<Vec<_>>(), vec![(21, true), (22, false), (23, false)]);
+        assert!(!q.take_gap());
+    }
+
+    // ------------------------------------------------------ stream sessions
+
+    #[test]
+    fn stream_delivers_contiguous_blocks_and_flushes_a_final_partial_block() {
+        let state = LiveCaptureState::default();
+        let (sink, got) = collecting_sink();
+        // 1000 Hz synthetic, 20 ms blocks = 20 frames; 50 frames = 2 full + 1 partial.
+        let info = start_stream_with(&state, Some("wear-map"), Some("Synth".into()), Some(20), synthetic_source(Synth::lossless(1000, 50)), sink).unwrap();
+        assert_eq!((info.holder.as_str(), info.sample_rate, info.channels, info.block_ms, info.block_frames), ("wear-map", 1000, 2, 20, 20));
+        let st = state.lease.status();
+        assert_eq!((st.kind, st.lease_id, st.device_name.as_deref()), (Some(LeaseKind::Stream), Some(info.stream_id), Some("Synth")));
+        assert!(wait_until(Duration::from_secs(5), || got.lock().unwrap().len() == 2));
+        for seq in 0..2 {
+            ack_stream(&state, info.stream_id, seq);
+        }
+        ack_stream(&state, info.stream_id + 99, 50); // other stream: ignored
+        assert!(wait_until(Duration::from_secs(5), || state.stream.lock().unwrap().as_ref().unwrap().shared.frames_captured.load(Relaxed) == 50));
+        let sum = stop_stream_blocking(&state).unwrap();
+        let blocks = got.lock().unwrap().clone();
+        assert_eq!(blocks.iter().map(|b| (b.seq, b.left.len(), b.quality.final_block)).collect::<Vec<_>>(), vec![(0, 20, false), (1, 20, false), (2, 10, true)]);
+        let left: Vec<f32> = blocks.iter().flat_map(|b| b.left.clone()).collect();
+        assert!(left.iter().enumerate().all(|(i, &v)| v == synth_value(i as u64)));
+        assert!(blocks.iter().all(|b| b.sample_rate == 1000 && b.right.iter().zip(&b.left).all(|(r, l)| *r == -*l)));
+        assert_eq!((sum.ended, sum.blocks_sent, sum.last_seq, sum.dropped_blocks, sum.frames_captured), (StreamEnd::Stopped, 3, Some(2), 0, 50));
+        assert_eq!(blocks[2].quality.frames_captured, 50);
+        assert!(!state.lease.is_held());
+        assert!(stop_stream_blocking(&state).is_err());
+    }
+
+    #[test]
+    fn stalled_webview_drops_blocks_and_counts_them() {
+        let state = LiveCaptureState::default();
+        let (sink, got) = collecting_sink();
+        // 20 blocks of 20 frames, never acknowledged.
+        let info = start_stream_with(&state, None, None, Some(20), synthetic_source(Synth::lossless(1000, 400)), sink).unwrap();
+        assert_eq!(info.holder, DEFAULT_STREAM_HOLDER);
+        assert!(wait_until(Duration::from_secs(5), || state.stream.lock().unwrap().as_ref().unwrap().shared.frames_captured.load(Relaxed) == 400));
+        thread::sleep(PUMP_IDLE * 4);
+        let sum = stop_stream_blocking(&state).unwrap();
+        let blocks = got.lock().unwrap().clone();
+        assert_eq!(sum.dropped_blocks, 15);
+        assert_eq!(blocks.len(), 6, "5 blocks fit the lag window, then an empty final block");
+        assert!(blocks[..5].iter().all(|b| b.left.len() == 20 && !b.quality.final_block));
+        // Whichever blocks survived, each carries its own samples.
+        for b in &blocks[..5] {
+            assert!(b.left.iter().enumerate().all(|(i, &v)| v == synth_value(b.seq as u64 * 20 + i as u64)), "seq {}", b.seq);
+        }
+        assert!(blocks.windows(2).all(|w| w[1].seq > w[0].seq));
+        let last = blocks.last().unwrap();
+        assert!(last.quality.final_block && last.left.is_empty());
+        assert_eq!((last.seq, last.quality.dropped_blocks), (20, 15));
+        let gaps: u32 = blocks.windows(2).map(|w| w[1].seq - w[0].seq - 1).sum::<u32>() + blocks[0].seq;
+        assert_eq!(gaps, 15, "seq gaps equal the dropped count");
+        assert!(blocks.iter().any(|b| b.quality.discontinuity));
+    }
+
+    #[test]
+    fn device_loss_ends_the_stream_and_auto_releases_the_lease() {
+        let state = LiveCaptureState::default();
+        let (sink, got) = collecting_sink();
+        let synth = Synth { fatal_after: Some(30), ..Synth::lossless(1000, 1000) };
+        let info = start_stream_with(&state, Some("live-monitor"), None, Some(20), synthetic_source(synth), sink).unwrap();
+        assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()), "lease released without a stop call");
+        assert!(got.lock().unwrap().last().unwrap().quality.final_block);
+        assert!(got.lock().unwrap().last().unwrap().quality.stream_errors >= 1);
+        // The next capture can start right away and reaps the ended session.
+        let (sink2, _) = collecting_sink();
+        let next = start_stream_with(&state, Some("wear-map"), None, Some(20), synthetic_source(Synth::lossless(1000, 10)), sink2).unwrap();
+        assert!(next.stream_id > info.stream_id);
+        let sum = stop_stream_blocking(&state).unwrap();
+        assert_eq!(sum.stream_id, next.stream_id);
+    }
+
+    #[test]
+    fn device_loss_summary_is_returned_by_stop() {
+        let state = LiveCaptureState::default();
+        let (sink, _) = collecting_sink();
+        let synth = Synth { fatal_after: Some(25), ..Synth::lossless(1000, 1000) };
+        start_stream_with(&state, None, None, Some(20), synthetic_source(synth), sink).unwrap();
+        assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()));
+        let sum = stop_stream_blocking(&state).unwrap();
+        assert_eq!(sum.ended, StreamEnd::DeviceLost);
+        assert!(sum.stream_errors >= 1 && sum.stream_error_messages[0].contains("no longer available"));
+    }
+
+    #[test]
+    fn closed_webview_ends_the_stream_and_releases_the_lease() {
+        let state = LiveCaptureState::default();
+        let sent = Arc::new(AtomicU64::new(0));
+        let s = sent.clone();
+        let sink = FnSink(move |_b: Vec<u8>| if s.fetch_add(1, Relaxed) < 2 { Ok(()) } else { Err("webview closed".to_string()) });
+        start_stream_with(&state, None, None, Some(20), synthetic_source(Synth::lossless(1000, 1000)), sink).unwrap();
+        for seq in 0..10 {
+            ack_stream(&state, state.lease.current().map_or(0, |g| g.lease_id), seq);
+        }
+        assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()));
+        let sum = stop_stream_blocking(&state).unwrap();
+        assert_eq!((sum.ended, sum.blocks_sent), (StreamEnd::SinkClosed, 2));
+    }
+
+    #[test]
+    fn preempt_stops_a_stream_with_a_final_block() {
+        let state = LiveCaptureState::default();
+        let (sink, got) = collecting_sink();
+        let info = start_stream_with(&state, Some("live-monitor"), None, Some(20), synthetic_source(Synth::lossless(1000, 30)), sink).unwrap();
+        let stopped = preempt_blocking(&state).unwrap();
+        assert_eq!((stopped.holder.as_str(), stopped.kind, stopped.lease_id), ("live-monitor", LeaseKind::Stream, info.stream_id));
+        assert!(got.lock().unwrap().last().unwrap().quality.final_block);
+        assert!(!state.lease.is_held() && state.stream.lock().unwrap().is_none());
+        start_live_with(&state, None, None, 1.0, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap();
+        stop_blocking(&state).unwrap();
+    }
+
+    #[test]
+    fn stream_goes_through_a_tauri_channel_as_raw_bytes() {
+        let state = LiveCaptureState::default();
+        let got = Arc::new(Mutex::new(Vec::new()));
+        let g = got.clone();
+        let channel: Channel<InvokeResponseBody> = Channel::new(move |body| {
+            match body {
+                InvokeResponseBody::Raw(bytes) => g.lock().unwrap().push(decode_block(&bytes).unwrap()),
+                InvokeResponseBody::Json(j) => panic!("expected raw bytes, got JSON {j}"),
+            }
+            Ok(())
+        });
+        start_stream_with(&state, None, None, Some(20), synthetic_source(Synth::lossless(1000, 40)), channel).unwrap();
+        assert!(wait_until(Duration::from_secs(5), || got.lock().unwrap().len() == 2));
+        stop_stream_blocking(&state).unwrap();
+        assert_eq!(got.lock().unwrap().iter().map(|b| b.seq).collect::<Vec<_>>(), vec![0, 1, 2]);
+    }
+
+    // -------------------------------------------------------- contracts
+
+    fn contract() -> serde_json::Value {
+        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/capture.json")).unwrap();
+        serde_json::from_str(&raw).unwrap()
+    }
+
+    fn keys(v: &serde_json::Value) -> Vec<String> {
+        let mut k: Vec<String> = v.as_object().unwrap().keys().cloned().collect();
+        k.sort_unstable();
+        k
+    }
+
+    #[test]
+    fn contract_capture_shapes_match_rust_types() {
+        let c = contract();
+        let cmd = &c["commands"];
+        let grant = LeaseGrant { lease_id: 3, holder: "wear-map".into(), device_name: Some("Traktor Audio 8 DJ (In 1/2)".into()), since: 1791633600000, kind: LeaseKind::External };
+        assert_eq!(serde_json::to_value(&grant).unwrap(), cmd["capture_lease_acquire"]["response"]);
+        assert_eq!(keys(&cmd["capture_lease_acquire"]["request"]), ["deviceName", "holder"]);
+        assert_eq!(keys(&cmd["capture_lease_release"]["request"]), ["leaseId"]);
+        let held = LeaseStatus { held: true, lease_id: Some(4), holder: Some("live-monitor".into()), device_name: None, since: Some(1791633600000), kind: Some(LeaseKind::Stream) };
+        assert_eq!(serde_json::to_value(&held).unwrap(), cmd["capture_lease_status"]["response"]);
+        assert_eq!(serde_json::to_value(CaptureLease::default().status()).unwrap(), cmd["capture_lease_status"]["responseIdle"]);
+        let stopped = LeaseGrant { lease_id: 4, holder: "live-monitor".into(), device_name: None, since: 1791633600000, kind: LeaseKind::Stream };
+        assert_eq!(serde_json::to_value(PreemptResult { stopped: Some(stopped.clone()) }).unwrap(), cmd["capture_preempt"]["response"]);
+        let live = LiveCaptureInfo { device_name: "Focusrite USB (In 1/2)".into(), sample_rate: 48000, channels: 2, max_seconds: 60.0, lease_id: 5 };
+        assert_eq!(serde_json::to_value(&live).unwrap(), cmd["start_live_capture"]["response"]);
+        assert_eq!(keys(&cmd["start_stream_capture"]["request"]), ["blockMs", "channel", "deviceName", "holder", "sampleRate"]);
+        let si = StreamInfo { stream_id: 4, holder: "live-monitor".into(), device_name: "Focusrite USB (In 1/2)".into(), sample_rate: 48000, channels: 2, block_ms: 1000, block_frames: 48000 };
+        assert_eq!(serde_json::to_value(&si).unwrap(), cmd["start_stream_capture"]["response"]);
+        assert_eq!(keys(&cmd["stream_capture_ack"]["request"]), ["seq", "streamId"]);
+        let sum = StreamSummary { stream_id: 4, ended: StreamEnd::Stopped, blocks_sent: 9, last_seq: Some(8), dropped_blocks: 0, frames_captured: 410000, overrun_samples: 0, stream_errors: 0, stream_error_messages: vec![] };
+        assert_eq!(serde_json::to_value(&sum).unwrap(), cmd["stop_stream_capture"]["response"]);
+        assert_eq!(serde_json::to_value(CaptureError::Busy(CaptureBusy::from_grant(&stopped))).unwrap(), c["errors"]["busy"]);
+        assert_eq!(serde_json::to_value(CaptureError::from(c["errors"]["plain"].as_str().unwrap())).unwrap(), c["errors"]["plain"]);
+    }
+
+    #[test]
+    fn contract_block_bytes_match_the_encoder() {
+        let c = contract();
+        let d = &c["block"]["decoded"];
+        let f = |v: &serde_json::Value| v.as_array().unwrap().iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>();
+        let q: BlockQuality = BlockQuality {
+            dropped_blocks: d["quality"]["droppedBlocks"].as_u64().unwrap() as u32,
+            stream_errors: d["quality"]["streamErrors"].as_u64().unwrap() as u32,
+            overrun_samples: d["quality"]["overrunSamples"].as_u64().unwrap(),
+            frames_captured: d["quality"]["framesCaptured"].as_u64().unwrap(),
+            discontinuity: d["quality"]["discontinuity"].as_bool().unwrap(),
+            final_block: d["quality"]["final"].as_bool().unwrap(),
+        };
+        assert_eq!(serde_json::to_value(&q).unwrap(), d["quality"]);
+        let bytes = encode_block(d["seq"].as_u64().unwrap() as u32, d["sampleRate"].as_u64().unwrap() as u32, &q, &f(&d["left"]), &f(&d["right"]));
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, c["block"]["hex"].as_str().unwrap());
+    }
+
+    // ------------------------------------------- Channel throughput spike
+
+    /// Report of a real-time 48 kHz stereo stream through a tauri `Channel`
+    /// into a simulated webview that decodes, verifies and acknowledges.
+    struct SpikeReport {
+        blocks: u64,
+        frames: u64,
+        mismatched_samples: u64,
+        seq_gaps: u64,
+        discontinuities: u64,
+        final_seen: bool,
+        summary: StreamSummary,
+    }
+
+    fn throughput_spike(seconds: u64) -> SpikeReport {
+        let state = LiveCaptureState::default();
+        let (tx, rx) = mpsc::channel::<Vec<u8>>();
+        let tx = Mutex::new(tx);
+        let channel: Channel<InvokeResponseBody> = Channel::new(move |body| {
+            if let InvokeResponseBody::Raw(bytes) = body {
+                let _ = tx.lock().unwrap().send(bytes);
+            }
+            Ok(())
+        });
+        let (id_tx, id_rx) = mpsc::channel::<u64>();
+        let webview = {
+            let state = state.clone();
+            thread::spawn(move || {
+                let id = id_rx.recv().unwrap();
+                let mut r = (0u64, 0u64, 0u64, 0u64, 0u64, false);
+                let mut next_seq = 0u32;
+                for bytes in rx {
+                    let b = decode_block(&bytes).unwrap();
+                    if b.seq != next_seq {
+                        r.3 += 1;
+                    }
+                    next_seq = b.seq.wrapping_add(1);
+                    r.4 += b.quality.discontinuity as u64;
+                    for (i, (&l, &rr)) in b.left.iter().zip(&b.right).enumerate() {
+                        let want = synth_value(r.1 + i as u64);
+                        if l != want || rr != -want {
+                            r.2 += 1;
+                        }
+                    }
+                    r.0 += 1;
+                    r.1 += b.left.len() as u64;
+                    ack_stream(&state, id, b.seq);
+                    if b.quality.final_block {
+                        r.5 = true;
+                        break;
+                    }
+                }
+                r
+            })
+        };
+        let synth = Synth { sample_rate: 48000, channels: 2, callback_frames: 480, pace: Pace::Realtime, limit_frames: None, fatal_after: None };
+        let info = start_stream_with(&state, Some("throughput-spike"), None, Some(DEFAULT_BLOCK_MS), synthetic_source(synth), channel).unwrap();
+        assert_eq!((info.sample_rate, info.channels, info.block_frames), (48000, 2, 48000));
+        id_tx.send(info.stream_id).unwrap();
+        let started = Instant::now();
+        while started.elapsed() < Duration::from_secs(seconds) {
+            thread::sleep(Duration::from_millis(100));
+            assert!(state.lease.is_held(), "stream ended early");
+        }
+        let summary = stop_stream_blocking(&state).unwrap();
+        let (blocks, frames, mismatched_samples, seq_gaps, discontinuities, final_seen) = webview.join().unwrap();
+        let report = SpikeReport { blocks, frames, mismatched_samples, seq_gaps, discontinuities, final_seen, summary };
+        eprintln!(
+            "stream spike {seconds}s: blocks={} frames={} droppedBlocks={} overrunSamples={} streamErrors={} seqGaps={} mismatches={}",
+            report.blocks, report.frames, report.summary.dropped_blocks, report.summary.overrun_samples, report.summary.stream_errors, report.seq_gaps, report.mismatched_samples
+        );
+        report
+    }
+
+    fn assert_spike_clean(r: &SpikeReport, seconds: u64) {
+        assert_eq!(r.summary.dropped_blocks, 0, "dropped blocks");
+        assert_eq!(r.summary.overrun_samples, 0, "ring overruns");
+        assert_eq!(r.summary.stream_errors, 0);
+        assert_eq!((r.seq_gaps, r.discontinuities, r.mismatched_samples), (0, 0, 0));
+        assert!(r.final_seen);
+        assert_eq!(r.frames, r.summary.frames_captured, "every captured frame was delivered");
+        assert_eq!(r.blocks, r.summary.blocks_sent as u64);
+        let expected = seconds * 48000;
+        assert!(r.frames + 48000 / 10 >= expected && r.frames <= expected + 48000, "frames {} for {seconds}s", r.frames);
+    }
+
+    /// CI variant of the FS-00 §10 spike: 30 s of real-time 48 kHz stereo,
+    /// 0 dropped blocks, every sample verified.
+    #[test]
+    fn stream_throughput_48k_stereo_30s() {
+        let r = throughput_spike(30);
+        assert_spike_clean(&r, 30);
+    }
+
+    /// Full acceptance spike (M6-F1-capture): 20 min of 48 kHz stereo with 0
+    /// dropped blocks. Run on the Windows runner (or locally) with:
+    /// `cargo test --manifest-path src-tauri/Cargo.toml --lib capture::tests::stream_throughput_48k_stereo_20min -- --ignored --nocapture`
+    /// `DECKCHEK_SPIKE_SECS` overrides the duration.
+    #[test]
+    #[ignore = "20-minute real-time throughput spike; run explicitly with --ignored"]
+    fn stream_throughput_48k_stereo_20min() {
+        let seconds = std::env::var("DECKCHEK_SPIKE_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(20 * 60);
+        let r = throughput_spike(seconds);
+        assert_spike_clean(&r, seconds);
     }
 }

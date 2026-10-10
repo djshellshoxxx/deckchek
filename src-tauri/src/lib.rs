@@ -60,6 +60,8 @@ pub fn run() {
             devices::device_profiles_sync, devices::device_test_result_save, devices::device_test_results,
             devices::device_midi_map_save, devices::device_midi_map_get,
             // [FS-00] handlers
+            capture::capture_lease_acquire, capture::capture_lease_release, capture::capture_lease_status, capture::capture_preempt,
+            capture::start_stream_capture, capture::stream_capture_ack, capture::stop_stream_capture,
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
             usage::usage_add, usage::usage_list, usage::usage_delete, usage::usage_confirm,
