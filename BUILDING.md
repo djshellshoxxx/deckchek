@@ -72,6 +72,14 @@ Static browser mode stores the working equipment/run list in localStorage and su
 
 Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies database/migrations/0001_initial.sql, and stores completed diagnostic sessions, analysis methods, measurements and finding evidence.
 
+## Backup and restore
+
+The Data & backup screen (rail, flag `backup`) creates a single `.deckchek-backup` file: a consistent SQLite snapshot taken while the app runs, plus settings, calibration profiles and learned MIDI maps, with SHA-256 checksums. Restore verifies the file, shows a preview, requires confirmation, writes an `auto-pre-restore-*` safety backup, migrates older schemas and swaps the database atomically; a failure leaves your data unchanged. Automatic backups (daily, weekly, on exit) keep the newest 7 `auto-*` files. On Windows, backup and restore first check free disk space and report how much is needed; other platforms skip the check. A browser-mode `deckchek-workspace.json` can be imported into the database. Backups are not encrypted. Rust tests for this live in `src-tauri/src/backup.rs` (`cargo test`), the UI flow in `tools/smoke/backup.mjs`.
+
+## Support and diagnostics
+
+Ctrl+Shift+D, Options > Support, Help or an error toast's Details button opens the diagnostics dialog, which writes a redacted zip locally; nothing is uploaded. After an unclean exit the next start offers to create one.
+
 ## Measurement status
 
 The deterministic algorithms are suitable for development and repeatable file analysis. Accuracy claims remain gated by SPEC-08 and SPEC-19. In particular, the current short-term speed metric is a proxy until validated against the exact target wow/flutter method; vibration and damage classifiers remain evidence signals rather than definitive diagnoses.

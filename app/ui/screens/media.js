@@ -7,7 +7,6 @@ import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
 import { store as catalog, on } from '../state.js';
-import { isEnabled } from '../../features.js';
 import { saveTextFile } from '../../userfiles.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { KINDS, PURPOSES, LEVEL_UNITS, CONFIDENCE, LIMITS, TEST_KINDS, UNVERIFIED_WARNING, validateMediaProfile, prepareImport, listMedia } from '../../media-library.js';
@@ -370,11 +369,10 @@ export function createMediaScreen(section) {
   };
 }
 
-/** Rail entry for the app shell: the screen exists only while features.testMedia is on. */
+/** Rail entry for the app shell: the rail entry follows features.testMedia live. */
 export function mediaScreenDefs() {
   installMediaPicker(); // the form field and its prefill are wired even before the screen is opened
-  if (!isEnabled('testMedia')) return [];
   const main = document.getElementById('main');
   if (main && !document.getElementById('screen-media')) main.append(h('section', { class: 'screen', id: 'screen-media', hidden: true }));
-  return [{ id: 'media', title: 'Test media', short: 'Media', icon: 'vinyl', create: createMediaScreen }];
+  return [{ id: 'media', title: 'Test media', short: 'Media', icon: 'vinyl', feature: 'testMedia', create: createMediaScreen }];
 }

@@ -1,0 +1,19 @@
+/* Support / diagnostics dialog (FS-02) and Options/Help support entries. Tokens from styles.css only. */
+
+dialog.diag-dialog { width: min(560px, 94vw); max-width: none; }
+.diag-body { display: grid; gap: 12px; }
+.diag-parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.diag-part { display: flex; justify-content: space-between; gap: 12px; }
+.diag-part.diag-skipped .mono, .diag-part.diag-error .mono { color: var(--text-muted); }
+.diag-part.diag-error .small { color: var(--fail); }
+.diag-toggles { display: grid; gap: 6px; }
+.diag-toggle { display: flex; align-items: center; gap: 6px; }
+.diag-summary pre { max-height: 220px; overflow: auto; margin: 8px 0 0; padding: 8px 10px; background: var(--sunken); border: 1px solid var(--divider); border-radius: var(--r-sm); white-space: pre-wrap; }
+.diag-error { color: var(--fail); }
+.diag-progress { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+.diag-saved { display: flex; align-items: center; gap: 6px; color: var(--pass); }
+
+/* Options > Support and Help entries (ui/menus.js) */
+.support-entry { display: grid; gap: 8px; }
+.support-entry p { margin: 0; }
+.support-entry-actions { display: flex; flex-wrap: wrap; gap: 8px; }

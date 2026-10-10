@@ -68,3 +68,15 @@ test('corrupt storage falls back to empty state', () => {
   const st = { getItem: () => '{bad', setItem() {} };
   assert.deepEqual(loadState(st), emptyState());
 });
+
+test('browser mode keeps mediaId / mediaTrackKey on saved device results (FS-06 AC-6)', async () => {
+  const store = createCatalogStore({ storage: memStorage() });
+  const withMedia = await store.saveDeviceTestResult({ assetId: 'a', profileId: 'p', testId: 't', status: 'pass', mediaId: 'ortofon-test-record', mediaTrackKey: 't5' });
+  assert.equal(withMedia.mediaId, 'ortofon-test-record');
+  assert.equal(withMedia.mediaTrackKey, 't5');
+  const none = await store.saveDeviceTestResult({ assetId: 'a', profileId: 'p', testId: 't2', status: 'pass', mediaId: null, mediaTrackKey: 'orphan' });
+  assert.equal(none.mediaId, null);
+  assert.equal(none.mediaTrackKey, null, 'a track key without a medium is dropped');
+  const listed = await store.listDeviceTestResults('a');
+  assert.ok(listed.some(r => r.mediaId === 'ortofon-test-record' && r.mediaTrackKey === 't5'));
+});

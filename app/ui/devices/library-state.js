@@ -3,6 +3,7 @@
 
 import { loadProfiles } from '../../devices/library.js';
 import { store, emit } from '../state.js';
+import { mediaRefFromParams } from '../media-picker.js';
 
 export const lib = {
   ready: false, loading: false, error: null, syncError: null,
@@ -58,10 +59,10 @@ export function unitsFor(profileId) {
 }
 export const resultsFor = assetId => lib.results.filter(r => r.assetId === assetId);
 
-/** Save a device test result and refresh caches; returns the stored row. */
-export async function saveResult({ profile, test, assetId, status, detail, sessionId = null }) {
+/** Save a device test result and refresh caches; returns the stored row. `params` are the workflow's collected form values (carry the chosen test medium). */
+export async function saveResult({ profile, test, assetId, status, detail, sessionId = null, params = null }) {
   if (!assetId) throw new Error('No unit selected for this device.');
-  const row = await store.saveDeviceTestResult({ assetId, profileId: profile.id, testId: test.id, sessionId, status, detail });
+  const row = await store.saveDeviceTestResult({ assetId, profileId: profile.id, testId: test.id, sessionId, status, detail, ...mediaRefFromParams(params) });
   lib.results = [row, ...lib.results.filter(r => r.id !== row.id)];
   emit('device-results', row);
   return row;

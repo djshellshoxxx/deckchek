@@ -168,7 +168,8 @@ export function saveDeviceResultLocal(state, input, now = new Date().toISOString
   if (!RESULT_STATUSES.includes(input?.status)) throw new Error(`invalid status '${input?.status}' (expected pass, fail, unknown or skipped)`);
   if (!trimmed(input.testId)) throw new Error('testId is required');
   const sessionKnown = input.sessionId && state.runs.some(r => r.id === input.sessionId);
-  const row = { id: input.id || newId(), assetId: input.assetId, profileId: input.profileId, testId: input.testId, sessionId: sessionKnown ? input.sessionId : null, status: input.status, detail: input.detail ?? {}, createdAt: input.createdAt || now };
+  const row = { id: input.id || newId(), assetId: input.assetId, profileId: input.profileId, testId: input.testId, sessionId: sessionKnown ? input.sessionId : null, status: input.status, detail: input.detail ?? {}, createdAt: input.createdAt || now,
+    mediaId: trimmed(input.mediaId) || null, mediaTrackKey: trimmed(input.mediaId) ? (trimmed(input.mediaTrackKey) || null) : null };
   state.deviceResults = [row, ...state.deviceResults.filter(r => r.id !== row.id)];
   return { ...row };
 }

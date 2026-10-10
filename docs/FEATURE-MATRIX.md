@@ -12,6 +12,12 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Stereo signal Quick Check | Implemented | RMS, clipping, balance, correlation/polarity, hum and dropout evidence. |
 | Reference-tone speed/pitch | Implemented, validation-gated | Frequency, RPM, pitch error, speed trace, drift and short-term variation proxy. |
 | Pitch-map workflow | Implemented | Multi-run slope, nonlinearity, hysteresis and dead-spot candidates. |
+| First-run setup wizard (FS-01) | Implemented | Six resumable steps; re-run from Options. |
+| Diagnostics bundle and crash prompt (FS-02) | Implemented | Local zip, redaction, crash marker on exit; nothing uploaded. |
+| Open external links (FS-07) | Implemented | Allowlist plus confirm dialog; desktop command is authoritative. |
+| Test media library (FS-06) | Implemented | Picker prefill, result and History record of the medium used; flag `testMedia`. |
+| Backup and restore (FS-08) | Implemented | Verified `.deckchek-backup`, safety backup, schedule, free-space check on Windows. |
+| PDF reports (FS-03) | In progress | Print host and renderer pending; HTML/CSV/JSON export available. |
 | Startup/brake | Partial | Signal-envelope timing proxy implemented; validated platter-speed transition method remains outstanding. |
 | Cartridge diagnostics | Partial | Balance/polarity and THD estimate implemented; guided crosstalk/separation and full alignment workflows remain. |
 | Generic DVS | Implemented foundation | Scope geometry, levels, correlation and missing-signal timeline; no vendor-specific decoding yet. |
@@ -199,7 +205,7 @@ See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconc
 | Reports | Maintenance report | SPEC-06 | 11 |
 | Export | JSON/CSV | SPEC-03, SPEC-04 | 7-8 |
 | Export | HTML | SPEC-06 | 1+ |
-| Export | PDF | SPEC-06 | 11 |
+| Export | PDF | SPEC-06 | 11 (FS-03 in progress) |
 | QA | Synthetic signal generator | SPEC-08 | 0 |
 | QA | Golden DSP fixtures | SPEC-08 | all |
 | QA | False-positive vinyl corpus | SPEC-08 | 7 |

@@ -37,6 +37,21 @@ export function mediaRefFromParams(params) {
   return { mediaId, mediaTrackKey: trackKey };
 }
 
+/**
+ * Human text for a saved `{mediaId, mediaTrackKey}` (FS-06 AC-6): "<name> — track 5 · 1000 Hz". Falls back to the raw id
+ * for a medium that has since been deleted. Null when no medium was used. Loads the library when the flag is on.
+ */
+export async function describeMediaRef(ref) {
+  const mediaId = ref?.mediaId;
+  if (!mediaId) return null;
+  if (!media.ready && isEnabled('testMedia')) { try { await ensureMedia(); } catch { /* fall through to the id */ } }
+  const entry = findEntry(mediaId);
+  if (!entry) return mediaId;
+  const key = ref.mediaTrackKey ?? ref.trackKey;
+  const track = key ? (entry.profile?.tracks || []).find(t => t.key === key) : null;
+  return track ? `${entry.name} — ${trackText(track)}` : entry.name;
+}
+
 // ---------- loading ----------
 let loading = null;
 export function ensureMedia({ force = false } = {}) {

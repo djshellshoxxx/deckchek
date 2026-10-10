@@ -102,6 +102,8 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 
 DeckChek is now a live-capture and offline-analysis beta. The Windows desktop shell supports continuous native audio capture, real-time level meters, loopback calibration with uncertainty propagation, catalog persistence, and deterministic diagnostics with evidence-first reporting. Files can be analyzed in a browser; results export as HTML/CSV/JSON.
 
+Milestone 5 adds a first-run setup wizard, a local diagnostics bundle with crash prompt, allowlisted support links, a test-media library, and verified backup and restore of your data (see [BUILDING.md](BUILDING.md#backup-and-restore)). PDF reports are still pending.
+
 See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation.
 
 ## Download the Windows beta

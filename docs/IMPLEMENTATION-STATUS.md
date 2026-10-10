@@ -1,6 +1,6 @@
 # DeckChek implementation status
 
-Updated: 2026-10-07
+Updated: 2026-10-10
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
@@ -59,6 +59,19 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Quartz repeatability/warm-up trends are exposed; drag/recovery and true torque workflows are not complete.
 - Deeper pitch/speed/DVS/vinyl repeat-scan comparison is available; mature vinyl classifiers remain incomplete.
 
+## M5 additions (implemented and test-covered)
+
+- First-run setup wizard (FS-01): six steps (interface, levels with an always-stopping test tone, calibration, gear, summary), resumable, re-run from Options; flag `setupWizard`.
+- Diagnostics bundle and crash handling (FS-02): rolling log with panic hook, crash marker removed on `RunEvent::Exit`, startup crash prompt, support dialog (Ctrl+Shift+D, Options > Support, Help, error-toast "Details"), redacted zip written locally, Report on GitHub link with a text summary only; nothing is uploaded. Browser mode zips settings and a workspace summary. Styles in `app/styles/diagnostics.css`.
+- External links and file reveal (FS-07): one allowlisted choke point (`app/external-links.js`, Rust `open_external_url`), confirm dialog for unknown hosts, Help menu links to GitHub issues/releases and allowlisted manufacturer support pages.
+- Test media library (FS-06): built-in and custom media with tracks and expected values, "Test medium" picker prefilling the Speed, Cartridge and DVS forms, `media_id` / `media_track_key` stored on device results (also in browser mode) and shown in History and the Devices result history; flag `testMedia` shows or hides the rail entry live.
+- Backup and restore (FS-08): verified single-file `.deckchek-backup` (online SQLite snapshot, settings, MIDI maps), restore with confirmation, migration, safety backup and atomic swap, schedule (daily, weekly, on exit with a 5 s cap, retention), browser workspace import, free-disk-space check before backup and restore on Windows (skipped elsewhere); on-exit backup runs from `RunEvent::ExitRequested` / `Exit`. Flag `backup`.
+- Shell: feature-flagged rail entries follow flag changes without reload; the shared confirm dialog no longer settles early after a rapid cancel and reopen.
+
+## M5 pending
+
+- PDF reports (FS-03): the renderer and print host are being delivered by a separate job; HTML, CSV and JSON exports remain the shipped formats until it lands.
+
 ## Not yet complete
 
 - Real-hardware validation of measurement accuracy against known reference fixtures (SPEC-08/19).
@@ -73,7 +86,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
 - CDJ transport/media/digital-output diagnostics beyond shared audio/pitch/DVS analysis.
 - Technician/Engineering worksheets and model-specific service workflows.
-- PDF reports, installer/update validation, support bundles, crash recovery UI and release signing.
+- PDF reports (FS-03, in progress), installer/update validation and release signing.
 - macOS native build (out of scope for current beta).
 
 ## Current release interpretation
