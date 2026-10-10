@@ -1,0 +1,85 @@
+{
+  "scratch_save": {
+    "command": "scratch_save",
+    "request": {
+      "run": {
+        "sessionId": null,
+        "setupId": null,
+        "cartridgeAssetId": "asset-cart-1",
+        "recordSideId": null,
+        "format": "Serato CV02.5",
+        "bpm": 90,
+        "protocolVersion": 1,
+        "completed": true,
+        "score": 87.5,
+        "components": {
+          "continuity": { "points": 29.5, "max": 30, "value": 98.333333, "unit": "%" },
+          "recovery": { "points": 20, "max": 20, "value": 12.5, "unit": "ms" },
+          "direction": { "points": 25, "max": 25, "value": 0, "unit": "errors/reversal" },
+          "stability": { "points": 13, "max": 15, "value": 23.666667, "unit": "dB" },
+          "skips": { "points": 10, "max": 10, "value": 0, "unit": "count" }
+        },
+        "lockLosses": 1,
+        "longestLossMs": 30,
+        "medianRecoveryMs": 12.5,
+        "directionErrors": 0,
+        "skips": 0,
+        "reversals": 2,
+        "peakVelocity": -2.1,
+        "trackingForceG": 3,
+        "tonearmNote": "Height 2 mm up",
+        "events": [
+          { "pattern": "baby", "kind": "reversal", "tMs": 3333.3, "durationMs": 47.5, "value": 2.1, "detail": { "fromSign": 1 } },
+          { "pattern": "baby", "kind": "reversal", "tMs": 3666.7, "durationMs": 47.5, "value": 2.1, "detail": { "fromSign": -1 } },
+          { "pattern": "baby", "kind": "lock_loss", "tMs": 4100, "durationMs": 30, "value": null, "detail": { "cause": "level" } },
+          { "pattern": "baby", "kind": "recovery", "tMs": 4142.5, "durationMs": 12.5, "value": null, "detail": {} }
+        ]
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000014",
+      "sessionId": null,
+      "setupId": null,
+      "cartridgeAssetId": "asset-cart-1",
+      "recordSideId": null,
+      "format": "Serato CV02.5",
+      "bpm": 90,
+      "protocolVersion": 1,
+      "completed": true,
+      "score": 87.5,
+      "components": {
+        "continuity": { "points": 29.5, "max": 30, "value": 98.333333, "unit": "%" },
+        "recovery": { "points": 20, "max": 20, "value": 12.5, "unit": "ms" },
+        "direction": { "points": 25, "max": 25, "value": 0, "unit": "errors/reversal" },
+        "stability": { "points": 13, "max": 15, "value": 23.666667, "unit": "dB" },
+        "skips": { "points": 10, "max": 10, "value": 0, "unit": "count" }
+      },
+      "lockLosses": 1,
+      "longestLossMs": 30,
+      "medianRecoveryMs": 12.5,
+      "directionErrors": 0,
+      "skips": 0,
+      "reversals": 2,
+      "peakVelocity": -2.1,
+      "trackingForceG": 3,
+      "tonearmNote": "Height 2 mm up",
+      "createdAt": "2026-10-10T20:00:00.000Z",
+      "eventCount": 4
+    }
+  },
+  "scratch_list": {
+    "command": "scratch_list",
+    "request": { "filter": { "cartridgeAssetId": "asset-cart-1", "recordSideId": null, "setupId": null, "format": null, "protocolVersion": 1, "limit": 50 } },
+    "response": []
+  },
+  "scratch_get": {
+    "command": "scratch_get",
+    "request": { "id": "00000000-0000-4000-8000-000000000014" },
+    "response": null
+  },
+  "scratch_delete": {
+    "command": "scratch_delete",
+    "request": { "id": "00000000-0000-4000-8000-000000000014" },
+    "response": true
+  }
+}
