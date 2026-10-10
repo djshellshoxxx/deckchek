@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-speed-3000",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": null,
+  "name": "Generic 3 kHz speed reference",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [
+    {
+      "key": "speed-3000",
+      "side": null,
+      "trackNo": null,
+      "purpose": "speed_tone",
+      "frequencyHz": 3000,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified"
+    }
+  ],
+  "timecode": null,
+  "notes": "Defines the nominal only. 3000 Hz and 3150 Hz records both exist; picking the wrong one gives about 5% error. Check your disc.",
+  "sources": [
+    {
+      "title": "Audiogon forum: 3000 vs 3150 Hz test records (snippet only; not opened)",
+      "url": "https://forum.audiogon.com/posts/404303",
+      "verified": false
+    }
+  ]
+}

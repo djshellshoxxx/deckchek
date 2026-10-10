@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "serato-cd",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "Serato",
+  "name": "Serato Control CD",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "Serato CD"
+  },
+  "notes": "xwax serato_cd.",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    }
+  ]
+}

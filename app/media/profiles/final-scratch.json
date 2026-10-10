@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "final-scratch",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "Stanton / N2IT",
+  "name": "Final Scratch control vinyl",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [],
+  "timecode": {
+    "formatName": "Final Scratch"
+  },
+  "notes": "Not in xwax timecoder.c; the 1.2 kHz carrier comes from Mixxx documentation only. Unverified.",
+  "sources": [
+    {
+      "title": "Mixxx: How does timecode vinyl actually work? (Pt. 2)",
+      "url": "https://mixxx.org/news/2021-12-22-dvs-internals-pt2/",
+      "verified": false
+    }
+  ]
+}

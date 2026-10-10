@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "serato-cv025",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "Serato",
+  "name": "Serato Control Vinyl CV02.5 (NoiseMap)",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "Serato CV02.5",
+    "hasNoiseMap": true
+  },
+  "productProfileId": "serato-control-vinyl-cv025",
+  "notes": "Carrier and side lengths come from xwax serato_2a/serato_2b. Whether the NoiseMap code is exactly the serato_2a/2b code is not stated in timecoder.c; the carrier is.",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    }
+  ]
+}

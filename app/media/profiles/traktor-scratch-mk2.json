@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "traktor-scratch-mk2",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "Native Instruments",
+  "name": "Traktor Scratch Control Vinyl MK2",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "Traktor Scratch MK2"
+  },
+  "productProfileId": "traktor-scratch-timecode",
+  "notes": "xwax traktor_mk2_a/traktor_mk2_b (110-bit code).",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    },
+    {
+      "title": "Mixxx PR 14569: Initial Traktor MK2 vinyl/CD support",
+      "url": "https://github.com/mixxxdj/mixxx/pull/14569",
+      "verified": false
+    }
+  ]
+}

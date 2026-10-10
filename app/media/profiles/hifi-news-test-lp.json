@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "hifi-news-test-lp",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": "Hi-Fi News",
+  "name": "Hi-Fi News & Record Review Test LP",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [],
+  "timecode": null,
+  "notes": "Track list is UNKNOWN and needs verification against a physical copy; no tracks are recorded. Add your own tracks via \"Duplicate and edit\".",
+  "sources": [
+    {
+      "title": "diyAudio thread (forum; attribution unclear, not used for values)",
+      "url": "https://www.diyaudio.com/community/threads/test-lp-group-buy.313335/post-5227209",
+      "verified": false
+    }
+  ]
+}
