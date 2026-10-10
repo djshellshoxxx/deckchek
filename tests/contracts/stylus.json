@@ -1,0 +1,47 @@
+{
+  "stylus_benchmark_save": {
+    "command": "stylus_benchmark_save",
+    "request": {
+      "result": {
+        "assetId": "asset-1",
+        "sessionId": null,
+        "setupId": null,
+        "hoursAt": 120.5,
+        "thdPercent": 0.62,
+        "separationDb": 27.4,
+        "tcSnrDb": 31.2,
+        "tcPhaseErrorDeg": 4.1,
+        "tcDropouts": 0,
+        "valid": true,
+        "detail": { "side": "A" }
+      }
+    },
+    "response": { "id": "00000000-0000-4000-8000-000000000002" }
+  },
+  "stylus_benchmark_list": {
+    "command": "stylus_benchmark_list",
+    "request": { "assetId": "asset-1" },
+    "response": [
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "assetId": "asset-1",
+        "sessionId": null,
+        "setupId": null,
+        "hoursAt": 120.5,
+        "thdPercent": 0.62,
+        "separationDb": 27.4,
+        "tcSnrDb": 31.2,
+        "tcPhaseErrorDeg": 4.1,
+        "tcDropouts": 0,
+        "valid": true,
+        "detail": { "side": "A" },
+        "createdAt": "2026-10-10T23:30:00.000Z"
+      }
+    ]
+  },
+  "stylus_alert_snooze": {
+    "command": "stylus_alert_snooze",
+    "request": { "assetId": "asset-1", "kind": "life", "until": "2026-11-09T00:00:00.000Z" },
+    "response": { "id": "00000000-0000-4000-8000-000000000003" }
+  }
+}

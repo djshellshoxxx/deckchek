@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "note": "Rated stylus life is NOT a manufacturer-published figure for any entry below unless confidence says so. Every entry cites where the number came from; entries with confidence 'unknown' carry no hours and the app falls back to the generic 500 h estimate (a tunable default with no authoritative source). Nothing here was measured by DeckChek.",
+  "fallbackHours": 500,
+  "fallbackNote": "Generic 500 h DJ estimate from FS-12 §6; forum-level evidence only, not a vendor spec.",
+  "entries": [
+    {
+      "model": "Ortofon (general, DJ and hi-fi styli)",
+      "match": ["ortofon"],
+      "ratedHours": 500,
+      "range": [500, 1000],
+      "confidence": "forum",
+      "verified": false,
+      "source": "https://www.stereonet.com/forums/topic/91694-cartridge-lifespan/",
+      "sources": [
+        "https://www.stereonet.com/forums/topic/91694-cartridge-lifespan/",
+        "https://www.whatsbestforum.com/goto/post?id=86230",
+        "https://www.whatsbestforum.com/goto/post?id=95156"
+      ],
+      "notes": "Forum snippets only. About 500 h is described as realistic for DJ/back-cueing use; up to about 1000 h with proper care (an Ortofon statement relayed on a forum, not read from Ortofon directly). The per-model Concorde figure is NOT documented, so no Concorde-specific number is given."
+    },
+    {
+      "model": "Jico N44-7 / J44A-7 replacement stylus (Shure M44-7 compatible)",
+      "match": ["jico", "n44-7", "j44a"],
+      "ratedHours": 200,
+      "range": [200, 200],
+      "confidence": "retailer",
+      "verified": false,
+      "source": "https://plugseven.com/product/jico-j44a-7-dj-replacement-stylus-synthetic-diamond-sd-tip-shure-n-447-single/",
+      "notes": "Retailer quoting a vendor claim (snippet only). This is the Jico replacement stylus, not a Shure specification."
+    },
+    {
+      "model": "Shure M44-7",
+      "match": ["shure m44-7", "m44-7", "shure m447"],
+      "ratedHours": null,
+      "range": null,
+      "confidence": "unknown",
+      "verified": false,
+      "source": null,
+      "notes": "Shure's official M44-7 rating is UNKNOWN and needs verification (FS-12 §6). Do not substitute the Jico figure."
+    },
+    {
+      "model": "Nagaoka (elliptical styli)",
+      "match": ["nagaoka"],
+      "ratedHours": 150,
+      "range": [150, 200],
+      "confidence": "retailer",
+      "verified": false,
+      "source": null,
+      "notes": "FS-12 §6 research note: a retailer snippet cites 150-200 h for elliptical styli. The page URL was not recorded, so this is unverified; the lower bound is used."
+    },
+    {
+      "model": "Stanton (DJ cartridges)",
+      "match": ["stanton"],
+      "ratedHours": 500,
+      "range": [500, 1000],
+      "confidence": "forum",
+      "verified": false,
+      "source": null,
+      "notes": "FS-12 §6 research note: about 500 h before inspection, up to 1000 h, from a forum (URL not recorded). Unverified; the lower bound is used."
+    }
+  ]
+}

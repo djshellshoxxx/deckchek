@@ -28,6 +28,8 @@ mod backup;
 // [FS-10] mods
 // [FS-11] mods
 // [FS-12] mods
+mod stylus;
+mod dj_sessions;
 // [FS-13] mods
 // [FS-14] mods
 // [FS-15] mods
@@ -81,6 +83,9 @@ pub fn run() {
             // [FS-10] handlers
             // [FS-11] handlers
             // [FS-12] handlers
+            stylus::stylus_benchmark_save, stylus::stylus_benchmark_list, stylus::stylus_alert_snooze, stylus::stylus_alert_list,
+            stylus::stylus_baseline, stylus::stylus_replace, stylus::stylus_rated_life_set, stylus::stylus_rated_life_get,
+            dj_sessions::dj_session_spans,
             // [FS-13] handlers
             // [FS-14] handlers
             // [FS-15] handlers
