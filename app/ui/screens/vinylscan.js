@@ -7,6 +7,7 @@
 
 import { h, esc, isNative, isTyping, formatDate } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { attachFormatPicker } from '../media-picker.js';
 import { pdfButton, wearMapPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { confirmDialog, showInspector, setInspector, setCaptureStatus } from '../shell.js';
@@ -254,6 +255,7 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
       h('div', { class: 'form-actions' },
         h('button', { type: 'button', class: 'btn btn-ghost', id: 'wm-f-cancel', text: 'Cancel', onclick: closeForm }),
         h('button', { type: 'submit', class: 'btn btn-primary', id: 'wm-f-save', text: editing ? 'Save changes' : 'Add record' })));
+    if (!editing) attachFormatPicker(fmtSel); // a timecode medium sets the format
     form.addEventListener('submit', async e => {
       e.preventDefault();
       try {

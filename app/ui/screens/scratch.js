@@ -11,6 +11,7 @@ import { settings, store, active } from '../state.js';
 import { listOutputDevices, outputSelectionSupported, liveAvailable } from '../audio-io.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { PROTOCOL_V1, SCRATCH_DEFAULTS, createScratchApi, summarizeScratch, skipSafety, compareScores, groupScratchRuns, protocolTimeline } from '../../scratch.js';
+import { attachFormatPicker } from '../media-picker.js';
 import { createRecordsApi } from '../workflows/wearmap.js';
 import { pdfButton, scratchPrintData } from '../workflows/m6-reports.js';
 import { createScratchRunner, SKIP_CALIBRATION, BPM_RANGE, METRONOME_LEAD_SEC } from '../workflows/scratch.js';
@@ -294,6 +295,7 @@ export function createScratchScreen(section) {
       <div class="step-footer"><span class="muted small">Shortcuts: <kbd>Enter</kbd> next · <kbd>M</kbd> mute click · <kbd>Esc</kbd> abort</span>
         <button type="button" class="btn btn-primary btn-lg" id="sc-start"${live ? '' : ' disabled aria-disabled="true"'}>${icon('play', { size: 18 })}<span>Check baseline</span></button></div>`;
     const bind = (id, key, conv = v => v) => q(id).addEventListener('input', e => { f[key] = conv(e.target.value); });
+    if (q('#sc-format')) attachFormatPicker(q('#sc-format'));
     bind('#sc-format', 'format'); bind('#sc-bpm', 'bpm'); bind('#sc-cart', 'cartridgeAssetId'); bind('#sc-setup', 'setupId'); bind('#sc-side', 'recordSideId'); bind('#sc-force', 'trackingForceG'); bind('#sc-note', 'tonearmNote'); bind('#sc-out', 'sinkId');
     q('#sc-level').addEventListener('input', e => { f.levelDbfs = Number(e.target.value); q('#sc-level-v').textContent = `${f.levelDbfs} dBFS`; });
     q('#sc-vol').addEventListener('change', e => { f.volumeAck = e.target.checked; });

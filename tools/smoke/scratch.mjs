@@ -25,6 +25,7 @@ function scratchMock() {
     }
     return { left: L, right: R };
   };
+  const mediaRows = new Map();
   core.invoke = async (cmd, args) => {
     if (cmd === 'start_live_capture') { started = performance.now(); return base(cmd, args); }
     if (cmd === 'stop_live_capture') {
@@ -35,6 +36,8 @@ function scratchMock() {
       const sig = synth(secs, { dead, still: baseline });
       return { payload: { deviceName: 'Focusrite USB (In 1/2)', sampleRate: sr, channels: 2, left: sig.left, right: sig.right, streamErrors: [] }, quality: {} };
     }
+    if (cmd === 'media_profiles_sync') { for (const p of args.profiles) { const { timecodeFacts, ...profile } = p; mediaRows.set(p.id, { id: p.id, source: 'builtin', kind: p.kind, name: p.name, version: p.version, owned: false, retired: false, profile }); } return { inserted: args.profiles.length, updated: 0, unchanged: 0, retired: 0 }; }
+    if (cmd === 'media_list') return [...mediaRows.values()];
     if (cmd === 'wearmap_records_list') return [{ id: 'rec-1', releaseId: 'rel-1', title: 'Serato CV02.5 copy', format: 'Serato CV02.5', nickname: 'Booth copy', retired: false, sides: [{ id: 'side-1', sideLabel: 'A' }, { id: 'side-2', sideLabel: 'B' }] }];
     if (!cmd.startsWith('scratch_')) return base(cmd, args);
     calls.push(cmd);
@@ -115,6 +118,12 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('.rail-item[data-screen="scratch"]');
   await page.waitForSelector('#sc-start:not([disabled])');
   check('scratch: desktop setup offers the cartridges from Equipment', (await page.locator('#sc-cart option').count()) === 3);
+  await page.evaluate(async () => { const m = await import('./ui/media-picker.js'); m.media.store = null; await m.ensureMedia({ force: true }); });
+  await page.waitForSelector('#screen-scratch .media-picker select optgroup', { state: 'attached' });
+  const tcMedium = await page.locator('#screen-scratch .media-picker select option').evaluateAll(os => os.find(o => /Traktor Scratch MK2|MK2/i.test(o.textContent))?.value);
+  await page.selectOption('#screen-scratch .media-picker select', tcMedium);
+  check('scratch: a timecode medium sets the format (FS-06)', /MK2/.test(await page.locator('#sc-format').inputValue()), await page.locator('#sc-format').inputValue());
+  await page.selectOption('#sc-format', 'Serato CV02.5');
   await page.selectOption('#sc-cart', 'a-cart1');
   check('scratch: setup offers the control-vinyl copies and sides (AC-6)', (await page.locator('#sc-side option').allInnerTexts()).some(t => /Booth copy.*side A/.test(t)) && (await page.locator('#sc-setup').count()) === 1);
   await page.selectOption('#sc-side', 'side-1');

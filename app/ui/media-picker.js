@@ -151,6 +151,31 @@ export function createMediaPicker({ testId, onChange = () => {}, value = '' } = 
   return wrap;
 }
 
+/**
+ * "Test medium" chooser for a form that asks for a timecode format (scratch test, control-vinyl record form): picking a
+ * timecode medium sets the format select. Inserted before the select's field; hidden while features.testMedia is off.
+ * Returns the picker element.
+ */
+export function attachFormatPicker(formatSelect, { testId = 'dvs' } = {}) {
+  const wrap = createMediaPicker({
+    testId,
+    onChange: ({ described }) => {
+      const name = described?.expected?.formatName;
+      if (!name || ![...formatSelect.options].some(o => o.value === name || o.textContent === name)) return;
+      const opt = [...formatSelect.options].find(o => o.value === name || o.textContent === name);
+      formatSelect.value = opt.value;
+      formatSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      announce(`Timecode format set to ${name} from the test medium.`);
+    },
+  });
+  const sync = () => { wrap.hidden = !isEnabled('testMedia'); };
+  sync();
+  onFeatureChange(sync);
+  if (isEnabled('testMedia')) ensureMedia().catch(() => {});
+  (formatSelect.closest('.field') || formatSelect).before(wrap);
+  return wrap;
+}
+
 // ---------- the workflow form parameter ----------
 export const getParam = () => PARAMS.find(p => p.id === PARAM_ID) || null;
 
