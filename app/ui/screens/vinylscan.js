@@ -14,6 +14,7 @@ import { confirmDialog, showInspector, setInspector, setCaptureStatus } from '..
 import { settings, store, on } from '../state.js';
 import { decodeAudioFile, startStreamSession, liveAvailable, classifyCaptureError } from '../audio-io.js';
 import { runWithCapture } from '../capture-busy.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { binsToArcs, binLabel, formatTime, classifyBin, METRICS, WEAR_DEFAULTS, DEFAULT_GEOMETRY, VERDICT_LABELS } from '../../wear-map.js';
 import { findFormat } from '../../timecode.js';
 import { takeHandoff } from '../crosslinks.js';
@@ -312,6 +313,7 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
   }
 
   function renderSetup() {
+    const wmPair = createPairPicker({ id: 'wm-pair', label: 'Deck input pair' });
     const c = copy(), s = side();
     if (!c || !s) { renderEmpty(); return; }
     const fmtSel = h('select', { id: 'wm-format', onchange: e => { st.setup.format = e.target.value; } }, ...scanFormats().map(x => h('option', { value: x.name, text: `${x.name} (${x.carrierHz} Hz)`, selected: x.name === st.setup.format ? true : null })));
@@ -349,6 +351,7 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
           h('div', { class: 'source-choices', role: 'radiogroup', 'aria-labelledby': 'wm-src-title' },
             srcBtn('live', 'Live input', live ? `Play the side now · ${settings.deviceName || 'default input'}` : 'Needs the desktop app', 'mic', !live),
             srcBtn('file', 'Recording', 'Scan a recording of the whole side', 'file', false)),
+          st.source === 'live' ? wmPair.el : null,
           st.source === 'file' ? drop : h('p', { class: 'hint' }, h('span', { html: icon('info', { size: 16 }) }), h('span', { text: 'Start the scan, then drop the needle at the start of the side. A long scan is saved every 30 s, so nothing is lost if the app closes.' })),
           st.fileError ? h('p', { class: 'form-error', role: 'alert', text: st.fileError }) : null,
           h('div', { class: 'step-footer' }, h('span', { class: 'muted small', html: 'Press <kbd>Space</kbd> to start' }),
@@ -408,7 +411,7 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
     st.view = 'capture'; render();
     try {
       const session = await startLiveScan({
-        startStreamSession: o => runWithCapture(() => startStreamSession(o), { action: 'start the wear-map scan' }),
+        startStreamSession: o => runWithCapture(() => startStreamSession({ ...o, pairs: currentPairs() }), { action: 'start the wear-map scan' }),
         deviceName: settings.deviceName || null, sampleRate: Number(settings.sampleRate) || null,
         format: cfg.fmt, binSec: cfg.binSec, nominalRpm: cfg.nominalRpm, onBin, onProgress, onAutosave,
         onEnd: ev => { if (ev.reason !== 'stopped' && st.run?.kind === 'live' && !st.run.stopping) stop({ reason: ev.reason }); },

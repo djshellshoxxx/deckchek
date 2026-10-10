@@ -203,3 +203,57 @@ test('Esc during the baseline cancels the capture and returns to setup', async (
   assert.equal(t.capture.cancelled, 1);
   void b;
 });
+
+// ---------- GAP-08: shared capture-busy flow ----------
+import { runWithCapture } from '../app/ui/capture-busy.js';
+import { CaptureBusyError } from '../app/ui/audio-io.js';
+
+test('capture busy: "Stop and continue" stops the holder, retries once and the baseline runs', async () => {
+  const audios = [sig(3, 1)];
+  const inner = fakeCapture(audios);
+  let busy = true; const asked = []; let preempted = 0;
+  const capture = opts => runWithCapture(async () => { if (busy) throw new CaptureBusyError({ holder: 'wear-map', since: Date.now() - 5000 }); return inner(opts); },
+    { action: 'run the scratch test', confirm: async (e, o) => { asked.push([e.holder, o.action]); return true; }, preempt: async () => { preempted++; busy = false; } });
+  const clock = fakeClock(), api = createScratchApi({ invoke: null, storage: memStorage() });
+  const runner = createScratchRunner({ capture, createAudioContext: () => fakeCtx(clock), api, perf: clock.perf, timers: clock.timers });
+  const run = runner.runBaseline({ format: 'Serato CV02.5', bpm: 120, deviceName: 'X', pairs: [3], levelDbfs: -24 });
+  await clock.advance(BASELINE_SEC * 1000 + 300); await run;
+  assert.deepEqual(asked, [['wear-map', 'run the scratch test']]);
+  assert.equal(preempted, 1);
+  assert.equal(runner.state.phase, 'ready');
+  assert.deepEqual(inner.calls[0].pairs, [3], 'the chosen input pair reaches the capture');
+});
+
+test('capture busy: Cancel returns to setup (baseline) or ready (patterns) without an error', async () => {
+  const declined = () => runWithCapture(async () => { throw new CaptureBusyError({ holder: 'live-monitor' }); }, { confirm: async () => false, preempt: async () => { throw new Error('must not preempt'); } });
+  const clock = fakeClock(), api = createScratchApi({ invoke: null, storage: memStorage() });
+  const a = createScratchRunner({ capture: declined, createAudioContext: () => fakeCtx(clock), api, perf: clock.perf, timers: clock.timers });
+  await a.runBaseline({ format: 'Serato CV02.5', bpm: 120, deviceName: 'X', levelDbfs: -24 });
+  assert.equal(a.state.phase, 'setup');
+  assert.equal(a.state.error, null);
+
+  // baseline passes, then the input is taken before the patterns start and the user declines
+  const inner = fakeCapture([sig(3, 1)]);
+  let n = 0; const ctx = fakeCtx(clock);
+  const b = createScratchRunner({ capture: o => (n++ === 0 ? inner(o) : declined()), createAudioContext: () => ctx, api, perf: clock.perf, timers: clock.timers });
+  const run = b.runBaseline({ format: 'Serato CV02.5', bpm: 120, deviceName: 'X', levelDbfs: -24 });
+  await clock.advance(BASELINE_SEC * 1000 + 300); await run;
+  assert.equal(b.state.phase, 'ready');
+  await b.begin();
+  assert.equal(b.state.phase, 'ready');
+  assert.equal(b.state.error, null);
+  assert.ok(ctx.closed, 'the metronome context is released');
+});
+
+test('another feature taking the input mid-run ends the scratch test with a clear message', async () => {
+  let onPre; const inner = async o => { onPre = o.onPreempted; return { async stop() { throw new Error('gone'); }, async cancel() {} }; };
+  const clock = fakeClock(), api = createScratchApi({ invoke: null, storage: memStorage() });
+  const runner = createScratchRunner({ capture: inner, createAudioContext: () => fakeCtx(clock), api, perf: clock.perf, timers: clock.timers });
+  const run = runner.runBaseline({ format: 'Serato CV02.5', bpm: 120, deviceName: 'X', levelDbfs: -24 });
+  await clock.advance(500);
+  assert.equal(runner.state.phase, 'baseline');
+  onPre();
+  await run;
+  assert.equal(runner.state.phase, 'error');
+  assert.match(runner.state.error, /another DeckChek feature needed the audio input/);
+});

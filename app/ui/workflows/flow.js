@@ -6,6 +6,7 @@ import { icon, chip } from '../icons.js';
 import { paramsForTest } from './definitions.js';
 import { settings, store, workspace, findProfile, on, active } from '../state.js';
 import { decodeAudioFile, startLiveSession, classifyCaptureError, liveAvailable } from '../audio-io.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { createStereoMeter, levelBus } from '../meters.js';
 import { buildRun } from '../analysis.js';
 import { persistRun, saveRunAsBaseline, saveRepeatScanAlignment, exportRunHtml, exportRunCsv, runPdfActions } from '../persistence.js';
@@ -317,7 +318,8 @@ class WorkflowScreen {
     const cancel = h('button', { type: 'button', class: 'btn btn-secondary', 'data-tooltip': 'Cancel capture and return to setup (Esc)', html: `<span>Back to setup</span><kbd>Esc</kbd>` });
     cancel.addEventListener('click', () => this.session ? this.cancelCapture() : this.setStep('setup'));
     this.cancelBtn = cancel;
-    ctrl.append(h('div', { class: 'capture-buttons' }, this.startBtn, cancel));
+    this.pairPicker = createPairPicker({ id: `${d.id}-pair` });
+    ctrl.append(...(this.pairPicker.el ? [this.pairPicker.el] : []), h('div', { class: 'capture-buttons' }, this.startBtn, cancel));
     this.afterCapture = h('div', { class: 'after-capture', hidden: true });
     p.append(h('div', { class: 'capture-grid' }, meterCard, ctrl), this.afterCapture);
   }
@@ -337,7 +339,7 @@ class WorkflowScreen {
     let quietSince = performance.now(), loudSeen = false, warnedQuiet = false;
     try {
       this.session = await startLiveSession({
-        deviceName: settings.deviceName || null, maxSeconds: target + 5,
+        deviceName: settings.deviceName || null, maxSeconds: target + 5, pairs: currentPairs(),
         onLevels: lv => {
           const pk = Math.max(lv.peakL || 0, lv.peakR || 0);
           this.updateLevelStatus(toDb(pk), lv.clipL || lv.clipR);

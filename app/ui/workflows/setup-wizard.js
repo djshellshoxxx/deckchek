@@ -9,6 +9,7 @@
 import { h, esc, storageGet, storageSet, isNative, formatDate } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { settings, setSetting, on, emit, store, workspace, calibrationStatus } from '../state.js';
+import { currentPairs } from '../pair-picker.js';
 import { listInputDevices, listOutputDevices, outputSelectionSupported, classifyCaptureError, startLiveSession } from '../audio-io.js';
 import { createStereoMeter } from '../meters.js';
 import { announce, toast } from '../live.js';
@@ -454,7 +455,7 @@ export async function openSetupWizard({ resume = false, state = null } = {}) {
           errEl.replaceChildren();
           listen.textContent = 'Opening the input…';
           session = await startLiveSession({
-            deviceName: answers().inputDevice || null, maxSeconds: LISTEN_MAX_SECONDS, onLevels: collect,
+            deviceName: answers().inputDevice || null, maxSeconds: LISTEN_MAX_SECONDS, pairs: currentPairs(answers().inputDevice || ''), onLevels: collect,
             onStatus: s => { if (!s.running && session && ctx.alive()) { session = null; listen.textContent = `Stopped listening after ${LISTEN_MAX_SECONDS} s. Choose Check levels to listen again.`; } },
           });
           if (!ctx.alive()) { const s = session; session = null; s?.cancel(); return false; }

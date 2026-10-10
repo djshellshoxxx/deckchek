@@ -15,6 +15,7 @@ import { icon, chip } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { listInputDevices, startStreamSession } from '../audio-io.js';
 import { runWithCapture } from '../capture-busy.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { audioOut, ABS_MAX_DBFS, SAFETY_COPY } from '../../audio-out.js';
 import {
   createFeedbackTest, stepPlan, welchSpectrum, feedbackRunInput, START_DBFS, STEP_DB, DEFAULT_CAP_DBFS, MIN_START_DBFS, MIN_STEP_DB, MAX_STEP_DB,
@@ -119,9 +120,9 @@ export function spectrogramColumn(spectrum, [lo, hi] = SPEC_BAND, columns = SPEC
  * capture lease, "Stop it and run this check?" dialog when something else holds the input).
  * onSamples({samples, sampleRate, block}) gets the chosen channel; onEnd({reason}) fires if the stream ends.
  */
-export function openMonoInput({ holder, deviceName = null, channel = 'left', blockMs = 250, onSamples, onEnd, action = 'run this check' } = {}) {
+export function openMonoInput({ holder, deviceName = null, channel = 'left', blockMs = 250, onSamples, onEnd, action = 'run this check', pairs = currentPairs(deviceName || '') } = {}) {
   return runWithCapture(() => startStreamSession({
-    holder, deviceName: deviceName || null, blockMs,
+    holder, deviceName: deviceName || null, blockMs, pairs,
     onBlock: block => onSamples?.({ samples: monoFrom(block, channel), sampleRate: block.sampleRate, block }),
     onEnd: info => onEnd?.(info),
   }), { action });
@@ -361,12 +362,19 @@ export function createFeedbackPanel(host, { store, venues = async () => [], audi
         h('span', { text: `${SAFETY_COPY} It starts near silent (${fmtDbfs(START_DBFS)}) and only rises when you confirm each step. It stops by itself on feedback, clipping, a lost input or a minute of inactivity. Take headphones off your ears.` })));
     const sel = (id, label, children, help) => h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: label }), h('select', { id }, ...children), help ? h('span', { class: 'field-help', text: help }) : null);
     const num = (id, label, value, attrs, help) => h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: label }), h('input', { id, type: 'number', value: String(value), ...attrs, 'aria-describedby': help ? `${id}-help` : null }), help ? h('span', { class: 'field-help', id: `${id}-help`, text: help }) : null);
+    // Input pair of the chosen input (the pair box follows the Input select).
+    const pairField = (id, inputId) => {
+      const picker = createPairPicker({ id, label: 'Input pair', deviceName: () => q(`#${inputId}`)?.value ?? prefs.input ?? '' });
+      if (picker.el) queueMicrotask(() => q(`#${inputId}`)?.addEventListener('change', () => picker.refresh()));
+      return picker.el;
+    };
     const form = h('form', { class: 'card fb-form', id: 'fb-form', novalidate: true });
     form.append(
       h('h2', { class: 'card-title', text: 'Set up the feedback test' }),
       h('div', { class: 'field-grid' },
         sel('fb-output', 'Output (computer to a mixer channel)', optionList(ui.outputs, prefs.output, 'System default'), 'Play into a spare mixer channel. Keep its fader down until you are ready.'),
         sel('fb-input', 'Input (booth mic or mixer record out)', optionList(ui.inputs, prefs.input, 'System default'), 'DeckChek listens here to hear feedback building up.'),
+        pairField('fb-pair', 'fb-input'),
         sel('fb-channel', 'Input channel', [['left', 'Left'], ['right', 'Right'], ['both', 'Both (average)']].map(([v, t]) => h('option', { value: v, text: t, selected: prefs.channel === v ? true : null }))),
         sel('fb-tone', 'Test sound', [['sine', 'Sine tone'], ['pinkband', 'Pink noise band']].map(([v, t]) => h('option', { value: v, text: t, selected: prefs.tone === v ? true : null }))),
         num('fb-freq', 'Frequency (Hz)', prefs.freqHz, { min: 20, max: 250, step: 1 }, 'Low-frequency booth rumble is usually 40-120 Hz.'),
