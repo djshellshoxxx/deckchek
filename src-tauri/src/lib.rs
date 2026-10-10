@@ -17,6 +17,7 @@ mod app_state;
 // [FS-07] mods
 mod links;
 // [FS-08] mods
+mod backup;
 // [FS-10] mods
 // [FS-11] mods
 // [FS-12] mods
@@ -58,6 +59,8 @@ pub fn run() {
             // [FS-07] handlers
             links::open_external_url, links::open_path, links::reveal_path,
             // [FS-08] handlers
+            backup::backup_create, backup::backup_inspect, backup::backup_restore, backup::backup_list,
+            backup::backup_settings_get, backup::backup_settings_set, backup::backup_import_workspace,
             // [FS-10] handlers
             // [FS-11] handlers
             // [FS-12] handlers
@@ -84,6 +87,7 @@ pub fn run() {
             // [FS-07] setup
             _app.handle().plugin(links::navigation_guard())?;
             // [FS-08] setup
+            backup::setup(_app.handle());
             // [FS-10] setup
             // [FS-11] setup
             // [FS-12] setup
