@@ -2452,6 +2452,35 @@ mod tests {
         assert_eq!(hex, c["block"]["hex"].as_str().unwrap());
     }
 
+    #[test]
+    fn contract_input_pairs_and_multi_pair_block_match_rust() {
+        let c = contract();
+        let ip = &c["inputPairs"];
+        let dev = &ip["listNativeAudioInputs"][0];
+        let info = crate::audio::AudioInputInfo { name: "Traktor Audio 8 DJ".into(), is_default: false, max_channels: 8, default_channels: 8, pairs: input_pairs(8) };
+        assert_eq!(&serde_json::to_value(&info).unwrap(), dev);
+        let odd: Vec<String> = input_pairs(ip["oddChannels"]["channels"].as_u64().unwrap() as u16).into_iter().map(|p| p.label).collect();
+        assert_eq!(serde_json::to_value(odd).unwrap(), ip["oddChannels"]["labels"]);
+        let sel: Vec<PairSel> = serde_json::from_value(ip["outOfRange"]["pairs"].clone()).unwrap();
+        let firsts = parse_pair_selection(Some(&sel)).unwrap();
+        let e = resolve_pairs(firsts.as_deref(), ip["outOfRange"]["channels"].as_u64().unwrap() as u16, ip["outOfRange"]["deviceName"].as_str().unwrap()).unwrap_err();
+        assert_eq!(e, ip["outOfRange"]["error"].as_str().unwrap());
+        let mut stream_keys = keys(&ip["startStreamRequest"]);
+        stream_keys.retain(|k| k != "pairs");
+        assert_eq!(stream_keys, keys(&c["commands"]["start_stream_capture"]["request"]), "pairs is the only added argument");
+        let req: Vec<PairSel> = serde_json::from_value(ip["captureNativeRequest"]["pairs"].clone()).unwrap();
+        assert_eq!(parse_pair_selection(Some(&req)).unwrap(), Some(vec![3]));
+
+        let d = &c["blockPairs"]["decoded"];
+        let f = |v: &serde_json::Value| v.as_array().unwrap().iter().map(|x| x.as_f64().unwrap() as f32).collect::<Vec<f32>>();
+        let pairs: Vec<Stereo> = d["pairs"].as_array().unwrap().iter().map(|p| (f(&p["left"]), f(&p["right"]))).collect();
+        let q = BlockQuality { frames_captured: d["quality"]["framesCaptured"].as_u64().unwrap(), ..BlockQuality::default() };
+        assert_eq!(serde_json::to_value(&q).unwrap(), d["quality"]);
+        let bytes = encode_block_pairs(d["seq"].as_u64().unwrap() as u32, d["sampleRate"].as_u64().unwrap() as u32, &q, &pairs);
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, c["blockPairs"]["hex"].as_str().unwrap());
+    }
+
     // ------------------------------------------- Channel throughput spike
 
     /// Report of a real-time 48 kHz stereo stream through a tauri `Channel`
