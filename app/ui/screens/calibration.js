@@ -13,6 +13,7 @@ import { linePlot, responsePlot } from '../plots.js';
 import { announce, toast } from '../live.js';
 import { confirmDialog, currentDeviceName, setCaptureStatus } from '../shell.js';
 import { emptyState } from '../workflows/flow.js';
+import { relatedCard } from '../crosslinks.js';
 
 const ISSUE_STATUS = { error: 'fail', warning: 'warn' };
 
@@ -28,6 +29,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('calibration', { size: 24 })}</span><div><h1 tabindex="-1">Calibration</h1>
       <p class="lede">Measure your interface with a loopback cable so results can be corrected for gain, channel mismatch and clock error — and carry honest ± uncertainty.</p></div></div></header>
     <div class="banner-slot"></div>
+    <div class="xlink-slot" id="cal-xlinks"></div>
     <div class="cal-grid">
       <div class="cal-main">
         <section class="card" aria-labelledby="cal-prep"><h2 id="cal-prep" class="card-title">1 · Patch the loopback</h2>
@@ -249,6 +251,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     onExport: () => state.profile ? download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(state.profile), 'application/json') : toast('Analyse a loopback first — then Ctrl+E exports the profile.'),
     onShow: () => {
       populateOutputs();
+      if (!embedded) { const slot = $('#cal-xlinks'), card = relatedCard('calibration', { title: 'After calibration' }); if (slot) slot.replaceChildren(...(card ? [card] : [])); } // Latency link while features.latencyTuner is on
       document.getElementById('inspector-title').textContent = 'About calibration';
       document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>A loopback measures the interface itself: per-channel gain, L/R mismatch, noise floor, latency and playback/capture clock error.</p><h3>How it is used</h3><p>When a profile matches the selected input and sample rate, level, balance, speed and frequency readings are corrected and their ± uncertainty uses the measured components. Otherwise results are marked <span class="badge badge-uncal">UNCAL</span> with default components.</p><h3>Clock note</h3><p>Loopback shares one clock, so ppm reflects the path, not absolute timebase accuracy.</p></div>`;
     },

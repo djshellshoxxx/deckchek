@@ -1,0 +1,22 @@
+/* M6 cross-links: "Next steps" cards, the Quick Check stylus health card, Equipment link rows and History type filter.
+   Tokens come from styles.css; nothing here hard-codes a colour. */
+.xlink-slot { display: grid; gap: 16px; }
+.xlink-slot:empty { display: none; }
+.xlink-slot-results { margin-top: 16px; }
+.xlink-card .card-title { margin-bottom: 8px; }
+.xlink-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.xlink-item { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
+.xlink-text { flex: 1 1 200px; min-width: 0; }
+.xlink .icon { flex: none; }
+.xlink-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.eq-links { display: grid; gap: 6px; margin-top: 12px; }
+.xlink-health { display: grid; gap: 6px; justify-items: start; }
+.xlink-health p { margin: 0; }
+.xlink-health-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.xlink-next-red { color: var(--fail, inherit); font-weight: 600; }
+
+/* History: type filter and feature rows */
+.hist-type { min-width: 160px; max-width: 100%; }
+.run-feature .run-type { margin-left: auto; white-space: nowrap; }
+.hist-feature .card-head { align-items: center; }
+@media (max-width: 720px) { .hist-type { flex: 1 1 100%; } }

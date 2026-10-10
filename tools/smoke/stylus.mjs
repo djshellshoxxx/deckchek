@@ -2,12 +2,12 @@
 // in-memory implementation of the usage_* / stylus_* commands covers the empty state, adding hours (AC-1), the gauge,
 // amber/red alerts and snooze (AC-5, AC-8), replacement reset (AC-7), DJ-log proposals (AC-3), benchmarks and the
 // "Need 3 benchmarks" -> trend flow (AC-4, AC-6), the data-table toggle, the A / B / Esc keys, and both themes.
-import { watchConsole, tauriMock } from './core.mjs';
+import { watchConsole, tauriMock, setViewport } from './core.mjs';
 
 const FLAG_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { stylusWear: true } })); };
 
 // Desktop mode: tauriMock plus fixtures and the stylus/usage commands. `window.__sty` exposes state for the test.
-function stylusMock() {
+export function stylusMock() {
   const core = window.__TAURI__.core; const base = core.invoke;
   const sty = { cartridges: true, usage: [], bench: [], snoozes: [], baseline: null, rated: null, calls: [], spans: [] };
   window.__sty = sty;
@@ -222,7 +222,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await shot(page, 'stylus-trends-light');
   await page.click('#sty-tab-overview');
   await shot(page, 'stylus-overview-light');
-  await page.setViewportSize({ width: 390, height: 844 });
+  await setViewport(page, { width: 390, height: 844 });
   for (const tab of ['overview', 'hours', 'benchmark', 'trends', 'settings']) {
     await page.click(`#sty-tab-${tab}`);
     const over = await page.evaluate(() => (document.documentElement.scrollWidth > window.innerWidth + 1 || document.getElementById('main').scrollWidth > document.getElementById('main').clientWidth + 1)

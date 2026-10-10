@@ -98,6 +98,7 @@ export const WORKFLOWS = [
   // [FS-08] workflows
   // [FS-10] workflows
   // [FS-11] workflows
+  // M6 cross-links: the next-step cards on Quick Check and DVS come from RELATED in app/crosslinks.js (rendered by flow.js); no workflow of their own.
   // [FS-12] workflows
   // [FS-13] workflows
   // [FS-14] workflows

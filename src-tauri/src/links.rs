@@ -124,7 +124,34 @@ impl Opener for PluginOpener<'_> {
     }
 }
 
+/// Windows Settings pages the app may open (FS-10 fix actions). A fixed, exact-match list that is
+/// kept apart from the https allowlist: no other scheme or ms-settings page can ever reach the opener.
+pub const SETTINGS_URIS: [&str; 3] = ["ms-settings:sound", "ms-settings:powersleep", "ms-settings:privacy-microphone"];
+
+/// Exact, case-sensitive match: no whitespace, query, fragment or look-alike spelling is accepted.
+pub fn is_settings_uri(raw: &str) -> bool {
+    SETTINGS_URIS.contains(&raw)
+}
+
+/// Opens one of `SETTINGS_URIS`. `windows` is false on other platforms, where the URI has no handler.
+pub fn open_settings_with(raw: &str, windows: bool, opener: &dyn Opener) -> OpenResult {
+    let host = "ms-settings".to_string();
+    if !is_settings_uri(raw) {
+        return OpenResult { opened: false, reason: Some("blocked_scheme"), host: String::new(), allowlisted: false };
+    }
+    if !windows {
+        return OpenResult { opened: false, reason: Some("unsupported"), host, allowlisted: true };
+    }
+    match opener.open_url(raw) {
+        Ok(()) => OpenResult { opened: true, reason: None, host, allowlisted: true },
+        Err(_) => OpenResult { opened: false, reason: Some("error"), host, allowlisted: true },
+    }
+}
+
 pub fn open_external_with(raw: &str, confirmed: bool, allow: &Allowlist, opener: &dyn Opener) -> OpenResult {
+    if is_settings_uri(raw) {
+        return open_settings_with(raw, cfg!(windows), opener);
+    }
     let c = classify(raw, allow);
     if !c.ok {
         return OpenResult { opened: false, reason: c.reason, host: c.host, allowlisted: false };
@@ -324,6 +351,60 @@ mod tests {
         let r = open_external_with("https://user:pw@github.com/", false, &al(), &m);
         assert_eq!(r.reason, Some("needs_confirm"));
         assert!(m.calls.borrow().is_empty());
+    }
+
+    #[test]
+    fn settings_uris_are_an_exact_fixed_list() {
+        assert_eq!(SETTINGS_URIS, ["ms-settings:sound", "ms-settings:powersleep", "ms-settings:privacy-microphone"]);
+        let m = Mock::default();
+        for ok in SETTINGS_URIS {
+            let r = open_settings_with(ok, true, &m);
+            assert!(r.opened && r.reason.is_none() && r.host == "ms-settings", "{ok}");
+        }
+        assert_eq!(m.calls.borrow().as_slice(), SETTINGS_URIS.map(|u| format!("url:{u}")).as_slice());
+    }
+
+    #[test]
+    fn other_schemes_and_settings_pages_never_reach_the_opener() {
+        let m = Mock::default();
+        for bad in [
+            "ms-settings:network", "ms-settings:", "ms-settings:bluetooth", "MS-SETTINGS:SOUND", "ms-settings:Sound", "ms-settings:sound ", " ms-settings:sound",
+            "ms-settings:sound?x=1", "ms-settings:sound#a", "ms-settings:sound\n", "ms-settings:sound/../network", "ms-settings://sound", "ms-settingsx:sound",
+            "ms-settings:privacy-microphone2", "ms-settings:privacy", "ms-windows-store:home", "ms-msdt:/id", "search-ms:query=x", "shell:startup", "file:///c:/windows/system32/calc.exe",
+            "calc.exe", "javascript:alert(1)", "http://example.org", "", "ms-settings:sound\u{0}",
+        ] {
+            let direct = open_settings_with(bad, true, &m);
+            assert!(!direct.opened && direct.reason == Some("blocked_scheme"), "{bad:?}");
+            let via = open_external_with(bad, true, &al(), &m); // `confirmed` never unlocks these
+            assert!(!via.opened, "{bad:?}");
+        }
+        assert!(m.calls.borrow().is_empty(), "{:?}", m.calls.borrow());
+        // the https policy itself is unchanged: classify still rejects the scheme
+        assert_eq!(classify("ms-settings:sound", &al()).reason, Some("blocked_scheme"));
+    }
+
+    #[test]
+    fn settings_uri_reports_unsupported_off_windows_and_errors_cleanly() {
+        let m = Mock::default();
+        let r = open_settings_with("ms-settings:sound", false, &m);
+        assert_eq!((r.opened, r.reason), (false, Some("unsupported")));
+        assert!(m.calls.borrow().is_empty());
+        let failing = Mock { fail: true, ..Default::default() };
+        let r = open_settings_with("ms-settings:powersleep", true, &failing);
+        assert_eq!((r.opened, r.reason), (false, Some("error")));
+    }
+
+    #[test]
+    fn open_external_url_routes_settings_uris_by_platform() {
+        let m = Mock::default();
+        let r = open_external_with("ms-settings:privacy-microphone", false, &al(), &m);
+        if cfg!(windows) {
+            assert!(r.opened);
+            assert_eq!(m.calls.borrow().len(), 1);
+        } else {
+            assert_eq!((r.opened, r.reason), (false, Some("unsupported")));
+            assert!(m.calls.borrow().is_empty());
+        }
     }
 
     #[test]

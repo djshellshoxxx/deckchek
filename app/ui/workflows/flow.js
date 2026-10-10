@@ -12,6 +12,7 @@ import { persistRun, saveRunAsBaseline, saveRepeatScanAlignment, exportRunHtml, 
 import { renderResults, qualityPanel } from '../results.js';
 import { announce, toast } from '../live.js';
 import { go, setCaptureStatus, currentDeviceName, showInspector } from '../shell.js';
+import { relatedCard, stylusHealthCard } from '../crosslinks.js';
 
 const STEPS = [['setup', 'Setup'], ['capture', 'Capture'], ['results', 'Results']];
 const instances = new Map(); // workflow id -> WorkflowScreen (for device tests)
@@ -44,7 +45,7 @@ class WorkflowScreen {
 
   api() {
     return {
-      onShow: () => { this.populateEquipment(); this.showTips(); },
+      onShow: () => { this.populateEquipment(); this.showTips(); this.refreshCrossLinks(); },
       onHide: () => {},
       onSpace: () => this.step === 'capture' && liveAvailable() ? (this.toggleCapture(), true) : false,
       onEscape: () => {
@@ -210,7 +211,19 @@ class WorkflowScreen {
       <section class="card card-quiet" aria-labelledby="${d.id}-wiring"><h2 id="${d.id}-wiring" class="card-title">Wiring</h2>
         <ol class="wiring wiring-vertical">${d.wiring.map(([a, b], i) => `<li><span class="wiring-step num">${i + 1}</span><span class="wiring-node"><strong>${esc(a)}</strong><span>${esc(b)}</span></span></li>`).join('')}</ol>
         <p class="hint hint-warn">${icon('warn', { size: 16 })}<span>Never connect a speaker or amplifier output to the interface. Keep monitors low while testing.</span></p></section>`;
+    this.xlinkSlot = h('div', { class: 'xlink-slot' });
+    right.append(this.xlinkSlot);
+    this.refreshCrossLinks();
     p.append(h('div', { class: 'setup-grid' }, left, right));
+  }
+
+  /** M6 cross-links: Quick Check suggests the pre-gig check, latency and shows stylus health; DVS suggests the scratch test and wear map. */
+  crossLinkCards() {
+    const id = this.def.id;
+    return [id === 'quick' ? stylusHealthCard() : null, relatedCard(id)].filter(Boolean);
+  }
+  refreshCrossLinks() {
+    this.xlinkSlot?.replaceChildren(...this.crossLinkCards());
   }
 
   fileDrop() {
@@ -336,6 +349,7 @@ class WorkflowScreen {
           else if (st.sinceLastLevelsMs > 3000) this.showBanner({ status: 'warn', title: 'No level updates for 3 s', text: 'The device may have been disconnected. Stop to keep what was recorded so far.', actions: [['Stop & keep data', () => this.stopCapture()]] });
         },
       });
+      this.captureStartMs = Date.now(); // real capture span for hours proposals (FS-12 AC-2)
     } catch (error) {
       this.starting = false;
       this.session = null;
@@ -401,6 +415,7 @@ class WorkflowScreen {
     state.textContent = 'Finishing capture…';
     try {
       const result = await session.stop();
+      this.captureEndMs = Date.now();
       this.session = null;
       this.resetCaptureUi();
       if (!result.audio.left.length) throw new Error('The capture returned no samples. Check that the input is delivering audio.');
@@ -478,6 +493,14 @@ class WorkflowScreen {
     }
   }
 
+  /** {kind, startedAt, endedAt} for a live capture of this screen; a file analysis has no real span (analysis.js approximates it). */
+  captureSpan(source, quality) {
+    const live = Boolean(quality) || /^live capture/i.test(String(source || ''));
+    if (!live) return { kind: 'file' };
+    if (!Number.isFinite(this.captureStartMs) || !Number.isFinite(this.captureEndMs) || this.captureEndMs < this.captureStartMs) return { kind: 'live' };
+    return { kind: 'live', startedAt: new Date(this.captureStartMs).toISOString(), endedAt: new Date(this.captureEndMs).toISOString() };
+  }
+
   async analyze(audio, source, { quality = null, streamErrors = [], deviceName = null } = {}) {
     await new Promise(r => setTimeout(r, 30)); // let the busy state paint
     const asset = this.assets?.find(a => a.id === this.equipSelect?.value) || null;
@@ -485,7 +508,7 @@ class WorkflowScreen {
     const run = buildRun({
       test: this.mode, workflowId: this.def.id, audio, params: this.collectParams(), source,
       device: asset ? { id: asset.id, name: asset.nickname } : null, prior: workspace.runs, quality, streamErrors,
-      profile: findProfile(devName, audio.sampleRate), deviceName: devName,
+      profile: findProfile(devName, audio.sampleRate), deviceName: devName, capture: this.captureSpan(source, quality),
     });
     this.run = run;
     const saved = await persistRun(run);
@@ -512,6 +535,8 @@ class WorkflowScreen {
         ...(this.deviceTest ? [{ label: this.deviceTest.backLabel || 'Back to device', icon: 'arrowRight', onClick: () => this.leaveDeviceTest('back') }] : []),
       ],
     }));
+    const xl = this.crossLinkCards();
+    if (xl.length) p.append(h('div', { class: 'xlink-slot xlink-slot-results' }, ...xl));
     this.setStep('results');
     const v = this.panels.results.querySelector('.verdict');
     announce(`${v?.querySelector('.chip')?.textContent || ''}. ${v?.querySelector('.verdict-headline')?.textContent || ''} Score ${run.score} of 100.`);

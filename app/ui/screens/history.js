@@ -2,7 +2,7 @@
 // hypotheses (support/contradiction links), report re-export, A/B compare,
 // workspace JSON import/export.
 
-import { h, esc, formatNumber, formatDate, pickFile } from '../dom.js';
+import { h, esc, formatNumber, formatDate, pickFile, isNative } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { store, localRun, on, active } from '../state.js';
 import { verdictFor, metricLabel } from '../metrics.js';
@@ -12,6 +12,9 @@ import { WORKFLOWS } from '../workflows/definitions.js';
 import { toast, announce } from '../live.js';
 import { go } from '../shell.js';
 import { describeMediaRef, decodeChoice, PARAM_ID } from '../media-picker.js';
+import { isEnabled } from '../../features.js';
+import { RUN_TYPES, typeLabel, loadFeatureRuns, mergeFeed, typeCounts } from '../../history-feed.js';
+import { navigateTo } from '../crosslinks.js';
 
 const keyMetricsFor = test => WORKFLOWS.flatMap(w => w.key[test] || []);
 
@@ -45,7 +48,7 @@ function normalizeRun(raw, summary) {
 }
 
 export function createHistoryScreen(section) {
-  const state = { runs: [], filter: '', selected: null, compare: new Set(), view: 'detail' };
+  const state = { runs: [], features: [], featureErrors: [], type: 'all', filter: '', selected: null, selectedFeature: null, compare: new Set(), view: 'detail' };
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('history', { size: 24 })}</span><div><h1 tabindex="-1">History</h1>
       <p class="lede">Every saved run with its measurements and hypotheses. Re-export reports or compare two runs side by side.</p></div></div>
@@ -53,7 +56,8 @@ export function createHistoryScreen(section) {
     <div class="hist-layout">
       <section class="card hist-list" aria-labelledby="hist-runs">
         <div class="card-head"><h2 id="hist-runs" class="card-title">Runs</h2><span class="muted small" id="hist-count"></span></div>
-        <div class="toolbar"><search class="search"><label for="hist-search" class="sr-only">Filter runs</label>${icon('search', { size: 18 })}<input id="hist-search" type="search" placeholder="Filter by test, device or finding…" autocomplete="off"></search></div>
+        <div class="toolbar"><search class="search"><label for="hist-search" class="sr-only">Filter runs</label>${icon('search', { size: 18 })}<input id="hist-search" type="search" placeholder="Filter by test, device or finding…" autocomplete="off"></search>
+          <label class="sr-only" for="hist-type">Run type</label><select id="hist-type" class="hist-type" aria-label="Run type"></select></div>
         <div class="compare-bar" id="compare-bar" aria-live="polite"></div>
         <div id="hist-rows"></div>
       </section>
@@ -64,30 +68,83 @@ export function createHistoryScreen(section) {
   async function load() {
     try { state.runs = await store.listRuns(200); }
     catch (error) { state.runs = []; toast(`Could not load history: ${error?.message || error}`, { type: 'error', action: { label: 'Retry', run: load } }); }
+    await loadFeatures();
+    renderTypes();
     renderList();
     const focus = active.historyFocus; active.historyFocus = null;
     if (focus) openRun(focus);
     else if (!state.selected) renderDetailEmpty();
   }
 
+  /** Hum, latency, scratch, wear-map and pre-gig runs (desktop app only). Types whose feature flag is off stay hidden. */
+  async function loadFeatures() {
+    const res = isNative() ? await loadFeatureRuns(window.__TAURI__.core.invoke, { limit: 100 }) : { rows: [], errors: [] };
+    state.features = res.rows.filter(r => isEnabled(r.feature));
+    state.featureErrors = res.errors.filter(e => isEnabled(RUN_TYPES.find(t => t.id === e.type)?.feature));
+    if (state.featureErrors.length) toast(`Some runs could not be listed: ${state.featureErrors.map(e => typeLabel(e.type)).join(', ')}.`, { type: 'warn' });
+  }
+
+  function renderTypes() {
+    const counts = typeCounts(state.runs, state.features);
+    const sel = $('#hist-type');
+    const visible = RUN_TYPES.filter(t => t.id === 'diagnostic' || isEnabled(t.feature));
+    if (state.type !== 'all' && !visible.some(t => t.id === state.type)) state.type = 'all';
+    const total = visible.reduce((n, t) => n + counts[t.id], 0);
+    sel.replaceChildren(h('option', { value: 'all', text: `All runs (${total})` }), ...visible.map(t => h('option', { value: t.id, text: `${t.label} (${counts[t.id]})` })));
+    sel.value = state.type;
+    sel.hidden = visible.length < 2;
+  }
+
+  function openFeatureRun(r) {
+    state.selected = null; state.selectedFeature = r.id; state.view = 'feature';
+    renderList();
+    const host = $('#hist-detail');
+    const tone = document.createElement('span');
+    tone.innerHTML = chip(r.status || 'info', null, { size: 14 });
+    const card = h('section', { class: 'card hist-feature', 'data-feature-run': r.type, 'aria-labelledby': 'hf-title' },
+      h('div', { class: 'card-head' }, h('h2', { id: 'hf-title', class: 'card-title', tabindex: '-1', text: r.title }), tone.firstElementChild),
+      h('p', { class: 'muted small', text: `${typeLabel(r.type)} · ${formatDate(r.startedAt)}` }),
+      r.meta ? h('p', { text: r.meta }) : null,
+      r.score != null ? h('p', {}, 'Score ', h('strong', { class: 'num', text: String(r.score) })) : null,
+      h('p', { class: 'muted small', text: 'The full result, charts and re-run options are on the feature screen.' }),
+      h('div', { class: 'action-bar' }, h('button', { type: 'button', class: 'btn btn-primary', 'data-open-feature': r.screen, text: `Open ${typeLabel(r.type)}`, onclick: () => navigateTo(r.screen) })));
+    host.replaceChildren(card);
+    card.querySelector('h2').focus();
+    announce(`Showing ${r.title} from ${formatDate(r.startedAt)}`);
+  }
+
   function renderList() {
     const q = state.filter.trim().toLowerCase();
-    const rows = state.runs.filter(r => {
+    const everything = mergeFeed(state.runs, state.features, 'all');
+    const rows = mergeFeed(state.runs, state.features, state.type).filter(row => {
       if (!q) return true;
-      const l = localRun(r.id);
+      if (row.type !== 'diagnostic') return `${row.title} ${row.meta} ${typeLabel(row.type)}`.toLowerCase().includes(q);
+      const r = state.runs.find(x => x.id === row.id), l = localRun(row.id);
       return `${r.test} ${r.sessionType} ${l?.device || ''} ${(l?.findings || []).map(f => f.title).join(' ')}`.toLowerCase().includes(q);
     });
-    $('#hist-count').textContent = `${rows.length} of ${state.runs.length}`;
+    $('#hist-count').textContent = `${rows.length} of ${everything.length}`;
     renderCompareBar();
     const host = $('#hist-rows');
-    if (!state.runs.length) {
+    if (!everything.length) {
       host.innerHTML = `<div class="empty">${icon('history', { size: 48 })}<h2>No saved runs yet</h2><p>Run Quick Check or any workflow — every analysis is saved here automatically.</p><button type="button" class="btn btn-primary" data-go>${icon('quick', { size: 18 })}<span>Run Quick Check</span></button></div>`;
       host.querySelector('[data-go]').addEventListener('click', () => go('quick'));
       return;
     }
-    if (!rows.length) { host.innerHTML = `<div class="empty empty-sm">${icon('search', { size: 32 })}<p>No runs match “${esc(state.filter)}”.</p></div>`; return; }
+    if (!rows.length) { host.innerHTML = `<div class="empty empty-sm">${icon('search', { size: 32 })}<p>${q ? `No runs match “${esc(state.filter)}”.` : `No ${esc(state.type === 'all' ? '' : typeLabel(state.type).toLowerCase())} runs yet.`}</p></div>`; return; }
     const list = h('ul', { class: 'run-list', role: 'list' });
-    rows.forEach(r => {
+    rows.forEach(item => {
+      if (item.type !== 'diagnostic') {
+        const sel = state.selectedFeature === item.id;
+        const li = h('li', { class: `run run-feature ${sel ? 'selected' : ''}`, 'data-run-type': item.type });
+        const open = h('button', { type: 'button', class: 'run-main', 'aria-current': sel ? 'true' : null });
+        open.innerHTML = `<span class="run-top">${chip(item.status || 'info', null, { size: 14 })}<strong>${esc(item.title)}</strong><span class="run-type muted small">${esc(typeLabel(item.type))}</span></span>
+          <span class="muted small">${esc(formatDate(item.startedAt))}${item.meta ? ` · ${esc(item.meta)}` : ''}</span>`;
+        open.addEventListener('click', () => openFeatureRun(item));
+        li.append(open);
+        list.append(li);
+        return;
+      }
+      const r = state.runs.find(x => x.id === item.id);
       const l = localRun(r.id);
       const v = l ? verdictFor(l) : { status: r.score == null ? 'info' : r.score >= 85 ? 'pass' : r.score >= 70 ? 'review' : r.score >= 50 ? 'warn' : 'fail' };
       const li = h('li', { class: `run ${state.selected?.id === r.id ? 'selected' : ''}` });
@@ -140,7 +197,7 @@ export function createHistoryScreen(section) {
     try {
       const run = await fetchRun(id);
       if (!run) { toast('That run could not be found.', { type: 'warn' }); return; }
-      state.selected = run; state.view = 'detail';
+      state.selected = run; state.selectedFeature = null; state.view = 'detail';
       renderList(); renderDetail(run);
     } catch (error) { toast(`Could not open run: ${error?.message || error}`, { type: 'error' }); }
   }
@@ -204,6 +261,7 @@ export function createHistoryScreen(section) {
   }
 
   $('#hist-search').addEventListener('input', e => { state.filter = e.target.value; renderList(); });
+  $('#hist-type').addEventListener('change', e => { state.type = e.target.value; renderList(); announce(`${state.type === 'all' ? 'All runs' : typeLabel(state.type)}: ${$('#hist-count').textContent}`); });
   $('#ws-export').addEventListener('click', () => { exportWorkspace(); toast('Workspace exported.', { type: 'success' }); });
   $('#ws-import').addEventListener('click', async () => {
     const file = await pickFile('application/json,.json');

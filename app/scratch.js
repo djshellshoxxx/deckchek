@@ -4,7 +4,7 @@
 // the injected AudioContext / invoke / storage; no DOM. Thresholds are tunable defaults (FS-14 §6);
 // skip thresholds in particular still need calibration on a sacrificial record.
 import {dbfs} from './core.js';
-import {TIMECODE_FORMATS,findFormat,analyzeTimecode} from './timecode.js';
+import {TIMECODE_FORMATS,findFormat,analyzeTimecode,directionSign} from './timecode.js';
 import {repeatabilityMetrics} from './diagnostics.js';
 
 const TAU=2*Math.PI;
@@ -39,7 +39,7 @@ function resolveFormat(format,formats){const f=typeof format==='string'?findForm
 /**
  * Instantaneous velocity from the quadrature phase (FS-14 §6). Both channels are DC-removed and
  * orthonormalised over the whole capture (removes L/R gain mismatch and small phase errors), the
- * carrier phase phi = atan2(L, phaseSign * R') is unwrapped per sample, and each window's velocity is the
+ * carrier phase phi = atan2(L, phaseSign * R'), phaseSign = directionSign(format) (primary channel x phase switch), is unwrapped per sample, and each window's velocity is the
  * least-squares phase slope / (2 pi f_c): +1 normal forward, -1 normal reverse. The slope at the window
  * centre is unbiased for constant acceleration (the quadratic term is orthogonal on a symmetric grid).
  * SNR per window is per-channel tone RMS over noise RMS, from the radial scatter of the normalised
@@ -53,7 +53,7 @@ export function instantVelocity({left,right,sampleRate},{format,formats=TIMECODE
   const fmt=resolveFormat(format,formats),sr=sampleRate;
   if(!finite(sr)||sr<=0)throw new Error('sampleRate must be positive');
   const n=Math.min(left?.length||0,right?.length||0),atRpm=fmt.atRpm||33.333333;
-  const fc=fmt.carrierHz*(finite(nominalRpm)?nominalRpm:atRpm)/atRpm,sgn=fmt.phaseSign===-1?-1:1,warnings=[];
+  const fc=fmt.carrierHz*(finite(nominalRpm)?nominalRpm:atRpm)/atRpm,sgn=directionSign(fmt),warnings=[]; // primary channel and phase switch together decide which channel leads on forward play
   const W=Math.max(8,Math.round(winMs*sr/1000)),H=Math.max(1,Math.round(hopMs*sr/1000)),count=n>=W?Math.floor((n-W)/H)+1:0;
   // Moments for DC removal and orthonormalisation come only from stretches where the carrier turns at
   // least one full cycle (found with a raw first-pass phase): a held or stopped record contributes a

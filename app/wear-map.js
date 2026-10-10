@@ -5,7 +5,7 @@
 // Memory: the scanner keeps one bin of audio (binSec x sampleRate x 2 floats) plus per-bin features and a
 // 1 Hz level envelope, never the whole side (20 min x 48 kHz x 2 x 4 B = 460 MB).
 import {dbfs} from './core.js';
-import {TIMECODE_FORMATS,findFormat,analyzeTimecode} from './timecode.js';
+import {TIMECODE_FORMATS,findFormat,analyzeTimecode,directionSign} from './timecode.js';
 
 /** Scanner defaults (FS-13 §6). Tunable; flagged for calibration against real lock loss. */
 export const WEAR_DEFAULTS=Object.freeze({
@@ -132,7 +132,7 @@ const wrapPi=x=>x-2*Math.PI*Math.round(x/(2*Math.PI));
  * Needle skips (FS-13 §7) in one stretch of quadrature timecode. A skip moves the stylus to another groove, so
  * the carrier phase, common to both channels, steps by the fractional part of the cycles jumped; the L/R
  * quadrature relation, which analyzeTimecode scores, is unchanged. The instantaneous carrier phase is
- * atan2(L, phaseSign * R) after per-channel level normalisation; its residual against the expected carrier
+ * atan2(L, phaseSign * R) (phaseSign = directionSign(format): primary channel x phase switch) after per-channel level normalisation; its residual against the expected carrier
  * advance is integrated, and the step statistic D(i) = S(i) - (S(i-m) + S(i+m)) / 2, where S(i) is the mean
  * residual phase over the m samples after i minus the m samples before, is zero for any constant speed error
  * and any speed change (kink), and equals the step size at a skip. Peaks above max(minDeg, sigma x robust
@@ -255,7 +255,7 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
           const ref=median(refCarriers);
           if(sure.length){
             const c=sure.map(x=>x.carrierHz),spread=(Math.max(...c)-Math.min(...c))/median(c)*100;
-            const reverse=sure.some(x=>x.phaseDeg*(fmt.phaseSign===-1?-1:1)<0);
+            const reverse=sure.some(x=>x.phaseDeg*directionSign(fmt)<0);
             if(reverse){bin.flags|=FLAGS.interrupted;bin.reasons.push('reverse');}
             const wrong=Math.abs(bin.speedErrPct)>o.wrongSpeedPct;
             if(wrong||spread>o.speedShiftPct||(fin(ref)&&Math.abs(bin.carrierHz/ref-1)*100>o.speedShiftPct)){
@@ -264,7 +264,7 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
           }
           if(bin.snrDb<o.lockSnrDb)bin.reasons.push('no-lock');
           else if(sure.length){
-            const hits=detectSkips(l,r,sampleRate,{carrierHz:bin.carrierHz,phaseSign:fmt.phaseSign,minDeg:o.skipMinDeg,sigma:o.skipSigma,winSec:o.skipWinSec});
+            const hits=detectSkips(l,r,sampleRate,{carrierHz:bin.carrierHz,phaseSign:directionSign(fmt),minDeg:o.skipMinDeg,sigma:o.skipSigma,winSec:o.skipWinSec});
             if(hits.length){
               bin.skips=hits.map(x=>({tSec:round(tSec+x.sec,4),deg:round(x.deg,1)}));
               bin.flags|=FLAGS.interrupted;bin.reasons.push('skip');
@@ -314,7 +314,7 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
   const elapsedSec=()=>(startSample+fill+missing)/sampleRate;
   function result(final){
     const flushEnv=final&&envFill>0?[...env,envN>Math.max(1,envFill/2)?round(10*Math.log10(Math.max(envPow/envN,1e-24)),3):null]:env.slice();
-    return {format:fmt.name,formatInfo:{name:fmt.name,carrierHz:fmt.carrierHz,phaseSign:fmt.phaseSign??1},sampleRate,binSec,nominalRpm,
+    return {format:fmt.name,formatInfo:{name:fmt.name,carrierHz:fmt.carrierHz,phaseSign:fmt.phaseSign??1,primary:fmt.primary??'right',directionSign:directionSign(fmt)},sampleRate,binSec,nominalRpm,
       bins:bins.map(b=>({...b,reasons:[...b.reasons],...(b.skips?{skips:b.skips.map(x=>({...x}))}:{})})),elapsedSec:round(elapsedSec(),3),
       skips:bins.flatMap(b=>b.skips||[]).map(x=>({...x})),
       envelope:{hz:1,db:flushEnv},needleDropSec,fromNeedleDrop:needleDropSec!=null&&needleDropSec>=o.edgeSilenceSec,finished:final};
