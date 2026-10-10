@@ -10,7 +10,7 @@ This feature serves:
 - record shops or sellers documenting playback condition;
 - archivists triaging discs;
 - repair technicians separating media faults from playback-system faults;
-- DVS DJs checking control-vinyl wear.
+- DVS DJs checking control-vinyl wear (implemented separately as the control-vinyl wear map, [FS-13](specs/13-control-vinyl-wear-map.md), which scores timecode quality per bin instead of music-vinyl events).
 
 The feature is diagnostic. It does not silently repair audio.
 

@@ -262,6 +262,8 @@ Evidence:
 
 ### 12.4 Worn control vinyl
 
+Whole-side wear mapping of control vinyl (per-bin SNR, phase error and dropouts around the groove, scan-to-scan comparison and a keep / watch / use other side / replace verdict) is specified in [FS-13](specs/13-control-vinyl-wear-map.md) and implemented on the Control vinyl screen (flag `wearMap`).
+
 Evidence may include:
 - localized sustained loss of decode/readability;
 - repeated defect when same region replayed;
