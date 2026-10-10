@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "note": "Built-in pre-gig presets (FS-10). profileIds point at app/devices/profiles/*.json; a test keeps them in sync. Formats are names from app/timecode.js.",
+  "presets": [
+    {
+      "id": "builtin-technics-audio8-traktor-mk2",
+      "v": 1,
+      "name": "Technics+Audio8+Traktor MK2",
+      "software": "Traktor Pro",
+      "audioDevice": "Traktor Audio 8 DJ",
+      "sampleRate": 48000,
+      "decks": [
+        { "id": "A", "input": [0, 1], "format": "Traktor Scratch MK2", "mixerChannel": "1" },
+        { "id": "B", "input": [2, 3], "format": "Traktor Scratch MK2", "mixerChannel": "2" }
+      ],
+      "mixer": "Allen & Heath Xone:23C",
+      "midi": [{ "name": "XONE:23C", "required": false }],
+      "expectedCrashFree": true,
+      "profileIds": {
+        "turntables": ["technics-sl-1200mk4"],
+        "mixer": "allen-heath-xone-23",
+        "interface": "traktor-audio-8-dj",
+        "media": "traktor-scratch-timecode"
+      }
+    },
+    {
+      "id": "builtin-crss12-djm-a9-rekordbox",
+      "v": 1,
+      "name": "CRSS12+DJM-A9+rekordbox",
+      "software": "rekordbox",
+      "audioDevice": "DJM-A9",
+      "sampleRate": 48000,
+      "decks": [
+        { "id": "A", "input": [0, 1], "format": "rekordbox RB-VS1", "mixerChannel": "1" },
+        { "id": "B", "input": [2, 3], "format": "rekordbox RB-VS1", "mixerChannel": "2" }
+      ],
+      "mixer": "Pioneer DJM-A9",
+      "midi": [],
+      "expectedCrashFree": true,
+      "profileIds": {
+        "turntables": ["pioneer-plx-crss12"],
+        "mixer": "pioneer-djm-a9"
+      }
+    },
+    {
+      "id": "builtin-twelve-mk2-serato",
+      "v": 1,
+      "name": "Twelve MK2+Serato",
+      "software": "Serato DJ Pro",
+      "audioDevice": "TWELVE",
+      "sampleRate": 48000,
+      "decks": [
+        { "id": "A", "input": [0, 1], "format": "Serato CV02.5", "mixerChannel": "1" },
+        { "id": "B", "input": [2, 3], "format": "Serato CV02.5", "mixerChannel": "2" }
+      ],
+      "mixer": "Rane Twelve MK2",
+      "midi": [{ "name": "TWELVE", "required": true }],
+      "expectedCrashFree": true,
+      "profileIds": {
+        "controller": "rane-twelve-mk2",
+        "media": "serato-control-vinyl-cv025"
+      }
+    }
+  ]
+}
