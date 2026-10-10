@@ -29,6 +29,7 @@ import { dataScreenDefs } from './ui/screens/data.js';
 // [FS-10] screens imports
 import { pregigScreenDefs } from './ui/screens/pregig.js';
 // [FS-11] screens imports
+import { latencyScreenDefs } from './ui/screens/latency.js';
 // [FS-12] screens imports
 import { stylusScreenDefs } from './ui/screens/stylus.js';
 // [FS-13] screens imports
@@ -67,6 +68,7 @@ const SCREENS = [
   // [FS-10] screens
   ...pregigScreenDefs(),
   // [FS-11] screens
+  ...latencyScreenDefs(),
   // [FS-12] screens
   ...stylusScreenDefs(),
   // [FS-13] screens

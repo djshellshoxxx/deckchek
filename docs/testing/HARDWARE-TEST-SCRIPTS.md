@@ -41,6 +41,7 @@ Safety, applies to every script:
 | H-06 | FS-06 test-media library | Prefilled values vs sleeve; observed carriers | SL-1200MK4, PLX-CRSS12, test record, CV02.5, MK2 vinyl, Audio 8 DJ |
 | H-07 | FS-07 external links | Link allowlist, confirm dialog, copy fallback | Machine with a default browser; a VM with no default browser |
 | H-08 | FS-08 backup and restore | Round trip, tamper rejection, second machine | Owner's profile with PLX-CRSS12 and SL-1200MK4 assets, Audio 8 DJ calibration, DDJ map |
+| H-11 | FS-11 DVS latency and buffer tuner | WASAPI round trip with a patch cable, buffer-behaviour branch (A to D), stress sweep, recommendation per DJ program, Windows checklist, Esc abort | Audio 8 DJ, DJM-A9 (USB), one patch cable (RCA or 6.35 mm), Serato DJ Pro, Traktor Pro, rekordbox, a Windows laptop |
 | H-15 | FS-15 booth feedback and hum hunter | Hum isolation steps on three mixers, feedback step test, abort timing, stop on navigation and close | SL-1200MK4, Twelve MK2, DJM-A9, Xone:23C, Audio 8 DJ, Pioneer monitors, laptop charger, a loop recording cable |
 
 IDs follow the feature spec number (`H-NN` = spec `NN`), as the plan and the spec §8 cross-references do. There is no H-04 or H-05, because the M5 index has no FS-04 or FS-05 (see section 9).
@@ -178,6 +179,34 @@ This script moves your profile data. Do the first two steps in order and do not 
 
 ---
 
+## H-11 DVS latency and buffer tuner (FS-11)
+
+Enable `latencyTuner` under Options > Advanced > Experimental features first. Every number DeckChek shows here is a **WASAPI (Windows audio)** figure, not ASIO. Part of this script is to check that the screen says so and that the numbers are a sensible guide for your DJ software, which uses ASIO. **Turn the monitor volume down before steps 3 to 6**: the chirp is loud (default -20 dBFS, never above -12 dBFS). Close Serato, Traktor and rekordbox before every step except 11 and 12.
+
+Use the Traktor Audio 8 DJ for steps 1 to 12, then repeat steps 2 to 7 on the DJM-A9 (USB) if you can route its output back to its input. Record the interface name next to each result.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Open Latency & buffer. Read the blue banner and open "Why not ASIO?". | The banner says the measurements are WASAPI (Windows audio), not ASIO, and that the figures are a guide to confirm in the DJ software. Opening the disclosure explains why ASIO is not measured. | `H-11/1` PASS/FAIL |
+| 2 | Read "Connect a patch cable". Connect a patch cable from an Audio 8 DJ line output (for example Out A) to a line input (for example In B), left to left and right to right. Set the input to LINE. | The guide shows output, cable and input, warns against PHONO inputs and tells you to turn the monitors down. Measure stays disabled until you tick "I turned the monitors and headphones down". | `H-11/2` cables used, PASS/FAIL |
+| 3 | Pick the Audio 8 DJ as input and its matching output (the output should preselect). Tick the volume box and press Measure latency (or Enter). | A progress bar runs for about 7 seconds. The result card shows a big round-trip number in ms, the plus-or-minus uncertainty marked k=2, "5 of 5 chirps", and the badge "WASAPI round trip". | `H-11/3` latency ms, uncertainty ms, chirps used |
+| 4 | Repeat step 3 five times without changing anything. | The five means agree within 0.1 ms (spec 11 section 9: repeatability std below 0.1 ms on the Audio 8). | `H-11/4` the five means, std ms |
+| 5 | Read "Reported by Windows vs measured". | It shows the buffers Windows ran (in plus out frames as ms), the measured round trip, and the difference labelled driver / USB overhead. A difference above 2 ms is flagged "High" in words. | `H-11/5` reported ms, measured ms, overhead ms, flag |
+| 6 | Pull the patch cable out and measure again. | "No chirp came back" with a list of fixes and a button "Skip the cable: stress test only". Pressing it opens the Buffer test tab. | `H-11/6` PASS/FAIL |
+| 7 | Plug the cable back in and measure once more. Compare the measured ms with the latency your DJ software shows for the same interface at a similar buffer (Traktor Preferences > Audio Setup > Latency (ms), Serato Setup > Audio > USB Buffer Size). | The WASAPI number is higher than, or close to, the ASIO figure. Record how far apart they are; this is the expected gap that the banner warns about. | `H-11/7` DJ software and its ms, DeckChek ms |
+| 8 | Buffer test tab: leave CPU load at 50 % and time per step at 30 s. Press Start buffer test. | A progress bar and a table filling from 1024 frames down. From the second step on (and at the end) a "Detected on this computer" card names the branch. **Record which one**: A Honoured, B Partly honoured, C Ignored, D Streams failed to open. The Audio 8 DJ and DJM-A9 can differ. | `H-11/8` branch letter and title per device, requested vs ran columns, idle and load verdicts, any glitch counts |
+| 9 | Read the card and the table for the branch you got. | A: every row says "N frames" and Pass or Fail. B: changed rows say "host-chosen period (not compared)" and the card states the smallest size Windows will run. C: one "Host default" row and the card asks you to type your ASIO buffer. D: the card says streams failed to open and tells you to close the DJ software or use the ASIO panel. Every Pass or Fail is shown as a word as well as a colour. | `H-11/9` PASS/FAIL, any wording that did not match |
+| 10 | Press Esc during a step. | The run stops within about 1 s and the status line says it stopped. Task Manager shows the CPU load back to normal within 1 s. | `H-11/10` stop time s, PASS/FAIL |
+| 11 | Recommendation tab. Read the card for each of Serato DJ Pro, Traktor Pro and rekordbox. Then type the ASIO buffer you really use (for example 256) into "Your ASIO buffer". | Each card names the program's own setting (Serato: USB Buffer Size, Setup > Audio; Traktor: Latency, Preferences > Audio Setup; rekordbox: Buffer Size, marked "Setting name not verified"). In A or B you get "Lowest safe setting" with one step of headroom. In C or D you are asked to type a buffer, and the typed value is labelled "ASIO buffer (typed, not measured)". | `H-11/11` the three cards, whether each setting name matches the real menu (Y/N, and the real wording if not) |
+| 12 | Apply the recommended value in Serato, then Traktor, then rekordbox (DeckChek never changes it for you). Play two tracks with effects and a scratch loop for 10 minutes each. | No crackle or dropout at the recommended value. If there is, move one step larger and note it. | `H-11/12` per program: buffer set, 10 min clean Y/N |
+| 13 | Windows tuning tab: press Scan this PC. | About 12 seconds later a list appears with Pass, Review or Unknown in words, review items first and a summary line. Nothing on the PC changed. | `H-11/13` counts, items marked Review |
+| 14 | Open "How to check and fix" on the Power plan item, copy the check command and paste it into a Windows terminal. Then use the Win+R shortcut. | The command prints the same plan DeckChek showed. The shortcut opens Power Options. DeckChek changes nothing. | `H-11/14` PASS/FAIL |
+| 15 | Change the power plan to High performance, disable USB selective suspend, scan again, then repeat step 8 once at 128 frames. | Those two items move to Pass. Record whether the sweep result changed. | `H-11/15` items fixed, sweep before and after |
+| 16 | Run steps 3 and 13 on a laptop with and without the charger. | The Power source item flips between Pass and Review, and the measured latency is recorded for both. | `H-11/16` ms on battery and on mains |
+| 17 | Toggle the theme to light and walk through the four tabs. | Text, chips and the branch card stay readable; no status relies on colour alone. | `H-11/17` PASS/FAIL |
+
+---
+
 ## H-15 Booth feedback and hum hunter (FS-15)
 
 Enable `humHunter` and `feedbackStep` under Options > Advanced > Experimental features first. The hum part only listens. The feedback part makes sound: do steps 8 to 14 with the **monitor and booth volume all the way down** and your hand on the master. DeckChek never plays above its cap (default -30 dBFS, absolute -12 dBFS), but the mixer gain and the PA can still make it loud. Never lift, cut or tape over a mains safety earth in any step; "ground lift" means only an audio ground-lift switch or DI box.
@@ -224,7 +253,6 @@ These specs also have manual hardware steps in their §8. They keep their spec-n
 | ID | Spec | Milestone |
 |---|---|---|
 | H-10 | Pre-gig check (120 s budget, rig verdicts) | M6 |
-| H-11 | DVS latency and buffer tuner | M6 |
 | H-12 | Stylus wear tracker | M6 |
 | H-13 | Control-vinyl wear map | M6 |
 | H-14 | Scratch stress test | M6 |
