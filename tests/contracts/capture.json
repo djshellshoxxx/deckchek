@@ -1,0 +1,44 @@
+{
+  "spec": "FS-00 §4.7 capture lease and streaming capture",
+  "commands": {
+    "capture_lease_acquire": {
+      "request": { "holder": "wear-map", "deviceName": "Traktor Audio 8 DJ (In 1/2)" },
+      "response": { "leaseId": 3, "holder": "wear-map", "deviceName": "Traktor Audio 8 DJ (In 1/2)", "since": 1791633600000, "kind": "external" }
+    },
+    "capture_lease_release": { "request": { "leaseId": 3 }, "response": true },
+    "capture_lease_status": {
+      "request": {},
+      "response": { "held": true, "leaseId": 4, "holder": "live-monitor", "deviceName": null, "since": 1791633600000, "kind": "stream" },
+      "responseIdle": { "held": false, "leaseId": null, "holder": null, "deviceName": null, "since": null, "kind": null }
+    },
+    "capture_preempt": {
+      "request": {},
+      "response": { "stopped": { "leaseId": 4, "holder": "live-monitor", "deviceName": null, "since": 1791633600000, "kind": "stream" } }
+    },
+    "start_live_capture": {
+      "request": { "deviceName": null, "maxSeconds": 60 },
+      "response": { "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "maxSeconds": 60.0, "leaseId": 5 }
+    },
+    "start_stream_capture": {
+      "request": { "deviceName": null, "sampleRate": 48000, "blockMs": 1000, "holder": "live-monitor", "channel": "<tauri Channel>" },
+      "response": { "streamId": 4, "holder": "live-monitor", "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "blockMs": 1000, "blockFrames": 48000 }
+    },
+    "stream_capture_ack": { "request": { "streamId": 4, "seq": 7 }, "response": null },
+    "stop_stream_capture": {
+      "request": {},
+      "response": { "streamId": 4, "ended": "stopped", "blocksSent": 9, "lastSeq": 8, "droppedBlocks": 0, "framesCaptured": 410000, "overrunSamples": 0, "streamErrors": 0, "streamErrorMessages": [] }
+    }
+  },
+  "errors": {
+    "busy": { "code": "CAPTURE_BUSY", "message": "The audio input is busy: \"live-monitor\" is already running.", "holder": "live-monitor", "since": 1791633600000, "kind": "stream", "deviceName": null, "leaseId": 4 },
+    "plain": "Audio input not found: Rane SEVENTY-TWO MKII"
+  },
+  "block": {
+    "hex": "44435342010002000700000080bb0000030000000200000001000000000000000000000000005840000000006070e7400000003f000080be0000803f000000000000003e000080bf",
+    "decoded": {
+      "seq": 7, "sampleRate": 48000, "frames": 3,
+      "left": [0.5, -0.25, 1.0], "right": [0.0, 0.125, -1.0],
+      "quality": { "droppedBlocks": 2, "streamErrors": 1, "overrunSamples": 96, "framesCaptured": 48003, "discontinuity": true, "final": false }
+    }
+  }
+}
