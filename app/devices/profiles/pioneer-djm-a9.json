@@ -210,8 +210,8 @@
         "quadrature": true,
         "leadInSec": null,
         "notes": "Via PHONO input and USB sound card.",
-        "source": "Serato",
-        "confidence": "unverified"
+        "source": "xwax lib/xwax/timecoder.c as vendored in Mixxx (timecode definitions) serato_2a/serato_2b (carrier 1000 Hz only; NoiseMap code is not stated)",
+        "confidence": "confirmed"
       }
     ]
   },

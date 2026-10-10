@@ -149,8 +149,8 @@
         "quadrature": true,
         "leadInSec": null,
         "notes": "Standard Serato control vinyl via line/phono input.",
-        "source": "Serato",
-        "confidence": "unverified"
+        "source": "xwax lib/xwax/timecoder.c as vendored in Mixxx (timecode definitions) serato_2a/serato_2b (carrier 1000 Hz only; NoiseMap code is not stated)",
+        "confidence": "confirmed"
       }
     ]
   },
