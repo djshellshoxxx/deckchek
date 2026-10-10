@@ -8,7 +8,7 @@ import { settings, store, workspace, findProfile, on, active } from '../state.js
 import { decodeAudioFile, startLiveSession, classifyCaptureError, liveAvailable } from '../audio-io.js';
 import { createStereoMeter, levelBus } from '../meters.js';
 import { buildRun } from '../analysis.js';
-import { persistRun, saveRunAsBaseline, saveRepeatScanAlignment, exportRunHtml, exportRunCsv } from '../persistence.js';
+import { persistRun, saveRunAsBaseline, saveRepeatScanAlignment, exportRunHtml, exportRunCsv, runPdfActions } from '../persistence.js';
 import { renderResults, qualityPanel } from '../results.js';
 import { announce, toast } from '../live.js';
 import { go, setCaptureStatus, currentDeviceName, showInspector } from '../shell.js';
@@ -506,6 +506,7 @@ class WorkflowScreen {
       actions: [
         { label: 'Export report', icon: 'download', primary: true, shortcut: 'Ctrl+E', onClick: () => exportRunHtml(run) },
         { label: 'CSV', icon: 'download', onClick: () => exportRunCsv(run) },
+        ...runPdfActions(run),
         { label: 'New test', icon: 'refresh', onClick: () => { this.run = null; this.setStep('setup'); } },
         { label: 'Open in History', icon: 'history', onClick: () => { active.historyFocus = run.id; go('history'); } },
         ...(this.deviceTest ? [{ label: this.deviceTest.backLabel || 'Back to device', icon: 'arrowRight', onClick: () => this.leaveDeviceTest('back') }] : []),
