@@ -10,6 +10,7 @@ pub mod domain;
 // [FS-00] mods
 mod userfiles;
 mod app_state;
+mod audio_out;
 // [FS-01] mods
 mod wizard;
 // [FS-02] mods
@@ -56,6 +57,8 @@ pub fn run() {
             // [FS-00] handlers
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
+            audio_out::list_native_audio_outputs, audio_out::audio_play_buffer, audio_out::audio_play_tone,
+            audio_out::audio_set_level, audio_out::audio_stop, audio_out::audio_stop_all, audio_out::audio_out_status,
             // [FS-01] handlers
             wizard::wizard_state_get, wizard::wizard_state_save, wizard::wizard_create_assets,
             wizard::wizard_apply_gear, wizard::wizard_has_user_data,
@@ -90,6 +93,7 @@ pub fn run() {
             // [FS-00] setup
             _app.handle().plugin(tauri_plugin_dialog::init())?;
             _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
+            audio_out::install_panic_guard();
             // [FS-01] setup
             // [FS-02] setup
             diagnostics::setup(_app);
@@ -118,6 +122,8 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building DeckChek");
     app.run(|app, event| {
+        // [FS-00] run events: audio_out silences output on main-window close and exit
+        audio_out::on_run_event(&event);
         // [FS-02] run events: crash marker removed on RunEvent::Exit
         diagnostics::on_run_event(app, &event);
         // [FS-08] run events: on-exit backup on ExitRequested / Exit

@@ -1,0 +1,64 @@
+{
+  "module": "audio_out",
+  "spec": "FS-00 §4.9",
+  "absMaxDbfs": -12,
+  "notes": "Tauri maps camelCase JS argument names to the snake_case Rust parameters (levelDbfs -> level_dbfs). Errors are strings prefixed with a code: AUDIO_OUT_INVALID, AUDIO_OUT_DEVICE, AUDIO_OUT_NOT_PLAYING, AUDIO_OUT_DISABLED.",
+  "commands": {
+    "list_native_audio_outputs": {
+      "request": {},
+      "response": [
+        { "name": "Speakers (Realtek(R) Audio)", "isDefault": true, "sampleRate": 48000, "channels": 2 },
+        { "name": "Traktor Audio 8 DJ Out 1/2", "isDefault": false, "sampleRate": 44100, "channels": 2 },
+        { "name": "Disconnected", "isDefault": false, "sampleRate": null, "channels": null }
+      ]
+    },
+    "audio_play_tone": {
+      "request": {
+        "device": null,
+        "spec": { "type": "pinkband", "freqHz": 63, "levelDbfs": -60, "capDbfs": -30, "rampMs": 50 }
+      },
+      "response": {
+        "handle": 1, "deviceName": "Speakers (Realtek(R) Audio)", "sampleRate": 48000, "channels": 2,
+        "levelDbfs": -60.0, "capDbfs": -30.0, "rampMs": 50.0
+      }
+    },
+    "audio_play_buffer": {
+      "request": {
+        "device": "Traktor Audio 8 DJ Out 1/2",
+        "buffer": { "sampleRate": 48000, "left": [0, 0.5, -0.5, 0], "right": [0, 0.25, -0.25, 0] },
+        "opts": { "levelDbfs": -20, "capDbfs": -12, "loop": true, "rampMs": 10 }
+      },
+      "response": {
+        "handle": 2, "deviceName": "Traktor Audio 8 DJ Out 1/2", "sampleRate": 44100, "channels": 2,
+        "levelDbfs": -20.0, "capDbfs": -12.0, "rampMs": 10.0
+      }
+    },
+    "audio_set_level": {
+      "request": { "handle": 1, "levelDbfs": -57 },
+      "response": { "handle": 1, "levelDbfs": -57.0 }
+    },
+    "audio_stop": {
+      "request": { "handle": 1 },
+      "response": null
+    },
+    "audio_stop_all": {
+      "request": {},
+      "response": 1
+    },
+    "audio_out_status": {
+      "request": {},
+      "response": {
+        "absMaxDbfs": -12.0,
+        "disabled": false,
+        "active": {
+          "handle": 2, "kind": "bufferLoop", "deviceName": "Traktor Audio 8 DJ Out 1/2", "sampleRate": 44100,
+          "levelDbfs": -20.0, "capDbfs": -12.0, "stopping": false
+        },
+        "recent": [
+          { "handle": 1, "reason": "replaced", "message": null },
+          { "handle": 0, "reason": "deviceError", "message": "The requested device is no longer available." }
+        ]
+      }
+    }
+  }
+}
