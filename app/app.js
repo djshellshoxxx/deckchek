@@ -18,6 +18,8 @@ import { bindSettings } from './features.js';
 // [FS-00] screens imports
 // [FS-01] screens imports
 // [FS-02] screens imports
+import { initDiagnostics } from './ui/screens/support-dialog.js';
+initDiagnostics(); // error hooks, Ctrl+Shift+D, startup crash prompt (FS-02)
 // [FS-03] screens imports
 // [FS-06] screens imports
 // [FS-07] screens imports
