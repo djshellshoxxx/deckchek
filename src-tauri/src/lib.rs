@@ -8,6 +8,7 @@ mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+mod userfiles;
 // [FS-01] mods
 // [FS-02] mods
 // [FS-03] mods
@@ -46,6 +47,7 @@ pub fn run() {
             devices::device_profiles_sync, devices::device_test_result_save, devices::device_test_results,
             devices::device_midi_map_save, devices::device_midi_map_get,
             // [FS-00] handlers
+            userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             // [FS-01] handlers
             // [FS-02] handlers
             // [FS-03] handlers
@@ -69,6 +71,8 @@ pub fn run() {
         ])
         .setup(|_app| {
             // [FS-00] setup
+            _app.handle().plugin(tauri_plugin_dialog::init())?;
+            _app.handle().plugin(tauri_plugin_opener::init())?;
             // [FS-01] setup
             // [FS-02] setup
             // [FS-03] setup
