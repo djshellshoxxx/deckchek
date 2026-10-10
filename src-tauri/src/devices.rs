@@ -273,7 +273,8 @@ pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) 
                     + n("SELECT COUNT(*) FROM asset_midi_map WHERE asset_id = ?1", &aid)?
                     + n("SELECT COUNT(*) FROM setup_component WHERE asset_id = ?1", &aid)?
                     + n("SELECT COUNT(*) FROM asset_settings_snapshot WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM maintenance_event WHERE asset_id = ?1", &aid)?;
+                    + n("SELECT COUNT(*) FROM maintenance_event WHERE asset_id = ?1", &aid)?
+                    + n("SELECT COUNT(*) FROM asset_usage WHERE asset_id = ?1", &aid)?;
                 if used > 0 {
                     conn.execute("UPDATE asset SET is_deleted = 1, retired_date = COALESCE(retired_date, substr(?2, 1, 10)), updated_at = ?2 WHERE id = ?1", params![aid, now]).map_err(e2s)?;
                     summary.assets_retired.push(aid);
