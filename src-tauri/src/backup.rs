@@ -673,6 +673,51 @@ fn check_dest(live: &Path, dest: &Path) -> Result<(), BackupError> {
     Ok(())
 }
 
+/// Headroom added to every free-space estimate (journals, zip directory, filesystem slack).
+const SPACE_MARGIN: u64 = 16 * 1024 * 1024;
+
+/// Free bytes available to the current user on the volume holding `path` (or its nearest
+/// existing parent). Windows only; elsewhere unknown, so the check is skipped.
+#[cfg(windows)]
+fn free_space(path: &Path) -> Option<u64> {
+    use std::os::windows::ffi::OsStrExt;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetDiskFreeSpaceExW(dir: *const u16, available: *mut u64, total: *mut u64, free: *mut u64) -> i32;
+    }
+    let mut dir = path;
+    while !dir.is_dir() {
+        dir = dir.parent()?;
+    }
+    let wide: Vec<u16> = dir.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let mut available = 0u64;
+    // SAFETY: `wide` is NUL-terminated and outlives the call; the out pointers are valid or null.
+    let ok = unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut available, std::ptr::null_mut(), std::ptr::null_mut()) };
+    (ok != 0).then_some(available)
+}
+
+#[cfg(not(windows))]
+fn free_space(_path: &Path) -> Option<u64> {
+    None
+}
+
+/// Pure decision: unknown free space passes; otherwise `needed + margin` must fit.
+fn ensure_space(free: Option<u64>, needed: u64, doing: &str) -> Result<(), BackupError> {
+    let need = needed.saturating_add(SPACE_MARGIN);
+    match free {
+        Some(f) if f < need => Err(BackupError::new(
+            "disk_full",
+            format!("Not enough free disk space to {doing}: about {} MB needed, {} MB available. Free some space or choose another drive, then retry.", need.div_ceil(1_048_576), f / 1_048_576),
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// Backup writes a snapshot copy and then the zip next to `dest`: about twice the database.
+fn check_backup_space(dest: &Path, live_bytes: u64) -> Result<(), BackupError> {
+    ensure_space(free_space(dest.parent().unwrap_or(dest)), live_bytes.saturating_mul(2), "create the backup")
+}
+
 /// Writes a verified backup of `live` to `dest`. The caller holds the connection
 /// gate (read for normal backups, write during restore). Nothing at `dest` changes
 /// unless the finished archive re-verifies.
@@ -685,6 +730,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
     if live_bytes > MAX_DB_BYTES {
         return Err(BackupError::new("too_large", "The database is larger than 2 GiB and cannot be backed up to a single file."));
     }
+    check_backup_space(dest, live_bytes)?;
     let snap = sidecar(dest, ".snapshot");
     let partial = sidecar(dest, ".partial");
     let mut temps = TempFiles(vec![snap.clone(), sidecar(&snap, "-journal"), partial.clone()]);
@@ -841,6 +887,8 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     let (ui, cal) = {
         let mut archive = open_archive(path, &LIMITS)?;
         let entry = manifest.files.iter().find(|f| f.name == DB_ENTRY).expect("verified manifest lists the DB");
+        // The extracted copy is written next to the live database; refuse before touching anything.
+        ensure_space(free_space(live), entry.bytes, "restore the backup")?;
         let mut out = BufWriter::new(File::create(&tmp).map_err(|e| io_err("extract the backup", e))?);
         let (bytes, sha) = read_entry(&mut archive, DB_ENTRY, MAX_DB_BYTES, &LIMITS, &mut out)?;
         let f = out.into_inner().map_err(|e| io_err("extract the backup", e.into_error()))?;
@@ -1383,22 +1431,34 @@ fn run_on_exit(ctx: Ctx) {
     let _ = rx.recv_timeout(ON_EXIT_CAP);
 }
 
-/// FS-08 setup: crash recovery, background scheduler, on-exit hook on the main window.
+/// FS-08 setup: crash recovery and the background scheduler. The on-exit backup is driven by
+/// `on_run_event` (ExitRequested / Exit), not by a window event.
 pub fn setup(app: &AppHandle) {
     let Ok(ctx) = app_ctx(app) else { return };
     recover_on_startup(&ctx);
     std::thread::spawn(move || {
         let _ = run_scheduled_if_due(&ctx);
     });
-    if let Some(win) = app.get_webview_window("main") {
-        let handle = app.clone();
-        win.on_window_event(move |e| {
-            if let tauri::WindowEvent::CloseRequested { .. } = e {
-                if let Ok(ctx) = app_ctx(&handle) {
-                    run_on_exit(ctx);
-                }
-            }
-        });
+}
+
+/// Set once the on-exit backup has been attempted; ExitRequested and Exit both lead here.
+static EXIT_BACKUP_CLAIMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// True exactly once per flag: the first caller owns the on-exit backup.
+fn claim_exit_backup(flag: &std::sync::atomic::AtomicBool) -> bool {
+    !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
+}
+
+fn is_exit_event(ev: &tauri::RunEvent) -> bool {
+    matches!(ev, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit)
+}
+
+/// Call from the `.run(|app, event| ..)` callback in `lib.rs`: on-exit backup (FS-08 §4, at most 5 s).
+pub fn on_run_event(app: &AppHandle, ev: &tauri::RunEvent) {
+    if is_exit_event(ev) && claim_exit_backup(&EXIT_BACKUP_CLAIMED) {
+        if let Ok(ctx) = app_ctx(app) {
+            run_on_exit(ctx);
+        }
     }
 }
 
@@ -1406,6 +1466,28 @@ pub fn setup(app: &AppHandle) {
 mod tests {
     use super::*;
     use crate::db::{apply_migrations, persist_run, PersistMeasurement, PersistRun};
+
+    #[test]
+    fn free_space_check_is_clear_and_skipped_when_unknown() {
+        const MB: u64 = 1_048_576;
+        assert!(ensure_space(None, u64::MAX / 2, "x").is_ok(), "unknown free space must not block");
+        assert!(ensure_space(Some(100 * MB), 50 * MB, "x").is_ok());
+        let e = ensure_space(Some(40 * MB), 50 * MB, "create the backup").unwrap_err();
+        assert_eq!(e.code, "disk_full");
+        assert!(e.message.contains("create the backup") && e.message.contains("66 MB needed") && e.message.contains("40 MB available"), "{}", e.message);
+        // exactly enough (needed + margin) passes
+        assert!(ensure_space(Some(50 * MB + SPACE_MARGIN), 50 * MB, "x").is_ok());
+        assert!(ensure_space(Some(50 * MB + SPACE_MARGIN - 1), 50 * MB, "x").is_err());
+    }
+
+    #[test]
+    fn exit_backup_is_claimed_once_and_only_for_exit_events() {
+        let flag = std::sync::atomic::AtomicBool::new(false);
+        assert!(claim_exit_backup(&flag));
+        assert!(!claim_exit_backup(&flag), "ExitRequested then Exit must not back up twice");
+        assert!(is_exit_event(&tauri::RunEvent::Exit));
+        assert!(!is_exit_event(&tauri::RunEvent::Ready));
+    }
 
     // ---------- fixtures ----------
 

@@ -64,7 +64,7 @@ export function openDiagnosticsDialog(deps = {}) {
   const st = { redact: true, runs: false, health: false, phase: 'preview', parts: [], summary: '', seq: 0, result: null, error: null, busy: false };
 
   const uid = `diag-${Date.now().toString(36)}`;
-  const body = h('div', { class: 'diag-body', style: 'display:grid;gap:12px' });
+  const body = h('div', { class: 'diag-body' });
   const dlg = h('dialog', { class: 'diag-dialog', 'aria-labelledby': `${uid}-t`, 'aria-describedby': `${uid}-d` },
     h('div', { class: 'dialog-form' },
       h('h2', { id: `${uid}-t`, text: deps.crash ? 'DeckChek closed unexpectedly' : 'Create diagnostics bundle' }),
@@ -168,20 +168,20 @@ export function openDiagnosticsDialog(deps = {}) {
 
   function partRow(p) {
     const label = p.status === 'ok' ? sizeText(p.sizeBytes) : p.status === 'skipped' ? 'Not included' : 'Error';
-    return h('li', { class: `diag-part diag-${p.status}`, style: 'display:flex;justify-content:space-between;gap:12px' },
+    return h('li', { class: `diag-part diag-${p.status}` },
       h('span', { class: 'mono', text: p.name }),
       h('span', { class: 'small muted', text: p.note && p.status !== 'ok' ? `${label} — ${p.note}` : label }));
   }
 
   function renderPreview() {
     const skipped = st.parts.filter(p => p.status !== 'ok');
-    const toggles = h('div', { class: 'diag-toggles', style: 'display:grid;gap:6px' },
+    const toggles = h('div', { class: 'diag-toggles' },
       toggle('Redact personal info (recommended)', st.redact, v => { st.redact = v; refreshPreview(); }, 'diag-redact'),
       toggle(`Include last ${RUN_COUNT} runs summary`, st.runs, v => { st.runs = v; refreshPreview(); }, 'diag-runs'),
       native ? toggle('Include a System Health scan (takes a few seconds)', st.health, v => { st.health = v; refreshPreview(); }, 'diag-health') : null);
     body.replaceChildren(
       h('p', { class: 'small muted', text: 'Redaction is best effort — look through the summary below before sharing.' }),
-      st.parts.length ? h('ul', { class: 'diag-parts', style: 'list-style:none;margin:0;padding:0;display:grid;gap:4px', 'aria-label': 'Included files' }, st.parts.map(partRow)) : h('p', { class: 'muted', text: 'Preparing preview…', role: 'status' }),
+      st.parts.length ? h('ul', { class: 'diag-parts', 'aria-label': 'Included files' }, st.parts.map(partRow)) : h('p', { class: 'muted', text: 'Preparing preview…', role: 'status' }),
       native ? null : h('p', { class: 'small muted', text: 'Browser mode: the bundle holds your settings and a workspace summary only. Logs are kept by the desktop app.' }),
       skipped.length ? h('p', { class: 'small', text: `Not included: ${skipped.map(p => (p.note ? `${p.name} (${p.note})` : p.name)).join(', ')}` }) : null,
       toggles,

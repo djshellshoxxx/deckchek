@@ -1050,8 +1050,8 @@ fn run_parts(app: &tauri::AppHandle, state: &DiagState, opts: &BundleOpts) -> Ve
     build_parts(&inp)
 }
 
-/// Call from `lib.rs` setup: creates the log dir, installs the panic hook, manages the state,
-/// and removes the crash marker when the main window is destroyed (normal quit).
+/// Call from `lib.rs` setup: creates the log dir, installs the panic hook and manages the state.
+/// The crash marker is removed from `on_run_event` when the app exits (`RunEvent::Exit`).
 pub fn setup(app: &mut tauri::App) {
     let dir = app
         .path()
@@ -1059,15 +1059,21 @@ pub fn setup(app: &mut tauri::App) {
         .unwrap_or_else(|_| std::env::temp_dir().join("deckchek-logs"));
     let state = DiagState::open(&dir, &app.package_info().version.to_string());
     install_panic_hook(&state);
-    for (_, w) in app.webview_windows() {
-        let st = state.clone();
-        w.on_window_event(move |ev| {
-            if matches!(ev, tauri::WindowEvent::Destroyed) {
-                st.clean_exit();
-            }
-        });
-    }
     app.manage(state);
+}
+
+/// True for the event that means a normal quit: the event loop is ending (FS-02 AC-4).
+fn is_clean_exit_event(ev: &tauri::RunEvent) -> bool {
+    matches!(ev, tauri::RunEvent::Exit)
+}
+
+/// Call from the `.run(|app, event| ..)` callback in `lib.rs`.
+pub fn on_run_event(app: &tauri::AppHandle, ev: &tauri::RunEvent) {
+    if is_clean_exit_event(ev) {
+        if let Some(state) = app.try_state::<DiagState>() {
+            state.clean_exit();
+        }
+    }
 }
 
 #[tauri::command]
@@ -1292,6 +1298,13 @@ mod tests {
     }
 
     // ---- panic hook (AC-1)
+
+    #[test]
+    fn only_run_event_exit_counts_as_a_clean_exit() {
+        assert!(is_clean_exit_event(&tauri::RunEvent::Exit));
+        assert!(!is_clean_exit_event(&tauri::RunEvent::Ready));
+        assert!(!is_clean_exit_event(&tauri::RunEvent::MainEventsCleared));
+    }
 
     #[test]
     fn panic_on_any_thread_is_logged_and_marker_records_it() {

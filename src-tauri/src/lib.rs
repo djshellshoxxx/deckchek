@@ -39,7 +39,7 @@ mod backup;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(capture::LiveCaptureState::default())
         .manage(midi::MidiState::default())
         .invoke_handler(tauri::generate_handler![
@@ -115,6 +115,12 @@ pub fn run() {
             // [FS-33] setup
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running DeckChek");
+        .build(tauri::generate_context!())
+        .expect("error while building DeckChek");
+    app.run(|app, event| {
+        // [FS-02] run events: crash marker removed on RunEvent::Exit
+        diagnostics::on_run_event(app, &event);
+        // [FS-08] run events: on-exit backup on ExitRequested / Exit
+        backup::on_run_event(app, &event);
+    });
 }

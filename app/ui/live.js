@@ -22,8 +22,8 @@ export function announce(message, { assertive = false } = {}) {
 
 const ICON = { success: 'pass', info: 'info', error: 'fail', warn: 'warn' };
 
-/** Toast: 5 s for info/success (paused on hover/focus), persistent with Dismiss for errors. Max 3 stacked. */
-export function toast(message, { type = 'info', timeout = 5000, action = null } = {}) {
+/** Toast: 5 s for info/success (paused on hover/focus), persistent with Details (support dialog) and Dismiss for errors. Max 3 stacked. */
+export function toast(message, { type = 'info', timeout = 5000, action = null, details = true } = {}) {
   ensure();
   if (!toastHost) return;
   const isError = type === 'error';
@@ -32,6 +32,8 @@ export function toast(message, { type = 'info', timeout = 5000, action = null } 
     h('span', { class: 'toast-icon', html: icon(ICON[type] || 'info', { size: 18 }) }),
     h('span', { class: 'toast-msg', text: message }));
   if (action) el.append(h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: action.label, onclick: () => { action.run(); remove(); } }));
+  // Errors offer the support dialog (FS-02); it listens for this window event.
+  if (isError && details) el.append(h('button', { type: 'button', class: 'btn btn-ghost btn-sm toast-details', text: 'Details', onclick: () => { globalThis.dispatchEvent(new CustomEvent('deckchek:diagnostics')); remove(); } }));
   el.append(close);
   toastHost.append(el);
   while (toastHost.children.length > 3) toastHost.firstElementChild.remove();

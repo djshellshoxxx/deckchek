@@ -104,8 +104,13 @@ function trapFocus(event, container) {
 }
 
 // ---------- confirm dialog ----------
+// `close` fires asynchronously, so after a rapid cancel + reopen the first close event can arrive while
+// the dialog is open again. Listeners are therefore scoped per invocation: a new call settles and
+// detaches the previous one, and a close event seen while the dialog is open is ignored.
+let confirmScope = null;
 export function confirmDialog({ title, body, confirmLabel = 'Delete', danger = true }) {
   const dlg = $('#confirm-dialog');
+  confirmScope?.settle(false);
   $('#confirm-title').textContent = title;
   $('#confirm-body').textContent = body;
   const ok = $('#confirm-ok');
@@ -113,7 +118,22 @@ export function confirmDialog({ title, body, confirmLabel = 'Delete', danger = t
   ok.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
   const trigger = document.activeElement;
   return new Promise(resolve => {
-    dlg.addEventListener('close', () => { resolve(dlg.returnValue === 'confirm'); if (trigger?.isConnected) trigger.focus(); }, { once: true });
+    const ctl = new AbortController();
+    const scope = {
+      settle(value) {
+        if (confirmScope !== scope) return;
+        confirmScope = null;
+        ctl.abort();
+        resolve(value);
+      },
+    };
+    confirmScope = scope;
+    dlg.addEventListener('close', () => {
+      if (dlg.open) return; // stale event from an earlier invocation
+      const confirmed = dlg.returnValue === 'confirm';
+      scope.settle(confirmed);
+      if (trigger?.isConnected) trigger.focus();
+    }, { signal: ctl.signal });
     dlg.returnValue = '';
     dlg.showModal();
     $('#confirm-cancel').focus(); // destructive: focus the safe action
@@ -172,6 +192,7 @@ export function setCaptureStatus(text, state = 'idle') {
 // [FS-00] menu
 // [FS-01] menu
 // [FS-02] menu
+// (Support entries are appended by ui/menus.js, installed from initShell.)
 // [FS-03] menu
 // [FS-06] menu
 // [FS-07] menu
@@ -253,6 +274,8 @@ export function initShell(defs) {
   globalThis.matchMedia?.('(prefers-color-scheme: light)').addEventListener?.('change', () => refreshMeterThemes());
   // [FS-01] init
   import('./workflows/setup-wizard.js').then(m => m.installSetupWizard()).catch(error => console.warn('Setup wizard unavailable:', error));
+  // [FS-02] init
+  import('./menus.js').then(m => m.installSupportMenus()).catch(error => console.warn('Support menu unavailable:', error));
   // [FS-07] init
   import('../external-links.js').then(m => m.installLinkInterceptor(document, { toast, confirm: m.linkConfirmDialog })).catch(() => { /* links fall back to inert anchors */ });
   // [FS-23] init
