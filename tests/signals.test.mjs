@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {rng,gaussian,whiteNoise,addNoise,quadratureTimecode,humMix,chirpLoop,howlGrowth} from './fixtures/signals.mjs';
-import {analyzeTimecode} from '../app/timecode.js';
+import {analyzeTimecode,directionSign,findFormat} from '../app/timecode.js';
 import {fitTone,detectMarkerLag} from '../app/calibration.js';
 import {rms,dbfs} from '../app/core.js';
 
@@ -27,8 +27,11 @@ test('signals: addNoise hits the requested SNR',()=>{
 });
 
 test('signals: quadratureTimecode matches analyzeTimecode for each carrier and phaseSign',()=>{
-  const cases=[['Serato CV02.5',1000,1],['Traktor Scratch MK1',2000,-1],['Traktor Scratch MK2',2500,1],['MixVibes DVS V2',1300,-1],['Traktor Scratch MK2 CD',3000,1]];
+  // phaseSign here is the sign of the right-minus-left phase on forward play: directionSign(format) (xwax
+  // SWITCH_PHASE and SWITCH_PRIMARY combined; for Traktor MK1 the two cancel).
+  const cases=[['Serato CV02.5',1000,1],['Traktor Scratch MK1',2000,1],['Traktor Scratch MK2',2500,1],['MixVibes DVS V2',1300,-1],['Traktor Scratch MK2 CD',3000,1]];
   for(const [format,carrierHz,phaseSign] of cases){
+    assert.equal(directionSign(findFormat(format)),phaseSign,format);
     const s=quadratureTimecode({carrierHz,phaseSign,seconds:1,snrDb:40,seed:carrierHz});
     const r=analyzeTimecode(s,{format});
     near(get(r,'tc_carrier_hz'),carrierHz,.3,format);
