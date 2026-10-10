@@ -1714,6 +1714,9 @@ mod tests {
                 while !stop.load(std::sync::atomic::Ordering::Relaxed) {
                     persist_run(&mut c, &run(&format!("w-{n}"))).unwrap();
                     n += 1;
+                    // Real writers (one run per capture) are far slower; an unthrottled loop
+                    // can starve the reader on Windows' rollback journal and flake this test.
+                    std::thread::sleep(Duration::from_millis(2));
                 }
                 n
             })
