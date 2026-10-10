@@ -74,5 +74,5 @@ test('lib.rs registers plugins and userfiles commands inside FS-00 anchors', () 
   assert.match(lib, /userfiles::userfiles_write_text/);
   assert.match(lib, /userfiles::userfiles_write_folder/);
   assert.match(lib, /tauri_plugin_dialog::init\(\)/);
-  assert.match(lib, /tauri_plugin_opener::init\(\)/);
+  assert.match(lib, /tauri_plugin_opener::(init\(\)|Builder::new\(\))/);
 });

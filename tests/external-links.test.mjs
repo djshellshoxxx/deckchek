@@ -261,7 +261,7 @@ function walk(dir, out = []) {
 }
 
 // Call sites predating FS-07 that the integration job must convert to externalLink(); the list may only shrink.
-const PENDING_RAW_LINKS = ['app/ui/screens/devices.js'];
+const PENDING_RAW_LINKS = [];
 const RAW = [/\bwindow\s*\.\s*open\s*\(/, /target\s*=\s*["']?_blank/, /target\s*:\s*['"]_blank/, /\.target\s*=\s*['"]_blank/, /setAttribute\(\s*['"]target['"]/];
 
 test('guard: no raw window.open or target=_blank in app/ (known pending sites listed)', () => {

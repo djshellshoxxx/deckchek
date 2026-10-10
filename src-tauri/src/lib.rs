@@ -76,7 +76,7 @@ pub fn run() {
         .setup(|_app| {
             // [FS-00] setup
             _app.handle().plugin(tauri_plugin_dialog::init())?;
-            _app.handle().plugin(tauri_plugin_opener::init())?;
+            _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
             // [FS-01] setup
             // [FS-02] setup
             // [FS-03] setup

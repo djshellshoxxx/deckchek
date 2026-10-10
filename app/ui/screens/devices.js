@@ -240,7 +240,7 @@ export function createDevicesScreen(section) {
     const { links, missing } = documentLinks(p);
     const ul = h('ul', { class: 'dev-docs', role: 'list' });
     for (const d of links) {
-      const a = h('a', { href: d.url, target: '_blank', rel: 'noopener noreferrer', class: 'dev-doc-link', html: `${icon('external', { size: 16 })}<span>${esc(d.title || d.url)}</span>` });
+      const a = h('a', { href: d.url, class: 'dev-doc-link', html: `${icon('external', { size: 16 })}<span>${esc(d.title || d.url)}</span>` });
       a.addEventListener('click', e => openExternal(d.url, e));
       const copy = h('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': `Copy link: ${d.title}`, 'data-tooltip': 'Copy link', html: icon('copy', { size: 16 }), onclick: async () => { try { await navigator.clipboard.writeText(d.url); toast('Link copied.', { type: 'success', timeout: 2500 }); } catch { toast(d.url, { timeout: 12000 }); } } });
       ul.append(h('li', {}, h('div', { class: 'dev-doc-row' }, a, copy), h('span', { class: 'dev-doc-url mono small', title: d.url, text: d.url.replace(/^https?:\/\//, '') }), d.notes ? h('span', { class: 'muted small', text: `${d.type ? `${d.type.replace(/-/g, ' ')} · ` : ''}${d.notes}` }) : null));
