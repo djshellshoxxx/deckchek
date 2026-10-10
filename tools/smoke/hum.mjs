@@ -2,7 +2,7 @@
 // desktop mode with a mocked 48 kHz stream capture, native audio output and hum_run_* store covers the guided hum
 // flow (live meter, 5 s steps, deltas, ranked causes, save), the feedback safety UI (checklist gate, STOP first tab
 // stop, Esc/Space, level/cap readouts, automatic howl abort, output stop on navigation and window close) and both themes.
-import { watchConsole, tauriMock } from './core.mjs';
+import { watchConsole, tauriMock, setViewport } from './core.mjs';
 
 const FLAGS_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { humHunter: true, feedbackStep: true } })); };
 const HUM_ONLY = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { humHunter: true } })); };
@@ -311,7 +311,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('feedback: closing the window stops the output', true);
 
   // phone width
-  await page.setViewportSize({ width: 390, height: 800 });
+  await setViewport(page, { width: 390, height: 800 });
   await page.waitForTimeout(200);
   check('hum: no horizontal page scroll at phone width', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await shot(page, 'feedback-phone-dark');

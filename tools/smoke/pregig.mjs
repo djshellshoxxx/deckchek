@@ -3,12 +3,12 @@
 // the live checklist, the manual headphone prompt, the honest deck B "coming next" state (input pair 3-4 cannot be captured
 // yet, so it is neither a failure nor a pass), a RED verdict with fix-it buttons, single-step re-run and the merged verdict,
 // comparison with the previous run, history + compare, Esc cancel, the preset editor, orchestration overhead, and both themes.
-import { watchConsole, tauriMock, a11yAudit } from './core.mjs';
+import { watchConsole, tauriMock, a11yAudit, setViewport } from './core.mjs';
 
 const FLAG_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { pregig: true } })); };
 
 // Desktop mode: tauriMock plus the pregig commands, a good-rig fixture and a quadrature capture. `window.__pg` steers it.
-function pregigMock() {
+export function pregigMock() {
   const core = window.__TAURI__.core; const base = core.invoke;
   const pg = { rightMuted: false, listDelayMs: 0, runs: [], presets: [], calls: [], midi: ['XONE:23C'], crash: false };
   window.__pg = pg;
@@ -234,7 +234,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('#pg-back');
   await shot(page, 'pregig-idle-light');
   // narrow window
-  await page.setViewportSize({ width: 420, height: 900 });
+  await setViewport(page, { width: 420, height: 900 });
   check('pregig: no horizontal scroll at phone width', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await shot(page, 'pregig-narrow-light');
   await ctx.close();

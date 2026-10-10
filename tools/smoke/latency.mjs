@@ -4,7 +4,7 @@
 // no-loopback state with a stress-only escape (AC-5), the buffer sweep in the honoured branch (A) and the
 // ignored branch (C, typed ASIO buffer), per-software recommendations, the Windows checklist with fix actions,
 // Esc aborting a run (AC-7), keyboard use and both themes.
-import { watchConsole, tauriMock, a11yAudit } from './core.mjs';
+import { watchConsole, tauriMock, a11yAudit, setViewport } from './core.mjs';
 
 const FLAG_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { latencyTuner: true } })); };
 
@@ -244,7 +244,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('#lat-scan');
   await page.waitForSelector('.lat-checks');
   await shot(page, 'latency-windows-light');
-  await page.setViewportSize({ width: 760, height: 900 });
+  await setViewport(page, { width: 760, height: 900 });
   await page.click('#lat-tab-measure');
   await shot(page, 'latency-measure-narrow-light');
   check('latency: no horizontal overflow at 760 px', await page.evaluate(() => { const m = document.getElementById('main'); return m.scrollWidth <= m.clientWidth + 1; }));

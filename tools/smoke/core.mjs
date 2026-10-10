@@ -67,6 +67,16 @@ export async function a11yAudit(page) {
 const NAV = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'calibration', 'system', 'devices', 'equipment', 'history'];
 const DEVICE_SHOTS = process.env.DEVICE_SHOTS_DIR || '';
 
+/**
+ * Resize the viewport and wait until the app has reacted. The shell re-lays out (docks/undocks the inspector) from its
+ * `resize` listener, which runs in the next rendering frame, not when setViewportSize resolves. Measuring straight
+ * away saw the old, wider layout (scrollWidth 469 at a 420 px window) in about half the runs. Two animation frames
+ * come after the resize event of that frame, so awaiting them makes the measurement deterministic.
+ */
+export async function setViewport(page, size) {
+  await page.setViewportSize(size);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
 export async function shot(page, name) { await page.waitForTimeout(150); await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false }); }
 
 async function browserMode(browser, base, wav, wav3k, extra) {
@@ -232,7 +242,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   await page.keyboard.press('Escape');
 
   // Narrow window (min 900px)
-  await page.setViewportSize({ width: 900, height: 700 });
+  await setViewport(page, { width: 900, height: 700 });
   await page.click('.rail-item[data-screen="quick"]');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check('no horizontal scroll at 900px', overflow <= 0, `overflow ${overflow}px`);
@@ -574,12 +584,12 @@ async function systemHealth(page) {
   await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
   await shot(page, 'system-health-dark');
   await page.screenshot({ path: path.join(SHOTS, 'system-health-full-dark.png'), fullPage: false });
-  await page.setViewportSize({ width: 1440, height: 2400 });
+  await setViewport(page, { width: 1440, height: 2400 });
   await page.screenshot({ path: path.join(SHOTS, 'system-health-tall-dark.png') });
   await page.click('#theme-toggle');
   await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
   await shot(page, 'system-health-tall-light');
-  await page.setViewportSize({ width: 1440, height: 900 });
+  await setViewport(page, { width: 1440, height: 900 });
   await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
   await shot(page, 'system-health-light');
   await page.click('#theme-toggle');
