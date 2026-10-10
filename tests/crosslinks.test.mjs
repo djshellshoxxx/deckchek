@@ -144,7 +144,7 @@ test('pre-gig PDF: words not colours, everything escaped', () => {
   const html = pregigPrintable.build(data, { esc });
   assert.ok(!/<script/i.test(html) && !/<b>booth/.test(html));
   assert.match(html, /Fix this first/); assert.match(html, /Timecode, deck A<\/strong> \(Fail\)/); assert.match(html, /Clean the stylus/);
-  assert.match(html, /<td>Pass<\/td>/); assert.match(html, /Coming next/); assert.match(html, /Signal to noise/);
+  assert.match(html, /<td>Pass<\/td>/); assert.match(html, /No such input/); assert.match(html, /Signal to noise/);
   assert.equal(pregigPrintable.title(data), 'Pre-gig check: Club <b>booth</b>'); // the title is escaped by report-pdf.js
   assert.deepEqual(pregigPrintable.summary(data).find(r => r[0] === 'Checks'), ['Checks', '3 (1 with problems)']);
   assert.match(pregigPrintable.build({ results: [{ stepId: 'audio', label: 'A', state: 'pass', summary: 's' }] }, { esc }), /Nothing to fix/);

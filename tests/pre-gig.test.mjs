@@ -6,7 +6,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { quadratureTimecode, humMix } from './fixtures/signals.mjs';
 import {
   PREGIG_STEPS, PREGIG_THRESHOLDS, buildPlan, estimateBudgetMs, evaluateStep, rollUp, diffRuns, validatePreset, parsePresetJson,
-  migratePreset, duplicatePreset, exportPresetJson, presetFromEquipment, loadBuiltinPresets, analyzeDeckCapture, summarizeTimecode,
+  migratePreset, duplicatePreset, exportPresetJson, presetFromEquipment, formatForMedia, deckPairFirst, pairLabel, loadBuiltinPresets, analyzeDeckCapture, summarizeTimecode,
   runPregig, createNativeDeps, toRunInput, redactPaths, createPregigApi, namesMatch, stepKind, stepDeck, MAX_PRESET_BYTES,
 } from '../app/pre-gig.js';
 import { analyzeTimecode } from '../app/timecode.js';
@@ -107,8 +107,9 @@ test('timecode: capture problems become actions, not crashes', () => {
   assert.equal(evaluateStep('timecode:A', asio, PRESET).state, 'fail');
   assert.equal(evaluateStep('timecode:A', { ...asio, softwareRunning: true, audioPresent: true }, PRESET).state, 'warn');
   assert.match(evaluateStep('timecode:A', asio, PRESET).fix[0].text, /cannot share an exclusive ASIO device/);
-  const pair = evaluateStep('timecode:B', { inputPairUnsupported: [2, 3] }, PRESET);
+  const pair = evaluateStep('timecode:B', { inputPairUnavailable: { input: [2, 3] } }, PRESET);
   assert.equal(pair.state, 'skipped');
+  assert.equal(pair.reason, 'input-pair');
   assert.match(pair.summary, /inputs 3-4/);
   assert.equal(evaluateStep('timecode:A', { captureError: { message: 'stream broke' } }, PRESET).state, 'error');
 });
@@ -409,19 +410,41 @@ test('presets: newer versions are read-only, import rejects >256 kB and junk, ex
   assert.ok(!('id' in duplicatePreset(PRESET)));
 });
 
-test('presetFromEquipment builds a valid preset from real profiles', () => {
-  const p = presetFromEquipment({ turntables: ['technics-sl-1200mk4', 'technics-sl-1200mk4'], interface: 'traktor-audio-8-dj', mixer: 'allen-heath-xone-23', media: 'traktor-scratch-timecode' }, PROFILES);
+const MEDIA = [
+  { id: 'traktor-scratch-mk2', name: 'Traktor Scratch MK2', kind: 'timecode', profile: { id: 'traktor-scratch-mk2', kind: 'timecode', timecode: { formatName: 'Traktor Scratch MK2' } } },
+  { id: 'serato-cv025', name: 'Serato CV02.5', kind: 'timecode', profile: { id: 'serato-cv025', kind: 'timecode', timecode: { formatName: 'Serato CV02.5' } } },
+  { id: 'generic-1khz-0db', name: 'Generic 1 kHz', kind: 'tone_file', profile: { id: 'generic-1khz-0db', kind: 'tone_file' } },
+];
+
+test('presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library', () => {
+  const p = presetFromEquipment({ turntables: ['technics-sl-1200mk4', 'technics-sl-1200mk4'], interface: 'traktor-audio-8-dj', mixer: 'allen-heath-xone-23', media: 'traktor-scratch-mk2' }, PROFILES, { media: MEDIA });
   assert.equal(p.audioDevice, 'Audio 8 DJ');
   assert.equal(p.software, 'Traktor Pro');
   assert.equal(p.decks.length, 2);
   assert.deepEqual(p.decks.map(d => d.input), [[0, 1], [2, 3]]);
   assert.equal(p.decks[0].format, 'Traktor Scratch MK2');
-  assert.deepEqual(p.profileIds, { turntables: ['technics-sl-1200mk4', 'technics-sl-1200mk4'], mixer: 'allen-heath-xone-23', interface: 'traktor-audio-8-dj', media: 'traktor-scratch-timecode' });
+  assert.equal(p.mediaId, 'traktor-scratch-mk2');
+  assert.deepEqual(p.profileIds, { turntables: ['technics-sl-1200mk4', 'technics-sl-1200mk4'], mixer: 'allen-heath-xone-23', interface: 'traktor-audio-8-dj' });
   assert.deepEqual(validatePreset(p, { knownProfileIds: Object.keys(PROFILES) }).errors, []);
-  const c = presetFromEquipment({ controller: 'rane-twelve-mk2', media: 'serato-control-vinyl-cv025' }, new Map(Object.entries(PROFILES)));
+  const c = presetFromEquipment({ controller: 'rane-twelve-mk2', media: 'serato-cv025' }, new Map(Object.entries(PROFILES)), { media: new Map(MEDIA.map(m => [m.id, m])) });
   assert.equal(c.decks[0].format, 'Serato CV02.5');
   assert.equal(c.software, 'Serato DJ Pro');
   assert.equal(presetFromEquipment({}, {}).name, 'My rig');
+  assert.equal(presetFromEquipment({ media: 'nope' }, {}, { media: MEDIA }).decks[0].format, '');
+});
+
+test('formatForMedia resolves timecode media only, from the library, in any container shape', () => {
+  assert.equal(formatForMedia('serato-cv025', MEDIA), 'Serato CV02.5');
+  assert.equal(formatForMedia('serato-cv025', Object.fromEntries(MEDIA.map(m => [m.id, m]))), 'Serato CV02.5');
+  assert.equal(formatForMedia('generic-1khz-0db', MEDIA), '');
+  assert.equal(formatForMedia('', MEDIA), '');
+  assert.equal(formatForMedia('serato-cv025', []), '');
+});
+
+test('the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)', () => {
+  const file = JSON.parse(readFileSync(new URL('../app/pregig-presets.json', import.meta.url), 'utf8'));
+  const audio8 = file.presets.find(p => p.audioDevice === 'Traktor Audio 8 DJ');
+  assert.deepEqual(audio8.decks.map(d => [d.id, deckPairFirst(d.input)]), [['A', 1], ['B', 3]]);
 });
 
 test('namesMatch is forgiving but refuses tiny fragments', () => {
@@ -557,12 +580,39 @@ test('runPregig: an all-ready rig produces a green verdict with every automatic 
   assert.match(run.startedAt, /^\d{4}-\d\d-\d\dT/);
 });
 
-test('runPregig: deck B on input pair 3-4 is reported as not capturable yet, so the run is incomplete rather than green', async () => {
-  const run = await runPregig({ preset: PRESET, deps: deps() });
-  assert.equal(run.results.find(r => r.stepId === 'timecode:B').reason, 'input-pair');
+test('runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green', async () => {
+  const pairs = [];
+  const d = deps({ captureDeck: async o => { pairs.push([o.deck, o.pair]); return goodCapture(); } });
+  const run = await runPregig({ preset: PRESET, deps: d });
+  assert.deepEqual(pairs, [['A', 1], ['B', 3]]);
+  assert.equal(run.results.find(r => r.stepId === 'timecode:B').state, 'pass');
+  assert.equal(run.results.find(r => r.stepId === 'signal:B').state, 'pass');
+  assert.equal(run.verdict, 'green', run.rollup.copy);
+});
+
+test('runPregig: a pair the interface does not offer is reported as no such input, not a failure', async () => {
+  const d = deps({ captureDeck: async o => { if (o.pair === 3) throw new Error('Input pair 3-4 is not available on Interface: it has 2 input channels (pairs 1-2).'); return goodCapture(); } });
+  const run = await runPregig({ preset: PRESET, deps: d });
+  const b = run.results.find(r => r.stepId === 'timecode:B');
+  assert.equal(b.state, 'skipped');
+  assert.equal(b.reason, 'input-pair');
+  assert.match(b.summary, /Deck B: Input pair 3-4 is not available/);
   assert.equal(run.verdict, 'incomplete');
-  const oneDeck = { ...PRESET, decks: [PRESET.decks[0]] };
-  assert.equal((await runPregig({ preset: oneDeck, deps: deps() })).verdict, 'green');
+  // misaligned inputs (2-3) are not a stereo pair and never reach the capture
+  const odd = { ...PRESET, decks: [PRESET.decks[0], { ...PRESET.decks[1], input: [1, 2] }] };
+  let called = 0;
+  const run2 = await runPregig({ preset: odd, deps: deps({ captureDeck: async () => { called++; return goodCapture(); } }) });
+  assert.equal(called, 1);
+  assert.match(run2.results.find(r => r.stepId === 'timecode:B').summary, /inputs 2-3, which are not a stereo pair/);
+});
+
+test('deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair', () => {
+  assert.equal(deckPairFirst([0, 1]), 1);
+  assert.equal(deckPairFirst([2, 3]), 3);
+  assert.equal(deckPairFirst([6, 7]), 7);
+  assert.equal(deckPairFirst([1, 2]), null);
+  assert.equal(deckPairFirst([0, 2]), null);
+  assert.equal(pairLabel([2, 3]), '3-4');
 });
 
 test('runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)', async () => {
@@ -671,7 +721,7 @@ test('runPregig: no desktop backend leaves required steps skipped and the verdic
   assert.match(run.rollup.copy, /Partial check/);
 });
 
-test('createNativeDeps drives the Tauri commands with the pre-gig capture holder and never shares pair >0', async () => {
+test('createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair', async () => {
   const log = [];
   const invoke = async (cmd, args) => {
     log.push([cmd, args]);
@@ -683,6 +733,8 @@ test('createNativeDeps drives the Tauri commands with the pre-gig capture holder
   const cap = await nd.captureDeck({ preset: PRESET, seconds: 5 });
   assert.ok(cap.left instanceof Float32Array);
   assert.deepEqual(log.filter(l => l[0] === 'start_live_capture')[0][1], { deviceName: 'Traktor Audio 8 DJ ASIO', maxSeconds: 7, holder: 'pre-gig' });
+  await nd.captureDeck({ preset: PRESET, pair: 3, seconds: 5 });
+  assert.deepEqual(log.filter(l => l[0] === 'start_live_capture')[1][1], { deviceName: 'Traktor Audio 8 DJ ASIO', maxSeconds: 7, holder: 'pre-gig', pairs: [3] });
   await nd.processes();
   await nd.midiPorts();
   assert.deepEqual(log.slice(-2).map(l => l[0]), ['pregig_processes', 'midi_list_ports']);

@@ -1,7 +1,7 @@
 // FS-10 smoke: Pre-gig check. Flag off = hidden; browser mode = honest "needs the desktop app" run; desktop mode with an
 // in-memory implementation of the pregig_* commands and a synthetic quadrature timecode capture covers: one-button Start,
-// the live checklist, the manual headphone prompt, the honest deck B "coming next" state (input pair 3-4 cannot be captured
-// yet, so it is neither a failure nor a pass), a RED verdict with fix-it buttons, single-step re-run and the merged verdict,
+// the live checklist, the manual headphone prompt, the honest deck B "no such input" state (an interface with only inputs 1-2 has no pair 3-4, so it is
+// neither a failure nor a pass) and deck B captured on inputs 3-4 once the interface offers them, a RED verdict with fix-it buttons, single-step re-run and the merged verdict,
 // comparison with the previous run, history + compare, Esc cancel, the preset editor, orchestration overhead, and both themes.
 import { watchConsole, tauriMock, a11yAudit, setViewport } from './core.mjs';
 
@@ -10,7 +10,7 @@ const FLAG_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ 
 // Desktop mode: tauriMock plus the pregig commands, a good-rig fixture and a quadrature capture. `window.__pg` steers it.
 export function pregigMock() {
   const core = window.__TAURI__.core; const base = core.invoke;
-  const pg = { rightMuted: false, listDelayMs: 0, runs: [], presets: [], calls: [], midi: ['XONE:23C'], crash: false };
+  const pg = { rightMuted: false, listDelayMs: 0, runs: [], presets: [], calls: [], captures: [], channels: 2, midi: ['XONE:23C'], crash: false };
   window.__pg = pg;
   // Shrink the 5 s capture wait so the smoke run is quick (other timers are left alone).
   const realSetTimeout = window.setTimeout.bind(window);
@@ -24,8 +24,11 @@ export function pregigMock() {
   };
   let capturing = false;
   core.invoke = async (cmd, args = {}) => {
-    if (cmd === 'list_native_audio_inputs') { if (pg.listDelayMs) await new Promise(res => realSetTimeout(res, pg.listDelayMs)); return [{ name: 'Traktor Audio 8 DJ (In 1/2)', isDefault: true }]; }
-    if (cmd === 'start_live_capture') { pg.calls.push(cmd); capturing = true; return { deviceName: 'Traktor Audio 8 DJ', sampleRate: sr, channels: 2, maxSeconds: 8 }; }
+    if (cmd === 'list_native_audio_inputs') { if (pg.listDelayMs) await new Promise(res => realSetTimeout(res, pg.listDelayMs)); return [{ name: 'Traktor Audio 8 DJ (In 1/2)', isDefault: true, maxChannels: pg.channels, defaultChannels: pg.channels }]; }
+    if (cmd === 'start_live_capture') {
+      pg.calls.push(cmd); pg.captures.push(args.pairs ? args.pairs[0] : 1);
+      if (args.pairs && args.pairs[0] + 1 > pg.channels) throw `Input pair ${args.pairs[0]}-${args.pairs[0] + 1} is not available on Traktor Audio 8 DJ: it has ${pg.channels} input channels (pairs 1-2).`;
+      capturing = true; return { deviceName: 'Traktor Audio 8 DJ', sampleRate: sr, channels: pg.channels, maxSeconds: 8 }; }
     if (cmd === 'stop_live_capture') {
       capturing = false; const { l, r } = quadrature(5, 2500);
       return { payload: { deviceName: 'Traktor Audio 8 DJ', sampleRate: sr, channels: 2, left: l, right: r, streamErrors: [] }, quality: { framesCaptured: l.length, overrunSamples: 0 } };
@@ -106,7 +109,10 @@ export default async function run({ browser, base, check, SHOTS }) {
   const idleAudit = await a11yAudit(page);
   check('pregig: a11y names + target sizes (idle)', !idleAudit.unnamed.length && !idleAudit.small.length, [...idleAudit.unnamed, ...idleAudit.small].slice(0, 3).join(' | '));
 
-  // Run 1: good rig, deck A fine, deck B on inputs 3-4.
+  check('pregig: start card has an Inputs box per deck, defaulting to the preset (A 1-2, B 3-4)', (await page.locator('#pg-pairs select').count()) === 2 && (await page.locator('#pg-pair-A option:checked').innerText()) === '1-2' && (await page.locator('#pg-pair-B option:checked').innerText()) === '3-4');
+  check('pregig: an interface with only inputs 1-2 says so beside deck B', /does not list inputs 3-4/.test(await textOf(page, '.pair-picker[data-slot="pregig:B"] .pair-hint')));
+
+  // Run 1: good rig, deck A fine, deck B on inputs 3-4 which this (mock) interface does not have.
   const t0 = Date.now();
   await page.keyboard.press('Control+g');
   await page.waitForSelector('#pg-cancel');
@@ -120,9 +126,9 @@ export default async function run({ browser, base, check, SHOTS }) {
   const v1 = page.locator('#pg-verdict');
   check('pregig: deck B on inputs 3-4 gives an incomplete (not red, not green) verdict', (await v1.getAttribute('data-verdict')) === 'incomplete' && (await v1.getAttribute('data-level')) === 'amber', await v1.getAttribute('data-verdict'));
   const rowB = page.locator('.pg-row[data-step="timecode:B"]');
-  check('pregig: deck B timecode row says "Coming next"', /Coming next/i.test(await rowB.innerText()) && /multichannel capture/i.test(await rowB.innerText()));
+  check('pregig: deck B timecode row says "No such input"', /No such input/i.test(await rowB.innerText()) && /does not offer those inputs/i.test(await rowB.innerText()));
   check('pregig: deck B rows are skipped, never failed', (await page.locator('.pg-row[data-step$=":B"][data-state="fail"]').count()) === 0 && (await rowB.getAttribute('data-state')) === 'skipped' && (await rowB.getAttribute('data-reason')) === 'input-pair');
-  check('pregig: verdict explains deck B was not measured', /deck B/i.test(await textOf(page, '#pg-verdict')) && /coming next/i.test(await textOf(page, '#pg-verdict')));
+  check('pregig: verdict explains deck B was not measured', /deck B/i.test(await textOf(page, '#pg-verdict')) && /not on this audio interface/i.test(await textOf(page, '#pg-verdict')));
   check('pregig: deck A timecode and signal pass', (await page.locator('.pg-row[data-step="timecode:A"]').getAttribute('data-state')) === 'pass' && (await page.locator('.pg-row[data-step="signal:A"]').getAttribute('data-state')) === 'pass',
     `${await page.locator('.pg-row[data-step="timecode:A"]').innerText()} || ${await page.locator('.pg-row[data-step="signal:A"]').innerText()}`);
   check('pregig: audio, MIDI, software and system rows pass', (await page.locator('.pg-row[data-state="pass"]').count()) >= 5, await page.locator('.pg-row').evaluateAll(rs => rs.map(r => `${r.dataset.step}:${r.dataset.state}`).join(',')));
@@ -167,7 +173,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#pg-compare');
   check('pregig: history compare shows what changed vs the latest', /changed|Nothing changed/.test(await textOf(page, '#pg-compare')));
   await page.locator('#pg-history .pg-hist').first().locator('[data-act="details"]').click();
-  check('pregig: history details list steps with the deck B note', /Needs multichannel|input pair/i.test(await textOf(page, '#pg-history .pg-hist-steps')));
+  check('pregig: history details list steps with the deck B note', /Input pair 3-4 is not available/i.test(await textOf(page, '#pg-history .pg-hist-steps')));
   await shot(page, 'pregig-history-dark');
 
   // Esc cancels a running check; partial results are kept.
@@ -191,6 +197,30 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('pregig: headphone "No" is a failure with a cue-path fix', (await page.locator('.pg-row[data-step="headphones"]').getAttribute('data-state')) === 'fail' && /cue|headphone/i.test(await textOf(page, '#pg-fixfirst')));
   check('pregig: software crash within the hour is a failure', (await page.locator('.pg-row[data-step="software"]').getAttribute('data-state')) === 'fail');
   await page.evaluate(() => { window.__pg.crash = false; });
+
+  // An 8-input interface: deck B is captured on inputs 3-4, and each deck's choice is remembered.
+  await page.evaluate(() => { window.__pg.channels = 8; window.__pg.captures = []; });
+  await page.click('#device-refresh');
+  await page.waitForFunction(() => document.querySelector('#device-select')?.options.length > 0);
+  await page.click('#pg-back');
+  await page.waitForSelector('#pg-pair-B');
+  check('pregig: an 8-input interface offers pairs 1-2 to 7-8 per deck', (await page.locator('#pg-pair-B option').count()) === 4 && (await page.locator('#pg-pair-B option:checked').innerText()) === '3-4' && /Capture reads inputs 3-4/.test(await textOf(page, '.pair-picker[data-slot="pregig:B"] .pair-hint')));
+  await page.keyboard.press('Control+g');
+  await page.waitForSelector('.pg-prompt', { timeout: 20000 });
+  await page.keyboard.press('y');
+  await finish(page);
+  check('pregig: deck B is captured on pair 3-4 (deck A on 1-2)', (await page.evaluate(() => window.__pg.captures.join())) === '1,3', await page.evaluate(() => window.__pg.captures.join()));
+  check('pregig: with the pair available deck B passes and the verdict is no longer "not fully checked"', (await page.locator('.pg-row[data-step="timecode:B"]').getAttribute('data-state')) === 'pass' && (await page.locator('.pg-row[data-step="signal:B"]').getAttribute('data-state')) === 'pass' && (await page.locator('#pg-verdict').getAttribute('data-verdict')) !== 'incomplete', await page.locator('#pg-verdict').getAttribute('data-verdict'));
+  await page.click('#pg-back');
+  await page.selectOption('#pg-pair-B', '5');
+  check('pregig: the chosen pair is remembered per deck', await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('deckchek.inputPairs.v1') || '{}')).some(([k, v]) => k.endsWith('#pregig:B') && v === 5)), await page.evaluate(() => localStorage.getItem('deckchek.inputPairs.v1')));
+  check('pregig: the rig summary follows the chosen pair', /B \(inputs 5-6\)/.test(await textOf(page, '.pg-chips')));
+  await page.selectOption('#pg-pair-B', '1');
+  await page.click('#pg-start');
+  check('pregig: two decks on the same inputs are refused with a plain message', /same inputs/.test(await textOf(page, '#pg-notice')) && (await page.locator('#pg-cancel').count()) === 0);
+  await page.selectOption('#pg-pair-B', '3');
+  await page.evaluate(() => { window.__pg.channels = 2; });
+  await page.click('#device-refresh');
 
   // Presets: create, list, duplicate, delete.
   await page.click('#pg-tab-presets');
