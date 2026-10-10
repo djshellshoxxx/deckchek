@@ -29,6 +29,7 @@ mod backup;
 // [FS-12] mods
 // [FS-13] mods
 // [FS-14] mods
+mod scratch;
 // [FS-15] mods
 // [FS-20] mods
 // [FS-21] mods
@@ -80,6 +81,7 @@ pub fn run() {
             // [FS-12] handlers
             // [FS-13] handlers
             // [FS-14] handlers
+            scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
             // [FS-20] handlers
             // [FS-21] handlers
