@@ -7,6 +7,7 @@
 
 import { h, esc, isNative, isTyping, formatDate } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { pdfButton, wearMapPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { confirmDialog, showInspector, setInspector, setCaptureStatus } from '../shell.js';
 import { settings, store, on } from '../state.js';
@@ -61,6 +62,8 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
     <div id="wm-body" class="wm-body"></div>`;
   const q = s => section.querySelector(s);
   const body = q('#wm-body'), status = q('#wm-status'), pickers = q('#wm-pickers');
+  q('.screen-head').append(pdfButton(h, { id: 'wm-export-pdf', kind: 'wearMap', icon: icon('download', { size: 18 }),
+    getData: () => wearMapPrintData(st.current, { copyTitle: st.copies.find(c => c.id === st.copyId)?.title || '' }) }));
 
   // ------------------------------------------------------------------ data
   const copy = () => st.copies.find(c => c.id === st.copyId) || null;

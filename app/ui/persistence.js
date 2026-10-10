@@ -89,7 +89,7 @@ export function exportRunHtml(run) {
 /** Export PDF is offered only while features.pdfExport is on. */
 export const pdfExportEnabled = () => isEnabled('pdfExport');
 
-const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report' };
+const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report', latency: 'Latency report', stylus: 'Stylus wear report', wearMap: 'Wear map report', scratch: 'Scratch test report', hum: 'Hum report', venue: 'Venue report' };
 
 /** FS-00 §3 save toast actions: [Open] and [Show in folder] for the file just written (desktop only). */
 export function savedActions(path) {

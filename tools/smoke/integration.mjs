@@ -1,6 +1,7 @@
 // M5 integration smoke: Options/Help support entries, error-toast Details, support dialog styling,
 // confirmDialog rapid cancel/reopen, live feature-flag rail entry, History test medium.
 import { watchConsole } from './core.mjs';
+import { installPrintSpy } from './pdf-ui.mjs';
 
 export default async function run({ browser, base, check }) {
   const errors = [];
@@ -91,6 +92,26 @@ export default async function run({ browser, base, check }) {
     await page.waitForSelector(`#screen-${screen}:not([hidden]) h1`);
     check(`experimental: ${screen} screen renders after enabling`, (await page.locator(`#screen-${screen} h1`).first().innerText()).length > 0);
   }
+  // GAP-06: every M6 screen has an Export PDF button; with nothing to print it explains instead of failing
+  for (const [id, screen] of [['lat-export-pdf', 'latency'], ['sty-export-pdf', 'stylus'], ['wm-export-pdf', 'vinylscan'], ['sc-export-pdf', 'scratch']]) {
+    await page.click(`.rail-item[data-screen="${screen}"]`);
+    await page.waitForSelector(`#screen-${screen}:not([hidden]) #${id}`);
+    check(`pdf: ${screen} screen has an Export PDF button`, await page.locator(`#${id}`).isVisible());
+  }
+  await page.locator('#sc-export-pdf').click();
+  await page.waitForFunction(() => /Nothing to export yet/.test(document.getElementById('toasts')?.innerText || ''));
+  check('pdf: Export PDF with no result says there is nothing to export yet', true);
+  // GAP-07: a saved venue offers a venue report (setups + hum/feedback history) in Equipment
+  await page.evaluate(async () => { const { store } = await import('./ui/state.js'); await store.upsert('venue', { name: 'Club Smoke', city: 'Berlin' }); });
+  await page.click('.rail-item[data-screen="equipment"]');
+  await page.click('#eq-tab-venue');
+  await page.locator('#eq-rows button', { hasText: 'Club Smoke' }).first().click();
+  await page.waitForSelector('#eq-venue-pdf');
+  await page.evaluate(installPrintSpy);
+  await page.click('#eq-venue-pdf');
+  await page.waitForFunction(() => window.__printed?.length === 1);
+  const venueHtml = await page.evaluate(() => window.__printed[0]);
+  check('venue report: Equipment > Venues exports a venue report with the hum history section', /Venue report — Club Smoke/.test(venueHtml) && /Hum and feedback history/.test(venueHtml), venueHtml.slice(0, 120));
   await openPanel();
   await page.click('dialog.experimental-dialog [data-feature-reset]');
   check('experimental: Reset to defaults restores the shipped rail', (await rail('pregig')) === 0 && (await rail('hum')) === 0 && (await rail('media')) === 1);

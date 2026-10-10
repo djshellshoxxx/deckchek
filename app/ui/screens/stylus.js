@@ -6,6 +6,7 @@
 
 import { h, esc, formatDate, isNative, storageGet, storageSet, externalLink } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { pdfButton, stylusPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
 import { store } from '../state.js';
@@ -241,6 +242,8 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     <div id="sty-panel" class="sty-panel" role="tabpanel" tabindex="-1"></div>`;
   const q = s => section.querySelector(s);
   const panel = q('#sty-panel'), tabs = q('#sty-tabs'), picker = q('#sty-asset'), status = q('#sty-status');
+  q('.screen-head').append(pdfButton(h, { id: 'sty-export-pdf', kind: 'stylus', icon: icon('download', { size: 18 }),
+    getData: () => { const d = st.data; const proj = d?.projection; return stylusPrintData(d, { projectionText: proj?.reason === 'due' ? 'Due now' : proj?.date ? monthOf(proj.date) : 'Not enough recent use' }); } }));
 
   const setStatus = (text, kind = 'info') => {
     status.replaceChildren();

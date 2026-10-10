@@ -9,6 +9,7 @@
 
 import { h, esc, isNative, formatDate } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { pdfButton, humPrintData, gatherVenueReport } from './m6-reports.js';
 import { announce, toast } from '../live.js';
 import { confirmDialog } from '../shell.js';
 import { store as catalog } from '../state.js';
@@ -442,6 +443,8 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
     for (const r of st.runs.list) { const key = r.venueId ? venueName(r.venueId) || 'Unknown venue' : 'No venue'; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(r); }
     for (const [name, rows] of groups) {
       const sec = h('section', { class: 'card hum-run-group', 'aria-label': `Runs: ${name}` }, h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: name }), h('span', { class: 'muted small', text: `${rows.length} run${rows.length > 1 ? 's' : ''}` })));
+      const venueId = rows[0]?.venueId;
+      if (venueId) sec.querySelector('.card-head').append(pdfButton(h, { id: `hum-venue-pdf-${venueId}`, kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog, humStore: store, venueId }) }));
       const list = h('ul', { class: 'hum-run-list' });
       for (const r of rows) {
         const open = st.runs.open === r.id;
@@ -477,7 +480,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
         h('td', { class: 'r', text: s.skipped ? 'Skipped' : fmtDbfs(fb ? s.levelDbfs : s.totalDbfs, 1) }),
         h('td', { class: 'r', text: s.skipped ? '' : fb ? (Number.isFinite(s.peakHz) ? `${s.peakHz.toFixed(1)} Hz` : '—') : (Number.isFinite(s.deltaDb) ? fmtSigned(s.deltaDb) : '—') }),
         h('td', { html: s.onset ? chip('warn', 'Onset') : '' })))))),
-    h('div', { class: 'form-actions' }, h('button', { type: 'button', class: 'btn btn-danger-ghost', 'data-delete': r.id, onclick: () => deleteRun(r) }, h('span', { html: icon('trash', { size: 16 }) }), ' Delete run')));
+    h('div', { class: 'form-actions' }, pdfButton(h, { id: `hum-run-pdf-${r.id}`, kind: 'hum', icon: icon('download', { size: 16 }), getData: () => humPrintData(d, { venueName: d.venueId ? venueName(d.venueId) : '' }) }), h('button', { type: 'button', class: 'btn btn-danger-ghost', 'data-delete': r.id, onclick: () => deleteRun(r) }, h('span', { html: icon('trash', { size: 16 }) }), ' Delete run')));
     return box;
   }
 

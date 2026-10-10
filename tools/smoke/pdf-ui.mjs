@@ -12,7 +12,7 @@ const RUN = {
 };
 
 /** Replaces iframe print() with a recorder so the fallback path can be observed headlessly. */
-function installPrintSpy() {
+export function installPrintSpy() {
   window.__printed = [];
   const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
   Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {

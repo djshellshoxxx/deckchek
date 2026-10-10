@@ -9,6 +9,7 @@
 
 import { h, esc, isNative, download } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { pdfButton, latencyPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { listInputDevices, preemptCapture, isCaptureBusy } from '../audio-io.js';
 import { confirmCaptureBusy } from '../capture-busy.js';
@@ -176,6 +177,7 @@ export function createLatencyScreen(section) {
     <div id="lat-progress-slot"></div>
     <div id="lat-panel" role="tabpanel" tabindex="-1" class="lat-panel"></div>`;
   const q = s => section.querySelector(s);
+  q('.screen-head').append(pdfButton(h, { id: 'lat-export-pdf', kind: 'latency', icon: icon('download', { size: 18 }), getData: () => latencyPrintData(exportPayload(st)) }));
   const panel = q('#lat-panel');
 
   // ---------- helpers ----------

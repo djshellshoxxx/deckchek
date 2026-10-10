@@ -12,6 +12,7 @@ import { listOutputDevices, outputSelectionSupported, liveAvailable } from '../a
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { PROTOCOL_V1, SCRATCH_DEFAULTS, createScratchApi, summarizeScratch, skipSafety, compareScores, groupScratchRuns, protocolTimeline } from '../../scratch.js';
 import { createRecordsApi } from '../workflows/wearmap.js';
+import { pdfButton, scratchPrintData } from '../workflows/m6-reports.js';
 import { createScratchRunner, SKIP_CALIBRATION, BPM_RANGE, METRONOME_LEAD_SEC } from '../workflows/scratch.js';
 
 const COMPONENT_LABEL = { continuity: 'Lock continuity', recovery: 'Recovery time', direction: 'Direction accuracy', stability: 'Signal stability', skips: 'Needle skips' };
@@ -161,6 +162,7 @@ export function createScratchScreen(section) {
     <div class="tabs" role="tablist" aria-label="Scratch test views" id="sc-tabs"></div>
     <div id="sc-panel" role="tabpanel" tabindex="-1" class="scratch-panel"></div>`;
   const q = s => section.querySelector(s);
+  q('.screen-head').append(pdfButton(h, { id: 'sc-export-pdf', kind: 'scratch', icon: icon('download', { size: 18 }), getData: () => (st.printable ? scratchPrintData(st.printable.view, st.printable) : null) }));
   const panel = q('#sc-panel');
 
   // ---------- tabs ----------
@@ -419,7 +421,7 @@ export function createScratchScreen(section) {
     panel.innerHTML = `<div id="sc-result"></div>
       <p class="small muted" id="sc-saved">${state.saved ? `<span class="scratch-saved">${icon('check', { size: 14 })} Saved to History.</span>` : r.patterns.length ? esc(state.saveError ? `Not saved: ${state.saveError}` : '') : 'Nothing saved: no pattern was completed.'}</p>
       <div class="step-footer"><button type="button" class="btn btn-secondary" id="sc-hist">Open history</button><button type="button" class="btn btn-primary" id="sc-again">${icon('refresh', { size: 18 })}<span>Run again</span></button></div>`;
-    renderResultView(q('#sc-result'), viewOfResult(r, state.plot, state.plot?.startSec ?? 0), { meta: `${cartridgeLabel(state.config.cartridgeAssetId)}${linkText(state.config)} · ${r.format} · ${r.bpm} BPM · protocol v${PROTOCOL_V1.v}` });
+    { const view = viewOfResult(r, state.plot, state.plot?.startSec ?? 0), opts = { meta: `${cartridgeLabel(state.config.cartridgeAssetId)}${linkText(state.config)} · ${r.format} · ${r.bpm} BPM · protocol v${PROTOCOL_V1.v}` }; st.printable = { view, meta: opts.meta, createdAt: new Date().toISOString() }; renderResultView(q('#sc-result'), view, opts); }
     q('#sc-hist').addEventListener('click', () => { runner.reset(); selectTab('history'); });
     q('#sc-again').addEventListener('click', () => runner.reset());
     announce(r.patterns.length ? `Result: score ${Math.round(r.score)} out of 100. ${r.summary}` : 'Not enough was completed to score.', { assertive: true });
@@ -456,7 +458,7 @@ export function createScratchScreen(section) {
     panel.innerHTML = `<div class="toolbar"><button type="button" class="btn btn-secondary" id="sc-back">${icon('chevronLeft', { size: 18 })}<span>All runs</span></button>
       <span class="muted small">${esc(dateText(run.createdAt))}</span></div><div id="sc-result"></div>
       <p class="small muted">${run.trackingForceG ? `Tracking force ${num(run.trackingForceG, 1)} g. ` : ''}${esc(run.tonearmNote || '')} The velocity trace is kept only for the run just completed.</p>`;
-    renderResultView(q('#sc-result'), viewOfRun(run, events), { meta: `${cartridgeLabel(run.cartridgeAssetId)}${linkText(run)} · ${run.format} · ${run.bpm} BPM · protocol v${run.protocolVersion}` });
+    { const view = viewOfRun(run, events), opts = { meta: `${cartridgeLabel(run.cartridgeAssetId)}${linkText(run)} · ${run.format} · ${run.bpm} BPM · protocol v${run.protocolVersion}` }; st.printable = { view, meta: opts.meta, createdAt: run.createdAt }; renderResultView(q('#sc-result'), view, opts); }
     q('#sc-back').addEventListener('click', () => { st.detail = null; renderHistory(); });
     q('#sc-back').focus();
   }
