@@ -27,6 +27,7 @@ import { mediaScreenDefs } from './ui/screens/media.js';
 // [FS-08] screens imports
 import { dataScreenDefs } from './ui/screens/data.js';
 // [FS-10] screens imports
+import { pregigScreenDefs } from './ui/screens/pregig.js';
 // [FS-11] screens imports
 // [FS-12] screens imports
 import { stylusScreenDefs } from './ui/screens/stylus.js';
@@ -63,6 +64,7 @@ const SCREENS = [
   // [FS-08] screens
   ...dataScreenDefs(),
   // [FS-10] screens
+  ...pregigScreenDefs(),
   // [FS-11] screens
   // [FS-12] screens
   ...stylusScreenDefs(),
