@@ -11,6 +11,7 @@ pub mod domain;
 mod userfiles;
 mod app_state;
 // [FS-01] mods
+mod wizard;
 // [FS-02] mods
 mod diagnostics;
 // [FS-03] mods
@@ -54,6 +55,8 @@ pub fn run() {
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
             // [FS-01] handlers
+            wizard::wizard_state_get, wizard::wizard_state_save, wizard::wizard_create_assets,
+            wizard::wizard_apply_gear, wizard::wizard_has_user_data,
             // [FS-02] handlers
             diagnostics::log_client_error, diagnostics::diagnostics_status, diagnostics::diagnostics_ack_crash,
             diagnostics::diagnostics_preview, diagnostics::diagnostics_create_bundle,

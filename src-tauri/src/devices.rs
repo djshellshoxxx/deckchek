@@ -153,7 +153,14 @@ fn sync_specs(conn: &Connection, profile_id: &str, product_id: &str, profile: &V
 /// Upsert manufacturer/product/product_spec + device_profile for each profile.
 /// Idempotent: unchanged profiles keep their version; a profile seen for the
 /// first time also gets one "My <model>" asset (the user's own unit).
+#[cfg(test)]
 pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<Vec<SyncedProfile>, String> {
+    sync_profiles_with(conn, profiles, true)
+}
+
+/// Like `sync_profiles`; with `create_assets == false` (setup wizard enabled, FS-01 AC-6) a newly seen profile
+/// gets no asset, so the user's gear list comes from what they tick, not from the whole library.
+pub fn sync_profiles_with(conn: &mut Connection, profiles: &[Value], create_assets: bool) -> Result<Vec<SyncedProfile>, String> {
     let tx = conn.transaction().map_err(e2s)?;
     let now = now_iso(&tx)?;
     let mut out = Vec::new();
@@ -206,7 +213,7 @@ pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<Vec<Sy
         .map_err(e2s)?;
 
         let mut asset_id = None;
-        if created {
+        if created && create_assets {
             let aid = new_id();
             tx.execute(
                 "INSERT INTO asset (id, product_id, nickname, notes, is_deleted, created_at, updated_at) VALUES (?1, ?2, ?3, 'Created from the DeckChek device library. Rename it and add the serial number in Equipment.', 0, ?4, ?4)",
@@ -371,8 +378,8 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>) -> Result<Vec<SyncedProfile>, String> {
-    with_db(&app, |c| sync_profiles(c, &profiles))
+pub fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
+    with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
 }
 
 #[tauri::command]
@@ -456,6 +463,21 @@ mod tests {
         assert!(third[0].changed && third[0].version == 2 && third[0].asset_id.is_none());
         assert!(!third[1].changed);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM asset"), before[3]);
+    }
+
+    #[test]
+    fn sync_without_create_assets_adds_no_assets() {
+        let mut c = mem();
+        let assets_before = count(&c, "SELECT COUNT(*) FROM asset");
+        let profiles = vec![profile("pioneer-x", "Pioneer DJ", "X-1")];
+        let first = sync_profiles_with(&mut c, &profiles, false).unwrap();
+        assert!(first[0].created && first[0].asset_id.is_none());
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset"), assets_before);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 1);
+        // a later default sync does not back-fill an asset for an already known profile
+        let second = sync_profiles_with(&mut c, &profiles, true).unwrap();
+        assert!(!second[0].created && second[0].asset_id.is_none());
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset"), assets_before);
     }
 
     #[test]
