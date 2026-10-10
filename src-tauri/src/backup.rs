@@ -579,6 +579,9 @@ pub fn inspect_file(path: &Path) -> InspectResult {
 fn snapshot_db(live: &Path, dst_path: &Path, progress: &mut dyn FnMut(u64, u64)) -> Result<(), BackupError> {
     let src = Connection::open_with_flags(live, OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX)
         .map_err(|e| sql_err("open the database for backup", e))?;
+    // backup_step uses the source connection's busy handler; without one a steady writer
+    // (rollback journal on Windows) makes every step return Busy and the backup gives up.
+    src.busy_timeout(Duration::from_secs(5)).map_err(|e| sql_err("open the database for backup", e))?;
     let mut dst = Connection::open(dst_path).map_err(|e| sql_err("create the snapshot", e))?;
     {
         let b = Backup::new(&src, &mut dst).map_err(|e| sql_err("start the backup", e))?;

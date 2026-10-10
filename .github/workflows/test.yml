@@ -83,6 +83,7 @@ jobs:
           workspaces: src-tauri
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: PDF spike (WebView2 PrintToPdf)
+        if: always()
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib pdf::windows_spike -- --ignored --nocapture --test-threads=1
         env:
           DECKCHEK_PDF_SPIKE_DIR: ${{ runner.temp }}\deckchek-pdf-spike

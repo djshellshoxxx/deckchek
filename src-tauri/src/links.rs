@@ -153,6 +153,7 @@ pub fn check_path(raw: &str, roots: &[PathBuf], recorded: &dyn Fn(&Path) -> bool
     if raw.is_empty() || raw.contains('\0') || !p.is_absolute() {
         return Err("not_app_path");
     }
+    let raw_roots = roots;
     let roots: Vec<PathBuf> = roots.iter().map(|r| std::fs::canonicalize(r).unwrap_or_else(|_| r.clone())).collect();
     match std::fs::canonicalize(p) {
         Ok(canon) => {
@@ -165,7 +166,9 @@ pub fn check_path(raw: &str, roots: &[PathBuf], recorded: &dyn Fn(&Path) -> bool
         Err(_) => {
             // Gone from disk: say so only for paths we would have allowed, so nothing else is probed.
             let lexical_ok = !p.components().any(|c| matches!(c, std::path::Component::ParentDir))
-                && (recorded(p) || roots.iter().any(|r| p.starts_with(r)));
+                // `p` is not canonical, so also compare with the roots as given (on Windows
+                // canonical roots carry a `\\?\` prefix a plain path never matches).
+                && (recorded(p) || roots.iter().chain(raw_roots).any(|r| p.starts_with(r)));
             Err(if lexical_ok { "not_found" } else { "not_app_path" })
         }
     }
