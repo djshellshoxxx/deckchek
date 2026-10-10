@@ -108,6 +108,17 @@ export function isTyping(target = document.activeElement) {
   return false;
 }
 
+/**
+ * A link that leaves the app. Click handling is done by the global interceptor (app/external-links.js),
+ * which sends it through the URL policy; this only builds the markup (icon + screen-reader hint).
+ */
+export function externalLink(href, text, { class: cls = '' } = {}) {
+  const a = h('a', { href, rel: 'noopener noreferrer', class: `external-link ${cls}`.trim(), 'data-external': '' }, text ?? href);
+  a.append(frag('<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'));
+  a.append(h('span', { class: 'sr-only', text: ' (opens in your browser)' }));
+  return a;
+}
+
 export function isNative() {
   return typeof globalThis.window?.__TAURI__?.core?.invoke === 'function';
 }
