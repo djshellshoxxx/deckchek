@@ -7,6 +7,8 @@ import { store, emit } from '../state.js';
 import { toast, announce } from '../live.js';
 import { confirmDialog } from '../shell.js';
 import { equipmentLinkRow } from '../crosslinks.js';
+import { pdfButton, gatherVenueReport } from '../workflows/m6-reports.js';
+import { createHumRunStore } from '../../hum-tree.js';
 
 const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['dvs_media', 'DVS / timecode media'], ['software', 'Software'], ['other', 'Other']];
 const ROLES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['mixer', 'Mixer'], ['interface', 'Interface'], ['dvs_interface', 'DVS interface'], ['preamp', 'Preamp'], ['media_player', 'Media player'], ['other', 'Other']];
@@ -167,6 +169,10 @@ export function createEquipmentScreen(section) {
       const category = (state.records.product || []).find(p => p.id === r.productId)?.category;
       const links = equipmentLinkRow(r, category);
       if (links) form.append(h('div', { class: 'eq-links' }, h('span', { class: 'field-label', text: 'Related tools' }), links));
+    }
+    if (state.entity === 'venue' && !isNew) {
+      form.append(h('div', { class: 'eq-links' }, h('span', { class: 'field-label', text: 'Venue report' }),
+        pdfButton(h, { id: 'eq-venue-pdf', kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog: store, humStore: createHumRunStore(), venueId: r.id }) })));
     }
     form.append(err, h('div', { class: 'form-actions' }, cancel, save));
     form.addEventListener('submit', async e => {

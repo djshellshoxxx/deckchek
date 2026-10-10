@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0010_wear_map.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built for input pair 1-2. AC-7 now draws a waveform snippet (a peak envelope kept in memory for the session, never stored), so reopened scans show numbers only. PDF report available.
+
 ## 1. Summary, Goals, Non-goals
 
 Scans a whole side of a control vinyl with the timecode engine and records per-position SNR, phase error and dropouts. The result is shown as a circular groove heat-map and a linear timeline, compared with earlier scans of the same physical copy, and ends with a "keep / use other side / flip / replace" recommendation.

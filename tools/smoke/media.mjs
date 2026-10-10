@@ -27,6 +27,13 @@ export default async function run({ browser, base, check, SHOTS }) {
   const errors = [];
   const shot = async (page, name) => { await page.waitForTimeout(150); await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
   const ctxOff = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  // FS-06 rollout: the library is on by default (no flag); only an explicit override hides it
+  const dflt = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  await dflt.goto(base);
+  await dflt.waitForSelector('.rail-item');
+  check('media: on by default, the Test media screen is in the rail', (await dflt.locator('.rail-item[data-screen="media"]').count()) === 1);
+  await dflt.context().close();
+  await ctxOff.addInitScript(() => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { testMedia: false } })); });
   const off = await ctxOff.newPage();
   errors.push(...watchConsole(off, 'media-off'));
   await off.goto(base);
@@ -144,6 +151,14 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#screen-dvs:not([hidden]) select[data-param="testMedium"][data-media-ready]');
   const dvsOpts = await page.locator('#screen-dvs select[data-param="testMedium"] optgroup').evaluateAll(gs => gs.map(g => g.label));
   check('media: DVS picker offers only timecode media', dvsOpts.length > 0 && dvsOpts.every(l => !/Ortofon|My 3.15/.test(l)) && dvsOpts.some(l => /Serato/.test(l)), dvsOpts.join(', '));
+  // FS-06 AC-3: choosing a timecode medium sets the decoder format explicitly (not left to auto-detect)
+  check('media: DVS form starts on Auto-detect', (await page.locator('#screen-dvs select[data-param="timecodeFormat"]').inputValue()) === '');
+  const cv = await page.locator('#screen-dvs select[data-param="testMedium"] option').evaluateAll(os => os.find(o => /CV02/.test(o.textContent))?.value);
+  await page.selectOption('#screen-dvs select[data-param="testMedium"]', cv);
+  check('media: picking Serato CV02.5 sets the Timecode format field', /CV02/.test(await page.locator('#screen-dvs select[data-param="timecodeFormat"]').inputValue()), await page.locator('#screen-dvs select[data-param="timecodeFormat"]').inputValue());
+  check('media: the format field says it came from the medium', (await page.locator('#screen-dvs .media-prefill-note').count()) >= 1);
+  await page.selectOption('#screen-dvs select[data-param="testMedium"]', '');
+  check('media: back to Auto returns the format to auto-detect', (await page.locator('#screen-dvs select[data-param="timecodeFormat"]').inputValue()) === '');
 
   // import: invalid schema lists field errors and stores nothing (AC-5)
   await page.click('.rail-item[data-screen="media"]');

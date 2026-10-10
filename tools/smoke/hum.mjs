@@ -3,6 +3,7 @@
 // flow (live meter, 5 s steps, deltas, ranked causes, save), the feedback safety UI (checklist gate, STOP first tab
 // stop, Esc/Space, level/cap readouts, automatic howl abort, output stop on navigation and window close) and both themes.
 import { watchConsole, tauriMock, setViewport } from './core.mjs';
+import { installPrintSpy } from './pdf-ui.mjs';
 
 const FLAGS_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { humHunter: true, feedbackStep: true } })); };
 const HUM_ONLY = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { humHunter: true } })); };
@@ -171,6 +172,12 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('.hum-run-main');
   await page.waitForSelector('.hum-run-steps');
   check('runs: opening a run shows its steps', (await page.locator('.hum-run-steps tbody tr').count()) >= 5);
+  // GAP-06: the run exports as a PDF (browser fallback = print dialog with the report HTML)
+  await page.evaluate(installPrintSpy);
+  await page.locator('.hum-run-detail [data-pdf-kind="hum"]').click();
+  await page.waitForFunction(() => window.__printed?.length === 1);
+  const humHtml = await page.evaluate(() => window.__printed[0]);
+  check('runs: Export PDF prints the hum run with its verdict and steps', /Hum isolation/.test(humHtml) && /turntable ground wire was open/i.test(humHtml) && /Likely causes/.test(humHtml));
 
   // clipping and no-signal are explained and not recorded
   await page.click('#hum-tab-hum'); await page.waitForSelector('#hum-again'); await page.click('#hum-again');

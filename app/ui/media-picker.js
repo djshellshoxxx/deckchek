@@ -151,6 +151,31 @@ export function createMediaPicker({ testId, onChange = () => {}, value = '' } = 
   return wrap;
 }
 
+/**
+ * "Test medium" chooser for a form that asks for a timecode format (scratch test, control-vinyl record form): picking a
+ * timecode medium sets the format select. Inserted before the select's field; hidden while features.testMedia is off.
+ * Returns the picker element.
+ */
+export function attachFormatPicker(formatSelect, { testId = 'dvs' } = {}) {
+  const wrap = createMediaPicker({
+    testId,
+    onChange: ({ described }) => {
+      const name = described?.expected?.formatName;
+      if (!name || ![...formatSelect.options].some(o => o.value === name || o.textContent === name)) return;
+      const opt = [...formatSelect.options].find(o => o.value === name || o.textContent === name);
+      formatSelect.value = opt.value;
+      formatSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      announce(`Timecode format set to ${name} from the test medium.`);
+    },
+  });
+  const sync = () => { wrap.hidden = !isEnabled('testMedia'); };
+  sync();
+  onFeatureChange(sync);
+  if (isEnabled('testMedia')) ensureMedia().catch(() => {});
+  (formatSelect.closest('.field') || formatSelect).before(wrap);
+  return wrap;
+}
+
 // ---------- the workflow form parameter ----------
 export const getParam = () => PARAMS.find(p => p.id === PARAM_ID) || null;
 
@@ -207,17 +232,27 @@ export function applyPrefill(select, described) {
   const fieldOf = id => scope.querySelector(`[data-param="${id}"]`);
   const warning = described?.expected?.unverified ? (described.expected.warning || UNVERIFIED_WARNING) : null;
   const shown = [];
-  const ref = fieldOf('referenceHz'), rpm = fieldOf('nominalRpm');
-  for (const input of [ref, rpm]) if (input?.dataset.fromMedium) { noteFor(input, null); }
+  const ref = fieldOf('referenceHz'), rpm = fieldOf('nominalRpm'), fmt = fieldOf('timecodeFormat');
+  for (const input of [ref, rpm, fmt]) if (input?.dataset.fromMedium) { noteFor(input, null); }
+  if (fmt?.dataset.mediumSet) { setField(fmt, ''); delete fmt.dataset.mediumSet; } // medium cleared: back to auto-detect
   if (!described) return shown;
   const e = described.expected;
+  const fmtName = timecodeFormatChoice(fmt, e);
+  if (fmt && fmtName) { setField(fmt, fmtName); fmt.dataset.mediumSet = '1'; noteFor(fmt, `${e.label}.`, warning); shown.push('timecode format'); fmt.addEventListener('change', clearOnEdit); }
   if (ref && Number.isFinite(e.referenceHz)) { setField(ref, Number(e.referenceHz.toFixed(3))); noteFor(ref, `${e.label}.`, warning); shown.push('reference tone'); ref.addEventListener('input', clearOnEdit, { once: false }); }
   const rpmValue = rpmOption(e.nominalRpm);
   if (rpm && rpmValue) { setField(rpm, rpmValue); noteFor(rpm, `${e.label}.`, warning); shown.push('nominal speed'); rpm.addEventListener('change', clearOnEdit); }
   return shown;
 }
+/** The decoder format a timecode medium selects, when the form's format list offers it; else null (auto-detect stays). */
+export function timecodeFormatChoice(field, expected) {
+  const name = expected?.formatName;
+  if (!field || !name) return null;
+  return [...(field.options || [])].some(o => o.value === name) ? name : null;
+}
 function clearOnEdit(event) {
   if (programmatic) return;
+  delete event.currentTarget.dataset.mediumSet;
   noteFor(event.currentTarget, null); // a manual edit overrides the medium (precedence: user > medium)
 }
 

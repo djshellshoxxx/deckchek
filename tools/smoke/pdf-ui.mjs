@@ -12,7 +12,7 @@ const RUN = {
 };
 
 /** Replaces iframe print() with a recorder so the fallback path can be observed headlessly. */
-function installPrintSpy() {
+export function installPrintSpy() {
   window.__printed = [];
   const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
   Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
@@ -81,13 +81,15 @@ export default async function run({ browser, base, check }) {
   await dctx.addInitScript(tauriMock);
   await dctx.addInitScript(() => {
     if (window.top !== window || !window.__TAURI__) return;
-    window.__pdf = { mode: 'ok', saves: [], renders: [] };
+    window.__pdf = { mode: 'ok', saves: [], renders: [], paths: [] };
     const base = window.__TAURI__.core.invoke;
     window.__TAURI__.dialog = { save: async o => { window.__pdf.saves.push(o); return `C:\\Users\\dj\\Documents\\${o.defaultPath}`; } };
     window.__TAURI__.app = { getVersion: async () => '0.0.5' };
     window.__TAURI__.core.invoke = async (cmd, args) => {
+      if (cmd === 'open_path' || cmd === 'reveal_path') { window.__pdf.paths.push([cmd, args.path]); return { opened: true }; }
       if (cmd !== 'pdf_render') return base(cmd, args);
       window.__pdf.renders.push({ html: args.html });
+      if (window.__pdf.mode === 'timeout') throw { code: 'timeout', message: 'The PDF took longer than 20 s.', unsupported: false };
       if (window.__pdf.mode === 'io') throw { code: 'io', message: 'disk full', unsupported: false };
       await new Promise(r => setTimeout(r, 250));
       return { path: args.destPath, bytes: 20000, pages: 3 };
@@ -107,6 +109,23 @@ export default async function run({ browser, base, check }) {
   const st = await dp.evaluate(() => window.__pdf);
   check('pdf-ui: System Health PDF goes through pdf_render with a DeckChek_SystemHealth name', st.renders.length === 1 && /^DeckChek_SystemHealth_.*\.pdf$/.test(st.saves[0].defaultPath) && /Serato DJ Pro crashed/.test(st.renders[0].html), st.saves[0]?.defaultPath);
   check('pdf-ui: button re-enabled and toast shows page count', await dp.locator('#sys-export-pdf').isEnabled() && /3 pages/.test(await dp.locator('#toasts').innerText()));
+
+  // GAP-16: saved toast offers Open / Show in folder for the written file
+  await dp.locator('#toasts .toast-success button', { hasText: 'Show in folder' }).click();
+  await dp.locator('#toasts').getByRole('button', { name: 'Open' }).click().catch(() => {});
+  const opened = await dp.evaluate(() => window.__pdf.paths);
+  check('pdf-ui: saved toast has Show in folder (and Open) for the written PDF', opened.some(([c, p]) => c === 'reveal_path' && /DeckChek_SystemHealth_.*\.pdf$/.test(p)), JSON.stringify(opened));
+  // GAP-09: a timeout offers Retry, which exports again
+  await dp.evaluate(() => { window.__pdf.mode = 'timeout'; document.getElementById('toasts').replaceChildren(); });
+  await dp.click('#sys-export-pdf');
+  await dp.locator('#toasts .toast-error button', { hasText: 'Retry' }).waitFor();
+  check('pdf-ui: a PDF timeout offers Retry beside Export HTML instead', await dp.locator('#toasts .toast-error button', { hasText: 'Export HTML instead' }).count() === 1);
+  await dp.evaluate(() => { window.__pdf.mode = 'ok'; });
+  const before = await dp.evaluate(() => window.__pdf.renders.length);
+  await dp.locator('#toasts .toast-error button', { hasText: 'Retry' }).click();
+  await dp.waitForFunction(n => window.__pdf.renders.length > n, before);
+  await dp.waitForFunction(() => /saved as PDF/.test(document.querySelector('#toasts')?.innerText || ''));
+  check('pdf-ui: Retry runs the export again and succeeds', true);
 
   await dp.evaluate(() => { window.__pdf.mode = 'io'; });
   const [dl] = await Promise.all([dp.waitForEvent('download'), (async () => {

@@ -551,3 +551,17 @@ test('direction uses the primary channel as well as the phase switch (Traktor MK
   assert.equal(directionSign(leftPrimary), -1);
   assert.ok(Math.abs(median(instantVelocity(fwd, { format: leftPrimary })) + 1) < 0.01);
 });
+
+test('groupScratchRuns separates cartridge, setup and control-vinyl side (FS-14 AC-6)', async () => {
+  const { groupScratchRuns, toRunRecord } = await import('../app/scratch.js');
+  const run = (o) => ({ completed: true, score: 80, format: 'Serato CV02.5', bpm: 90, cartridgeAssetId: 'c1', setupId: null, recordSideId: null, ...o });
+  const runs = [run({}), run({ score: 82 }), run({ recordSideId: 's1' }), run({ recordSideId: 's2' }), run({ setupId: 'u1' }), run({ completed: false }), run({ score: null })];
+  const groups = groupScratchRuns(runs, { cartridge: () => 'Ortofon', setup: id => `Setup ${id}`, side: id => `Side ${id}` });
+  assert.equal(groups.length, 4);
+  assert.deepEqual(groups[0].scores, [80, 82]);
+  assert.match(groups[1].label, /Side s1/);
+  assert.match(groups[3].label, /Setup u1/);
+  assert.notEqual(groups[1].key, groups[2].key);
+  const rec = toRunRecord({ format: 'Serato CV02.5', bpm: 90, protocolVersion: 1, completed: true, score: 80, events: [] }, { setupId: 'u1', recordSideId: 's1', cartridgeAssetId: 'c1' });
+  assert.equal(rec.setupId, 'u1'); assert.equal(rec.recordSideId, 's1');
+});

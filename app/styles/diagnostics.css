@@ -17,3 +17,9 @@ dialog.diag-dialog { width: min(560px, 94vw); max-width: none; }
 .support-entry { display: grid; gap: 8px; }
 .support-entry p { margin: 0; }
 .support-entry-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Options > Experimental features (ui/screens/experimental.js) */
+dialog.experimental-dialog { width: min(620px, 94vw); max-height: 90vh; overflow: auto; }
+.experimental-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.experimental-item p { margin: 2px 0 0 26px; }
+.experimental-chip { margin-left: 8px; }

@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0011_scratch_stress.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built. AC-6: runs store cartridge, setup and control-vinyl side, and Compare separates them. PDF report available. The capture-busy "Stop and continue" dialog is not wired into this test yet (follow-up).
+
 ## 1. Summary, Goals, Non-goals
 
 A guided test in which the user performs standard scratch patterns (baby scratch, transform, chirp) in time with a metronome while DeckChek recovers the platter velocity and direction from the timecode quadrature phase, then measures tracking quality: lost-lock periods, direction errors, recovery time and needle skips. It scores each cartridge, control vinyl and setup. It deepens SPEC-02 section 13.

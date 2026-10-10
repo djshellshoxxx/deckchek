@@ -1,6 +1,7 @@
 // M5 integration smoke: Options/Help support entries, error-toast Details, support dialog styling,
 // confirmDialog rapid cancel/reopen, live feature-flag rail entry, History test medium.
 import { watchConsole } from './core.mjs';
+import { installPrintSpy } from './pdf-ui.mjs';
 
 export default async function run({ browser, base, check }) {
   const errors = [];
@@ -62,14 +63,62 @@ export default async function run({ browser, base, check }) {
   });
   check('confirm: stale close event does not settle the reopened dialog', confirmResult.stillOpen && confirmResult.firstValue === false && !confirmResult.settledEarly && confirmResult.secondValue === true, JSON.stringify(confirmResult));
 
-  // ----- features.testMedia toggles the rail entry live -----
-  const count = () => page.locator('.rail-item[data-screen="media"]').count();
-  const before = await count();
-  await page.evaluate(async () => { (await import('./features.js')).setEnabled('testMedia', true); });
-  const on = await count();
+  // ----- Options > Experimental features (FS-00 AC-4): toggle every wired flag from the panel -----
+  const rail = id => page.locator(`.rail-item[data-screen="${id}"]`).count();
+  const openPanel = async () => {
+    await page.click('#cdlOptionsBtn');
+    await page.waitForSelector('#cdlOptionsDialog [data-support-id="experimental"]');
+    await page.click('#cdlOptionsDialog [data-support-id="experimental"]');
+    await page.waitForSelector('dialog.experimental-dialog[open]');
+  };
+  await openPanel();
+  const listed = await page.locator('dialog.experimental-dialog [data-feature]').evaluateAll(els => els.map(e => e.dataset.feature));
+  check('experimental: panel lists the wired flags only', listed.includes('pregig') && listed.includes('humHunter') && !listed.includes('fleet') && !listed.includes('diagnosticsBundle'), listed.join(','));
+  check('experimental: ships-off flags carry the Experimental chip', (await page.locator('dialog.experimental-dialog .experimental-chip').count()) >= 7);
+  check('experimental: test media is on by default, M6 screens are hidden', (await rail('media')) === 1 && (await rail('pregig')) === 0 && (await rail('hum')) === 0);
+  const M6 = [['pregig', 'pregig'], ['latencyTuner', 'latency'], ['stylusWear', 'stylus'], ['wearMap', 'vinylscan'], ['scratchTest', 'scratch'], ['humHunter', 'hum'], ['testMedia', 'media']];
+  for (const [flag, screen] of M6) {
+    const box = page.locator(`dialog.experimental-dialog [data-feature="${flag}"]`);
+    const was = await rail(screen);
+    if (was) await box.uncheck(); else await box.check();
+    const flipped = await rail(screen);
+    if (!was) { /* leave on; open the screen below */ } else await box.check();
+    check(`experimental: toggling ${flag} flips the ${screen} rail entry live`, flipped === (was ? 0 : 1) && (await rail(screen)) === 1, `${was}/${flipped}`);
+  }
+  await page.click('[data-experimental-close]');
+  await page.waitForFunction(() => !document.querySelector('dialog.experimental-dialog'));
+  for (const [, screen] of M6) {
+    await page.click(`.rail-item[data-screen="${screen}"]`);
+    await page.waitForSelector(`#screen-${screen}:not([hidden]) h1`);
+    check(`experimental: ${screen} screen renders after enabling`, (await page.locator(`#screen-${screen} h1`).first().innerText()).length > 0);
+  }
+  // GAP-06: every M6 screen has an Export PDF button; with nothing to print it explains instead of failing
+  for (const [id, screen] of [['lat-export-pdf', 'latency'], ['sty-export-pdf', 'stylus'], ['wm-export-pdf', 'vinylscan'], ['sc-export-pdf', 'scratch']]) {
+    await page.click(`.rail-item[data-screen="${screen}"]`);
+    await page.waitForSelector(`#screen-${screen}:not([hidden]) #${id}`);
+    check(`pdf: ${screen} screen has an Export PDF button`, await page.locator(`#${id}`).isVisible());
+  }
+  await page.locator('#sc-export-pdf').click();
+  await page.waitForFunction(() => /Nothing to export yet/.test(document.getElementById('toasts')?.innerText || ''));
+  check('pdf: Export PDF with no result says there is nothing to export yet', true);
+  // GAP-07: a saved venue offers a venue report (setups + hum/feedback history) in Equipment
+  await page.evaluate(async () => { const { store } = await import('./ui/state.js'); await store.upsert('venue', { name: 'Club Smoke', city: 'Berlin' }); });
+  await page.click('.rail-item[data-screen="equipment"]');
+  await page.click('#eq-tab-venue');
+  await page.locator('#eq-rows button', { hasText: 'Club Smoke' }).first().click();
+  await page.waitForSelector('#eq-venue-pdf');
+  await page.evaluate(installPrintSpy);
+  await page.click('#eq-venue-pdf');
+  await page.waitForFunction(() => window.__printed?.length === 1);
+  const venueHtml = await page.evaluate(() => window.__printed[0]);
+  check('venue report: Equipment > Venues exports a venue report with the hum history section', /Venue report — Club Smoke/.test(venueHtml) && /Hum and feedback history/.test(venueHtml), venueHtml.slice(0, 120));
+  await openPanel();
+  await page.click('dialog.experimental-dialog [data-feature-reset]');
+  check('experimental: Reset to defaults restores the shipped rail', (await rail('pregig')) === 0 && (await rail('hum')) === 0 && (await rail('media')) === 1);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('dialog.experimental-dialog'));
   await page.evaluate(async () => { (await import('./features.js')).setEnabled('testMedia', false); });
-  const off = await count();
-  check('features: testMedia shows/hides the rail entry without reload', before === 0 && on === 1 && off === 0, `${before}/${on}/${off}`);
+  check('features: testMedia can be switched off without reload', (await rail('media')) === 0);
 
   // ----- History shows the test medium (FS-06 AC-6) -----
   await page.evaluate(async () => { (await import('./features.js')).setEnabled('testMedia', true); });

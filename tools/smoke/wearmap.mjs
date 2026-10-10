@@ -170,6 +170,7 @@ export default async function run({ browser, base, tmp, check, SHOTS }) {
   check('wearmap: arrow keys move bin by bin and announce "Bin 1, 0:02, SNR …"', /^Bin 1, 0:02, SNR \d+ dB/.test(said), said);
   check('wearmap: focus stays on the map and the bin is outlined', await page.evaluate(() => document.activeElement?.id === 'wm-map') && (await page.locator('#wm-map .gm-sel').count()) === 1);
   check('wearmap: details panel shows the bin numbers', /SNR/.test(await page.locator('#inspector-body').innerText()) && /Bin 1/.test(await page.locator('#inspector-title').innerText()));
+  check('wearmap: inspector shows a waveform snippet of the bin (AC-7)', (await page.locator('#inspector-body svg.wm-scope polygon').count()) === 2);
   await page.keyboard.press('End');
   check('wearmap: End jumps to the last bin', /Bin 29/.test(await page.locator('#inspector-title').innerText()));
   await page.locator('.wm-worst-item').first().click();

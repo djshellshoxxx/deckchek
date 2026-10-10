@@ -25,6 +25,7 @@ function scratchMock() {
     }
     return { left: L, right: R };
   };
+  const mediaRows = new Map();
   core.invoke = async (cmd, args) => {
     if (cmd === 'start_live_capture') { started = performance.now(); return base(cmd, args); }
     if (cmd === 'stop_live_capture') {
@@ -35,6 +36,9 @@ function scratchMock() {
       const sig = synth(secs, { dead, still: baseline });
       return { payload: { deviceName: 'Focusrite USB (In 1/2)', sampleRate: sr, channels: 2, left: sig.left, right: sig.right, streamErrors: [] }, quality: {} };
     }
+    if (cmd === 'media_profiles_sync') { for (const p of args.profiles) { const { timecodeFacts, ...profile } = p; mediaRows.set(p.id, { id: p.id, source: 'builtin', kind: p.kind, name: p.name, version: p.version, owned: false, retired: false, profile }); } return { inserted: args.profiles.length, updated: 0, unchanged: 0, retired: 0 }; }
+    if (cmd === 'media_list') return [...mediaRows.values()];
+    if (cmd === 'wearmap_records_list') return [{ id: 'rec-1', releaseId: 'rel-1', title: 'Serato CV02.5 copy', format: 'Serato CV02.5', nickname: 'Booth copy', retired: false, sides: [{ id: 'side-1', sideLabel: 'A' }, { id: 'side-2', sideLabel: 'B' }] }];
     if (!cmd.startsWith('scratch_')) return base(cmd, args);
     calls.push(cmd);
     if (cmd === 'scratch_save') { const r = { ...args.run, id: `r${runs.length + 1}`, createdAt: new Date(Date.UTC(2026, 9, 10, 12, runs.length)).toISOString(), completed: args.run.completed !== false, events: args.run.events || [] }; runs.unshift(r); const { events, ...s } = r; return { ...s, eventCount: events.length }; }
@@ -114,7 +118,15 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('.rail-item[data-screen="scratch"]');
   await page.waitForSelector('#sc-start:not([disabled])');
   check('scratch: desktop setup offers the cartridges from Equipment', (await page.locator('#sc-cart option').count()) === 3);
+  await page.evaluate(async () => { const m = await import('./ui/media-picker.js'); m.media.store = null; await m.ensureMedia({ force: true }); });
+  await page.waitForSelector('#screen-scratch .media-picker select optgroup', { state: 'attached' });
+  const tcMedium = await page.locator('#screen-scratch .media-picker select option').evaluateAll(os => os.find(o => /Traktor Scratch MK2|MK2/i.test(o.textContent))?.value);
+  await page.selectOption('#screen-scratch .media-picker select', tcMedium);
+  check('scratch: a timecode medium sets the format (FS-06)', /MK2/.test(await page.locator('#sc-format').inputValue()), await page.locator('#sc-format').inputValue());
+  await page.selectOption('#sc-format', 'Serato CV02.5');
   await page.selectOption('#sc-cart', 'a-cart1');
+  check('scratch: setup offers the control-vinyl copies and sides (AC-6)', (await page.locator('#sc-side option').allInnerTexts()).some(t => /Booth copy.*side A/.test(t)) && (await page.locator('#sc-setup').count()) === 1);
+  await page.selectOption('#sc-side', 'side-1');
   await page.fill('#sc-bpm', '120'); await page.fill('#sc-force', '2.5');
   await page.click('#sc-start');
   check('scratch: starting without the volume confirmation is refused', /Confirm the headphone and monitor volume is low/.test(await page.locator('#sc-problems').innerText()) && (await page.locator('#sc-bl-h').count()) === 0);
@@ -170,6 +182,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   
   check('scratch: aborted run is scored from completed patterns and labelled partial', /Partial run/.test(partial) && /Run aborted: scored from the completed patterns only/.test(partial) && (await page.locator('.scratch-patterns tbody tr', { hasText: 'Not completed' }).count()) === 2, partial.slice(0, 200));
   check('scratch: partial run is saved', /Saved to History/.test(await page.locator('#sc-saved').innerText()));
+  check('scratch: the saved run carries the control-vinyl side', await page.evaluate(async () => (await window.__TAURI__.core.invoke('scratch_list', {}))[0].recordSideId === 'side-1'));
 
   // full run
   await page.click('#sc-again');
@@ -204,12 +217,14 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.evaluate(async () => {
     const inv = window.__TAURI__.core.invoke;
     const rec = (asset, score) => inv('scratch_save', { run: { cartridgeAssetId: asset, format: 'Serato CV02.5', bpm: 120, protocolVersion: 1, completed: true, score, components: {}, lockLosses: 1, skips: 0, events: [] } });
+    await inv('scratch_save', { run: { cartridgeAssetId: 'a-cart1', recordSideId: 'side-2', format: 'Serato CV02.5', bpm: 120, protocolVersion: 1, completed: true, score: 60, components: {}, lockLosses: 1, skips: 0, events: [] } });
     await rec('a-cart2', 71); await rec('a-cart2', 73); await rec('a-cart1', 84);
   });
   await page.click('#sc-tab-compare');
   await page.waitForSelector('#sc-cmp-h');
   const cmp = await page.locator('#sc-panel').innerText();
   check('scratch: compare shows mean, spread and the noise verdict', /mean score/i.test(cmp) && /B minus A/.test(cmp) && /within run-to-run noise|larger than run-to-run noise|at least two repeats/.test(cmp), cmp.slice(0, 200));
+  check('scratch: compare offers control-vinyl sides as separate setups', (await page.locator('#sc-a option').allInnerTexts()).some(t => /Booth copy.*side B/.test(t)));
   await shot(page, 'scratch-compare-dark');
 
   // delete

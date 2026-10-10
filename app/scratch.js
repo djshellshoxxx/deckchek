@@ -430,6 +430,28 @@ export function compareScores(a=[],b=[]){
   return {a:A,b:Bm,delta,withinNoise:enough?Math.abs(delta)<2*noise:null,note:!enough?'Run at least two repeats of each for a fair comparison (three recommended).':Math.abs(delta)<2*noise?'Difference is within run-to-run noise.':'Difference is larger than run-to-run noise.'};
 }
 
+/**
+ * Comparable groups of completed runs (FS-14 AC-6): same cartridge, setup, control-vinyl side, format and BPM.
+ * `names` = {cartridge(id), setup(id), side(id)} -> display text. Parts that were not recorded are left out of the label.
+ * Returns [{key, label, scores, parts:{cartridgeAssetId,setupId,recordSideId,format,bpm}}] in first-seen order.
+ */
+export function groupScratchRuns(runs=[],names={}){
+  const groups=new Map();
+  for(const r of runs){
+    if(!r||!r.completed||!finite(r.score))continue;
+    const parts={cartridgeAssetId:r.cartridgeAssetId||null,setupId:r.setupId||null,recordSideId:r.recordSideId||null,format:r.format,bpm:r.bpm};
+    const key=[parts.cartridgeAssetId,parts.setupId,parts.recordSideId,parts.format,parts.bpm].map(v=>v??'').join('|');
+    if(!groups.has(key)){
+      const label=[names.cartridge?.(parts.cartridgeAssetId)??(parts.cartridgeAssetId?'Cartridge':'No cartridge'),
+        parts.setupId?(names.setup?.(parts.setupId)??'Setup'):null,parts.recordSideId?(names.side?.(parts.recordSideId)??'Control vinyl'):null,
+        parts.format,`${parts.bpm} BPM`].filter(Boolean).join(' · ');
+      groups.set(key,{key,label,scores:[],parts});
+    }
+    groups.get(key).scores.push(r.score);
+  }
+  return [...groups.values()];
+}
+
 /** Row for `scratch_save` from an analyzeScratch result plus the entities it was run against. */
 export function toRunRecord(result,{sessionId=null,setupId=null,cartridgeAssetId=null,recordSideId=null,trackingForceG=null,tonearmNote=null}={}){
   const r6=x=>finite(x)?Math.round(x*1e6)/1e6:null;

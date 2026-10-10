@@ -7,8 +7,10 @@ import { icon } from './icons.js';
 import { toast } from './live.js';
 import { ISSUE_REPO } from '../diagnostics-bundle.js';
 import { openExternal, linkConfirmDialog } from '../external-links.js';
+import { openExperimentalDialog } from './screens/experimental.js';
 
 export const DIAGNOSTICS_EVENT = 'deckchek:diagnostics';
+export const EXPERIMENTAL_EVENT = 'deckchek:experimental';
 
 export const SUPPORT_LINKS = Object.freeze([
   { id: 'issues', label: 'Report an issue (GitHub)', url: `https://github.com/${ISSUE_REPO}/issues` },
@@ -26,7 +28,10 @@ export const MANUFACTURER_LINKS = Object.freeze([
 /** Pure description of the entries, used for rendering and tests. */
 export function supportMenuModel() {
   return {
-    options: [{ id: 'diagnostics', label: 'Create diagnostics bundle…', kind: 'event', event: DIAGNOSTICS_EVENT }],
+    options: [
+      { id: 'diagnostics', label: 'Create diagnostics bundle…', kind: 'event', event: DIAGNOSTICS_EVENT },
+      { id: 'experimental', label: 'Experimental features…', kind: 'event', event: EXPERIMENTAL_EVENT },
+    ],
     help: [
       { id: 'diagnostics', label: 'Create diagnostics bundle…', kind: 'event', event: DIAGNOSTICS_EVENT },
       ...SUPPORT_LINKS.map(l => ({ ...l, kind: 'link' })),
@@ -38,7 +43,8 @@ export function supportMenuModel() {
 function run(entry, dialog) {
   // The support dialog ignores the event while another modal is open, so close ours first.
   if (dialog?.open) dialog.close();
-  if (entry.kind === 'event') globalThis.dispatchEvent(new CustomEvent(entry.event));
+  if (entry.event === EXPERIMENTAL_EVENT) openExperimentalDialog();
+  else if (entry.kind === 'event') globalThis.dispatchEvent(new CustomEvent(entry.event));
   else openExternal(entry.url, { toast, confirm: linkConfirmDialog });
 }
 
@@ -60,7 +66,7 @@ export function addSupportEntries(dialog, which, model = supportMenuModel()) {
   const target = dialog?.querySelector?.('.cdl-help-body');
   if (!target || target.querySelector('[data-support-entry]')) return false;
   target.append(which === 'options'
-    ? buildBox(model.options, 'Support', 'Create a diagnostics bundle to share when something goes wrong. It contains no audio and nothing is sent automatically (Ctrl+Shift+D).', dialog)
+    ? buildBox(model.options, 'Support', 'Create a diagnostics bundle to share when something goes wrong. It contains no audio and nothing is sent automatically (Ctrl+Shift+D). Experimental features switches the unfinished screens on or off.', dialog)
     : buildBox(model.help, 'Support and links', 'Get help, report a problem or check for a new release.', dialog));
   return true;
 }

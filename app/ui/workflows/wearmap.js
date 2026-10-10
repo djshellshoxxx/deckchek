@@ -100,7 +100,22 @@ export function createRecordsApi({ invoke = nativeInvoke(), storage = globalThis
 
 // ------------------------------------------------------------------ drafts and prefs (per viewer, best effort)
 
-export function saveDraft(storage, draft) { try { storage?.setItem(DRAFT_KEY, JSON.stringify({ ...draft, savedAt: new Date().toISOString() })); return true; } catch { return false; } }
+/** Scope snippets are a live-session picture only: never written to the draft. */
+const withoutScopes = draft => (draft?.result?.bins ? { ...draft, result: { ...draft.result, bins: draft.result.bins.map(({ scope, ...b }) => b) } } : draft);
+export function saveDraft(storage, draft) { try { storage?.setItem(DRAFT_KEY, JSON.stringify({ ...withoutScopes(draft), savedAt: new Date().toISOString() })); return true; } catch { return false; } }
+
+/** Inspector picture of one bin: min/max peak envelope of both channels (null when the bin has no snippet). */
+export function scopeSvg(scope, { width = 240, height = 72 } = {}) {
+  if (!scope?.cols || !Array.isArray(scope.l) || !Array.isArray(scope.r)) return null;
+  const lane = (vals, y0, hh, cls) => {
+    const mid = y0 + hh / 2, px = v => (mid - (v / 127) * (hh / 2)).toFixed(1);
+    const up = [], down = [];
+    for (let c = 0; c < scope.cols; c++) { const x = ((c + 0.5) * width / scope.cols).toFixed(1); up.push(`${x},${px(vals[2 * c + 1])}`); down.push(`${x},${px(vals[2 * c])}`); }
+    return `<polygon class="${cls}" points="${up.join(' ')} ${down.reverse().join(' ')}"/>`;
+  };
+  const half = height / 2;
+  return `<svg class="wm-scope" viewBox="0 0 ${width} ${height}" role="img" aria-label="Waveform of this bin: left channel on top, right channel below, one column per ${scope.cols}th of the bin">${lane(scope.l, 0, half - 2, 'wm-scope-l')}${lane(scope.r, half + 2, half - 2, 'wm-scope-r')}</svg>`;
+}
 export function loadDraft(storage) {
   try {
     const d = JSON.parse(storage?.getItem(DRAFT_KEY) || 'null');

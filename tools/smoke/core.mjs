@@ -85,7 +85,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   const errors = watchConsole(page, 'browser');
   await page.goto(base);
   await page.waitForSelector('.rail-item');
-  check('rail has 11 nav items', (await page.locator('.rail-item').count()) === 11);
+  check('rail has 12 nav items (default flags: 11 shipped screens plus Test media)', (await page.locator('.rail-item').count()) === 12);
   check('dark theme by default', (await page.getAttribute('html', 'data-theme')) === 'dark');
   check('help button wired by ui-assistance', (await page.locator('#cdlOptionsBtn').count()) === 1);
 

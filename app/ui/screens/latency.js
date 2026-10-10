@@ -9,6 +9,7 @@
 
 import { h, esc, isNative, download } from '../dom.js';
 import { icon, chip } from '../icons.js';
+import { pdfButton, latencyPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { listInputDevices, preemptCapture, isCaptureBusy } from '../audio-io.js';
 import { confirmCaptureBusy } from '../capture-busy.js';
@@ -176,6 +177,7 @@ export function createLatencyScreen(section) {
     <div id="lat-progress-slot"></div>
     <div id="lat-panel" role="tabpanel" tabindex="-1" class="lat-panel"></div>`;
   const q = s => section.querySelector(s);
+  q('.screen-head').append(pdfButton(h, { id: 'lat-export-pdf', kind: 'latency', icon: icon('download', { size: 18 }), getData: () => latencyPrintData(exportPayload(st)) }));
   const panel = q('#lat-panel');
 
   // ---------- helpers ----------
@@ -547,7 +549,8 @@ export function createLatencyScreen(section) {
         : !st.scan ? `<section class="card card-quiet lat-empty"><p class="muted">${native ? 'No scan yet. Press Scan this PC.' : 'The scan needs the DeckChek desktop app on Windows.'}</p></section>`
           : `<section class="card" aria-labelledby="lat-items-title"><div class="card-head"><h2 class="card-title" id="lat-items-title">Results</h2><p class="muted" id="lat-win-summary">${count('pass')} pass · ${count('review')} to review · ${count('unknown')} unknown</p></div>
             <ul class="lat-checks">${items.map(checkItem).join('')}</ul>
-            <p class="muted small">DPC warning level is ${DPC_WARN_PCT} % of CPU time. These are proxies: LatencyMon (a free tool from Resplendence) names the driver responsible if you run it for 10 to 30 minutes.</p></section>`}</div>`;
+            <p class="muted small">DPC warning level is ${DPC_WARN_PCT} % of CPU time. These are proxies: LatencyMon (a free tool from Resplendence) names the driver responsible if you run it for 10 to 30 minutes.</p></section>`}
+      ${supported ? busyAppsCard() : ''}</div>`;
     panel.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.copy, b.dataset.what)));
     q('#lat-scan').addEventListener('click', startScan);
     q('#lat-stop').addEventListener('click', abortRun);
@@ -567,6 +570,23 @@ export function createLatencyScreen(section) {
   async function copyText(text, what) {
     try { await navigator.clipboard.writeText(text); toast(`${what || 'Text'} copied.`, { type: 'success', timeout: 2500 }); } catch { toast('Copy failed. Select the text and copy it by hand.', { type: 'warn' }); }
   }
+  /** Which programs use the CPU right now, and which DJ programs run (processes.rs top_cpu / dj_processes). Best effort. */
+  async function loadBusyApps() {
+    const invoke = window.__TAURI__?.core?.invoke;
+    if (typeof invoke !== 'function') return null;
+    const [cpu, dj] = await Promise.allSettled([invoke('top_cpu', { n: 5 }), invoke('dj_processes')]);
+    const top = cpu.status === 'fulfilled' && Array.isArray(cpu.value) ? cpu.value : null;
+    const apps = dj.status === 'fulfilled' && dj.value?.supported ? dj.value.apps.filter(a => a.running).map(a => a.app) : [];
+    return top || apps.length ? { top: top || [], djApps: apps } : null;
+  }
+  function busyAppsCard() {
+    const b = st.busyApps;
+    if (!b) return '';
+    return `<section class="card" id="lat-busy" aria-labelledby="lat-busy-title"><h2 class="card-title" id="lat-busy-title">What is using the CPU</h2>
+      ${b.djApps.length ? `<p>DJ programs running: <strong>${esc(b.djApps.join(', '))}</strong>.</p>` : '<p class="muted">No DJ program was running during the scan.</p>'}
+      ${b.top.length ? `<table class="data"><caption class="sr-only">Programs using the most CPU right now</caption><thead><tr><th scope="col">Program</th><th scope="col" class="r">CPU</th></tr></thead><tbody>${b.top.map(c => `<tr><td>${esc(c.exe)}</td><td class="r num">${fmtNum(c.cpuPct, 1)} %</td></tr>`).join('')}</tbody></table>
+      <p class="muted small">A browser, antivirus scan or cloud sync near the top is a common cause of crackles. Close it and test again.</p>` : ''}</section>`;
+  }
   async function startScan() {
     if (st.busy || !native) return;
     st.aborted = false; st.scanError = null; setBusy('scan');
@@ -575,6 +595,8 @@ export function createLatencyScreen(section) {
     renderPanel();
     try {
       st.scan = await tuner.scan({ dpcSeconds: 10 });
+      st.busyApps = null;
+      if (st.scan.supported) st.busyApps = await loadBusyApps();
       setStatus(st.scan.supported ? 'Scan complete.' : 'The checklist is only available on Windows.', st.scan.supported ? 'pass' : 'info', { say: true });
     } catch (e) { st.scanError = friendly(e); setStatus('Scan failed.', 'fail', { say: true }); } finally { setBusy(null); if (st.tab === 'windows') renderPanel(); }
   }

@@ -342,3 +342,26 @@ DoD (ledger, rail alert, catalogue confidence): IMPL. Not built, and not require
 | FS-15 hum / feedback | **Yes, after GAP-01** (start with the feedback step at the lowest cap). The venue report is missing. |
 | Device library / MIDI | **Yes.** Expect learn-only MIDI (GAP-17). |
 | System Health, calibration, capture | **Yes.** These are Windows- and hardware-only paths, and code-complete. |
+
+## 5. Resolution (job fix-ui, 2026-10-10)
+
+| Gap | Status | What changed |
+|---|---|---|
+| GAP-01 | Fixed | Options > Support > "Experimental features…" dialog (`app/ui/screens/experimental.js`, `app/ui/menus.js`) with chips and "Reset to defaults"; the smoke test toggles every M6 flag and test media and opens each screen. |
+| GAP-02 | Deferred | Input-pair picker: a later job, after the capture fixes. |
+| GAP-03 | Fixed | `testMedia` defaults on; spec rollout note records it. |
+| GAP-04 | Fixed | The DVS form has a Timecode format field that a timecode medium sets; Auto-detect is the fallback. The scratch and control-vinyl forms also take a medium. |
+| GAP-05 | Fixed | Scratch runs save `setupId` and `recordSideId`; Compare groups by cartridge, setup, side, format and tempo (`groupScratchRuns`). |
+| GAP-06 | Fixed | Printable kinds latency, stylus, wearMap, scratch, hum (`app/ui/workflows/m6-reports.js`) with Export PDF buttons. |
+| GAP-07 | Fixed | Printable kind `venue` (setups plus hum and feedback history) from Equipment > Venues and the Runs tab. The `booth` and `deck_position` tables remain unwritten (GAP-12). |
+| GAP-08 | Deferred | Scratch Stop-and-continue: a later job. |
+| GAP-09 | Fixed | A PDF timeout shows Retry beside "Export HTML instead". |
+| GAP-10 | Fixed | Waveform snippet in the wear-map bin inspector from a bounded peak-envelope ring buffer (session only). |
+| GAP-11, GAP-12 | Deferred | Schema-only tables, reserved. |
+| GAP-13 | Partly fixed | The scratch and control-vinyl forms take a medium. `app/pre-gig.js` (`FORMAT_BY_MEDIA_ID`) belongs to another job. |
+| GAP-14 | Fixed | FEATURE-MATRIX, IMPLEMENTATION-STATUS, `app/README.md` and the spec status notes now match the code. |
+| GAP-15 | Partly fixed | M7 and M8 flags default off and are hidden; `diagnosticsBundle` is marked always on; `top_cpu` and `dj_processes` feed the Windows tuning tab. `runtime_status` and `userfiles_write_folder` are Rust: still unused. |
+| GAP-16 | Fixed | The PDF saved toast offers Open and Show in folder. |
+| GAP-17 | Open | Published MIDI maps need vendor documents. |
+| GAP-18 | Open | `--debug-crash` is a Rust change. |
+| AC-7 / AC-8 canonical JSON, photo store | M7 | Unchanged. |

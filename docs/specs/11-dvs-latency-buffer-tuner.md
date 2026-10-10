@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0007_latency_tuner.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built; hardware validation pending (H-11). The Windows tab also lists the busiest programs and running DJ software; Export PDF prints the results.
+
 ## 1. Summary, Goals, Non-goals
 
 Measures real round-trip latency through the DJ interface, compares it with what the driver reports, stress-tests decreasing buffer sizes under CPU load for dropouts, and recommends the lowest safe buffer per DJ program with that program's own setting names. Includes a Windows tuning checklist that reads power settings via `powercfg`/PowerShell and a feasible DPC-style proxy without kernel drivers.
