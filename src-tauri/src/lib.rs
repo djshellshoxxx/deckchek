@@ -38,6 +38,8 @@ mod wearmap;
 mod scratch;
 // [FS-15] mods
 mod humrun;
+#[cfg(test)]
+mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
 // [FS-21] mods
 // [FS-22] mods
