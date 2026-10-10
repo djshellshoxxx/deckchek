@@ -17,7 +17,7 @@ function latencyMock() {
   const dir = (requested, actual, mode, reason) => ({ direction: 'x', opened: true, deviceName: 'Traktor Audio 8 DJ', sampleRate: 48000, channels: 2, requestedFrames: requested, bufferRequest: 'fixed', mode, modeReason: reason, actualFrames: actual, actualPeriodMs: actual / 48, streamErrors: [] });
   core.invoke = async (cmd, args = {}) => {
     if (cmd === 'list_native_audio_outputs') return [{ name: 'Speakers (Realtek Audio)', isDefault: true, sampleRate: 48000, channels: 2 }, { name: 'Focusrite USB (Out 1/2)', isDefault: false, sampleRate: 48000, channels: 2 }];
-    if (!/^(audio_device_buffer_info|latency_|stress_run|windows_tuning_scan|buffer_recommendation_)/.test(cmd)) return base(cmd, args);
+    if (!/^(audio_device_buffer_info|latency_|stress_run|windows_tuning_scan|buffer_recommendation_|top_cpu|dj_processes)/.test(cmd)) return base(cmd, args);
     lat.calls.push(cmd);
     if (cmd === 'audio_device_buffer_info') return { deviceName: 'Focusrite USB (In 1/2)', outputDeviceName: 'Speakers (Realtek Audio)', hostApi: 'WASAPI', sampleRate: 48000, input: { minFrames: 32, maxFrames: 4096, default: null, known: true }, output: { minFrames: 32, maxFrames: 4096, default: null, known: true }, supportsFixed: true, errors: [] };
     if (cmd === 'latency_abort') { lat.aborted = true; return null; }
@@ -40,6 +40,8 @@ function latencyMock() {
       const mk = d => ({ ...dir(req, actual, mode, reason), direction: d });
       return { requested: req, actual, callbacks: 3000, xruns: bad ? 4 : 0, maxGapMs: bad ? 9 : actual / 48 * 1.1, p99GapMs: actual / 48, overruns: 0, streamErrors: [], bufferMode: mode, duplex: 'full', input: mk('input'), output: mk('output'), cpuLoadPct: args.cpuLoadPct, loadThreads: 2, loadStopMs: 3, seconds: args.seconds, ended: aborted ? 'aborted' : 'completed', hostApi: 'WASAPI' };
     }
+    if (cmd === 'top_cpu') return [{ exe: 'chrome.exe', cpuPct: 21.5 }, { exe: 'MsMpEng.exe', cpuPct: 8 }];
+    if (cmd === 'dj_processes') return { supported: true, apps: [{ app: 'Serato DJ Pro', exe: 'Serato DJ Pro.exe', running: true, pid: 1 }, { app: 'rekordbox', exe: 'rekordbox.exe', running: false, pid: null }] };
     if (cmd === 'windows_tuning_scan') {
       await sleep(lat.slowMs);
       if (!lat.windows) return { supported: false, usbSelectiveSuspend: {}, minProcessorState: {}, minCores: {}, wifi: [], bluetooth: [], dpcProxy: { samples: 0 }, errors: [] };
@@ -190,6 +192,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('latency: fix action shows the inspect command, the manual path and a Win+R shortcut', /powercfg \/getactivescheme/.test(how) && /Control Panel > Power Options/.test(how) && /control powercfg\.cpl/.test(how));
   await page.click('.lat-check[data-item="powerPlan"] [data-what="Shortcut"]');
   await page.waitForFunction(() => /Shortcut copied/.test(document.getElementById('toasts')?.innerText || ''));
+  check('latency: Windows tab names the busiest programs and running DJ software', /chrome\.exe/.test(await text(page, '#lat-busy')) && /Serato DJ Pro/.test(await text(page, '#lat-busy')) && !/rekordbox/.test(await text(page, '#lat-busy')));
   check('latency: checklist says DeckChek never changes settings', /never changes anything/.test(await text(page, '#lat-panel')));
   await shot(page, 'latency-windows-dark');
 
