@@ -14,6 +14,7 @@ mod app_state;
 // [FS-02] mods
 mod diagnostics;
 // [FS-03] mods
+mod pdf;
 // [FS-06] mods
 // [FS-07] mods
 mod links;
@@ -57,6 +58,7 @@ pub fn run() {
             diagnostics::log_client_error, diagnostics::diagnostics_status, diagnostics::diagnostics_ack_crash,
             diagnostics::diagnostics_preview, diagnostics::diagnostics_create_bundle,
             // [FS-03] handlers
+            pdf::pdf_render,
             // [FS-06] handlers
             // [FS-07] handlers
             links::open_external_url, links::open_path, links::reveal_path,

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light">
+  <title>DeckChek report</title>
+  <!-- FS-03 print host. Loaded only in a hidden window created by src-tauri/src/pdf.rs.
+       Rust injects the report with window.__dcPrintHost.render(html), polls
+       window.__dcPrintHost.state until "ready", then calls WebView2 PrintToPdf. -->
+  <script type="module" src="./print-host.js"></script>
+</head>
+<body></body>
+</html>
