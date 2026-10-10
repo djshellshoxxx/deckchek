@@ -1,0 +1,17 @@
+{
+  "command": "pdf_render",
+  "request": {
+    "html": "<!doctype html><html><head><title>DeckChek report</title></head><body><p>x</p></body></html>",
+    "destPath": "C:\\Users\\dj\\Documents\\DeckChek_Run_technics-sl-1200mk4_20261010-1205.pdf",
+    "opts": { "paper": "A4", "landscape": false, "scale": 1.0 }
+  },
+  "response": {
+    "path": "C:\\Users\\dj\\Documents\\DeckChek_Run_technics-sl-1200mk4_20261010-1205.pdf",
+    "bytes": 18234,
+    "pages": 3
+  },
+  "errors": [
+    { "code": "unsupported", "message": "PDF export is not supported on this platform; use the print dialog instead", "unsupported": true },
+    { "code": "timeout", "message": "creating the PDF took longer than 20 s", "unsupported": false }
+  ]
+}
