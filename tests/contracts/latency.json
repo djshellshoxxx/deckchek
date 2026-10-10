@@ -1,0 +1,87 @@
+{
+  "module": "latency",
+  "spec": "FS-11 §4-§5",
+  "notes": "Tauri maps camelCase JS argument names to snake_case Rust parameters. Errors are strings prefixed with a code (LATENCY_INVALID, LATENCY_BUSY, LATENCY_NOT_FOUND, LATENCY_DB) except a busy capture lease, which is the FS-00 CAPTURE_BUSY object. bufferFrames null asks for the host's own period. A direction that cannot open is reported (mode 'unavailable'), never thrown. Every measured value is a WASAPI (cpal default host) value; ASIO buffers only appear when the user types them.",
+  "commands": {
+    "audio_device_buffer_info": {
+      "request": { "deviceName": "Audio 8 DJ", "outDevice": null },
+      "response": {
+        "deviceName": "Audio 8 DJ", "outputDeviceName": "Audio 8 DJ", "hostApi": "WASAPI", "sampleRate": 48000,
+        "input": { "minFrames": 64, "maxFrames": 4096, "default": null, "known": true },
+        "output": { "minFrames": 64, "maxFrames": 4096, "default": null, "known": true },
+        "supportsFixed": true, "errors": []
+      }
+    },
+    "stress_run": {
+      "request": { "deviceName": "Audio 8 DJ", "outDevice": null, "bufferFrames": 128, "seconds": 30, "cpuLoadPct": 50, "gapFloorMs": 14.5, "sampleRate": null, "step": 3 },
+      "response": {
+        "requested": 128, "actual": 480, "callbacks": 6000, "xruns": 0, "maxGapMs": 12.1, "p99GapMs": 10.6, "overruns": 0, "streamErrors": [],
+        "bufferMode": "hostChosen", "duplex": "full",
+        "input": {
+          "direction": "input", "opened": true, "deviceName": "Audio 8 DJ", "sampleRate": 48000, "channels": 2, "requestedFrames": 128,
+          "bufferRequest": "default", "mode": "hostChosen", "modeReason": "fixedRejected",
+          "fixedError": "The requested stream configuration is not supported by the device.", "openError": null,
+          "callbacks": 3000, "actualFrames": 480, "actualFramesMin": 480, "actualFramesMax": 480, "actualPeriodMs": 10.0,
+          "gapMsMedian": 10.0, "gapMsP99": 10.6, "gapMsMax": 12.1, "gapXruns": 0, "xrunThresholdMs": 15.0, "streamErrors": []
+        },
+        "output": {
+          "direction": "output", "opened": true, "deviceName": "Audio 8 DJ", "sampleRate": 48000, "channels": 2, "requestedFrames": 128,
+          "bufferRequest": "default", "mode": "hostChosen", "modeReason": "fixedRejected",
+          "fixedError": "The requested stream configuration is not supported by the device.", "openError": null,
+          "callbacks": 3000, "actualFrames": 480, "actualFramesMin": 480, "actualFramesMax": 480, "actualPeriodMs": 10.0,
+          "gapMsMedian": 10.0, "gapMsP99": 10.4, "gapMsMax": 11.0, "gapXruns": 0, "xrunThresholdMs": 15.0, "streamErrors": []
+        },
+        "cpuLoadPct": 50, "loadThreads": 4, "loadStopMs": 2.1, "seconds": 30, "ended": "completed", "hostApi": "WASAPI"
+      }
+    },
+    "latency_play_and_capture": {
+      "request": { "deviceName": "Audio 8 DJ", "outDevice": null, "stimulus": { "sampleRate": 48000, "left": [0, 0.5, 0], "right": [] }, "bufferFrames": 256, "levelDbfs": -20, "tailSec": null, "step": 0 },
+      "response": {
+        "captured": { "sampleRate": 48000, "left": [0, 0, 0.05], "right": [0, 0, 0.05] },
+        "quality": { "framesCaptured": 3, "overrunSamples": 0, "clippedSamplesL": 0, "clippedSamplesR": 0, "streamErrors": 0, "streamErrorMessages": [], "truncated": false, "callbackCount": 1, "maxCallbackGapMs": 0 },
+        "reportedBufferFrames": { "in": 256, "out": 256 },
+        "alignment": { "frames": 1024, "minFrames": 1024, "maxFrames": 1024, "pairs": 400 },
+        "outputSampleRate": 48000, "outputLevelDbfs": -20, "bufferMode": "honoured", "duplex": "full",
+        "input": { "direction": "input", "mode": "honoured" },
+        "output": { "direction": "output", "mode": "honoured" },
+        "ended": "completed", "hostApi": "WASAPI", "scope": "WASAPI round trip"
+      }
+    },
+    "latency_abort": { "request": {}, "response": null },
+    "windows_tuning_scan": {
+      "request": { "dpcSeconds": 10 },
+      "response": {
+        "supported": true, "activePlan": { "name": "Balanced", "guid": "381b4222-f694-41f0-9685-ff5bb260df2e" },
+        "usbSelectiveSuspend": { "ac": 1, "dc": 1 }, "minProcessorState": { "ac": 5, "dc": 5 }, "minCores": { "ac": null, "dc": null },
+        "wifi": [{ "name": "WLAN", "status": "Up" }], "bluetooth": [],
+        "timerResolutionMs": null, "timerJitter": { "samples": 200, "meanMs": 0.4, "p99Ms": 1.1, "maxMs": 1.6 },
+        "dpcProxy": { "dpcPct": 0.8, "interruptPct": 0.4, "samples": 10 }, "onBattery": false,
+        "backgroundApps": [{ "exe": "OneDrive.exe", "cpuPct": 12.5 }], "errors": []
+      }
+    },
+    "latency_run_save": {
+      "request": {
+        "input": {
+          "sessionId": null, "setupId": null, "deviceName": "Audio 8 DJ", "hostApi": "WASAPI", "sampleRateHz": 48000, "kind": "roundtrip",
+          "bufferFrames": 256, "cpuLoadPct": null, "measuredMs": 14.21, "stdMs": 0.04, "expandedUMs": 0.09, "reportedMs": 10.67,
+          "xruns": null, "maxGapMs": null, "verdict": "WASAPI round trip 14.21 ms",
+          "detail": { "scope": "WASAPI round trip", "bufferMode": "honoured", "outcome": "honoured", "runs": [14.2, 14.25, 14.19, 14.22, 14.19] }
+        }
+      },
+      "response": {
+        "id": "4b1c0f6e-1d2a-4c3b-8e9f-0a1b2c3d4e5f", "sessionId": null, "setupId": null, "deviceName": "Audio 8 DJ", "hostApi": "WASAPI",
+        "sampleRateHz": 48000, "kind": "roundtrip", "bufferFrames": 256, "cpuLoadPct": null, "measuredMs": 14.21, "stdMs": 0.04,
+        "expandedUMs": 0.09, "reportedMs": 10.67, "xruns": null, "maxGapMs": null, "verdict": "WASAPI round trip 14.21 ms",
+        "detail": { "scope": "WASAPI round trip", "bufferMode": "honoured", "outcome": "honoured", "runs": [14.2, 14.25, 14.19, 14.22, 14.19] },
+        "createdAt": "2026-10-10T20:00:00.000Z"
+      }
+    },
+    "latency_run_list": { "request": { "filter": { "deviceName": "Audio 8 DJ", "kind": null, "sessionId": null, "limit": 20 } } },
+    "latency_run_delete": { "request": { "id": "4b1c0f6e-1d2a-4c3b-8e9f-0a1b2c3d4e5f" }, "response": true },
+    "buffer_recommendation_save": {
+      "request": { "input": { "deviceName": "Audio 8 DJ", "software": "serato", "frames": 256, "ms": 5.333, "basedOnRunId": null } },
+      "response": { "id": "7d2e9a10-55aa-4c3b-9e9f-0a1b2c3d4e5f", "deviceName": "Audio 8 DJ", "software": "serato", "frames": 256, "ms": 5.333, "basedOnRunId": null, "createdAt": "2026-10-10T20:00:00.000Z" }
+    },
+    "buffer_recommendation_latest": { "request": { "deviceName": "Audio 8 DJ" } }
+  }
+}

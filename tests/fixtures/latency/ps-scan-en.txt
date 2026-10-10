@@ -1,0 +1,7 @@
+WIFI	WLAN	Up
+WIFI	Wi-Fi 2	Disconnected
+BT	Intel(R) Wireless Bluetooth(R)	OK
+BATTERY	1
+DPC	0.5	1.25
+DPC	1.5	0.75
+DPC	bad	1

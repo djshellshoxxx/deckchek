@@ -27,6 +27,7 @@ mod links;
 mod backup;
 // [FS-10] mods
 // [FS-11] mods
+mod latency;
 // [FS-12] mods
 mod stylus;
 mod dj_sessions;
@@ -86,6 +87,9 @@ pub fn run() {
             backup::backup_settings_get, backup::backup_settings_set, backup::backup_import_workspace,
             // [FS-10] handlers
             // [FS-11] handlers
+            latency::audio_device_buffer_info, latency::latency_play_and_capture, latency::stress_run, latency::latency_abort,
+            latency::windows_tuning_scan, latency::latency_run_save, latency::latency_run_list, latency::latency_run_delete,
+            latency::buffer_recommendation_save, latency::buffer_recommendation_latest,
             // [FS-12] handlers
             stylus::stylus_benchmark_save, stylus::stylus_benchmark_list, stylus::stylus_alert_snooze, stylus::stylus_alert_list,
             stylus::stylus_baseline, stylus::stylus_replace, stylus::stylus_rated_life_set, stylus::stylus_rated_life_get,
@@ -120,6 +124,7 @@ pub fn run() {
             backup::setup(_app.handle());
             // [FS-10] setup
             // [FS-11] setup
+            latency::install_panic_guard();
             // [FS-12] setup
             // [FS-13] setup
             // [FS-14] setup

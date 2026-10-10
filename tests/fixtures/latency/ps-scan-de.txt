@@ -1,0 +1,4 @@
+BT	Bluetooth-Gerät (RFCOMM-Protokoll-TDI)	OK
+BATTERY	none
+DPC	2,5	0,5
+DPC	3,5	1,5
