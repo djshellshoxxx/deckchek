@@ -1041,7 +1041,7 @@ impl Tuner {
         let mut acc = None;
         let mut input = input;
         if let Some(meta) = &in_notes.meta {
-            acc = Some(Accumulator::new((meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize));
+            acc = Some(Accumulator::with_pairs((meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize, &crate::audio::input_pairs(2)[..1]));
             let req = PlayRequest::Buffer(
                 stim.clone(),
                 BufferOpts { level_dbfs: level, cap_dbfs: None, looped: false, ramp_ms: Some(audio_out::MIN_RAMP_MS) },
@@ -1064,7 +1064,7 @@ impl Tuner {
                 loop {
                     acc.drain(&mut side.consumer, channels);
                     self.engine.tick();
-                    if acc.clipped_l + acc.clipped_r > 0 {
+                    if acc.tracks.iter().any(|t| t.clipped_l + t.clipped_r > 0) {
                         self.engine.stop(h);
                         break RunEnd::Clipped;
                     }
@@ -1134,7 +1134,7 @@ impl Tuner {
             _ => None,
         };
         let captured = match (ended, acc, in_rate) {
-            (RunEnd::Completed, Some(acc), Some(rate)) => Some(Captured { sample_rate: rate, left: acc.left, right: acc.right }),
+            (RunEnd::Completed, Some(acc), Some(rate)) => acc.into_tracks().into_iter().next().map(|(_, left, right)| Captured { sample_rate: rate, left, right }),
             _ => None,
         };
         Ok(RoundTripResult {
