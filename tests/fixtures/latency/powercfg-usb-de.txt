@@ -1,0 +1,9 @@
+GUID des Energieschemas: 8c5e7fda-e8bf-4a96-9a85-cd73a8a2b7a0  (Höchstleistung)
+  GUID der Untergruppe: 2a737441-1930-4402-8d77-b2bebba308a3  (USB-Einstellungen)
+    GUID der Energieeinstellung: 48e6b7a6-50f5-4782-a5d4-53bb8f07e226  (Einstellung für selektives USB-Energiesparen)
+      Mögliche Einstellungsindex: 000
+      Mögliche Einstellung (Anzeigename): Deaktiviert
+      Mögliche Einstellungsindex: 001
+      Mögliche Einstellung (Anzeigename): Aktiviert
+    Index der aktuellen Wechselstromeinstellung: 0x00000000
+    Index der aktuellen Gleichstromeinstellung: 0x00000001

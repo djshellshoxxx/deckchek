@@ -1,0 +1,12 @@
+GUID des Energieschemas: 8c5e7fda-e8bf-4a96-9a85-cd73a8a2b7a0  (Höchstleistung)
+  GUID-Alias: SCHEME_MIN
+  GUID der Untergruppe: 54533251-82be-4824-96c1-47b60b740d00  (Prozessorenergieverwaltung)
+    GUID-Alias: SUB_PROCESSOR
+    GUID der Energieeinstellung: 893dee8e-2bef-41e0-89c6-b55d0929964c  (Minimaler Leistungszustand des Prozessors)
+      GUID-Alias: PROCTHROTTLEMIN
+      Minimale mögliche Einstellung: 0x00000000
+      Maximale mögliche Einstellung: 0x00000064
+      Mögliche Einstellungsschritte: 0x00000001
+      Mögliche Einstellungseinheiten: %
+    Index der aktuellen Wechselstromeinstellung: 0x00000064
+    Index der aktuellen Gleichstromeinstellung: 0x00000005
