@@ -303,6 +303,236 @@ pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
     conn.execute("DELETE FROM wear_scan WHERE id = ?1", [id]).map(|n| n > 0).map_err(e2s)
 }
 
+// ------------------------------------------------------------------ control-vinyl copies and sides
+// A wear scan needs a `record_side` row. Control-vinyl copies are ordinary record_release / record_copy /
+// record_side rows whose release is tagged external_reference_type = 'timecode' with the timecode format name
+// in external_reference_id, so music records from the SPEC-03 side scan never show up in the wear-map picker.
+
+pub const RECORD_REF_TYPE: &str = "timecode";
+pub const MAX_RECORD_TEXT: usize = 120;
+pub const MAX_SIDES: usize = 4;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordSide {
+    pub id: String,
+    pub side_label: String,
+    pub nominal_rpm: Option<f64>,
+    pub expected_duration_sec: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordCopy {
+    pub id: String,
+    pub release_id: String,
+    pub title: String,
+    pub format: String,
+    pub nickname: Option<String>,
+    pub cleaning_state: Option<String>,
+    pub retired: bool,
+    pub sides: Vec<RecordSide>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordSideInput {
+    pub id: Option<String>,
+    pub side_label: String,
+    pub nominal_rpm: Option<f64>,
+    pub expected_duration_sec: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordCopyInput {
+    pub id: Option<String>,
+    pub title: String,
+    pub format: String,
+    pub nickname: Option<String>,
+    pub cleaning_state: Option<String>,
+    #[serde(default)]
+    pub retired: bool,
+    #[serde(default)]
+    pub sides: Vec<RecordSideInput>,
+}
+
+fn text_field(name: &str, v: &str, required: bool, max: usize) -> Result<(), String> {
+    let n = v.trim().chars().count();
+    if (required && n == 0) || n > max {
+        return Err(format!("{name} must be {} to {max} characters", if required { 1 } else { 0 }));
+    }
+    Ok(())
+}
+
+pub fn validate_record(input: &RecordCopyInput) -> Result<(), String> {
+    text_field("title", &input.title, true, MAX_RECORD_TEXT)?;
+    text_field("format", &input.format, true, MAX_FORMAT_CHARS)?;
+    text_field("nickname", input.nickname.as_deref().unwrap_or(""), false, MAX_RECORD_TEXT)?;
+    text_field("cleaningState", input.cleaning_state.as_deref().unwrap_or(""), false, 40)?;
+    if input.sides.is_empty() || input.sides.len() > MAX_SIDES {
+        return Err(format!("a record copy has 1 to {MAX_SIDES} sides"));
+    }
+    let mut labels = HashSet::new();
+    for s in &input.sides {
+        text_field("side label", &s.side_label, true, 16)?;
+        if !labels.insert(s.side_label.trim().to_lowercase()) {
+            return Err(format!("side '{}' appears twice", s.side_label.trim()));
+        }
+        check_opt("nominalRpm", s.nominal_rpm, 1.0, 100.0)?;
+        check_opt("expectedDurationSec", s.expected_duration_sec, 1.0, MAX_T_SEC)?;
+    }
+    Ok(())
+}
+
+fn opt_text(v: &Option<String>) -> Option<String> {
+    v.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
+}
+
+fn get_record(conn: &Connection, copy_id: &str) -> Result<Option<RecordCopy>, String> {
+    let row = conn
+        .query_row(
+            "SELECT c.id, r.id, r.title, COALESCE(r.external_reference_id, ''), c.nickname, c.cleaning_state, c.retired
+             FROM record_copy c JOIN record_release r ON r.id = c.record_id
+             WHERE c.id = ?1 AND r.external_reference_type = ?2",
+            params![copy_id, RECORD_REF_TYPE],
+            |r| {
+                Ok(RecordCopy {
+                    id: r.get(0)?,
+                    release_id: r.get(1)?,
+                    title: r.get(2)?,
+                    format: r.get(3)?,
+                    nickname: r.get(4)?,
+                    cleaning_state: r.get(5)?,
+                    retired: r.get::<_, i64>(6)? != 0,
+                    sides: Vec::new(),
+                })
+            },
+        )
+        .optional()
+        .map_err(e2s)?;
+    let Some(mut copy) = row else { return Ok(None) };
+    let mut stmt = conn
+        .prepare("SELECT id, side_label, nominal_rpm, expected_duration_sec FROM record_side WHERE record_copy_id = ?1 ORDER BY side_label COLLATE NOCASE, rowid")
+        .map_err(e2s)?;
+    copy.sides = stmt
+        .query_map([copy_id], |r| Ok(RecordSide { id: r.get(0)?, side_label: r.get(1)?, nominal_rpm: r.get(2)?, expected_duration_sec: r.get(3)? }))
+        .map_err(e2s)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(e2s)?;
+    Ok(Some(copy))
+}
+
+/// Control-vinyl copies with their sides, by title then nickname.
+pub fn list_records(conn: &Connection) -> Result<Vec<RecordCopy>, String> {
+    let ids = {
+        let mut stmt = conn
+            .prepare(
+                "SELECT c.id FROM record_copy c JOIN record_release r ON r.id = c.record_id
+                 WHERE r.external_reference_type = ?1 ORDER BY c.retired, r.title COLLATE NOCASE, c.nickname COLLATE NOCASE, c.rowid",
+            )
+            .map_err(e2s)?;
+        let rows = stmt.query_map([RECORD_REF_TYPE], |r| r.get::<_, String>(0)).map_err(e2s)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
+    };
+    let mut out = Vec::with_capacity(ids.len());
+    for id in ids {
+        if let Some(c) = get_record(conn, &id)? {
+            out.push(c);
+        }
+    }
+    Ok(out)
+}
+
+/// Create a control-vinyl copy (new release + copy + sides) or update one: title, format, nickname, cleaning
+/// state and retired flag change in place; sides with an id are updated, sides without one are added. Sides
+/// are never deleted here because scans reference them.
+pub fn save_record(conn: &mut Connection, input: &RecordCopyInput) -> Result<RecordCopy, String> {
+    validate_record(input)?;
+    let tx = conn.transaction().map_err(e2s)?;
+    let copy_id = match input.id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(id) => {
+            let release: Option<String> = tx
+                .query_row(
+                    "SELECT r.id FROM record_copy c JOIN record_release r ON r.id = c.record_id WHERE c.id = ?1 AND r.external_reference_type = ?2",
+                    params![id, RECORD_REF_TYPE],
+                    |r| r.get(0),
+                )
+                .optional()
+                .map_err(e2s)?;
+            let release = release.ok_or_else(|| format!("unknown control-vinyl copy '{id}'"))?;
+            tx.execute(
+                "UPDATE record_release SET title = ?1, external_reference_id = ?2 WHERE id = ?3",
+                params![input.title.trim(), input.format.trim(), release],
+            )
+            .map_err(e2s)?;
+            tx.execute(
+                "UPDATE record_copy SET nickname = ?1, cleaning_state = ?2, retired = ?3 WHERE id = ?4",
+                params![opt_text(&input.nickname), opt_text(&input.cleaning_state), input.retired as i64, id],
+            )
+            .map_err(e2s)?;
+            id.to_string()
+        }
+        None => {
+            let release = new_id();
+            let copy = new_id();
+            tx.execute(
+                "INSERT INTO record_release (id, title, external_reference_type, external_reference_id) VALUES (?1, ?2, ?3, ?4)",
+                params![release, input.title.trim(), RECORD_REF_TYPE, input.format.trim()],
+            )
+            .map_err(e2s)?;
+            tx.execute(
+                "INSERT INTO record_copy (id, record_id, nickname, cleaning_state, retired) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![copy, release, opt_text(&input.nickname), opt_text(&input.cleaning_state), input.retired as i64],
+            )
+            .map_err(e2s)?;
+            copy
+        }
+    };
+    for s in &input.sides {
+        match s.id.as_deref().map(str::trim).filter(|x| !x.is_empty()) {
+            Some(sid) => {
+                let n = tx
+                    .execute(
+                        "UPDATE record_side SET side_label = ?1, nominal_rpm = ?2, expected_duration_sec = ?3 WHERE id = ?4 AND record_copy_id = ?5",
+                        params![s.side_label.trim(), s.nominal_rpm, s.expected_duration_sec, sid, copy_id],
+                    )
+                    .map_err(e2s)?;
+                if n == 0 {
+                    return Err(format!("side '{sid}' does not belong to this copy"));
+                }
+            }
+            None => {
+                tx.execute(
+                    "INSERT INTO record_side (id, record_copy_id, side_label, nominal_rpm, expected_duration_sec) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![new_id(), copy_id, s.side_label.trim(), s.nominal_rpm, s.expected_duration_sec],
+                )
+                .map_err(e2s)?;
+            }
+        }
+    }
+    let n: i64 = tx
+        .query_row("SELECT COUNT(DISTINCT lower(trim(side_label))) - COUNT(*) FROM record_side WHERE record_copy_id = ?1", [&copy_id], |r| r.get(0))
+        .map_err(e2s)?;
+    if n != 0 {
+        return Err("side labels must be unique within a copy".into());
+    }
+    tx.commit().map_err(e2s)?;
+    get_record(conn, &copy_id)?.ok_or_else(|| "record copy vanished after save".to_string())
+}
+
+#[tauri::command]
+pub fn wearmap_records_list(app: AppHandle) -> Result<Vec<RecordCopy>, String> {
+    let conn = open_database(&database_path(&app)?)?;
+    list_records(&conn)
+}
+
+#[tauri::command]
+pub fn wearmap_record_save(app: AppHandle, record: RecordCopyInput) -> Result<RecordCopy, String> {
+    let mut conn = open_database(&database_path(&app)?)?;
+    save_record(&mut conn, &record)
+}
+
 #[tauri::command]
 pub fn wearmap_save(app: AppHandle, scan: WearScanInput) -> Result<WearScan, String> {
     let mut conn = open_database(&database_path(&app)?)?;
@@ -551,6 +781,105 @@ mod tests {
         assert!(c
             .execute("INSERT INTO wear_scan (id, record_side_id, format, bin_sec, coverage, verdict, created_at) VALUES ('z', 'no-side', 'x', 2, 1, 'keep', 't')", [])
             .is_err());
+    }
+
+    fn rec(title: &str, sides: &[&str]) -> RecordCopyInput {
+        RecordCopyInput {
+            id: None,
+            title: title.into(),
+            format: "Serato CV02.5".into(),
+            nickname: Some(" Deck 1 ".into()),
+            cleaning_state: None,
+            retired: false,
+            sides: sides.iter().map(|l| RecordSideInput { id: None, side_label: (*l).into(), nominal_rpm: Some(33.333333), expected_duration_sec: Some(712.0) }).collect(),
+        }
+    }
+
+    #[test]
+    fn record_copies_create_update_list_and_take_scans() {
+        let mut c = mem();
+        let a = save_record(&mut c, &rec("Serato CV02.5", &["A", "B"])).unwrap();
+        assert_eq!((a.title.as_str(), a.format.as_str(), a.nickname.as_deref(), a.sides.len()), ("Serato CV02.5", "Serato CV02.5", Some("Deck 1"), 2));
+        assert_eq!(a.sides.iter().map(|s| s.side_label.as_str()).collect::<Vec<_>>(), ["A", "B"]);
+        // music records from the side scan (fixture copy-1) are not control vinyl
+        assert_eq!(list_records(&c).unwrap().iter().map(|r| r.id.clone()).collect::<Vec<_>>(), vec![a.id.clone()]);
+        // a scan can be saved against the new side
+        save(&mut c, &scan(&a.sides[0].id, 3)).unwrap();
+        // update: rename, mark cleaned, edit side A, add side C
+        let mut u = rec("Serato CV02.5 (2nd)", &[]);
+        u.id = Some(a.id.clone());
+        u.cleaning_state = Some("cleaned".into());
+        u.sides = vec![
+            RecordSideInput { id: Some(a.sides[0].id.clone()), side_label: "A".into(), nominal_rpm: Some(45.0), expected_duration_sec: None },
+            RecordSideInput { id: None, side_label: "C".into(), nominal_rpm: None, expected_duration_sec: None },
+        ];
+        let b = save_record(&mut c, &u).unwrap();
+        assert_eq!(b.id, a.id);
+        assert_eq!((b.title.as_str(), b.cleaning_state.as_deref(), b.sides.len()), ("Serato CV02.5 (2nd)", Some("cleaned"), 3));
+        assert_eq!((b.sides[0].nominal_rpm, b.sides[0].expected_duration_sec), (Some(45.0), None));
+        assert_eq!(list(&c, Some(&a.sides[0].id), None).unwrap().len(), 1, "scans stay on the edited side");
+    }
+
+    #[test]
+    fn record_validation_and_ownership() {
+        let mut c = mem();
+        let v = |f: &dyn Fn(&mut RecordCopyInput)| {
+            let mut i = rec("CV", &["A"]);
+            f(&mut i);
+            validate_record(&i)
+        };
+        assert!(v(&|_| {}).is_ok());
+        assert!(v(&|i| i.title = " ".into()).is_err());
+        assert!(v(&|i| i.title = "x".repeat(121)).is_err());
+        assert!(v(&|i| i.format = "".into()).is_err());
+        assert!(v(&|i| i.sides.clear()).unwrap_err().contains("sides"));
+        assert!(v(&|i| i.sides = rec("x", &["A", "B", "C", "D", "E"]).sides).is_err());
+        assert!(v(&|i| i.sides = rec("x", &["A", " a "]).sides).unwrap_err().contains("twice"));
+        assert!(v(&|i| i.sides[0].nominal_rpm = Some(0.5)).is_err());
+        assert!(v(&|i| i.sides[0].expected_duration_sec = Some(MAX_T_SEC + 1.0)).is_err());
+        // unknown copy, a side from another copy, a duplicate label added later: nothing written
+        let mut u = rec("CV", &["A"]);
+        u.id = Some("copy-1".into());
+        assert!(save_record(&mut c, &u).unwrap_err().contains("unknown control-vinyl copy"), "music copies are not editable here");
+        let a = save_record(&mut c, &rec("CV", &["A"])).unwrap();
+        let b = save_record(&mut c, &rec("CV", &["A"])).unwrap();
+        let mut steal = rec("CV", &["A"]);
+        steal.id = Some(b.id.clone());
+        steal.sides[0].id = Some(a.sides[0].id.clone());
+        assert!(save_record(&mut c, &steal).unwrap_err().contains("does not belong"));
+        let mut dup = rec("CV", &["a"]);
+        dup.id = Some(a.id.clone());
+        assert!(save_record(&mut c, &dup).unwrap_err().contains("unique"));
+        assert_eq!(list_records(&c).unwrap().iter().find(|r| r.id == a.id).unwrap().sides.len(), 1);
+    }
+
+    #[test]
+    fn record_contract_examples_round_trip() {
+        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/wearmap.json")).unwrap();
+        let v: Value = serde_json::from_str(&raw).unwrap();
+        let input: RecordCopyInput = serde_json::from_value(v["wearmap_record_save"]["request"]["record"].clone()).unwrap();
+        let mut c = mem();
+        let saved = save_record(&mut c, &input).unwrap();
+        let mut got = serde_json::to_value(&saved).unwrap();
+        let want = &v["wearmap_record_save"]["response"];
+        got["id"] = want["id"].clone();
+        got["releaseId"] = want["releaseId"].clone();
+        for (k, s) in got["sides"].as_array_mut().unwrap().iter_mut().enumerate() {
+            s["id"] = want["sides"][k]["id"].clone();
+        }
+        // JS writes 712 where serde writes 712.0: compare numbers by value
+        fn norm(v: &Value) -> Value {
+            match v {
+                Value::Number(n) => json!(n.as_f64()),
+                Value::Array(a) => Value::Array(a.iter().map(norm).collect()),
+                Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect()),
+                x => x.clone(),
+            }
+        }
+        assert_eq!(norm(&got), norm(want));
+        let mut listed = serde_json::to_value(list_records(&c).unwrap()).unwrap();
+        listed[0] = got;
+        assert_eq!(norm(&listed), norm(&v["wearmap_records_list"]["response"]));
     }
 
     #[test]

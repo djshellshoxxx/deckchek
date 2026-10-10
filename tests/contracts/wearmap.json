@@ -93,5 +93,20 @@
     "command": "wearmap_delete",
     "request": { "id": "00000000-0000-4000-8000-000000000013" },
     "response": true
+  },
+  "wearmap_records_list": {
+    "command": "wearmap_records_list",
+    "request": {},
+    "response": [{ "id": "copy-9", "releaseId": "rel-9", "title": "Serato CV02.5", "format": "Serato CV02.5", "nickname": "Deck 1", "cleaningState": null, "retired": false,
+      "sides": [{ "id": "side-1", "sideLabel": "A", "nominalRpm": 33.333333, "expectedDurationSec": 712 },
+        { "id": "side-2", "sideLabel": "B", "nominalRpm": 33.333333, "expectedDurationSec": 922 }] }]
+  },
+  "wearmap_record_save": {
+    "command": "wearmap_record_save",
+    "request": { "record": { "id": null, "title": "Serato CV02.5", "format": "Serato CV02.5", "nickname": "Deck 1", "cleaningState": null, "retired": false,
+      "sides": [{ "id": null, "sideLabel": "A", "nominalRpm": 33.333333, "expectedDurationSec": 712 }, { "id": null, "sideLabel": "B", "nominalRpm": 33.333333, "expectedDurationSec": 922 }] } },
+    "response": { "id": "copy-9", "releaseId": "rel-9", "title": "Serato CV02.5", "format": "Serato CV02.5", "nickname": "Deck 1", "cleaningState": null, "retired": false,
+      "sides": [{ "id": "side-1", "sideLabel": "A", "nominalRpm": 33.333333, "expectedDurationSec": 712 },
+        { "id": "side-2", "sideLabel": "B", "nominalRpm": 33.333333, "expectedDurationSec": 922 }] }
   }
 }

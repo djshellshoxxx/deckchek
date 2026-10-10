@@ -96,6 +96,7 @@ pub fn run() {
             dj_sessions::dj_session_spans,
             // [FS-13] handlers
             wearmap::wearmap_save, wearmap::wearmap_list, wearmap::wearmap_get, wearmap::wearmap_delete,
+            wearmap::wearmap_records_list, wearmap::wearmap_record_save,
             // [FS-14] handlers
             scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
