@@ -1,0 +1,97 @@
+{
+  "wearmap_save": {
+    "command": "wearmap_save",
+    "request": {
+      "scan": {
+        "fullSideScanId": null,
+        "recordSideId": "side-a",
+        "sessionId": null,
+        "stylusAssetId": "stylus-1",
+        "format": "Serato CV02.5",
+        "binSec": 2,
+        "coverage": 0.62,
+        "verdict": "watch",
+        "score": 83.333333,
+        "summary": {
+          "v": 1, "sideLabel": "A", "sideDurationSec": 712, "elapsedSec": 6, "validBins": 3, "interruptedBins": 0,
+          "goodPct": 66.666667, "degradedPct": 0, "badPct": 33.333333, "lockLostPct": 0, "dropouts": 3,
+          "fromNeedleDrop": true, "needleDropSec": 0,
+          "worst": [{ "idx": 1, "tSec": 2, "class": "bad" }],
+          "envelope": { "hz": 1, "db": [-18.1, -18.2, -24.5, -21.3, -18.0, -18.1] },
+          "reasons": ["bad"], "stylusNote": null
+        },
+        "geometry": { "v": 1, "outerMm": 146, "innerMm": 58, "grooveModel": "linear-radius" },
+        "bins": [
+          { "idx": 0, "tSec": 0, "snrDb": 31.2, "phaseErrDeg": 1.5, "balanceDb": 0.1, "levelDbfs": -21.1, "dropouts": 0, "flags": 0 },
+          { "idx": 1, "tSec": 2, "snrDb": 12.5, "phaseErrDeg": 33, "balanceDb": -0.4, "levelDbfs": -23.8, "dropouts": 3, "flags": 0 },
+          { "idx": 2, "tSec": 4, "snrDb": 30.4, "phaseErrDeg": 2, "balanceDb": 0.2, "levelDbfs": -21, "dropouts": 0, "flags": 4 }
+        ]
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "fullSideScanId": null,
+      "recordSideId": "side-a",
+      "sessionId": null,
+      "stylusAssetId": "stylus-1",
+      "format": "Serato CV02.5",
+      "binSec": 2,
+      "coverage": 0.62,
+      "verdict": "watch",
+      "score": 83.333333,
+      "summary": {
+        "v": 1, "sideLabel": "A", "sideDurationSec": 712, "elapsedSec": 6, "validBins": 3, "interruptedBins": 0,
+        "goodPct": 66.666667, "degradedPct": 0, "badPct": 33.333333, "lockLostPct": 0, "dropouts": 3,
+        "fromNeedleDrop": true, "needleDropSec": 0,
+        "worst": [{ "idx": 1, "tSec": 2, "class": "bad" }],
+        "envelope": { "hz": 1, "db": [-18.1, -18.2, -24.5, -21.3, -18.0, -18.1] },
+        "reasons": ["bad"], "stylusNote": null
+      },
+      "geometry": { "v": 1, "outerMm": 146, "innerMm": 58, "grooveModel": "linear-radius" },
+      "createdAt": "2026-10-10T20:00:00.000Z",
+      "binCount": 3
+    }
+  },
+  "wearmap_list": {
+    "command": "wearmap_list",
+    "request": { "recordSideId": "side-a", "limit": 50 },
+    "response": []
+  },
+  "wearmap_get": {
+    "command": "wearmap_get",
+    "request": { "id": "00000000-0000-4000-8000-000000000013" },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "fullSideScanId": null,
+      "recordSideId": "side-a",
+      "sessionId": null,
+      "stylusAssetId": "stylus-1",
+      "format": "Serato CV02.5",
+      "binSec": 2,
+      "coverage": 0.62,
+      "verdict": "watch",
+      "score": 83.333333,
+      "summary": {
+        "v": 1, "sideLabel": "A", "sideDurationSec": 712, "elapsedSec": 6, "validBins": 3, "interruptedBins": 0,
+        "goodPct": 66.666667, "degradedPct": 0, "badPct": 33.333333, "lockLostPct": 0, "dropouts": 3,
+        "fromNeedleDrop": true, "needleDropSec": 0,
+        "worst": [{ "idx": 1, "tSec": 2, "class": "bad" }],
+        "envelope": { "hz": 1, "db": [-18.1, -18.2, -24.5, -21.3, -18.0, -18.1] },
+        "reasons": ["bad"], "stylusNote": null
+      },
+      "geometry": { "v": 1, "outerMm": 146, "innerMm": 58, "grooveModel": "linear-radius" },
+      "createdAt": "2026-10-10T20:00:00.000Z",
+      "binCount": 3,
+      "bins": [
+        { "idx": 0, "tSec": 0, "snrDb": 31.2, "phaseErrDeg": 1.5, "balanceDb": 0.1, "levelDbfs": -21.1, "dropouts": 0, "flags": 0 },
+        { "idx": 1, "tSec": 2, "snrDb": 12.5, "phaseErrDeg": 33, "balanceDb": -0.4, "levelDbfs": -23.8, "dropouts": 3, "flags": 0 },
+        { "idx": 2, "tSec": 4, "snrDb": 30.4, "phaseErrDeg": 2, "balanceDb": 0.2, "levelDbfs": -21, "dropouts": 0, "flags": 4 }
+      ]
+    }
+  },
+  "wearmap_delete": {
+    "command": "wearmap_delete",
+    "request": { "id": "00000000-0000-4000-8000-000000000013" },
+    "response": true
+  }
+}
