@@ -3,6 +3,7 @@ name: DeckChek tests
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -17,12 +18,44 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
+      - name: Device index is up to date
+        run: node tools/build-device-index.mjs --check
+      - name: Timecode facts are consistent
+        run: node tools/check-timecode-facts.mjs
+      - name: Migration names and numbering
+        run: node tools/check-migrations.mjs
+      - name: Release tags need gap-free migrations
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node tools/check-migrations.mjs --contiguous
       - name: Syntax-check every app module
         run: |
           find app -name '*.js' -print0 | while IFS= read -r -d '' f; do
             echo "node --check $f"
             node --check "$f"
           done
+
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright and Chromium (CI only)
+        run: |
+          npm install --global playwright@1.56.1
+          npx --yes playwright@1.56.1 install --with-deps chromium
+      - name: Run UI smoke test
+        run: NODE_PATH="$(npm root -g)" node tools/ui-smoke.mjs
+        env:
+          SHOTS_DIR: ${{ runner.temp }}/deckchek-shots
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-smoke-screenshots
+          path: ${{ runner.temp }}/deckchek-shots
+          if-no-files-found: ignore
 
   rust-tests:
     runs-on: ubuntu-22.04
