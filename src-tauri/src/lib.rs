@@ -97,7 +97,7 @@ pub fn run() {
             // [FS-12] handlers
             stylus::stylus_benchmark_save, stylus::stylus_benchmark_list, stylus::stylus_alert_snooze, stylus::stylus_alert_list,
             stylus::stylus_baseline, stylus::stylus_replace, stylus::stylus_rated_life_set, stylus::stylus_rated_life_get,
-            dj_sessions::dj_session_spans,
+            dj_sessions::dj_session_spans, commands::list_capture_sessions,
             // [FS-13] handlers
             wearmap::wearmap_save, wearmap::wearmap_list, wearmap::wearmap_get, wearmap::wearmap_delete,
             wearmap::wearmap_records_list, wearmap::wearmap_record_save,
