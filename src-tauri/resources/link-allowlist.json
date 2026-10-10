@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "hosts": [
+    "pioneerdj.com",
+    "alphatheta.com",
+    "rekordbox.com",
+    "serato.com",
+    "rane.com",
+    "native-instruments.com",
+    "allen-heath.com",
+    "technics.com",
+    "panasonic.com",
+    "mixxx.org",
+    "github.com"
+  ],
+  "allowSubdomains": [
+    "*.pioneerdj.com",
+    "*.alphatheta.com",
+    "*.rekordbox.com",
+    "*.serato.com",
+    "*.rane.com",
+    "*.native-instruments.com",
+    "*.allen-heath.com",
+    "*.technics.com",
+    "*.panasonic.com",
+    "*.mixxx.org",
+    "*.github.com"
+  ]
+}

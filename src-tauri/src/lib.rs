@@ -15,6 +15,7 @@ mod app_state;
 // [FS-03] mods
 // [FS-06] mods
 // [FS-07] mods
+mod links;
 // [FS-08] mods
 // [FS-10] mods
 // [FS-11] mods
@@ -55,6 +56,7 @@ pub fn run() {
             // [FS-03] handlers
             // [FS-06] handlers
             // [FS-07] handlers
+            links::open_external_url, links::open_path, links::reveal_path,
             // [FS-08] handlers
             // [FS-10] handlers
             // [FS-11] handlers
@@ -80,6 +82,7 @@ pub fn run() {
             // [FS-03] setup
             // [FS-06] setup
             // [FS-07] setup
+            _app.handle().plugin(links::navigation_guard())?;
             // [FS-08] setup
             // [FS-10] setup
             // [FS-11] setup
