@@ -91,6 +91,9 @@ export const WORKFLOWS = [
   // [FS-02] workflows
   // [FS-03] workflows
   // [FS-06] workflows
+  // "Test medium" form field (FS-06): added to PARAMS here so this anchor owns it; ui/media-picker.js fills the options
+  // and shows it only while features.testMedia is on (modes stays empty otherwise).
+  ...(PARAMS.push({ id: 'testMedium', label: 'Test medium', type: 'select', value: '', options: [['', 'Auto']], modes: [], allModes: [...SPEED_MODES, 'Channel & cartridge', 'Channel separation', 'DVS signal'], help: 'Pick the disc you are playing to prefill its reference values. Auto keeps the manual settings.' }), []),
   // [FS-07] workflows
   // [FS-08] workflows
   // [FS-10] workflows

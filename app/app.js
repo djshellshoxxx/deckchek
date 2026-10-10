@@ -20,6 +20,7 @@ import { bindSettings } from './features.js';
 // [FS-02] screens imports
 // [FS-03] screens imports
 // [FS-06] screens imports
+import { mediaScreenDefs } from './ui/screens/media.js';
 // [FS-07] screens imports
 // [FS-08] screens imports
 // [FS-10] screens imports
@@ -51,6 +52,7 @@ const SCREENS = [
   // [FS-02] screens
   // [FS-03] screens
   // [FS-06] screens
+  ...mediaScreenDefs(),
   // [FS-07] screens
   // [FS-08] screens
   // [FS-10] screens
