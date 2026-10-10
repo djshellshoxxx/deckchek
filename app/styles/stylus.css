@@ -1,0 +1,89 @@
+/* FS-12 Stylus wear screen. Tokens come from styles.css; nothing here hard-codes a colour. */
+.sty-picker { min-width: 220px; max-width: 320px; }
+.sty-status { margin: 12px 0 0; }
+.sty-status:empty { display: none; }
+.sty-panel { margin-top: 16px; display: grid; gap: 16px; }
+.sty-panel:focus { outline: none; }
+.sty-overview, .sty-hours, .sty-bench, .sty-trends, .sty-settings { display: grid; gap: 16px; }
+.sty-note { margin: 0; }
+.sty-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sty-actions kbd, .sty-form kbd { margin-left: 6px; padding: 0 5px; border: 1px solid currentColor; border-radius: var(--r-sm); font: 600 11px/16px var(--font-ui); opacity: .8; }
+
+/* gauge */
+.sty-gauge-card { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+.sty-gauge-wrap { width: 168px; flex: 0 0 auto; }
+.sty-gauge { width: 100%; height: auto; display: block; }
+.sty-ring-track { fill: none; stroke: var(--raised); stroke-width: 12; }
+.sty-ring { fill: none; stroke-width: 12; stroke-linecap: butt; }
+.sty-ring-pass { stroke: var(--pass); }
+.sty-ring-warn { stroke: var(--warn); }
+.sty-ring-fail { stroke: var(--fail); }
+.sty-gauge-num { fill: var(--text); font: 700 30px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.sty-gauge-unit { fill: var(--text-muted); font: 600 13px var(--font-ui); }
+.sty-gauge-pct { fill: var(--text-muted); font: 600 13px var(--font-ui); font-variant-numeric: tabular-nums; }
+.sty-gauge-side { display: grid; gap: 12px; flex: 1 1 280px; min-width: 0; }
+.sty-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 20px; margin: 0; }
+.sty-facts dt { font: 600 12px/16px var(--font-ui); text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.sty-facts dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sty-summary { margin: 0; color: var(--text); }
+
+/* alerts */
+.sty-alert-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sty-alert { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--sunken); }
+.sty-alert-msg { flex: 1 1 260px; min-width: 0; }
+.sty-alert-snoozed { opacity: .75; }
+
+/* forms and lists */
+.sty-form { display: grid; gap: 14px; align-content: start; }
+.sty-form .card-head { margin-bottom: 0; }
+.sty-check { display: flex; gap: 10px; align-items: center; min-height: 36px; cursor: pointer; }
+.sty-source { color: var(--text-muted); }
+.sty-source p { margin: 0 0 4px; }
+.sty-table td, .sty-table th { white-space: nowrap; }
+.sty-table td:nth-child(5) { white-space: normal; }
+.sty-proposals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sty-proposal { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--sunken); }
+.sty-prop-main { flex: 1 1 220px; min-width: 0; }
+.sty-prop-hours { width: 96px !important; }
+
+/* trend charts: small multiples */
+.sty-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }
+.sty-fig { margin: 0; display: grid; gap: 8px; align-content: start; }
+.sty-fig-head { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.sty-chart { width: 100%; height: auto; display: block; font-family: var(--font-ui); overflow: visible; }
+.sty-grid { stroke: var(--divider); stroke-width: 1; }
+.sty-axis { stroke: var(--border-soft); stroke-width: 1; }
+.sty-tick { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sty-axis-label { fill: var(--text-muted); font-size: 12px; font-weight: 600; }
+.sty-band { fill: var(--warn); opacity: .10; }
+:root[data-theme="light"] .sty-band { opacity: .16; }
+.sty-limit { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.sty-limit-label { fill: var(--text); font-size: 11px; font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.sty-fit { stroke: var(--text); stroke-width: 1.75; stroke-dasharray: 2 4; stroke-linecap: round; opacity: .85; }
+.sty-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.sty-dot-x { fill: var(--surface); stroke: var(--text-muted); stroke-width: 2; }
+.sty-hit { fill: transparent; }
+.sty-point { cursor: pointer; outline: none; }
+.sty-point:hover .sty-dot { fill: var(--accent-hover); }
+.sty-point:focus-visible .sty-hit { stroke: var(--focus); stroke-width: 2.5; fill: color-mix(in srgb, var(--focus) 14%, transparent); }
+.sty-fit-text { margin: 0; font-variant-numeric: tabular-nums; }
+.sty-legend { margin: 0; font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.sty-leg { display: inline-flex; align-items: center; white-space: nowrap; }
+.sty-key { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: -2px; box-sizing: border-box; }
+.sty-key-dot { border-radius: 50%; background: var(--accent); }
+.sty-key-x { transform: rotate(45deg) scale(.8); border: 2px solid var(--text-muted); background: var(--surface); }
+.sty-key-fit { height: 0; border-top: 2px dotted var(--text); }
+.sty-key-band { background: color-mix(in srgb, var(--warn) 30%, transparent); border: 1px dashed var(--warn); }
+.sty-point-detail p { margin: 0 0 8px; }
+.sty-data-table { margin-top: 4px; }
+
+/* rail alert badge: icon-shaped (text "!") plus colour, never colour alone */
+.rail-badge { position: absolute; top: 3px; right: 0; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font: 800 12px/18px var(--font-ui); text-align: center; border: 2px solid var(--surface); box-sizing: content-box; pointer-events: none; }
+.rail-badge-amber { background: var(--warn); color: var(--bg); }
+.rail-badge-red { background: var(--fail); color: var(--bg); }
+:root[data-theme="light"] .rail-badge-amber, :root[data-theme="light"] .rail-badge-red { color: #fff; }
+
+@media (max-width: 720px) {
+  .sty-chart-grid { grid-template-columns: 1fr; }
+  .sty-gauge-card { justify-content: center; }
+}

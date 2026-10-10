@@ -17,6 +17,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Open external links (FS-07) | Implemented | Allowlist plus confirm dialog; desktop command is authoritative. |
 | Test media library (FS-06) | Implemented | Picker prefill, result and History record of the medium used; flag `testMedia`. |
 | Backup and restore (FS-08) | Implemented | Verified `.deckchek-backup`, safety backup, schedule, free-space check on Windows. |
+| Stylus wear tracker (FS-12) | Implemented, flag `stylusWear`, hardware-unvalidated | Hours ledger (manual, DJ-log proposals), life gauge, benchmark entry, trend charts with regression, degradation alerts, snooze, replacement reset. Benchmarks are entered or filled from saved runs; a one-click guided capture and DeckChek-session hour proposals (AC-2) are not built yet. |
 | PDF reports (FS-03) | In progress | Print host and renderer pending; HTML/CSV/JSON export available. |
 | Startup/brake | Partial | Signal-envelope timing proxy implemented; validated platter-speed transition method remains outstanding. |
 | Cartridge diagnostics | Partial | Balance/polarity and THD estimate implemented; guided crosstalk/separation and full alignment workflows remain. |
