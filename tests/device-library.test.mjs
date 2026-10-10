@@ -175,7 +175,7 @@ test('device report lists every test, statuses and the unverified-spec disclaime
 test('catalog-store fallback: profile sync is idempotent and creates one asset per device', async () => {
   const storage = memStorage();
   const store = createCatalogStore({ invoke: null, storage });
-  const first = await store.syncDeviceProfiles(PROFILES);
+  const first = await store.syncDeviceProfiles(PROFILES, { createAssets: true });
   assert.equal(first.length, PROFILES.length);
   assert.ok(first.every(r => r.created && r.assetId && r.version === 1));
   const assets = await store.list('asset');
@@ -198,7 +198,7 @@ test('catalog-store fallback: profile sync prunes retired profiles and their aut
   const storage = memStorage();
   const store = createCatalogStore({ invoke: null, storage });
   const [a, b, c] = PROFILES.slice(0, 3);
-  const first = await store.syncDeviceProfiles([a, b, c]);
+  const first = await store.syncDeviceProfiles([a, b, c], { createAssets: true });
   await store.saveDeviceTestResult({ assetId: first[2].assetId, profileId: c.id, testId: 't1', status: 'pass' });
   assert.deepEqual((await store.syncDeviceProfiles([])), [], 'empty shipped set prunes nothing');
   assert.equal((await store.list('asset')).length, 3);
@@ -217,7 +217,7 @@ test('catalog-store fallback: profile sync prunes retired profiles and their aut
 
 test('catalog-store fallback: device results and learned maps round trip', async () => {
   const store = createCatalogStore({ invoke: null, storage: memStorage() });
-  const [synced] = await store.syncDeviceProfiles([byId('pioneer-ddj-s8')]);
+  const [synced] = await store.syncDeviceProfiles([byId('pioneer-ddj-s8')], { createAssets: true });
   const r1 = await store.saveDeviceTestResult({ assetId: synced.assetId, profileId: 'pioneer-ddj-s8', testId: 'ddjs8-driver', status: 'pass', detail: { summary: 'ok' }, sessionId: 'nope', createdAt: '2026-10-01T00:00:00Z' });
   assert.equal(r1.sessionId, null);
   await store.saveRun({ id: 'run-1', test: 'Stereo balance', createdAt: 'x', measurements: [], findings: [] });
@@ -240,6 +240,7 @@ test('catalog-store native bridge calls the device commands', async () => {
   await store.listDeviceTestResults('a');
   await store.saveMidiMap('a', 'p', {});
   await store.getMidiMap('a');
-  assert.deepEqual(calls.map(c => c[0]), ['device_profiles_sync', 'device_test_result_save', 'device_test_results', 'device_midi_map_save', 'device_midi_map_get']);
-  assert.deepEqual(calls[2][1], { assetId: 'a' });
+  assert.deepEqual(calls.map(c => c[0]), ['wizard_has_user_data', 'device_profiles_sync', 'device_test_result_save', 'device_test_results', 'device_midi_map_save', 'device_midi_map_get']);
+  assert.deepEqual(calls[3][1], { assetId: 'a' });
+  assert.equal(calls[1][1].createAssets, false, 'the setup wizard owns gear creation while it is enabled');
 });

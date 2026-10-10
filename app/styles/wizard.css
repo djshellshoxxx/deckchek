@@ -1,0 +1,122 @@
+/* First-run setup wizard (FS-01). Uses the tokens from styles.css; loaded on demand by ui/workflows/setup-wizard.js. */
+
+dialog.wizard { width: min(980px, 94vw); max-width: none; height: min(780px, 92vh); max-height: 92vh; padding: 0; overflow: hidden; border-radius: var(--r-lg); }
+dialog.wizard[open] { display: block; }
+.wiz-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; min-height: 0; }
+
+/* header + stepper */
+.wiz-head { padding: 18px 28px 14px; border-bottom: 1px solid var(--divider); background: var(--surface); display: grid; gap: 14px; }
+.wiz-title-row { display: flex; align-items: center; gap: 14px; }
+.wiz-title-row > div { flex: 1; min-width: 0; }
+.wiz-title-row h2 { font: 700 20px/26px var(--font-display); }
+.wiz-count { font-size: 13px; line-height: 18px; margin: 0; }
+.wiz-mark { flex: none; }
+.wiz-stepper .step { padding: 2px 4px; }
+.wiz-stepper .step-todo { opacity: .85; }
+.wiz-stepper .step-label { font-size: 13px; }
+.wiz-stepper li:not(:last-child)::after { margin: 0 8px; min-width: 8px; }
+.wiz-stepper .step-todo .step-label, .wiz-stepper .step-done .step-label { display: none; }
+@media (min-width: 1000px) { .wiz-stepper .step-done .step-label { display: inline; } }
+.wiz-stepper li:has(.step-current) { flex: 0 0 auto; }
+.wiz-stepper li:has(.step-current)::after { flex: 1; min-width: 24px; }
+.wiz-stepper li { flex: 1 1 0; }
+.wiz-stepper li:has(.step-current) { flex-grow: 0; }
+.step-todo .step-num { color: var(--text-muted); }
+
+/* body */
+.wiz-body { overflow-y: auto; padding: 24px 28px 28px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; background: var(--surface); }
+.wiz-step-title { font: 700 24px/30px var(--font-display); letter-spacing: -.01em; }
+.wiz-step-title:focus { outline: none; }
+.wiz-lede { color: var(--text-muted); max-width: 66ch; margin-top: -8px; }
+.wiz-body .hint { margin-top: 0; }
+.wiz-body .banner { margin: 0; }
+
+/* footer */
+.wiz-foot { display: flex; align-items: center; gap: 12px; padding: 14px 28px; border-top: 1px solid var(--divider); background: var(--surface); }
+.wiz-foot-note { margin-right: auto; margin-left: 6px; }
+.wiz-foot .btn[hidden] { display: none; }
+.wiz-foot .btn-lg { min-width: 132px; }
+
+/* welcome */
+.wiz-checks { list-style: none; display: grid; gap: 10px; }
+.wiz-checks li { display: flex; align-items: flex-start; gap: 14px; padding: 12px 14px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--bg); }
+.wiz-checks .icon { flex: none; color: var(--accent); margin-top: 2px; }
+.wiz-checks strong { display: block; }
+.wiz-checks span { color: var(--text-muted); }
+.wiz-checks strong + * { color: var(--text-muted); }
+
+/* interface */
+.wiz-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: start; }
+.wiz-warn { color: var(--warn); display: flex; gap: 6px; align-items: center; }
+.wiz-cal-status, .wiz-cal-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--bg); min-height: 50px; }
+.wiz-cal-status:empty { display: none; }
+.wiz-cal-status > span:not(.chip), .wiz-cal-banner > span:not(.chip) { flex: 1 1 260px; color: var(--text-muted); }
+.wiz-inline-actions, .wiz-actions-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.wiz-skeleton { display: grid; gap: 12px; }
+.wiz-skeleton span { display: block; height: 44px; border-radius: var(--r-md); background: linear-gradient(90deg, var(--raised), color-mix(in srgb, var(--raised) 60%, var(--surface)), var(--raised)); background-size: 200% 100%; animation: wiz-shimmer 1.4s linear infinite; }
+@keyframes wiz-shimmer { to { background-position: -200% 0; } }
+
+/* levels */
+.wiz-levels { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.wiz-meter { height: 300px; display: flex; padding: 12px 14px 8px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--bg); }
+.wiz-meter[hidden] { display: none; }
+.wiz-levels:has(.wiz-meter[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.wiz-levels-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.wiz-verdict:empty { display: none; }
+.wiz-verdict .verdict { margin: 0; }
+#wiz-tone[aria-pressed="true"] { border-color: var(--rec); box-shadow: inset 0 0 0 1px var(--rec); }
+#wiz-tone[aria-pressed="true"] .icon { color: var(--rec); }
+
+/* calibration */
+.wiz-cal-banner:empty { display: none; }
+.wiz-cal-embed { display: grid; gap: 16px; }
+.wiz-cal-embed .cal-grid { grid-template-columns: minmax(0, 1fr); }
+.cal-embedded .card { background: var(--bg); }
+.cal-embedded .cal-main { display: grid; gap: 16px; }
+
+/* gear */
+.wiz-gear-tools { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.wiz-search { flex: 1 1 280px; max-width: 420px; }
+.wiz-search-box { position: relative; display: block; }
+.wiz-search-box .icon { position: absolute; left: 10px; top: 10px; color: var(--text-faint); pointer-events: none; }
+.wiz-search .wiz-search-box input[type="search"] { padding-left: 34px; }
+.wiz-gear-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.wiz-gear-group[hidden] { display: none; }
+.wiz-gear-group h4 { text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.wiz-gear-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.wiz-gear { position: relative; display: grid; grid-template-columns: 24px 72px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px; min-height: 84px; border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--bg); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast); }
+.wiz-gear[hidden] { display: none; }
+.wiz-gear:hover { border-color: var(--border); }
+.wiz-gear:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.wiz-gear:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wiz-gear input[type="checkbox"] { width: 24px; height: 24px; margin: 0; }
+.wiz-gear-thumb { width: 72px; height: 60px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--raised); color: var(--text-faint); overflow: hidden; }
+.wiz-gear-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.wiz-gear-text { display: grid; gap: 1px; min-width: 0; }
+.wiz-gear-text strong { overflow-wrap: anywhere; }
+.wiz-gear-own { font: 600 12px/16px var(--font-ui); letter-spacing: .02em; color: var(--text-faint); }
+.wiz-gear:has(input:checked) .wiz-gear-own { color: var(--accent); }
+.wiz-gear:has(input:checked) .wiz-gear-own::before { content: "✓ "; }
+
+/* health + summary */
+.wiz-findings { margin: 0; display: grid; gap: 10px; }
+.wiz-actions-row { margin-top: 2px; }
+.wiz-summary { width: 100%; border-collapse: collapse; border: 1px solid var(--divider); border-radius: var(--r-md); overflow: hidden; }
+.wiz-summary th, .wiz-summary td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+.wiz-summary tr:last-child th, .wiz-summary tr:last-child td { border-bottom: 0; }
+.wiz-summary th { width: 11em; font: 600 13px/20px var(--font-ui); letter-spacing: .02em; color: var(--text-muted); background: var(--bg); }
+
+/* resume banner (in the main area, outside the dialog) */
+.wiz-banner { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 24px 0; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--info) 55%, transparent); border-radius: var(--r-md); background: var(--info-bg); }
+.wiz-banner-icon { color: var(--info); display: grid; }
+.wiz-banner-text { display: grid; flex: 1 1 240px; }
+.wiz-banner .banner-actions { display: flex; gap: 8px; }
+
+@media (max-width: 760px) {
+  .wiz-head, .wiz-body, .wiz-foot { padding-left: 16px; padding-right: 16px; }
+  .wiz-levels { grid-template-columns: minmax(0, 1fr); }
+  .wiz-foot-note { display: none; }
+  .wiz-foot { flex-wrap: wrap; }
+  .wiz-summary th { width: 8em; }
+}
+@media (prefers-reduced-motion: reduce) { .wiz-skeleton span { animation: none; } }

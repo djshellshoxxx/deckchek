@@ -16,7 +16,12 @@ import { emptyState } from '../workflows/flow.js';
 
 const ISSUE_STATUS = { error: 'fail', warning: 'warn' };
 
-export function createCalibrationScreen(section) {
+/**
+ * `embedded` (setup wizard, FS-01): no screen header and no saved-profiles side panel, single column, and the returned
+ * api also offers isRunning() and dispose() so the host can stop a loopback when its dialog closes.
+ * `sinkId` preselects the output device.
+ */
+export function createCalibrationScreen(section, { embedded = false, sinkId = '' } = {}) {
   const state = { profile: null, running: false, level: -20, duration: 2, playback: null, session: null };
 
   section.innerHTML = `
@@ -57,6 +62,11 @@ export function createCalibrationScreen(section) {
     </div>`;
 
   const $ = s => section.querySelector(s);
+  if (embedded) {
+    section.classList.add('cal-embedded');
+    $('.screen-head').hidden = true;
+    $('.cal-side').hidden = true;
+  }
   const banner = $('.banner-slot');
   const meter = liveAvailable() ? createStereoMeter($('#cal-meter'), { variant: 'large', label: 'Loopback input level' }) : null;
   if (!meter) $('#cal-meter').append(emptyState({ icon: 'mic', title: 'Desktop app required', text: 'Live loopback needs native capture. Import a recorded loopback file instead.' }));
@@ -76,7 +86,8 @@ export function createCalibrationScreen(section) {
     if (!outs.length) return;
     const prev = sel.value;
     sel.replaceChildren(h('option', { value: '', text: 'System default output' }), ...outs.filter(o => o.id !== 'default').map(o => h('option', { value: o.id, text: o.label })));
-    sel.value = [...sel.options].some(o => o.value === prev) ? prev : '';
+    const want = prev || (embedded ? sinkId : '');
+    sel.value = [...sel.options].some(o => o.value === want) ? want : '';
     renderTarget();
   }
   function stimulus(sampleRate = settings.sampleRate) {
@@ -223,7 +234,16 @@ export function createCalibrationScreen(section) {
   renderList();
   $('#cal-profile').append(emptyState({ icon: 'calibration', title: 'No profile analysed yet', text: 'Run the loopback or import a recording to see gain, mismatch, noise floor, latency and clock error.' }));
 
+  if (embedded) populateOutputs();
+
   return {
+    isRunning: () => state.running,
+    /** Stop playback and discard an in-flight capture (host dialog closing or the user leaving the step). */
+    dispose: async () => {
+      state.playback?.stop();
+      const session = state.session; state.session = null;
+      try { await session?.cancel(); } catch { /* already stopped */ }
+    },
     onSpace: () => { if (liveAvailable()) { runLoopback(); return true; } return false; },
     onEscape: () => { if (state.running) { state.playback?.stop(); return true; } return false; },
     onExport: () => state.profile ? download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(state.profile), 'application/json') : toast('Analyse a loopback first — then Ctrl+E exports the profile.'),
