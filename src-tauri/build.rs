@@ -173,5 +173,21 @@ fn main() {
     let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR")).join("migrations.rs");
     fs::write(&out, code).unwrap_or_else(|e| panic!("cannot write {}: {e}", out.display()));
 
-    tauri_build::build()
+    // Embed our own Windows app manifest (Common Controls v6 + DPI awareness)
+    // for every linked binary, including `cargo test` executables. Tauri's
+    // default only covers the app binary, so test binaries linking the dialog
+    // plugin failed to start with STATUS_ENTRYPOINT_NOT_FOUND (TaskDialogIndirect).
+    let target_windows_msvc = env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc");
+    if target_windows_msvc {
+        let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR")).join("windows-app-manifest.xml");
+        println!("cargo:rerun-if-changed={}", manifest.display());
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        println!("cargo:rustc-link-arg=/WX");
+        let windows = tauri_build::WindowsAttributes::new_without_app_manifest();
+        tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows)).expect("tauri build");
+    } else {
+        tauri_build::build()
+    }
 }
