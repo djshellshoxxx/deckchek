@@ -67,6 +67,74 @@ pub struct PersistRun {
     pub session_type: Option<String>,
     #[serde(default)]
     pub workflow: Option<String>,
+    /// Real capture start (UTC ISO). Absent on payloads from older builds: the
+    /// session then spans `created_at` only, exactly as before.
+    #[serde(default)]
+    pub started_at: Option<String>,
+    /// Real capture end (UTC ISO); defaults to `created_at` when timing is given.
+    #[serde(default)]
+    pub ended_at: Option<String>,
+    /// Captured audio length in seconds; derives `started_at` when that is absent.
+    #[serde(default)]
+    pub duration_sec: Option<f64>,
+    /// `live` (an input capture, the stylus was playing) or `file` (an analysed recording).
+    #[serde(default)]
+    pub capture_kind: Option<String>,
+    /// Asset the run was recorded with (stored in the config snapshot).
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    /// Existing setup the run used (session.setup_id); unknown ids are rejected.
+    #[serde(default)]
+    pub setup_id: Option<String>,
+}
+
+/// Longest capture span a run may claim (24 h).
+pub const MAX_CAPTURE_SEC: f64 = 86_400.0;
+pub const CAPTURE_KINDS: &[&str] = &["live", "file"];
+
+/// Resolved capture timing for a run: (started_at, ended_at, duration_sec).
+/// Legacy payloads (no timing fields) keep started_at == ended_at == created_at.
+fn capture_span(conn: &Connection, run: &PersistRun) -> Result<(String, String, Option<f64>), String> {
+    use crate::usage::valid_timestamp;
+    if let Some(k) = &run.capture_kind {
+        if !CAPTURE_KINDS.contains(&k.as_str()) {
+            return Err(format!("captureKind must be one of {}", CAPTURE_KINDS.join(", ")));
+        }
+    }
+    if let Some(d) = run.duration_sec {
+        if !d.is_finite() || !(0.0..=MAX_CAPTURE_SEC).contains(&d) {
+            return Err(format!("durationSec must be between 0 and {MAX_CAPTURE_SEC}"));
+        }
+    }
+    if run.started_at.is_none() && run.ended_at.is_none() && run.duration_sec.is_none() {
+        return Ok((run.created_at.clone(), run.created_at.clone(), None));
+    }
+    let ended = run.ended_at.clone().unwrap_or_else(|| run.created_at.clone());
+    if !valid_timestamp(&ended) {
+        return Err(format!("endedAt must be a UTC ISO timestamp, got '{ended}'"));
+    }
+    let started = match (&run.started_at, run.duration_sec) {
+        (Some(s), _) => {
+            if !valid_timestamp(s) {
+                return Err(format!("startedAt must be a UTC ISO timestamp, got '{s}'"));
+            }
+            s.clone()
+        }
+        (None, Some(d)) => conn
+            .query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', ?1, ?2)", params![ended, format!("-{d:.3} seconds")], |r| r.get::<_, String>(0))
+            .map_err(e2s)?,
+        (None, None) => ended.clone(),
+    };
+    let span: f64 = conn
+        .query_row("SELECT (julianday(?2) - julianday(?1)) * 86400.0", params![started, ended], |r| r.get(0))
+        .map_err(e2s)?;
+    if span < -0.0005 {
+        return Err("startedAt must not be after endedAt".into());
+    }
+    if span > MAX_CAPTURE_SEC + 1.0 {
+        return Err(format!("a capture may span at most {MAX_CAPTURE_SEC} s"));
+    }
+    Ok((started, ended, Some(run.duration_sec.unwrap_or_else(|| (span.max(0.0) * 1000.0).round() / 1000.0))))
 }
 
 pub fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -210,21 +278,40 @@ fn e2s(e: rusqlite::Error) -> String {
 }
 
 pub fn persist_run(conn: &mut Connection, run: &PersistRun) -> Result<(), String> {
+    let (started_at, ended_at, duration_sec) = capture_span(conn, run)?;
+    let setup_id = run.setup_id.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let tx = conn.transaction().map_err(e2s)?;
-    let config = json!({
+    if let Some(setup) = setup_id {
+        let known: i64 = tx.query_row("SELECT COUNT(*) FROM setup WHERE id = ?1", [setup], |r| r.get(0)).map_err(e2s)?;
+        if known == 0 {
+            return Err(format!("unknown setup '{setup}'"));
+        }
+    }
+    let mut config = json!({
         "test": run.test,
         "sourceFile": run.source_file,
         "sampleRate": run.sample_rate,
         "channels": run.channels,
         "score": run.score,
         "deviceId": run.device_id,
-    }).to_string();
+    });
+    // Timing keys only on payloads that carry them, so older rows and payloads are byte-identical.
+    if let Some(d) = duration_sec {
+        config["durationSec"] = json!(d);
+    }
+    if let Some(k) = &run.capture_kind {
+        config["captureKind"] = json!(k);
+    }
+    if let Some(a) = run.asset_id.as_deref().filter(|a| !a.trim().is_empty()) {
+        config["assetId"] = json!(a);
+    }
+    let config = config.to_string();
     let session_type = run.session_type.as_deref().or(run.workflow.as_deref()).filter(|s| !s.trim().is_empty()).unwrap_or("diagnostic");
 
     // INSERT OR REPLACE cascades away any earlier children of the same run id.
     tx.execute(
-        "INSERT OR REPLACE INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json) VALUES (?1, ?2, NULL, ?3, ?3, ?4, 1, 'completed', ?5, NULL, ?6, ?7)",
-        params![run.id, session_type, run.created_at, env!("CARGO_PKG_VERSION"), run.test, run.score.map(|v| v / 100.0), config],
+        "INSERT OR REPLACE INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json) VALUES (?1, ?2, ?8, ?3, ?9, ?4, 1, 'completed', ?5, NULL, ?6, ?7)",
+        params![run.id, session_type, started_at, env!("CARGO_PKG_VERSION"), run.test, run.score.map(|v| v / 100.0), config, setup_id, ended_at],
     ).map_err(e2s)?;
 
     let mut measurement_ids: std::collections::HashMap<&str, String> = std::collections::HashMap::new();
@@ -301,6 +388,7 @@ pub struct RunSummary {
     pub session_type: String,
     pub test: Option<String>,
     pub started_at: String,
+    pub ended_at: Option<String>,
     pub status: String,
     pub score: Option<f64>,
     pub measurement_count: i64,
@@ -312,7 +400,7 @@ pub fn list_runs(conn: &Connection, limit: Option<u32>) -> Result<Vec<RunSummary
     let mut stmt = conn.prepare(
         "SELECT s.id, s.session_type, s.context_profile, s.started_at, s.status, s.session_quality,
                 (SELECT COUNT(*) FROM measurement m WHERE m.session_id = s.id),
-                (SELECT COUNT(*) FROM hypothesis h WHERE h.session_id = s.id)
+                (SELECT COUNT(*) FROM hypothesis h WHERE h.session_id = s.id), s.ended_at
          FROM session s ORDER BY s.started_at DESC, s.id LIMIT ?1",
     ).map_err(e2s)?;
     let rows = stmt.query_map([limit], |r| {
@@ -321,10 +409,77 @@ pub fn list_runs(conn: &Connection, limit: Option<u32>) -> Result<Vec<RunSummary
             session_type: r.get(1)?,
             test: r.get(2)?,
             started_at: r.get(3)?,
+            ended_at: r.get(8)?,
             status: r.get(4)?,
             score: r.get::<_, Option<f64>>(5)?.map(|v| v * 100.0),
             measurement_count: r.get(6)?,
             hypothesis_count: r.get(7)?,
+        })
+    }).map_err(e2s)?;
+    rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
+}
+
+/// One run/session with a real capture span, for hours proposals (FS-12 AC-2).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureSession {
+    pub id: String,
+    pub session_type: String,
+    pub test: Option<String>,
+    pub started_at: String,
+    pub ended_at: String,
+    pub duration_sec: f64,
+    /// `live`, `file`, or null for rows saved before capture timing was recorded.
+    pub kind: Option<String>,
+    pub asset_id: Option<String>,
+    pub setup_id: Option<String>,
+}
+
+pub const DEFAULT_SESSION_LIMIT: u32 = 500;
+pub const MAX_SESSION_LIMIT: u32 = 2000;
+
+/// Sessions whose capture span is longer than zero, oldest first. `since` keeps
+/// sessions that started at or after it; `asset_id` keeps sessions recorded with
+/// that asset, directly or through their setup's components. Rows saved before
+/// capture timing existed have started_at == ended_at and never appear.
+pub fn list_capture_sessions(conn: &Connection, since: Option<&str>, asset_id: Option<&str>, limit: Option<u32>) -> Result<Vec<CaptureSession>, String> {
+    let since = since.map(str::trim).filter(|s| !s.is_empty());
+    if let Some(s) = since {
+        if !crate::usage::valid_timestamp(s) {
+            return Err(format!("since must be a UTC ISO timestamp, got '{s}'"));
+        }
+    }
+    let asset_id = asset_id.map(str::trim).filter(|s| !s.is_empty());
+    let limit = limit.unwrap_or(DEFAULT_SESSION_LIMIT).clamp(1, MAX_SESSION_LIMIT) as i64;
+    let mut stmt = conn.prepare(
+        "WITH s AS (
+           SELECT id, session_type, context_profile, started_at, ended_at, setup_id,
+                  CASE WHEN json_valid(config_snapshot_json) THEN config_snapshot_json ELSE '{}' END AS cfg
+           FROM session
+           WHERE ended_at IS NOT NULL AND julianday(ended_at) > julianday(started_at)
+         )
+         SELECT id, session_type, context_profile, started_at, ended_at,
+                COALESCE(CAST(json_extract(cfg, '$.durationSec') AS REAL), (julianday(ended_at) - julianday(started_at)) * 86400.0),
+                json_extract(cfg, '$.captureKind'),
+                COALESCE(json_extract(cfg, '$.assetId'), json_extract(cfg, '$.deviceId')),
+                setup_id
+         FROM s
+         WHERE (?1 IS NULL OR julianday(started_at) >= julianday(?1))
+           AND (?2 IS NULL OR json_extract(cfg, '$.assetId') = ?2 OR json_extract(cfg, '$.deviceId') = ?2
+                OR setup_id IN (SELECT setup_id FROM setup_component WHERE asset_id = ?2))
+         ORDER BY julianday(started_at), id LIMIT ?3",
+    ).map_err(e2s)?;
+    let rows = stmt.query_map(params![since, asset_id, limit], |r| {
+        Ok(CaptureSession {
+            id: r.get(0)?,
+            session_type: r.get(1)?,
+            test: r.get(2)?,
+            started_at: r.get(3)?,
+            ended_at: r.get(4)?,
+            duration_sec: (r.get::<_, f64>(5)? * 1000.0).round() / 1000.0,
+            kind: r.get(6)?,
+            asset_id: r.get(7)?,
+            setup_id: r.get(8)?,
         })
     }).map_err(e2s)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
@@ -717,6 +872,135 @@ mod tests {
         assert_eq!(h["support"][0]["measurementIds"].as_array().unwrap().len(), 2);
         assert_eq!(h["contradictions"][0]["measurementIds"][0], "r1:c");
         assert!(get_run(&c, "none").unwrap().is_none());
+    }
+
+    fn timed(id: &str, created: &str) -> PersistRun {
+        PersistRun { id: id.into(), test: "DVS signal".into(), created_at: created.into(), ..Default::default() }
+    }
+
+    fn span_of(c: &Connection, id: &str) -> (String, Option<String>, String) {
+        c.query_row("SELECT started_at, ended_at, config_snapshot_json FROM session WHERE id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap()
+    }
+
+    #[test]
+    fn legacy_run_keeps_started_equal_to_ended_and_config_unchanged() {
+        let mut c = mem();
+        persist_run(&mut c, &timed("old", "2026-10-06T08:00:00Z")).unwrap();
+        let (s, e, cfg) = span_of(&c, "old");
+        assert_eq!((s.as_str(), e.as_deref()), ("2026-10-06T08:00:00Z", Some("2026-10-06T08:00:00Z")));
+        let cfg: Value = serde_json::from_str(&cfg).unwrap();
+        for k in ["durationSec", "captureKind", "assetId"] {
+            assert!(cfg.get(k).is_none(), "{k} must not appear on legacy payloads");
+        }
+        assert!(list_capture_sessions(&c, None, None, None).unwrap().is_empty(), "zero-length rows are not capture sessions");
+    }
+
+    #[test]
+    fn run_records_real_capture_start_end_and_duration() {
+        let mut c = mem();
+        // explicit start and end
+        let mut r = timed("live", "2026-10-10T20:40:05.000Z");
+        r.started_at = Some("2026-10-10T20:00:00.000Z".into());
+        r.ended_at = Some("2026-10-10T20:40:00.000Z".into());
+        r.capture_kind = Some("live".into());
+        persist_run(&mut c, &r).unwrap();
+        let (s, e, cfg) = span_of(&c, "live");
+        assert_eq!((s.as_str(), e.as_deref()), ("2026-10-10T20:00:00.000Z", Some("2026-10-10T20:40:00.000Z")));
+        let cfg: Value = serde_json::from_str(&cfg).unwrap();
+        assert_eq!(cfg["durationSec"], 2400.0);
+        assert_eq!(cfg["captureKind"], "live");
+        // duration only: ends at createdAt, starts duration earlier
+        let mut f = timed("file", "2026-10-10T21:00:00.000Z");
+        f.duration_sec = Some(90.5);
+        f.capture_kind = Some("file".into());
+        persist_run(&mut c, &f).unwrap();
+        let (s, e, _) = span_of(&c, "file");
+        assert_eq!((s.as_str(), e.as_deref()), ("2026-10-10T20:58:29.500Z", Some("2026-10-10T21:00:00.000Z")));
+        // get_run and list_runs expose the real span
+        let run = get_run(&c, "live").unwrap().unwrap();
+        assert_eq!(run["startedAt"], "2026-10-10T20:00:00.000Z");
+        assert_eq!(run["endedAt"], "2026-10-10T20:40:00.000Z");
+        let listed = list_runs(&c, None).unwrap();
+        assert_eq!(listed.iter().find(|x| x.id == "file").unwrap().ended_at.as_deref(), Some("2026-10-10T21:00:00.000Z"));
+    }
+
+    #[test]
+    fn capture_timing_is_validated() {
+        let mut c = mem();
+        let bad = |f: &dyn Fn(&mut PersistRun)| { let mut r = timed("b", "2026-10-10T21:00:00.000Z"); f(&mut r); r };
+        let cases: Vec<PersistRun> = vec![
+            bad(&|r| r.capture_kind = Some("stream".into())),
+            bad(&|r| r.duration_sec = Some(-1.0)),
+            bad(&|r| r.duration_sec = Some(f64::NAN)),
+            bad(&|r| r.duration_sec = Some(MAX_CAPTURE_SEC + 1.0)),
+            bad(&|r| r.started_at = Some("yesterday".into())),
+            bad(&|r| r.ended_at = Some("2026-10-10 21:00".into())),
+            bad(&|r| { r.started_at = Some("2026-10-10T22:00:00Z".into()); r.ended_at = Some("2026-10-10T21:00:00Z".into()); }),
+            bad(&|r| { r.started_at = Some("2026-10-08T21:00:00Z".into()); }),
+            bad(&|r| { r.duration_sec = Some(5.0); r.created_at = "2026-10-10".into(); }),
+            bad(&|r| r.setup_id = Some("no-such-setup".into())),
+        ];
+        for (i, r) in cases.iter().enumerate() {
+            assert!(persist_run(&mut c, r).is_err(), "case {i} should be rejected");
+        }
+        let n: i64 = c.query_row("SELECT COUNT(*) FROM session", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 0, "rejected runs leave nothing behind");
+    }
+
+    #[test]
+    fn capture_sessions_filter_by_since_and_asset_and_setup() {
+        let mut c = mem();
+        c.execute_batch(
+            "INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('sty','Stylus','t','t'), ('deck','Deck','t','t');
+             INSERT INTO setup (id, name, created_at) VALUES ('setup-1','Booth','t');
+             INSERT INTO setup_component (id, setup_id, role, asset_id) VALUES ('sc1','setup-1','cartridge','sty');",
+        ).unwrap();
+        let mk = |id: &str, start: &str, end: &str, asset: Option<&str>, setup: Option<&str>, kind: &str| {
+            let mut r = timed(id, end);
+            r.started_at = Some(start.into());
+            r.ended_at = Some(end.into());
+            r.capture_kind = Some(kind.into());
+            r.asset_id = asset.map(Into::into);
+            r.setup_id = setup.map(Into::into);
+            r
+        };
+        persist_run(&mut c, &mk("a", "2026-10-01T10:00:00.000Z", "2026-10-01T10:40:00.000Z", Some("sty"), None, "live")).unwrap();
+        persist_run(&mut c, &mk("b", "2026-10-05T10:00:00.000Z", "2026-10-05T10:20:00.000Z", None, Some("setup-1"), "live")).unwrap();
+        persist_run(&mut c, &mk("c", "2026-10-06T10:00:00.000Z", "2026-10-06T10:10:00.000Z", Some("deck"), None, "file")).unwrap();
+        let mut legacy_dev = timed("d", "2026-10-07T10:00:00.000Z");
+        legacy_dev.device_id = Some("sty".into());
+        legacy_dev.duration_sec = Some(60.0);
+        persist_run(&mut c, &legacy_dev).unwrap();
+        persist_run(&mut c, &timed("old", "2026-10-08T10:00:00Z")).unwrap();
+
+        let ids = |v: Vec<CaptureSession>| v.into_iter().map(|s| s.id).collect::<Vec<_>>();
+        assert_eq!(ids(list_capture_sessions(&c, None, None, None).unwrap()), ["a", "b", "c", "d"]);
+        assert_eq!(ids(list_capture_sessions(&c, None, Some("sty"), None).unwrap()), ["a", "b", "d"], "direct asset, setup component, deviceId");
+        assert_eq!(ids(list_capture_sessions(&c, Some("2026-10-05T10:00:00Z"), Some("sty"), None).unwrap()), ["b", "d"]);
+        assert_eq!(ids(list_capture_sessions(&c, None, None, Some(1)).unwrap()), ["a"]);
+        let a = &list_capture_sessions(&c, None, Some("sty"), None).unwrap()[0];
+        assert_eq!((a.duration_sec, a.kind.as_deref(), a.asset_id.as_deref()), (2400.0, Some("live"), Some("sty")));
+        let b = &list_capture_sessions(&c, None, Some("sty"), None).unwrap()[1];
+        assert_eq!((b.setup_id.as_deref(), b.asset_id.as_deref()), (Some("setup-1"), None));
+        assert!(list_capture_sessions(&c, Some("last week"), None, None).is_err());
+        // a malformed config snapshot from elsewhere does not break the listing
+        c.execute("INSERT INTO session (id, session_type, started_at, ended_at, app_version, schema_version, status, config_snapshot_json) VALUES ('x','other','2026-10-09T00:00:00Z','2026-10-09T00:01:00Z','0',1,'completed','not json')", []).unwrap();
+        let x = list_capture_sessions(&c, Some("2026-10-09T00:00:00Z"), None, None).unwrap();
+        assert_eq!((x[0].id.as_str(), x[0].duration_sec, x[0].kind.clone()), ("x", 60.0, None));
+    }
+
+    #[test]
+    fn capture_session_contract_round_trips() {
+        let raw = fs::read_to_string(repo_path("tests/contracts/capture-sessions.json")).unwrap();
+        let v: Value = serde_json::from_str(&raw).unwrap();
+        let mut c = mem();
+        let run: PersistRun = serde_json::from_value(v["save_diagnostic_run"]["request"]["run"].clone()).unwrap();
+        persist_run(&mut c, &run).unwrap();
+        let req = &v["list_capture_sessions"]["request"];
+        let got = list_capture_sessions(&c, req["since"].as_str(), req["assetId"].as_str(), req["limit"].as_u64().map(|n| n as u32)).unwrap();
+        assert_eq!(serde_json::to_value(&got).unwrap(), v["list_capture_sessions"]["response"]);
+        // FS-12 AC-2: the 40-minute DVS capture is 0.67 h
+        assert_eq!((got[0].duration_sec / 3600.0 * 100.0).round() / 100.0, 0.67);
     }
 
     #[test]

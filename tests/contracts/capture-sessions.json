@@ -1,0 +1,46 @@
+{
+  "save_diagnostic_run": {
+    "command": "save_diagnostic_run",
+    "request": {
+      "run": {
+        "id": "run-dvs-40",
+        "deviceId": "asset-1",
+        "test": "DVS signal",
+        "createdAt": "2026-10-10T20:40:05.000Z",
+        "sourceFile": "Live capture · Audio 8 DJ",
+        "sampleRate": 48000,
+        "channels": 2,
+        "measurements": [
+          { "metricId": "tc_snr_db", "label": "Carrier SNR", "value": 31.2, "unit": "dB", "origin": "measured", "confidence": 0.8, "uncertainty": null, "qualityFlags": [] }
+        ],
+        "findings": [],
+        "score": 96,
+        "sessionType": "dvs",
+        "workflow": "dvs",
+        "startedAt": "2026-10-10T20:00:00.000Z",
+        "endedAt": "2026-10-10T20:40:00.000Z",
+        "durationSec": 2400,
+        "captureKind": "live",
+        "assetId": "asset-1"
+      }
+    },
+    "response": null
+  },
+  "list_capture_sessions": {
+    "command": "list_capture_sessions",
+    "request": { "since": "2026-10-01T00:00:00.000Z", "assetId": "asset-1", "limit": 500 },
+    "response": [
+      {
+        "id": "run-dvs-40",
+        "sessionType": "dvs",
+        "test": "DVS signal",
+        "startedAt": "2026-10-10T20:00:00.000Z",
+        "endedAt": "2026-10-10T20:40:00.000Z",
+        "durationSec": 2400.0,
+        "kind": "live",
+        "assetId": "asset-1",
+        "setupId": null
+      }
+    ]
+  }
+}

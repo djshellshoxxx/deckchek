@@ -404,8 +404,8 @@ test('baseline gate refuses below 25 dB, with no signal, or with the platter not
   assert.ok(silent.reasons.some(r => r.id === 'no-signal' || r.id === 'low-snr'));
   const rev = baselineCheck(quadratureTimecode({ carrierHz: 1000, seconds: 3, snrDb: 30, velocityProfile: -1 }), { format: 'Serato CV02.5' });
   assert.deepEqual(rev.reasons.map(r => r.id), ['not-playing']);
-  const mk1 = baselineCheck(quadratureTimecode({ carrierHz: 2000, phaseSign: -1, seconds: 3, snrDb: 30 }), { format: 'Traktor Scratch MK1' });
-  assert.equal(mk1.ok, true, 'phaseSign -1 forward passes');
+  const mv = baselineCheck(quadratureTimecode({ carrierHz: 1300, phaseSign: -1, seconds: 3, snrDb: 30 }), { format: 'MixVibes DVS V2' });
+  assert.equal(mv.ok, true, 'phaseSign -1 forward passes');
 });
 
 /** Full protocol capture: each pattern performed in its window, count-in and rests held still. */
