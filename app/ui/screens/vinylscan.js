@@ -14,6 +14,7 @@ import { decodeAudioFile, startStreamSession, liveAvailable, classifyCaptureErro
 import { runWithCapture } from '../capture-busy.js';
 import { binsToArcs, binLabel, formatTime, classifyBin, METRICS, WEAR_DEFAULTS, DEFAULT_GEOMETRY, VERDICT_LABELS } from '../../wear-map.js';
 import { findFormat } from '../../timecode.js';
+import { takeHandoff } from '../crosslinks.js';
 import { benchmarkVerdict, createStylusApi } from '../../stylus-wear.js';
 import { grooveMapSvg, timelineSvg, legendGradient, METRIC_INFO } from '../plots-groove.js';
 import {
@@ -812,7 +813,11 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
 
   render();
   return {
-    onShow() { if (!st.run) load(); },
+    onShow() {
+      const hand = takeHandoff('vinylscan'); // deep link from Equipment: scan with this cartridge
+      if (hand?.stylusId) st.setup.stylusId = hand.stylusId;
+      if (!st.run) load().then(() => { if (hand?.stylusId && st.view === 'result') { st.view = 'setup'; render(); } });
+    },
     onHide() { /* a running scan keeps going; the status bar shows it */ },
     onSpace() {
       if (st.view === 'setup') { start(); return true; }

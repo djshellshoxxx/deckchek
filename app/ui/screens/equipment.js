@@ -6,6 +6,7 @@ import { icon } from '../icons.js';
 import { store, emit } from '../state.js';
 import { toast, announce } from '../live.js';
 import { confirmDialog } from '../shell.js';
+import { equipmentLinkRow } from '../crosslinks.js';
 
 const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['dvs_media', 'DVS / timecode media'], ['software', 'Software'], ['other', 'Other']];
 const ROLES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['mixer', 'Mixer'], ['interface', 'Interface'], ['dvs_interface', 'DVS interface'], ['preamp', 'Preamp'], ['media_player', 'Media player'], ['other', 'Other']];
@@ -161,6 +162,12 @@ export function createEquipmentScreen(section) {
     const err = h('p', { class: 'form-error', role: 'alert' });
     const cancel = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Cancel', onclick: () => { state.editing = null; renderRows(); renderEditor(); } });
     const save = h('button', { type: 'submit', class: 'btn btn-primary', html: `${icon('check', { size: 18 })}<span>${isNew ? 'Create' : 'Save changes'}</span>` });
+    if (state.entity === 'asset' && !isNew) {
+      // M6 cross-links: a cartridge opens its stylus page and wear map, DVS media its wear map, an interface the latency tuner.
+      const category = (state.records.product || []).find(p => p.id === r.productId)?.category;
+      const links = equipmentLinkRow(r, category);
+      if (links) form.append(h('div', { class: 'eq-links' }, h('span', { class: 'field-label', text: 'Related tools' }), links));
+    }
     form.append(err, h('div', { class: 'form-actions' }, cancel, save));
     form.addEventListener('submit', async e => {
       e.preventDefault();

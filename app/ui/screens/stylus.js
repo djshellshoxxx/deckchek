@@ -16,6 +16,7 @@ import {
   limitValue, stylusAlerts, snoozeUntil, METRICS, DEFAULT_THRESHOLDS, SNOOZE_DAYS, MIN_TREND_POINTS, GENERIC_RATED_HOURS,
 } from '../../stylus-wear.js';
 import { createUsageApi, MAX_ENTRY_HOURS, totalHours } from '../../usage-hours.js';
+import { takeHandoff, ACTIVE_CARTRIDGE_KEY } from '../crosslinks.js';
 
 const THRESHOLD_KEY = 'deckchek.stylus.thresholds.v1';
 const TABS = [['overview', 'Overview'], ['hours', 'Hours'], ['benchmark', 'Benchmark'], ['trends', 'Trends'], ['settings', 'Settings']];
@@ -151,7 +152,7 @@ function chartSvg(model, title) {
 // ------------------------------------------------------------------ catalogue + thresholds
 
 let lifeCatalogue;
-async function loadCatalogue() {
+export async function loadCatalogue() {
   if (lifeCatalogue !== undefined) return lifeCatalogue;
   try {
     const res = await fetch(new URL('../../devices/stylus-life.json', import.meta.url), { cache: 'no-store' });
@@ -255,7 +256,9 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     try {
       const catalogue = await loadCatalogue();
       st.assets = await listStylusAssets();
+      if (!st.assetId) st.assetId = storageGet(ACTIVE_CARTRIDGE_KEY, null);
       if (!st.assets.some(a => a.id === st.assetId)) st.assetId = st.assets[0]?.id ?? null;
+      if (st.assetId) storageSet(ACTIVE_CARTRIDGE_KEY, st.assetId);
       st.data = st.assetId ? await loadAssetState(st.assets.find(a => a.id === st.assetId), { api, usage, catalogue }) : null;
       if (!keepTab) st.tab = 'overview';
       badgeState = { level: st.data ? badgeLevelWith(st.data) : badgeState.level };
@@ -666,7 +669,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
   }
 
   // ----- events -----
-  picker.addEventListener('change', () => { st.assetId = picker.value; st.proposals = null; st.pointId = null; st.benchFill = null; load(); });
+  picker.addEventListener('change', () => { st.assetId = picker.value; storageSet(ACTIVE_CARTRIDGE_KEY, st.assetId); st.proposals = null; st.pointId = null; st.benchFill = null; load(); });
   const onKey = e => {
     if (section.hidden || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
     const t = e.target;
@@ -680,7 +683,11 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
 
   render();
   return {
-    onShow() { load(); },
+    onShow() {
+      const hand = takeHandoff('stylus'); // a deep link (Equipment asset) names the cartridge to open
+      if (hand?.assetId) { st.assetId = hand.assetId; st.tab = 'overview'; st.proposals = null; st.pointId = null; st.benchFill = null; }
+      load();
+    },
     onHide() { /* keep state */ },
     onEscape() {
       if (st.pointId) { st.pointId = null; renderPanel(); return true; }

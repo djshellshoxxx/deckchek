@@ -223,6 +223,7 @@ export function setCaptureStatus(text, state = 'idle') {
 // [FS-08] menu
 // [FS-10] menu
 // [FS-11] menu
+// (M6 deep links are screen-to-screen buttons, see ui/crosslinks.js navigateTo(); no Options/Help menu entries.)
 // [FS-12] menu
 // [FS-13] menu
 // [FS-14] menu

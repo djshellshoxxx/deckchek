@@ -87,7 +87,7 @@ export function exportRunHtml(run) {
 /** Export PDF is offered only while features.pdfExport is on. */
 export const pdfExportEnabled = () => isEnabled('pdfExport');
 
-const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report' };
+const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report' };
 
 /**
  * Exports a PDF through report-pdf.js with progress and error feedback. The native save dialog

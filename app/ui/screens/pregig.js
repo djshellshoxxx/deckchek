@@ -8,10 +8,14 @@ import { icon, chip } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
 import { active } from '../state.js';
-import { isEnabled } from '../../features.js';
+import { isEnabled, onFeatureChange } from '../../features.js';
 import { confirmCaptureBusy } from '../capture-busy.js';
 import { lib, ensureLibrary } from '../devices/library-state.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
+import { withCrossFixes } from '../../crosslinks.js';
+import { navigateTo, openWindowsSettings } from '../crosslinks.js';
+import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
+import { ensurePregigPrintable, pregigPrintData, PREGIG_KIND } from '../workflows/pregig-report.js';
 import {
   buildPlan, validatePreset, parsePresetJson, exportPresetJson, duplicatePreset, presetFromEquipment, loadBuiltinPresets,
   createPregigApi, createNativeDeps, diffRuns, PREGIG_BUDGET_MS,
@@ -360,9 +364,12 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
       h('ol', { class: 'pg-fixlist' }, ...problems.map(r => h('li', { class: `pg-fixitem pg-fixitem-${r.state}`, 'data-step': r.stepId },
         h('div', { class: 'pg-fixhead' }, stateBadge(describeStep({ state: r.state, result: r })), h('strong', { text: r.label })),
         h('p', { class: 'pg-fixsum', text: r.summary }),
-        h('div', { class: 'pg-fixbtns' }, ...fixButtons(r).map(b => fixButton(b, r)),
-          fixButtons(r).some(b => b.kind === 'retry') ? null : h('div', { class: 'pg-fix' }, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-fix': 'retry', 'aria-label': `Check ${r.label} again`, onclick: () => ctl.rerun([r.stepId]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Check again' }))))))));
+        h('div', { class: 'pg-fixbtns' }, ...fixesFor(r).map(b => fixButton(b, r)),
+          fixesFor(r).some(b => b.kind === 'retry') ? null : h('div', { class: 'pg-fix' }, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-fix': 'retry', 'aria-label': `Check ${r.label} again`, onclick: () => ctl.rerun([r.stepId]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Check again' }))))))));
   }
+
+  // The engine's own fixes plus the cross-links to Hum hunter / Stylus / Latency (only for features that are on).
+  const fixesFor = r => withCrossFixes(fixButtons(r), r.stepId, r.state, isEnabled);
 
   function fixButton(b, r) {
     const wrap = h('div', { class: 'pg-fix' });
@@ -371,23 +378,17 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     const run = () => {
       if (b.kind === 'retry') return ctl.rerun([r.stepId]);
       if (b.kind === 'preempt') return ctl.rerun([r.stepId], { preempt: true });
-      if (b.kind === 'navigate' && b.to) return go(b.to, { focus: true });
-      if (b.kind === 'settings' && b.target) return copySettings(b.target);
+      if (b.kind === 'navigate' && b.to) return navigateTo(b.to);
+      if (b.kind === 'settings' && b.target) return openWindowsSettings(b.target, { invoke: nativeInvoke });
       return null;
     };
     if (b.kind === 'info') {
       wrap.append(h('p', { class: 'pg-fixtext' }, h('strong', { text: `${b.label}. ` }), b.text));
     } else {
       wrap.append(h('p', { class: 'pg-fixtext', text: b.text }),
-        h('button', { type: 'button', class: `btn ${primary ? 'btn-secondary' : 'btn-ghost'} btn-sm`, 'data-fix': b.kind, text: b.kind === 'settings' ? `${b.label} (copy shortcut)` : label, onclick: run }));
+        h('button', { type: 'button', class: `btn ${primary ? 'btn-secondary' : 'btn-ghost'} btn-sm`, 'data-fix': b.kind, text: label, onclick: run }));
     }
     return wrap;
-  }
-
-  // The app has no command to open Windows Settings yet, so the shortcut is copied for Win+R.
-  async function copySettings(target) {
-    try { await navigator.clipboard.writeText(target); toast(`Copied "${target}". Press Win+R, paste it and press Enter to open Windows Settings.`, { type: 'info', timeout: 8000 }); }
-    catch { toast(`Press Win+R and type ${target} to open Windows Settings.`, { type: 'info', timeout: 8000 }); }
   }
 
   function checklistCard(plan, { running, done }) {
@@ -430,6 +431,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
       h('button', { type: 'button', class: 'btn btn-primary', id: 'pg-rerun-failed', disabled: !targets.length, onclick: () => ctl.rerun(targets) }, h('span', { text: 'Re-run problem checks' }), h('kbd', { text: 'Ctrl+R' })),
       h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-run-again', onclick: () => startRun() }, h('span', { text: 'Run everything again' }), h('kbd', { text: 'Ctrl+G' })),
       h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-export', onclick: () => exportRun() }, h('span', { html: icon('download', { size: 16 }) }), h('span', { text: 'Save result' }), h('kbd', { text: 'Ctrl+E' })),
+      pdfExportEnabled() ? h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-export-pdf', onclick: e => exportRunPdf(e.currentTarget) }, h('span', { html: icon('download', { size: 16 }) }), h('span', { text: 'Export PDF' })) : null,
       h('button', { type: 'button', class: 'btn btn-ghost', id: 'pg-back', onclick: () => { ctl.reset(); render(); } }, h('span', { text: 'Done' })));
   }
 
@@ -469,6 +471,14 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     download(`pre-gig-${S.run.startedAt.slice(0, 16).replace(/[:T]/g, '-')}.json`, text, 'application/json');
     toast('Saved the check result as a file.', { type: 'success', timeout: 2500 });
   }
+
+  /** PDF of the finished check (FS-03 kind "pregig"); the print dialog is the fallback in the browser preview. */
+  async function exportRunPdf(button) {
+    if (!S.run) { toast('Run a check first, then export it.'); return; }
+    await ensurePregigPrintable();
+    return exportPdfWithFeedback(PREGIG_KIND, pregigPrintData(S.run, { device: currentPreset()?.audioDevice || '' }), { button, htmlFallback: exportRun });
+  }
+  onFeatureChange(({ name } = {}) => { if (name === 'pdfExport' && active.screen?.def.id === 'pregig') render(); });
 
   // announce each finished step once, and the verdict once
   let announced = new Set(), lastPhase = 'idle';
