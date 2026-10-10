@@ -1,5 +1,7 @@
 # SPEC-12: Stylus Wear Tracker
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0009_stylus_wear.sql` (+ shared `0006_asset_usage.sql`, FS-00). Milestone: M6. Size: M. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, Goals, Non-goals
 
 Tracks each cartridge/stylus as an `asset` (SPEC-01/07): accumulated play hours from manual entry, DVS session time and DeckChek captures; runs a periodic benchmark (THD on a 1 kHz track, channel separation, timecode SNR and phase) and fits trend lines; compares hours and trend against the manufacturer-rated life and raises replacement alerts.
@@ -31,21 +33,14 @@ Copy: "Concorde Pro S: about 410 of 600 h (68 %). Replace around 2027-03 at curr
 
 ## 4. Architecture
 
-JS: `app/stylus-wear.js` (pure): `totalHours(entries, {from})`, `mergeIntervals(entries) -> entries`, `proposeFromSessions(sessions, assetId)`, `proposeFromLogs(djLogScan, assetId)`, `regress(points) -> {slope, intercept, r2, n, p?}` (wraps `trendMetrics` in diagnostics.js), `lifeStatus(hours, ratedHours, thresholds)`, `benchmarkVerdict(history)`, `projectReplaceDate(ledger, rated)`. `app/ui/screens/stylus.js`. Rated-life catalogue `app/devices/stylus-life.json`.
+JS: `app/stylus-wear.js` (pure; `totalHours`, `mergeIntervals`, `proposeFromSessions` are imported from FS-00 `app/usage-hours.js`): `proposeFromLogs(djLogScan, assetId)`, `regress(points) -> {slope, intercept, r2, n, p?}` (wraps `trendMetrics` in diagnostics.js), `lifeStatus(hours, ratedHours, thresholds)`, `benchmarkVerdict(history)`, `projectReplaceDate(ledger, rated)`. `app/ui/screens/stylus.js`. Rated-life catalogue `app/devices/stylus-life.json`.
 Benchmark reuses: `thdPercent`, `channelSeparationDb`, `analyzeTimecode`, `repeatabilityMetrics` and applies `applyCalibration` (calibration.js).
-Rust: `stylus_ledger_add(entry) -> {id}`, `stylus_ledger_list(assetId) -> Entry[]`, `stylus_ledger_delete(id)`, `stylus_benchmark_save(result) -> {id}`, `stylus_benchmark_list(assetId)`, `stylus_alert_snooze(assetId, kind, until)`. Optional `dj_session_spans() -> [{app, start, end, source:"log"|"process"}]` in `system_check.rs` extending the DJ log scan (reads logs only). Deps: none.
+Rust: hours use the shared FS-00 `asset_usage` ledger and its commands `usage_add(entry) -> {id}`, `usage_list(assetId, {since?}) -> Entry[]`, `usage_delete(id)` (the former `stylus_ledger_*` names are dropped); `proposeFromSessions`/`mergeIntervals`/`totalHours` live in the shared `app/usage-hours.js` (FS-00 §4.8) because FS-23 uses the same hours. Stylus-specific commands: `stylus_benchmark_save(result) -> {id}`, `stylus_benchmark_list(assetId)`, `stylus_alert_snooze(assetId, kind, until)`. Optional `dj_session_spans() -> [{app, start, end, source:"log"|"process"}]` in a new `src-tauri/src/dj_sessions.rs` (not `system_check.rs`, to avoid file conflicts) reusing the DJ log locations from `system_check.rs` read-only. Deps: none.
 
 ## 5. Data model
 
-`NNNN_stylus_wear.sql`:
+Hours ledger: `asset_usage` from `0006_asset_usage.sql` (FS-00 §5.3; same columns the former `stylus_hours` draft had, plus `kind`). `0009_stylus_wear.sql`:
 ```sql
-CREATE TABLE IF NOT EXISTS stylus_hours (
-  id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES asset(id),
-  started_at TEXT NOT NULL, hours REAL NOT NULL CHECK (hours >= 0 AND hours <= 24),
-  source TEXT NOT NULL CHECK (source IN ('manual','djlog','deckchek','import')),
-  session_id TEXT REFERENCES session(id) ON DELETE SET NULL, note TEXT,
-  confirmed INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_stylus_hours_asset ON stylus_hours(asset_id, started_at);
 CREATE TABLE IF NOT EXISTS stylus_benchmark (
   id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES asset(id),
   session_id TEXT REFERENCES session(id) ON DELETE SET NULL,
@@ -57,8 +52,8 @@ CREATE TABLE IF NOT EXISTS stylus_alert (
   id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES asset(id),
   kind TEXT NOT NULL, severity TEXT NOT NULL, snoozed_until TEXT, created_at TEXT NOT NULL);
 ALTER TABLE asset ADD COLUMN rated_life_hours REAL;
-ALTER TABLE asset ADD COLUMN stylus_installed_hours REAL DEFAULT 0;
 ```
+(`stylus_installed_hours` dropped: the baseline is the latest `maintenance_event` with `event_type='stylus_replaced'`; hours count ledger rows with `started_at` after it.)
 `stylus-life.json` v1: `[{"model":"Ortofon Concorde","ratedHours":600,"range":[500,1000],"source":"url","confidence":"vendor-general|forum|unknown"}]`. Version field + migrate function.
 
 ## 6. Algorithms
@@ -87,7 +82,7 @@ Rollout: flag `features.stylusWear`. Docs: SPEC-01 cross-reference, FEATURE-MATR
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on SPEC-01 (test tracks, cartridge assets), SPEC-07 data model, calibration profiles, SPEC-14/13 (optional extra signals). Risks: benchmark variance (cleaning, temperature, VTA) larger than real wear; log-based hours unreliable. Open: do DJ programs write parseable session logs? UNKNOWN. Real rated hours per model. Effort: M (about 28 agent-hours).
+Depends on SPEC-01 (test tracks, cartridge assets), SPEC-07 data model, calibration profiles, FS-14/FS-13 (optional extra signals), FS-00 (`asset_usage` ledger). Risks: benchmark variance (cleaning, temperature, VTA) larger than real wear; log-based hours unreliable. Open: do DJ programs write parseable session logs? UNKNOWN. Real rated hours per model. Effort: M (about 28 agent-hours).
 
 ## 11. Research notes
 

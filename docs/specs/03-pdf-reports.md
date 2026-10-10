@@ -1,5 +1,7 @@
 # Spec 03 — PDF reports
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, goals, non-goals
 Export every report type (run report, device report, System Health report, later certificate) as a paginated, offline-generated PDF with header/footer, page numbers and SVG charts. Decision: render the existing HTML reports with a dedicated print stylesheet and convert using the Windows WebView2 `PrintToPdf` API in a hidden webview.
 
@@ -7,11 +9,11 @@ Export every report type (run report, device report, System Health report, later
 
 ## 2. Users & user stories
 - AC-1 Given a completed run, when "Export PDF" is pressed, then a save dialog opens with `DeckChek_<report>_<device>_<YYYYMMDD-HHmm>.pdf` and a valid PDF is written.
-- AC-2 Given a report longer than one page, then every page has the header (title, device) and footer ("Page X of Y", app version, generated time) and table rows are not split across pages.
+- AC-2 Given a report longer than one page, then every page has the header (title, device) and footer ("Page X of Y", app version, generated time) and table rows are not split across pages. Verified automatically on Windows CI by extracting page text with the `lopdf` dev-dependency (MIT) and asserting page count >= 2 and the string "Page 2 of" on page 2.
 - AC-3 Given the report has charts, then they are vector SVG and text in them is selectable.
 - AC-4 Given dark theme active, then the PDF is still light (print stylesheet is theme-independent).
 - AC-5 Given System Health findings, then the PDF lists each finding with severity icon + text and evidence.
-- AC-6 Given the platform does not support WebView2 `PrintToPdf` (browser mode, non-Windows), then "Export PDF" falls back to opening the print-optimised HTML in a new window and calling `window.print()`.
+- AC-6 Given the platform does not support WebView2 `PrintToPdf` (browser mode, non-Windows), then "Export PDF" falls back to loading the print-optimised HTML into a hidden same-origin `<iframe srcdoc>` and calling `iframe.contentWindow.print()` (no `window.open`, so the FS-07 grep rule holds).
 - AC-7 Given generation takes longer than 20 s, then it is cancelled with an error and a Retry.
 
 ## 3. UX
@@ -28,7 +30,7 @@ Entry points: "Export PDF" button next to existing HTML/CSV/JSON exports (`app/u
 | E. Headless Chromium/Edge CLI (`msedge --headless --print-to-pdf`) | Full Chromium header/footer | Needs Edge executable path discovery, process spawn, file URLs; fragile; CSP/AV concerns |
 **Pick: A**, with B/window.print() as fallback and HTML export remaining. Page numbers/headers: since WebView2 template control is limited, do not depend on browser header/footer: set `ShouldPrintHeaderAndFooter=false` and generate pagination ourselves with CSS paged media — `@page { size: A4; margin: 18mm 15mm 20mm; @bottom-right { content: "Page " counter(page) " of " counter(pages) } }`. Chromium supports `@page` margin boxes only in recent versions (Chrome 131+: UNKNOWN for the user's WebView2 runtime — needs verification). Fallback implemented in spec: if margin boxes unsupported (feature-detect via `CSS.supports` is unreliable), use `position: fixed` header/footer elements repeated per page by Chromium print and a CSS counter-less "Page" via the WebView2 footer (`ShouldPrintHeaderAndFooter=true` with `HeaderTitle`=report title) — accept native footer "page/total" and mark as v1 behaviour.
 
-New files: `src-tauri/src/pdf.rs` — `#[tauri::command] pdf_render(html: String, dest_path: String, opts: {paper:"A4"|"Letter", landscape:bool, scale:f64}) -> { path, bytes, pages: Option<u32> }` (creates hidden `WebviewWindowBuilder` with `WebviewUrl::App("print-host.html")`, injects HTML via `eval`/event, waits for `document.fonts.ready` + `load` signal, calls `PrintToPdf` through `with_webview`, closes window). `app/print-host.html` (+`app/print-host.js`: receives HTML by `postMessage`/event, replaces body, signals ready). `app/report-print.css` (print stylesheet). `app/report-pdf.js`: `buildPrintableReport(kind, data, opts) -> string` (wraps existing `buildHtmlReport` (core.js), `buildSystemReportHtml` (system-check.js), device report builder in `device-checks.js`), `exportPdf(kind, data, opts) -> Promise<{path}|{fallback:true}>`, `suggestPdfName(kind, device, date)`. Dependencies: `webview2-com` (MIT) matching the version Tauri/wry uses (UNKNOWN exact — pin to the transitive version), `windows` crate (MIT/Apache-2.0), `tauri-plugin-dialog` (save). `cfg(windows)` gated. CSP: inline `<style>` already allowed; reports must embed no remote assets; hidden window uses same CSP.
+New files: `src-tauri/src/pdf.rs` — `#[tauri::command] pdf_render(html: String, dest_path: String, opts: {paper:"A4"|"Letter", landscape:bool, scale:f64}) -> { path, bytes, pages: Option<u32> }` (creates hidden `WebviewWindowBuilder` with `WebviewUrl::App("print-host.html")`, injects HTML via `eval`/event, waits for `document.fonts.ready` + `load` signal, calls `PrintToPdf` through `with_webview`, closes window). `app/print-host.html` (+`app/print-host.js`: receives HTML by `postMessage`/event, replaces body, signals ready). `app/report-print.css` (print stylesheet). `app/report-pdf.js`: `buildPrintableReport(kind, data, opts) -> string` (wraps existing `buildHtmlReport` (core.js), `buildSystemReportHtml` (system-check.js), device report builder in `device-checks.js`), `exportPdf(kind, data, opts) -> Promise<{path}|{fallback:true}>`, `suggestPdfName(kind, device, date)`, and a registry `registerPrintableKind(kind, {title, build(data, opts) -> html})` so later features (FS-20 Certificate, FS-22 JobSheet, FS-23 BoothSheet, FS-33 Ledger print) add their builders in their own files without editing `report-pdf.js`. Dependencies: `webview2-com` (MIT) matching the version Tauri/wry uses (UNKNOWN exact — pin to the transitive version in `Cargo.lock`), `windows` crate (MIT/Apache-2.0); `tauri-plugin-dialog` comes from FS-00. `cfg(windows)` gated. CSP: inline `<style>` already allowed; reports must embed no remote assets; hidden window uses same CSP.
 
 ## 5. Data model
 No DB change. Settings: `pdf.paper` (`a4|letter`), `pdf.includeRaw` (bool), `pdf.redactSerials` (bool) in `deckchek.ui.v1`. File naming: `DeckChek_<Kind>_<Device>_<YYYYMMDD-HHmm>.pdf`, Kind in {Run, Device, SystemHealth, Certificate}; Device slug = ASCII lowercase, non-alphanumerics -> `-`, max 40 chars; invalid Windows chars `<>:"/\|?*` removed; reserved names (CON, NUL…) get a `_` suffix. PDF metadata title = report title; author = "DeckChek <version>".
@@ -45,10 +47,10 @@ Unit: `suggestPdfName` (reserved names, unicode, long), `buildPrintableReport` s
 ## 9. Definition of done
 - [ ] All report types export; fallback works; no unescaped user content
 - [ ] Windows CI artifact PDF check; docs (README export section, SPEC-06 reports)
-Rollout: feature flag `pdf.enabled`, default on for Windows.
+Rollout: feature flag `features.pdfExport`, default on for Windows.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: Spec 07 (opener for "Open file"), existing report builders, dialog plugin (also Spec 02). Risks: COM interop complexity; `@page` margin box support in the installed WebView2 runtime; wry/webview2-com version coupling. Open: ship a Typst-based fallback later for macOS? Certificate layout (later) needs signed hash block. Effort: L (~22 agent-hours).
+Depends on: FS-07 (`open_path`/`reveal_path` for "Open" / "Show in folder"), FS-00 (dialog plugin, `userfiles.rs` path validation, feature registry), existing report builders. Consumers: FS-10, FS-11, FS-20, FS-22, FS-23, FS-33. Limitation: `PrintToPdf` cannot embed file attachments, so FS-20 certificates ship a sidecar `.deckchek-cert.json` instead of an embedded one. Risks: COM interop complexity; `@page` margin box support in the installed WebView2 runtime; wry/webview2-com version coupling. Open: ship a Typst-based fallback later for macOS? Certificate layout (later) needs signed hash block. Effort: L (~22 agent-hours).
 
 ## 11. Research notes
 - WebView2 print docs: https://learn.microsoft.com/microsoft-edge/webview2/how-to/print (snippet only): `PrintToPdf` on `ICoreWebView2_7` (since 1.0.1020.30), absolute path required, existing file overwritten, one print job at a time, settings object for margins/orientation/page size/scale 0.1–2.0.

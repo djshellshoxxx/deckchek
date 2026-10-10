@@ -1,5 +1,7 @@
 # SPEC-11: DVS Latency and Buffer Tuner
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0007_latency_tuner.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, Goals, Non-goals
 
 Measures real round-trip latency through the DJ interface, compares it with what the driver reports, stress-tests decreasing buffer sizes under CPU load for dropouts, and recommends the lowest safe buffer per DJ program with that program's own setting names. Includes a Windows tuning checklist that reads power settings via `powercfg`/PowerShell and a feasible DPC-style proxy without kernel drivers.
@@ -15,7 +17,7 @@ Non-goals: no kernel driver, no ETW capture (out of scope; LatencyMon remains th
 
 - AC-1: Given a loopback cable (interface output to input) and a selected device, when I run "Measure latency", then a marker chirp is played and detected, and the result shows round-trip ms (mean of 5 runs), standard deviation and expanded uncertainty (k=2).
 - AC-2: Given the driver reports buffer B frames in and out, then the report shows reported = (Bin + Bout)/fs and measured; the difference is labelled "driver/USB overhead" and is flagged if > 1 ms plus tolerance.
-- AC-3: Given the stress test, when I press Start, then buffers [1024, 512, 256, 128, 64] frames (those the device supports) are tested for 30 s each with CPU load; each step reports xruns, max callback gap, pass/fail.
+- AC-3: Given the stress test, when I press Start, then buffers [1024, 512, 256, 128, 64] frames (those the device/host accepts) are tested for 30 s each with CPU load; each step reports requested and actual period, xruns, max callback gap, pass/fail. If the host ignores the requested size (common for WASAPI shared mode), the row is labelled "host-chosen period" and excluded from the recommendation.
 - AC-4: Given a step has any xrun at idle load, it fails; the recommendation is the smallest passing buffer with one step of headroom (next larger), per software.
 - AC-5: Given no loopback cable, the tuner offers stress-test-only mode (no round trip) and says so.
 - AC-6: The Windows checklist lists each item as pass / review / unknown with the exact command to inspect and the manual path to change; no setting is changed by DeckChek.
@@ -23,7 +25,7 @@ Non-goals: no kernel driver, no ETW capture (out of scope; LatencyMon remains th
 
 ## 3. UX
 
-Entry: Calibration screen tab "Latency & buffer" and Quick Check card; also linked from SPEC-10 when dropouts are found.
+Entry: Calibration screen tab "Latency & buffer" and Quick Check card; also linked from FS-10 when dropouts are found.
 Flow: (1) Setup: pick interface, sample rate, loopback channel pair, software target (Serato DJ Pro / Traktor Pro / rekordbox), safety note "Turn the monitor volume down. A loop test plays a loud chirp." Output level default -20 dBFS (reuses `loopbackStimulus` levels). (2) Latency: 5 repetitions, live meter; result card with reported vs measured. (3) Stress: step table filling in live; CPU load slider (0 / 50 / 80 %), default 50 %, "simulates your DJ software" caveat. (4) Result: recommendation card per software, Windows checklist, export.
 States: empty (no device: "No audio device found"), loading, success, partial (latency ok, stress skipped), error (device busy: "Another program holds the device in exclusive mode. Close <DJ software>."), offline n/a, unsupported (non-Windows: latency/stress run, Windows checklist hidden with note "Windows desktop app only"). Driver does not accept requested buffer: row "Not supported by driver (skipped)".
 Copy: Recommendation: "Lowest safe setting: 128 samples (about 2.7 ms at 48 kHz). Set Serato USB Buffer Size to the ASIO panel value of 128 or 5 ms to start." Shortcuts: Enter start, Esc abort, Ctrl+E export. A11y: progress as `role=progressbar`, results table with headers, status icon + text.
@@ -35,15 +37,15 @@ JS:
 - `app/ui/screens/latency.js`.
 Rust (`src-tauri/src/latency.rs`, new file):
 - `audio_device_buffer_info(device_name?) -> {deviceName, hostApi, sampleRate, input:{minFrames,maxFrames,default}|null, output:{...}|null, supportsFixed:bool}` from cpal `SupportedBufferSize` (existing audio.rs dependency).
-- `latency_play_and_capture(device_name?, out_device?, stimulus:{sampleRate,left:[f32],right:[f32]}, buffer_frames?:u32) -> {captured:{sampleRate,left,right}, quality: CaptureQuality, reportedBufferFrames:{in:number|null,out:number|null}}` (full-duplex, output stream + `capture.rs` input path, requested `BufferSize::Fixed`).
+- `latency_play_and_capture(device_name?, out_device?, stimulus:{sampleRate,left:[f32],right:[f32]}, buffer_frames?:u32) -> {captured:{sampleRate,left,right}, quality: CaptureQuality, reportedBufferFrames:{in:number|null,out:number|null}}` (full-duplex: output via the FS-00 `audio_out.rs` engine with its absolute -12 dBFS cap and ramps, input via the `capture.rs` path under the FS-00 capture lease; requested `BufferSize::Fixed`).
 - `stress_run(device_name?, buffer_frames, seconds, cpu_load_pct) -> {requested, actual, callbacks, xruns, maxGapMs, p99GapMs, overruns, streamErrors:[string]}`; spawns N busy-loop threads (N = round(logical cores * pct/100)) at below-normal priority, joined in a drop guard; callback gap measured with `Instant` in `capture.rs::record_callback`.
 - `windows_tuning_scan() -> {supported, activePlan:{name,guid}, usbSelectiveSuspend:{ac:number|null,dc:number|null}, minProcessorState:{ac,dc}, minCores:{ac,dc}, wifi:[{name,status}], bluetooth:[{name,status}], timerResolutionMs:number|null, dpcProxy:{dpcPct,interruptPct,samples}, onBattery:bool|null, errors:[string]}`.
 Events: `latency://progress {phase, step, frames, elapsedSec}`.
-Deps: none. cpal ASIO host needs the Steinberg SDK (licence-restricted, not redistributable) - do not enable; use WASAPI/cpal and report ASIO values only if the user types them (see section 7).
+Process list: `windows_tuning_scan` reuses FS-00 `processes::top_cpu()`. Deps: none. cpal ASIO host needs the Steinberg SDK (licence-restricted, not redistributable) - do not enable; use WASAPI/cpal and report ASIO values only if the user types them (see section 7).
 
 ## 5. Data model
 
-`NNNN_latency_tuner.sql`:
+`0007_latency_tuner.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS latency_run (
   id TEXT PRIMARY KEY, session_id TEXT REFERENCES session(id) ON DELETE SET NULL,
@@ -78,7 +80,7 @@ Windows checklist via commands (all read-only):
 
 ## 7. Error handling, edge cases, privacy
 
-Exclusive-mode ASIO device: duplex via WASAPI may be impossible; show instruction to use the ASIO panel manually and enter the panel's buffer for "reported". Device does not support Fixed buffer: skip step. Clipping in loopback aborts. CPU threads capped at logical cores - 1; hard timeout 40 s per step; thermal warning if laptop on battery. Output stimulus capped -6 dBFS max, default -20; ramped fades. PowerShell invoked with fixed scripts, `-NoProfile -NonInteractive`, no user-supplied strings concatenated. Data stays local; exports exclude machine name.
+Scope honesty: DeckChek measures its own WASAPI path (cpal 0.16 without the ASIO host). The round trip of the DJ software's ASIO session is NOT measured; results are labelled "WASAPI round trip" and recommendations are a starting point to verify in the DJ software. Whether cpal 0.16 WASAPI honours `BufferSize::Fixed` is UNKNOWN — the first implementation task is a spike that logs requested vs actual period on the owner's Audio 8 DJ and DJM-A9. Exclusive-mode ASIO device: duplex via WASAPI may be impossible; show instruction to use the ASIO panel manually and enter the panel's buffer for "reported". Device does not support Fixed buffer: skip step. Clipping in loopback aborts. CPU threads capped at logical cores - 1; hard timeout 40 s per step; thermal warning if laptop on battery. Output stimulus capped -6 dBFS max, default -20; ramped fades. PowerShell invoked with fixed scripts, `-NoProfile -NonInteractive`, no user-supplied strings concatenated. Data stays local; exports exclude machine name.
 
 ## 8. Test plan
 
@@ -95,7 +97,7 @@ Rollout: flag `features.latencyTuner`. Docs: FEATURE-MATRIX, calibration section
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on SPEC-02 calibration (marker/lag), capture.rs quality counters, SPEC-10 (consumer). Risks: ASIO inaccessible so duplex over WASAPI misrepresents ASIO latency (biggest); stress threads not equal to real DSP load. Open: ship ASIO via SDK (licence)? exact rekordbox/Traktor names. Effort: L (about 45 agent-hours).
+Depends on SPEC-02 calibration (marker/lag), capture.rs quality counters, FS-10 (consumer), FS-00 (`audio_out.rs`, capture arbiter, process list). Risks: ASIO inaccessible so duplex over WASAPI misrepresents ASIO latency (biggest); stress threads not equal to real DSP load. Open: ship ASIO via SDK (licence)? exact rekordbox/Traktor names. Effort: L (about 45 agent-hours).
 
 ## 11. Research notes
 

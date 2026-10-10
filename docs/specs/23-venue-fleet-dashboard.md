@@ -1,5 +1,7 @@
 # Spec 23: Venue Fleet Dashboard
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0017_fleet_dashboard.sql`. Milestone: M7. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary and Goals / Non-goals
 
 A dashboard for people who maintain many decks and mixers across venues. It builds on the existing `venue -> booth -> deck_position -> asset/setup` schema and shows a fleet grid with last-tested date, health status and failing items, time- or hours-based maintenance reminders surfaced at app start, a maintenance events log, CSV export and a printable booth sheet.
@@ -32,14 +34,14 @@ Shortcuts: / focus filter; E export CSV; N new event; arrow keys navigate grid (
 
 New: `app/fleet.js` (pure: health, reminder due calculation, CSV), `app/ui/screens/fleet.js`, `app/ui/screens/fleet-venues.js`, `app/ui/booth-sheet.js`, `src-tauri/src/fleet.rs`.
 Rust commands: `fleet_overview({venueId?, boothId?, filters}) -> {rows:[{assetId, nickname, productName, venue, booth, position, lastTestedAt, health, failing:[{testId,name}], nextDueAt, hoursTotal}], tiles}`; `fleet_place_asset({assetId, deckPositionId|null})`; `venue_upsert/booth_upsert/position_upsert` and `*_delete` (delete blocked if assets are placed unless `moveTo`); `reminder_upsert(input)`, `reminder_list`, `reminder_snooze({id, untilIso})`; `reminders_due({now}) -> {overdue:[], dueSoon:[]}`; `maintenance_log(input) -> MaintenanceEvent`; `maintenance_list({assetId?, from?, to?})`; `fleet_export_csv({filters, path})`. Event: `reminders-due {overdue, dueSoon}` emitted after startup migration completes.
-JS: `computeHealth({lastResults, now, staleDays=90}) -> "healthy"|"review"|"attention"|"never"`; `reminderStatus(reminder, lastDoneAt, hoursSince, now) -> {state, dueAt, dueInHours}`; `fleetToCsv(rows) -> string` (reuse `csvCell` approach from `app/export.js`; neutralise formula injection); `renderBoothSheetHtml(booth, rows)`.
+JS: `computeHealth({lastResults, now, staleDays=90}) -> "healthy"|"review"|"attention"|"never"`; `reminderStatus(reminder, lastDoneAt, hoursSince, now) -> {state, dueAt, dueInHours}`; `fleetToCsv(rows) -> string` (reuse `csvCell` approach from `app/export.js`; neutralise formula injection); `renderBoothSheetHtml(booth, rows)` registered with FS-03 as printable kind `BoothSheet`.
 Deps: none new.
 
 ## 5. Data model
 
 Existing, reused unchanged: `venue`, `booth`, `deck_position` (0001), `setup`, `setup_component`, `maintenance_event`, `device_test_result` (0002). A position holds assets via the new link table below (setups remain for measurement context).
 ```sql
--- NNNN_fleet_dashboard.sql
+-- 0017_fleet_dashboard.sql
 CREATE TABLE IF NOT EXISTS maintenance_reminder (
   id TEXT PRIMARY KEY,
   asset_id TEXT REFERENCES asset(id) ON DELETE CASCADE,   -- NULL when template
@@ -53,7 +55,6 @@ CREATE TABLE IF NOT EXISTS maintenance_reminder (
   created_at TEXT NOT NULL
 );
 ALTER TABLE asset ADD COLUMN deck_position_id TEXT REFERENCES deck_position(id);
-ALTER TABLE asset ADD COLUMN hours_offset REAL NOT NULL DEFAULT 0;   -- manual hours baseline
 ALTER TABLE maintenance_event ADD COLUMN reminder_id TEXT REFERENCES maintenance_reminder(id);
 ALTER TABLE maintenance_event ADD COLUMN hours_at_event REAL;
 CREATE INDEX IF NOT EXISTS idx_reminder_asset ON maintenance_reminder(asset_id, enabled);
@@ -65,7 +66,7 @@ The migration creates `maintenance_reminder` before the ALTER that references it
 ## 6. Algorithms
 
 Health from the latest `device_test_result` per (asset, test_id): any `fail` -> attention; else any `unknown` or any result older than `staleDays` (default 90, tunable) -> review; else healthy; no results -> never. Failing items are those latest results with `fail`.
-Hours accumulated: `hours_offset + sum(session.ended_at - session.started_at)/3600` over sessions linked via `setup_component`, capped per session at 12 h to ignore forgotten-open sessions (tunable); this measures time DeckChek observed, not true runtime, and the UI says "Tracked hours (estimate)". Manual hours entries adjust `hours_offset`.
+Hours accumulated: sum of confirmed rows in the shared FS-00 `asset_usage` ledger (`0006_asset_usage.sql`) for the asset — manual entries (`source='manual'`) plus session-derived proposals (`source='deckchek'`, from `proposeFromSessions` in `app/usage-hours.js`, sessions linked via `setup_component`, capped per session at 12 h, tunable). This is the same ledger FS-12 uses, so stylus and fleet hours never disagree. It measures time DeckChek observed or the user entered, not true runtime; the UI says "Tracked hours (estimate)".
 Reminder due: days basis: dueAt = lastDone + interval (lastDone = latest linked event, else asset `installed_date`, else created_at). State = overdue if now > dueAt, dueSoon if now >= dueAt - warn_before. Hours basis: remaining = interval - (hoursNow - hours_at_last_event); overdue if <= 0, dueSoon if <= warn_before. Snoozed reminders are excluded from the banner but remain visible in the grid. All date maths in UTC date-only comparison to avoid DST drift.
 
 ## 7. Error handling, edge cases, privacy, security
@@ -78,7 +79,7 @@ Unit: health matrix, stale boundary, reminder day and hour boundaries, snooze, l
 
 ## 9. Definition of done
 
-All ACs pass; migration idempotent and tested on a copy of a real DB; flag `fleet` default on; docs: README, SPEC-05 cross-reference (venue hierarchy now has UI), IMPLEMENTATION-STATUS.
+All ACs pass; migration idempotent and tested on a copy of a real DB; flag `features.fleet` default on; docs: README, SPEC-05 cross-reference (venue hierarchy now has UI), IMPLEMENTATION-STATUS.
 
 ## 10. Dependencies, risks, open questions, effort
 

@@ -1,9 +1,11 @@
 # SPEC-30 DeckChek Mobile (PWA companion)
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0018_session_origin.sql`. Milestone: M8. Size: M. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 Status: draft. Packaging: **separate app in this repo** (`mobile/`), static PWA, deployed via GitHub Pages. Not bundled in the desktop installer, but desktop gains an "Import phone results" action.
 
 ## 1. Summary, Goals / Non-goals
-DeckChek Mobile is an installable, offline-capable PWA that turns a phone into a pocket measuring aid at the turntable: platter speed from a reference tone, a strobe helper, a plinth rumble/vibration reading, a rough SPL meter, and a signed JSON/QR result that the desktop app imports. It reuses the pure DSP in `app/core.js` and `app/advanced.js` unchanged.
+DeckChek Mobile is an installable, offline-capable PWA that turns a phone into a pocket measuring aid at the turntable: platter speed from a reference tone, a strobe helper, a plinth rumble/vibration reading, a rough SPL meter, and a hashed (integrity-checked, not signed) JSON/QR result that the desktop app imports. It reuses the pure DSP in `app/core.js` and `app/advanced.js` unchanged.
 
 Goals: MVP = speed-by-mic + mains strobe helper + JSON/QR export + desktop import. v1.1 = vibration, SPL. Non-goals: replacing desktop analysis, DVS timecode, native app-store builds, cloud sync, any account or telemetry.
 
@@ -29,7 +31,7 @@ Entry: install from `https://<owner>.github.io/deckchek-mobile/` (Add to Home Sc
 Accessibility: 48 px targets, `aria-live` for readouts, results announced, reduced-motion note (strobe is flashing: show photosensitivity warning with a confirm before first run; strobe region capped under 3 flashes/s is impossible at mains rate, so confirmation is mandatory). Shortcuts: none (touch).
 
 ## 4. Architecture
-New folder `mobile/`: `index.html`, `manifest.webmanifest`, `sw.js`, `app.js`, `styles.css`, `icons/` (192/512 png), `screens/{speed,strobe,vibration,spl,results}.js`, `lib/{audio.js,motion.js,export.js,qr.js}`. Engines imported from the repo: a build step `tools/build-mobile.mjs` copies `app/core.js`, `app/advanced.js`, `app/calibration.js` into `mobile/vendor/` (no bundler; version stamp in `vendor/VERSION`). Deploy: `.github/workflows/pages-mobile.yml` uploads `mobile/` with `actions/upload-pages-artifact` + `deploy-pages` on tag `mobile-v*` or manual dispatch.
+New folder `mobile/`: `index.html`, `manifest.webmanifest`, `sw.js`, `app.js`, `styles.css`, `icons/` (192/512 png), `screens/{speed,strobe,vibration,spl,results}.js`, `lib/{audio.js,motion.js,export.js,qr.js}`. Engines imported from the repo: a build step `tools/build-mobile.mjs` copies `app/core.js`, `app/advanced.js`, `app/calibration.js` and the FS-00 shared `app/canonical-json.js`, `app/sha256.js`, `app/vendor/qr.js` into `mobile/vendor/` (no bundler; version stamp in `vendor/VERSION`; `--check` mode fails CI when copies drift). Deploy: `.github/workflows/pages-mobile.yml` uploads `mobile/` with `actions/upload-pages-artifact` + `deploy-pages` on tag `mobile-v*` or manual dispatch.
 
 JS APIs:
 - `startMic({sampleRate}) -> {stream, ctx, stop()}` using `getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})`; checks `track.getSettings()` and reports which flags the browser ignored.
@@ -37,16 +39,16 @@ JS APIs:
 - `measureSpeed(samples, sr, {referenceHz, nominalRpm}) -> measurement[]` wraps `speedFromReferenceTone` + `frequencyTrace` + `speedStabilityMetrics`.
 - `recordMotion(sec) -> {samples:[{t,x,y,z}], rateHz}`; `vibrationMetrics(samples)`.
 - `exportRun(run) -> string`, `toQrFrames(json) -> string[]`.
-Desktop: add `app/ui/workflows/import-phone.js` (`parsePhoneRun(text) -> {ok,run,errors}`), reuse `catalog-store.js` `buildAlignmentRecord`/run storage. QR encoding: vendor a small MIT QR generator (e.g. `qrcode-generator` 1.4.4, MIT; version UNKNOWN - needs verification) into `mobile/vendor/`; desktop imports by file/paste only in MVP (no camera scan).
+Desktop: add `app/ui/workflows/import-phone.js` (`parsePhoneRun(text) -> {ok,run,errors}`), reuse `catalog-store.js` `buildAlignmentRecord`/run storage. QR encoding: the single shared generator `app/vendor/qr.js` from FS-00 (MIT, pinned there); desktop imports by file/paste only in MVP (no camera scan).
 CSP for the PWA: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:`. Rust: none.
 
 ## 5. Data model
-No SQL beyond desktop import; placeholder `NNNN_phone_runs.sql`:
+No SQL beyond desktop import; `0018_session_origin.sql`:
 ```sql
 ALTER TABLE session ADD COLUMN origin TEXT NOT NULL DEFAULT 'desktop';
 ALTER TABLE session ADD COLUMN source_device TEXT;
 ```
-(Check `session` columns before finalising; if conflicts, store origin inside measurement `custom_json`.)
+(Checked 2026-10-10: `session` in 0001 has neither column, so no conflict.)
 Export JSON v1:
 ```json
 {"format":"deckchek-mobile","version":1,"createdAt":"ISO","app":"mobile/0.1.0",
@@ -74,7 +76,7 @@ Unit (node, `tests/mobile-*.test.mjs`): speed on synthetic 1000/1010 Hz sine; ex
 Checklist: PWA installable (Lighthouse PWA pass), offline test pass, vendor copy script + CI check that vendor files match `app/`, Pages workflow, desktop import with AC-6, photosensitivity warning, README `mobile/README.md`. Feature flag: desktop import behind `features.phoneImport`. Docs: README, FEATURE-MATRIX, SPEC-09 roadmap.
 
 ## 10. Dependencies, risks, questions, effort
-Depends on SPEC-01 (speed metrics), a stable `measurement` shape (SPEC-07). Risks: mic DSP in browsers (AGC ignored), phone clock drift, strobe aliasing with modern lighting, 60 Hz sensor cap. Questions: public Pages URL ownership; show QR for large payloads (multi-frame) or file only for MVP? Effort: MVP M (~25 agent-hours), vibration+SPL S (~10), camera strobe L (research).
+Depends on SPEC-01 (speed metrics), a stable `measurement` shape (SPEC-07), FS-00 (canonical JSON, SHA-256, QR). Hosting blocker: DeckChek is proprietary (see `LICENSE`) and GitHub Pages publishes the PWA's JavaScript (including the DSP engines) publicly; Pages on a private repo needs a paid plan and is still public. The owner must choose: public Pages site (accepting exposure of `core.js`/`advanced.js`), a separate private host, or local-network serving from the desktop app. Until decided, the Pages workflow is built but not enabled. Risks: mic DSP in browsers (AGC ignored), phone clock drift, strobe aliasing with modern lighting, 60 Hz sensor cap. Questions: public Pages URL ownership; show QR for large payloads (multi-frame) or file only for MVP? Effort: MVP M (~25 agent-hours), vibration+SPL S (~10), camera strobe L (research).
 
 ## 11. Research notes
 - https://chromium.org/developers/design-documents/generic-sensor : accelerometer capped at 60 Hz, secure context (snippet only).

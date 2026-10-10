@@ -1,5 +1,7 @@
 # Spec 01 — First-run setup wizard
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none (uses `app_state` from 0003, FS-00). Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, goals, non-goals
 A guided, skippable, resumable wizard that runs on first launch and can be re-run from Options > "Run setup again". It selects the audio interface and I/O, checks levels, optionally runs loopback calibration (reusing `app/calibration.js` and the Calibration screen), records which gear the user owns, runs a System Health quick scan and ends with a summary.
 
@@ -13,10 +15,11 @@ Users: first-time owner (Pioneer PLX-CRSS12 / Technics SL-1200MK4 / Traktor Audi
 - AC-3 Given the user picks an input device, when "Next" is pressed, then `settings.deviceName` is saved via `setSetting` and the Calibration profile status for that device + sample rate is shown.
 - AC-4 Given the user presses "Play test tone", when output is selected, then a -20 dBFS 1 kHz tone (via `loopbackStimulus`/`generateSine`) plays on the chosen output at a hard-capped ramped level and the stereo meter shows live input levels.
 - AC-5 Given an applicable calibration profile exists (`isProfileApplicable`), then the calibration step shows "Already calibrated" and defaults to Skip.
-- AC-6 Given the user ticks owned products, when finishing, then an `asset` row ("My <model>") exists per ticked product and none for unticked ones; existing assets are not duplicated.
+- AC-6 Given the user ticks owned products, when finishing, then a non-deleted `asset` row ("My <model>") exists per ticked product; existing assets are not duplicated; for unticked products, assets that `device_profiles_sync` auto-created ("Created from the DeckChek device library" note) and that have no runs, test results or edits are soft-deleted (`is_deleted=1`), and no other asset is touched. Note (verified 2026-10-10): `src-tauri/src/devices.rs` currently auto-creates one asset per newly synced profile; the wizard job also adds a `create_assets:false` option to `device_profiles_sync` used once the wizard is enabled, so new profiles no longer create assets silently.
 - AC-7 Given a non-Windows or browser build, then System Health step shows `UNSUPPORTED_NOTE` and is auto-marked skipped.
 - AC-8 Given Options > "Run setup again", then the wizard starts with current values prefilled and never deletes assets or profiles.
 - AC-9 Given no input device is found, then the user sees a recoverable error panel with Refresh and "Continue without audio" actions.
+- AC-10 Given an upgrade install (no `wizard` row in `app_state`) whose database already holds at least one run or asset, when the app starts, then the wizard does not auto-open and the state is written as `status=completed` with `answers.autoCompleted=true` (Options > "Run setup again" still works).
 
 ## 3. UX
 **Entry points:** auto on first run (`wizard.status` absent); Options > "Run setup again"; command palette "Setup wizard"; banner when resumable. Rendered as a full-height dialog (`<dialog>` modal, focus trapped) using existing `confirmDialog` styling from `app/ui/shell.js`; stepper at top ("Step 3 of 7", `role="list"`, current `aria-current="step"`).
@@ -42,15 +45,7 @@ Browser fallback: same shape stored in `localStorage['deckchek.wizard.v1']` thro
 No new events. No new plugins/crates.
 
 ## 5. Data model
-Migration `NNNN_wizard_state.sql`:
-```sql
-CREATE TABLE IF NOT EXISTS app_state (
-  key TEXT PRIMARY KEY,
-  value_json TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-```
-(generic key/value; specs 02/08 reuse it — whichever lands first creates it; `IF NOT EXISTS` makes order irrelevant.) Row `key='wizard'`:
+No own migration. The generic key/value table `app_state` is created by `0003_app_state.sql` (FS-00 §5.1) and read/written through the shared `app_state_get/app_state_set` commands; the `wizard_state_get/save` commands below are thin typed wrappers over key `wizard`. Row `key='wizard'`:
 ```json
 { "version":1, "status":"in_progress", "step":3,
   "answers":{ "inputDevice":"Traktor Audio 8 DJ", "outputDevice":"", "sampleRate":48000,
@@ -74,10 +69,10 @@ Unit (`tests/setup-wizard-model.test.mjs`): reducer transitions, skip semantics,
 - [ ] a11y audit (focus order, announcements, 200% zoom)
 - [ ] Migration applied and idempotent; browser fallback works
 - [ ] Docs: README feature list, SPEC-13 flows, IMPLEMENTATION-STATUS
-Rollout: setting `wizard.enabled` default true; kill switch constant in `setup-wizard.js`.
+Rollout: flag `features.setupWizard` (FS-00 registry) default on.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: Calibration screen refactor (embedded mode), device library sync (`device_profiles_sync`), System Health (SPEC-17 contract), spec 08 (shares `app_state`). Risks: embedding the Calibration screen couples layout; WebView2 output-device selection (`setSinkId`) availability — UNKNOWN, needs verification on target runtime. Open: should the wizard be shown on upgrade installs with existing data? (proposed: no, mark `completed` if runs exist). Effort: L (~24 agent-hours).
+Depends on: Calibration screen refactor (embedded mode), device library sync (`device_profiles_sync`), System Health (SPEC-17 contract), FS-00 (`app_state`, feature registry). Risks: embedding the Calibration screen couples layout; WebView2 output-device selection (`setSinkId`) availability — UNKNOWN, needs verification on target runtime. Decided: not shown on upgrade installs with existing data (AC-10). Effort: L (~24 agent-hours).
 
 ## 11. Research notes
 Internal sources only: `app/calibration.js` (loopbackStimulus, analyzeLoopback, isProfileApplicable), `app/ui/screens/calibration.js`, `app/ui/audio-io.js`, `docs/SYSTEM-CHECK-CONTRACT.md`, `app/ui/state.js` settings keys. No external research required.

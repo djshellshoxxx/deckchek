@@ -1,5 +1,7 @@
 # Spec 06 — Test-media library (test records and timecode media)
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0004_test_media.sql`. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, goals, non-goals
 A catalog of test records (reference-tone LPs, tracking/anti-skate/wow-flutter tracks) and DVS timecode media (Serato, Traktor, rekordbox, Mixxx/xwax formats), stored as versioned JSON profiles like device profiles. The user can add custom media. Selecting a medium in the Speed, Cartridge, DVS or timecode tests pre-fills expected values (reference frequency, level, carrier, track number) and records which medium produced a result.
 
@@ -26,13 +28,14 @@ New: `app/media/index.json` (generated list, same as `app/devices/index.json`), 
 Browser fallback via `catalog-store.js` style local storage key `deckchek.media.v1`. Register in `lib.rs`. No plugins/crates.
 
 ## 5. Data model
-Migration `NNNN_test_media.sql`:
+Migration `0004_test_media.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS test_media (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL CHECK (source IN ('builtin','custom')),
   kind TEXT NOT NULL CHECK (kind IN ('test_record','timecode','tone_file')),
   manufacturer TEXT,
+  product_id TEXT REFERENCES product(id) ON DELETE SET NULL, -- set for timecode media that also exist as device profiles
   name TEXT NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
   profile_json TEXT NOT NULL,
@@ -65,7 +68,7 @@ Profile JSON (`schemaVersion:1`):
              "source":"https://…"}],
   "timecode":null, "sources":[{"title":"…","url":"…","verified":false}] }
 ```
-Timecode profile: `"timecode":{"formatName":"Serato CV02.5","carrierHz":1000,"atRpm":33.3333,"quadrature":true,"hasNoiseMap":true}`. Versioning: `schemaVersion` bump with migration functions in `media-library.js`; sync compares `version`, built-ins retired (flag) when removed from the index; custom rows never touched; `device_test_result.media_id` set NULL semantics preserved on retire (no delete).
+Timecode profile: `"timecode":{"formatName":"Serato CV02.5","hasNoiseMap":true}` — carrier, phase convention and side lengths are NOT duplicated here: they resolve through `findFormat(mergeFormats(...))` in `app/timecode.js` (single source of truth for format facts, see §6 table). Timecode media that exist as device profiles (`category:"timecode-media"`, e.g. `serato-control-vinyl-cv025`, `traktor-scratch-timecode`) are linked by `product_id`, and `media_profiles_sync` also upserts `dvs_media_side` rows (0001) with `duration_sec` from the format's `sides` table so FS-13 has side durations. Versioning: `schemaVersion` bump with migration functions in `media-library.js`; sync compares `version`, built-ins retired (flag) when removed from the index; custom rows never touched; `device_test_result.media_id` set NULL semantics preserved on retire (no delete).
 
 ## 6. Catalog content (initial built-ins) and confidence
 Test records (all values must be re-verified against the physical sleeve; "unverified" until the owner confirms):
@@ -75,7 +78,21 @@ Test records (all values must be re-verified against the physical sleeve; "unver
 - Clearaudio test record: one side 3150 Hz speed tone, plus balance/tracking tracks (snippet only). Clearaudio Stroboscope test record: strobe disc (not an audio tone).
 - Technics/Pioneer test records: UNKNOWN — needs verification; ship none, provide a template.
 - Generic "3.15 kHz speed reference" and "1 kHz / 0 dB reference" entries (user-defined variants) with note: 3000 Hz vs 3150 Hz records exist, using the wrong nominal gives ~5% error; built-in default nominal list `[1000, 3000, 3150]` Hz.
-Timecode media (from `app/timecode.js`): Serato CV02.5 1000 Hz (confirmed via xwax/Mixxx), Traktor Scratch MK1 2000 Hz (confirmed), Traktor Scratch MK2 2500 Hz (unverified), MixVibes DVS V2 1300 Hz, rekordbox RB-VS1 1000 Hz (unverified assumption), Final Scratch 1200 Hz (unverified). Serato NoiseMap: no frequency-relevant data found; flagged noise-map as a media attribute only. Mixxx/xwax formats link to xwax `timecoder.c` table.
+Timecode media — authoritative values from xwax `timecoder.c` as vendored in Mixxx (`lib/xwax/timecoder.c`, `timecode_defs[]`; `resolution` = "wave cycles per second" at 33 1/3 rpm, `length` = code length "in cycles", per `lib/xwax/timecoder.h`; carrier at 45 rpm = resolution x 1.35 per `timecoder_get_resolution`). Side playing time = length / resolution at 33 1/3:
+
+| xwax id | Medium | Carrier Hz @33 1/3 | Side length (cycles -> min) | Flags | Confidence |
+|---|---|---|---|---|---|
+| serato_2a / serato_2b | Serato 2nd Ed. (CV02/CV02.5 family) A/B | 1000 | 712 000 -> 11.9 / 922 000 -> 15.4 | — | confirmed |
+| serato_cd | Serato CD | 1000 | 950 000 -> 15.8 | — | confirmed |
+| traktor_a / traktor_b | Traktor Scratch (MK1) A/B | 2000 | 1 500 000 -> 12.5 / 2 110 000 -> 17.6 | PRIMARY, POLARITY, PHASE (270 deg) | confirmed |
+| traktor_mk2_a / _b | Traktor Scratch MK2 A/B | 2500 | 1 845 000 -> 12.3 / 2 590 000 -> 17.3 | MK2 (110-bit code) | confirmed |
+| traktor_mk2_cd | Traktor Scratch MK2 CD | 3000 | 4 500 000 -> 25.0 | MK2 | confirmed |
+| mixvibes_v2 / mixvibes_7inch | MixVibes V2 12" / 7" | 1300 | 950 000 -> 12.2 / 312 000 -> 4.0 | PHASE (270 deg) | confirmed |
+| pioneer_a / pioneer_b | rekordbox DVS Control Vinyl (RB-VS1) A/B | 1000 | 635 000 -> 10.6 / 918 500 -> 15.3 | POLARITY | confirmed |
+| algoriddim_a / _b | Algoriddim djay 12" A/B | 1000 | 600 000 -> 10.0 / 900 000 -> 15.0 | — | confirmed |
+| (none) | Final Scratch | 1200 | — | — | unverified (absent from timecoder.c) |
+
+`SWITCH_PHASE` means the channel phase difference is 270 deg instead of 90 deg, i.e. the forward/reverse sign of `tc_phase_deg` is inverted for that format; `SWITCH_PRIMARY` = left channel is primary. Whether Serato CV02.5 "NoiseMap" uses exactly the serato_2a/2b code is not stated in timecoder.c (carrier is); keep NoiseMap as an attribute. These values supersede the confidence flags currently in `app/timecode.js` and the timecode device profiles — see correction job `M5-tc-facts` in `docs/DEVELOPMENT-PLAN.md`. Licence: xwax/Mixxx are GPL-2.0-or-later; DeckChek is proprietary, so only the facts (numbers) are used — no code, LUTs or LFSR tables may be copied.
 
 ## 6b. Algorithms
 Prefill precedence: user override > medium track > device profile `referenceHz` > global default (1000 Hz). Speed test uncertainty unchanged (`speedPitchUncertainty` with `referenceHz` from the medium). Medium reference frequency tolerance: if measured f is within 1% of a different built-in nominal (e.g., 3000 vs 3150) show suggestion "Looks like a 3150 Hz record — switch?" (tunable 1%). Level conversions: cm/s RMS to dB re 5 cm/s = 20*log10(v/5).
@@ -92,7 +109,7 @@ Unit: `validateMediaProfile` (missing fields, bad enum, negative frequency, >100
 Rollout: no flag; pickers default "Auto" so existing behaviour is unchanged.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: device library sync pattern (`devices.rs`), `timecode.js`, Spec 08 backup (include `test_media` custom rows). Risks: wrong catalog values misleading users (mitigated by confidence flags); sleeve data copyright (facts only, no audio). Open: verify Technics/Pioneer/HFN tracks; rekordbox carrier; whether NoiseMap affects carrier. Effort: L (~26 agent-hours incl. research verification).
+Depends on: device library sync pattern (`devices.rs`), `timecode.js` (after `M5-tc-facts`), FS-00 (feature registry). Backups (FS-08) include `test_media` automatically because it lives in the database. Risks: wrong catalog values misleading users (mitigated by confidence flags); sleeve data copyright (facts only, no audio). Open: verify Technics/Pioneer/HFN tracks. Resolved: rekordbox carrier = 1000 Hz (xwax `pioneer_a/b`); NoiseMap does not change the carrier (serato defs all 1000 Hz). Effort: L (~26 agent-hours incl. research verification).
 
 ## 11. Research notes
 - Ortofon test record track summary: https://www.stoneaudio.co.uk/products/ortofon-test-record and user guide https://www.audioadvisor.com/content/pdf/Ortofon_Test_Record_User_Guide.pdf (snippet only; guide not opened).
@@ -100,3 +117,4 @@ Depends on: device library sync pattern (`devices.rs`), `timecode.js`, Spec 08 b
 - Hi-Fi News test LP: https://www.diyaudio.com/community/threads/test-lp-group-buy.313335/post-5227209 (forum, attribution unclear).
 - Clearaudio test record 3150 Hz side: https://www.clearaudio.de/_assets/_pdf/manuals/accessories/CA_Stroboscope Testrecord_E+D.pdf (snippet only); 3000 vs 3150 Hz discussion https://forum.audiogon.com/posts/404303 (snippet only).
 - Timecode data: xwax https://github.com/xwax/xwax, Mixxx PR https://github.com/mixxxdj/mixxx/pull/14569 (as cited in `app/timecode.js`).
+- VERIFIED 2026-10-10 from source: Mixxx repo (sparse clone, commit b02e84aa4cbae2569b5bb850f2b12bd81062c791, 2026-10-08) `lib/xwax/timecoder.c` (`timecode_defs[]`, flags `SWITCH_PHASE`/`SWITCH_PRIMARY`/`SWITCH_POLARITY`/`TRAKTOR_MK2`) and `lib/xwax/timecoder.h` (`struct timecode_def` field comments, `timecoder_get_resolution`). Read locally; not redistributed.

@@ -1,5 +1,7 @@
 # SPEC-31 Timecode Doctor: Live Monitor
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0019_monitor_log.sql`. Milestone: M8. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 Status: draft. Packaging: **inside DeckChek** (new "Live monitor" mode + Windows system tray, Rust side in `src-tauri/`). No separate app.
 
 ## 1. Summary, Goals / Non-goals
@@ -14,7 +16,7 @@ Working DJ on Traktor Audio 8 DJ / DJM-A9 with Scratch vinyl. Acceptance criteri
 - AC-3 Given SNR <12 dB or dropouts >=3 in 10 s, Then tray turns red and toast severity is "critical".
 - AC-4 Given 50/60 Hz hum rises >10 dB above baseline in the carrier-adjacent band, Then a hum warning with the likely cause "ground loop/cable" is shown.
 - AC-5 Given the DJ software holds the device exclusively, When I start monitoring, Then I see a plain explanation and the three workarounds (section 3) instead of a generic error.
-- AC-6 Given the monitor runs for 2 h, Then average CPU stays under 2% of one core on the owner's laptop (tunable budget) and memory is flat.
+- AC-6 Given the monitor runs for 2 h, Then average CPU stays under 2% of one core on the owner's laptop (tunable budget; manual script H-31 with Task Manager/`Get-Counter`) and memory is flat. Automated proxy: a Node benchmark test feeds 10 min of synthetic 48 kHz stereo through `createMonitor` and asserts mean processing time per 250 ms hop < 5 ms (generous for CI variance) and no heap growth > 10 MB after warm-up.
 - AC-7 Given the session ends, Then a log with all events and per-minute summaries is saved and viewable in History.
 - AC-8 Given I close the main window, Then monitoring continues in the tray until I choose Quit.
 
@@ -26,7 +28,7 @@ Device-busy copy: "Another program is using this audio device exclusively. DeckC
 **Concurrency research summary.** WASAPI shared mode lets several processes use the same endpoint (the engine mixes playback; capture endpoints can be opened by more than one process) (Microsoft/WATCHOUT docs, snippet only). WASAPI exclusive and loopback conflict: loopback needs shared mode (MS docs). ASIO is typically single-client per driver instance (WATCHOUT docs, secondhand), but some drivers (NI, RME, per forum snippets) expose multi-client behaviour, and Windows driver models (WDM/WASAPI) may coexist with ASIO only if the vendor driver supports it. Whether Traktor Audio 8 DJ's ASIO driver is multi-client: UNKNOWN - needs verification (test on the owner's hardware). DJ software normally opens the ASIO device for both input and output, so DeckChek cannot open the same input channels through ASIO. Workarounds, in order of preference: 1) enable the interface's shared/WDM endpoint if the driver offers it and open it via WASAPI shared (cpal default host); 2) tap the deck signal before the interface: Y-split RCA (passive splitter, high-Z buffered recommended to avoid loading the cartridge) into a spare stereo input on a second interface/phono-stage line input (e.g. Xone:23C or laptop line-in); 3) use the DJ software's own output of the decoded signal (Traktor "Monitor"/thru is NOT timecode - UNKNOWN whether any software exposes raw timecode on an output), so this is limited to level/hum of audible content and is flagged as degraded mode; 4) multi-client third-party drivers (KoordASIO shared mode exists; compatibility with Traktor Audio 8 DJ UNKNOWN).
 
 ## 4. Architecture
-Rust (`src-tauri/`): new `monitor.rs` (reuses `capture.rs` stream/ring-buffer code: cpal input + `rtrb` ring); `tray.rs`. `Cargo.toml`: `tauri = { version="2", features=["tray-icon","image-png"] }` (MIT/Apache-2.0; feature names per Tauri 2 tray docs, snippet only). Tray: `TrayIconBuilder::with_id("main")` and later `tray_by_id("main").set_icon(Some(image))` for green/amber/red icons (`set_icon` in JS API confirmed; Rust equivalent UNKNOWN - verify on docs.rs). Capabilities file must allow tray + `core:event`.
+Rust (`src-tauri/`): new `monitor.rs` built on the FS-00 streaming capture (`start_stream_capture` with an `ipc::Channel`, job F1-stream) and holding the FS-00 capture lease for the whole session (other captures then get `CAPTURE_BUSY` with "Stop live monitor?"); `tray.rs`. `Cargo.toml`: `tauri = { version="2", features=["tray-icon","image-png"] }` (MIT/Apache-2.0; feature names per Tauri 2 tray docs, snippet only). Tray: `TrayIconBuilder::with_id("main")` and later `tray_by_id("main").set_icon(Some(image))` for green/amber/red icons (`set_icon` in JS API confirmed; Rust equivalent UNKNOWN - verify on docs.rs). Capabilities file must allow tray + `core:event`.
 Commands:
 - `monitor_start(cfg: {deviceName, channels:[{deck:"A",l:0,r:1}], sampleRate?, format, hopMs:250}) -> {ok, actualSampleRate, hostApi, shared:boolean, warnings:[string]}`; errors are `{code:"DEVICE_BUSY"|"NO_DEVICE"|"FORMAT_UNSUPPORTED", message}`.
 - `monitor_stop() -> {summary}`, `monitor_status() -> {running, startedAt, decks:[{deck,state}], droppedCallbacks}`.
@@ -36,23 +38,23 @@ Design choice: DSP stays in JS (reuse tested engines). MVP: Rust forwards 250 ms
 JS: `app/monitor.js` (pure): `createMonitor({format, hopMs, windowSec:0.5, baselineSec:60}) -> {push(left,right,sr)->frame, alerts(frame)->Alert[], reset()}`; `app/ui/screens/monitor.js`; `app/ui/live-monitor-log.js`. Tray menu strings in `tray.rs`.
 
 ## 5. Data model
-Placeholder migration `NNNN_monitor_log.sql`:
+Migration `0019_monitor_log.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS monitor_session (
   id TEXT PRIMARY KEY, started_at TEXT NOT NULL, ended_at TEXT,
   device_name TEXT, host_api TEXT, sample_rate INTEGER, format TEXT,
   config_json TEXT NOT NULL, summary_json TEXT, asset_id TEXT REFERENCES asset(id));
 CREATE TABLE IF NOT EXISTS monitor_event (
-  id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES monitor_session(id),
+  id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES monitor_session(id) ON DELETE CASCADE,
   t_ms INTEGER NOT NULL, deck TEXT, kind TEXT NOT NULL, severity TEXT NOT NULL,
   value REAL, baseline REAL, message TEXT);
 CREATE TABLE IF NOT EXISTS monitor_minute (
-  session_id TEXT NOT NULL REFERENCES monitor_session(id), minute INTEGER NOT NULL, deck TEXT NOT NULL,
+  session_id TEXT NOT NULL REFERENCES monitor_session(id) ON DELETE CASCADE, minute INTEGER NOT NULL, deck TEXT NOT NULL,
   snr_db_min REAL, snr_db_mean REAL, hum_db_max REAL, drift_deg_max REAL, dropouts INTEGER,
   PRIMARY KEY(session_id, minute, deck));
 CREATE INDEX IF NOT EXISTS idx_monitor_event_session ON monitor_event(session_id, t_ms);
 ```
-Settings JSON `monitor.settings` (version 1): thresholds, cooldownSec, toastsEnabled, sound, retentionDays (default 90). Rows older than retention are pruned at startup. Log export: JSON `{version:1, session, events, minutes}`.
+Settings JSON in `app_state` key `monitor` (FS-00 §5.1; version 1): thresholds, cooldownSec, toastsEnabled, sound, retentionDays (default 90). Rows older than retention are pruned at startup. Log export: JSON `{version:1, session, events, minutes}`.
 
 ## 6. Algorithms
 Per hop, analyse a 0.5 s window with `analyzeTimecode` (carrier amplitude, quadrature phase, balance) plus:

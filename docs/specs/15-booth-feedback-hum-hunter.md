@@ -1,5 +1,7 @@
 # SPEC-15: Booth Feedback and Hum Hunter
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0012_hum_feedback.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, Goals, Non-goals
 
 A guided finder for ground-loop hum and low-frequency/booth feedback. For hum it walks through step-by-step disconnect / ground-lift isolation, measures the 50/60 Hz family and harmonics at each step and follows a decision tree to the likely source. For feedback it runs a controlled, very-low-level step test with a safety limiter and abort. It extends SPEC-05 (venue diagnostics, s8 and s23) with a hum workflow.
@@ -23,7 +25,7 @@ Non-goals: no instructions to defeat safety earths or modify mains wiring (groun
 
 ## 3. UX
 
-Entry: Venue screen > "Hum and feedback"; Quick Check card "Hum?"; SPEC-10 hum warning "Find the cause".
+Entry: Venue screen > "Hum and feedback"; Quick Check card "Hum?"; FS-10 hum warning "Find the cause".
 Flow Hum: (1) Setup: input channel, expected mains (auto, user may override), safety text. (2) Baseline 1: "Disconnect everything from the mixer input except the cable under test; set the channel fader up, gain at normal". (3) Guided steps (each Next after a 5 s measurement): A. mixer alone (nothing plugged in, gain up) - tests mixer/interface; B. add deck cables without turntable ground; C. connect turntable ground wire to the mixer GND terminal; D. add laptop USB (on battery); E. add laptop charger; F. add other gear; G. ground-lift/DI step where present. Each step has an illustration/ text and a Skip. (4) Result: hum-level timeline (bar per step), cause list, "what to try".
 Flow Feedback: (1) Setup: pick output route (computer to a mixer channel) and input (booth mic or mixer record out; noted), cap, step size; checklist "Master and booth volume low; stay near the controls; the app will not exceed the cap but the mixer gain will" (2) Run: slow steps, live spectrogram, STOP always visible. (3) Result: onset step, frequency (e.g. 63 Hz), growth rate, guidance.
 States: empty (no input), loading, success, partial (steps skipped), error (clipping/no signal), offline n/a, unsupported (no output device: feedback test disabled, hum works with input only).
@@ -32,15 +34,15 @@ Copy: "Hum dropped 18 dB when the turntable ground was connected. The turntable 
 ## 4. Architecture
 
 JS:
-- `app/hum.js` (pure, shared with SPEC-10): `humMeasure(samples, fs, {mains}) -> {mains, fundamental, harmonics[], totalDbfs, floorDbfs, humToFloorDb, oddEvenRatio}` using `fitTone`/`toneAmplitude` at k * f_mains for k = 1..8 and a local-median floor; `detectMains(samples, fs)` compares 50 vs 60 Hz (+100/120).
+- `app/hum.js` (pure, shared with FS-10; owned by FS-00 §4.6, single signature): `humMeasure(samples, fs, {mains, harmonics:8}) -> {mainsHz, fundamentalDbfs, harmonics:[{n,hz,dbfs}], totalDbfs, floorDbfs, humToFloorDb, oddEvenRatio}` using `fitTone`/`toneAmplitude` at k * f_mains for k = 1..8 and a local-median floor; `detectMains(samples, fs)` compares 50 vs 60 Hz (+100/120).
 - `app/hum-tree.js`: `HUM_STEPS`, `rankCauses(stepResults) -> Cause[]`, `deltaDb(prev, cur)`.
 - `app/feedback.js`: `stepPlan({startDbfs:-60, stepDb:3, capDbfs:-30})`, `detectHowl(spectraHistory) -> {onset:boolean, freqHz, growthDbPerS}`, `limiter(buffer, capDbfs)`, `rampToSilence()`.
 - `app/ui/workflows/hum.js`, `app/ui/workflows/feedback.js`.
-Rust: output playback needs low-latency control: `audio_play_tone(device?, spec:{type:'pinkband'|'sine', freqHz?, levelDbfs, capDbfs, rampMs}) -> {handle}`; `audio_set_level(handle, levelDbfs)` (clamped in Rust to cap); `audio_stop(handle)` (immediate fade 20 ms); output device list `list_native_audio_outputs()`. Safety limiter implemented in Rust so a JS bug cannot exceed cap (hard-coded absolute max -12 dBFS). Reuses `start_live_capture`. Deps: none (cpal output already present? if not, use cpal feature already in Cargo - verify).
+Rust: output playback uses the shared FS-00 `audio_out.rs` engine (job F1-audio-out): `audio_play_tone(device?, spec:{type:'pinkband'|'sine', freqHz?, levelDbfs, capDbfs, rampMs}) -> {handle}`; `audio_set_level(handle, levelDbfs)` (clamped in Rust to cap); `audio_stop(handle)` (fade 20 ms); `list_native_audio_outputs()`. The safety limiter and the hard-coded absolute max -12 dBFS live in Rust so a JS bug cannot exceed the cap. Verified: the repo has no Rust output path today (cpal 0.16 is used for input only; `app/ui/audio-io.js playStereo` is WebAudio), so F1-audio-out builds it. Reuses `start_live_capture` under the capture lease. Deps: none new.
 
 ## 5. Data model
 
-`NNNN_hum_feedback.sql`:
+`0012_hum_feedback.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS hum_run (
   id TEXT PRIMARY KEY, session_id TEXT REFERENCES session(id) ON DELETE SET NULL,
@@ -84,7 +86,7 @@ Rollout: flag `features.humHunter` (feedback part behind separate flag `features
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on SPEC-05 (venue/session records), SPEC-10 (`hum.js`), SPEC-02 fault signatures s12.3. Risks: speaker/hearing damage from software bug (mitigated in Rust); heuristics weakly sourced; output route to booth varies. Open: input for feedback (booth mic vs record out); whether to add SPL meter entry. Effort: L (about 38 agent-hours).
+Depends on SPEC-05 (venue/session records), FS-00 (`hum.js`, `audio_out.rs`), SPEC-02 fault signatures s12.3. Risks: speaker/hearing damage from software bug (mitigated in Rust); heuristics weakly sourced; output route to booth varies. Open: input for feedback (booth mic vs record out); whether to add SPL meter entry. Effort: L (about 38 agent-hours).
 
 ## 11. Research notes
 

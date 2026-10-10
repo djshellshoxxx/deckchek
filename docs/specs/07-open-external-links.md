@@ -1,5 +1,7 @@
 # Spec 07 — Open external links safely
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none. Milestone: M5. Size: S. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, goals, non-goals
 Manual, support and source links open in the user's default browser through the Tauri opener plugin, restricted to https URLs on an allowlist, with a copy-link fallback and a confirm dialog for non-allowlisted domains. The webview itself never navigates away.
 
@@ -13,12 +15,13 @@ Manual, support and source links open in the user's default browser through the 
 - AC-5 Given browser (non-Tauri) mode, then links use `window.open(url,'_blank','noopener,noreferrer')` after the same validation.
 - AC-6 Given any `<a href="https://…">` in rendered content (including user notes), then clicks are intercepted by the single handler; middle-click and Ctrl+click follow the same path.
 - AC-7 Given a URL with userinfo (`https://user:pw@host`) or IDN/punycode lookalike, then it is treated as non-allowlisted and the dialog shows the punycode host.
+- AC-8 Given a file DeckChek itself wrote this session (PDF, backup, bundle, certificate, ledger) or an app-owned folder (logs, backups), when "Open" / "Show in folder" is used, then `open_path` / `reveal_path` open it; any other path is refused with `reason:"not_app_path"`.
 
 ## 3. UX
 Entry points: Help menu (manual, support, release notes, GitHub issues), device-profile source links, System Health "Learn more" links, report footers, Spec 02 "Report on GitHub". Visuals: external links show an "external" icon and `rel`-like text for screen readers ("opens in your browser"). Confirm dialog copy: "Open this link in your browser? **example.org** — https://example.org/path. DeckChek hasn't verified this site." Buttons: Open (primary), Copy link, Cancel (default focus). States: success (silent), fallback (toast with Copy), blocked (toast), loading (none), offline (browser may show its own error; no pre-check), unsupported (no opener permission -> copy-only mode). Shortcut: F1 opens the manual; Enter on a focused link opens. A11y: links are real `<a>` with discernible text; dialog uses `aria-describedby` for the full URL; focus returns to the link.
 
 ## 4. Architecture
-Plugin: `tauri-plugin-opener` (v2.x, MIT/Apache-2.0; exact version to pin at implementation — UNKNOWN here). Do NOT use deprecated `tauri-plugin-shell` `open`. Add to `Cargo.toml`, `lib.rs` (`.plugin(tauri_plugin_opener::init())`), JS access via `window.__TAURI__.opener.openUrl` (global enabled by `withGlobalTauri`). Capability file `src-tauri/capabilities/default.json`:
+Plugin: `tauri-plugin-opener` (v2.x, MIT/Apache-2.0; exact version pinned by FS-00 job F0-platform, which also adds it to `Cargo.toml`/`lib.rs` and creates `src-tauri/capabilities/default.json` — no capabilities directory exists today). Do NOT use deprecated `tauri-plugin-shell` `open`. Plugin init `.plugin(tauri_plugin_opener::init())`, JS access via `window.__TAURI__.opener.openUrl` (global enabled by `withGlobalTauri`). Capability file `src-tauri/capabilities/default.json`:
 ```json
 { "identifier":"default","windows":["main"],
   "permissions":["core:default",
@@ -27,7 +30,7 @@ Plugin: `tauri-plugin-opener` (v2.x, MIT/Apache-2.0; exact version to pin at imp
       {"url":"https://support.serato.com/**"},{"url":"https://support.native-instruments.com/**"},
       {"url":"https://manual.mixxx.org/**"},{"url":"https://www.alphatheta.com/**"}]}]}
 ```
-(scope glob syntax: snippet-only evidence for `https://**`; verify.) Non-allowlisted domains cannot be opened by the plugin from JS directly, so the Rust command mediates: `open_external_url(url: String, confirmed: bool) -> { opened: bool, reason?: "blocked_scheme"|"needs_confirm"|"invalid"|"error", host: string, allowlisted: bool }` in new `src-tauri/src/links.rs`, using `tauri_plugin_opener::OpenerExt::opener().open_url(url, None::<&str>)` with Rust-side permissions (Rust API is not scope-checked), so the JS side does not need broad `opener:allow-open-url` — the capability grants only `opener:default` minus open-url (omit it) and the app routes everything through `open_external_url`. This is the chosen design: allowlist enforced in Rust (single source of truth), JS cannot bypass via plugin calls. Allowlist stored in `src-tauri/resources/link-allowlist.json` (`{"version":1,"hosts":["github.com", ...], "allowSubdomains":["*.serato.com"]}`) loaded with `include_str!`.
+(scope glob syntax: snippet-only evidence for `https://**`; verify.) Non-allowlisted domains cannot be opened by the plugin from JS directly, so the Rust command mediates: `open_external_url(url: String, confirmed: bool) -> { opened: bool, reason?: "blocked_scheme"|"needs_confirm"|"invalid"|"error", host: string, allowlisted: bool }` in new `src-tauri/src/links.rs`, using `tauri_plugin_opener::OpenerExt::opener().open_url(url, None::<&str>)` with Rust-side permissions (Rust API is not scope-checked), so the JS side does not need broad `opener:allow-open-url` — the capability grants only `opener:default` minus open-url (omit it) and the app routes everything through `open_external_url`. This is the chosen design: allowlist enforced in Rust (single source of truth), JS cannot bypass via plugin calls. Local files: `open_path(path) -> {opened, reason?}` and `reveal_path(path) -> {opened, reason?}` (opener `open_path` / `reveal_item_in_dir`) accept only paths registered in the in-memory `WrittenPaths` set by FS-00 `userfiles::record_written(path)` (every save command calls it) or paths under `app_data_dir`/`app_log_dir`; canonicalised before comparison. Allowlist stored in `src-tauri/resources/link-allowlist.json` (`{"version":1,"hosts":["github.com", ...], "allowSubdomains":["*.serato.com"]}`) loaded with `include_str!`.
 JS: new `app/external-links.js`: `classifyUrl(url, allowlist) -> {ok, scheme, host, punycodeHost, allowlisted, reason}`, `openExternal(url, {invoke, confirm, copy, toast})`, `installLinkInterceptor(root=document)` (delegated click on `a[href]`, `auxclick`, plus `window.open` override). Changes: `app/ui/shell.js` (install interceptor, confirm dialog via `confirmDialog`), `app/ui/dom.js` (helper `externalLink(href,text)`), Help menu. CSP unchanged (`default-src 'self'`): no `connect-src` or `frame-src` added; `<a>` navigation is prevented in JS and additionally `on_navigation` handler in `lib.rs` denies any non-`tauri://`/app URL in the main window.
 
 ## 5. Data model
@@ -48,7 +51,7 @@ Unit (`tests/external-links.test.mjs`): classify matrix — `https://github.com/
 Rollout: no flag.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: none (used by Specs 02, 03, 06). Risks: Rust OpenerExt API names differ by plugin version — UNKNOWN, verify at pin. Open: final allowlist domains (manufacturer support sites need verification); persist "always allow"? Effort: S (~8 agent-hours).
+Depends on: FS-00 F0-platform (plugin + capability file + `userfiles.rs`). Used by FS-02, 03, 06, 08, 20, 22, 23, 30 (help link), 33. Risks: Rust OpenerExt API names differ by plugin version — UNKNOWN, verify at pin. Open (owner): final allowlist domains (manufacturer support sites need verification). Decided: "always allow" is session-only in v1. Effort: S (~8 agent-hours).
 
 ## 11. Research notes
 - Tauri opener plugin docs: https://v2.tauri.app/plugin/opener/ (snippet only): default permission set allows opening mailto/tel/http/https; permissions and scopes configured in capabilities; example scope entries `{ "url": "https://tauri.app" }`.

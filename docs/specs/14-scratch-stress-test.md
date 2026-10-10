@@ -1,5 +1,7 @@
 # SPEC-14: Scratch Stress Test
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0011_scratch_stress.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, Goals, Non-goals
 
 A guided test in which the user performs standard scratch patterns (baby scratch, transform, chirp) in time with a metronome while DeckChek recovers the platter velocity and direction from the timecode quadrature phase, then measures tracking quality: lost-lock periods, direction errors, recovery time and needle skips. It scores each cartridge, control vinyl and setup. It deepens SPEC-02 section 13.
@@ -35,11 +37,11 @@ JS:
 - `app/ui/workflows/scratch.js`, `app/ui/screens/dvs.js` addition.
 - Metronome via WebAudio `AudioContext` (scheduled clicks, lookahead 100 ms, `setSinkId` for output device where available).
 Reuses `findFormat`, `analyzeTimecode` (baseline and SNR), `toneAmplitude`/`fitTone` for carrier phase, `dvsIntegrityTimeline`, `subsonicPeak`, `compareEventMaps`.
-Rust: none required for DSP; `start_live_capture` with `max_seconds` 120. Commands `scratch_save(run)`, `scratch_list(filter)`, `scratch_get(id)`. Deps: none.
+Rust: none required for DSP; capture via `start_live_capture` with `max_seconds` 120 under the FS-00 capture lease. Commands `scratch_save(run)`, `scratch_list(filter)`, `scratch_get(id)`. Deps: none.
 
 ## 5. Data model
 
-`NNNN_scratch_stress.sql`:
+`0011_scratch_stress.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS scratch_run (
   id TEXT PRIMARY KEY, session_id TEXT REFERENCES session(id) ON DELETE SET NULL,
@@ -60,7 +62,7 @@ Protocol JSON `PROTOCOL_V1`: `{"v":1,"patterns":[{"id":"baby","beats":"1 fwd + 1
 
 ## 6. Algorithms
 
-Velocity from quadrature: form complex signal z[n] = L[n] + j R[n] (carrier with 90 deg phase between channels; sign of L/R phase = direction, existing `tc_phase_deg` sign convention in `analyzeTimecode`). Unwrap phase phi[n] = angle(z[n]) with analytic bandpass about expected carrier f_c; instantaneous frequency f_i = (1/2pi) dphi/dt (positive or negative); velocity v = f_i / f_c in units of nominal speed (so +1 = normal forward, -1 = normal reverse, 0 = stopped). Estimate with 5 ms window, 2.5 ms hop (about 12 carrier cycles at 2.5 kHz, 5 at 1 kHz), noting a lower cycle count lowers resolution at 1 kHz; tunable. Resolution: v std approx sqrt(6)/(pi*N_cycles*SNRlin) (Cramer-Rao style, same family as `frequencyEstimatorStdHz`). Amplitude envelope also gives speed since carrier amplitude varies with groove velocity (magnetic/ velocity transducer): use as secondary check.
+Velocity from quadrature: form complex signal z[n] = L[n] + j R[n] (carrier with 90 deg phase between channels; sign of L/R phase = direction, existing `tc_phase_deg` sign convention in `analyzeTimecode`). The sign must be multiplied by the format's phase convention: xwax `SWITCH_PHASE` formats (Traktor MK1 `traktor_a/b`, MixVibes) run at 270 deg, i.e. inverted direction; this `phaseSign` field is added to `TIMECODE_FORMATS` by job `M5-tc-facts`. Unwrap phase phi[n] = angle(z[n]) with analytic bandpass about expected carrier f_c; instantaneous frequency f_i = (1/2pi) dphi/dt (positive or negative); velocity v = f_i / f_c in units of nominal speed (so +1 = normal forward, -1 = normal reverse, 0 = stopped). Estimate with 5 ms window, 2.5 ms hop (about 12 carrier cycles at 2.5 kHz, 5 at 1 kHz), noting a lower cycle count lowers resolution at 1 kHz; tunable. Resolution: v std approx sqrt(6)/(pi*N_cycles*SNRlin) (Cramer-Rao style, same family as `frequencyEstimatorStdHz`). Amplitude envelope also gives speed since carrier amplitude varies with groove velocity (magnetic/ velocity transducer): use as secondary check.
 Reversal: sign change of v through |v| < v0 (default 0.1) with preceding and following magnitude > 0.3; reversal duration = time between crossing 0.3 on each side. Direction error: continuity model - at a reversal the velocity must pass through zero; a sign flip with |v| > 0.5 on both sides within two hops is an error. Lost lock: min channel RMS or carrier SNR below baseline - 12 dB (same default as `dropoutDb`) or SNR < 10 dB for >= 10 ms; recovery = lock loss end to first window with SNR >= 20 dB and consistent v for 20 ms.
 Needle skip: simultaneous (a) amplitude drop to < -20 dB for 2-50 ms followed by (b) carrier phase jump not explained by smooth velocity (|dphi| > pi/2 beyond expected), and (c) subsequent "ringing" - low-frequency 8-20 Hz burst (`subsonicPeak`-style). UNKNOWN thresholds - needs calibration with deliberate skips on a sacrificial record.
 Score (tunable; mirrors SPEC-02 s13.4): continuity 30 (1 - loss_time/total_active), recovery 20 (median recovery <= 20 ms full, >= 200 ms zero), direction accuracy 25 (errors per reversal), signal stability 15 (median SNR 25 dB full, 15 zero), skips 10 (any skip = 0, and caps total at 60). Metronome adherence is reported but not scored. Latency compensation: the user's performed beat vs click is only informational.
@@ -85,7 +87,7 @@ Rollout: flag `features.scratchTest`. Docs: SPEC-02 s13 updated to reference thi
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on SPEC-02 timecode engine, SPEC-12 (cartridge assets), SPEC-13 (vinyl copies), SPEC-11 (latency for context). Risks: DJ software contending for the audio device; 5 ms window limits velocity accuracy at 1 kHz; skip detection unvalidated. Open: should a skip-stress also modify the default sampling window. Effort: L (about 40 agent-hours).
+Depends on SPEC-02 timecode engine, FS-12 (cartridge assets), FS-13 (vinyl copies), FS-11 (latency for context). Risks: DJ software contending for the audio device; 5 ms window limits velocity accuracy at 1 kHz; skip detection unvalidated. Open: should a skip-stress also modify the default sampling window. Effort: L (about 40 agent-hours).
 
 ## 11. Research notes
 
