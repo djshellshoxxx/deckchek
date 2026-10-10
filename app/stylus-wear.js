@@ -141,6 +141,18 @@ export function proposeFromDvsSessions(sessions, assetId, opts = {}) {
 }
 
 /**
+ * list_capture_sessions rows -> unconfirmed `deckchek` proposals (AC-2). Only `live` captures count: a `file` run is
+ * an analysed recording, not time the stylus played now, and rows without a kind predate capture timing. Rows already
+ * in the ledger (same sessionId in `existing`) are skipped by the shared proposer.
+ */
+export function proposeFromCaptureSessions(rows, assetId, { existing = [], capHours = DEFAULT_CAP_HOURS } = {}) {
+  const sessions = (Array.isArray(rows) ? rows : [])
+    .filter(r => r && r.kind === 'live' && (r.assetId == null || r.assetId === assetId || r.setupId))
+    .map(r => ({ id: r.id, startedAt: pick(r, 'startedAt', 'started_at'), endedAt: pick(r, 'endedAt', 'ended_at') }));
+  return proposeFromDvsSessions(sessions, assetId, { existing, capHours });
+}
+
+/**
  * dj_session_spans() -> unconfirmed `djlog` proposals (AC-3, best effort). Spans already
  * represented by a ledger row with the same start are skipped. Overlap with manual or other
  * entries is resolved later by the ledger's priority merge, so nothing is double counted.
@@ -152,6 +164,32 @@ export function proposeFromLogs(spans, assetId, { existing = [], capHours = DEFA
     .filter(s => s && toMs(s.start) > 0 && !known.has(toMs(s.start)))
     .map(s => ({ id: `djlog:${s.app}:${s.start}`, startedAt: s.start, endedAt: s.end, source: 'djlog', app: s.app }));
   return proposeFromSessions(sessions, assetId, { capHours }).map(p => ({ ...p, sessionId: null, note: sessions.find(s => s.id === p.sessionId)?.app ?? null }));
+}
+
+// ------------------------------------------------------------------ benchmark auto-fill
+
+const runValue = (run, id) => {
+  const m = (run?.measurements || []).find(x => x && x.metricId === id && finite(x.value));
+  return m ? m.value : undefined;
+};
+
+/**
+ * Timecode benchmark values from saved runs (newest first, as list_runs returns them): the first run carrying
+ * tc_snr_db fills tcSnrDb, tcPhaseErrorDeg and tcDropouts from that same run, so the three describe one capture.
+ * Returns {} when no run has timecode measurements; `tcRun` names the source run.
+ */
+export function timecodeBenchmarkFromRuns(runs) {
+  for (const run of Array.isArray(runs) ? runs : []) {
+    const snr = runValue(run, 'tc_snr_db');
+    if (snr === undefined) continue;
+    const out = { tcSnrDb: snr, tcRun: run.id ?? null };
+    const phase = runValue(run, 'tc_phase_error_deg');
+    if (phase !== undefined) out.tcPhaseErrorDeg = phase;
+    const drops = runValue(run, 'tc_dropouts');
+    if (drops !== undefined) out.tcDropouts = Math.max(0, Math.round(drops));
+    return out;
+  }
+  return {};
 }
 
 // ------------------------------------------------------------------ regression
@@ -413,6 +451,11 @@ export function createStylusApi({ invoke = nativeInvoke() } = {}) {
     ratedLifeSet: async (assetId, hours) => need()('stylus_rated_life_set', { assetId, hours }),
     ratedLifeGet: async assetId => need()('stylus_rated_life_get', { assetId }),
     djSessionSpans: async () => need()('dj_session_spans'),
+    /** Runs with a real capture span for this asset since `since` (list_capture_sessions). */
+    captureSessions: async (assetId, since = null) => need()('list_capture_sessions', { since, assetId, limit: 500 }),
+    /** AC-2: live capture sessions -> unconfirmed `deckchek` hour proposals (since the replacement baseline). */
+    captureProposals: async (assetId, { since = null, existing = [], capHours } = {}) =>
+      proposeFromCaptureSessions(await need()('list_capture_sessions', { since, assetId, limit: 500 }), assetId, { existing, ...(capHours ? { capHours } : {}) }),
   };
 }
 

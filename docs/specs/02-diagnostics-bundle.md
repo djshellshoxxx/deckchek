@@ -47,6 +47,7 @@ system-health.json summarizeFindings output + finding titles/ids
 logs/…             last 5 log files
 ```
 No migration. Version rules: unknown `bundleVersion` is only relevant to future readers; additive fields only.
+Note (M6-datafixes): since runs record their real capture span, `startedAt` in `runs-summary.json` is the capture start for runs saved with timing (older runs: the save time, as before); `list_runs` rows also carry `endedAt`.
 
 ## 6. Algorithms
 Redaction: build a context of literals (username from `%USERNAME%`, `%USERPROFILE%`, computer name, serial numbers from `asset.serial_number`, product serial patterns) and apply: (1) replace exact literals case-insensitively with `<user>`, `<profile>`, `<host>`, `<serial>`; (2) regex `[A-Za-z]:\\Users\\[^\\\s"']+` -> `C:\Users\<user>`; (3) serial-looking tokens `\b[A-Z0-9]{8,}\b` adjacent to "serial"/"S/N" -> `<serial>`; (4) email regex -> `<email>`. Redaction is applied to every text part before zipping, including panic backtraces. Redaction is best effort; the dialog says so. Size caps: bundle <= 20 MiB, logs capped to 2 MiB total.

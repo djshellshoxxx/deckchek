@@ -6,6 +6,7 @@ import { analyzeVinylSide, lowBandEnergyDb, normalizeMeasurement, quickDiagnosti
 import { dropoutMetrics, frequencyTrace, speedStabilityMetrics } from '../advanced.js';
 import { channelSeparationDb, compareEventMaps, dvsIntegrityScore, dvsIntegrityTimeline, ellipseMetrics, normalizedEventMap, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, repeatabilityMetrics, subsonicPeak, thdPercent, traceModulationPercent, transitionMetrics, trendMetrics } from '../diagnostics.js';
 import { applyCalibration, isProfileApplicable, profileInapplicableReasons } from '../calibration.js';
+import { analyzeTimecode, detectTimecodeFormat, findFormat } from '../timecode.js';
 import { uid } from './dom.js';
 
 const SEVERITY_PENALTY = { critical: 35, warning: 18, review: 8 };
@@ -125,6 +126,8 @@ export function analyzeForTest(test, audio, params = {}) {
     );
     if (s.circularity < .45) findings.push({ code: 'DVS_SCOPE_DEFORMED', title: 'Generic DVS scope is strongly asymmetric', detail: `Circularity metric ${s.circularity.toFixed(3)}.`, severity: 'review', confidence: .75, possibleCauses: ['channel imbalance', 'phase relationship', 'tracking or wear', 'unsupported control signal'], isolationTests: ['verify both channels', 'repeat with known-good control media', 'use vendor decoder when implemented'] });
     if (missing > 0) findings.push({ code: 'DVS_SIGNAL_GAP', title: 'DVS signal gaps detected', detail: `${missing} analysis window(s) fell below the generic presence threshold.`, severity: 'review', confidence: .8, possibleCauses: ['control-media wear', 'tracking loss', 'signal-path dropout', 'intentional silence or unsupported format'], isolationTests: ['repeat same region', 'compare known-good control media', 'inspect cartridge and signal path'] });
+    const tc = timecodeRunResult(audio, params);
+    if (tc) { measurements.push(...tc.measurements); findings.push(...tc.findings); evidence.timecode = tc.evidence; }
     score = Math.min(scoreFromFindings(findings), integrity.score);
   } else if (test === 'Startup & brake') {
     const trace = normalizedLevelTrace(audio.left, audio.sampleRate, { windowMs: 20 });
@@ -201,6 +204,53 @@ export function analyzeForTest(test, audio, params = {}) {
   return { measurements, findings, score: Math.min(score, scoreFromFindings(findings)), eventMap: resultEventMap, evidence };
 }
 
+// ---------- timecode metrics as run measurements (DVS signal) ----------
+const TC_SEVERITY = { error: 'warning', warning: 'review' };
+const TC_CAUSES = {
+  'tc-no-signal': ['needle not on the control vinyl', 'phono/line switch mismatch', 'cable fault'],
+  'tc-phase': ['cartridge azimuth or wiring', 'one weak channel', 'heavy noise'],
+  'tc-snr': ['worn control vinyl', 'dirty or worn stylus', 'ground hum or interference'],
+  'tc-speed': ['pitch not at 0 %', 'wrong rpm', 'motor, belt or quartz lock'],
+  'tc-balance': ['cartridge or channel fault', 'bad connection', 'input gain mismatch'],
+  'tc-dropouts': ['skips or vinyl damage', 'dust on the stylus', 'intermittent connection'],
+};
+const tcCode = id => `TC_${String(id).replace(/^tc-/, '').replace(/-/g, '_').toUpperCase()}`;
+
+/**
+ * analyzeTimecode on a DVS run as ordinary run measurements (tc_carrier_hz, tc_speed_error_percent, tc_phase_deg,
+ * tc_phase_error_deg, tc_balance_db, tc_snr_db, tc_dropouts, plus tc_direction_code +1/-1/0), so History, compare
+ * and the FS-12 stylus benchmark can use them. The format comes from params.timecodeFormat / params.formatName, else it
+ * is inferred from the carrier (lower confidence, noted in evidence). Null when no known carrier is present.
+ */
+export function timecodeRunResult(audio, params = {}) {
+  const nominalRpm = Number(params.nominalRpm) || 33.333333;
+  const named = params.timecodeFormat || params.formatName || null;
+  let format = named ? findFormat(named) : null, inferred = false, ambiguous = [];
+  if (!format) {
+    const d = detectTimecodeFormat(audio, { nominalRpm });
+    if (!d) return null;
+    ({ format } = d); inferred = true; ambiguous = d.ambiguous;
+  }
+  const a = analyzeTimecode(audio, { format, nominalRpm });
+  if (a.error) return null;
+  const confidence = inferred ? .7 : .85;
+  const measurements = a.measurements.filter(m => Number.isFinite(m.value)).map(m => ({ ...m, confidence: m.metricId === 'tc_dropouts' ? .8 : confidence }));
+  measurements.push(M('tc_direction_code', 'Timecode play direction', a.direction === 'forward' ? 1 : a.direction === 'reverse' ? -1 : 0, 'code', { confidence }));
+  const findings = a.findings.map(f => ({
+    code: tcCode(f.id), title: f.title, detail: f.meaning, severity: TC_SEVERITY[f.severity] || 'review', confidence,
+    possibleCauses: TC_CAUSES[f.id] || [], isolationTests: f.action ? [f.action] : [],
+  }));
+  if (a.direction === 'reverse') findings.push({ code: 'TC_REVERSE', title: 'Timecode plays in reverse', detail: `The ${a.format.name} signal reads as reverse play. If the platter was turning forward, the left and right leads are swapped somewhere, or the wrong control vinyl format is selected.`, severity: 'review', confidence, possibleCauses: ['left/right swapped at the cartridge, mixer or interface', 'wrong timecode format selected', 'platter running in reverse'], isolationTests: ['swap left and right at the interface and repeat', 'confirm the control vinyl format'] });
+  const ok = a.trace.filter(t => !t.dropout);
+  return {
+    format: a.format, inferred, direction: a.direction, measurements, findings,
+    evidence: {
+      format: a.format.name, inferred, ambiguous, direction: a.direction, primary: a.primary, expectedCarrierHz: a.expectedCarrierHz, nominalRpm,
+      phaseTrace: thin(ok.map(t => ({ t: t.tSec, v: t.phaseDeg }))),
+    },
+  };
+}
+
 // ---------- evidence links (finding -> metric ids) ----------
 const SUPPORT = {
   NO_SIGNAL: ['left_level_dbfs', 'right_level_dbfs'], MISSING_CHANNEL: ['left_level_dbfs', 'right_level_dbfs', 'channel_balance_db'],
@@ -218,12 +268,16 @@ const SUPPORT = {
   ELEVATED_DISTORTION: ['left_thd_percent', 'right_thd_percent'], LOW_FREQUENCY_ENERGY: ['low_frequency_energy_dbfs'],
   VINYL_TRANSIENTS: ['vinyl_transients_per_min', 'vinyl_event_count', 'repeat_scan_persistent_events'],
   REPEATING_EVENT: ['vinyl_event_count'],
+  TC_NO_SIGNAL: ['tc_snr_db', 'tc_dropouts'], TC_PHASE: ['tc_phase_error_deg', 'tc_phase_deg'], TC_SNR: ['tc_snr_db'],
+  TC_SPEED: ['tc_speed_error_percent', 'tc_carrier_hz'], TC_BALANCE: ['tc_balance_db', 'channel_balance_db'],
+  TC_DROPOUTS: ['tc_dropouts', 'dvs_missing_windows'], TC_REVERSE: ['tc_direction_code', 'tc_phase_deg'],
   CAPTURE_OVERRUN: ['capture_overrun_samples'], CAPTURE_STREAM_ERROR: ['capture_stream_errors'], CAPTURE_GAP: ['capture_max_callback_gap_ms'],
 };
 // Measurements whose value argues against the finding (metricId -> predicate on value).
 const CONTRADICT = {
   ELEVATED_DISTORTION: { clipped_samples: v => v === 0 },
-  SIGNAL_DROPOUT: { dvs_missing_windows: v => v === 0, capture_overrun_samples: v => v === 0 },
+  SIGNAL_DROPOUT: { dvs_missing_windows: v => v === 0, capture_overrun_samples: v => v === 0, tc_dropouts: v => v === 0 },
+  TC_SNR: { tc_dropouts: v => v === 0 },
   VINYL_TRANSIENTS: { repeat_scan_resolved_events: v => v > 0 },
   SPEED_INSTABILITY: { speed_drift_percent: v => Math.abs(v) < .05 },
   MAINS_HUM: { channel_balance_db: v => Math.abs(v) < .5 },
@@ -260,6 +314,40 @@ export function captureQualityFindings(quality, streamErrorText = []) {
   if (quality.maxCallbackGapMs > 100) out.push({ code: 'CAPTURE_GAP', title: 'Long gap between audio callbacks', detail: `Longest gap ${quality.maxCallbackGapMs.toFixed(1)} ms.`, severity: 'review', confidence: .8, possibleCauses: ['system load', 'power management'], isolationTests: ['repeat capture', 'disable USB power saving'] });
   if (quality.truncated) out.push({ code: 'CAPTURE_TRUNCATED', title: 'Capture reached its maximum length', detail: 'Recording stopped at the configured limit; later audio was not captured.', severity: 'informational', confidence: 1, possibleCauses: ['capture limit'], isolationTests: ['increase capture length'] });
   return out;
+}
+
+// ---------- capture timing (FS-12 AC-2 hours proposals) ----------
+const MAX_CAPTURE_SEC = 86400; // db.rs MAX_CAPTURE_SEC
+const isoMs = v => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,3})?Z$/.test(v) ? Date.parse(v) : NaN);
+
+/**
+ * Real capture span of a run. `capture` ({kind, startedAt, endedAt}) from the caller wins; otherwise a run with
+ * capture quality counters or a "Live capture" source is `live`, anything else `file`, and the span ends at
+ * createdAt and lasts the audio duration (`approximate: true`). A file span is the recording's length, not
+ * time the stylus played now; hours proposals use `live` spans only.
+ */
+export function captureTiming({ capture = null, source = '', quality = null, durationSec = NaN, createdAt = new Date().toISOString() } = {}) {
+  const kind = capture?.kind === 'live' || capture?.kind === 'file' ? capture.kind : (quality || /^live capture/i.test(String(source || ''))) ? 'live' : 'file';
+  const dur = Number.isFinite(durationSec) && durationSec >= 0 ? Math.min(durationSec, MAX_CAPTURE_SEC) : null;
+  let end = isoMs(capture?.endedAt), start = isoMs(capture?.startedAt);
+  const approximate = !(Number.isFinite(end) && Number.isFinite(start));
+  if (!Number.isFinite(end)) end = Number.isFinite(start) && dur !== null ? start + dur * 1000 : isoMs(createdAt);
+  if (!Number.isFinite(end)) end = Date.now();
+  if (!Number.isFinite(start) || start > end) start = end - (dur ?? 0) * 1000;
+  if (end - start > MAX_CAPTURE_SEC * 1000) start = end - MAX_CAPTURE_SEC * 1000;
+  // an explicit span is the truth; otherwise the audio length (the span was built from it)
+  const durationOut = approximate && dur !== null ? dur : Math.round(end - start) / 1000;
+  return { kind, startedAt: new Date(start).toISOString(), endedAt: new Date(end).toISOString(), durationSec: Math.round(durationOut * 1000) / 1000, approximate };
+}
+
+/**
+ * The save_diagnostic_run timing fields of a run ({startedAt, endedAt, durationSec, captureKind, assetId}); spread
+ * into the persist payload. Runs built before capture timing existed return {} so their payload is unchanged.
+ */
+export function persistCaptureFields(run) {
+  const c = run?.capture;
+  if (!c || !Number.isFinite(isoMs(c.startedAt)) || !Number.isFinite(isoMs(c.endedAt))) return {};
+  return { startedAt: c.startedAt, endedAt: c.endedAt, durationSec: Number.isFinite(c.durationSec) ? c.durationSec : null, captureKind: c.kind, assetId: run.assetId ?? run.deviceId ?? null };
 }
 
 // ---------- calibration ----------
@@ -339,15 +427,18 @@ function aggregate(run, prior, test) {
  * Full pipeline: analyze, add capture quality, calibrate, aggregate with prior runs,
  * link evidence and score. Returns a run record ready to persist.
  */
-export function buildRun({ test, workflowId, audio, params = {}, source, device = null, prior = [], quality = null, streamErrors = [], profile = null, deviceName = '' }) {
+export function buildRun({ test, workflowId, audio, params = {}, source, device = null, prior = [], quality = null, streamErrors = [], profile = null, deviceName = '', capture = null }) {
   const result = analyzeForTest(test, audio, params);
   result.measurements.push(...captureQualityMeasurements(quality));
   result.findings.push(...captureQualityFindings(quality, streamErrors));
   const ctx = { deviceName, sampleRate: audio.sampleRate, referenceHz: Number(params.referenceHz) || 1000, nominalRpm: Number(params.nominalRpm) || 33.333333, windowSec: .5, windowSamples: Math.floor(audio.sampleRate * .5) };
   const cal = calibrateMeasurements(result.measurements, profile, ctx);
+  const createdAt = new Date().toISOString();
+  const timing = captureTiming({ capture, source, quality, durationSec: audio.durationSec ?? audio.left.length / audio.sampleRate, createdAt });
   const run = {
     id: uid('run'), workflow: workflowId, sessionType: workflowId, deviceId: device?.id || null, device: device?.name || 'Unassigned', test,
-    createdAt: new Date().toISOString(), sourceFile: source, durationSec: audio.durationSec, sampleRate: audio.sampleRate, channels: audio.channels,
+    createdAt, startedAt: timing.startedAt, endedAt: timing.endedAt, captureKind: timing.kind, capture: timing, assetId: device?.id || null,
+    sourceFile: source, durationSec: audio.durationSec, sampleRate: audio.sampleRate, channels: audio.channels,
     totalSamples: audio.left.length, params: { ...params }, measurements: cal.measurements, findings: result.findings, score: result.score,
     eventMap: result.eventMap || [], evidence: result.evidence, quality: quality || null,
     calibration: { applied: cal.applied, reasons: cal.reasons, profileCreatedAt: cal.applied ? profile.createdAt : null, deviceName },
