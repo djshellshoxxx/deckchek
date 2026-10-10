@@ -12,6 +12,7 @@ import { workflowInstance } from '../workflows/flow.js';
 import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, imageUrl, documentLinks } from '../../devices/library.js';
 import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, buildDeviceReportHtml } from '../../devices/dispatch.js';
 import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
+import { describeMediaRef } from '../media-picker.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
 import { runTimecode } from '../devices/timecode-runner.js';
 import { runMidi } from '../devices/midi-runner.js';
@@ -227,9 +228,15 @@ export function createDevicesScreen(section) {
       <h3>Steps</h3><ol class="dev-steplist">${(t.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
       ${(t.equipment || []).length ? `<h3>Equipment</h3><p>${esc(t.equipment.join(', '))}</p>` : ''}
       <h3>Pass criterion</h3><p>${t.pass ? esc(passText(t)) : 'None in the profile — judged from the analysis verdict or your answers.'}</p>
-      ${last ? `<h3>Last result</h3><p>${esc(last.detail?.summary || '')}</p>${(last.detail?.measurements || []).length ? `<table class="mini"><tbody>${last.detail.measurements.map(m => `<tr><th scope="row">${esc(m.label)}</th><td class="num">${esc(typeof m.value === 'number' ? +m.value.toFixed(3) : m.value ?? '—')} ${esc(m.unit === 'bool' ? '' : m.unit)}</td></tr>`).join('')}</tbody></table>` : ''}${last.detail?.notes ? `<p><strong>Notes:</strong> ${esc(last.detail.notes)}</p>` : ''}` : ''}
-      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(r.status, { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span></li>`).join('')}</ul>` : ''}
+      ${last ? `<h3>Last result</h3><p>${esc(last.detail?.summary || '')}</p>${last.mediaId ? '<p class="small" data-media-used>Test medium: <span class="media-used"></span></p>' : ''}${(last.detail?.measurements || []).length ? `<table class="mini"><tbody>${last.detail.measurements.map(m => `<tr><th scope="row">${esc(m.label)}</th><td class="num">${esc(typeof m.value === 'number' ? +m.value.toFixed(3) : m.value ?? '—')} ${esc(m.unit === 'bool' ? '' : m.unit)}</td></tr>`).join('')}</tbody></table>` : ''}${last.detail?.notes ? `<p><strong>Notes:</strong> ${esc(last.detail.notes)}</p>` : ''}` : ''}
+      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(r.status, { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span>${r.mediaId ? `<span class="small muted media-used" data-media-id="${esc(r.mediaId)}" data-track-key="${esc(r.mediaTrackKey || '')}"></span>` : ''}</li>`).join('')}</ul>` : ''}
       <p class="inspect-id mono">${esc(t.id)}</p>`;
+    // Test medium used (FS-06 AC-6): resolved asynchronously so the library can load first.
+    body.querySelectorAll('.dev-history .media-used').forEach(el => {
+      describeMediaRef({ mediaId: el.dataset.mediaId, mediaTrackKey: el.dataset.trackKey || null }).then(t => { if (t) el.textContent = ` · ${t}`; });
+    });
+    const lastHolder = body.querySelector('[data-media-used] .media-used');
+    if (lastHolder && last) describeMediaRef(last).then(t => { lastHolder.textContent = t || ''; });
     const run = h('button', { type: 'button', class: 'btn btn-primary', disabled: !unit || null, html: `${icon('play', { size: 16 })}<span>${last ? 'Run again' : 'Run test'}</span>`, onclick: () => runTest(p, t) });
     body.append(run);
     showInspector({ title: t.title, body });
@@ -342,7 +349,7 @@ export function createDevicesScreen(section) {
         const v = verdictFor(run);
         const outcome = evaluateOutcome(test, { measurements: run.measurements, findings: run.findings, verdictStatus: v.status });
         const findings = (run.findings || []).map(f => ({ id: f.code, severity: f.severity, title: f.title, meaning: f.detail, action: (f.isolationTests || []).join('; ') }));
-        await saveResult({ profile: p, test, assetId: unit.id, status: outcome.status, sessionId: saved?.ok ? run.id : null,
+        await saveResult({ profile: p, test, assetId: unit.id, status: outcome.status, sessionId: saved?.ok ? run.id : null, params: run.params,
           detail: buildResultDetail({ test, outcome, measurements: run.measurements, findings, extra: { runId: run.id, workflow: run.workflow, mode: run.test, score: run.score ?? null, verdict: v.status, source: run.sourceFile || null, savedToHistory: !!saved?.ok } }) });
         return outcome;
       },

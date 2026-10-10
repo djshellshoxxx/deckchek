@@ -7,6 +7,7 @@ import { settings, setSetting, on, emit, active, calibrationStatus } from './sta
 import { listInputDevices } from './audio-io.js';
 import { createStereoMeter, clearAllClips, refreshMeterThemes } from './meters.js';
 import { announce, toast } from './live.js';
+import { isEnabled, onFeatureChange } from '../features.js';
 
 const screens = new Map();   // id -> {def, section, api}
 let order = [];
@@ -32,20 +33,43 @@ export function toggleTheme() {
 }
 
 // ---------- navigation ----------
-export function registerScreens(defs) {
-  order = defs.map(d => d.id);
+// A def may carry `feature: '<flag>'`: its rail entry exists only while that flag is on, and follows
+// flag changes live (no reload). Screens stay registered so state survives a toggle.
+const featureOn = def => !def.feature || isEnabled(def.feature);
+const visibleIds = () => order.filter(id => featureOn(screens.get(id).def));
+
+function renderRail() {
   const rail = $('#rail-list');
-  defs.forEach((def, i) => {
-    const section = $(`#screen-${def.id}`);
-    screens.set(def.id, { def, section, api: null });
+  const ids = visibleIds();
+  rail.replaceChildren();
+  ids.forEach((id, i) => {
+    const def = screens.get(id).def;
     rail.append(h('li', {},
       h('button', { type: 'button', class: 'rail-item', 'data-screen': def.id, 'data-tooltip': i < 10 ? `${def.title} (Ctrl+${(i + 1) % 10})` : def.title, 'aria-label': def.title, onclick: () => go(def.id) },
         h('span', { class: 'rail-icon', html: icon(def.icon, { size: 22 }) }), h('span', { class: 'rail-label', 'aria-hidden': 'true', text: def.short || def.title }))));
   });
+  const cur = active.screen?.def.id;
+  $$('.rail-item').forEach(b => { if (b.dataset.screen === cur) b.setAttribute('aria-current', 'page'); });
+}
+
+/** Re-sync the rail with the feature flags; leaves a screen whose flag turned off. */
+export function syncFeatureScreens() {
+  if (!screens.size) return;
+  renderRail();
+  const cur = active.screen;
+  if (cur && !featureOn(cur.def)) go(visibleIds()[0]);
+}
+
+export function registerScreens(defs) {
+  order = defs.map(d => d.id);
+  defs.forEach(def => screens.set(def.id, { def, section: $(`#screen-${def.id}`), api: null }));
+  renderRail();
+  onFeatureChange(syncFeatureScreens);
 }
 
 export function go(id, { focus = false } = {}) {
-  const entry = screens.get(id) || screens.get(order[0]);
+  let entry = screens.get(id);
+  if (!entry || !featureOn(entry.def)) entry = screens.get(visibleIds()[0]);
   if (!entry) return;
   const previous = active.screen;
   if (previous && previous !== entry) { previous.api?.onHide?.(); previous.section.hidden = true; }
@@ -225,7 +249,7 @@ function onKeydown(event) {
   }
   if (ctrl && event.shiftKey && key.toLowerCase() === 't') { event.preventDefault(); toggleTheme(); return; }
   if (ctrl && event.shiftKey && key.toLowerCase() === 'c') { event.preventDefault(); clearAllClips(); announce('Clip indicators cleared'); return; }
-  if ((ctrl || event.altKey) && /^[0-9]$/.test(key)) { event.preventDefault(); const target = order[(Number(key) + 9) % 10]; if (target) go(target, { focus: true }); return; }
+  if ((ctrl || event.altKey) && /^[0-9]$/.test(key)) { event.preventDefault(); const target = visibleIds()[(Number(key) + 9) % 10]; if (target) go(target, { focus: true }); return; }
   if (ctrl && key.toLowerCase() === 'e') { event.preventDefault(); if (screen.onExport) screen.onExport(); else toast('Nothing to export on this screen yet.'); return; }
   if (ctrl && key.toLowerCase() === 's') { event.preventDefault(); if (screen.onSave) screen.onSave(); else toast('Nothing to save on this screen — runs autosave to History.'); return; }
   if (key === 'Escape') { if (screen.onEscape?.()) event.preventDefault(); else if (inspectorOpen() && isNarrow()) setInspector(false); return; }

@@ -11,6 +11,7 @@ import { renderResults } from '../results.js';
 import { WORKFLOWS } from '../workflows/definitions.js';
 import { toast, announce } from '../live.js';
 import { go } from '../shell.js';
+import { describeMediaRef, decodeChoice, PARAM_ID } from '../media-picker.js';
 
 const keyMetricsFor = test => WORKFLOWS.flatMap(w => w.key[test] || []);
 
@@ -159,7 +160,21 @@ export function createHistoryScreen(section) {
       ],
     });
     host.replaceChildren(view);
+    showTestMedium(run, view);
     announce(`Showing ${run.test} from ${formatDate(run.createdAt)}`);
+  }
+
+  /** FS-06 AC-6: the test medium used, from the saved device result (by session) or the run's own form values. */
+  async function showTestMedium(run, view) {
+    try {
+      let ref = null;
+      const fromResult = (await store.listDeviceTestResults(null)).find(r => r.sessionId === run.id && r.mediaId);
+      if (fromResult) ref = { mediaId: fromResult.mediaId, mediaTrackKey: fromResult.mediaTrackKey };
+      else { const c = decodeChoice(run.params?.[PARAM_ID]); if (c.mediaId) ref = { mediaId: c.mediaId, mediaTrackKey: c.trackKey }; }
+      const text = await describeMediaRef(ref);
+      if (!text || state.selected !== run) return;
+      view.prepend(h('p', { class: 'hist-medium small', 'data-test-medium': '', text: `Test medium: ${text}` }));
+    } catch { /* optional detail */ }
   }
 
   async function compare() {

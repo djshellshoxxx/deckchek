@@ -5,7 +5,6 @@
 import { h, isNative, pickFile } from '../dom.js';
 import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
-import { isEnabled } from '../../features.js';
 import { exportSettingsBlob, importSettingsBlob } from '../state.js';
 import { exportWorkspace, importWorkspace } from '../persistence.js';
 import { revealAppPath } from '../../external-links.js';
@@ -282,8 +281,7 @@ export function createDataScreen(section) {
 }
 
 export function dataScreenDefs() {
-  if (!isEnabled('backup')) return [];
   const main = document.getElementById('main');
   if (main && !document.getElementById('screen-data')) main.append(h('section', { class: 'screen', id: 'screen-data', hidden: true }));
-  return [{ id: 'data', title: 'Data & backup', short: 'Data', icon: 'download', create: createDataScreen }];
+  return [{ id: 'data', title: 'Data & backup', short: 'Data', icon: 'download', feature: 'backup', create: createDataScreen }];
 }
