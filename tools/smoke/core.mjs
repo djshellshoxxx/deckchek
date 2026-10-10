@@ -275,7 +275,9 @@ async function devicesBrowser(page, wav, extra) {
   check('Devices: one card per profile', (await page.locator('.dev-card').count()) === PROFILE_IDS.length, `${await page.locator('.dev-card').count()}`);
   check('Devices: unverified-spec badges shown', (await page.locator('.dev-card .badge-unverified').count()) >= 8);
   check('Devices: cards show category, test count and images', (await page.locator('.dev-card .dev-cat').count()) === PROFILE_IDS.length && (await page.locator('.dev-card .dev-thumb img').count()) === PROFILE_IDS.length);
-  const imgsOk = await page.evaluate(() => [...document.querySelectorAll('.dev-thumb img')].every(i => i.complete && i.naturalWidth > 0));
+  const devImagesLoaded = () => [...document.querySelectorAll('.dev-thumb img')].every(i => i.complete && i.naturalWidth > 0);
+  await page.waitForFunction(devImagesLoaded, null, { timeout: 10000 }).catch(() => {}); // images decode asynchronously
+  const imgsOk = await page.evaluate(devImagesLoaded);
   check('Devices: card images load under CSP', imgsOk);
   const store = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1') || '{}'));
   check('Devices: first run synced profiles and created one "My <model>" asset each', Object.keys(store.deviceProfiles || {}).length === PROFILE_IDS.length && (store.catalog?.asset || []).filter(a => /^My /.test(a.nickname)).length === PROFILE_IDS.length);

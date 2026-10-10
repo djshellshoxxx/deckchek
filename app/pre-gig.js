@@ -12,6 +12,7 @@ import {humMeasure, removeTone} from './hum.js';
 import {interpretSystemScan, createSystemBridge} from './system-check.js';
 import {evaluateDriverCheck, evaluateSoftwareCheck} from './device-checks.js';
 import {preemptCapture} from './capture.js';
+import {toTimecodeFormat} from './media-library.js';
 
 export const PRESET_VERSION = 1;
 export const MAX_PRESET_BYTES = 256 * 1024;
@@ -177,11 +178,19 @@ function evalAudio(step, ev, preset) {
   return result(step, 'pass', `${hit.name} is connected${evidence.sampleRate ? ` at ${evidence.sampleRate} Hz` : ''}.`, {evidence});
 }
 
+/** Zero-based input channels [a, b] -> "1-2" (1-based, as interfaces label them). */
+export const pairLabel = input => `${input[0] + 1}-${input[1] + 1}`;
+/** First channel (1-based) of a deck's stereo input pair, or null when its two inputs are not an aligned pair (1-2, 3-4, ...). */
+export function deckPairFirst(input) {
+  return Array.isArray(input) && input[0] % 2 === 0 && input[1] === input[0] + 1 ? input[0] + 1 : null;
+}
+
 /** Capture-level problems shared by the two capture steps. Returns a result or null. */
 function captureProblem(step, ev) {
-  if (ev.inputPairUnsupported) {
-    return skipped(step, 'input-pair', `Deck ${step.deck} uses inputs ${ev.inputPairUnsupported.map(i => i + 1).join('-')}, but DeckChek can only capture the first input pair (1-2) right now.`,
-      [{label: 'Check this deck another way', text: 'Use the DVS Timecode check on this deck, or temporarily plug its cables into inputs 1-2.', action: {kind: 'navigate', to: 'dvs'}}]);
+  if (ev.inputPairUnavailable) {
+    const label = pairLabel(ev.inputPairUnavailable.input);
+    return skipped(step, 'input-pair', ev.inputPairUnavailable.message || `Deck ${step.deck} uses inputs ${label}, which this audio interface does not offer.`,
+      [{label: 'Choose the input pair', text: `Pick the inputs deck ${step.deck} is plugged into in the Inputs box above the Start button (for example 1-2 or 3-4), or edit the preset. The interface lists the pairs it offers.`, action: {kind: 'retry'}}]);
   }
   const ce = ev.captureError;
   if (!ce) return null;
@@ -450,27 +459,37 @@ export function duplicatePreset(preset, {id, name} = {}) {
   return {...rest, ...(id ? {id} : {}), name: name || `${preset.name} (copy)`};
 }
 
-/** Media profile id -> timecode format name used by the presets and the equipment picker. */
-export const FORMAT_BY_MEDIA_ID = Object.freeze({'serato-control-vinyl-cv025': 'Serato CV02.5', 'traktor-scratch-timecode': 'Traktor Scratch MK2'});
+/**
+ * Timecode format name for a media-library entry (app/media-library.js): resolved through TIMECODE_FORMATS, falling
+ * back to the profile's own formatName. `media` is a list of library entries ({id, profile}), a Map or an id->entry object.
+ * Returns '' for an unknown id or a medium that is not a timecode disc.
+ */
+export function formatForMedia(mediaId, media) {
+  if (!mediaId) return '';
+  const entry = media instanceof Map ? media.get(mediaId) : Array.isArray(media) ? media.find(e => e?.id === mediaId) : media?.[mediaId];
+  return toTimecodeFormat(entry)?.name || (entry?.profile ?? entry)?.timecode?.formatName || '';
+}
 
 /**
  * Build a preset from chosen gear (FS-10 AC-8 "from the current Equipment selection").
  * @param {{turntables?:string[], mixer?:string, interface?:string, controller?:string, media?:string, software?:string, decks?:number}} sel profile ids
  * @param {Object<string,object>|Map} profiles id -> device profile
+ * @param {{media?: Array|Map|object}} [opts] media-library entries; `sel.media` is a media-library id and sets the deck format
  */
-export function presetFromEquipment(sel, profiles) {
+export function presetFromEquipment(sel, profiles, {media = []} = {}) {
   const get = id => (profiles instanceof Map ? profiles.get(id) : profiles?.[id]) || null;
   const audioSource = [sel.interface, sel.controller, sel.mixer].map(get).find(p => p?.drivers?.some(d => (d.deviceNamePatterns || []).length)) || get(sel.interface) || get(sel.controller) || get(sel.mixer);
   const audioDevice = audioSource?.drivers?.find(d => (d.deviceNamePatterns || []).length)?.deviceNamePatterns[0] || audioSource?.model || '';
-  const format = FORMAT_BY_MEDIA_ID[sel.media] || '';
+  const format = formatForMedia(sel.media, media);
   const software = sel.software || [audioSource, get(sel.mixer), get(sel.controller)].filter(Boolean).flatMap(p => p.software || []).sort((a, b) => (b.role === 'dvs') - (a.role === 'dvs'))[0]?.name || '';
   const count = Math.min(4, Math.max(1, sel.decks || (sel.turntables || []).length || 2));
   const decks = Array.from({length: count}, (_, i) => ({id: DECK_IDS[i], input: [i * 2, i * 2 + 1], format, mixerChannel: String(i + 1)}));
   const label = [get(sel.turntables?.[0])?.model, audioSource?.model, software].filter(Boolean).join('+');
   const profileIds = {};
   if (sel.turntables?.length) profileIds.turntables = [...sel.turntables];
-  for (const k of ['mixer', 'interface', 'controller', 'media']) if (sel[k]) profileIds[k] = sel[k];
-  return {v: PRESET_VERSION, name: label || 'My rig', software, audioDevice, sampleRate: 48000, decks, mixer: get(sel.mixer)?.model || '', midi: [], expectedCrashFree: true, profileIds};
+  for (const k of ['mixer', 'interface', 'controller']) if (sel[k]) profileIds[k] = sel[k];
+  if (sel.media && get(sel.media)) profileIds.media = sel.media; // legacy gear-library media profile, if one exists
+  return {v: PRESET_VERSION, name: label || 'My rig', software, audioDevice, sampleRate: 48000, decks, mixer: get(sel.mixer)?.model || '', midi: [], expectedCrashFree: true, profileIds, ...(sel.media ? {mediaId: sel.media} : {})};
 }
 
 /** Load the built-in presets; each is validated and bad ones are reported, never thrown. */
@@ -546,7 +565,7 @@ const bridgeNames = d => (d.inputs || d.devices || []).map(x => (typeof x === 's
  * Run the enabled steps of a plan. Parallel steps (system, audio, midi, software) run together first;
  * deck steps follow one deck at a time with a single capture shared by `timecode:X` and `signal:X`.
  * `deps` are injected (see createNativeDeps): listInputs, scans {drivers, events, logs}, processes, midiPorts,
- * captureDeck({deck, deckDef, preset, seconds, needleUp, signal}), askHeadphones, askNeedleUp, confirmPreempt, preempt.
+ * captureDeck({deck, deckDef, preset, pair, seconds, needleUp, signal}) (`pair` = first channel, 1-based), askHeadphones, askNeedleUp, confirmPreempt, preempt.
  * Esc/abort: remaining steps become `skipped (cancelled)` and the verdict is `cancelled`. Time spent waiting for
  * the user (manual steps) is reported as manualMs and excluded from durationMs.
  */
@@ -565,8 +584,9 @@ export async function runPregig({preset, deps = {}, signal = null, onStep = () =
     if (deckEvidence.has(key)) return deckEvidence.get(key);
     const p = (async () => {
       if (!deps.captureDeck) return {unsupported: true};
-      if (deckDef.input?.[0] > 0) return {inputPairUnsupported: deckDef.input};
-      const base = {deck: step.deck, deckDef, preset, signal};
+      const pair = deckPairFirst(deckDef.input);
+      if (pair == null) return {inputPairUnavailable: {input: deckDef.input, message: `Deck ${step.deck} uses inputs ${pairLabel(deckDef.input)}, which are not a stereo pair. Stereo pairs are 1-2, 3-4, 5-6 and so on.`}};
+      const base = {deck: step.deck, deckDef, preset, signal, pair};
       const evBase = {software: preset.software, softwareRunning: softwareRunning(), audioPresent: results.get('audio')?.state === 'pass' || results.get('audio')?.state === 'warn'};
       let cap;
       try {
@@ -577,7 +597,10 @@ export async function runPregig({preset, deps = {}, signal = null, onStep = () =
           } else throw e;
         }
       } catch (e) {
-        return {...evBase, captureError: e?.code ? {code: e.code, holder: e.holder ?? null, message: e.message} : {message: String(e?.message || e)}};
+        const message = String(e?.message || e);
+        // The native side names the pairs the interface does offer ("Input pair 3-4 is not available on ...").
+        if (!e?.code && /^Input pair \d+-\d+ is not available/.test(message)) return {...evBase, inputPairUnavailable: {input: deckDef.input, message: `Deck ${step.deck}: ${message}`}};
+        return {...evBase, captureError: e?.code ? {code: e.code, holder: e.holder ?? null, message: e.message} : {message}};
       }
       let needleUp = null;
       if (preset.requireNeedleUpHum && deps.askNeedleUp) {
@@ -653,10 +676,11 @@ export function createNativeDeps(invoke, {sleep = (ms, sig) => new Promise(res =
     scans: {drivers: () => bridge.scanDrivers(), events: o => bridge.scanEvents(o), logs: () => bridge.scanDjLogs()},
     processes: () => invoke('pregig_processes'),
     midiPorts: () => invoke('midi_list_ports'),
-    async captureDeck({preset, seconds, signal}) {
+    async captureDeck({preset, pair = 1, seconds, signal}) {
       const names = await invoke('list_native_audio_inputs');
       const device = (names || []).find(d => namesMatch(d.name, preset.audioDevice))?.name ?? null;
-      const info = await invoke('start_live_capture', {deviceName: device, maxSeconds: seconds + 2, holder: PREGIG_HOLDER});
+      // Deck B on inputs 3-4 captures pair 3; the default pair 1-2 keeps the old argument shape.
+      const info = await invoke('start_live_capture', {deviceName: device, maxSeconds: seconds + 2, holder: PREGIG_HOLDER, ...(pair > 1 ? {pairs: [pair]} : {})});
       let done;
       // Stop names our own lease: if another feature took the input meanwhile this rejects
       // ("stopped because another DeckChek feature ...") instead of stopping its capture.

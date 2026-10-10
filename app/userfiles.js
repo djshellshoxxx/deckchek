@@ -58,3 +58,25 @@ export async function saveTextFile({ suggestedName, content, ext, api = tauri(),
   const r = await invoke('userfiles_write_text', { path, content: text, allowedExt: e });
   return { cancelled: false, path: r.path, bytes: r.bytes };
 }
+
+/**
+ * Write several files into a folder the user picks (FS-00 §4.4; first consumer is the gear ledger, FS-33). Desktop only:
+ * native folder dialog, then the Rust `userfiles_write_folder` command re-validates every relative path (no `..`, absolute,
+ * drive-letter, UNC, reserved names or symlinks) and the extension list. `files` = [{relPath, text?|base64?}].
+ * @returns {Promise<{cancelled:true}|{cancelled:false, path:string, written:number}>}
+ * Rejects with the Rust {code,message} error on validation failure, or an Error outside the desktop app.
+ */
+export async function saveFolder({ files, allowedExts, title = 'Choose a folder', api = tauri() } = {}) {
+  const exts = (allowedExts ?? []).map(normalizeExt);
+  if (!exts.length) throw new Error('saveFolder needs at least one allowed extension.');
+  const list = Array.isArray(files) ? files : [];
+  if (!list.length) throw new Error('There are no files to write.');
+  const open = api?.dialog?.open;
+  const invoke = api?.core?.invoke;
+  if (!open || !invoke) throw new Error('Saving a folder is only available in the DeckChek desktop app.');
+  const dir = await open({ directory: true, multiple: false, title });
+  const chosen = Array.isArray(dir) ? dir[0] : dir;
+  if (!chosen) return { cancelled: true };
+  const r = await invoke('userfiles_write_folder', { dir: chosen, files: list, allowedExts: exts });
+  return { cancelled: false, path: r.path, written: r.written };
+}

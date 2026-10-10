@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { saveTextFile, sanitizeFileStem, normalizeExt } from '../app/userfiles.js';
+import { saveTextFile, saveFolder, sanitizeFileStem, normalizeExt } from '../app/userfiles.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -75,4 +75,28 @@ test('lib.rs registers plugins and userfiles commands inside FS-00 anchors', () 
   assert.match(lib, /userfiles::userfiles_write_folder/);
   assert.match(lib, /tauri_plugin_dialog::init\(\)/);
   assert.match(lib, /tauri_plugin_opener::(init\(\)|Builder::new\(\))/);
+});
+
+test('desktop: saveFolder picks a directory then calls userfiles_write_folder with the exact argument names', async () => {
+  const calls = [];
+  const api = {
+    dialog: { open: async opts => { calls.push(['open', opts]); return 'C:\\Users\\dj\\ledger'; } },
+    core: { invoke: async (cmd, args) => { calls.push([cmd, args]); return { written: args.files.length, path: args.dir }; } },
+  };
+  const files = [{ relPath: 'index.html', text: '<p>x</p>' }, { relPath: 'photos/a.jpg', base64: 'AAAA' }];
+  const r = await saveFolder({ files, allowedExts: ['.HTML', 'jpg'], api });
+  assert.deepEqual(r, { cancelled: false, path: 'C:\\Users\\dj\\ledger', written: 2 });
+  assert.equal(calls[0][1].directory, true);
+  assert.deepEqual(calls[1], ['userfiles_write_folder', { dir: 'C:\\Users\\dj\\ledger', files, allowedExts: ['html', 'jpg'] }]);
+});
+
+test('saveFolder: cancelled dialog writes nothing; browser mode and empty input are refused', async () => {
+  let invoked = false;
+  const api = { dialog: { open: async () => null }, core: { invoke: async () => { invoked = true; } } };
+  assert.deepEqual(await saveFolder({ files: [{ relPath: 'a.txt', text: 'x' }], allowedExts: ['txt'], api }), { cancelled: true });
+  assert.equal(invoked, false);
+  await assert.rejects(saveFolder({ files: [{ relPath: 'a.txt', text: 'x' }], allowedExts: ['txt'], api: {} }), /desktop app/);
+  await assert.rejects(saveFolder({ files: [], allowedExts: ['txt'], api }), /no files/);
+  await assert.rejects(saveFolder({ files: [{ relPath: 'a', text: '' }], allowedExts: [], api }), /allowed extension/);
+  await assert.rejects(saveFolder({ files: [{ relPath: 'a', text: '' }], allowedExts: ['../x'], api }), /Invalid file extension/);
 });

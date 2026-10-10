@@ -5,6 +5,7 @@ import { $, $$, h, esc, isTyping, isNative } from './dom.js';
 import { icon, chip } from './icons.js';
 import { settings, setSetting, on, emit, active, calibrationStatus } from './state.js';
 import { listInputDevices } from './audio-io.js';
+import { setInputDevices } from './pair-picker.js';
 import { createStereoMeter, clearAllClips, refreshMeterThemes } from './meters.js';
 import { announce, toast } from './live.js';
 import { isEnabled, onFeatureChange } from '../features.js';
@@ -169,6 +170,7 @@ async function populateDevices() {
   const select = $('#device-select');
   try {
     const { backend, devices } = await listInputDevices();
+    setInputDevices(devices);
     select.replaceChildren();
     if (backend === 'browser') {
       select.append(h('option', { value: '', text: 'Browser preview · files only' }));

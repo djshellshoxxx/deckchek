@@ -19,6 +19,7 @@ import {
   createHumRunStore,
 } from '../../hum-tree.js';
 import { openMonoInput, loadInputs, createFeedbackPanel, fmtDbfs } from './feedback.js';
+import { createPairPicker } from '../pair-picker.js';
 
 export const HUM_HOLDER = 'hum-hunter';
 const LIVE_WINDOW_SEC = 1;
@@ -175,6 +176,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
   function renderHumSetup() {
     panel.replaceChildren();
     if (!hum.loaded) { panel.append(h('p', { class: 'muted', text: 'Looking for audio inputs…' })); loadHumLists().then(() => { if (st.tab === 'hum' && hum.view === 'setup') renderHumSetup(); }); return; }
+    const humPair = createPairPicker({ id: 'hum-pair', label: 'Input pair', deviceName: () => document.getElementById('hum-input')?.value ?? hum.settings.input ?? '' });
     const form = h('form', { class: 'card hum-form', id: 'hum-form', novalidate: true });
     const sel = (id, label, children, help) => h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: label }), h('select', { id }, ...children), help ? h('span', { class: 'field-help', text: help }) : null);
     form.append(
@@ -182,6 +184,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
       h('p', {}, 'Plug the mixer output you listen to into a computer input. DeckChek measures the 50 or 60 Hz mains hum and its harmonics at each step while you connect the rig one piece at a time, then tells you which connection brought the hum in.'),
       h('div', { class: 'field-grid' },
         sel('hum-input', 'Input', [h('option', { value: '', text: 'System default' }), ...hum.inputs.map(d => h('option', { value: d.name, text: d.name + (d.isDefault ? ' (default)' : ''), selected: d.name === hum.settings.input ? true : null }))], 'The mixer’s record or master output into a computer input.'),
+        humPair.el,
         sel('hum-channel', 'Input channel', [['left', 'Left'], ['right', 'Right'], ['both', 'Both (average)']].map(([v, t]) => h('option', { value: v, text: t, selected: hum.settings.channel === v ? true : null }))),
         sel('hum-mains', 'Mains frequency', [['auto', 'Auto-detect'], ['50', '50 Hz'], ['60', '60 Hz']].map(([v, t]) => h('option', { value: v, text: t, selected: hum.settings.mains === v ? true : null })), '50 Hz in Europe and much of the world, 60 Hz in North America.'),
         st.venues.length ? sel('hum-venue', 'Save to venue (optional)', [h('option', { value: '', text: 'No venue' }), ...st.venues.map(v => h('option', { value: v.id, text: v.name, selected: v.id === hum.settings.venueId ? true : null }))]) : null),
@@ -190,6 +193,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
       native() ? null : h('p', { class: 'form-error', id: 'hum-unsupported', role: 'alert', text: 'Live hum measurement needs the desktop app. The browser preview cannot read the audio input; you can still read saved runs.' }),
       h('p', { class: 'form-error', id: 'hum-error', role: 'alert', text: hum.error || '' }),
       h('div', { class: 'form-actions' }, h('button', { type: 'submit', class: 'btn btn-primary btn-lg', id: 'hum-start', disabled: !native() ? true : null, text: 'Start with step A' })));
+    form.querySelector('#hum-input')?.addEventListener('change', () => humPair.refresh());
     form.addEventListener('submit', e => { e.preventDefault(); startHum(); });
     panel.append(form);
   }

@@ -7,6 +7,7 @@ import { loopbackStimulus, analyzeLoopback, serializeProfile, deserializeProfile
 import { encodeWav16 } from '../../advanced.js';
 import { generateSine } from '../../advanced.js';
 import { settings, saveProfile, listProfiles, deleteProfile, on } from '../state.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { startLiveSession, playStereo, listOutputDevices, decodeAudioFile, classifyCaptureError, liveAvailable } from '../audio-io.js';
 import { createStereoMeter } from '../meters.js';
 import { linePlot, responsePlot } from '../plots.js';
@@ -70,6 +71,8 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     $('.cal-side').hidden = true;
   }
   const banner = $('.banner-slot');
+  const calPair = createPairPicker({ id: 'cal-pair', label: 'Loopback input pair' });
+  if (calPair.el) $('#cal-out-field').after(calPair.el);
   const meter = liveAvailable() ? createStereoMeter($('#cal-meter'), { variant: 'large', label: 'Loopback input level' }) : null;
   if (!meter) $('#cal-meter').append(emptyState({ icon: 'mic', title: 'Desktop app required', text: 'Live loopback needs native capture. Import a recorded loopback file instead.' }));
 
@@ -114,7 +117,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
       st.textContent = 'Opening input…';
       const stim = stimulus();
       const lenSec = stim.meta.totalSamples / stim.meta.sampleRate;
-      state.session = await startLiveSession({ deviceName: settings.deviceName || null, maxSeconds: lenSec + 4 });
+      state.session = await startLiveSession({ deviceName: settings.deviceName || null, maxSeconds: lenSec + 4, pairs: currentPairs() });
       const capRate = state.session.info?.sampleRate;
       let stimUse = stim;
       if (capRate && capRate !== stim.meta.sampleRate) { stimUse = stimulus(capRate); toast(`Input runs at ${capRate} Hz; stimulus regenerated to match.`, { type: 'info' }); }

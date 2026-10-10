@@ -1,20 +1,20 @@
 // Pre-gig check controller and view model (FS-10). No DOM: the screen (ui/screens/pregig.js) renders what this
 // module describes. The engine (pre-gig.js) decides pass/warn/fail; this file only decides how to say it:
-// per-step status words, the verdict banner, honest "not measured" states (deck B on inputs 3-4 is not
-// capturable yet, so it is "coming next", never a failure), fix-it buttons, re-run merging and run comparison.
+// per-step status words, the verdict banner, honest "not measured" states (a deck whose input pair the audio
+// interface does not offer is "no such input", never a failure), fix-it buttons, re-run merging and run comparison.
 
 import {
   namesMatch, buildPlan, estimateBudgetMs, runPregig, rollUp, diffRuns, toRunInput, stepKind, stepDeck, PREGIG_STEPS,
 } from '../../pre-gig.js';
 
-export const COMING_NEXT_TEXT = 'Needs multichannel capture — coming next';
+export const PAIR_UNAVAILABLE_TEXT = 'This audio interface does not offer those inputs';
 
 // ---------------------------------------------------------------- per-step presentation
 const WORDS = {
   pass: 'Pass', warn: 'Warning', fail: 'Fail', error: 'Could not run', skipped: 'Skipped', unsupported: 'Desktop only', pending: 'Waiting', running: 'Checking',
 };
 const SKIP_WORDS = {
-  'input-pair': 'Coming next', blocked: 'Blocked', cancelled: 'Cancelled', user: 'Skipped', 'capture-busy': 'Input busy', 'needs-desktop': 'Desktop only', 'no-evidence': 'Not measured',
+  'input-pair': 'No such input', blocked: 'Blocked', cancelled: 'Cancelled', user: 'Skipped', 'capture-busy': 'Input busy', 'needs-desktop': 'Desktop only', 'no-evidence': 'Not measured',
 };
 /** Chip tone for the shared status chip: pass | warn | fail | review | info. */
 const TONE = { pass: 'pass', warn: 'warn', fail: 'fail', error: 'warn', unsupported: 'info', skipped: 'review' };
@@ -32,15 +32,15 @@ export function describeStep(entry) {
   if (state === 'skipped') {
     const word = SKIP_WORDS[reason] || WORDS.skipped;
     const tone = SKIP_TONE[reason] || TONE.skipped;
-    if (reason === 'input-pair') return { state, word, tone, kind: 'static', headline: COMING_NEXT_TEXT, detail: r.summary, notMeasured: true };
+    if (reason === 'input-pair') return { state, word, tone, kind: 'static', headline: PAIR_UNAVAILABLE_TEXT, detail: r.summary, notMeasured: true };
     return { state, word, tone, kind: 'static', headline: r?.summary || 'Skipped.', detail: '', notMeasured: true };
   }
   if (state === 'unsupported') return { state, word: WORDS.unsupported, tone: 'info', kind: 'static', headline: r?.summary || 'Runs in the Windows desktop app.', detail: '', notMeasured: true };
   return { state, word: WORDS[state] || state, tone: TONE[state] || 'info', kind: 'static', headline: r?.summary || '', detail: '', notMeasured: false };
 }
 
-/** Decks whose capture steps were skipped because their input pair cannot be captured yet: ['B']. */
-export function comingNextDecks(results) {
+/** Decks whose capture steps were skipped because their input pair is not on the interface: ['B']. */
+export function pairUnavailableDecks(results) {
   const decks = [];
   for (const r of results || []) if (r.state === 'skipped' && r.reason === 'input-pair' && r.deck && !decks.includes(r.deck)) decks.push(r.deck);
   return decks;
@@ -57,13 +57,13 @@ const deckList = decks => (decks.length === 1 ? `deck ${decks[0]}` : `decks ${de
 export function verdictView(run) {
   const roll = run?.rollup || rollUp(run?.results || [], { cancelled: !!run?.cancelled });
   const verdict = run?.verdict || roll.verdict;
-  const decks = comingNextDecks(run?.results);
+  const decks = pairUnavailableDecks(run?.results);
   const notices = [];
-  if (decks.length) notices.push(`${deckList(decks)[0].toUpperCase() + deckList(decks).slice(1)}: ${COMING_NEXT_TEXT}. It was not measured.`);
+  if (decks.length) notices.push(`${deckList(decks)[0].toUpperCase() + deckList(decks).slice(1)}: ${PAIR_UNAVAILABLE_TEXT}. It was not measured.`);
   let copy = roll.copy;
   const skippedRequired = (run?.results || []).filter(r => r.state === 'skipped' && r.required);
   if (verdict === 'incomplete' && skippedRequired.length && skippedRequired.every(r => r.reason === 'input-pair')) {
-    copy = `Everything DeckChek could measure is fine, but ${deckList(decks)} needs multichannel capture (coming next), so it was not checked. Check ${decks.length === 1 ? 'it' : 'them'} another way before you play.`;
+    copy = `Everything DeckChek could measure is fine, but the inputs for ${deckList(decks)} are not on this audio interface, so ${decks.length === 1 ? 'it was' : 'they were'} not checked. Choose the right input pair above, or check ${decks.length === 1 ? 'it' : 'them'} another way before you play.`;
     notices.length = 0; // the sentence above already says it
   }
   const tone = verdict === 'green' ? 'pass' : verdict === 'red' ? 'fail' : verdict === 'cancelled' ? 'info' : 'warn';

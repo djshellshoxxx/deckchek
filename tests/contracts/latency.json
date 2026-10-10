@@ -35,7 +35,7 @@
       }
     },
     "latency_play_and_capture": {
-      "request": { "deviceName": "Audio 8 DJ", "outDevice": null, "stimulus": { "sampleRate": 48000, "left": [0, 0.5, 0], "right": [] }, "bufferFrames": 256, "levelDbfs": -20, "tailSec": null, "step": 0 },
+      "request": { "deviceName": "Audio 8 DJ", "outDevice": null, "stimulus": { "sampleRate": 48000, "left": [0, 0.5, 0], "right": [] }, "bufferFrames": 256, "levelDbfs": -20, "tailSec": null, "step": 0, "pairs": [3] },
       "response": {
         "captured": { "sampleRate": 48000, "left": [0, 0, 0.05], "right": [0, 0, 0.05] },
         "quality": { "framesCaptured": 3, "overrunSamples": 0, "clippedSamplesL": 0, "clippedSamplesR": 0, "streamErrors": 0, "streamErrorMessages": [], "truncated": false, "callbackCount": 1, "maxCallbackGapMs": 0 },

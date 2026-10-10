@@ -190,7 +190,10 @@ export default async function run({ browser, base, check, SHOTS }) {
     await page.waitForSelector(`${dlg} .wiz-gear`);
     const products = await page.locator(`${dlg} .wiz-gear`).count();
     check('wizard: gear grid lists every library product by category', products >= 8 && (await page.locator(`${dlg} .wiz-gear-group`).count()) >= 4, `${products} products`);
-    check('wizard: product images load under CSP', await page.evaluate(() => [...document.querySelectorAll('dialog.wizard .wiz-gear-thumb img')].every(i => i.complete && i.naturalWidth > 0)));
+    // Images decode asynchronously (a CI runner can be slow): wait for them to settle instead of sampling once.
+    const imagesLoaded = () => [...document.querySelectorAll('dialog.wizard .wiz-gear-thumb img')].every(i => i.complete && i.naturalWidth > 0);
+    await page.waitForFunction(imagesLoaded, null, { timeout: 10000 }).catch(() => {});
+    check('wizard: product images load under CSP', await page.evaluate(imagesLoaded));
     await page.fill(`${dlg} #wiz-gear-search`, 'technics');
     check('wizard: gear search filters the grid', (await page.locator(`${dlg} .wiz-gear:not([hidden])`).count()) === 1);
     await page.fill(`${dlg} #wiz-gear-search`, '');

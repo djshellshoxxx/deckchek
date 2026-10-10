@@ -14,6 +14,7 @@ import { PROTOCOL_V1, SCRATCH_DEFAULTS, createScratchApi, summarizeScratch, skip
 import { attachFormatPicker } from '../media-picker.js';
 import { createRecordsApi } from '../workflows/wearmap.js';
 import { pdfButton, scratchPrintData } from '../workflows/m6-reports.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { createScratchRunner, SKIP_CALIBRATION, BPM_RANGE, METRONOME_LEAD_SEC } from '../workflows/scratch.js';
 
 const COMPONENT_LABEL = { continuity: 'Lock continuity', recovery: 'Recovery time', direction: 'Direction accuracy', stability: 'Signal stability', skips: 'Needle skips' };
@@ -246,7 +247,7 @@ export function createScratchScreen(section) {
 
   function formValues() {
     const f = st.form;
-    return { format: f.format, bpm: Number(f.bpm), deviceName: settings.deviceName || null, levelDbfs: Number(f.levelDbfs), sinkId: f.sinkId,
+    return { format: f.format, bpm: Number(f.bpm), deviceName: settings.deviceName || null, pairs: currentPairs(), levelDbfs: Number(f.levelDbfs), sinkId: f.sinkId,
       cartridgeAssetId: f.cartridgeAssetId || null, setupId: f.setupId || null, recordSideId: f.recordSideId || null, trackingForceG: f.trackingForceG === '' ? null : Number(f.trackingForceG), tonearmNote: f.tonearmNote.trim() || null };
   }
   function validateForm() {
@@ -300,6 +301,8 @@ export function createScratchScreen(section) {
     q('#sc-level').addEventListener('input', e => { f.levelDbfs = Number(e.target.value); q('#sc-level-v').textContent = `${f.levelDbfs} dBFS`; });
     q('#sc-vol').addEventListener('change', e => { f.volumeAck = e.target.checked; });
     q('#sc-start').addEventListener('click', startBaseline);
+    const pair = createPairPicker({ id: 'sc-pair', label: 'Input pair' });
+    if (pair.el) q('#sc-note').closest('.field').before(pair.el);
   }
 
   function startBaseline() {

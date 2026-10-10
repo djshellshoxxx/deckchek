@@ -4,21 +4,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rollUp, buildPlan } from '../app/pre-gig.js';
 import {
-  describeStep, comingNextDecks, verdictView, fixButtons, evidenceRows, rerunTargets, mergeRerun, compareView, stepLabel,
-  profilesForPreset, runMatchesPreset, runNotes, durationText, estimateText, createPregigController, COMING_NEXT_TEXT,
+  describeStep, pairUnavailableDecks, verdictView, fixButtons, evidenceRows, rerunTargets, mergeRerun, compareView, stepLabel,
+  profilesForPreset, runMatchesPreset, runNotes, durationText, estimateText, createPregigController, PAIR_UNAVAILABLE_TEXT,
 } from '../app/ui/workflows/pregig.js';
 
 const r = (stepId, state, extra = {}) => ({ stepId, kind: stepId.split(':')[0], deck: stepId.split(':')[1] || null, label: stepId, required: true, manual: false, state, summary: `${stepId} ${state}`, evidence: {}, fix: [], reason: null, ...extra });
 const makeRun = results => { const rollup = rollUp(results); return { results, rollup, verdict: rollup.verdict, durationMs: 1000, manualMs: 0, withinBudget: true, startedAt: '2026-10-10T20:00:00.000Z', finishedAt: '2026-10-10T20:00:01.000Z', presetName: 'Rig' }; };
-const deckBSkipped = [r('timecode:B', 'skipped', { reason: 'input-pair', summary: 'Deck B uses inputs 3-4, but DeckChek can only capture the first input pair (1-2) right now.' }), r('signal:B', 'skipped', { reason: 'input-pair' })];
+const deckBSkipped = [r('timecode:B', 'skipped', { reason: 'input-pair', summary: 'Deck B: Input pair 3-4 is not available on Interface: it has 2 input channels (pairs 1-2).' }), r('signal:B', 'skipped', { reason: 'input-pair' })];
 
-test('describeStep: input pair skip reads as "coming next", not a failure', () => {
+test('describeStep: an input pair the interface lacks reads as "no such input", not a failure', () => {
   const v = describeStep({ state: 'skipped', result: deckBSkipped[0] });
-  assert.equal(v.word, 'Coming next');
-  assert.equal(v.headline, COMING_NEXT_TEXT);
+  assert.equal(v.word, 'No such input');
+  assert.equal(v.headline, PAIR_UNAVAILABLE_TEXT);
   assert.equal(v.tone, 'info');
   assert.ok(v.notMeasured);
-  assert.match(v.detail, /inputs 3-4/);
+  assert.match(v.detail, /pair 3-4/);
 });
 
 test('describeStep: every engine state has a word and a tone; live states are not chips', () => {
@@ -37,8 +37,8 @@ test('verdictView: only deck B unmeasured gives an amber "Not fully checked" tha
   assert.equal(run.verdict, 'incomplete');
   assert.equal(v.level, 'amber');
   assert.equal(v.title, 'Not fully checked');
-  assert.match(v.copy, /deck B needs multichannel capture \(coming next\)/);
-  assert.deepEqual(comingNextDecks(run.results), ['B']);
+  assert.match(v.copy, /inputs for deck B are not on this audio interface/);
+  assert.deepEqual(pairUnavailableDecks(run.results), ['B']);
 });
 
 test('verdictView: red stays red and still notes deck B; green copy is the engine copy', () => {
@@ -111,7 +111,7 @@ function fakeApi() {
 
 test('controller: full run keeps deck input-pair skip honest, saves once, compares on the second run', async () => {
   const api = fakeApi();
-  const deps = { listInputs: async () => [{ name: 'Interface One' }], captureDeck: async () => { throw new Error('should not capture an unsupported pair'); } };
+  const deps = { listInputs: async () => [{ name: 'Interface One' }], captureDeck: async () => { throw new Error('Input pair 3-4 is not available on Interface One: it has 2 input channels (pairs 1-2).'); } };
   const ctl = createPregigController({ api, deps, appVersion: () => '0.0.6', now: () => 0 });
   const seen = [];
   ctl.subscribe(s => seen.push(s.phase));

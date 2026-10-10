@@ -9,6 +9,7 @@ import {
   baselineCheck, analyzeScratch, instantVelocity, toRunRecord, createScratchApi,
 } from '../../scratch.js';
 import { startLiveSession } from '../audio-io.js';
+import { runWithCapture } from '../capture-busy.js';
 
 /** Skip thresholds have not been calibrated on a sacrificial record yet (FS-14 §6, §9). Flip when they are. */
 export const SKIP_CALIBRATION = Object.freeze({
@@ -71,7 +72,9 @@ export function liveLock(levelDb, baselineLevelDb) {
  *   analyze, makeMetronome.
  */
 export function createScratchRunner({
-  capture = startLiveSession,
+  // The shared capture-busy flow (FS-00 AC-5): when another feature holds the input, offer "Stop <holder> and continue";
+  // Cancel rejects with error.cancelled and the runner returns to where it was instead of showing an error.
+  capture = opts => runWithCapture(() => startLiveSession(opts), { action: 'run the scratch test' }),
   createAudioContext = () => { const C = globalThis.AudioContext || globalThis.webkitAudioContext; if (!C) throw new Error('Web Audio is unavailable, so the metronome cannot play.'); return new C(); },
   api = createScratchApi(),
   perf = () => globalThis.performance.now(),
@@ -86,15 +89,21 @@ export function createScratchRunner({
     config: null, baseline: null, progress: null, live: { levelDb: -Infinity, lock: 'unknown' },
     muted: false, aborted: false, result: null, plot: null, saved: null, saveError: null, error: null, mutedAtMs: null, abortAtMs: null,
   };
-  let cap = null, ctx = null, metro = null, tick = null, wait = null, clickZeroPerf = 0, startSec = 0, finishing = false, gen = 0;
+  let cap = null, ctx = null, metro = null, tick = null, wait = null, waitDone = null, clickZeroPerf = 0, startSec = 0, finishing = false, gen = 0;
   const emit = () => { try { onChange(state); } catch (e) { console.error('scratch onChange failed', e); } };
   const set = (patch) => { Object.assign(state, patch); emit(); };
-  const clearTimers = () => { if (tick !== null) { timers.clearInterval(tick); tick = null; } if (wait !== null) { timers.clearTimeout(wait); wait = null; } };
+  const clearTimers = () => { if (tick !== null) { timers.clearInterval(tick); tick = null; } if (wait !== null) { timers.clearTimeout(wait); wait = null; } if (waitDone) { const done = waitDone; waitDone = null; done(); } };
   const liveHandler = levels => {
     const levelDb = levelDbFromLevels(levels);
     state.live = { levelDb, lock: liveLock(levelDb, state.baseline?.levelDb) };
   };
   const closeCtx = () => { try { ctx?.close?.()?.catch?.(() => {}); } catch { /* already closed */ } ctx = null; };
+  /** Another feature took the input ("Stop and continue" elsewhere): end this run at once, keep nothing running. */
+  const onPreempted = () => {
+    if (state.phase !== 'baseline' && state.phase !== 'running') return;
+    gen++; clearTimers(); try { metro?.stop(); } catch { /* already stopped */ } closeCtx(); cap = null;
+    set({ phase: 'error', error: 'The scratch test was stopped because another DeckChek feature needed the audio input. Start it again when the other feature is done.' });
+  };
   const fail = (error) => { clearTimers(); closeCtx(); cap = null; set({ phase: 'error', error: error?.message || String(error) }); };
 
   async function runBaseline(config) {
@@ -102,15 +111,19 @@ export function createScratchRunner({
     const mine = ++gen;
     set({ phase: 'baseline', config: { ...config, levelDbfs: clampMetronomeDbfs(config.levelDbfs) }, baseline: null, result: null, plot: null, saved: null, saveError: null, error: null, aborted: false, progress: { baselineSec: 0 } });
     try {
-      cap = await capture({ deviceName: config.deviceName || null, maxSeconds: BASELINE_SEC + 8, onLevels: liveHandler });
+      cap = await capture({ deviceName: config.deviceName || null, pairs: config.pairs ?? null, maxSeconds: BASELINE_SEC + 8, onLevels: liveHandler, onPreempted });
       const started = perf();
-      await new Promise(resolve => { const step = () => { const el = (perf() - started) / 1000; state.progress = { baselineSec: Math.min(BASELINE_SEC, el) }; emit(); if (el >= BASELINE_SEC) { wait = null; resolve(); } else wait = timers.setTimeout(step, 100); }; wait = timers.setTimeout(step, 100); });
+      await new Promise(resolve => { waitDone = resolve; const step = () => { const el = (perf() - started) / 1000; state.progress = { baselineSec: Math.min(BASELINE_SEC, el) }; emit(); if (el >= BASELINE_SEC) { wait = null; waitDone = null; resolve(); } else wait = timers.setTimeout(step, 100); }; wait = timers.setTimeout(step, 100); });
       if (mine !== gen) return state;
       const current = cap; cap = null;
       const { audio } = await current.stop();
       const check = baselineCheck(audio, { format: config.format });
       set({ phase: check.ok ? 'ready' : 'baseline-failed', baseline: check });
-    } catch (error) { if (mine === gen) fail(error); }
+    } catch (error) {
+      if (mine !== gen) return state;
+      if (error?.cancelled) { cap = null; set({ phase: 'setup', baseline: null, progress: null }); } // declined "Stop and continue"
+      else fail(error);
+    }
     return state;
   }
 
@@ -131,7 +144,7 @@ export function createScratchRunner({
       metro = makeMetronome({ audioContext: ctx, levelDbfs: cfg.levelDbfs, timers });
       metro.setMuted(false);
       const total = protocolTimeline(bpm, { protocol }).totalSec;
-      cap = await capture({ deviceName: cfg.deviceName || null, maxSeconds: Math.ceil(total + METRONOME_LEAD_SEC + TAIL_SEC + 5), onLevels: liveHandler });
+      cap = await capture({ deviceName: cfg.deviceName || null, pairs: cfg.pairs ?? null, maxSeconds: Math.ceil(total + METRONOME_LEAD_SEC + TAIL_SEC + 5), onLevels: liveHandler, onPreempted });
       if (mine !== gen) { await cap?.cancel?.(); return state; }
       const capStart = perf();
       metro.start(metronomeSchedule(bpm, null, { protocol }), { leadSec: METRONOME_LEAD_SEC });
@@ -139,7 +152,10 @@ export function createScratchRunner({
       startSec = (clickZeroPerf - capStart) / 1000;
       set({ phase: 'running', muted: false, progress: phaseAt(bpm, -METRONOME_LEAD_SEC, protocol) });
       tick = timers.setInterval(onTick, 50);
-    } catch (error) { fail(error); }
+    } catch (error) {
+      if (error?.cancelled && mine === gen) { try { metro?.stop(); } catch { /* not started */ } closeCtx(); cap = null; set({ phase: 'ready' }); } // declined "Stop and continue": stay ready
+      else fail(error);
+    }
     return state;
   }
 

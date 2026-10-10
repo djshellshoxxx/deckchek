@@ -10,6 +10,9 @@ import { go, confirmDialog } from '../shell.js';
 import { active } from '../state.js';
 import { isEnabled, onFeatureChange } from '../../features.js';
 import { confirmCaptureBusy } from '../capture-busy.js';
+import { ensureMedia, media as mediaState } from '../media-picker.js';
+import { listMedia } from '../../media-library.js';
+import { createPairPicker, currentPair, cachedInputDevices } from '../pair-picker.js';
 import { lib, ensureLibrary } from '../devices/library-state.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { withCrossFixes } from '../../crosslinks.js';
@@ -18,11 +21,11 @@ import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
 import { ensurePregigPrintable, pregigPrintData, PREGIG_KIND } from '../workflows/pregig-report.js';
 import {
   buildPlan, validatePreset, parsePresetJson, exportPresetJson, duplicatePreset, presetFromEquipment, loadBuiltinPresets,
-  createPregigApi, createNativeDeps, diffRuns, PREGIG_BUDGET_MS,
+  createPregigApi, createNativeDeps, diffRuns, PREGIG_BUDGET_MS, namesMatch, deckPairFirst,
 } from '../../pre-gig.js';
 import {
   createPregigController, describeStep, verdictView, fixButtons, evidenceRows, rerunTargets, compareView, stepLabel,
-  estimateText, durationText, runMatchesPreset, COMING_NEXT_TEXT,
+  estimateText, durationText, runMatchesPreset, PAIR_UNAVAILABLE_TEXT,
 } from '../workflows/pregig.js';
 
 const LAST_PRESET_KEY = 'deckchek.pregig.lastPreset.v1';
@@ -84,6 +87,27 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   const panel = q('#pg-panel'), tabs = q('#pg-tabs'), noticeEl = q('#pg-notice');
 
   const currentPreset = () => st.presets.find(p => p.id === st.presetId) || st.presets[0] || null;
+
+  // ------------------------------------------------------------ input pairs per deck (GAP-02)
+  // The preset says which inputs each deck is plugged into (deck B on a Traktor Audio 8 DJ: 3-4). The Inputs boxes on the
+  // start card override that for this interface and are remembered per deck, so a different cable layout needs no preset edit.
+  const interfaceName = preset => cachedInputDevices().find(d => namesMatch(d.name, preset.audioDevice))?.name ?? preset.audioDevice;
+  const deckSlot = d => ({ slot: `pregig:${d.id}`, fallback: (deckPairFirst(d.input) ?? 1), anyPair: true });
+  /** The preset with each deck's inputs replaced by the pair chosen on the start card (browser: the preset as saved). */
+  function withChosenPairs(preset) {
+    if (!native || !preset?.decks) return preset;
+    const name = interfaceName(preset);
+    return { ...preset, decks: preset.decks.map(d => { const c = currentPair(name, deckSlot(d)); return { ...d, input: [c.first - 1, c.first] }; }) };
+  }
+  function pairRow(preset, running) {
+    if (!native || !preset.decks?.length) return null;
+    const pickers = preset.decks.map(d => createPairPicker({ id: `pg-pair-${d.id}`, label: `Deck ${d.id} inputs`, deviceName: () => interfaceName(preset), onChange: () => { if (!running) renderStartSummary(); }, ...deckSlot(d) }));
+    return h('div', { class: 'pg-pairs field-grid', id: 'pg-pairs', role: 'group', 'aria-label': 'Which inputs each deck is plugged into' }, ...pickers.map(x => x.el));
+  }
+  function renderStartSummary() {
+    const preset = currentPreset(), chips = q('.pg-chips');
+    if (preset && chips) chips.replaceWith(presetChips(withChosenPairs(preset)));
+  }
   const setNotice = (text, kind = 'info') => {
     noticeEl.replaceChildren();
     if (!text) return;
@@ -190,7 +214,9 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     const byCat = (...cats) => (lib.profiles || []).filter(p => cats.includes(p.category));
     const sel = (id, label, list, blank = 'None') => h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: label }),
       h('select', { id }, h('option', { value: '', text: blank }), ...list.map(p => h('option', { value: p.id, text: p.model || p.id }))));
-    const media = [['', 'Not sure yet'], ['serato-control-vinyl-cv025', 'Serato control vinyl (CV02.5)'], ['traktor-scratch-timecode', 'Traktor Scratch (MK2)']];
+    // Control vinyl choices come from the test-media library (the same list as the DVS and scratch forms), timecode discs only.
+    try { await ensureMedia(); } catch { /* the list below is then just "Not sure yet" */ }
+    const media = [['', 'Not sure yet'], ...listMedia(mediaState.entries, { kind: 'timecode' }).map(e => [e.id, e.name])];
     const body = h('div', { class: 'field-grid' },
       sel('pg-g-tt', 'Turntable', byCat('turntable')), sel('pg-g-mixer', 'Mixer', byCat('mixer')),
       sel('pg-g-if', 'Audio interface', byCat('audio-interface')), sel('pg-g-ctl', 'Controller', byCat('controller')),
@@ -203,7 +229,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
         h('button', { type: 'button', class: 'btn btn-primary', text: 'Continue', onclick: () => {
           const v = id => body.querySelector(`#${id}`).value;
           const byId = Object.fromEntries((lib.profiles || []).map(p => [p.id, p]));
-          chosen = presetFromEquipment({ turntables: v('pg-g-tt') ? [v('pg-g-tt')] : [], mixer: v('pg-g-mixer') || undefined, interface: v('pg-g-if') || undefined, controller: v('pg-g-ctl') || undefined, media: v('pg-g-media') || undefined, decks: Number(v('pg-g-decks')) }, byId);
+          chosen = presetFromEquipment({ turntables: v('pg-g-tt') ? [v('pg-g-tt')] : [], mixer: v('pg-g-mixer') || undefined, interface: v('pg-g-if') || undefined, controller: v('pg-g-ctl') || undefined, media: v('pg-g-media') || undefined, decks: Number(v('pg-g-decks')) }, byId, { media: mediaState.entries });
           close(true);
         } }),
         h('button', { type: 'button', class: 'btn btn-secondary', text: 'Cancel', onclick: () => close(null) })],
@@ -306,8 +332,9 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     const start = h('button', { type: 'button', class: 'btn btn-primary btn-xl pg-start', id: 'pg-start', disabled: !enabled.length, onclick: () => startRun() },
       h('span', { html: icon('play', { size: 20 }) }), h('span', { text: 'Start pre-gig check' }), h('kbd', { text: 'Ctrl+G' }));
     return h('div', { class: 'card pg-start-card' },
-      h('div', { class: 'pg-start-row' }, h('div', { class: 'pg-start-copy' }, h('h2', { class: 'card-title', text: preset.name }), presetChips(preset)),
+      h('div', { class: 'pg-start-row' }, h('div', { class: 'pg-start-copy' }, h('h2', { class: 'card-title', text: preset.name }), presetChips(withChosenPairs(preset))),
         h('div', { class: 'pg-start-action' }, start, h('span', { class: 'pg-estimate', id: 'pg-estimate', text: enabled.length ? `${estimateText(plan)}. Keep a track playing on each deck.` : 'Tick at least one check below.' }))),
+      pairRow(preset, false),
       preset.decks.length ? h('p', { class: 'hint', text: 'Put the needle on the control vinyl and let it play while the check runs.' }) : null);
   }
 
@@ -449,9 +476,12 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     const preset = currentPreset();
     if (!preset || S.phase === 'running') return;
     if (!preset.decks?.length) return;
+    const chosen = withChosenPairs(preset);
+    const used = chosen.decks.map(d => d.input[0]);
+    if (new Set(used).size !== used.length) { setNotice('Two decks are set to the same inputs. Choose a different input pair for one of them in the Inputs boxes, then start again.', 'warn'); return; }
     st.expanded.clear(); st.focusPrompt = null;
     setNotice(null);
-    ctl.start(preset, { skip: [...st.skip] });
+    ctl.start(chosen, { skip: [...st.skip] });
     startTimer();
   }
 
@@ -602,4 +632,4 @@ export function pregigScreenDefs() {
   return [{ id: 'pregig', title: 'Pre-gig check', short: 'Pre-gig', icon: 'pass', feature: 'pregig', create: createPregigScreen }];
 }
 
-export { COMING_NEXT_TEXT, PREGIG_BUDGET_MS };
+export { PAIR_UNAVAILABLE_TEXT, PREGIG_BUDGET_MS };

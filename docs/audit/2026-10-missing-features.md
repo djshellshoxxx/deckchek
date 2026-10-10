@@ -329,7 +329,7 @@ DoD (ledger, rail alert, catalogue confidence): IMPL. Not built, and not require
 | Feature | Verdict |
 |---|---|
 | FS-01 wizard | **Yes.** Confirm tone routing through `setSinkId` on the Audio 8 DJ. |
-| FS-02 diagnostics | **Yes.** Add `--debug-crash` (GAP-18) first, or force a kill to test the marker. |
+| FS-02 diagnostics | **Yes.** Run with `--debug-crash` (debug build, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) to test the crash prompt. |
 | FS-03 PDF | **Yes** for run, device, System Health and pre-gig. |
 | FS-06 test media | **No, until GAP-01 and GAP-03 are fixed** (unreachable). After that, yes, but AC-3 is weak (GAP-04). |
 | FS-07 links | **Yes.** |
@@ -348,20 +348,20 @@ DoD (ledger, rail alert, catalogue confidence): IMPL. Not built, and not require
 | Gap | Status | What changed |
 |---|---|---|
 | GAP-01 | Fixed | Options > Support > "Experimental features…" dialog (`app/ui/screens/experimental.js`, `app/ui/menus.js`) with chips and "Reset to defaults"; the smoke test toggles every M6 flag and test media and opens each screen. |
-| GAP-02 | Deferred | Input-pair picker: a later job, after the capture fixes. |
+| GAP-02 | Fixed | `app/input-pairs.js` + `app/ui/pair-picker.js`: a pair box in every capture setup (Quick Check/flows, timecode runner, calibration, wear map, scratch, latency, hum, feedback; pre-gig has one per deck), default 1-2, remembered per input. Pre-gig captures deck B on its preset pair (3-4 on the Traktor Audio 8 DJ rig). `latency_play_and_capture` takes `pairs`. |
 | GAP-03 | Fixed | `testMedia` defaults on; spec rollout note records it. |
 | GAP-04 | Fixed | The DVS form has a Timecode format field that a timecode medium sets; Auto-detect is the fallback. The scratch and control-vinyl forms also take a medium. |
 | GAP-05 | Fixed | Scratch runs save `setupId` and `recordSideId`; Compare groups by cartridge, setup, side, format and tempo (`groupScratchRuns`). |
 | GAP-06 | Fixed | Printable kinds latency, stylus, wearMap, scratch, hum (`app/ui/workflows/m6-reports.js`) with Export PDF buttons. |
 | GAP-07 | Fixed | Printable kind `venue` (setups plus hum and feedback history) from Equipment > Venues and the Runs tab. The `booth` and `deck_position` tables remain unwritten (GAP-12). |
-| GAP-08 | Deferred | Scratch Stop-and-continue: a later job. |
+| GAP-08 | Fixed | The scratch runner starts through `runWithCapture`; Cancel returns to setup/ready, and a preempt mid-run ends the test with a message. |
 | GAP-09 | Fixed | A PDF timeout shows Retry beside "Export HTML instead". |
 | GAP-10 | Fixed | Waveform snippet in the wear-map bin inspector from a bounded peak-envelope ring buffer (session only). |
 | GAP-11, GAP-12 | Deferred | Schema-only tables, reserved. |
-| GAP-13 | Partly fixed | The scratch and control-vinyl forms take a medium. `app/pre-gig.js` (`FORMAT_BY_MEDIA_ID`) belongs to another job. |
+| GAP-13 | Fixed | The scratch and control-vinyl forms take a medium; `app/pre-gig.js` resolves formats through `formatForMedia` (media library) and the gear dialog lists library timecode discs. |
 | GAP-14 | Fixed | FEATURE-MATRIX, IMPLEMENTATION-STATUS, `app/README.md` and the spec status notes now match the code. |
-| GAP-15 | Partly fixed | M7 and M8 flags default off and are hidden; `diagnosticsBundle` is marked always on; `top_cpu` and `dj_processes` feed the Windows tuning tab. `runtime_status` and `userfiles_write_folder` are Rust: still unused. |
+| GAP-15 | Partly fixed | M7 and M8 flags default off and are hidden; `diagnosticsBundle` is marked always on; `top_cpu` and `dj_processes` feed the Windows tuning tab. `runtime_status` removed; `userfiles_write_folder` is reached through `saveFolder` in `app/userfiles.js` (first screen: FS-33). `tests/command-surface.test.mjs` keeps lib.rs and app/ in step. |
 | GAP-16 | Fixed | The PDF saved toast offers Open and Show in folder. |
 | GAP-17 | Open | Published MIDI maps need vendor documents. |
-| GAP-18 | Open | `--debug-crash` is a Rust change. |
+| GAP-18 | Fixed | `--debug-crash` (diagnostics.rs, called last in setup): debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1` in release; tested. |
 | AC-7 / AC-8 canonical JSON, photo store | M7 | Unchanged. |

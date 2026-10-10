@@ -13,6 +13,7 @@ import { pdfButton, latencyPrintData } from '../workflows/m6-reports.js';
 import { announce, toast } from '../live.js';
 import { listInputDevices, preemptCapture, isCaptureBusy } from '../audio-io.js';
 import { confirmCaptureBusy } from '../capture-busy.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import {
   createLatencyTuner, runStressSweep, planStressSweep, stressRows, classifyBufferBehaviour, recommendBuffer, windowsChecklist,
   roundTripRunInput, stressRunInput, framesToMs, SOFTWARE_BUFFER_HINTS, SOFTWARE_IDS, SCOPE_LABEL, TYPED_LABEL, STRESS_SIZES,
@@ -349,6 +350,8 @@ export function createLatencyScreen(section) {
     const inSel = q('#lat-in'), outSel = q('#lat-out');
     inSel.addEventListener('change', () => { st.inputName = inSel.value; st.outName = matchOutput(st.inputName, st.outputs) || st.outName; st.bufferInfo = null; renderPanel(); });
     outSel.addEventListener('change', () => { st.outName = outSel.value; st.bufferInfo = null; renderPanel(); });
+    const pair = createPairPicker({ id: 'lat-pair', label: 'Input pair', deviceName: () => st.inputName || '' });
+    if (pair.el) q('#lat-rate').closest('.field').before(pair.el);
     q('#lat-rate').addEventListener('change', e => { st.rate = Number(e.target.value); });
     q('#lat-level').addEventListener('input', e => { st.level = Number(e.target.value); q('#lat-level-out').textContent = `${st.level} dBFS`; });
     q('#lat-ack').addEventListener('change', e => { st.ack = e.target.checked; q('#lat-measure').disabled = !(native && st.ack && !st.busy); });
@@ -387,7 +390,7 @@ export function createLatencyScreen(section) {
     setStatus('Measuring: playing chirps through the cable…', 'info', { say: true });
     renderPanel();
     try {
-      const res = await withCapture(() => tuner.measure({ deviceName: st.inputName || null, outDevice: st.outName || null, sampleRate: st.rate, levelDbfs: st.level, typedPanelFrames: st.typedFrames }), 'measure latency');
+      const res = await withCapture(() => tuner.measure({ deviceName: st.inputName || null, outDevice: st.outName || null, pairs: currentPairs(st.inputName || ''), sampleRate: st.rate, levelDbfs: st.level, typedPanelFrames: st.typedFrames }), 'measure latency');
       st.measure = res;
       const d = describeMeasure(res);
       if (d.kind === 'ok') {

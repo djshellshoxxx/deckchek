@@ -1086,6 +1086,58 @@ pub fn setup(app: &mut tauri::App) {
     app.manage(state);
 }
 
+// ------------------------------------------------------------------ manual crash helper (GAP-18)
+
+/// Command-line flag that raises a controlled panic at startup, to exercise the crash prompt on real hardware (H-02).
+pub const DEBUG_CRASH_ARG: &str = "--debug-crash";
+/// Release builds only honour the flag when this environment variable is `1`.
+pub const DEBUG_CRASH_ENV: &str = "DECKCHEK_ALLOW_DEBUG_CRASH";
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DebugCrash {
+    NotRequested,
+    Crash,
+    /// Asked for in a release build without the environment variable: ignored (and logged).
+    Refused,
+}
+
+/// Pure decision for `--debug-crash`: honoured in debug builds, or in release builds with `DECKCHEK_ALLOW_DEBUG_CRASH=1`.
+/// `args` is the full argument list (the program name is skipped).
+pub fn debug_crash_decision(args: &[String], debug_build: bool, env_value: Option<&str>) -> DebugCrash {
+    if !args.iter().skip(1).any(|a| a == DEBUG_CRASH_ARG) {
+        DebugCrash::NotRequested
+    } else if debug_build || env_value == Some("1") {
+        DebugCrash::Crash
+    } else {
+        DebugCrash::Refused
+    }
+}
+
+/// The controlled panic itself. The panic hook logs it and records it in `crash.marker`; because the process then dies without
+/// `RunEvent::Exit`, the marker survives and the next start shows the crash prompt.
+pub fn raise_debug_crash() -> ! {
+    panic!("controlled test crash requested with {DEBUG_CRASH_ARG}")
+}
+
+/// Call at the end of `lib.rs` setup, after every panic hook is installed, so the crash goes through the real hook chain.
+pub fn debug_crash_if_requested(app: &tauri::App) {
+    let args: Vec<String> = std::env::args().collect();
+    match debug_crash_decision(&args, cfg!(debug_assertions), std::env::var(DEBUG_CRASH_ENV).ok().as_deref()) {
+        DebugCrash::NotRequested => {}
+        DebugCrash::Refused => {
+            if let Some(state) = app.try_state::<DiagState>() {
+                state.log("WARN", "app", &format!("{DEBUG_CRASH_ARG} ignored: this is a release build and {DEBUG_CRASH_ENV} is not 1"));
+            }
+        }
+        DebugCrash::Crash => {
+            if let Some(state) = app.try_state::<DiagState>() {
+                state.log("WARN", "app", &format!("{DEBUG_CRASH_ARG}: raising a controlled panic"));
+            }
+            raise_debug_crash()
+        }
+    }
+}
+
 /// True for the event that means a normal quit: the event loop is ending (FS-02 AC-4).
 fn is_clean_exit_event(ev: &tauri::RunEvent) -> bool {
     matches!(ev, tauri::RunEvent::Exit)
@@ -1369,6 +1421,40 @@ mod tests {
         assert!(m.last_panic.unwrap().contains("kaboom"));
         // panic payloads of other types
         assert_eq!(panic_message(&42u8), "non-string panic payload");
+    }
+
+    #[test]
+    fn debug_crash_flag_is_honoured_in_debug_builds_or_with_the_env_var_only() {
+        let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let plain = a(&["deckchek"]);
+        let flagged = a(&["deckchek", "--debug-crash"]);
+        assert_eq!(debug_crash_decision(&plain, true, Some("1")), DebugCrash::NotRequested);
+        assert_eq!(debug_crash_decision(&flagged, true, None), DebugCrash::Crash, "debug build");
+        assert_eq!(debug_crash_decision(&flagged, false, None), DebugCrash::Refused, "release build without the variable");
+        assert_eq!(debug_crash_decision(&flagged, false, Some("0")), DebugCrash::Refused);
+        assert_eq!(debug_crash_decision(&flagged, false, Some("true")), DebugCrash::Refused, "only the exact value 1 counts");
+        assert_eq!(debug_crash_decision(&flagged, false, Some("1")), DebugCrash::Crash, "release build with the variable");
+        // the program name is never mistaken for the flag, and partial matches do not count
+        assert_eq!(debug_crash_decision(&a(&["--debug-crash"]), true, None), DebugCrash::NotRequested);
+        assert_eq!(debug_crash_decision(&a(&["deckchek", "--debug-crash=1", "debug-crash"]), true, None), DebugCrash::NotRequested);
+    }
+
+    #[test]
+    fn debug_crash_panic_is_logged_and_leaves_a_marker_so_the_next_start_shows_the_crash_prompt() {
+        let dir = tmp("debug-crash");
+        let st = DiagState::open(&dir, "0.0.7");
+        install_panic_hook(&st);
+        let h = std::thread::Builder::new().name("main-ish".into()).spawn(|| raise_debug_crash()).unwrap();
+        assert!(h.join().is_err());
+        st.disable();
+        let m = read_marker(&dir).expect("marker exists after the controlled panic");
+        assert!(m.last_panic.as_deref().unwrap_or("").contains("controlled test crash requested with --debug-crash"));
+        // The process died without a clean exit: the next start finds the marker (the prompt reads crashed_last_run).
+        let next = DiagState::open(&dir, "0.0.7");
+        let prev = next.crashed_last_run().expect("stale marker detected on the next start");
+        assert!(prev.last_panic.unwrap().contains("controlled test crash"));
+        next.ack_crash();
+        assert!(next.crashed_last_run().is_none());
     }
 
     // ---- client errors (AC-2)

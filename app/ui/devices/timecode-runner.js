@@ -7,6 +7,7 @@ import { icon, chip } from '../icons.js';
 import { analyzeTimecode, mergeFormats, findFormat } from '../../timecode.js';
 import { evaluateOutcome } from '../../devices/dispatch.js';
 import { decodeAudioFile, startLiveSession, liveAvailable, classifyCaptureError } from '../audio-io.js';
+import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { createStereoMeter } from '../meters.js';
 import { scopePlot, linePlot } from '../plots.js';
 import { settings } from '../state.js';
@@ -78,6 +79,8 @@ export function runTimecode(host, ctx) {
       [5, 10, 20, 30].forEach(s => dur.append(h('option', { value: s, text: `${s} s`, selected: s === st.seconds ? true : null })));
       dur.addEventListener('change', () => { st.seconds = Number(dur.value); });
       src.append(h('label', { class: 'field field-inline', for: 'tc-duration' }, h('span', { class: 'field-label', text: 'Capture length' }), dur));
+      const pair = createPairPicker({ id: 'tc-pair' });
+      if (pair.el) src.append(pair.el);
       primary = h('button', { type: 'button', class: 'btn btn-primary btn-lg', id: 'tc-to-capture', html: `<span>Continue to capture</span>${icon('arrowRight', { size: 20 })}` });
       primary.addEventListener('click', () => go('capture'));
     }
@@ -98,7 +101,7 @@ export function runTimecode(host, ctx) {
     start.addEventListener('click', async () => {
       if (st.session) { stop(); return; }
       try {
-        st.session = await startLiveSession({ deviceName: settings.deviceName || null, maxSeconds: st.seconds + 5 });
+        st.session = await startLiveSession({ deviceName: settings.deviceName || null, maxSeconds: st.seconds + 5, pairs: currentPairs() });
       } catch (error) { const c = classifyCaptureError(error); state.textContent = `${c.title}: ${c.message}`; return; }
       start.classList.add('recording'); start.innerHTML = `${icon('stop', { size: 22 })}<span>Stop capture</span>`;
       state.textContent = 'Recording…'; announce('Capture started');
