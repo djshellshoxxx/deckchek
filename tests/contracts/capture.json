@@ -17,11 +17,11 @@
     },
     "start_live_capture": {
       "request": { "deviceName": null, "maxSeconds": 60 },
-      "response": { "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "maxSeconds": 60.0, "leaseId": 5 }
+      "response": { "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "maxSeconds": 60.0, "leaseId": 5, "pairs": [{ "label": "1-2", "first": 1, "second": 2, "mono": false }] }
     },
     "start_stream_capture": {
       "request": { "deviceName": null, "sampleRate": 48000, "blockMs": 1000, "holder": "live-monitor", "channel": "<tauri Channel>" },
-      "response": { "streamId": 4, "holder": "live-monitor", "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "blockMs": 1000, "blockFrames": 48000 }
+      "response": { "streamId": 4, "holder": "live-monitor", "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "blockMs": 1000, "blockFrames": 48000, "pairs": [{ "label": "1-2", "first": 1, "second": 2, "mono": false }] }
     },
     "stream_capture_ack": { "request": { "streamId": 4, "seq": 7 }, "response": null },
     "stop_stream_capture": {
