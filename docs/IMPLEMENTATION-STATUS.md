@@ -68,6 +68,11 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Backup and restore (FS-08): verified single-file `.deckchek-backup` (online SQLite snapshot, settings, MIDI maps), restore with confirmation, migration, safety backup and atomic swap, schedule (daily, weekly, on exit with a 5 s cap, retention), browser workspace import, free-disk-space check before backup and restore on Windows (skipped elsewhere); on-exit backup runs from `RunEvent::ExitRequested` / `Exit`. Flag `backup`.
 - Shell: feature-flagged rail entries follow flag changes without reload; the shared confirm dialog no longer settles early after a rapid cancel and reopen.
 
+## M6 additions (implemented and test-covered, in progress)
+
+- Stylus wear tracker (FS-12, flag `stylusWear`): engine in `app/stylus-wear.js`, `app/usage-hours.js` and `src-tauri/src/stylus.rs`; screen `app/ui/screens/stylus.js` (desktop only, browser mode shows an unsupported state). Tabs: Overview (life gauge with text equivalent, status chip, projected replace month, alerts with 30-day snooze, "I replaced the stylus"), Hours (manual entry 0-24 h, DJ-log proposals confirmed one by one, ledger with source and status), Benchmark (manual entry or fill from the latest Cartridge, Channel separation and DVS runs; entries made under different conditions are saved but excluded from the trend), Trends (small-multiple charts with regression line, limit band, excluded points, slope per 100 h, R-squared, data-table toggle), Settings (rated life override with catalogue source and confidence, alert thresholds, replacement). Rail badge shows amber or red when an alert is not snoozed. Shortcuts: A add hours, B benchmark, Esc clears a selection. Smoke flow `tools/smoke/stylus.mjs`.
+- FS-12 gaps: proposals from DeckChek capture sessions (AC-2) need a command that lists sessions with duration and setup (the database stores runs with equal start and end), so only DJ-log proposals are offered; the Quick Check "Stylus health" card is not added; the guided benchmark capture is not built (values are entered or filled from saved runs); timecode SNR and phase error have no analysis metric yet and are entered by hand.
+
 ## M5 shipped in v0.0.5
 
 - First-run setup wizard (FS-01), resumable, re-runnable from Options.
