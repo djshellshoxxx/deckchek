@@ -1,0 +1,118 @@
+/* FS-11 Latency & buffer screen. Tokens come from styles.css; nothing here hard-codes a colour. */
+#screen-latency { display: grid; gap: 16px; align-content: start; }
+.lat-scope { align-items: flex-start; }
+.lat-scope .banner-text span { color: var(--text); }
+.lat-why { margin-top: 4px; }
+.lat-why summary { cursor: pointer; font-weight: 600; color: var(--accent); width: fit-content; min-height: 24px; }
+.lat-why p { margin-top: 6px; color: var(--text-muted); }
+.lat-unsupported { align-items: center; }
+.lat-status { min-height: 20px; margin: 0; color: var(--text-muted); }
+.lat-status:empty { display: none; }
+.lat-status[data-kind="fail"] { color: var(--fail); font-weight: 600; }
+.lat-status[data-kind="pass"] { color: var(--pass); font-weight: 600; }
+.lat-panel { display: grid; gap: 16px; container-type: inline-size; }
+.lat-panel:focus { outline: none; }
+.lat-measure, .lat-buffer, .lat-advice-wrap, .lat-win { display: grid; gap: 16px; }
+.lat-measure { grid-template-columns: minmax(0, 1fr); align-items: start; }
+@container (min-width: 960px) {
+  .lat-measure { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .lat-measure > #lat-measure-result { grid-column: 1 / -1; }
+}
+
+/* guide */
+.lat-guide > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; min-height: 28px; }
+.lat-guide > summary::-webkit-details-marker { display: none; }
+.lat-guide > summary .card-title { margin: 0; }
+.lat-guide > summary::before { content: none; }
+.lat-guide-hint { color: var(--accent); font-weight: 600; }
+.lat-guide[open] > summary { margin-bottom: 10px; }
+.lat-steps { margin: 14px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.lat-steps li::marker { font-weight: 700; color: var(--accent); }
+.lat-guide .wiring-node { background: var(--sunken); }
+
+/* setup */
+.lat-ack { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--warn-bg); cursor: pointer; }
+.lat-ack input { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--accent); }
+.lat-actions { justify-content: flex-start; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.lat-actions kbd, .lat-panel .btn kbd { margin-left: 6px; padding: 0 5px; border: 1px solid currentColor; border-radius: var(--r-sm); background: transparent; color: inherit; font: 600 11px/16px var(--font-ui); opacity: .8; }
+.lat-setup input[type="range"] { width: 100%; accent-color: var(--accent); min-height: 24px; }
+.lat-setup select, .lat-typed input, #screen-latency select { min-height: 36px; max-width: 100%; }
+.lat-typed { max-width: 260px; }
+.lat-typed input { padding: 0 10px; background: var(--sunken); border: 1px solid var(--border); border-radius: var(--r-sm); }
+.field-help[role="alert"]:empty { display: none; }
+.field-help[role="alert"] { color: var(--fail); }
+
+/* progress */
+.lat-progress { display: grid; gap: 6px; }
+.lat-progress .progress { height: 8px; border-radius: 4px; }
+.lat-progress .progress span { background: var(--accent); }
+
+/* result */
+.lat-empty { text-align: center; padding: 28px 20px; }
+.lat-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 4px 0 6px; }
+.lat-big { font: 700 56px/1 var(--font-display); letter-spacing: -.02em; color: var(--text); }
+.lat-pm { font: 600 20px/1 var(--font-display); color: var(--text-muted); }
+.lat-h3 { margin: 18px 0 6px; }
+.lat-result-error, .lat-result-fail { border-color: color-mix(in srgb, var(--fail) 55%, var(--divider)); }
+.lat-result-warn { border-color: color-mix(in srgb, var(--warn) 55%, var(--divider)); }
+.lat-result-ok { border-color: color-mix(in srgb, var(--pass) 45%, var(--divider)); }
+.lat-result .card-title { display: flex; align-items: center; gap: 8px; }
+.lat-fixes { list-style: none; display: grid; gap: 8px; margin: 12px 0 0; }
+.lat-fixes li { display: flex; gap: 8px; align-items: flex-start; }
+.lat-fixes .icon { color: var(--accent); margin-top: 2px; }
+.lat-runs { margin-top: 14px; }
+.lat-runs summary { cursor: pointer; font-weight: 600; color: var(--accent); width: fit-content; min-height: 24px; }
+.lat-table th[scope="row"] { font-weight: 500; }
+.lat-dim th, .lat-dim td { color: var(--text-muted); }
+.lat-note-warn { display: inline-flex; gap: 4px; align-items: center; color: var(--warn); font-weight: 600; }
+.lat-spin { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; }
+
+/* detected branch */
+.lat-branch { display: grid; gap: 6px; padding: 14px 16px; border-radius: var(--r-md); border: 1px solid var(--border-soft); background: var(--surface); border-left-width: 6px; }
+.lat-branch-pass { border-left-color: var(--pass); }
+.lat-branch-review { border-left-color: var(--review); }
+.lat-branch-warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.lat-branch-fail { border-left-color: var(--fail); background: var(--fail-bg); }
+.lat-branch-info { border-left-color: var(--info); }
+.lat-branch-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lat-branch-head > div { display: grid; flex: 1 1 200px; }
+.lat-branch-letter { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--raised); color: var(--text); font: 700 15px/1 var(--font-display); border: 1px solid var(--border-soft); }
+.lat-kicker { font: 600 11px/14px var(--font-ui); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.lat-branch p { margin: 0; }
+
+/* recommendation */
+.lat-advice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.lat-kv { display: grid; gap: 6px; margin: 0 0 10px; }
+.lat-kv > div { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; }
+.lat-kv dt { font: 600 12px/18px var(--font-ui); text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.lat-kv dd { margin: 0; }
+.lat-rec { font: 600 20px/28px var(--font-display); margin: 6px 0 2px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lat-advice p { margin-top: 6px; }
+.lat-advice a { overflow-wrap: anywhere; }
+.lat-saved { list-style: none; display: grid; gap: 4px; }
+
+/* windows checklist */
+.lat-checks { list-style: none; display: grid; gap: 10px; margin: 0 0 12px; }
+.lat-check { padding: 12px 14px; border: 1px solid var(--border-soft); border-left-width: 5px; border-radius: var(--r-md); background: var(--surface); display: grid; gap: 4px; }
+.lat-check-pass { border-left-color: var(--pass); }
+.lat-check-review { border-left-color: var(--review); background: color-mix(in srgb, var(--review-bg) 55%, var(--surface)); }
+.lat-check-unknown { border-left-color: var(--info); }
+.lat-check-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lat-check p { margin: 0; color: var(--text-muted); }
+.lat-check details { margin-top: 4px; }
+.lat-check summary { cursor: pointer; font-weight: 600; color: var(--accent); width: fit-content; min-height: 24px; }
+.lat-how { display: grid; gap: 8px; margin: 8px 0 2px; }
+.lat-how > div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px; align-items: start; }
+.lat-how dt { font: 600 12px/20px var(--font-ui); text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.lat-how dd { margin: 0; overflow-wrap: anywhere; }
+.lat-how code { font: 13px/18px var(--font-mono); background: var(--sunken); padding: 1px 6px; border-radius: var(--r-sm); border: 1px solid var(--border-soft); }
+@media (max-width: 700px) { .lat-how > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } .lat-big { font-size: 44px; } }
+
+@media (prefers-reduced-motion: reduce) { .lat-spin { animation: none; } .lat-progress .progress span { transition: none; } }
+
+/* spacing and table polish */
+.lat-panel .card > p + .field-grid, .lat-panel .card > .field-grid { margin-top: 16px; }
+#lat-estimate { margin-top: 14px; }
+.lat-table tbody th { display: table-cell; }
+.lat-table td.r .chip { margin-left: 6px; }
+.lat-typed { margin-top: 12px; }
