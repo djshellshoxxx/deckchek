@@ -32,6 +32,7 @@ mod pregig;
 mod stylus;
 mod dj_sessions;
 // [FS-13] mods
+mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
@@ -94,6 +95,7 @@ pub fn run() {
             stylus::stylus_baseline, stylus::stylus_replace, stylus::stylus_rated_life_set, stylus::stylus_rated_life_get,
             dj_sessions::dj_session_spans,
             // [FS-13] handlers
+            wearmap::wearmap_save, wearmap::wearmap_list, wearmap::wearmap_get, wearmap::wearmap_delete,
             // [FS-14] handlers
             scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
