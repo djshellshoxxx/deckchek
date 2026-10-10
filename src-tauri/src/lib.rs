@@ -12,6 +12,7 @@ mod userfiles;
 // [FS-01] mods
 // [FS-02] mods
 // [FS-03] mods
+mod pdf;
 // [FS-06] mods
 // [FS-07] mods
 // [FS-08] mods
@@ -51,6 +52,7 @@ pub fn run() {
             // [FS-01] handlers
             // [FS-02] handlers
             // [FS-03] handlers
+            pdf::pdf_render,
             // [FS-06] handlers
             // [FS-07] handlers
             // [FS-08] handlers
