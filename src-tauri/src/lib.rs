@@ -8,6 +8,7 @@ mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+mod app_state;
 // [FS-01] mods
 // [FS-02] mods
 // [FS-03] mods
@@ -46,6 +47,7 @@ pub fn run() {
             devices::device_profiles_sync, devices::device_test_result_save, devices::device_test_results,
             devices::device_midi_map_save, devices::device_midi_map_get,
             // [FS-00] handlers
+            app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
             // [FS-01] handlers
             // [FS-02] handlers
             // [FS-03] handlers
