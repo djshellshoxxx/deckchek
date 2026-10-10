@@ -115,14 +115,15 @@ test('xwax-derived fields: phaseSign, primary, xwaxId, sides',()=>{
   assert.equal(by('Serato CV02.5').xwaxId,'serato_2a/serato_2b');
 });
 
-test('direction applies phaseSign (Traktor MK1 270 deg convention)',()=>{
-  // forward on SWITCH_PHASE formats shows as -90 deg R-L phase
-  const fwd=analyzeTimecode(synth({hz:2000,phaseDeg:90,reverse:true}),{format:'Traktor Scratch MK1'});
+test('direction applies phaseSign and the primary channel (Traktor MK1: left primary + 270 deg)',()=>{
+  // Traktor MK1 has SWITCH_PRIMARY and SWITCH_PHASE: they cancel, so forward shows as +90 deg R-L phase
+  const fwd=analyzeTimecode(synth({hz:2000,phaseDeg:90}),{format:'Traktor Scratch MK1'});
   assert.equal(fwd.direction,'forward');
-  assert.ok(Math.abs(get(fwd,'tc_phase_deg')+90)<1);
+  assert.ok(Math.abs(get(fwd,'tc_phase_deg')-90)<1);
   assert.ok(get(fwd,'tc_phase_error_deg')<1);
-  const rev=analyzeTimecode(synth({hz:2000,phaseDeg:90}),{format:'Traktor Scratch MK1'});
+  const rev=analyzeTimecode(synth({hz:2000,phaseDeg:90,reverse:true}),{format:'Traktor Scratch MK1'});
   assert.equal(rev.direction,'reverse');
+  // MixVibes (SWITCH_PHASE only, right primary): forward shows as -90 deg R-L phase
   const mv=analyzeTimecode(synth({hz:1300,phaseDeg:90,reverse:true}),{format:'MixVibes DVS V2'});
   assert.equal(mv.direction,'forward');
   // custom format without phaseSign defaults to +1
@@ -145,4 +146,92 @@ test('check-timecode-facts: shipped profiles agree, contradictions are caught',a
   const bad=checkProfile({id:'x',timecode:{formats:[{name:'traktor scratch mk2',carrierHz:2000},{name:'Traktor Scratch MK1 CD',carrierHz:null},{name:'Other',carrierHz:5}]}});
   assert.equal(bad.length,1);
   assert.match(bad[0],/2000 contradicts TIMECODE_FORMATS 2500/);
+});
+
+// ---- direction and primary channel per format family (xwax SWITCH_PRIMARY / SWITCH_PHASE facts) ----
+import {directionSign,directionFromPhase,detectTimecodeFormat,findFormat} from '../app/timecode.js';
+
+/** Stereo carrier where the right channel leads the left by `rightLeadDeg`. */
+function pair(hz,rightLeadDeg,{sec=1,noiseR=0}={}){
+  const n=sr*sec,l=new Float32Array(n),r=new Float32Array(n),ph=rightLeadDeg*Math.PI/180;let seed=3;
+  const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296-.5;};
+  for(let i=0;i<n;i++){const w=2*Math.PI*hz*i/sr;l[i]=.5*Math.sin(w);r[i]=.5*Math.sin(w+ph)+noiseR*rnd()*2;}
+  return {left:l,right:r,sampleRate:sr};
+}
+/**
+ * Independent model of the xwax rule: the vector (primary, secondary) turning the positive way means forward,
+ * inverted by SWITCH_PHASE. Accumulates arg(z[n] * conj(z[n-1])) with z = primary + i*secondary.
+ */
+function xwaxForward(audio,fmt){
+  const p=fmt.primary==='left'?audio.left:audio.right,s=fmt.primary==='left'?audio.right:audio.left;
+  let rot=0;for(let i=1;i<p.length;i++){const re=p[i]*p[i-1]+s[i]*s[i-1],im=s[i]*p[i-1]-p[i]*s[i-1];rot+=Math.atan2(im,re);}
+  const fwd=rot>0;return fmt.phaseSign===-1?!fwd:fwd;
+}
+const FAMILIES=[
+  ['Serato CV02.5','right',1],['Serato CD','right',1],['rekordbox RB-VS1','right',1],['Algoriddim djay','right',1],
+  ['Traktor Scratch MK2','right',1],['Traktor Scratch MK2 CD','right',1],
+  ['Traktor Scratch MK1','left',-1],['MixVibes DVS V2','right',-1],['MixVibes 7"','right',-1],
+];
+
+test('format table encodes xwax SWITCH_PRIMARY and SWITCH_PHASE per family',()=>{
+  for(const [name,primary,phaseSign] of FAMILIES){
+    const f=findFormat(name);
+    assert.equal(f.primary,primary,name);assert.equal(f.phaseSign,phaseSign,name);
+  }
+  assert.equal(directionSign(findFormat('Serato CV02.5')),1);
+  assert.equal(directionSign(findFormat('Traktor Scratch MK1')),1,'left primary and 270 deg cancel');
+  assert.equal(directionSign(findFormat('MixVibes DVS V2')),-1);
+  assert.equal(directionSign({primary:'left',phaseSign:1}),-1);
+  assert.equal(directionFromPhase(NaN,findFormat('Serato CV02.5')),'unknown');
+});
+
+for(const [name] of FAMILIES){
+  test(`direction matches the xwax rule both ways: ${name}`,()=>{
+    const fmt=findFormat(name);
+    for(const lead of [90,-90]){
+      const a=pair(fmt.carrierHz,lead);
+      const want=xwaxForward(a,fmt)?'forward':'reverse';
+      const r=analyzeTimecode(a,{format:fmt});
+      assert.equal(r.direction,want,`${name} right-lead ${lead}`);
+      assert.equal(r.primary,fmt.primary);
+      assert.ok(Math.abs(r.primaryLeadDeg-(fmt.primary==='left'?-lead:lead))<1.5,String(r.primaryLeadDeg));
+      assert.ok(get(r,'tc_phase_error_deg')<1.5);
+    }
+  });
+}
+
+test('Traktor MK1 plays forward with the right channel leading (was reported reversed before)',()=>{
+  assert.equal(analyzeTimecode(pair(2000,90),{format:'Traktor Scratch MK1'}).direction,'forward');
+  assert.equal(analyzeTimecode(pair(2000,-90),{format:'Traktor Scratch MK1'}).direction,'reverse');
+  assert.equal(analyzeTimecode(pair(1300,-90),{format:'MixVibes DVS V2'}).direction,'forward');
+});
+
+test('a profile format with a left primary and no phase switch reads forward when the left leads',()=>{
+  const fmts=mergeFormats([{name:'Lab left-primary',carrierHz:1500,primary:'left'},{name:'Lab junk',carrierHz:1100,primary:'centre',phaseSign:7}]);
+  const lab=fmts.find(f=>f.name==='Lab left-primary');
+  assert.equal(analyzeTimecode(pair(1500,-90),{format:lab}).direction,'forward');
+  assert.equal(analyzeTimecode(pair(1500,90),{format:lab}).direction,'reverse');
+  const junk=fmts.find(f=>f.name==='Lab junk');
+  assert.deepEqual([junk.primary,junk.phaseSign],['right',1]);
+});
+
+test('carrier is tracked on the primary channel (noisy secondary does not bias it)',()=>{
+  const r=analyzeTimecode(pair(2040,90,{noiseR:.3}),{format:'Traktor Scratch MK1'});
+  assert.ok(Math.abs(get(r,'tc_carrier_hz')-2040)<.5,String(get(r,'tc_carrier_hz')));
+});
+
+test('detectTimecodeFormat picks the carrier family and reports ambiguity',()=>{
+  const d1=detectTimecodeFormat(pair(1005,90));
+  assert.equal(d1.format.carrierHz,1000);assert.equal(d1.format.confidence,'confirmed');
+  assert.ok(d1.ambiguous.includes('rekordbox RB-VS1'));
+  assert.equal(detectTimecodeFormat(pair(2500,90)).format.name,'Traktor Scratch MK2');
+  assert.equal(detectTimecodeFormat(pair(2000,90)).format.name,'Traktor Scratch MK1');
+  assert.equal(detectTimecodeFormat(pair(1300,-90)).format.carrierHz,1300);
+  assert.equal(detectTimecodeFormat(pair(3000,90)).format.name,'Traktor Scratch MK2 CD');
+  assert.equal(detectTimecodeFormat(pair(1350,90),{nominalRpm:45}).format.carrierHz,1000,'45 rpm scales the expected carriers');
+  let seed=1;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296-.5;};
+  const noise={left:Float32Array.from({length:sr},rnd),right:Float32Array.from({length:sr},rnd),sampleRate:sr};
+  assert.equal(detectTimecodeFormat(noise),null);
+  assert.equal(detectTimecodeFormat(pair(5000,90)),null,'no known carrier');
+  assert.equal(detectTimecodeFormat({left:new Float32Array(10),right:new Float32Array(10),sampleRate:sr}),null);
 });

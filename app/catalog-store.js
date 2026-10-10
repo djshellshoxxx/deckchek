@@ -79,9 +79,32 @@ export function deleteRecord(state, entity, id) {
 export function summarizeRun(run) {
   return {
     id: run.id, sessionType: run.sessionType || run.workflow || 'diagnostic', test: run.test ?? null,
-    startedAt: run.createdAt, status: 'completed', score: run.score ?? null,
+    startedAt: run.startedAt ?? run.createdAt, endedAt: run.endedAt ?? run.startedAt ?? run.createdAt, status: 'completed', score: run.score ?? null,
     measurementCount: (run.measurements || []).length, hypothesisCount: (run.findings || []).length,
   };
+}
+
+const isoMs = v => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,3})?Z$/.test(v) ? Date.parse(v) : NaN);
+
+/**
+ * Browser-mode twin of list_capture_sessions (db.rs): runs with a capture span longer than zero, oldest first,
+ * started at/after `since`, recorded with `assetId` (run.assetId or run.deviceId). Same row shape as the command.
+ */
+export function captureSessionsLocal(runs, { since = null, assetId = null, limit = 500 } = {}) {
+  const from = since ? isoMs(since) : -Infinity;
+  if (since && !Number.isFinite(from)) throw new Error(`since must be a UTC ISO timestamp, got '${since}'`);
+  const out = [];
+  for (const r of Array.isArray(runs) ? runs : []) {
+    const a = isoMs(r?.startedAt), b = isoMs(r?.endedAt);
+    if (!(b > a) || a < from) continue;
+    const asset = r.assetId ?? r.deviceId ?? null;
+    if (assetId && asset !== assetId) continue;
+    out.push({
+      id: r.id, sessionType: r.sessionType || r.workflow || 'diagnostic', test: r.test ?? null, startedAt: r.startedAt, endedAt: r.endedAt,
+      durationSec: Number.isFinite(r.durationSec) ? r.durationSec : (b - a) / 1000, kind: r.captureKind ?? null, assetId: asset, setupId: r.setupId ?? null,
+    });
+  }
+  return out.sort((x, y) => isoMs(x.startedAt) - isoMs(y.startedAt) || String(x.id).localeCompare(String(y.id))).slice(0, Math.max(1, Math.min(2000, limit | 0 || 500)));
 }
 
 export function buildAlignmentRecord(input, id = newId()) {
@@ -292,6 +315,11 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
       if (invoke) return invoke('get_run', { id });
       const run = loadState(storage).runs.find(r => r.id === id);
       return run ? { ...summarizeRun(run), measurements: run.measurements || [], hypotheses: run.findings || [] } : null;
+    },
+    /** Runs with a real capture span (FS-12 AC-2): [{id, sessionType, test, startedAt, endedAt, durationSec, kind, assetId, setupId}]. */
+    async listCaptureSessions({ since = null, assetId = null, limit = 500 } = {}) {
+      if (invoke) return invoke('list_capture_sessions', { since, assetId, limit });
+      return captureSessionsLocal(loadState(storage).runs, { since, assetId, limit });
     },
     async saveRun(run) {
       if (invoke) return invoke('save_diagnostic_run', { run });

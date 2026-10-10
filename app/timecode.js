@@ -7,7 +7,12 @@ const MIXXX='https://mixxx.org/news/2021-12-22-dvs-internals-pt2/';
 const MIXXX3='https://mixxx.org/news/2025-08-27-dvs-internals-pt3/';
 // Side builder: durationSec = lengthCycles / resolution (cycles per second at 33 1/3 rpm), as in xwax.
 const sides=(hz,...a)=>a.map(([label,lengthCycles])=>({label,lengthCycles,durationSec:lengthCycles/hz}));
-// phaseSign: -1 for xwax SWITCH_PHASE (270 deg instead of 90); primary: 'left' for SWITCH_PRIMARY. Polarity (SWITCH_POLARITY) is bit decoding only and not modelled here.
+// phaseSign: -1 for xwax SWITCH_PHASE (270 deg instead of 90); primary: 'left' for SWITCH_PRIMARY (xwax default is the
+// right channel). Polarity (SWITCH_POLARITY) is bit decoding only and not modelled here.
+// Direction (facts from xwax timecoder.c, no code taken): xwax treats the (primary, secondary) pair as a rotating
+// vector and reads forward play when it turns the positive way, i.e. when the primary channel LEADS the secondary
+// by a quarter cycle; SWITCH_PHASE inverts that. So forward <=> (primary-minus-secondary phase) * phaseSign > 0, and
+// the two switches cancel for Traktor MK1 (left primary, 270 deg): there the right channel leads, as on Serato.
 const F=(o)=>({atRpm:33.333333,quadrature:true,phaseSign:1,primary:'right',source:XWAX,confidence:'confirmed',...o});
 /** Built-in formats; facts from xwax lib/xwax/timecoder.c. confidence: 'confirmed' = present in xwax timecoder.c; 'unverified' = not independently confirmed. */
 export const TIMECODE_FORMATS=[
@@ -32,9 +37,14 @@ export function mergeFormats(profileFormats=[]){
     const f={atRpm:33.333333,quadrature:true,vendor:null,notes:null,source:null,confidence:'unverified',...pf};
     const i=out.findIndex(x=>x.name.toLowerCase()===f.name.toLowerCase());
     if(i>=0){const b=out[i];out[i]={phaseSign:b.phaseSign,primary:b.primary,xwaxId:b.xwaxId,sides:b.sides,...f};}else out.push({phaseSign:1,primary:'right',xwaxId:null,sides:[],...f});
+    const j=i>=0?i:out.length-1;out[j].primary=out[j].primary==='left'?'left':'right';out[j].phaseSign=out[j].phaseSign===-1?-1:1;
   }
   return out;
 }
+/** +1 when forward play shows the right channel leading the left (phaseDeg > 0), -1 when the left leads. */
+export function directionSign(fmt){return (fmt?.primary==='left'?-1:1)*(fmt?.phaseSign===-1?-1:1);}
+/** Direction for a right-minus-left phase difference in degrees under a format's primary/phase switches. */
+export function directionFromPhase(phaseDeg,fmt){return !Number.isFinite(phaseDeg)||phaseDeg===0?'unknown':phaseDeg*directionSign(fmt)>0?'forward':'reverse';}
 export function findFormat(name,formats=TIMECODE_FORMATS){const n=String(name||'').toLowerCase();return formats.find(f=>f.name.toLowerCase()===n)||formats.find(f=>f.name.toLowerCase().includes(n)&&n)||null;}
 
 const wrapDeg=d=>{while(d>180)d-=360;while(d<=-180)d+=360;return d;};
@@ -63,7 +73,7 @@ export function analyzeTimecode({left,right,sampleRate},{format,nominalRpm=33.33
   for(let s=0;s+win<=n;s+=win){
     if(bad(s)){trace.push({tSec:s/sampleRate,dropout:true});continue;}
     const l=left.subarray(s,s+win),r=right.subarray(s,s+win);
-    const f=carrierOf(l.length>=r.length?l:r,sampleRate,center,span);
+    const f=carrierOf(fmt.primary==='left'?l:r,sampleRate,center,span); // track the carrier on the primary channel, as xwax does
     center=f;span=.08;
     const fl=fitTone(l,sampleRate,f),fr=fitTone(r,sampleRate,f);
     const phaseDeg=wrapDeg((fr.phase-fl.phase)*180/Math.PI);
@@ -73,7 +83,10 @@ export function analyzeTimecode({left,right,sampleRate},{format,nominalRpm=33.33
   const ok=trace.filter(t=>!t.dropout);
   const carrierHz=median(ok.map(t=>t.carrierHz)),phaseDeg=median(ok.map(t=>t.phaseDeg)),balanceDb=median(ok.map(t=>t.balanceDb)),snrDb=median(ok.map(t=>t.snrDb));
   const speedErr=(carrierHz/expectedHz-1)*100,phaseErr=Math.abs(Math.abs(phaseDeg)-90);
-  const direction=!Number.isFinite(phaseDeg)?'unknown':phaseDeg*(fmt.phaseSign===-1?-1:1)>0?'forward':'reverse';
+  const primary=fmt.primary==='left'?'left':'right';
+  // phaseDeg is right minus left; primaryLeadDeg is primary minus secondary (xwax's frame of reference)
+  const primaryLeadDeg=Number.isFinite(phaseDeg)?(primary==='left'?-phaseDeg:phaseDeg):NaN;
+  const direction=directionFromPhase(phaseDeg,fmt);
   const m=(metricId,label,value,unit,extra={})=>normalizeMeasurement({metricId,label,value,unit,...extra});
   const measurements=[
     m('tc_carrier_hz','Carrier frequency',carrierHz,'Hz'),
@@ -93,5 +106,31 @@ export function analyzeTimecode({left,right,sampleRate},{format,nominalRpm=33.33
     if(Math.abs(balanceDb)>3)findings.push({id:'tc-balance',severity:Math.abs(balanceDb)>6?'error':'warning',title:`Left/right levels differ by ${Math.abs(balanceDb).toFixed(1)} dB`,meaning:`The ${balanceDb>0?'left':'right'} channel is stronger. This points to a cartridge or channel fault, bad connection or input gain mismatch.`,action:'Swap the channels at the mixer; if the weak side follows the cartridge, inspect the stylus, cartridge and headshell leads.'});
   }
   if(dropouts>0)findings.push({id:'tc-dropouts',severity:dropouts>3?'error':'warning',title:`${dropouts} signal dropout${dropouts>1?'s':''} detected`,meaning:'The carrier briefly disappeared, which suggests skips, vinyl damage, dust on the stylus or an intermittent connection.',action:'Clean the record and stylus, inspect for scratches, and wiggle-test cables while watching the scope.'});
-  return {format:fmt,expectedCarrierHz:expectedHz,nominalRpm,direction,measurements,findings,trace};
+  return {format:fmt,expectedCarrierHz:expectedHz,nominalRpm,direction,primary,primaryLeadDeg,measurements,findings,trace};
+}
+
+/**
+ * Best-guess format from the carrier alone (for runs where nobody named the control vinyl). Scans each distinct
+ * expected carrier (at `nominalRpm`) within +/-tolerance and keeps the strongest. Formats sharing a carrier also share
+ * the direction convention in the built-in table, so the pick is safe for metrics and direction; `ambiguous` lists
+ * the alternatives. Returns null when no carrier stands clearly above the rest.
+ */
+export function detectTimecodeFormat({left,right,sampleRate},{nominalRpm=33.333333,formats=TIMECODE_FORMATS,tolerance=.06,windowSec=.2}={}){
+  const n=Math.min(left?.length||0,right?.length||0),win=Math.max(256,Math.floor(sampleRate*windowSec));
+  if(!(n>=win)||!Array.isArray(formats))return null;
+  const s=Math.max(0,Math.floor(n/2-win/2)),l=left.subarray(s,s+win),r=right.subarray(s,s+win);
+  const groups=new Map();
+  for(const f of formats){if(!f||!Number.isFinite(f.carrierHz)||f.carrierHz<=0)continue;const hz=f.carrierHz*nominalRpm/(f.atRpm||33.333333);if(hz>=sampleRate/2)continue;const k=hz.toFixed(1);if(!groups.has(k))groups.set(k,{hz,formats:[]});groups.get(k).formats.push(f);}
+  let best=null,second=0;
+  for(const g of groups.values()){
+    const f=carrierOf(l,sampleRate,g.hz,tolerance);
+    if(Math.abs(f/g.hz-1)>tolerance)continue;
+    const amp=Math.max(toneAmplitude(l,sampleRate,f),toneAmplitude(r,sampleRate,f));
+    if(!best||amp>best.amp){second=best?best.amp:second;best={...g,amp,measuredHz:f};}else if(amp>second)second=amp;
+  }
+  const level=Math.max(rms(l),rms(r));
+  if(!best||!(best.amp>0)||best.amp<level*.5||best.amp<second*2)return null;
+  const confirmed=best.formats.filter(f=>f.confidence==='confirmed');
+  const pick=(confirmed.length?confirmed:best.formats)[0];
+  return {format:pick,carrierHz:best.hz,measuredHz:best.measuredHz,ambiguous:best.formats.filter(f=>f!==pick).map(f=>f.name)};
 }
