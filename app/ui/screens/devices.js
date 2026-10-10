@@ -6,6 +6,8 @@ import { h, esc, formatDate, download, slug, isNative } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { settings, setSetting, on, store } from '../state.js';
 import { toast, announce } from '../live.js';
+import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
+import { onFeatureChange } from '../../features.js';
 import { go, showInspector } from '../shell.js';
 import { verdictFor } from '../metrics.js';
 import { workflowInstance } from '../workflows/flow.js';
@@ -189,7 +191,8 @@ export function createDevicesScreen(section) {
     bar.append(
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'dev-add-unit', html: `${icon('plus', { size: 16 })}<span>Add unit</span>`, 'data-tooltip': 'Add another unit of this model', onclick: async () => { try { const a = await addUnit(p); selectUnit(p, a.id); toast(`Added “${a.nickname}”. Rename it and add its serial number in Equipment.`, { type: 'success' }); render(); } catch (error) { toast(String(error?.message || error), { type: 'error' }); } } }),
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', html: `${icon('edit', { size: 16 })}<span>Rename / serial</span>`, 'data-tooltip': 'Edit this unit in Equipment', onclick: () => go('equipment') }),
-      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export', disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export report</span>`, 'data-tooltip': 'Device report as HTML (Ctrl+E)', onclick: () => exportReport(p) }));
+      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export', disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export report</span>`, 'data-tooltip': 'Device report as HTML (Ctrl+E)', onclick: () => exportReport(p) }),
+      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export-pdf', hidden: pdfExportEnabled() ? null : true, disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export PDF</span>`, 'data-tooltip': 'Device report as PDF', onclick: e => exportPdf(p, e.currentTarget) }));
   }
 
   function plan(p, unit, latest) {
@@ -416,6 +419,13 @@ export function createDevicesScreen(section) {
     announce(`Result saved: ${word}. ${row.detail?.summary || ''}`);
   }
 
+  function exportPdf(p, button) {
+    const unit = unitFor(p);
+    if (!unit) { toast('Add a unit first.', { type: 'warn' }); return; }
+    const args = { profile: p, asset: unit, results: resultsFor(unit.id) };
+    return exportPdfWithFeedback('device', args, { button, htmlFallback: () => download(`deckchek-device-${slug(p.model)}-${slug(unit.nickname)}.html`, buildDeviceReportHtml(args), 'text/html') });
+  }
+
   function exportReport(p) {
     const unit = unitFor(p);
     if (!unit) { toast('Add a unit first.', { type: 'warn' }); return; }
@@ -425,6 +435,7 @@ export function createDevicesScreen(section) {
   }
 
   // ---------- events ----------
+  onFeatureChange(({ name }) => { if (name === 'pdfExport') for (const b of section.querySelectorAll('#dev-export-pdf')) b.hidden = !pdfExportEnabled(); });
   on('devices', () => { if (st.view !== 'run' && !section.hidden) render(); });
   on('device-results', () => { if (st.view === 'grid' && !section.hidden) renderGrid(); });
   on('catalog', async () => { await refreshUnits(); if (st.view !== 'run' && !section.hidden) render(); });

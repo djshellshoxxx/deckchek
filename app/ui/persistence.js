@@ -3,7 +3,8 @@
 
 import { buildHtmlReport, compareRuns, normalizeMeasurement } from '../core.js';
 import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from '../export.js';
-import { store, workspace, saveWorkspace, emit } from './state.js';
+import { store, workspace, saveWorkspace, emit, settings } from './state.js';
+import { isEnabled } from '../features.js';
 import { download, slug, isNative } from './dom.js';
 import { toast } from './live.js';
 
@@ -82,6 +83,62 @@ export function exportRunHtml(run) {
   const html = buildHtmlReport({ title: `DeckChek — ${run.test}`, device: run.device || '', createdAt: run.createdAt, measurements: reportMeasurements(run), findings: run.findings || [], notes: reportNotes(run) });
   download(`deckchek-${slug(run.test)}-${run.id}.html`, html, 'text/html');
 }
+// ---------- PDF (FS-03) ----------
+/** Export PDF is offered only while features.pdfExport is on. */
+export const pdfExportEnabled = () => isEnabled('pdfExport');
+
+const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report' };
+
+/**
+ * Exports a PDF through report-pdf.js with progress and error feedback. The native save dialog
+ * and the print-dialog fallback are handled there; this only reports the outcome.
+ * `htmlFallback` (optional) is offered on a failure as "Export HTML instead".
+ * Never throws. Returns the exportPdf result, or {error} / {busy:true}.
+ */
+export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, button = null } = {}) {
+  const label = PDF_LABEL[kind] || 'Report';
+  if (!pdfExportEnabled()) return { disabled: true };
+  if (button?.disabled) return { busy: true };
+  if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+  const endProgress = toast(`Creating PDF… ${label.toLowerCase()}`, { type: 'info', timeout: 0 });
+  try {
+    const { exportPdf, readPdfSettings } = await import('../report-pdf.js');
+    const res = await exportPdf(kind, data, readPdfSettings(settings));
+    endProgress();
+    if (res.cancelled) return res;
+    if (res.fallback) {
+      toast(res.reason === 'error' ? `Couldn't create the PDF directly (${res.error?.message || 'unknown error'}). The print dialog is open: choose “Save as PDF”.` : 'The print dialog is open: choose “Save as PDF” to create the PDF.', { type: res.reason === 'error' ? 'warn' : 'info', timeout: 8000 });
+    } else {
+      toast(`${label} saved as PDF${res.pages ? ` · ${res.pages} page${res.pages === 1 ? '' : 's'}` : ''}.`, { type: 'success', timeout: 5000 });
+    }
+    if (res.warnings?.length) toast(res.warnings.map(w => w.message).join(' '), { type: 'warn', timeout: 8000 });
+    return res;
+  } catch (error) {
+    endProgress();
+    const message = error?.code === 'busy' ? 'A PDF is already being created. Wait for it to finish.'
+      : `The PDF could not be created: ${error?.message || error}${error?.retryable ? ' You can try again.' : ''}`;
+    toast(message, { type: 'error', ...(htmlFallback ? { action: { label: 'Export HTML instead', run: htmlFallback } } : {}) });
+    return { error };
+  } finally {
+    if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
+  }
+}
+
+function runPdfData(run) {
+  const score = Number.isFinite(run.score) ? run.score : run.measurements?.find(m => m.metricId === 'score')?.value;
+  return {
+    title: `DeckChek — ${run.test}`, device: run.device || '', createdAt: run.createdAt, measurements: reportMeasurements(run),
+    findings: run.findings || [], notes: reportNotes(run), ...(Number.isFinite(score) ? { score } : {}),
+  };
+}
+export function exportRunPdf(run, opts = {}) {
+  return exportPdfWithFeedback('run', runPdfData(run), { htmlFallback: () => exportRunHtml(run), ...opts });
+}
+/** Result-panel action for a run, or [] while the flag is off. */
+export function runPdfActions(run) {
+  return pdfExportEnabled() ? [{ label: 'Export PDF', icon: 'download', onClick: () => exportRunPdf(run) }] : [];
+}
+
 export function exportRunCsv(run) {
   download(`deckchek-${slug(run.test)}-${run.id}.csv`, measurementsToCsv(reportMeasurements(run)), 'text/csv');
 }

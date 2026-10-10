@@ -6,7 +6,7 @@ import { h, esc, formatNumber, formatDate, pickFile } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { store, localRun, on, active } from '../state.js';
 import { verdictFor, metricLabel } from '../metrics.js';
-import { saveRunAsBaseline, exportRunHtml, exportRunCsv, exportRunJson, compareTwo, exportComparisonHtml, exportWorkspace, importWorkspace } from '../persistence.js';
+import { saveRunAsBaseline, exportRunHtml, runPdfActions, exportRunCsv, exportRunJson, compareTwo, exportComparisonHtml, exportWorkspace, importWorkspace } from '../persistence.js';
 import { renderResults } from '../results.js';
 import { WORKFLOWS } from '../workflows/definitions.js';
 import { toast, announce } from '../live.js';
@@ -155,6 +155,7 @@ export function createHistoryScreen(section) {
       keyMetrics: keyMetricsFor(run.test),
       actions: [
         { label: 'Export report', icon: 'download', primary: true, shortcut: 'Ctrl+E', onClick: () => exportRunHtml(run) },
+        ...runPdfActions(run),
         { label: 'CSV', icon: 'download', onClick: () => exportRunCsv(run) },
         { label: 'JSON', icon: 'download', onClick: () => exportRunJson(run) },
       ],
