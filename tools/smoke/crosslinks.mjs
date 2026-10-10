@@ -14,7 +14,7 @@ const FLAGS_ON = flags => { localStorage.setItem('deckchek.ui.v1', JSON.stringif
 function crosslinkLayer() {
   const core = window.__TAURI__.core; const inner = core.invoke;
   const iso = d => new Date(Date.now() - d * 864e5).toISOString();
-  const xl = { opened: [], openResult: { opened: true, host: 'ms-settings', allowlisted: true }, calls: [], feature: true };
+  const xl = { opened: [], openResult: { opened: true, host: 'ms-settings', allowlisted: true }, calls: [], feature: true, dvs: false };
   window.__xl = xl;
   core.invoke = async (cmd, args = {}) => {
     if (cmd === 'open_external_url') { xl.opened.push(args.url); return xl.openResult; }
@@ -25,6 +25,10 @@ function crosslinkLayer() {
     }
     if (!xl.feature) return inner(cmd, args);
     xl.calls.push(cmd);
+    if (cmd === 'list_capture_sessions') return [{ id: 'cs1', kind: 'live', assetId: 'a-conc', startedAt: iso(0.5), endedAt: new Date(Date.now() - 0.5 * 864e5 + 40 * 60e3).toISOString() }];
+    if (cmd === 'get_run' && args.id === 'dvs1') return { id: 'dvs1', test: 'DVS signal', startedAt: iso(0.1), score: 90, measurements: [
+      { metricId: 'tc_snr_db', value: 31.2, unit: 'dB' }, { metricId: 'tc_phase_error_deg', value: 4.1, unit: 'deg' }, { metricId: 'tc_dropouts', value: 2, unit: '' }], hypotheses: [] };
+    if (cmd === 'list_runs' && xl.dvs) return [{ id: 'dvs1', sessionType: 'dvs', test: 'DVS signal', startedAt: iso(0.1), status: 'completed', score: 90, measurementCount: 3, hypothesisCount: 0 }];
     if (cmd === 'list_runs') return [{ id: 'd1', sessionType: 'speed', test: 'Speed & pitch', startedAt: iso(0.2), status: 'completed', score: 91, measurementCount: 6, hypothesisCount: 0 }];
     if (cmd === 'hum_run_list') return [{ id: 'h1', kind: 'hum', mainsHz: 50, verdict: 'Hum dropped 18 dB', createdAt: iso(1), stepCount: 5, onset: false }];
     if (cmd === 'latency_run_list') return [
@@ -189,6 +193,21 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.setViewportSize({ width: 390, height: 800 });
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   check('crosslinks: History has no horizontal scroll at phone width', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  // stylus: AC-2 proposals from DeckChek's own live captures, and timecode benchmark auto-fill
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => { window.__xl.dvs = true; });
+  await goScreen(page, 'stylus');
+  await page.waitForSelector('#sty-summary');
+  await page.selectOption('#sty-asset', 'a-conc');
+  await page.waitForFunction(() => /Concorde/.test(document.querySelector('#sty-summary')?.innerText || ''));
+  await page.click('#sty-tab-hours');
+  await page.click('#sty-find');
+  await page.waitForSelector('#sty-proposals .sty-proposal');
+  check('crosslinks: a 40 min live capture is proposed as 0.67 h of stylus use', (await page.locator('#sty-proposals .sty-prop-hours').first().inputValue()) === '0.67' && /DeckChek capture/.test(await page.locator('#sty-proposals').innerText()), await page.locator('#sty-proposals').innerText());
+  await page.click('#sty-tab-benchmark');
+  await page.click('#sty-fill');
+  await page.waitForFunction(() => document.querySelector('#sty-b-snr')?.value !== '');
+  check('crosslinks: benchmark fill takes timecode SNR, phase error and dropouts from the DVS run', (await page.locator('#sty-b-snr').inputValue()) === '31.2' && (await page.locator('#sty-b-phase').inputValue()) === '4.1' && (await page.locator('#sty-b-drop').inputValue()) === '2');
   await dctx.close();
 
   // ----- desktop: pre-gig fix actions, Settings opener, PDF -----

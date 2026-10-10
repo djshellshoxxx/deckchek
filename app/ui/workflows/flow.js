@@ -349,6 +349,7 @@ class WorkflowScreen {
           else if (st.sinceLastLevelsMs > 3000) this.showBanner({ status: 'warn', title: 'No level updates for 3 s', text: 'The device may have been disconnected. Stop to keep what was recorded so far.', actions: [['Stop & keep data', () => this.stopCapture()]] });
         },
       });
+      this.captureStartMs = Date.now(); // real capture span for hours proposals (FS-12 AC-2)
     } catch (error) {
       this.starting = false;
       this.session = null;
@@ -414,6 +415,7 @@ class WorkflowScreen {
     state.textContent = 'Finishing capture…';
     try {
       const result = await session.stop();
+      this.captureEndMs = Date.now();
       this.session = null;
       this.resetCaptureUi();
       if (!result.audio.left.length) throw new Error('The capture returned no samples. Check that the input is delivering audio.');
@@ -491,6 +493,14 @@ class WorkflowScreen {
     }
   }
 
+  /** {kind, startedAt, endedAt} for a live capture of this screen; a file analysis has no real span (analysis.js approximates it). */
+  captureSpan(source, quality) {
+    const live = Boolean(quality) || /^live capture/i.test(String(source || ''));
+    if (!live) return { kind: 'file' };
+    if (!Number.isFinite(this.captureStartMs) || !Number.isFinite(this.captureEndMs) || this.captureEndMs < this.captureStartMs) return { kind: 'live' };
+    return { kind: 'live', startedAt: new Date(this.captureStartMs).toISOString(), endedAt: new Date(this.captureEndMs).toISOString() };
+  }
+
   async analyze(audio, source, { quality = null, streamErrors = [], deviceName = null } = {}) {
     await new Promise(r => setTimeout(r, 30)); // let the busy state paint
     const asset = this.assets?.find(a => a.id === this.equipSelect?.value) || null;
@@ -498,7 +508,7 @@ class WorkflowScreen {
     const run = buildRun({
       test: this.mode, workflowId: this.def.id, audio, params: this.collectParams(), source,
       device: asset ? { id: asset.id, name: asset.nickname } : null, prior: workspace.runs, quality, streamErrors,
-      profile: findProfile(devName, audio.sampleRate), deviceName: devName,
+      profile: findProfile(devName, audio.sampleRate), deviceName: devName, capture: this.captureSpan(source, quality),
     });
     this.run = run;
     const saved = await persistRun(run);

@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { quadratureTimecode, rng, whiteNoise } from './fixtures/signals.mjs';
-import { findFormat, TIMECODE_FORMATS } from '../app/timecode.js';
+import { findFormat, TIMECODE_FORMATS, directionSign } from '../app/timecode.js';
 import {
   createScanner, scanSide, startWearScan, classifyBin, referenceBaseline, verdict, worstBins, scanCoverage, sideDurationSec,
   alignScans, diffScans, compareScans, regionSummary, positionToRadius, binsToArcs, metricQuality, qualityColor, binLabel, formatTime,
@@ -17,7 +17,7 @@ const SR = 48000;
 
 function tc(fmtName, opts = {}) {
   const f = findFormat(fmtName);
-  return quadratureTimecode({ carrierHz: f.carrierHz, phaseSign: f.phaseSign, sampleRate: SR, snrDb: 35, ...opts });
+  return quadratureTimecode({ carrierHz: f.carrierHz, phaseSign: directionSign(f), sampleRate: SR, snrDb: 35, ...opts });
 }
 
 /** Feed a signal through a scanner in fixed-size chunks (a stream). */
@@ -115,9 +115,14 @@ test('phase error from 90 deg drives the class; 270-deg formats are scored again
     assert.ok(Math.abs(r.bins[0].phaseErrDeg - delta) < 0.5, `delta ${delta}: ${r.bins[0].phaseErrDeg}`);
     assert.equal(r.bins[0].cls, cls);
   }
-  const mk1 = scanSide([quad(0, -1, 2000)], { format: 'Traktor Scratch MK1', sampleRate: SR });
-  assert.equal(mk1.bins[0].cls, 'good');
-  assert.equal(mk1.bins[0].flags, 0, 'Traktor MK1 forward (270 deg) is not read as reverse');
+  const mv = scanSide([quad(0, -1, 1300)], { format: 'MixVibes DVS V2', sampleRate: SR });
+  assert.equal(mv.bins[0].cls, 'good');
+  assert.equal(mv.bins[0].flags, 0, 'MixVibes forward (270 deg, SWITCH_PHASE) is not read as reverse');
+  // Traktor MK1 sets SWITCH_PRIMARY and SWITCH_PHASE: the two cancel, so forward is the plain +90 deg relation
+  const mk1 = scanSide([quad(0, 1, 2000)], { format: 'Traktor Scratch MK1', sampleRate: SR });
+  assert.equal(mk1.bins[0].flags, 0, 'Traktor MK1 forward is not read as reverse');
+  const mk1Back = scanSide([quad(0, -1, 2000)], { format: 'Traktor Scratch MK1', sampleRate: SR });
+  assert.ok(mk1Back.bins[0].reasons.includes('reverse'), 'Traktor MK1 played backwards reads reverse');
   // the same samples under a +90 format read as playing backwards: interrupted, excluded
   const wrong = scanSide([quad(0, -1, 1000)], { format: 'Serato CV02.5', sampleRate: SR });
   assert.ok(wrong.bins[0].flags & FLAGS.interrupted);

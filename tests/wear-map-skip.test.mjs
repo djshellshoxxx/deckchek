@@ -4,11 +4,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { quadratureTimecode, rng } from './fixtures/signals.mjs';
-import { findFormat } from '../app/timecode.js';
+import { findFormat, directionSign } from '../app/timecode.js';
 import { createScanner, detectSkips, verdict, toScanRecord, scanCoverage, WEAR_DEFAULTS, FLAGS } from '../app/wear-map.js';
 
 const SR = 48000;
-const tc = (name, o = {}) => { const f = findFormat(name); return quadratureTimecode({ carrierHz: f.carrierHz, phaseSign: f.phaseSign, sampleRate: SR, snrDb: 35, ...o }); };
+const tc = (name, o = {}) => { const f = findFormat(name); return quadratureTimecode({ carrierHz: f.carrierHz, phaseSign: directionSign(f), sampleRate: SR, snrDb: 35, ...o }); };
 function scan(sig, name, { chunkSec = 1, binSec = 2 } = {}) {
   const s = createScanner({ format: name, sampleRate: SR, binSec });
   const step = Math.round(chunkSec * SR);
@@ -20,12 +20,12 @@ const skipBins = r => r.bins.filter(b => b.reasons.includes('skip')).map(b => b.
 test('detectSkips finds a phase step with its time and size, and nothing on a clean carrier', () => {
   const f = findFormat('Serato CV02.5');
   const sig = tc('Serato CV02.5', { seconds: 2, phaseJumps: [{ atSec: 0.8, deg: 120 }], seed: 3 });
-  const hits = detectSkips(sig.left, sig.right, SR, { carrierHz: f.carrierHz, phaseSign: f.phaseSign });
+  const hits = detectSkips(sig.left, sig.right, SR, { carrierHz: f.carrierHz, phaseSign: directionSign(f) });
   assert.equal(hits.length, 1);
   assert.ok(Math.abs(hits[0].sec - 0.8) < 0.003, String(hits[0].sec));
   assert.ok(Math.abs(hits[0].deg - 120) < 8, String(hits[0].deg));
   const clean = tc('Serato CV02.5', { seconds: 2, seed: 4 });
-  assert.deepEqual(detectSkips(clean.left, clean.right, SR, { carrierHz: f.carrierHz, phaseSign: f.phaseSign }), []);
+  assert.deepEqual(detectSkips(clean.left, clean.right, SR, { carrierHz: f.carrierHz, phaseSign: directionSign(f) }), []);
   // backwards jumps are found with their sign
   const back = tc('Serato CV02.5', { seconds: 2, phaseJumps: [{ atSec: 1.2, deg: -90 }], seed: 5 });
   const b = detectSkips(back.left, back.right, SR, { carrierHz: 1000, phaseSign: 1 });

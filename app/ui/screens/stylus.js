@@ -13,7 +13,7 @@ import { isEnabled, onFeatureChange } from '../../features.js';
 import {
   createStylusApi, migrateLife, resolveRatedHours, replacementBaseline, hoursSinceInstall, lifeStatus, projectReplaceDate,
   usageRatePerDay, proposeFromLogs, regress, validBenchmarks, benchmarkBaseline, benchmarkVerdict, normalizeBenchmark,
-  limitValue, stylusAlerts, snoozeUntil, METRICS, DEFAULT_THRESHOLDS, SNOOZE_DAYS, MIN_TREND_POINTS, GENERIC_RATED_HOURS,
+  limitValue, stylusAlerts, timecodeBenchmarkFromRuns, snoozeUntil, METRICS, DEFAULT_THRESHOLDS, SNOOZE_DAYS, MIN_TREND_POINTS, GENERIC_RATED_HOURS,
 } from '../../stylus-wear.js';
 import { createUsageApi, MAX_ENTRY_HOURS, totalHours } from '../../usage-hours.js';
 import { takeHandoff, ACTIVE_CARTRIDGE_KEY } from '../crosslinks.js';
@@ -430,13 +430,13 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       st.proposals.forEach((p, i) => {
         const input = h('input', { type: 'number', min: '0.01', max: String(MAX_ENTRY_HOURS), step: '0.01', value: String(Number(p.hours.toFixed(2))), 'aria-label': `Hours for the ${p.note || 'DJ'} session on ${whenText(p.startedAt)}`, class: 'sty-prop-hours' });
         ul.append(h('li', { class: 'sty-proposal' },
-          h('span', { class: 'sty-prop-main' }, h('strong', { text: p.note || 'DJ software' }), h('span', { class: 'muted', text: ` ${whenText(p.startedAt)}${p.capped ? ' (capped)' : ''}` })),
+          h('span', { class: 'sty-prop-main' }, h('strong', { text: p.note || (p.source === 'djlog' ? 'DJ software' : 'DeckChek capture') }), h('span', { class: 'muted', text: ` ${whenText(p.startedAt)}${p.capped ? ' (capped)' : ''}` })),
           input,
           h('button', { type: 'button', class: 'btn btn-primary btn-sm', 'data-confirm': String(i), text: 'Confirm', onclick: async () => {
             const n = Number(input.value);
             if (!Number.isFinite(n) || n <= 0 || n > MAX_ENTRY_HOURS) { input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
             st.proposals = st.proposals.filter((_, j) => j !== i);
-            await act(() => usage.add({ assetId: d.asset.id, kind: 'play', startedAt: p.startedAt, hours: n, source: 'djlog', note: p.note ?? null, confirmed: true }), `Confirmed ${fmt(n, 2)} h from ${p.note || 'DJ software'}.`);
+            await act(() => usage.add({ assetId: d.asset.id, kind: 'play', startedAt: p.startedAt, hours: n, source: p.source || 'djlog', sessionId: p.sessionId ?? null, note: p.note ?? null, confirmed: true }), `Confirmed ${fmt(n, 2)} h from ${p.note || (p.source === 'djlog' ? 'DJ software' : 'a DeckChek capture')}.`);
           } }),
           h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Dismiss', onclick: () => { st.proposals = st.proposals.filter((_, j) => j !== i); renderPanel(); } })));
       });
@@ -472,9 +472,11 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
 
   async function findProposals(d) {
     try {
-      const spans = await api.djSessionSpans();
-      st.proposals = proposeFromLogs(spans, d.asset.id, { existing: d.entries });
-      st.proposalNote = spans?.length ? 'No new sessions found: everything the logs show is already in the ledger or too short.' : 'No DJ software sessions were found in the logs.';
+      // DeckChek's own live captures (real spans, AC-2) first, then DJ software logs (AC-3, best effort).
+      const captured = await api.captureProposals(d.asset.id, { since: d.baseline, existing: d.entries }).catch(() => []);
+      const spans = await api.djSessionSpans().catch(() => []);
+      st.proposals = [...captured, ...proposeFromLogs(spans, d.asset.id, { existing: d.entries })];
+      st.proposalNote = captured.length || spans?.length ? 'No new sessions found: everything DeckChek captured or the logs show is already in the ledger or too short.' : 'No DeckChek captures or DJ software sessions were found.';
       announce(st.proposals.length ? `${st.proposals.length} proposed session(s)` : st.proposalNote);
     } catch (e) { st.proposals = []; st.proposalNote = `Could not read DJ software logs: ${friendly(e)}`; }
     renderPanel();
@@ -498,8 +500,8 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
         field('sty-b-hours', 'Hours at benchmark', { value: Number(d.hours.toFixed(2)), min: '0', help: 'Defaults to hours since install.' }),
         field('sty-b-thd', 'THD (%)', { value: f.thdPercent !== undefined ? Number(f.thdPercent.toFixed(3)) : '', min: '0' }),
         field('sty-b-sep', 'Channel separation (dB)', { value: f.separationDb !== undefined ? Number(f.separationDb.toFixed(2)) : '' }),
-        field('sty-b-snr', 'Timecode SNR (dB)', { help: 'Optional. Needs a DVS interface and control vinyl.' }),
-        field('sty-b-phase', 'Timecode phase error (deg)', { min: '0', help: 'Optional.' }),
+        field('sty-b-snr', 'Timecode SNR (dB)', { value: f.tcSnrDb !== undefined ? Number(f.tcSnrDb.toFixed(1)) : '', help: 'Optional. Needs a DVS interface and control vinyl.' }),
+        field('sty-b-phase', 'Timecode phase error (deg)', { value: f.tcPhaseErrorDeg !== undefined ? Number(f.tcPhaseErrorDeg.toFixed(1)) : '', min: '0', help: 'Optional.' }),
         field('sty-b-drop', 'Timecode dropouts', { step: '1', min: '0', value: f.tcDropouts ?? '', help: 'Optional.' })),
       h('label', { class: 'sty-check', for: 'sty-bench-valid' }, valid, h('span', { text: 'Same conditions as the first benchmark (record, side, tracking force, VTA, interface, calibration)' })),
       err,
@@ -516,7 +518,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       else if ((res.thdPercent !== null && res.thdPercent < 0) || (res.tcDropouts !== null && (res.tcDropouts < 0 || !Number.isInteger(res.tcDropouts)))) msg = 'THD cannot be negative and dropouts must be a whole number.';
       if (msg) { st.benchError = msg; err.textContent = msg; return; }
       if (res.tcDropouts !== null) res.tcDropouts = Math.round(res.tcDropouts);
-      res.detail = { source: st.benchFill ? 'runs' : 'manual', runs: st.benchFill ? [st.benchFill.thdRun, st.benchFill.separationRun, st.benchFill.dropoutRun].filter(Boolean) : [] };
+      res.detail = { source: st.benchFill ? 'runs' : 'manual', runs: st.benchFill ? [st.benchFill.thdRun, st.benchFill.separationRun, st.benchFill.dropoutRun, st.benchFill.tcRun].filter(Boolean) : [] };
       st.benchError = '';
       try {
         await api.benchmarkSave(res);
@@ -546,8 +548,8 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       const summaries = (await store.listRuns(40)).filter(r => /cartridge|separation|dvs/i.test(r.test || r.sessionType || ''));
       const runs = [];
       for (const s of summaries.slice(0, 12)) { const run = await store.getRun(s.id); if (run) runs.push({ ...run, test: run.test || s.test }); }
-      const fill = benchmarkFromRuns(runs);
-      if (fill.thdPercent === undefined && fill.separationDb === undefined && fill.tcDropouts === undefined) { setStatus('No Cartridge, Channel separation or DVS runs with these measurements were found. Run the tests first, or type the values in.', 'warn'); return; }
+      const fill = { ...benchmarkFromRuns(runs), ...timecodeBenchmarkFromRuns(runs) }; // tcDropouts: the timecode run's own count wins
+      if (fill.thdPercent === undefined && fill.separationDb === undefined && fill.tcDropouts === undefined && fill.tcSnrDb === undefined) { setStatus('No Cartridge, Channel separation or DVS runs with these measurements were found. Run the tests first, or type the values in.', 'warn'); return; }
       st.benchFill = fill; st.benchError = '';
       setStatus('Filled from your latest runs. Check the values, then save.', 'info');
       renderPanel(); q('#sty-b-thd')?.focus();

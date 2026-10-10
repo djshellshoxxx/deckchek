@@ -149,3 +149,15 @@ test('pre-gig PDF: words not colours, everything escaped', () => {
   assert.deepEqual(pregigPrintable.summary(data).find(r => r[0] === 'Checks'), ['Checks', '3 (1 with problems)']);
   assert.match(pregigPrintable.build({ results: [{ stepId: 'audio', label: 'A', state: 'pass', summary: 's' }] }, { esc }), /Nothing to fix/);
 });
+
+test('saved runs carry the real capture span (live) and an approximate one (file)', async () => {
+  const { buildRun } = await import('../app/ui/analysis.js');
+  const { toPersistRun } = await import('../app/ui/persistence.js');
+  const sr = 8000, n = sr * 2, left = new Float32Array(n).map((_, i) => 0.3 * Math.sin(2 * Math.PI * 1000 * i / sr));
+  const audio = { left, right: left, sampleRate: sr, channels: 2, durationSec: 2 };
+  const start = '2026-10-09T20:00:00.000Z', end = '2026-10-09T20:40:00.000Z';
+  const live = toPersistRun(buildRun({ test: 'Stereo balance', workflowId: 'quick', audio, source: 'Live capture · X', device: { id: 'a1', name: 'Deck' }, quality: { framesCaptured: n }, capture: { kind: 'live', startedAt: start, endedAt: end } }));
+  assert.deepEqual([live.startedAt, live.endedAt, live.durationSec, live.captureKind, live.assetId], [start, end, 2400, 'live', 'a1']);
+  const file = toPersistRun(buildRun({ test: 'Stereo balance', workflowId: 'quick', audio, source: 'take.wav', capture: { kind: 'file' } }));
+  assert.equal(file.captureKind, 'file'); assert.equal(file.durationSec, 2);
+});

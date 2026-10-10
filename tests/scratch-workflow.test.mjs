@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { quadratureTimecode } from './fixtures/signals.mjs';
 import { patternVelocity, sequence } from './fixtures/scratch-patterns.mjs';
-import { findFormat } from '../app/timecode.js';
+import { findFormat, directionSign } from '../app/timecode.js';
 import { PROTOCOL_V1, protocolTimeline, createScratchApi } from '../app/scratch.js';
 import { phaseAt, downsampleTrace, levelDbFromLevels, liveLock, createScratchRunner, SKIP_CALIBRATION, METRONOME_LEAD_SEC, BASELINE_SEC } from '../app/ui/workflows/scratch.js';
 
@@ -86,7 +86,7 @@ function fakeCtx(clock) {
 const SR = 48000;
 function sig(seconds, velocityProfile, fmtName = 'Serato CV02.5') {
   const fmt = findFormat(fmtName);
-  return quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds, sampleRate: SR, velocityProfile, snrDb: 30, seed: 5 });
+  return quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds, sampleRate: SR, velocityProfile, snrDb: 30, seed: 5 });
 }
 function fakeCapture(audios) {
   const calls = [];

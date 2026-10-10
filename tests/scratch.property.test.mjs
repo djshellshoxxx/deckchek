@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { quadratureTimecode, rng } from './fixtures/signals.mjs';
 import { patternVelocity, truthReversals, meanVelocity } from './fixtures/scratch-patterns.mjs';
-import { TIMECODE_FORMATS } from '../app/timecode.js';
+import { TIMECODE_FORMATS, directionSign } from '../app/timecode.js';
 import { instantVelocity, analyzeMotion, detectLockLoss, detectSkips } from '../app/scratch.js';
 
 const CASES = 200, SEED = 0x5c1a7c4;
@@ -18,7 +18,7 @@ test(`${CASES} random scratch cases: velocity within 3 % of peak, reversal count
     const peak = lerp(...PEAKS[pattern]), seconds = 1.6, lead = 0.1;
     const pv = patternVelocity(pattern, bpm, { peak, seconds }), vel = t => pv.velocity(t - lead);
     const imbalanceDb = lerp(-2, 2), amplitudeDbfs = lerp(-20, -3), seed = 1 + Math.floor(r() * 1e6);
-    const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds: seconds + 2 * lead, velocityProfile: vel, snrDb: 30, imbalanceDb, amplitudeDbfs, seed });
+    const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds: seconds + 2 * lead, velocityProfile: vel, snrDb: 30, imbalanceDb, amplitudeDbfs, seed });
     const label = `case ${i}: ${fmt.name} ${pattern} ${bpm} BPM peak ${peak.toFixed(2)} imb ${imbalanceDb.toFixed(2)} dB level ${amplitudeDbfs.toFixed(2)} dBFS seed ${seed}`;
     const tr = instantVelocity(sig, { format: fmt });
     const h = tr.winMs / 2000;

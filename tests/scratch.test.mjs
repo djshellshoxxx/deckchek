@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { quadratureTimecode, addNoise } from './fixtures/signals.mjs';
 import { patternVelocity, sequence, truthReversals, meanVelocity } from './fixtures/scratch-patterns.mjs';
-import { findFormat } from '../app/timecode.js';
+import { findFormat, directionSign } from '../app/timecode.js';
 import {
   instantVelocity, analyzeMotion, detectReversals, detectLockLoss, detectDirectionErrors, detectSkips, scoreScratch,
   protocolTimeline, metronomeSchedule, clampMetronomeDbfs, createMetronome, baselineCheck, analyzeScratch, skipSafety,
@@ -22,7 +22,7 @@ function patternCapture(fmtName, pattern, bpm, { seconds = 6, snrDb = 30, seed =
   const fmt = findFormat(fmtName);
   const pv = patternVelocity(pattern, bpm, { seconds, peak });
   const vel = profile || (t => pv.velocity(t - LEAD));
-  const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds: seconds + 2 * LEAD, sampleRate: SR, velocityProfile: vel, snrDb, seed, dropouts, phaseJumps });
+  const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds: seconds + 2 * LEAD, sampleRate: SR, velocityProfile: vel, snrDb, seed, dropouts, phaseJumps });
   return { sig, vel, fmt, peak: pv.peak, from: LEAD, to: LEAD + seconds };
 }
 
@@ -67,7 +67,7 @@ test('phaseSign: SWITCH_PHASE formats read forward as +1, and the wrong conventi
   for (const name of ['Traktor Scratch MK1', 'MixVibes DVS V2', 'Serato CV02.5']) {
     const fmt = findFormat(name);
     for (const v of [1, -1, 2.5, -0.5]) {
-      const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds: 0.5, velocityProfile: v, snrDb: 30 });
+      const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds: 0.5, velocityProfile: v, snrDb: 30 });
       const tr = instantVelocity(sig, { format: fmt });
       const med = [...tr.v].sort((a, b) => a - b)[tr.v.length >> 1];
       assert.ok(Math.abs(med - v) < 0.01 * Math.abs(v), `${name} v=${v}: ${med}`);
@@ -164,7 +164,7 @@ test('direction errors: a short impossible flip during fast motion is one error,
   for (const fmtName of ['Serato CV02.5', 'Traktor Scratch MK2', 'Traktor Scratch MK1']) for (const off of [0, 0.0007, 0.0013, 0.0019]) {
     const g0 = 0.6 + off, prof = t => (t >= g0 && t < g0 + 0.006 ? -2.2 : 2.2);
     const fmt = findFormat(fmtName);
-    const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds: 1.2, velocityProfile: prof, snrDb: 30, seed: 9 });
+    const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds: 1.2, velocityProfile: prof, snrDb: 30, seed: 9 });
     const tr = instantVelocity(sig, { format: fmt });
     const m = analyzeMotion(tr);
     assert.equal(m.directionErrors.length, 1, `${fmtName} +${off}: ${JSON.stringify(m.directionErrors)}`);
@@ -414,7 +414,7 @@ function protocolCapture({ bpm = 120, fmtName = 'Serato CV02.5', startSec = 1, u
   const parts = tl.patterns.map(p => ({ fn: patternVelocity(p.id, bpm, { seconds: 20 }).velocity, from: p.performStart, to: p.performEnd }));
   const vel = sequence(parts);
   const seconds = upToSec ?? startSec + tl.totalSec;
-  const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: fmt.phaseSign, seconds, velocityProfile: vel, snrDb: 30, seed: 21, dropouts, phaseJumps });
+  const sig = quadratureTimecode({ carrierHz: fmt.carrierHz, phaseSign: directionSign(fmt), seconds, velocityProfile: vel, snrDb: 30, seed: 21, dropouts, phaseJumps });
   return { sig, vel, tl, fmt };
 }
 
@@ -534,4 +534,20 @@ test('browser-mode store keeps runs in localStorage with the same shapes', async
   assert.deepEqual(await api.list(), []);
   const noStore = createScratchApi({ invoke: null, storage: null });
   assert.deepEqual(await noStore.list(), []);
+});
+
+test('direction uses the primary channel as well as the phase switch (Traktor MK1 reads forward as +1, not backwards)', () => {
+  const mk1 = findFormat('Traktor Scratch MK1');
+  assert.equal(mk1.primary, 'left'); assert.equal(mk1.phaseSign, -1); assert.equal(directionSign(mk1), 1);
+  const median = tr => [...tr.v].sort((a, b) => a - b)[tr.v.length >> 1];
+  // forward play on MK1: right leads left, the same relation as a plain format
+  const fwd = quadratureTimecode({ carrierHz: mk1.carrierHz, phaseSign: 1, seconds: 0.5, velocityProfile: 1, snrDb: 30 });
+  assert.ok(Math.abs(median(instantVelocity(fwd, { format: mk1 })) - 1) < 0.01);
+  assert.equal(instantVelocity(fwd, { format: mk1 }).phaseSign, 1);
+  // the old phaseSign-only reading would have called the same signal backwards
+  assert.ok(Math.abs(median(instantVelocity(fwd, { format: { ...mk1, primary: 'right' } })) + 1) < 0.01);
+  // a left-primary format with a plain phase switch is inverted the other way
+  const leftPrimary = { ...mk1, phaseSign: 1 };
+  assert.equal(directionSign(leftPrimary), -1);
+  assert.ok(Math.abs(median(instantVelocity(fwd, { format: leftPrimary })) + 1) < 0.01);
 });

@@ -7,6 +7,7 @@ import { store, workspace, saveWorkspace, emit, settings } from './state.js';
 import { isEnabled } from '../features.js';
 import { download, slug, isNative } from './dom.js';
 import { toast } from './live.js';
+import { persistCaptureFields } from './analysis.js';
 
 /** Shape a run for save_diagnostic_run (numeric uncertainty, finite values only). */
 export function toPersistRun(run) {
@@ -26,6 +27,7 @@ export function toPersistRun(run) {
     id: run.id, deviceId: run.deviceId ?? null, test: run.test, createdAt: run.createdAt, sourceFile: run.sourceFile ?? null,
     sampleRate: run.sampleRate ?? null, channels: run.channels ?? null, measurements, findings,
     score: Number.isFinite(run.score) ? run.score : null, sessionType: run.sessionType || run.workflow || 'diagnostic', workflow: run.workflow || null,
+    ...persistCaptureFields(run),
   };
 }
 
