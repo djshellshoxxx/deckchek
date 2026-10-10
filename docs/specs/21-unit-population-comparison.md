@@ -1,5 +1,7 @@
 # Spec 21: Unit vs Population Comparison
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0015_unit_population.sql`. Milestone: M7. Size: M. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary and Goals / Non-goals
 
 "Your unit vs others of the same model" in three phases. Phase 1 (implement now, fully offline) compares a measurement against the published spec and against the user's own other units and history. Phase 2 (implement now, opt-in) adds anonymous `.deckchek-pack` JSON files that can be exported, shared by hand, and merged into a local reference population with percentile display. Phase 3 (spec only, not implemented) outlines an optional shared server.
@@ -35,7 +37,7 @@ JS APIs:
 - `robustSummary(values) -> {n, median, mad, p10, p25, p75, p90, iqr}`
 - `percentileRank(values, x, {higherIsBetter}) -> {rank0to100, lo, hi}` (mid-rank for ties)
 - `winsorize(values, k=3.5) -> number[]` (modified z-score based)
-- `methodCompatible(a:{key,version}, b:{key,version}, methodRegistry) -> boolean`
+- `methodCompatible(a:{key,version}, b:{key,version}, methodRegistry) -> boolean` — implemented in the shared FS-00 `app/metric-compat.js` (also used by FS-22), re-exported here
 - `buildPack({rows, appVersion, packId}) -> pack`, `validatePack(json) -> {ok, errors, normalizedRows}`
 - `compareToSpec(measurement, profileSpec)`, `compareToSiblings(assetId, metricId)`.
 Rust commands: `pack_export({selection, path}) -> {rows, bytes, sha256}` (writes after whitelist re-validation in Rust, source of truth); `pack_import({path}) -> {packId, accepted, rejected:[{row,reason}]}`; `population_query({productId, metricId, methodKey}) -> {rows:[{value,methodVersion}], contributors}`; `pack_remove({packId})`.
@@ -44,7 +46,7 @@ Deps: none new (serde_json already used). Limit pack to 5 MB, 100k rows.
 ## 5. Data model
 
 ```sql
--- NNNN_unit_population.sql
+-- 0015_unit_population.sql
 CREATE TABLE IF NOT EXISTS reference_pack (
   id TEXT PRIMARY KEY,              -- pack uuid from file
   source_label TEXT,                -- user-entered, local only
@@ -85,7 +87,7 @@ Unit: percentile type 7 vectors against known NumPy outputs, ties, n=1, MAD=0 de
 
 ## 9. Definition of done
 
-Phase 1 and 2 ACs pass; schema whitelist test; flag `population` default on for phase 1, `packs` default off until manual review; docs: README, SPEC-04 (comparison database) cross-reference noting that SPEC-04's reference database is superseded for community data by this pack format (flag for owner).
+Phase 1 and 2 ACs pass; schema whitelist test; flags `features.population` default on for phase 1, `features.packs` default off until manual review; docs: README, SPEC-04 (comparison database) cross-reference noting that SPEC-04's reference database is superseded for community data by this pack format (flag for owner).
 
 ## 10. Dependencies, risks, open questions, effort
 

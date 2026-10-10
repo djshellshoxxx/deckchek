@@ -1,5 +1,7 @@
 # SPEC-10-A: Pre-Gig Check ("Ready to Play")
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0008_pregig.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 Status: draft. File: `docs/specs/10-pre-gig-check.md`. Reuses terms from SPEC-02, SPEC-05, SYSTEM-CHECK-CONTRACT.md.
 
 ## 1. Summary, Goals, Non-goals
@@ -46,20 +48,20 @@ Accessibility: verdict in `aria-live="polite"`, step state changes announced onc
 
 New JS:
 - `app/pre-gig.js` (pure): `PREGIG_STEPS`, `buildPlan(preset) -> Step[]`, `evaluateStep(stepId, evidence, preset) -> StepResult`, `rollUp(results) -> {verdict:'green'|'amber'|'red'|'incomplete', top:StepResult[]}`, `validatePreset(p)`, `diffRuns(a,b)`.
-- `app/hum.js` (pure, shared with SPEC-15): `humMeasure(samples, sampleRate, {mains:'auto'|50|60}) -> {mains, fundamentalDbfs, harmonics:[{n,hz,dbfs}], humDbRel, floorDbfs}`.
+- `app/hum.js` (pure, shared with FS-15; owned by FS-00 §4.6 — use the single signature defined there: `humMeasure(samples, sampleRate, {mains:'auto'|50|60, harmonics:8}) -> {mainsHz, fundamentalDbfs, harmonics:[{n,hz,dbfs}], totalDbfs, floorDbfs, humToFloorDb, oddEvenRatio}`).
 - `app/ui/workflows/pregig.js` (orchestrator, uses `flow.js`), `app/ui/screens/pregig.js` (preset editor, history).
 - Preset library `app/pregig-presets.json` (built-ins, see section 5).
 Existing reused: `createSystemBridge`/`interpretSystemScan` (system-check.js), `list_native_audio_inputs`, `start_live_capture`/`stop_live_capture`, `analyzeTimecode`/`findFormat`/`mergeFormats` (timecode.js), `evaluateDriverCheck`/`evaluateSoftwareCheck` (device-checks.js), `midi_list_ports`, `normalizedLevelTrace`, `dvsIntegrityScore` (diagnostics.js).
 
 New Rust (`src-tauri/src/pregig.rs`, registered in `lib.rs`):
-- `pregig_processes() -> {supported, apps:[{app, running:bool, exe, pid:number|null, version:string|null}], scannedAt}`. Implementation: `tasklist /FO CSV /NH` through existing `run_with_timeout`; match `is_dj_program`. No new crate.
+- `pregig_processes() -> {supported, apps:[{app, running:bool, exe, pid:number|null, version:string|null}], scannedAt}`. Thin wrapper over the shared FS-00 `processes::dj_processes()` helper (`tasklist /FO CSV /NH` via `run_with_timeout`, `is_dj_program` match), which FS-11 also uses. No new crate.
 - `pregig_save_run(run: PregigRunInput) -> {id}`, `pregig_list_runs(presetId?, limit?) -> RunSummary[]`, `pregig_get_run(id)`, `pregig_preset_upsert/list/delete`. All SQLite via `db.rs`.
 Events: `pregig://step` payload `{runId, stepId, state, progress}` (JS may also drive directly; events only needed if work moves to Rust later).
 Deps: none new.
 
 ## 5. Data model
 
-Migration `NNNN_pregig.sql`:
+Migration `0008_pregig.sql`:
 ```sql
 CREATE TABLE IF NOT EXISTS pregig_preset (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, builtin INTEGER NOT NULL DEFAULT 0,
@@ -96,6 +98,7 @@ Total typical: 15+3+20+8+20+2+3 = about 70 s plus manual. Parallelise steps 1, 2
 
 ## 7. Error handling, edge cases, privacy
 
+- Capture arbitration: every capture step acquires the FS-00 capture lease; if FS-31 Live monitor holds it, the step offers "Stop live monitor and continue" instead of failing.
 - Capture device busy (software holds ASIO exclusively): step fails with "Close <software> or use its output; DeckChek cannot share an exclusive ASIO device." Warn rather than fail if the software is running and audio device present.
 - Needle not down/silence: `NO_SIGNAL` -> action text, offer retry.
 - Two decks share one stereo input (Audio 8 has 2 inputs per pair): preset `input` indexes select pairs; capture is per pair.
@@ -112,12 +115,12 @@ Manual: (1) Traktor Audio 8 + SL-1200MK4 + MK2 vinyl: expect green. (2) Pull one
 
 ## 9. Definition of done
 
-- [ ] AC-1..AC-8 pass; [ ] unit/Rust/smoke/CI green; [ ] manual script run on at least two rigs; [ ] 120 s budget measured on owner's PC.
+- [ ] AC-1..AC-8 pass; [ ] unit/Rust/smoke/CI green; [ ] manual script run on at least two rigs; [ ] 120 s budget measured on owner's PC (manual script H-10) and, in CI, orchestration overhead with mocked captures (each mocked step resolving instantly) completes in < 5 s in the UI smoke run.
 Rollout: flag `features.pregig` default off for one release. Docs: update FEATURE-MATRIX.md, IMPLEMENTATION-STATUS.md, app/README.md, SYSTEM-CHECK-CONTRACT.md (add `pregig_processes`).
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on: System Health (existing), SPEC-02 timecode engine, SPEC-11 (optional "latency known-good" step), SPEC-15 (`hum.js`). Risks: exclusive ASIO capture conflicts; hum measurement during playback is weak; rekordbox format unverified. Open: should a green check be valid for N hours (suggest 12 h badge)? Threshold calibration on real rigs. Effort: L (about 40 agent-hours).
+Depends on: System Health (existing), SPEC-02 timecode engine, FS-11 (optional "latency known-good" step), FS-00 (`app/hum.js`, process list, capture arbiter). Risks: exclusive ASIO capture conflicts; hum measurement during playback is weak; rekordbox format unverified. Open: should a green check be valid for N hours (suggest 12 h badge)? Threshold calibration on real rigs. Effort: L (about 40 agent-hours).
 
 ## 11. Research notes
 

@@ -1,5 +1,7 @@
 # Spec 02 — Crash capture and diagnostics bundle
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary, goals, non-goals
 DeckChek records Rust panics and JS errors to a local rotating log, detects an unclean exit on next start and offers a user-controlled "Create diagnostics bundle" zip (no audio, optional PII redaction). Nothing is ever uploaded; the user may open a prefilled GitHub new-issue URL containing a text summary only.
 
@@ -28,8 +30,8 @@ New Rust: `src-tauri/src/diagnostics.rs`:
 - `diagnostics_ack_crash() -> ()`
 - `diagnostics_preview(opts:{redact:bool,runCount:u32}) -> { summaryText: string, parts: [{name,sizeBytes,status:"ok"|"skipped"|"error",note?}] }`
 - `diagnostics_create_bundle(destPath: string, opts:{redact,runCount}) -> { path, sizeBytes, parts:[...] }`
-- `diagnostics_open_log_dir()` (via opener `reveal_item_in_dir`).
-New JS: `app/diagnostics-bundle.js` (pure: `redactText(text, ctx)`, `buildSummaryText(info)`, `buildIssueUrl(summary, repo)`, `installClientErrorHooks(invoke)`), `app/ui/screens/support-dialog.js` (`openDiagnosticsDialog()`); hooks installed in `app/app.js` before UI init. Changes: `Cargo.toml` (`zip`, `tauri-plugin-dialog`, `tauri-plugin-opener`), `lib.rs` (plugins, handlers, `setup`), `src-tauri/capabilities/default.json` (`dialog:allow-save`, opener perms), CSP unchanged. Name clash note: existing `app/diagnostics.js` is the measurement engine; the new module is intentionally `diagnostics-bundle.js`.
+- `diagnostics_open_log_dir()` (via the FS-07 `reveal_path` command; the log dir is an app-owned path).
+New JS: `app/diagnostics-bundle.js` (pure: `redactText(text, ctx)`, `buildSummaryText(info)`, `buildIssueUrl(summary, repo)`, `installClientErrorHooks(invoke)`), `app/ui/screens/support-dialog.js` (`openDiagnosticsDialog()`); hooks installed in `app/app.js` before UI init. Changes: `lib.rs` (handlers, `setup` hook — in this spec's anchor block), CSP unchanged. The `zip`, `sha2`, `tauri-plugin-dialog` and `tauri-plugin-opener` dependencies, the capability file and the save-path validator (`userfiles::validate_save_path`) are added once by FS-00 (job M5-F0-platform), not here. Name clash note: existing `app/diagnostics.js` is the measurement engine; the new module is intentionally `diagnostics-bundle.js`.
 
 ## 5. Data model
 Log line format (UTF-8, LF): `2026-10-10T12:34:56.789Z LEVEL target [thread] message`. Files `deckchek.log`, `deckchek.1.log`…`deckchek.4.log` (rotate at 1 MiB, keep 5). `crash.marker` JSON: `{"startedAt":ISO,"pid":n,"appVersion":"0.0.4","lastPanic":null|"..."}`.
@@ -44,7 +46,7 @@ runs-summary.json  last N runs: id,test,startedAt,score,status,findings titles (
 system-health.json summarizeFindings output + finding titles/ids
 logs/…             last 5 log files
 ```
-Migration `NNNN_diagnostics_events.sql` optional: none required. Version rules: unknown `bundleVersion` is only relevant to future readers; additive fields only.
+No migration. Version rules: unknown `bundleVersion` is only relevant to future readers; additive fields only.
 
 ## 6. Algorithms
 Redaction: build a context of literals (username from `%USERNAME%`, `%USERPROFILE%`, computer name, serial numbers from `asset.serial_number`, product serial patterns) and apply: (1) replace exact literals case-insensitively with `<user>`, `<profile>`, `<host>`, `<serial>`; (2) regex `[A-Za-z]:\\Users\\[^\\\s"']+` -> `C:\Users\<user>`; (3) serial-looking tokens `\b[A-Z0-9]{8,}\b` adjacent to "serial"/"S/N" -> `<serial>`; (4) email regex -> `<email>`. Redaction is applied to every text part before zipping, including panic backtraces. Redaction is best effort; the dialog says so. Size caps: bundle <= 20 MiB, logs capped to 2 MiB total.
@@ -62,7 +64,7 @@ Unit (JS): redaction cases (username in path, case differences, serials, emails,
 Rollout: always on; `diagnostics.verboseLog` setting default off.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: Spec 07 (opener allowlist), Spec 08 (shares zip crate and `app_state`), System Health. Risks: Windows aborts on panic=abort builds (do not set `panic="abort"`); WebView2 crashes are not visible to the Rust hook (only marker catches them). Open: GitHub repo owner/name placeholder — UNKNOWN, needs confirming; should bundles include `get_run` raw JSON? (default no). Effort: L (~20 agent-hours).
+Depends on: FS-00 (dialog plugin, zip/sha2 crates, `userfiles.rs`), FS-07 (opener allowlist, `reveal_path`), System Health. Risks: Windows aborts on panic=abort builds (do not set `panic="abort"`); WebView2 crashes are not visible to the Rust hook (only marker catches them). Open (owner): GitHub repo owner/name for issue links — configured as constant `ISSUE_REPO` in `app/diagnostics-bundle.js`, button hidden while unset; should bundles include `get_run` raw JSON? (default no). Effort: L (~20 agent-hours).
 
 ## 11. Research notes
 - Tauri dialog plugin: https://v2.tauri.app/plugin/dialog/ (known from docs; not re-opened this session).

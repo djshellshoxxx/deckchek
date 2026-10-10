@@ -1,5 +1,7 @@
 # Spec 22: Service Worksheets
 
+> **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0016_service_worksheets.sql`. Milestone: M7. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
+
 ## 1. Summary and Goals / Non-goals
 
 A technician job workflow inside DeckChek: intake (customer, unit, fault, photos), pre-repair measurements from a test-plan subset, a work log (parts, labour, notes), post-repair measurements with an automatic before/after comparison, and an invoice-free job sheet PDF (via spec 03). Jobs move through defined statuses and are stored locally.
@@ -32,12 +34,12 @@ Shortcuts: Ctrl+J new job; Alt+Right/Left next/previous step; Ctrl+Enter save no
 New: `app/service.js` (pure: job state machine, comparison, totals), `app/ui/screens/service.js`, `app/ui/workflows/service-job.js`, `src-tauri/src/service.rs`.
 Rust commands: `job_create(input) -> Job`; `job_get(id) -> JobDetail`; `job_list({status?, q?, limit, offset}) -> {jobs, total}`; `job_update_fields(id, patch) -> Job`; `job_set_status(id, to, note?) -> Job` (validates transition); `job_add_log(id, kind: "part"|"labour"|"note", payload) -> LogEntry`; `job_attach_photo(id, path, caption) -> Photo`; `job_link_results(id, phase, sessionIds|testResultIds)`; `job_comparison(id) -> Comparison`; `job_export_sheet(id, {includeCosts}) -> {path}`. Event: `job-status-changed {id, from, to}`.
 JS: `canTransition(from, to) -> boolean`; `compareBeforeAfter(before, after, {higherIsBetter}) -> rows[]` (builds on `compareRuns` in `app/core.js`, adding uncertainty and method checks); `jobTotals(log) -> {labourMinutes, partsCost}`; `renderJobSheetHtml(job, comparison, opts)`.
-Dependencies: none new beyond spec 03 for PDF. Photos reuse the image pipeline from spec 20 if present; otherwise this spec adds the shared `photo.rs` helper (flag the overlap).
+Dependencies: none new beyond spec 03 for PDF (`registerPrintableKind('JobSheet', ...)`). Photos use the FS-00 photo store (`photo_attach({ownerKind:'service_job', ownerId, bytes, caption, stage})`); `job_attach_photo` is a thin wrapper. `compareBeforeAfter` uses FS-00 `app/metric-compat.js` for method compatibility.
 
 ## 5. Data model
 
 ```sql
--- NNNN_service_worksheets.sql
+-- 0016_service_worksheets.sql
 CREATE TABLE IF NOT EXISTS customer (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT, notes TEXT,
   created_at TEXT NOT NULL
@@ -66,18 +68,18 @@ CREATE TABLE IF NOT EXISTS service_job_log (
   amends_id TEXT REFERENCES service_job_log(id), at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS service_job_result (
+  id TEXT PRIMARY KEY,
   job_id TEXT NOT NULL REFERENCES service_job(id) ON DELETE CASCADE,
   phase TEXT NOT NULL CHECK (phase IN ('before','after')),
   session_id TEXT REFERENCES session(id),
   device_test_result_id TEXT REFERENCES device_test_result(id),
-  PRIMARY KEY (job_id, phase, session_id, device_test_result_id)
+  CHECK ((session_id IS NULL) <> (device_test_result_id IS NULL))
 );
-CREATE TABLE IF NOT EXISTS service_job_photo (
-  id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES service_job(id) ON DELETE CASCADE,
-  sha256 TEXT NOT NULL, path TEXT NOT NULL, caption TEXT, stage TEXT, at TEXT NOT NULL
-);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_job_result_session ON service_job_result(job_id, phase, session_id) WHERE session_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_job_result_dtr ON service_job_result(job_id, phase, device_test_result_id) WHERE device_test_result_id IS NOT NULL;
 ```
-Job numbers: `J-<year>-<4 digit seq>` generated in a transaction (`SELECT MAX`). Currency stored as plain numbers with a settings-level currency symbol. Workspace JSON export (`app/export.js`) bumps to version 2 adding jobs; v1 importers keep working.
+(The draft used a composite PRIMARY KEY over nullable columns; SQLite allows NULLs in non-INTEGER primary keys and treats them as distinct, so duplicates would slip through. Photos: no `service_job_photo` table — FS-00 `photo_link` rows with `owner_kind='service_job'`, `stage` in `intake|before|after`.)
+Job numbers: `J-<year>-<4 digit seq>` generated in a transaction (`SELECT MAX`). Currency stored as plain numbers with a settings-level currency symbol. Jobs are covered by FS-08 database backups; the browser workspace JSON stays version 1 (no `app/export.js` change, avoiding a cross-feature file conflict).
 
 ## 6. Algorithms
 
@@ -86,7 +88,7 @@ Before/after: for each metric in both phases, pair latest valid value per phase.
 
 ## 7. Error handling, edge cases, privacy, security
 
-Customer PII (name, phone, email) stays local, is excluded from every other export by default (workspace export asks explicitly; spec 21 packs never include it). Job sheet includes customer name only if "Include customer details" is ticked. Deleting a customer with jobs is blocked. Photo path handling: copy into app data dir `jobs/<job_id>/<sha256>.<ext>`; never trust incoming file names; reject extensions other than png/jpg/webp and sniff magic bytes. Free text is HTML-escaped in sheets. Concurrent edits: single user, but status transitions use `UPDATE ... WHERE status = :expected` to prevent double clicks. Power loss: SQLite WAL with transactions per action. Asset deleted mid-job: asset soft-delete (`is_deleted`) only, so jobs remain readable.
+Customer PII (name, phone, email) stays local, is excluded from every other export by default (workspace export asks explicitly; spec 21 packs never include it). Job sheet includes customer name only if "Include customer details" is ticked. Deleting a customer with jobs is blocked. Photo handling per FS-00 photo store (content-addressed `photos/<sha256>.jpg`, magic-byte sniffing, re-encode strips EXIF). Free text is HTML-escaped in sheets. Concurrent edits: single user, but status transitions use `UPDATE ... WHERE status = :expected` to prevent double clicks. Power loss: SQLite WAL with transactions per action. Asset deleted mid-job: asset soft-delete (`is_deleted`) only, so jobs remain readable.
 
 ## 8. Test plan
 
@@ -94,11 +96,11 @@ Unit: transition table exhaustive (valid and invalid), comparison with equal/gre
 
 ## 9. Definition of done
 
-All ACs pass; migration idempotent; sheet reviewed on paper; feature flag `service` default off until reviewed; docs: README feature list, SPEC-06 §22.6 maintenance report cross-reference.
+All ACs pass; migration idempotent; sheet reviewed on paper; feature flag `features.service` default off until reviewed; docs: README feature list, SPEC-06 §22.6 maintenance report cross-reference.
 
 ## 10. Dependencies, risks, open questions, effort
 
-Depends on: spec 03 (PDF), device test runner and plans, `asset`/`session`/`measurement` schema, spec 20 photo helper (shared). Risks: scope creep into invoicing; customer data handling obligations (GDPR-style duties may apply to a business user: UNKNOWN — needs verification); comparisons mixing test conditions (note field "bench conditions" mitigates). Open: required fields per jurisdiction; whether to add QR job label printing; per-job tester signature capture. Effort: L (~28 agent-hours).
+Depends on: spec 03 (PDF), device test runner and plans, `asset`/`session`/`measurement` schema, FS-00 photo store and `metric-compat.js`. Risks: scope creep into invoicing; customer data handling obligations (GDPR-style duties may apply to a business user: UNKNOWN — needs verification); comparisons mixing test conditions (note field "bench conditions" mitigates). Open: required fields per jurisdiction; whether to add QR job label printing; per-job tester signature capture. Effort: L (~28 agent-hours).
 
 ## 11. Research notes
 
