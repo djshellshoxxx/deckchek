@@ -17,6 +17,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Open external links (FS-07) | Implemented | Allowlist plus confirm dialog; desktop command is authoritative. |
 | Test media library (FS-06) | Implemented | Picker prefill, result and History record of the medium used; flag `testMedia`. |
 | Backup and restore (FS-08) | Implemented | Verified `.deckchek-backup`, safety backup, schedule, free-space check on Windows. |
+| Scratch stress test (FS-14) | Implemented, hardware-validation pending | Guided baby/transform/chirp protocol with metronome, results, history and compare; flag `scratchTest`. Skip thresholds are uncalibrated and labelled so. |
 | PDF reports (FS-03) | In progress | Print host and renderer pending; HTML/CSV/JSON export available. |
 | Startup/brake | Partial | Signal-envelope timing proxy implemented; validated platter-speed transition method remains outstanding. |
 | Cartridge diagnostics | Partial | Balance/polarity and THD estimate implemented; guided crosstalk/separation and full alignment workflows remain. |

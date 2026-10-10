@@ -68,6 +68,11 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Backup and restore (FS-08): verified single-file `.deckchek-backup` (online SQLite snapshot, settings, MIDI maps), restore with confirmation, migration, safety backup and atomic swap, schedule (daily, weekly, on exit with a 5 s cap, retention), browser workspace import, free-disk-space check before backup and restore on Windows (skipped elsewhere); on-exit backup runs from `RunEvent::ExitRequested` / `Exit`. Flag `backup`.
 - Shell: feature-flagged rail entries follow flag changes without reload; the shared confirm dialog no longer settles early after a rapid cancel and reopen.
 
+## M6 additions (in progress)
+
+- Scratch stress test (FS-14, flag `scratchTest`, default off): engine (`app/scratch.js`, `src-tauri/src/scratch.rs`, migration 0011) and guided UI (`app/ui/workflows/scratch.js`, `app/ui/screens/scratch.js`). AC-1 (three patterns at the chosen BPM, 4-beat count-in, 20 s performed plus 5 s rest, metronome to a selectable output) and AC-7 (Esc ramps the click to silence in about 10 ms and scores the completed patterns, labelled partial) are covered by unit and UI smoke tests; AC-8 refuses to start below 25 dB baseline SNR with fix actions. Results, History and cartridge Compare tabs are included; scores compare only within protocol v1.
+- Not hardware-validated: the needle-skip thresholds are untested defaults and are labelled "Uncalibrated" wherever a skip is shown; velocity and lock-loss accuracy are validated on synthetic signals only. The live trace on the guided screen is a carrier-level indicator, not the platter velocity. "Skip pattern" (Space) is deliberately not offered because it would change the protocol and make the score incomparable; Esc gives a partial run instead. There is no link from the DVS Timecode screen yet; the screen has its own rail entry while the flag is on.
+
 ## M5 shipped in v0.0.5
 
 - First-run setup wizard (FS-01), resumable, re-runnable from Options.
@@ -101,7 +106,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Real-hardware validation of measurement accuracy against known reference fixtures (SPEC-08/19).
 - Windows native build verification on target Windows machines with real audio interfaces.
 - Quartz-lock acquisition, drag/recovery and true torque proxy workflows.
-- Full DVS decoder capabilities, scratch-stress/cue-wear tests and DVS media history.
+- Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
 - Mature vinyl classifiers and held-out false-positive corpus validation.
 - Venue hierarchy, controlled level-step feedback test, isolation A/B workflow and incident log.
 - Maintenance/fleet trend dashboards and reminders.
