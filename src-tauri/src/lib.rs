@@ -32,6 +32,7 @@ mod stylus;
 mod dj_sessions;
 // [FS-13] mods
 // [FS-14] mods
+mod scratch;
 // [FS-15] mods
 // [FS-20] mods
 // [FS-21] mods
@@ -88,6 +89,7 @@ pub fn run() {
             dj_sessions::dj_session_spans,
             // [FS-13] handlers
             // [FS-14] handlers
+            scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
             // [FS-20] handlers
             // [FS-21] handlers
