@@ -12,7 +12,11 @@
 //! None of this can be configured from JS: the IPC types carry a level and an
 //! optional cap, and both are clamped here. Only one voice plays at a time (a
 //! new play request fades out and closes the previous one first), so two
-//! DeckChek streams can never sum above the cap at the device.
+//! DeckChek streams can never sum above the cap at the device. That holds
+//! across engines too: the global engine and the FS-11 latency tuner's engine
+//! share one [`OutputGroup`], whose single voice slot and kill switch make a
+//! play on either engine silence the other's voice first, and make window
+//! close, exit and panics silence both.
 //!
 //! Stop paths, all of which end in silence:
 //! * `audio_stop` / `audio_stop_all`: 20 ms linear fade, then the stream is
@@ -329,6 +333,8 @@ pub struct VoiceControl {
     stop: AtomicBool,
     silent: AtomicBool,
     finished: AtomicBool,
+    /// Silenced by a play on another engine of its [`OutputGroup`].
+    replaced: AtomicBool,
     fault: AtomicU8,
     message: Mutex<Option<String>>,
 }
@@ -790,11 +796,86 @@ struct Voice {
     last_activity_ms: u64,
 }
 
+/// Fades `ctl` out from outside its engine (no engine lock), hard-muting it
+/// if the renderer does not report silence within [`STOP_WAIT`]. Its engine
+/// reaps the voice as `Replaced` on its next tick.
+fn silence_voice(ctl: &VoiceControl) {
+    ctl.replaced.store(true, SeqCst);
+    ctl.request_stop();
+    let deadline = Instant::now() + STOP_WAIT;
+    while !ctl.is_silent() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(1));
+    }
+    if !ctl.is_silent() {
+        ctl.fault.compare_exchange(Fault::Clear as u8, Fault::HardMute as u8, SeqCst, SeqCst).ok();
+    }
+}
+
+/// Engines that drive the same speakers: one kill switch and one audible
+/// voice for all of them, so the -12 dBFS cap holds for their sum (BUG-04).
+pub struct OutputGroup {
+    kill: Arc<AtomicBool>,
+    /// (engine id, control) of the voice allowed to sound.
+    voice: Mutex<Option<(u64, Arc<VoiceControl>)>>,
+}
+
+impl OutputGroup {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self { kill: Arc::new(AtomicBool::new(false)), voice: Mutex::new(None) })
+    }
+
+    /// Lock-free emergency silence for every member engine. Latched.
+    pub fn kill_all(&self) {
+        self.kill.store(true, SeqCst);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_killed(&self) -> bool {
+        self.kill.load(SeqCst)
+    }
+
+    /// Makes `ctl` the group's voice, silencing another engine's voice first.
+    /// Called before the new stream opens, so two plays racing on two engines
+    /// still end with only the later one audible.
+    fn claim(&self, engine: u64, ctl: &Arc<VoiceControl>) {
+        let previous = lock(&self.voice).replace((engine, ctl.clone()));
+        if let Some((owner, other)) = previous {
+            if owner != engine && !Arc::ptr_eq(&other, ctl) {
+                silence_voice(&other);
+            }
+        }
+    }
+
+    /// Forgets `ctl` once its voice has ended.
+    fn release(&self, ctl: &Arc<VoiceControl>) {
+        let mut slot = lock(&self.voice);
+        if slot.as_ref().is_some_and(|(_, c)| Arc::ptr_eq(c, ctl)) {
+            *slot = None;
+        }
+    }
+
+    /// Fades out whichever member engine's voice is sounding (window close,
+    /// exit). Never waits on an engine lock.
+    pub fn silence_all(&self) {
+        let current = lock(&self.voice).take();
+        if let Some((_, ctl)) = current {
+            silence_voice(&ctl);
+        }
+    }
+}
+
+static NEXT_ENGINE_ID: AtomicU64 = AtomicU64::new(1);
+
 /// Voice state machine: at most one voice, every exit path ends in silence.
 pub struct Engine {
+    id: u64,
+    group: Option<Arc<OutputGroup>>,
     backend: Box<dyn Backend>,
     kill: Arc<AtomicBool>,
     active: Mutex<Option<Voice>>,
+    /// Bumped by every play and stop-all; an open that finishes under an older
+    /// generation is discarded.
+    generation: AtomicU64,
     recent: Mutex<VecDeque<EndedVoice>>,
     next_handle: AtomicU64,
     clock: Box<dyn Fn() -> u64 + Send + Sync>,
@@ -812,11 +893,25 @@ impl Engine {
         Self::with_clock(backend, Box::new(move || epoch.elapsed().as_millis() as u64))
     }
 
+    /// An engine that shares `group`'s voice slot and kill switch.
+    pub fn grouped(backend: Box<dyn Backend>, group: Arc<OutputGroup>) -> Self {
+        Self::new(backend).in_group(group)
+    }
+
+    fn in_group(mut self, group: Arc<OutputGroup>) -> Self {
+        self.kill = group.kill.clone();
+        self.group = Some(group);
+        self
+    }
+
     pub fn with_clock(backend: Box<dyn Backend>, clock: Box<dyn Fn() -> u64 + Send + Sync>) -> Self {
         Self {
+            id: NEXT_ENGINE_ID.fetch_add(1, SeqCst),
+            group: None,
             backend,
             kill: Arc::new(AtomicBool::new(false)),
             active: Mutex::new(None),
+            generation: AtomicU64::new(0),
             recent: Mutex::new(VecDeque::new()),
             next_handle: AtomicU64::new(1),
             clock,
@@ -850,6 +945,12 @@ impl Engine {
         if let Some(old) = slot.take() {
             self.teardown(old, EndReason::Replaced);
         }
+        // The device open (up to OPEN_TIMEOUT) runs without the engine lock, so
+        // Esc / audio_stop_all never waits on a hanging driver. A stop or a newer
+        // play meanwhile bumps `generation`, and this open then closes its own
+        // stream instead of installing it.
+        let generation = self.generation.fetch_add(1, SeqCst) + 1;
+        drop(slot);
         let handle = self.next_handle.fetch_add(1, SeqCst);
         let ctl = Arc::new(VoiceControl::new(level_dbfs));
         let kill = self.kill.clone();
@@ -858,11 +959,33 @@ impl Engine {
             let source = req.into_source(rate, handle.wrapping_mul(0x9E37_79B9_7F4A_7C15));
             Ok(Renderer::new(source, rctl, kill, rate, cap_dbfs, ramp_ms))
         });
-        let (info, playing) = self.backend.open(device, ctl.clone(), make)?;
+        if let Some(g) = &self.group {
+            g.claim(self.id, &ctl);
+        }
+        let opened = self.backend.open(device, ctl.clone(), make);
+        let (info, playing) = match opened {
+            Ok(v) => v,
+            Err(e) => {
+                self.release_from_group(&ctl);
+                return Err(e);
+            }
+        };
+        let mut slot = lock(&self.active);
         if self.is_disabled() {
             // A panic raced the open: never leave a stream running.
             playing.close();
+            self.release_from_group(&ctl);
             return Err("AUDIO_OUT_DISABLED: audio output was disabled after an internal error; restart DeckChek".into());
+        }
+        if self.generation.load(SeqCst) != generation {
+            // Stopped (Esc, window close) or replaced while the device opened.
+            ctl.request_stop();
+            playing.close();
+            self.release_from_group(&ctl);
+            return Err("AUDIO_OUT_STOPPED: output was stopped while the device was opening".into());
+        }
+        if let Some(old) = slot.take() {
+            self.teardown(old, EndReason::Replaced); // defensive: every install bumps the generation
         }
         let out = PlayInfo {
             handle,
@@ -920,6 +1043,7 @@ impl Engine {
 
     /// Fades out and closes whatever is playing. Returns how many voices stopped.
     pub fn stop_all(&self, reason: EndReason) -> u32 {
+        self.generation.fetch_add(1, SeqCst);
         match lock(&self.active).take() {
             Some(v) => {
                 self.teardown(v, reason);
@@ -929,9 +1053,11 @@ impl Engine {
         }
     }
 
-    /// Shutdown variant that never blocks on the engine lock for long: if a
-    /// play is mid-open it falls back to the lock-free kill switch.
+    /// Shutdown variant that never blocks on the engine lock for long: a play
+    /// that is mid-open is discarded (generation bump); if the lock stays busy
+    /// it falls back to the lock-free kill switch.
     pub fn stop_all_for_exit(&self, reason: EndReason) {
+        self.generation.fetch_add(1, SeqCst);
         let deadline = Instant::now() + STOP_WAIT;
         loop {
             if let Ok(mut slot) = self.active.try_lock() {
@@ -948,9 +1074,16 @@ impl Engine {
         }
     }
 
+    fn release_from_group(&self, ctl: &Arc<VoiceControl>) {
+        if let Some(g) = &self.group {
+            g.release(ctl);
+        }
+    }
+
     /// Requests the fade, waits for the renderer to report silence (bounded by
     /// [`STOP_WAIT`]; a stalled callback is hard-muted), then closes the stream.
     fn teardown(&self, v: Voice, reason: EndReason) {
+        self.release_from_group(&v.ctl);
         v.ctl.request_stop();
         let deadline = Instant::now() + STOP_WAIT;
         while !v.ctl.is_silent() && Instant::now() < deadline {
@@ -978,6 +1111,8 @@ impl Engine {
         let Some(v) = slot.as_ref() else { return };
         let reason = if self.is_disabled() {
             Some(EndReason::Disabled)
+        } else if v.ctl.replaced.load(SeqCst) {
+            Some(EndReason::Replaced)
         } else if v.ctl.fault() != Fault::Clear {
             Some(EndReason::DeviceError) // refined from the fault in teardown
         } else if v.ctl.finished.load(SeqCst) && v.ctl.is_silent() {
@@ -1180,6 +1315,24 @@ impl Backend for CpalBackend {
 // ------------------------------------------------------- global + lifecycle
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
+static GROUP: OnceLock<Arc<OutputGroup>> = OnceLock::new();
+
+/// The group of every engine that plays on the user's speakers: the global
+/// engine and the latency tuner's engine.
+pub fn output_group() -> &'static Arc<OutputGroup> {
+    GROUP.get_or_init(OutputGroup::new)
+}
+
+/// Lock-free, allocation-free: silences every DeckChek output engine. The
+/// first thing any panic hook does (BUG-03).
+pub fn emergency_silence() {
+    if let Some(g) = GROUP.get() {
+        g.kill_all();
+    }
+    if let Some(e) = ENGINE.get() {
+        e.kill_all();
+    }
+}
 
 /// The process-wide engine (cpal backend) with its watchdog thread.
 pub fn global() -> &'static Engine {
@@ -1190,7 +1343,7 @@ pub fn global() -> &'static Engine {
                 e.tick();
             }
         });
-        Engine::new(Box::new(CpalBackend))
+        Engine::grouped(Box::new(CpalBackend), output_group().clone())
     })
 }
 
@@ -1202,9 +1355,7 @@ pub fn install_panic_guard() {
     ONCE.call_once(|| {
         let prev = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
-            if let Some(e) = ENGINE.get() {
-                e.kill_all();
-            }
+            emergency_silence();
             prev(info);
         }));
     });
@@ -1224,10 +1375,16 @@ pub fn stop_reason_for(event: &tauri::RunEvent) -> Option<EndReason> {
     }
 }
 
-/// `App::run` hook: main-window close and app exit stop all output.
+/// `App::run` hook: main-window close and app exit stop all output, on every
+/// engine of the output group (the latency tuner's included).
 pub fn on_run_event(event: &tauri::RunEvent) {
-    if let (Some(reason), Some(engine)) = (stop_reason_for(event), ENGINE.get()) {
-        engine.stop_all_for_exit(reason);
+    if let Some(reason) = stop_reason_for(event) {
+        if let Some(engine) = ENGINE.get() {
+            engine.stop_all_for_exit(reason);
+        }
+        if let Some(group) = GROUP.get() {
+            group.silence_all();
+        }
     }
 }
 
@@ -1782,10 +1939,18 @@ mod tests {
     }
 
     fn rig() -> Rig {
+        rig_with(None)
+    }
+
+    fn rig_with(group: Option<Arc<OutputGroup>>) -> Rig {
         let log = Arc::new(FakeLog::default());
         let clock = Arc::new(AtomicU64::new(0));
         let c = clock.clone();
-        let engine = Arc::new(Engine::with_clock(Box::new(FakeBackend { log: log.clone(), fail: false }), Box::new(move || c.load(SeqCst))));
+        let mut engine = Engine::with_clock(Box::new(FakeBackend { log: log.clone(), fail: false }), Box::new(move || c.load(SeqCst)));
+        if let Some(g) = group {
+            engine = engine.in_group(g);
+        }
+        let engine = Arc::new(engine);
         let pump_on = Arc::new(AtomicBool::new(true));
         let captured = Arc::new(Mutex::new(Vec::new()));
         let quit = Arc::new(AtomicBool::new(false));
@@ -1987,6 +2152,120 @@ mod tests {
         let e = Engine::new(Box::new(FakeBackend { log: Arc::new(FakeLog::default()), fail: true }));
         assert!(e.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DEVICE"));
         assert!(e.status().active.is_none());
+    }
+
+    /// Every renderer of the rig is silent (its next block is all zeros).
+    fn all_silent(r: &Rig) -> bool {
+        r.log.renderers.lock().unwrap().iter().all(|(_, _, ctl)| ctl.is_silent())
+    }
+
+    fn sounding(r: &Rig) -> bool {
+        let mut buf = vec![0.0f32; 256];
+        r.log.renderers.lock().unwrap().iter_mut().any(|(_, rend, _)| {
+            rend.render_safe(&mut buf, 2);
+            buf.iter().any(|x| *x != 0.0)
+        })
+    }
+
+    /// BUG-04: two engines of one output group never sound together, so their
+    /// sum stays under the -12 dBFS cap; the replaced voice ends as `Replaced`.
+    #[test]
+    fn engines_in_one_group_never_play_at_once() {
+        let g = OutputGroup::new();
+        let (a, b) = (rig_with(Some(g.clone())), rig_with(Some(g.clone())));
+        let solo = rig();
+        let ha = a.engine.play(None, tone(-12.0)).unwrap();
+        let hs = solo.engine.play(None, tone(-12.0)).unwrap();
+        thread::sleep(Duration::from_millis(30));
+        assert!(sounding(&a));
+        let hb = b.engine.play(None, tone(-12.0)).unwrap();
+        assert!(all_silent(&a), "the other engine's voice is silent before the new one opens");
+        assert!(sounding(&b));
+        assert!(!all_silent(&solo), "engines outside the group are not touched");
+        a.engine.tick();
+        assert_eq!(a.engine.ended_reason(ha.handle), Some(EndReason::Replaced));
+        assert!(a.engine.status().active.is_none());
+        // and back: a new play on `a` silences `b`
+        let ha2 = a.engine.play(None, tone(-20.0)).unwrap();
+        assert!(all_silent(&b));
+        b.engine.tick();
+        assert_eq!(b.engine.ended_reason(hb.handle), Some(EndReason::Replaced));
+        // an ordinary stop releases the group slot: a later play elsewhere waits on nothing
+        a.engine.stop(ha2.handle);
+        let t = Instant::now();
+        b.engine.play(None, tone(-20.0)).unwrap();
+        assert!(t.elapsed() < STOP_WAIT, "no fade wait for a voice that already ended");
+        solo.engine.stop(hs.handle);
+    }
+
+    /// BUG-04: window close / exit silence every engine of the group, and
+    /// the kill switch is shared.
+    #[test]
+    fn group_silence_and_kill_cover_every_member_engine() {
+        let g = OutputGroup::new();
+        let (a, b) = (rig_with(Some(g.clone())), rig_with(Some(g.clone())));
+        let hb = b.engine.play(None, tone(-12.0)).unwrap();
+        thread::sleep(Duration::from_millis(20));
+        g.silence_all(); // what on_run_event does for the tuner's engine
+        assert!(all_silent(&b));
+        b.engine.tick();
+        assert_eq!(b.engine.ended_reason(hb.handle), Some(EndReason::Replaced));
+        b.engine.play(None, tone(-12.0)).unwrap();
+        g.kill_all(); // what the panic guard does
+        assert!(a.engine.is_disabled() && b.engine.is_disabled());
+        assert!(a.engine.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DISABLED"));
+        assert!(wait_for(Duration::from_secs(1), || all_silent(&b)));
+    }
+
+    fn wait_for(timeout: Duration, mut cond: impl FnMut() -> bool) -> bool {
+        let end = Instant::now() + timeout;
+        while Instant::now() < end {
+            if cond() {
+                return true;
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+        cond()
+    }
+
+    /// Backend whose open hangs (a misbehaving driver) until released.
+    struct SlowBackend {
+        inner: FakeBackend,
+        release: Mutex<mpsc::Receiver<()>>,
+    }
+
+    impl Backend for SlowBackend {
+        fn open(&self, device: Option<String>, ctl: Arc<VoiceControl>, make: MakeRenderer) -> Result<(StreamInfo, Box<dyn Playing>), String> {
+            let _ = self.release.lock().unwrap().recv();
+            self.inner.open(device, ctl, make)
+        }
+    }
+
+    /// Suspected S1 (confirmed): Esc / audio_stop_all used to wait for a
+    /// hanging device open (up to 10 s) because play held the engine lock.
+    /// Now stop returns at once and the late stream is closed, never installed.
+    #[test]
+    fn stop_all_does_not_wait_for_a_hanging_open_and_wins_over_it() {
+        let log = Arc::new(FakeLog::default());
+        let (release, rx) = mpsc::channel();
+        let engine = Arc::new(Engine::new(Box::new(SlowBackend { inner: FakeBackend { log: log.clone(), fail: false }, release: Mutex::new(rx) })));
+        let player = {
+            let engine = engine.clone();
+            thread::spawn(move || engine.play(None, tone(-30.0)))
+        };
+        thread::sleep(Duration::from_millis(50)); // the play is inside the open now
+        let t = Instant::now();
+        assert_eq!(engine.stop_all(EndReason::Stopped), 0);
+        assert!(t.elapsed() < Duration::from_millis(100), "stop waited {:?}", t.elapsed());
+        release.send(()).unwrap();
+        let err = player.join().unwrap().unwrap_err();
+        assert!(err.starts_with("AUDIO_OUT_STOPPED"), "{err}");
+        assert!(engine.status().active.is_none());
+        assert_eq!(log.events.lock().unwrap().clone(), vec!["open 1", "close 1"], "the late stream is closed");
+        // a later play works normally
+        release.send(()).unwrap();
+        let ok = engine.play(None, tone(-30.0)).unwrap();
+        assert_eq!(engine.status().active.unwrap().handle, ok.handle);
     }
 
     #[test]

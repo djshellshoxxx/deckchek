@@ -147,6 +147,9 @@ test('stream bridge passes the contract argument names and acks each block after
   assert.deepEqual(acks, [0, 1, 2].map(seq => ({ streamId: 10, seq })));
   assert.deepEqual(Object.keys(acks[0]).sort(), Object.keys(CONTRACT.commands.stream_capture_ack.request).sort());
   const sum = await s.stop();
+  const [, stopArgs] = f.calls.find(c => c[0] === 'stop_stream_capture');
+  assert.deepEqual(stopArgs, { streamId: 10 }, 'stop names its own stream (BUG-02)');
+  assert.deepEqual(Object.keys(stopArgs), Object.keys(CONTRACT.commands.stop_stream_capture.request));
   assert.equal(sum.ended, 'stopped');
   assert.ok(s.ended && s.endReason === 'stopped');
   assert.equal(s.stats().blocks, 4, 'final block counted');
@@ -174,7 +177,7 @@ test('device loss ends the session by itself and reports the reason', async () =
   assert.ok(s.ended);
   assert.equal(ended.reason, 'deviceLost');
   assert.equal(ended.summary.ended, 'deviceLost');
-  assert.equal(f.calls.filter(c => c[0] === 'stop_stream_capture').length, 1, 'the ended session is reaped');
+  assert.deepEqual(f.calls.filter(c => c[0] === 'stop_stream_capture').map(c => c[1]), [{ streamId: 10 }], 'the ended session is reaped by its own id');
   assert.equal(await s.stop(), ended.summary);
 });
 
@@ -237,6 +240,10 @@ test('live sessions register for preempt and normalise busy errors (backward-com
     await preemptCapture({ tauri: f.tauri });
     assert.ok(preempted && live.stopped);
     assert.equal(f.lease, null);
+    const [, stopArgs] = f.calls.find(c => c[0] === 'stop_live_capture');
+    assert.deepEqual(Object.keys(stopArgs), Object.keys(CONTRACT.commands.stop_live_capture.request), 'live stop names its lease (BUG-02)');
+    assert.equal(stopArgs.leaseId, live.info.leaseId);
+    assert.equal((await live.stop()).preempted, true, 'stop after a preempt returns what was recorded, once more');
   } finally {
     delete globalThis.window;
   }

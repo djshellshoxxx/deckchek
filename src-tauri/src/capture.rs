@@ -305,13 +305,37 @@ pub struct Track {
     pub window: LevelWindow,
 }
 
-/// Consumer side: bounded per-pair stereo accumulation.
+/// Frames reserved per growth step of the live accumulator (~1.4 s at 48 kHz).
+pub const GROW_FRAMES: usize = 1 << 16;
+/// Upper bound on the memory one live capture may hold for samples (all pairs,
+/// left + right, f32). `start_live_with` shortens `maxSeconds` to fit it.
+pub const LIVE_BUFFER_BUDGET_BYTES: u64 = 1 << 30;
+/// Recorded in the stream errors when the accumulator could not grow.
+pub const OUT_OF_MEMORY: &str = "Ran out of memory for the recording; the capture stopped recording here (truncated).";
+
+/// Longest `max_seconds` (<= the request) whose sample buffers fit
+/// [`LIVE_BUFFER_BUDGET_BYTES`] for `pairs` pairs at `sample_rate`.
+pub fn budget_max_seconds(max_seconds: f32, sample_rate: u32, pairs: usize) -> f32 {
+    let bytes_per_sec = sample_rate.max(1) as f64 * pairs.max(1) as f64 * 2.0 * 4.0;
+    let fit = (LIVE_BUFFER_BUDGET_BYTES as f64 / bytes_per_sec).floor() as f32;
+    max_seconds.min(fit.max(MIN_SECONDS))
+}
+
+/// Consumer side: bounded per-pair stereo accumulation. Buffers grow in
+/// [`GROW_FRAMES`] steps with fallible allocation, so a long `max_frames`
+/// reserves nothing up front and an allocation failure truncates the
+/// recording instead of aborting the process.
 #[derive(Debug)]
 pub struct Accumulator {
     pub tracks: Vec<Track>,
     max_frames: usize,
     frames: usize,
+    /// Frames every track can hold without reallocating.
+    reserved: usize,
+    grow_frames: usize,
     pub truncated: bool,
+    /// Growing the buffers failed; nothing more is recorded.
+    pub out_of_memory: bool,
     frame: Vec<f32>,
 }
 
@@ -328,18 +352,37 @@ impl Accumulator {
             .map(|p| Track {
                 pair: p.clone(),
                 offs: p.offsets(),
-                left: Vec::with_capacity(max_frames),
-                right: Vec::with_capacity(max_frames),
+                left: Vec::new(),
+                right: Vec::new(),
                 clipped_l: 0,
                 clipped_r: 0,
                 window: LevelWindow::default(),
             })
             .collect();
-        Self { tracks, max_frames, frames: 0, truncated: false, frame: Vec::new() }
+        Self { tracks, max_frames, frames: 0, reserved: 0, grow_frames: GROW_FRAMES, truncated: false, out_of_memory: false, frame: Vec::new() }
     }
 
-    fn push_frame(tracks: &mut [Track], frames: &mut usize, max_frames: usize, truncated: &mut bool, frame: &[f32]) {
-        let full = *frames >= max_frames;
+    /// Reserves the next growth step for every track. False when the
+    /// allocator refuses (the caller then stops recording).
+    fn grow(tracks: &mut [Track], reserved: &mut usize, max_frames: usize, step: usize) -> bool {
+        let want = step.max(1).min(max_frames.saturating_sub(*reserved));
+        for t in tracks.iter_mut() {
+            for buf in [&mut t.left, &mut t.right] {
+                if buf.try_reserve_exact((*reserved + want).saturating_sub(buf.len())).is_err() {
+                    return false;
+                }
+            }
+        }
+        *reserved += want;
+        true
+    }
+
+    fn push_frame(&mut self, frame: &[f32]) {
+        let Self { tracks, max_frames, frames, reserved, grow_frames, truncated, out_of_memory, .. } = self;
+        if !*out_of_memory && *frames < *max_frames && *frames >= *reserved && !Self::grow(tracks, reserved, *max_frames, *grow_frames) {
+            *out_of_memory = true;
+        }
+        let full = *frames >= *max_frames || *out_of_memory;
         for t in tracks.iter_mut() {
             let (l, r) = pair_samples(frame, t.offs);
             t.window.push(l, r);
@@ -360,8 +403,10 @@ impl Accumulator {
     /// Drains all whole frames currently in the ring. Frames beyond the bound
     /// are discarded and `truncated` is set. Returns frames consumed.
     pub fn drain(&mut self, consumer: &mut Consumer<f32>, channels: usize) -> usize {
-        let Self { tracks, max_frames, frames, truncated, frame } = self;
-        drain_frames(consumer, channels, frame, |f| Self::push_frame(tracks, frames, *max_frames, truncated, f))
+        let mut frame = std::mem::take(&mut self.frame);
+        let n = drain_frames(consumer, channels, &mut frame, |f| self.push_frame(f));
+        self.frame = frame;
+        n
     }
 
     /// Levels of every pair since the previous call (and resets the windows).
@@ -388,6 +433,13 @@ impl Accumulator {
                 clipped_samples_r: t.clipped_r,
             }));
         }
+    }
+
+    /// Growth step override, so tests can force an allocation failure.
+    #[cfg(test)]
+    pub fn with_grow_step(mut self, step: usize) -> Self {
+        self.grow_frames = step;
+        self
     }
 
     /// Per-pair samples, consuming the accumulator.
@@ -1053,13 +1105,30 @@ struct StreamSession {
 
 /// Managed capture state: the live session slot, the stream session slot and
 /// the process-wide `CaptureLease` they both acquire.
-#[derive(Clone, Default)]
+///
+/// The slot mutexes are only ever held for short bookkeeping, never while a
+/// device opens or a thread is joined, so status polls, restore's
+/// `is_running` check and preempt never wait on a driver.
+#[derive(Clone)]
 pub struct LiveCaptureState {
     session: Arc<Mutex<Option<Session>>>,
     stream: Arc<Mutex<Option<StreamSession>>>,
     pub(crate) lease: CaptureLease,
     /// Cancel flag of the running bounded capture, by lease id.
     bounded: Arc<Mutex<Option<BoundedSlot>>>,
+    open_timeout: Duration,
+}
+
+impl Default for LiveCaptureState {
+    fn default() -> Self {
+        Self {
+            session: Arc::default(),
+            stream: Arc::default(),
+            lease: CaptureLease::default(),
+            bounded: Arc::default(),
+            open_timeout: OPEN_TIMEOUT,
+        }
+    }
 }
 
 /// (lease id, cancel flag) of a running bounded capture.
@@ -1141,8 +1210,15 @@ fn device_source(device_name: Option<String>, sample_rate: Option<u32>, firsts: 
     })
 }
 
-/// Spawns the source thread and waits (<= 10 s) for it to open.
-fn open_source(opener: Opener, shared: Arc<Shared>, stop: Arc<AtomicBool>) -> Result<(SourceInfo, Consumer<f32>, JoinHandle<()>), String> {
+/// How long a session waits for the input to open.
+pub const OPEN_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Spawns the source thread and waits (<= `timeout`) for it to open. On a
+/// timeout the thread is told to stop and detached, never joined: it may be
+/// stuck inside the driver's open, and joining would make the timeout
+/// meaningless. It exits by itself once the open returns (its `ready.send`
+/// fails and `stop` is already set). Callers hold no capture lock meanwhile.
+fn open_source(opener: Opener, shared: Arc<Shared>, stop: Arc<AtomicBool>, timeout: Duration) -> Result<(SourceInfo, Consumer<f32>, JoinHandle<()>), String> {
     let (tx, rx) = mpsc::channel();
     let thread = {
         let stop = stop.clone();
@@ -1151,16 +1227,18 @@ fn open_source(opener: Opener, shared: Arc<Shared>, stop: Arc<AtomicBool>) -> Re
             .spawn(move || opener(shared, stop, tx))
             .map_err(|e| e.to_string())?
     };
-    let ready = rx
-        .recv_timeout(Duration::from_secs(10))
-        .map_err(|_| "Timed out opening the audio input.".to_string())
-        .and_then(|r| r);
-    match ready {
-        Ok((info, consumer)) => Ok((info, consumer, thread)),
-        Err(e) => {
+    match rx.recv_timeout(timeout) {
+        Ok(Ok((info, consumer))) => Ok((info, consumer, thread)),
+        Ok(Err(e)) => {
+            // The opener reported its failure and is returning: joining is quick.
             stop.store(true, Relaxed);
             let _ = thread.join();
             Err(e)
+        }
+        Err(_) => {
+            stop.store(true, Relaxed);
+            drop(thread);
+            Err("Timed out opening the audio input.".to_string())
         }
     }
 }
@@ -1190,10 +1268,15 @@ fn consumer_thread_main(
     let max_frames = (info.sample_rate as f64 * info.max_seconds as f64).ceil() as usize;
     let mut acc = Accumulator::with_pairs(max_frames, &info.pairs);
     let mut last_emit = Instant::now();
+    let mut oom_reported = false;
     loop {
         let stopping = stop.load(Relaxed);
         acc.drain(&mut consumer, channels);
         acc.publish(&shared);
+        if acc.out_of_memory && !oom_reported {
+            oom_reported = true;
+            shared.record_error(OUT_OF_MEMORY.to_string());
+        }
         if stopping {
             break;
         }
@@ -1223,17 +1306,19 @@ fn start_live_with(
 ) -> Result<LiveCaptureInfo, CaptureError> {
     let grant = state.lease.acquire(holder.unwrap_or(DEFAULT_LIVE_HOLDER), device_name, LeaseKind::Live)?;
     let result = (|| -> Result<LiveCaptureInfo, CaptureError> {
-        let mut slot = lock(&state.session);
-        if slot.is_some() {
+        if lock(&state.session).is_some() {
             // Unreachable while the lease is honoured; kept as a guard.
             return Err("A live capture is already running.".into());
         }
-        let max_seconds = clamp_max_seconds(max_seconds);
         let shared = Arc::new(Shared::default());
         let stream_stop = Arc::new(AtomicBool::new(false));
         let consumer_stop = Arc::new(AtomicBool::new(false));
-        let (source, consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone())?;
+        // Opened without holding the session slot: a hung driver open must not
+        // block status polls, stop, preempt or restore (BUG-05).
+        let (source, consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone(), state.open_timeout)?;
         let (pairs, stream_thread) = resolve_for_source(firsts.as_deref(), &source, &stream_stop, stream_thread)?;
+        // The whole recording is kept in memory: bound it (BUG-15).
+        let max_seconds = budget_max_seconds(clamp_max_seconds(max_seconds), source.sample_rate, pairs.len());
         let info = LiveCaptureInfo {
             device_name: source.device_name,
             sample_rate: source.sample_rate,
@@ -1257,7 +1342,16 @@ fn start_live_with(
                 return Err(e.to_string().into());
             }
         };
-        *slot = Some(Session { info: info.clone(), started, shared, stream_stop, consumer_stop, stream_thread, consumer_thread });
+        let session = Session { info: info.clone(), started, shared, stream_stop, consumer_stop, stream_thread, consumer_thread };
+        let mut slot = lock(&state.session);
+        if slot.is_some() || !state.lease.current().is_some_and(|g| g.lease_id == grant.lease_id) {
+            // Preempted while opening (or the guard above was bypassed): never
+            // leave an unowned session running.
+            drop(slot);
+            let _ = end_session(state, session);
+            return Err(crate::audio::CAPTURE_CANCELLED.into());
+        }
+        *slot = Some(session);
         Ok(info)
     })();
     if result.is_err() {
@@ -1266,10 +1360,27 @@ fn start_live_with(
     result
 }
 
-fn stop_blocking(state: &LiveCaptureState) -> Result<LiveCaptureResult, String> {
-    let session = lock(&state.session)
-        .take()
-        .ok_or_else(|| "No live capture is running.".to_string())?;
+/// Takes the session out of its slot if it is the one `lease_id` names
+/// (`None`: whatever runs, for preempt). A stop naming a lease that is no
+/// longer in the slot was preempted, so it gets `CAPTURE_CANCELLED` and never
+/// another feature's session (BUG-02).
+fn take_session(state: &LiveCaptureState, lease_id: Option<u64>) -> Result<Session, String> {
+    let mut slot = lock(&state.session);
+    match (slot.as_ref(), lease_id) {
+        (None, None) => Err("No live capture is running.".to_string()),
+        (Some(s), Some(id)) if s.info.lease_id != id => Err(crate::audio::CAPTURE_CANCELLED.to_string()),
+        (None, Some(_)) => Err(crate::audio::CAPTURE_CANCELLED.to_string()),
+        _ => Ok(slot.take().expect("checked above")),
+    }
+}
+
+fn stop_blocking(state: &LiveCaptureState, lease_id: Option<u64>) -> Result<LiveCaptureResult, String> {
+    let session = take_session(state, lease_id)?;
+    end_session(state, session)
+}
+
+/// Stops a session that is no longer in the slot and releases its lease.
+fn end_session(state: &LiveCaptureState, session: Session) -> Result<LiveCaptureResult, String> {
     session.stream_stop.store(true, Relaxed);
     let _ = session.stream_thread.join();
     session.consumer_stop.store(true, Relaxed);
@@ -1300,16 +1411,17 @@ fn start_stream_with<S: BlockSink>(
 ) -> Result<StreamInfo, CaptureError> {
     let grant = state.lease.acquire(holder.unwrap_or(DEFAULT_STREAM_HOLDER), device_name, LeaseKind::Stream)?;
     let result = (|| -> Result<StreamInfo, CaptureError> {
-        let mut slot = lock(&state.stream);
         // A session that ended by itself (device lost, webview gone) has
-        // already released the lease; reap it.
-        if let Some(old) = slot.take() {
+        // already released the lease; reap it. Taken out under the lock,
+        // finished (joined) outside it.
+        let old = lock(&state.stream).take();
+        if let Some(old) = old {
             finish_stream(state, old);
         }
         let block_ms = clamp_block_ms(block_ms);
         let shared = Arc::new(Shared::default());
         let stream_stop = Arc::new(AtomicBool::new(false));
-        let (source, mut consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone())?;
+        let (source, mut consumer, stream_thread) = open_source(opener, shared.clone(), stream_stop.clone(), state.open_timeout)?;
         let (pairs, stream_thread) = resolve_for_source(firsts.as_deref(), &source, &stream_stop, stream_thread)?;
         let bf = block_frames(source.sample_rate, block_ms);
         let info = StreamInfo {
@@ -1343,7 +1455,14 @@ fn start_stream_with<S: BlockSink>(
                 return Err(e.to_string().into());
             }
         };
-        *slot = Some(StreamSession { info: info.clone(), shared, ctl, stream_stop, stream_thread, pump_thread });
+        let session = StreamSession { info: info.clone(), shared, ctl, stream_stop, stream_thread, pump_thread };
+        let mut slot = lock(&state.stream);
+        if slot.is_some() || !state.lease.current().is_some_and(|g| g.lease_id == grant.lease_id) {
+            drop(slot);
+            finish_stream(state, session);
+            return Err(crate::audio::CAPTURE_CANCELLED.into());
+        }
+        *slot = Some(session);
         Ok(info)
     })();
     if result.is_err() {
@@ -1378,10 +1497,19 @@ fn finish_stream(state: &LiveCaptureState, s: StreamSession) -> StreamSummary {
     }
 }
 
-fn stop_stream_blocking(state: &LiveCaptureState) -> Result<StreamSummary, String> {
-    let session = lock(&state.stream)
-        .take()
-        .ok_or_else(|| "No stream capture is running.".to_string())?;
+/// Stops (or reaps) the stream `stream_id` names (`None`: whatever is in the
+/// slot, for preempt). A stream that is no longer in the slot was preempted
+/// or reaped by a newer stream: `CAPTURE_CANCELLED`, never the newer one (BUG-02).
+fn stop_stream_blocking(state: &LiveCaptureState, stream_id: Option<u64>) -> Result<StreamSummary, String> {
+    let session = {
+        let mut slot = lock(&state.stream);
+        match (slot.as_ref(), stream_id) {
+            (None, None) => return Err("No stream capture is running.".to_string()),
+            (Some(s), Some(id)) if s.info.stream_id != id => return Err(crate::audio::CAPTURE_CANCELLED.to_string()),
+            (None, Some(_)) => return Err(crate::audio::CAPTURE_CANCELLED.to_string()),
+            _ => slot.take().expect("checked above"),
+        }
+    };
     Ok(finish_stream(state, session))
 }
 
@@ -1393,36 +1521,63 @@ fn ack_stream(state: &LiveCaptureState, stream_id: u64, seq: u32) {
     }
 }
 
+/// Error code prefix when the holder did not let go within [`PREEMPT_WAIT`].
+pub const CAPTURE_STOPPING: &str = "CAPTURE_STOPPING";
+
 /// Stops whatever holds the lease ("Stop <holder> and continue"). Returns the
 /// grant that was stopped, or None when the input was free.
-fn preempt_blocking(state: &LiveCaptureState) -> Option<LeaseGrant> {
-    let current = state.lease.current()?;
-    match current.kind {
-        LeaseKind::Live => {
-            let _ = stop_blocking(state);
-        }
-        LeaseKind::Stream => {
-            let _ = stop_stream_blocking(state);
-        }
-        LeaseKind::Bounded => {
-            if let Some((id, cancel)) = lock(&state.bounded).as_ref() {
-                if *id == current.lease_id {
-                    cancel.store(true, Relaxed);
-                }
-            }
-            // The capture notices within ~50 ms and releases its lease.
-            let deadline = Instant::now() + BOUNDED_STOP_WAIT;
-            while state.lease.current().is_some_and(|g| g.lease_id == current.lease_id) && Instant::now() < deadline {
-                thread::sleep(Duration::from_millis(5));
-            }
-        }
-        LeaseKind::External => {}
-    }
-    state.lease.release(current.lease_id);
-    Some(current)
+///
+/// The lease is only released by its owner (session stop, bounded guard) or,
+/// for an external lease, here. A live or stream session that is still
+/// opening, or a bounded capture that has not noticed its cancel flag yet,
+/// keeps the input; after [`PREEMPT_WAIT`] the preempter gets
+/// `CAPTURE_STOPPING` instead of a lease that is free on paper while a stream
+/// still runs on the device (BUG-09).
+fn preempt_blocking(state: &LiveCaptureState) -> Result<Option<LeaseGrant>, String> {
+    preempt_with_wait(state, PREEMPT_WAIT)
 }
 
-const BOUNDED_STOP_WAIT: Duration = Duration::from_secs(5);
+fn preempt_with_wait(state: &LiveCaptureState, wait: Duration) -> Result<Option<LeaseGrant>, String> {
+    let Some(current) = state.lease.current() else { return Ok(None) };
+    let id = current.lease_id;
+    let still_held = || state.lease.current().is_some_and(|g| g.lease_id == id);
+    let deadline = Instant::now() + wait;
+    loop {
+        match current.kind {
+            LeaseKind::Live => {
+                if let Ok(s) = take_session(state, Some(id)) {
+                    let _ = end_session(state, s);
+                }
+            }
+            LeaseKind::Stream => {
+                let _ = stop_stream_blocking(state, Some(id));
+            }
+            LeaseKind::Bounded => {
+                if let Some((bid, cancel)) = lock(&state.bounded).as_ref() {
+                    if *bid == id {
+                        cancel.store(true, Relaxed);
+                    }
+                }
+            }
+            LeaseKind::External => {
+                state.lease.release(id);
+            }
+        }
+        if !still_held() {
+            return Ok(Some(current));
+        }
+        if Instant::now() >= deadline {
+            return Err(format!(
+                "{CAPTURE_STOPPING}: \"{}\" is still stopping and holds the audio input. Try again in a moment.",
+                current.holder
+            ));
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+}
+
+/// How long a preempt waits for the holder to let go of the input.
+const PREEMPT_WAIT: Duration = Duration::from_secs(5);
 
 /// Releases the bounded lease and its cancel slot even if the capture panics.
 struct BoundedGuard<'a> {
@@ -1490,10 +1645,13 @@ pub async fn start_live_capture(
     .map_err(|e| CaptureError::Message(e.to_string()))?
 }
 
+/// Stops the live session `lease_id` (from `start_live_capture`) and returns
+/// its audio. A session that was preempted gets `CAPTURE_CANCELLED`; the
+/// session of another feature is never stopped or returned (BUG-02).
 #[tauri::command]
-pub async fn stop_live_capture(state: State<'_, LiveCaptureState>) -> Result<LiveCaptureResult, String> {
+pub async fn stop_live_capture(state: State<'_, LiveCaptureState>, lease_id: u64) -> Result<LiveCaptureResult, String> {
     let state = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || stop_blocking(&state))
+    tauri::async_runtime::spawn_blocking(move || stop_blocking(&state, Some(lease_id)))
         .await
         .map_err(|e| e.to_string())?
 }
@@ -1546,7 +1704,7 @@ pub async fn capture_preempt(app: AppHandle, state: State<'_, LiveCaptureState>)
     let state = state.inner().clone();
     let stopped = tauri::async_runtime::spawn_blocking(move || preempt_blocking(&state))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())??;
     if let Some(g) = &stopped {
         let _ = app.emit("capture-preempted", g);
     }
@@ -1579,10 +1737,11 @@ pub fn stream_capture_ack(state: State<'_, LiveCaptureState>, stream_id: u64, se
     ack_stream(state.inner(), stream_id, seq);
 }
 
+/// Stops (or reaps) the stream `stream_id` names; see `stop_live_capture`.
 #[tauri::command]
-pub async fn stop_stream_capture(state: State<'_, LiveCaptureState>) -> Result<StreamSummary, String> {
+pub async fn stop_stream_capture(state: State<'_, LiveCaptureState>, stream_id: u64) -> Result<StreamSummary, String> {
     let state = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || stop_stream_blocking(&state))
+    tauri::async_runtime::spawn_blocking(move || stop_stream_blocking(&state, Some(stream_id)))
         .await
         .map_err(|e| e.to_string())?
 }
@@ -1937,16 +2096,16 @@ mod tests {
 
         assert!(wait_until(Duration::from_secs(5), || state.session.lock().unwrap().as_ref().unwrap().shared.snapshot().frames_captured == 4800));
         thread::sleep(LEVEL_INTERVAL * 2);
-        let r = stop_blocking(&state).unwrap();
+        let r = stop_blocking(&state, None).unwrap();
         assert_eq!(r.payload.left.len(), 4800);
         assert!(r.payload.left.iter().enumerate().all(|(i, &v)| v == synth_value(i as u64)));
         assert!(r.payload.right.iter().zip(&r.payload.left).all(|(&r, &l)| r == -l));
         assert!(levels.load(Relaxed) >= 1, "capture-levels still emitted");
         assert!(!state.lease.is_held() && !is_running(&state));
-        assert!(stop_blocking(&state).is_err());
+        assert!(stop_blocking(&state, None).is_err());
         let again = start_live_with(&state, Some("pre-gig"), None, 1.0, None, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap();
         assert_eq!(state.lease.status().holder.as_deref(), Some("pre-gig"));
-        stop_blocking(&state).unwrap();
+        stop_blocking(&state, None).unwrap();
         assert!(again.lease_id > info.lease_id);
     }
 
@@ -1965,21 +2124,21 @@ mod tests {
     #[test]
     fn preempt_stops_a_live_session_and_frees_the_input() {
         let state = LiveCaptureState::default();
-        assert!(preempt_blocking(&state).is_none(), "nothing to stop");
+        assert!(preempt_blocking(&state).unwrap().is_none(), "nothing to stop");
         let info = start_live_with(&state, None, None, 5.0, None, synthetic_source(Synth::lossless(48000, 480)), no_levels()).unwrap();
-        let stopped = preempt_blocking(&state).unwrap();
+        let stopped = preempt_blocking(&state).unwrap().unwrap();
         assert_eq!((stopped.lease_id, stopped.kind), (info.lease_id, LeaseKind::Live));
         assert!(state.session.lock().unwrap().is_none() && !state.lease.is_held());
         let (sink, _) = collecting_sink();
         start_stream_with(&state, Some("live-monitor"), None, None, None, synthetic_source(Synth::lossless(48000, 10)), sink).unwrap();
-        stop_stream_blocking(&state).unwrap();
+        stop_stream_blocking(&state, None).unwrap();
     }
 
     #[test]
     fn preempt_releases_an_external_lease() {
         let state = LiveCaptureState::default();
         let g = state.lease.acquire("latency-tuner", None, LeaseKind::External).unwrap();
-        assert_eq!(preempt_blocking(&state).unwrap(), g);
+        assert_eq!(preempt_blocking(&state).unwrap().unwrap(), g);
         assert!(!state.lease.is_held());
         assert!(!release_external(&state, g.lease_id));
     }
@@ -2080,7 +2239,7 @@ mod tests {
         }
         ack_stream(&state, info.stream_id + 99, 50); // other stream: ignored
         assert!(wait_until(Duration::from_secs(5), || state.stream.lock().unwrap().as_ref().unwrap().shared.frames_captured.load(Relaxed) == 50));
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         let blocks = got.lock().unwrap().clone();
         assert_eq!(blocks.iter().map(|b| (b.seq, b.left.len(), b.quality.final_block)).collect::<Vec<_>>(), vec![(0, 20, false), (1, 20, false), (2, 10, true)]);
         let left: Vec<f32> = blocks.iter().flat_map(|b| b.left.clone()).collect();
@@ -2089,7 +2248,7 @@ mod tests {
         assert_eq!((sum.ended, sum.blocks_sent, sum.last_seq, sum.dropped_blocks, sum.frames_captured), (StreamEnd::Stopped, 3, Some(2), 0, 50));
         assert_eq!(blocks[2].quality.frames_captured, 50);
         assert!(!state.lease.is_held());
-        assert!(stop_stream_blocking(&state).is_err());
+        assert!(stop_stream_blocking(&state, None).is_err());
     }
 
     #[test]
@@ -2101,7 +2260,7 @@ mod tests {
         assert_eq!(info.holder, DEFAULT_STREAM_HOLDER);
         assert!(wait_until(Duration::from_secs(5), || state.stream.lock().unwrap().as_ref().unwrap().shared.frames_captured.load(Relaxed) == 400));
         thread::sleep(PUMP_IDLE * 4);
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         let blocks = got.lock().unwrap().clone();
         assert_eq!(sum.dropped_blocks, 15);
         assert_eq!(blocks.len(), 6, "5 blocks fit the lag window, then an empty final block");
@@ -2132,7 +2291,7 @@ mod tests {
         let (sink2, _) = collecting_sink();
         let next = start_stream_with(&state, Some("wear-map"), None, Some(20), None, synthetic_source(Synth::lossless(1000, 10)), sink2).unwrap();
         assert!(next.stream_id > info.stream_id);
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         assert_eq!(sum.stream_id, next.stream_id);
     }
 
@@ -2143,7 +2302,7 @@ mod tests {
         let synth = Synth { fatal_after: Some(25), ..Synth::lossless(1000, 1000) };
         start_stream_with(&state, None, None, Some(20), None, synthetic_source(synth), sink).unwrap();
         assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()));
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         assert_eq!(sum.ended, StreamEnd::DeviceLost);
         assert!(sum.stream_errors >= 1 && sum.stream_error_messages[0].contains("no longer available"));
     }
@@ -2159,7 +2318,7 @@ mod tests {
             ack_stream(&state, state.lease.current().map_or(0, |g| g.lease_id), seq);
         }
         assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()));
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         assert_eq!((sum.ended, sum.blocks_sent), (StreamEnd::SinkClosed, 2));
     }
 
@@ -2168,12 +2327,12 @@ mod tests {
         let state = LiveCaptureState::default();
         let (sink, got) = collecting_sink();
         let info = start_stream_with(&state, Some("live-monitor"), None, Some(20), None, synthetic_source(Synth::lossless(1000, 30)), sink).unwrap();
-        let stopped = preempt_blocking(&state).unwrap();
+        let stopped = preempt_blocking(&state).unwrap().unwrap();
         assert_eq!((stopped.holder.as_str(), stopped.kind, stopped.lease_id), ("live-monitor", LeaseKind::Stream, info.stream_id));
         assert!(got.lock().unwrap().last().unwrap().quality.final_block);
         assert!(!state.lease.is_held() && state.stream.lock().unwrap().is_none());
         start_live_with(&state, None, None, 1.0, None, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap();
-        stop_blocking(&state).unwrap();
+        stop_blocking(&state, None).unwrap();
     }
 
     #[test]
@@ -2190,7 +2349,7 @@ mod tests {
         });
         start_stream_with(&state, None, None, Some(20), None, synthetic_source(Synth::lossless(1000, 40)), channel).unwrap();
         assert!(wait_until(Duration::from_secs(5), || got.lock().unwrap().len() == 2));
-        stop_stream_blocking(&state).unwrap();
+        stop_stream_blocking(&state, None).unwrap();
         assert_eq!(got.lock().unwrap().iter().map(|b| b.seq).collect::<Vec<_>>(), vec![0, 1, 2]);
     }
 
@@ -2238,7 +2397,7 @@ mod tests {
         assert_eq!((info.channels, labels(&info.pairs)), (8, vec!["3-4", "7-8"]));
         assert!(wait_until(Duration::from_secs(5), || state.session.lock().unwrap().as_ref().unwrap().shared.snapshot().frames_captured == 960));
         thread::sleep(LEVEL_INTERVAL * 2);
-        let r = stop_blocking(&state).unwrap();
+        let r = stop_blocking(&state, None).unwrap();
         let p = &r.payload;
         assert_eq!((p.left.len(), labels(&p.pairs)), (960, vec!["3-4", "7-8"]));
         assert!(p.left.iter().enumerate().all(|(i, &v)| v == synth_value(i as u64) + 20.0), "left = channel 3");
@@ -2264,7 +2423,7 @@ mod tests {
         let info = start_live_with(&state, None, None, 5.0, None, synthetic_source(synth_ch(8, 48000, 480)), no_levels()).unwrap();
         assert_eq!(labels(&info.pairs), ["1-2"]);
         assert!(wait_until(Duration::from_secs(5), || state.session.lock().unwrap().as_ref().unwrap().shared.snapshot().frames_captured == 480));
-        let r = stop_blocking(&state).unwrap();
+        let r = stop_blocking(&state, None).unwrap();
         assert!(r.payload.left.iter().enumerate().all(|(i, &v)| v == synth_value(i as u64)));
         assert!(r.payload.right.iter().zip(&r.payload.left).all(|(&r, &l)| r == -l));
         assert!(r.payload.extra_pairs.is_empty());
@@ -2288,7 +2447,7 @@ mod tests {
         // The input is free again straight away.
         let ok = start_live_with(&state, None, None, 1.0, Some(vec![7]), synthetic_source(synth_ch(8, 48000, 10)), no_levels()).unwrap();
         assert_eq!(labels(&ok.pairs), ["7-8"]);
-        stop_blocking(&state).unwrap();
+        stop_blocking(&state, None).unwrap();
     }
 
     #[test]
@@ -2300,7 +2459,7 @@ mod tests {
         assert_eq!((info.channels, labels(&info.pairs)), (5, vec!["5", "1-2", "3-4"]));
         assert!(info.pairs[0].mono);
         assert!(wait_until(Duration::from_secs(5), || state.stream.lock().unwrap().as_ref().unwrap().shared.frames_captured.load(Relaxed) == 50));
-        let sum = stop_stream_blocking(&state).unwrap();
+        let sum = stop_stream_blocking(&state, None).unwrap();
         let blocks = got.lock().unwrap().clone();
         assert_eq!(blocks.iter().map(|b| (b.seq, b.left.len(), b.extra.len())).collect::<Vec<_>>(), vec![(0, 20, 2), (1, 20, 2), (2, 10, 2)]);
         assert_eq!(sum.frames_captured, 50);
@@ -2329,7 +2488,7 @@ mod tests {
         let info = start_stream_with(&state, None, None, Some(20), None, synthetic_source(synth_ch(8, 1000, 20)), sink).unwrap();
         assert_eq!(labels(&info.pairs), ["1-2"]);
         assert!(wait_until(Duration::from_secs(5), || !got.lock().unwrap().is_empty()));
-        stop_stream_blocking(&state).unwrap();
+        stop_stream_blocking(&state, None).unwrap();
         for b in got.lock().unwrap().iter() {
             assert_eq!(u16::from_le_bytes([b[4], b[5]]), STREAM_VERSION);
             assert_eq!(&b[28..32], &[0, 0, 0, 0]);
@@ -2371,7 +2530,7 @@ mod tests {
                 with_bounded_lease(&state, None, None, |cancel| {
                     started_tx.send(()).unwrap();
                     let wait = mpsc::channel::<()>();
-                    crate::audio::wait_for_capture(&wait.1, Duration::from_secs(10), cancel)
+                    crate::audio::wait_for_capture(&wait.1, Duration::from_secs(10), cancel, &AtomicBool::new(false))
                 })
             })
         };
@@ -2384,7 +2543,7 @@ mod tests {
         assert!(!release_external(&state, st.lease_id.unwrap()), "only the capture itself releases a bounded lease");
         // Stop and continue: cancels the capture, frees the input.
         let started = Instant::now();
-        let stopped = preempt_blocking(&state).unwrap();
+        let stopped = preempt_blocking(&state).unwrap().unwrap();
         assert_eq!(stopped.kind, LeaseKind::Bounded);
         assert!(started.elapsed() < Duration::from_secs(2));
         assert_eq!(runner.join().unwrap().unwrap_err(), CaptureError::Message(crate::audio::CAPTURE_CANCELLED.into()));
@@ -2392,7 +2551,178 @@ mod tests {
         let busy_live = start_live_with(&state, None, None, 1.0, None, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap();
         let b = busy(with_bounded_lease(&state, None, None, |_| Ok(())).unwrap_err());
         assert_eq!(b.lease_id, busy_live.lease_id);
-        stop_blocking(&state).unwrap();
+        stop_blocking(&state, None).unwrap();
+    }
+
+    // ------------------------------------------------- audit regressions
+
+    /// BUG-02: a stop names the lease it owns. After a preempt, the old owner's
+    /// stop gets CAPTURE_CANCELLED and never stops or returns the new holder's capture.
+    #[test]
+    fn live_stop_only_stops_the_named_lease() {
+        let state = LiveCaptureState::default();
+        let quick = start_live_with(&state, None, None, 5.0, None, synthetic_source(Synth::lossless(48000, 480)), no_levels()).unwrap();
+        assert_eq!(stop_blocking(&state, Some(quick.lease_id + 1000)).unwrap_err(), crate::audio::CAPTURE_CANCELLED);
+        assert!(state.session.lock().unwrap().is_some(), "a wrong id stops nothing");
+        preempt_blocking(&state).unwrap().unwrap();
+        let pregig = start_live_with(&state, Some("pre-gig"), None, 5.0, None, synthetic_source(Synth::lossless(48000, 480)), no_levels()).unwrap();
+        // Quick Check's timer fires and stops "its" capture.
+        assert_eq!(stop_blocking(&state, Some(quick.lease_id)).unwrap_err(), crate::audio::CAPTURE_CANCELLED);
+        assert_eq!(state.lease.status().lease_id, Some(pregig.lease_id), "pre-gig keeps the input");
+        assert!(stop_blocking(&state, Some(pregig.lease_id)).is_ok(), "pre-gig gets its own audio");
+        assert!(!state.lease.is_held());
+        assert_eq!(stop_blocking(&state, None).unwrap_err(), "No live capture is running.");
+    }
+
+    #[test]
+    fn stream_stop_and_reap_only_touch_the_named_stream() {
+        let state = LiveCaptureState::default();
+        let mut synth = Synth::lossless(1000, 1000);
+        synth.fatal_after = Some(20);
+        let (sink, _) = collecting_sink();
+        let lost = start_stream_with(&state, None, None, Some(20), None, synthetic_source(synth), sink).unwrap();
+        assert!(wait_until(Duration::from_secs(5), || !state.lease.is_held()), "device loss releases the lease");
+        // A newer stream starts (reaping the lost one) before the old owner reaps it.
+        let (sink, _) = collecting_sink();
+        let next = start_stream_with(&state, Some("wear-map"), None, Some(20), None, synthetic_source(Synth::lossless(1000, 1000)), sink).unwrap();
+        assert_eq!(stop_stream_blocking(&state, Some(lost.stream_id)).unwrap_err(), crate::audio::CAPTURE_CANCELLED);
+        assert_eq!(state.lease.status().lease_id, Some(next.stream_id), "the newer stream keeps running");
+        assert_eq!(stop_stream_blocking(&state, Some(next.stream_id)).unwrap().stream_id, next.stream_id);
+        assert!(!state.lease.is_held());
+    }
+
+    /// An opener stuck inside the driver until `release` is sent.
+    fn hanging_source(release: mpsc::Receiver<()>) -> Opener {
+        Box::new(move |_shared, _stop, ready| {
+            let _ = release.recv();
+            let (_p, consumer) = RingBuffer::<f32>::new(16);
+            let info = SourceInfo { device_name: "Late".into(), sample_rate: 48000, channels: 2 };
+            let _ = ready.send(Ok((info, consumer)));
+        })
+    }
+
+    /// BUG-05: the open timeout really bounds the start, and no capture lock is
+    /// held while the driver hangs.
+    #[test]
+    fn a_hung_open_times_out_without_holding_the_capture_locks() {
+        let mut state = LiveCaptureState::default();
+        state.open_timeout = Duration::from_millis(300);
+        let (release, rx) = mpsc::channel();
+        let starter = {
+            let state = state.clone();
+            thread::spawn(move || {
+                let t = Instant::now();
+                (start_live_with(&state, None, None, 5.0, None, hanging_source(rx), no_levels()), t.elapsed())
+            })
+        };
+        assert!(wait_until(Duration::from_secs(2), || state.lease.is_held()));
+        // Status polls, restore's check and stop never wait on the driver.
+        assert!(state.session.try_lock().is_ok() && state.stream.try_lock().is_ok());
+        assert!(is_running(&state));
+        let (result, took) = starter.join().unwrap();
+        assert_eq!(result.unwrap_err(), CaptureError::Message("Timed out opening the audio input.".into()));
+        assert!(took < Duration::from_secs(2), "returned after the timeout, not after the driver: {took:?}");
+        assert!(!state.lease.is_held(), "the lease is released on timeout");
+        release.send(()).unwrap(); // the detached opener finishes and exits by itself
+
+        let (release, rx) = mpsc::channel::<()>();
+        let (sink, _) = collecting_sink();
+        let t = Instant::now();
+        let e = start_stream_with(&state, None, None, None, None, hanging_source(rx), sink).unwrap_err();
+        assert_eq!(e, CaptureError::Message("Timed out opening the audio input.".into()));
+        assert!(t.elapsed() < Duration::from_secs(2));
+        drop(release);
+    }
+
+    /// BUG-09: a bounded capture that has not noticed the cancel keeps its
+    /// lease; the preempter gets CAPTURE_STOPPING instead of a free input.
+    #[test]
+    fn preempt_never_frees_the_input_while_a_bounded_capture_still_runs() {
+        let state = LiveCaptureState::default();
+        let (started_tx, started_rx) = mpsc::channel();
+        let (finish_tx, finish_rx) = mpsc::channel::<()>();
+        let runner = {
+            let state = state.clone();
+            thread::spawn(move || {
+                with_bounded_lease(&state, Some("hum-hunter"), None, |_cancel| {
+                    started_tx.send(()).unwrap();
+                    let _ = finish_rx.recv(); // stuck in device setup, not polling cancel
+                    Ok(())
+                })
+            })
+        };
+        started_rx.recv().unwrap();
+        let held = state.lease.current().unwrap();
+        let e = preempt_with_wait(&state, Duration::from_millis(100)).unwrap_err();
+        assert!(e.starts_with(CAPTURE_STOPPING) && e.contains("hum-hunter"), "{e}");
+        assert_eq!(state.lease.current(), Some(held.clone()), "the running capture keeps the input");
+        assert!(busy(start_live_with(&state, None, None, 1.0, None, synthetic_source(Synth::lossless(48000, 10)), no_levels()).unwrap_err()).lease_id == held.lease_id);
+        finish_tx.send(()).unwrap();
+        runner.join().unwrap().unwrap();
+        assert!(!state.lease.is_held(), "released when the capture actually ends");
+        assert!(preempt_with_wait(&state, Duration::from_millis(100)).unwrap().is_none());
+    }
+
+    #[test]
+    fn preempt_waits_for_a_live_session_that_is_still_opening() {
+        let state = LiveCaptureState::default();
+        let (release, rx) = mpsc::channel();
+        let starter = {
+            let state = state.clone();
+            thread::spawn(move || start_live_with(&state, None, None, 5.0, None, hanging_source(rx), no_levels()))
+        };
+        assert!(wait_until(Duration::from_secs(2), || state.lease.is_held()));
+        let e = preempt_with_wait(&state, Duration::from_millis(50)).unwrap_err();
+        assert!(e.starts_with(CAPTURE_STOPPING), "{e}");
+        assert!(state.lease.is_held(), "not released behind the opening session's back");
+        release.send(()).unwrap();
+        let info = starter.join().unwrap().unwrap();
+        let stopped = preempt_with_wait(&state, Duration::from_secs(2)).unwrap().unwrap();
+        assert_eq!(stopped.lease_id, info.lease_id);
+        assert!(!state.lease.is_held() && state.session.lock().unwrap().is_none());
+    }
+
+    /// BUG-15: nothing is reserved up front for a long maximum, growth is in
+    /// steps, an allocation failure truncates instead of aborting, and the
+    /// requested maximum is bounded by a memory budget.
+    #[test]
+    fn live_accumulator_grows_on_demand_and_survives_allocation_failure() {
+        let pairs = crate::audio::input_pairs(8);
+        let acc = Accumulator::with_pairs(usize::MAX / 2, &pairs);
+        assert!(acc.tracks.iter().all(|t| t.left.capacity() == 0 && t.right.capacity() == 0), "no up-front reservation");
+
+        let (mut p, mut c) = RingBuffer::<f32>::new(64);
+        push_frames(&mut p, &[0.5f32; 20], 2, |v| v);
+        let mut acc = Accumulator::new(1_000_000).with_grow_step(4);
+        assert_eq!(acc.drain(&mut c, 2), 10);
+        assert_eq!(acc.tracks[0].left.len(), 10);
+        assert!(acc.tracks[0].left.capacity() < 1000, "grew in steps, not to max_frames");
+        assert!(!acc.truncated && !acc.out_of_memory);
+
+        // A step the allocator refuses (capacity overflow here) stops recording.
+        push_frames(&mut p, &[0.25f32; 8], 2, |v| v);
+        let mut acc = Accumulator::new(usize::MAX).with_grow_step(usize::MAX / 2);
+        assert_eq!(acc.drain(&mut c, 2), 4, "the ring is still drained");
+        assert!(acc.out_of_memory && acc.truncated);
+        assert!(acc.tracks[0].left.is_empty());
+        let shared = Shared::default();
+        acc.publish(&shared);
+        assert!(shared.snapshot().truncated);
+
+        // One pair at 48 kHz for the full 1800 s fits (691 MB); 32 pairs at 192 kHz do not.
+        assert_eq!(budget_max_seconds(MAX_SECONDS, 48_000, 1), MAX_SECONDS);
+        let s = budget_max_seconds(MAX_SECONDS, 192_000, 32);
+        assert!(s < 30.0 && s >= MIN_SECONDS, "{s}");
+        assert!((192_000.0 * 32.0 * 8.0 * s as f64) <= LIVE_BUFFER_BUDGET_BYTES as f64);
+    }
+
+    #[test]
+    fn live_info_reports_the_budgeted_maximum() {
+        let state = LiveCaptureState::default();
+        let info = start_live_with(&state, None, None, MAX_SECONDS, Some(vec![1, 3, 5, 7]), synthetic_source(synth_ch(8, 192_000, 10)), no_levels()).unwrap();
+        assert_eq!(info.max_seconds, budget_max_seconds(MAX_SECONDS, 192_000, 4));
+        assert!(info.max_seconds < MAX_SECONDS);
+        stop_blocking(&state, Some(info.lease_id)).unwrap();
     }
 
     // -------------------------------------------------------- contracts
@@ -2545,7 +2875,7 @@ mod tests {
             thread::sleep(Duration::from_millis(100));
             assert!(state.lease.is_held(), "stream ended early");
         }
-        let summary = stop_stream_blocking(&state).unwrap();
+        let summary = stop_stream_blocking(&state, None).unwrap();
         let (blocks, frames, mismatched_samples, seq_gaps, discontinuities, final_seen) = webview.join().unwrap();
         let report = SpikeReport { blocks, frames, mismatched_samples, seq_gaps, discontinuities, final_seen, summary };
         eprintln!(

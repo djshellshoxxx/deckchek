@@ -200,6 +200,19 @@ pub fn parse_top_cpu(text: &str, logical_cpus: usize, n: usize) -> Vec<CpuUse> {
     out
 }
 
+pub const CPU_UNAVAILABLE: &str = "CPU usage counters are unavailable on this PC (no samples were returned).";
+
+/// Like [`parse_top_cpu`], but no samples at all is "unavailable", not an
+/// empty (and therefore passing) list.
+pub fn top_cpu_from(text: &str, logical_cpus: usize, n: usize) -> Result<Vec<CpuUse>, String> {
+    let top = parse_top_cpu(text, logical_cpus, n);
+    if top.is_empty() {
+        Err(CPU_UNAVAILABLE.to_string())
+    } else {
+        Ok(top)
+    }
+}
+
 // ---------------------------------------------------------------- live queries
 
 #[cfg(windows)]
@@ -218,10 +231,20 @@ fn cpu_output() -> Result<String, String> {
     use std::os::windows::process::CommandExt;
     use std::process::Command;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    // Fixed script: one 1 s sample of every process's CPU time, as CSV (Name,Cpu).
-    const SCRIPT: &str = "$ErrorActionPreference='SilentlyContinue'; \
-        (Get-Counter '\\Process(*)\\% Processor Time').CounterSamples | \
-        ForEach-Object { [pscustomobject]@{ Name = $_.InstanceName; Cpu = [math]::Round($_.CookedValue, 2).ToString([cultureinfo]::InvariantCulture) } } | \
+    // Fixed script: every process's CPU time over 1 s, as CSV (Name,Cpu).
+    // Uses the raw WMI performance class, whose class and property names are
+    // the same on every Windows display language (`Get-Counter` paths such as
+    // '\\Process(*)\\% Processor Time' are localized and fail on German,
+    // French, ... Windows: BUG-06). PercentProcessorTime is a 100 ns timer:
+    // percent of one core = 100 * delta(time) / delta(Timestamp_Sys100NS),
+    // the same value Get-Counter cooks. No double quotes (argument quoting).
+    const SCRIPT: &str = "$ErrorActionPreference='SilentlyContinue'; $inv=[cultureinfo]::InvariantCulture; \
+        $q={ Get-CimInstance -ClassName Win32_PerfRawData_PerfProc_Process | Where-Object { $_.Name -ne '_Total' -and $_.Name -ne 'Idle' } }; \
+        $a=@{}; foreach ($x in (& $q)) { $a[[string]$x.IDProcess]=$x }; \
+        Start-Sleep -Seconds 1; \
+        & $q | ForEach-Object { $x=$a[[string]$_.IDProcess]; if ($x -and $x.Name -eq $_.Name) { \
+            $dt=[double]$_.Timestamp_Sys100NS - [double]$x.Timestamp_Sys100NS; \
+            if ($dt -gt 0) { [pscustomobject]@{ Name=$_.Name; Cpu=[math]::Round(100.0*([double]$_.PercentProcessorTime - [double]$x.PercentProcessorTime)/$dt, 2).ToString($inv) } } } } | \
         ConvertTo-Csv -NoTypeInformation";
     let mut cmd = Command::new("powershell.exe");
     cmd.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", SCRIPT]);
@@ -258,8 +281,7 @@ pub async fn top_cpu(n: Option<usize>) -> Result<Vec<CpuUse>, String> {
 
 #[cfg(windows)]
 fn top_cpu_blocking(n: usize) -> Result<Vec<CpuUse>, String> {
-    let out = cpu_output()?;
-    Ok(parse_top_cpu(&out, logical_cpus(), n))
+    top_cpu_from(&cpu_output()?, logical_cpus(), n)
 }
 
 #[cfg(not(windows))]
@@ -376,6 +398,16 @@ mod tests {
         assert_eq!(parse_top_cpu(csv, 8, 1000).len(), 5);
         assert_eq!(parse_top_cpu(csv, 0, 1)[0].cpu_pct, 80.0); // zero cpus clamps to 1
         assert!(parse_top_cpu("", 4, 5).is_empty());
+    }
+
+    /// BUG-06: an empty query result (e.g. counters missing) is reported as
+    /// unavailable instead of an empty list that passes the background-CPU check.
+    #[test]
+    fn no_cpu_samples_is_unavailable_not_an_empty_list() {
+        assert_eq!(top_cpu_from("", 8, 5).unwrap_err(), CPU_UNAVAILABLE);
+        assert_eq!(top_cpu_from("\"Name\",\"Cpu\"\r\n\"_Total\",\"800\"\r\n", 8, 5).unwrap_err(), CPU_UNAVAILABLE);
+        let idle = top_cpu_from("\"Name\",\"Cpu\"\r\n\"svchost#4\",\"0\"\r\n", 8, 5).unwrap();
+        assert_eq!((idle[0].exe.as_str(), idle[0].cpu_pct), ("svchost.exe", 0.0), "a quiet PC still has samples");
     }
 
     #[test]

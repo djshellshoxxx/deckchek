@@ -633,10 +633,14 @@ pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 /// Installs a panic hook (chained to the previous one). Do NOT set `panic = "abort"` in release.
+///
+/// Output is silenced before anything slow happens (backtrace symbolisation,
+/// log I/O), whatever order the hooks were installed in (BUG-03).
 pub fn install_panic_hook(state: &DiagState) {
     let st = state.clone();
     let prev = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        crate::audio_out::emergency_silence();
         if st.0.enabled.load(Ordering::SeqCst) && !IN_HOOK.with(|c| c.replace(true)) {
             let thread = std::thread::current();
             let loc = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown".into());
@@ -1021,12 +1025,32 @@ pub struct BundleResult {
     parts: Vec<PartInfo>,
 }
 
-fn open_db_readonly(app: &tauri::AppHandle) -> Option<rusqlite::Connection> {
-    let path = app.path().app_data_dir().ok()?.join("deckchek.sqlite3");
+/// A read-only connection that holds the [`crate::db::gate`] read guard for its
+/// lifetime, so a restore (which takes the write guard) never swaps the file
+/// while the bundle reads it (BUG-07). The connection closes before the guard drops.
+struct GatedReadOnly {
+    conn: rusqlite::Connection,
+    _gate: std::sync::RwLockReadGuard<'static, ()>,
+}
+
+impl std::ops::Deref for GatedReadOnly {
+    type Target = rusqlite::Connection;
+    fn deref(&self) -> &rusqlite::Connection {
+        &self.conn
+    }
+}
+
+fn open_db_readonly_at(path: &Path) -> Option<GatedReadOnly> {
+    let gate = crate::db::gate().read().unwrap_or_else(std::sync::PoisonError::into_inner);
     if !path.is_file() {
         return None;
     }
-    rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()
+    let conn = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()?;
+    Some(GatedReadOnly { conn, _gate: gate })
+}
+
+fn open_db_readonly(app: &tauri::AppHandle) -> Option<GatedReadOnly> {
+    open_db_readonly_at(&app.path().app_data_dir().ok()?.join("deckchek.sqlite3"))
 }
 
 fn serials_from(conn: Option<&rusqlite::Connection>) -> Vec<String> {
@@ -1037,11 +1061,11 @@ fn serials_from(conn: Option<&rusqlite::Connection>) -> Vec<String> {
 
 fn run_parts(app: &tauri::AppHandle, state: &DiagState, opts: &BundleOpts) -> Vec<PartData> {
     let conn = open_db_readonly(app);
-    let ctx = RedactCtx::from_env(&serials_from(conn.as_ref()));
+    let ctx = RedactCtx::from_env(&serials_from(conn.as_deref()));
     let inp = BundleInputs {
         dir: state.dir(),
         app_version: &state.0.app_version,
-        conn: conn.as_ref(),
+        conn: conn.as_deref(),
         ctx: &ctx,
         opts,
         previous_marker: state.crashed_last_run(),
@@ -1299,6 +1323,20 @@ mod tests {
 
     // ---- panic hook (AC-1)
 
+    /// BUG-07: the bundle's read-only connection holds the DB gate, so a
+    /// restore (write guard) waits for it instead of swapping the file under it.
+    #[test]
+    fn bundle_db_connection_holds_the_restore_gate() {
+        let dir = tmp("gate");
+        let path = dir.join("deckchek.sqlite3");
+        rusqlite::Connection::open(&path).unwrap().execute_batch("CREATE TABLE asset (serial_number TEXT); INSERT INTO asset VALUES ('SER-1');").unwrap();
+        let conn = open_db_readonly_at(&path).expect("opens");
+        assert!(crate::db::gate().try_write().is_err(), "restore must wait while the bundle reads");
+        assert_eq!(serials_from(Some(&conn)), vec!["SER-1".to_string()]);
+        drop(conn);
+        assert!(open_db_readonly_at(&dir.join("missing.sqlite3")).is_none());
+    }
+
     #[test]
     fn only_run_event_exit_counts_as_a_clean_exit() {
         assert!(is_clean_exit_event(&tauri::RunEvent::Exit));
@@ -1310,12 +1348,15 @@ mod tests {
     fn panic_on_any_thread_is_logged_and_marker_records_it() {
         let dir = tmp("panic");
         let st = DiagState::open(&dir, "0.0.5");
+        let output = crate::audio_out::output_group();
         install_panic_hook(&st);
         let h = std::thread::Builder::new().name("worker-xyz".into()).spawn(|| {
             panic!("kaboom\nsecond line");
         }).unwrap();
         assert!(h.join().is_err());
         st.disable();
+        // BUG-03: the logging hook silences output first, whatever the hook order.
+        assert!(output.is_killed());
         let log = fs::read_to_string(dir.join("deckchek.log")).unwrap();
         let line = log.lines().find(|l| l.contains(" ERROR panic ")).expect("panic line");
         assert!(line.contains("[worker-xyz]"), "{line}");

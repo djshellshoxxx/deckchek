@@ -800,10 +800,30 @@ pub struct Tuner {
 }
 
 impl Tuner {
+    /// An ungrouped tuner (tests drive it with fake devices).
+    #[cfg(test)]
     pub fn new(factory: Arc<dyn StreamFactory>, host_api: impl Into<String>) -> Self {
+        Self::build(factory, host_api.into(), None)
+    }
+
+    /// A tuner whose output engine is a member of `group` (the app's
+    /// [`audio_out::output_group`]): its stimulus and the global engine's
+    /// voice never sound together, and exit, window close and panics silence
+    /// it like the global engine (BUG-04). The other voice is silenced only
+    /// when the tuner actually plays, i.e. after the run slot and the capture
+    /// lease are held (BUG-10).
+    pub fn grouped(factory: Arc<dyn StreamFactory>, host_api: impl Into<String>, group: Arc<audio_out::OutputGroup>) -> Self {
+        Self::build(factory, host_api.into(), Some(group))
+    }
+
+    fn build(factory: Arc<dyn StreamFactory>, host_api: String, group: Option<Arc<audio_out::OutputGroup>>) -> Self {
         let plan = Arc::new(Mutex::new(OutPlan::default()));
-        let engine = Engine::new(Box::new(TunerBackend { factory: factory.clone(), plan: plan.clone() }));
-        Self { factory, plan, engine, running: AtomicBool::new(false), abort_gen: AtomicU64::new(0), host_api: host_api.into() }
+        let backend = Box::new(TunerBackend { factory: factory.clone(), plan: plan.clone() });
+        let engine = match group {
+            Some(g) => Engine::grouped(backend, g),
+            None => Engine::new(backend),
+        };
+        Self { factory, plan, engine, running: AtomicBool::new(false), abort_gen: AtomicU64::new(0), host_api }
     }
 
     /// Esc (FS-11 AC-7): the running step ends at its next poll (<= 5 ms), the
@@ -886,7 +906,7 @@ impl Tuner {
                 notes.ran_fixed = requested.is_some();
                 Ok(h)
             }
-            (Err(e), Some(_)) if !e.starts_with("AUDIO_OUT_INVALID") && !e.starts_with("AUDIO_OUT_DISABLED") => {
+            (Err(e), Some(_)) if !e.starts_with("AUDIO_OUT_INVALID") && !e.starts_with("AUDIO_OUT_DISABLED") && !e.starts_with("AUDIO_OUT_STOPPED") => {
                 notes.fixed_error = Some(e);
                 attempt(None)
             }
@@ -1449,7 +1469,7 @@ fn device_buffer_info(device_name: Option<String>, out_device: Option<String>) -
 static TUNER: OnceLock<Tuner> = OnceLock::new();
 
 pub fn global() -> &'static Tuner {
-    TUNER.get_or_init(|| Tuner::new(Arc::new(CpalFactory), cpal::default_host().id().name()))
+    TUNER.get_or_init(|| Tuner::grouped(Arc::new(CpalFactory), cpal::default_host().id().name(), audio_out::output_group().clone()))
 }
 
 /// Chained panic hook: a panic anywhere silences the tuner's output (its own
@@ -1716,13 +1736,20 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
     }
     // Fixed script; the only interpolated value is a clamped integer. No double
     // quotes, so Windows argument quoting cannot change it; tab is [char]9.
+    // DPC/interrupt time come from the raw WMI class (names are the same in
+    // every display language, unlike Get-Counter paths: BUG-06): per sample,
+    // 100 * sum(delta timer) / sum(delta Timestamp_Sys100NS) over the logical
+    // processors, i.e. the _Total average that Get-Counter reports.
     let script = format!(
         "$ErrorActionPreference='SilentlyContinue'; $inv=[cultureinfo]::InvariantCulture; $t=[string][char]9; \
          Get-NetAdapter -Physical | Where-Object {{ $_.PhysicalMediaType -match '802\\.11|Wireless' -or $_.InterfaceDescription -match 'Wi-?Fi|Wireless|WLAN|802\\.11' }} | ForEach-Object {{ 'WIFI' + $t + ($_.Name -replace $t,' ') + $t + $_.Status }}; \
          Get-PnpDevice -Class Bluetooth -PresentOnly | Where-Object {{ $_.FriendlyName }} | ForEach-Object {{ 'BT' + $t + ($_.FriendlyName -replace $t,' ') + $t + $_.Status }}; \
          $b = @(Get-CimInstance -ClassName Win32_Battery); if ($b.Count -gt 0) {{ foreach ($x in $b) {{ 'BATTERY' + $t + $x.BatteryStatus }} }} else {{ 'BATTERY' + $t + 'none' }}; \
-         $sets = Get-Counter -Counter '\\Processor Information(_Total)\\% DPC Time','\\Processor Information(_Total)\\% Interrupt Time' -SampleInterval 1 -MaxSamples {n}; \
-         foreach ($set in $sets) {{ $d=$null; $i=$null; foreach ($c in $set.CounterSamples) {{ if ($c.Path -like '*dpc time') {{ $d=$c.CookedValue }} elseif ($c.Path -like '*interrupt time') {{ $i=$c.CookedValue }} }}; if ($d -ne $null -and $i -ne $null) {{ 'DPC' + $t + ([double]$d).ToString($inv) + $t + ([double]$i).ToString($inv) }} }}",
+         $pq={{ @(Get-CimInstance -ClassName Win32_PerfRawData_PerfOS_Processor | Where-Object {{ $_.Name -ne '_Total' }}) }}; $prev = & $pq; \
+         for ($k=0; $k -lt {n}; $k++) {{ Start-Sleep -Seconds 1; $cur = & $pq; $dd=0.0; $di=0.0; $dt=0.0; \
+           foreach ($c in $cur) {{ $o = $prev | Where-Object {{ $_.Name -eq $c.Name }} | Select-Object -First 1; \
+             if ($o) {{ $dd += [double]$c.PercentDPCTime - [double]$o.PercentDPCTime; $di += [double]$c.PercentInterruptTime - [double]$o.PercentInterruptTime; $dt += [double]$c.Timestamp_Sys100NS - [double]$o.Timestamp_Sys100NS }} }}; \
+           if ($dt -gt 0) {{ 'DPC' + $t + (100.0*$dd/$dt).ToString($inv) + $t + (100.0*$di/$dt).ToString($inv) }}; $prev = $cur }}",
         n = dpc_seconds
     );
     match run("powershell.exe", &["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script.as_str()], 20 + dpc_seconds as u64) {
@@ -1733,7 +1760,7 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
             s.on_battery = f.on_battery;
             s.dpc_proxy = f.dpc;
             if s.dpc_proxy.samples == 0 {
-                s.errors.push("DPC counters unavailable (non-English counter names or no access).".into());
+                s.errors.push("DPC counters unavailable (no processor performance data returned).".into());
             }
         }
         Err(e) => s.errors.push(format!("PowerShell scan: {e}")),
@@ -2069,11 +2096,10 @@ pub async fn latency_play_and_capture(
 ) -> Result<RoundTripResult, CaptureError> {
     let lease = state.lease.clone();
     let req = RoundTripRequest { device_name, out_device, stimulus, buffer_frames, level_dbfs, tail_sec: None, step };
-    blocking(move || {
-        // One DeckChek voice at a time: whatever audio_out plays is faded out first.
-        audio_out::global().stop_all(EndReason::Replaced);
-        global().round_trip(&lease, &req, &emitter(app))
-    })
+    // One DeckChek voice at a time: the tuner's engine shares the global output
+    // group, so its play fades out the global voice, but only once the run has
+    // the run slot and the capture lease (a busy input leaves the tone alone).
+    blocking(move || global().round_trip(&lease, &req, &emitter(app)))
     .await
 }
 
@@ -2093,10 +2119,7 @@ pub async fn stress_run(
 ) -> Result<StressResult, CaptureError> {
     let lease = state.lease.clone();
     let req = StressRequest { device_name, out_device, buffer_frames, seconds, cpu_load_pct, gap_floor_ms, sample_rate, step };
-    blocking(move || {
-        audio_out::global().stop_all(EndReason::Replaced);
-        global().stress(&lease, &req, &emitter(app))
-    })
+    blocking(move || global().stress(&lease, &req, &emitter(app)))
     .await
 }
 
@@ -2827,6 +2850,67 @@ mod tests {
         lease.release(mine.lease_id); // what capture_preempt does for an External lease
         let r = run.join().unwrap().unwrap();
         assert_eq!(r.ended, RunEnd::Preempted);
+    }
+
+    fn looped_tone() -> PlayRequest {
+        PlayRequest::Buffer(
+            BufferInput { sample_rate: RATE, left: vec![0.5; 4800], right: vec![] },
+            BufferOpts { level_dbfs: -12.0, cap_dbfs: None, looped: true, ramp_ms: None },
+        )
+    }
+
+    /// BUG-10 + BUG-04: the tuner silences the user's tone (the global engine's
+    /// voice, here another member of the same output group) only once it holds
+    /// the capture lease, and then never plays on top of it.
+    #[test]
+    fn the_tuner_leaves_a_tone_alone_when_busy_and_replaces_it_when_it_runs() {
+        let g = audio_out::OutputGroup::new();
+        let (f, f_other) = (Fake::new(Policy::Honour, Policy::Honour), Fake::new(Policy::Honour, Policy::Honour));
+        let t = Tuner::grouped(f.clone(), "WASAPI", g.clone());
+        let feedback = Tuner::grouped(f_other.clone(), "WASAPI", g.clone()); // stands in for audio_out::global()
+        let tone = feedback.engine.play(None, looped_tone()).unwrap().handle;
+
+        let lease = CaptureLease::default();
+        let other = lease.acquire("feedback-test", None, LeaseKind::External).unwrap();
+        match t.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress) {
+            Err(CaptureError::Busy(b)) => assert_eq!(b.holder, "feedback-test"),
+            other => panic!("{other:?}"),
+        }
+        feedback.engine.tick();
+        assert_eq!(feedback.engine.ended_reason(tone), None, "a CAPTURE_BUSY tuner never touched the tone");
+        assert!(feedback.engine.status().active.is_some_and(|v| !v.stopping));
+
+        lease.release(other.lease_id);
+        let r = t.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress).unwrap();
+        assert_eq!(r.ended, RunEnd::Completed);
+        feedback.engine.tick();
+        assert_eq!(feedback.engine.ended_reason(tone), Some(EndReason::Replaced), "one voice at a time across engines");
+    }
+
+    /// BUG-04: window close / exit (`OutputGroup::silence_all` from
+    /// `audio_out::on_run_event`) silences a running round trip, and the
+    /// shared kill switch (panic) disables the tuner's engine.
+    #[test]
+    fn closing_the_window_silences_a_running_round_trip() {
+        let g = audio_out::OutputGroup::new();
+        let f = Fake::new(Policy::Honour, Policy::Honour);
+        let t = Arc::new(Tuner::grouped(f.clone(), "WASAPI", g.clone()));
+        let lease = CaptureLease::default();
+        let run = {
+            let (t, lease) = (t.clone(), lease.clone());
+            thread::spawn(move || t.round_trip(&lease, &rt_req(impulse_stimulus(1, RATE as usize * 20, 0.5), Some(256), None), &no_progress))
+        };
+        assert!((0..500).any(|_| {
+            thread::sleep(Duration::from_millis(2));
+            t.engine.status().active.is_some()
+        }));
+        let closed = Instant::now();
+        g.silence_all();
+        let r = run.join().unwrap().unwrap();
+        assert_eq!(r.ended, RunEnd::Aborted);
+        assert!(closed.elapsed() < Duration::from_secs(2), "the stimulus did not play on");
+        g.kill_all();
+        assert!(t.engine.is_disabled());
     }
 
     #[test]

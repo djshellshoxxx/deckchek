@@ -24,8 +24,11 @@
       "response": { "streamId": 4, "holder": "live-monitor", "deviceName": "Focusrite USB (In 1/2)", "sampleRate": 48000, "channels": 2, "blockMs": 1000, "blockFrames": 48000, "pairs": [{ "label": "1-2", "first": 1, "second": 2, "mono": false }] }
     },
     "stream_capture_ack": { "request": { "streamId": 4, "seq": 7 }, "response": null },
+    "stop_live_capture": {
+      "request": { "leaseId": 3 }
+    },
     "stop_stream_capture": {
-      "request": {},
+      "request": { "streamId": 4 },
       "response": { "streamId": 4, "ended": "stopped", "blocksSent": 9, "lastSeq": 8, "droppedBlocks": 0, "framesCaptured": 410000, "overrunSamples": 0, "streamErrors": 0, "streamErrorMessages": [] }
     }
   },

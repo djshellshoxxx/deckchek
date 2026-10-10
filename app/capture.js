@@ -114,8 +114,13 @@ export async function captureNative({ deviceName = null, durationSec, pairs = nu
   return requireTauri().core.invoke('capture_native_audio', args);
 }
 
-export async function stopLive() {
-  return requireTauri().core.invoke('stop_live_capture');
+/**
+ * Stop the live capture this caller started (`leaseId` from startLive). Rust refuses to stop
+ * any other feature's session: a session that was preempted rejects with "The capture was
+ * stopped because another DeckChek feature needed the audio input."
+ */
+export async function stopLive(leaseId) {
+  return requireTauri().core.invoke('stop_live_capture', { leaseId });
 }
 
 export async function status() {
@@ -125,18 +130,27 @@ export async function status() {
 
 // Subscribes to "capture-levels" events; returns a synchronous unsubscribe function.
 export function onLevels(callback) {
+  return onEvent('capture-levels', callback);
+}
+
+// Subscribes to "capture-preempted" events (payload: the stopped lease grant, {leaseId, holder, ...}).
+export function onPreempted(callback) {
+  return onEvent('capture-preempted', callback);
+}
+
+function onEvent(name, callback) {
   const t = requireTauri();
   if (!t.event || typeof t.event.listen !== 'function') {
     throw new Error('Tauri event API is unavailable.');
   }
   let unlisten = null;
   let cancelled = false;
-  t.event
-    .listen('capture-levels', (event) => callback(event.payload))
+  Promise.resolve(t.event.listen(name, (event) => callback(event?.payload)))
     .then((fn) => {
-      if (cancelled) fn();
+      if (cancelled) fn?.();
       else unlisten = fn;
-    });
+    })
+    .catch(() => { /* events are advisory */ });
   return () => {
     cancelled = true;
     if (unlisten) {
@@ -144,4 +158,44 @@ export function onLevels(callback) {
       unlisten = null;
     }
   };
+}
+
+// ---------------------------------------------------------------- local capture controllers
+// Captures started from this page, by lease/stream id, so "Stop and continue" (from any feature,
+// UI or engine) ends them through their own controller and their owners are told. Lives here,
+// not in ui/, so engines such as pre-gig.js preempt the same way without DOM imports.
+
+const activeCaptures = new Map();
+
+export function registerCapture(id, controller) {
+  if (id != null) activeCaptures.set(id, controller);
+}
+
+export function unregisterCapture(id) {
+  activeCaptures.delete(id);
+}
+
+function tauriFrom(t) {
+  const api = t === undefined ? tauri() : t;
+  return api?.core && typeof api.core.invoke === 'function' ? api : null;
+}
+
+/**
+ * Stop whatever holds the input ("Stop <holder> and continue"). Sessions started from this page are
+ * stopped through their own controller (their owners get onPreempted); anything else, e.g. a session
+ * left over from before a reload, is stopped natively. Resolves the stopped holder's status, or null.
+ * `tauri` may be any object with `core.invoke` (pre-gig passes its injected invoke).
+ */
+export async function preemptCapture({ tauri: t } = {}) {
+  const api = tauriFrom(t);
+  if (!api) return null;
+  const status = await api.core.invoke('capture_lease_status');
+  if (!status?.held) return null;
+  const local = activeCaptures.get(status.leaseId);
+  if (local) {
+    try { await local.preempt(); } catch { /* fall through to the native stop */ }
+  }
+  const after = await api.core.invoke('capture_lease_status');
+  if (after?.held && after.leaseId === status.leaseId) await api.core.invoke('capture_preempt');
+  return status;
 }

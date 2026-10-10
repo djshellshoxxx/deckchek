@@ -370,11 +370,13 @@ fn build_capture_stream(
     collected: Arc<Mutex<Vec<f32>>>,
     done_tx: mpsc::Sender<()>,
     errors: Arc<Mutex<Vec<String>>>,
+    lost: Arc<AtomicBool>,
 ) -> Result<Stream, String> {
     macro_rules! build {
         ($sample_ty:ty, $convert:expr) => {{
             let data = Arc::clone(&collected);
             let errors_for_callback = Arc::clone(&errors);
+            let lost = Arc::clone(&lost);
             let tx = done_tx.clone();
             device
                 .build_input_stream(
@@ -392,8 +394,13 @@ fn build_capture_stream(
                         }
                     },
                     move |error| {
+                        if matches!(error, cpal::StreamError::DeviceNotAvailable) {
+                            lost.store(true, Relaxed);
+                        }
                         if let Ok(mut list) = errors_for_callback.lock() {
-                            list.push(error.to_string());
+                            if list.len() < crate::capture::MAX_ERROR_MESSAGES {
+                                list.push(error.to_string());
+                            }
                         }
                     },
                     None,
@@ -415,12 +422,20 @@ fn build_capture_stream(
 pub const CAPTURE_CANCELLED: &str =
     "The capture was stopped because another DeckChek feature needed the audio input.";
 
-/// Waits for the capture to complete, polling `cancel` (set by a preempt).
-pub(crate) fn wait_for_capture(done_rx: &mpsc::Receiver<()>, timeout: Duration, cancel: &AtomicBool) -> Result<(), String> {
+/// Device loss during a bounded capture. Classified as "no device" by the UI.
+pub const CAPTURE_DEVICE_LOST: &str =
+    "The audio input was disconnected during the capture (no device): reconnect it and retry.";
+
+/// Waits for the capture to complete, polling `cancel` (set by a preempt) and
+/// `lost` (set by the stream's error callback when the device disappears).
+pub(crate) fn wait_for_capture(done_rx: &mpsc::Receiver<()>, timeout: Duration, cancel: &AtomicBool, lost: &AtomicBool) -> Result<(), String> {
     let deadline = Instant::now() + timeout;
     loop {
         if cancel.load(Relaxed) {
             return Err(CAPTURE_CANCELLED.to_string());
+        }
+        if lost.load(Relaxed) {
+            return Err(CAPTURE_DEVICE_LOST.to_string());
         }
         let left = deadline.saturating_duration_since(Instant::now());
         if left.is_zero() {
@@ -433,6 +448,15 @@ pub(crate) fn wait_for_capture(done_rx: &mpsc::Receiver<()>, timeout: Duration, 
                 return Err("The audio stream ended before the capture completed.".to_string())
             }
         }
+    }
+}
+
+/// Appends the stream errors the device reported to a failed capture's message.
+pub(crate) fn with_stream_errors(message: String, errors: &[String]) -> String {
+    if errors.is_empty() {
+        message
+    } else {
+        format!("{message} Stream errors: {}", errors.join("; "))
     }
 }
 
@@ -450,10 +474,14 @@ fn capture_blocking(
     cancel: &AtomicBool,
 ) -> Result<AudioCapturePayload, String> {
     validate_duration(duration_sec)?;
+    // A preempt may arrive while the device is being set up: check between steps.
+    let cancelled = || if cancel.load(Relaxed) { Err(CAPTURE_CANCELLED.to_string()) } else { Ok(()) };
 
     let device = choose_input(device_name.as_deref())?;
+    cancelled()?;
     let resolved_name = device.name().unwrap_or_else(|_| "Unnamed audio input".to_string());
     let supported = pick_config_for_pairs(&device, &resolved_name, None, firsts.as_deref())?;
+    cancelled()?;
     let sample_format = supported.sample_format();
     let config: cpal::StreamConfig = supported.clone().into();
     let channels = config.channels as usize;
@@ -467,6 +495,7 @@ fn capture_blocking(
     let collected = Arc::new(Mutex::new(Vec::<f32>::with_capacity(target_samples)));
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let (done_tx, done_rx) = mpsc::channel();
+    let lost = Arc::new(AtomicBool::new(false));
 
     let stream = build_capture_stream(
         &device,
@@ -476,12 +505,20 @@ fn capture_blocking(
         Arc::clone(&collected),
         done_tx,
         Arc::clone(&errors),
+        Arc::clone(&lost),
     )?;
+    if let Err(e) = cancelled() {
+        drop(stream);
+        return Err(e);
+    }
     stream.play().map_err(|e| e.to_string())?;
 
-    let waited = wait_for_capture(&done_rx, Duration::from_secs_f32(duration_sec + 2.0), cancel);
+    let waited = wait_for_capture(&done_rx, Duration::from_secs_f32(duration_sec + 2.0), cancel, &lost);
     drop(stream);
-    waited?;
+    if let Err(e) = waited {
+        let reported = errors.lock().map(|l| l.clone()).unwrap_or_default();
+        return Err(with_stream_errors(e, &reported));
+    }
 
     let data = collected
         .lock()
@@ -665,16 +702,41 @@ mod tests {
 
     #[test]
     fn capture_wait_completes_cancels_and_times_out() {
-        let cancel = AtomicBool::new(false);
+        let (cancel, lost) = (AtomicBool::new(false), AtomicBool::new(false));
         let (tx, rx) = mpsc::channel();
         tx.send(()).unwrap();
-        assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel).is_ok());
-        assert!(wait_for_capture(&rx, Duration::from_millis(30), &cancel).unwrap_err().contains("Timed out"));
+        assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).is_ok());
+        assert!(wait_for_capture(&rx, Duration::from_millis(30), &cancel, &lost).unwrap_err().contains("Timed out"));
         cancel.store(true, Relaxed);
-        assert_eq!(wait_for_capture(&rx, Duration::from_secs(1), &cancel).unwrap_err(), CAPTURE_CANCELLED);
+        assert_eq!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).unwrap_err(), CAPTURE_CANCELLED);
         drop(tx);
         cancel.store(false, Relaxed);
-        assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel).unwrap_err().contains("ended"));
+        assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).unwrap_err().contains("ended"));
+    }
+
+    /// BUG-14: device loss ends the wait at once as a device error (not a
+    /// timeout after duration + 2 s), and the collected stream errors are kept.
+    #[test]
+    fn device_loss_is_reported_promptly_with_the_stream_errors() {
+        let cancel = AtomicBool::new(false);
+        let lost = Arc::new(AtomicBool::new(false));
+        let (_tx, rx) = mpsc::channel::<()>();
+        let setter = {
+            let lost = lost.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(60));
+                lost.store(true, Relaxed); // what the error callback does on DeviceNotAvailable
+            })
+        };
+        let started = Instant::now();
+        let e = wait_for_capture(&rx, Duration::from_secs(10), &cancel, &lost).unwrap_err();
+        setter.join().unwrap();
+        assert_eq!(e, CAPTURE_DEVICE_LOST);
+        assert!(started.elapsed() < Duration::from_secs(2), "not a timeout");
+        let full = with_stream_errors(e, &["The requested device is no longer available.".into()]);
+        assert!(full.starts_with(CAPTURE_DEVICE_LOST) && full.contains("no longer available"), "{full}");
+        assert_eq!(with_stream_errors("x".into(), &[]), "x", "no errors, message unchanged");
+        assert!(with_stream_errors("Timed out".into(), &["glitch".into()]).ends_with("Stream errors: glitch"));
     }
 
     #[test]

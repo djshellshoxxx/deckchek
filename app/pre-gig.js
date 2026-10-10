@@ -11,6 +11,7 @@ import {analyzeTimecode, findFormat} from './timecode.js';
 import {humMeasure, removeTone} from './hum.js';
 import {interpretSystemScan, createSystemBridge} from './system-check.js';
 import {evaluateDriverCheck, evaluateSoftwareCheck} from './device-checks.js';
+import {preemptCapture} from './capture.js';
 
 export const PRESET_VERSION = 1;
 export const MAX_PRESET_BYTES = 256 * 1024;
@@ -655,13 +656,17 @@ export function createNativeDeps(invoke, {sleep = (ms, sig) => new Promise(res =
     async captureDeck({preset, seconds, signal}) {
       const names = await invoke('list_native_audio_inputs');
       const device = (names || []).find(d => namesMatch(d.name, preset.audioDevice))?.name ?? null;
-      await invoke('start_live_capture', {deviceName: device, maxSeconds: seconds + 2, holder: PREGIG_HOLDER});
+      const info = await invoke('start_live_capture', {deviceName: device, maxSeconds: seconds + 2, holder: PREGIG_HOLDER});
       let done;
-      try { await sleep(seconds * 1000, signal); } finally { done = await invoke('stop_live_capture'); }
+      // Stop names our own lease: if another feature took the input meanwhile this rejects
+      // ("stopped because another DeckChek feature ...") instead of stopping its capture.
+      try { await sleep(seconds * 1000, signal); } finally { done = await invoke('stop_live_capture', {leaseId: info?.leaseId}); }
       const p = done.payload;
       return {left: toF32(p.left), right: toF32(p.right), sampleRate: p.sampleRate, deviceName: p.deviceName};
     },
-    preempt: () => invoke('capture_preempt')
+    // "Stop … and continue" goes through the shared preempt, so a session started on this page
+    // (e.g. Quick Check) is stopped by its own controller and its owner is told.
+    preempt: () => preemptCapture({tauri: {core: {invoke}}})
   };
 }
 
