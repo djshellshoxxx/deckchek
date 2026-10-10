@@ -14,6 +14,30 @@ import { createHistoryScreen } from './ui/screens/history.js';
 import { migrateLocalRuns } from './ui/persistence.js';
 import { toast } from './ui/live.js';
 import { isNative } from './ui/dom.js';
+import { bindSettings } from './features.js';
+// [FS-00] screens imports
+// [FS-01] screens imports
+// [FS-02] screens imports
+// [FS-03] screens imports
+// [FS-06] screens imports
+// [FS-07] screens imports
+// [FS-08] screens imports
+// [FS-10] screens imports
+// [FS-11] screens imports
+// [FS-12] screens imports
+// [FS-13] screens imports
+// [FS-14] screens imports
+// [FS-15] screens imports
+// [FS-20] screens imports
+// [FS-21] screens imports
+// [FS-22] screens imports
+// [FS-23] screens imports
+// [FS-30] screens imports
+// [FS-31] screens imports
+// [FS-32] screens imports
+// [FS-33] screens imports
+
+bindSettings(settings); // keeps feature-flag changes from being overwritten by the settings store (FS-00 §4.14)
 
 const SCREENS = [
   ...WORKFLOWS.map(def => ({ id: def.id, title: def.title, short: def.short, icon: def.icon, create: createWorkflowScreen(def) })),
@@ -22,6 +46,27 @@ const SCREENS = [
   { id: 'devices', title: 'Devices', short: 'Devices', icon: 'devices', create: createDevicesScreen },
   { id: 'equipment', title: 'Equipment', short: 'Equipment', icon: 'equipment', create: createEquipmentScreen },
   { id: 'history', title: 'History', short: 'History', icon: 'history', create: createHistoryScreen },
+  // [FS-00] screens
+  // [FS-01] screens
+  // [FS-02] screens
+  // [FS-03] screens
+  // [FS-06] screens
+  // [FS-07] screens
+  // [FS-08] screens
+  // [FS-10] screens
+  // [FS-11] screens
+  // [FS-12] screens
+  // [FS-13] screens
+  // [FS-14] screens
+  // [FS-15] screens
+  // [FS-20] screens
+  // [FS-21] screens
+  // [FS-22] screens
+  // [FS-23] screens
+  // [FS-30] screens
+  // [FS-31] screens
+  // [FS-32] screens
+  // [FS-33] screens
 ];
 
 async function initNativePersistence() {

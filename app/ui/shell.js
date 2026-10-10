@@ -168,6 +168,29 @@ export function setCaptureStatus(text, state = 'idle') {
   el.innerHTML = `${state === 'recording' ? '<span class="rec-dot" aria-hidden="true"></span>' : ''}<span>${esc(text)}</span>`;
 }
 
+// ---------- Options / Help menu entries (FS-00 §4.1) ----------
+// [FS-00] menu
+// [FS-01] menu
+// [FS-02] menu
+// [FS-03] menu
+// [FS-06] menu
+// [FS-07] menu
+// [FS-08] menu
+// [FS-10] menu
+// [FS-11] menu
+// [FS-12] menu
+// [FS-13] menu
+// [FS-14] menu
+// [FS-15] menu
+// [FS-20] menu
+// [FS-21] menu
+// [FS-22] menu
+// [FS-23] menu
+// [FS-30] menu
+// [FS-31] menu
+// [FS-32] menu
+// [FS-33] menu
+
 // ---------- shortcuts ----------
 function onKeydown(event) {
   const key = event.key, ctrl = event.ctrlKey || event.metaKey;
@@ -228,5 +251,9 @@ export function initShell(defs) {
     if (narrow !== wasNarrow) { wasNarrow = narrow; setInspector(!narrow && settings.inspector !== false, { remember: false }); }
   });
   globalThis.matchMedia?.('(prefers-color-scheme: light)').addEventListener?.('change', () => refreshMeterThemes());
+  // [FS-01] init
+  // [FS-07] init
+  // [FS-23] init
+  // [FS-31] init
   emit('shell-ready');
 }

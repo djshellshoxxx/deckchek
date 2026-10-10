@@ -86,6 +86,27 @@ export const WORKFLOWS = [
     wiring: WIRING_TT,
     key: { 'Vinyl side scan': ['vinyl_condition_score', 'vinyl_transients_per_min', 'vinyl_event_count', 'vinyl_rumble_dbfs', 'repeat_scan_persistent_events', 'repeat_scan_new_events'] },
   },
+  // [FS-00] workflows
+  // [FS-01] workflows
+  // [FS-02] workflows
+  // [FS-03] workflows
+  // [FS-06] workflows
+  // [FS-07] workflows
+  // [FS-08] workflows
+  // [FS-10] workflows
+  // [FS-11] workflows
+  // [FS-12] workflows
+  // [FS-13] workflows
+  // [FS-14] workflows
+  // [FS-15] workflows
+  // [FS-20] workflows
+  // [FS-21] workflows
+  // [FS-22] workflows
+  // [FS-23] workflows
+  // [FS-30] workflows
+  // [FS-31] workflows
+  // [FS-32] workflows
+  // [FS-33] workflows
 ];
 
 export const paramsForTest = test => PARAMS.filter(p => p.modes.includes(test));
