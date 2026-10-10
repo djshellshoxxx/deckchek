@@ -12,6 +12,7 @@ mod userfiles;
 mod app_state;
 // [FS-01] mods
 // [FS-02] mods
+mod diagnostics;
 // [FS-03] mods
 // [FS-06] mods
 // [FS-07] mods
@@ -53,6 +54,8 @@ pub fn run() {
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
             // [FS-01] handlers
             // [FS-02] handlers
+            diagnostics::log_client_error, diagnostics::diagnostics_status, diagnostics::diagnostics_ack_crash,
+            diagnostics::diagnostics_preview, diagnostics::diagnostics_create_bundle,
             // [FS-03] handlers
             // [FS-06] handlers
             // [FS-07] handlers
@@ -79,6 +82,7 @@ pub fn run() {
             _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
             // [FS-01] setup
             // [FS-02] setup
+            diagnostics::setup(_app);
             // [FS-03] setup
             // [FS-06] setup
             // [FS-07] setup

@@ -1,0 +1,164 @@
+[
+ {
+  "name": "profile literal",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "open C:\\Users\\jsmith\\AppData\\Roaming\\com.x\\logs",
+  "expected": "open <profile>\\AppData\\Roaming\\com.x\\logs"
+ },
+ {
+  "name": "other drive and unknown user",
+  "ctx": {},
+  "input": "D:\\Users\\bob\\x",
+  "expected": "D:\\Users\\<user>\\x"
+ },
+ {
+  "name": "json escaped backslashes",
+  "ctx": {},
+  "input": "{\"p\":\"C:\\\\Users\\\\carol\\\\x\"}",
+  "expected": "{\"p\":\"C:\\\\Users\\\\<user>\\\\x\"}"
+ },
+ {
+  "name": "forward slashes and case",
+  "ctx": {},
+  "input": "c:/users/dave/file",
+  "expected": "c:/users/<user>/file"
+ },
+ {
+  "name": "username case-insensitive",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "User JSMITH logged in as JSmith",
+  "expected": "User <user> logged in as <user>"
+ },
+ {
+  "name": "machine name",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "host desktop-4f2k9q ok \\\\DESKTOP-4F2K9Q\\share",
+  "expected": "host <host> ok \\\\<host>\\share"
+ },
+ {
+  "name": "email",
+  "ctx": {},
+  "input": "contact Jo.Smith+tag@example.co.uk, or a@b",
+  "expected": "contact <email>, or a@b"
+ },
+ {
+  "name": "email containing the username",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "jsmith@example.com",
+  "expected": "<email>"
+ },
+ {
+  "name": "serial labels",
+  "ctx": {},
+  "input": "Serial Number: AB12-CD34XY, S/N 99887766 serial: unknown serialize 12345678",
+  "expected": "Serial Number: <serial>, S/N <serial> serial: unknown serialize 12345678"
+ },
+ {
+  "name": "serial literal from asset",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "device SN12345678 attached",
+  "expected": "device <serial> attached"
+ },
+ {
+  "name": "json serial_number",
+  "ctx": {},
+  "input": "\"serial_number\":\"ZX9A8B7C6D\"",
+  "expected": "\"serial_number\":\"<serial>\""
+ },
+ {
+  "name": "unicode user name",
+  "ctx": {
+   "user": "Zoë"
+  },
+  "input": "path /home/Zoë/x by ZOË",
+  "expected": "path /home/<user>/x by <user>"
+ },
+ {
+  "name": "two-letter user is token bounded",
+  "ctx": {
+   "user": "al"
+  },
+  "input": "Al said al is not alone; C:\\Users\\al\\x",
+  "expected": "<user> said <user> is not alone; C:\\Users\\<user>\\x"
+ },
+ {
+  "name": "placeholders are left alone",
+  "ctx": {
+   "user": "user"
+  },
+  "input": "<user> <profile> <email> <host> <serial>",
+  "expected": "<user> <profile> <email> <host> <serial>"
+ },
+ {
+  "name": "no false positives",
+  "ctx": {},
+  "input": "serial port COM3 opened; src/home/page; email me@ later",
+  "expected": "serial port COM3 opened; src/home/page; email me@ later"
+ },
+ {
+  "name": "unix homes",
+  "ctx": {},
+  "input": "cfg=/home/erin/.config and /Users/frank/Library",
+  "expected": "cfg=/home/<user>/.config and /Users/<user>/Library"
+ },
+ {
+  "name": "astral characters",
+  "ctx": {},
+  "input": "💥 C:\\Users\\😀name\\x",
+  "expected": "💥 C:\\Users\\<user>\\x"
+ },
+ {
+  "name": "short profile folder",
+  "ctx": {},
+  "input": "c:\\USERS\\JSMITH~1\\temp",
+  "expected": "c:\\USERS\\<user>\\temp"
+ },
+ {
+  "name": "env var names are not data",
+  "ctx": {
+   "user": "jsmith",
+   "profile": "C:\\Users\\jsmith",
+   "host": "DESKTOP-4F2K9Q",
+   "serials": [
+    "SN12345678"
+   ]
+  },
+  "input": "%USERNAME% %USERPROFILE% %COMPUTERNAME%",
+  "expected": "%USERNAME% %USERPROFILE% %COMPUTERNAME%"
+ }
+]
