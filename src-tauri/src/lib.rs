@@ -120,10 +120,13 @@ pub fn run() {
             // [FS-00] setup
             _app.handle().plugin(tauri_plugin_dialog::init())?;
             _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
-            audio_out::install_panic_guard();
             // [FS-01] setup
             // [FS-02] setup
             diagnostics::setup(_app);
+            // Panic hooks run last-installed first: the audio kill switches are
+            // installed after the diagnostics hook so a panic silences output
+            // before the backtrace is symbolised and logged (BUG-03).
+            audio_out::install_panic_guard();
             // [FS-03] setup
             // [FS-06] setup
             // [FS-07] setup

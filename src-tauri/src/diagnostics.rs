@@ -633,10 +633,14 @@ pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 /// Installs a panic hook (chained to the previous one). Do NOT set `panic = "abort"` in release.
+///
+/// Output is silenced before anything slow happens (backtrace symbolisation,
+/// log I/O), whatever order the hooks were installed in (BUG-03).
 pub fn install_panic_hook(state: &DiagState) {
     let st = state.clone();
     let prev = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        crate::audio_out::emergency_silence();
         if st.0.enabled.load(Ordering::SeqCst) && !IN_HOOK.with(|c| c.replace(true)) {
             let thread = std::thread::current();
             let loc = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown".into());
@@ -1310,12 +1314,15 @@ mod tests {
     fn panic_on_any_thread_is_logged_and_marker_records_it() {
         let dir = tmp("panic");
         let st = DiagState::open(&dir, "0.0.5");
+        let output = crate::audio_out::output_group();
         install_panic_hook(&st);
         let h = std::thread::Builder::new().name("worker-xyz".into()).spawn(|| {
             panic!("kaboom\nsecond line");
         }).unwrap();
         assert!(h.join().is_err());
         st.disable();
+        // BUG-03: the logging hook silences output first, whatever the hook order.
+        assert!(output.is_killed());
         let log = fs::read_to_string(dir.join("deckchek.log")).unwrap();
         let line = log.lines().find(|l| l.contains(" ERROR panic ")).expect("panic line");
         assert!(line.contains("[worker-xyz]"), "{line}");
