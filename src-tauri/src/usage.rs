@@ -46,8 +46,8 @@ fn e2s(e: rusqlite::Error) -> String {
     e.to_string()
 }
 
-/// Accepts `YYYY-MM-DDTHH:MM:SS[.fff]Z` only (UTC), so text comparison in
-/// `usage_list` orders chronologically.
+/// Accepts `YYYY-MM-DDTHH:MM:SS[.fff]Z` only (UTC); stored values are normalized by
+/// `normalize_timestamp` and compared through `TS_KEY`.
 pub fn valid_timestamp(s: &str) -> bool {
     let b = s.as_bytes();
     if b.len() < 20 || b.len() > 24 || b[b.len() - 1] != b'Z' {
@@ -69,6 +69,20 @@ pub fn valid_timestamp(s: &str) -> bool {
     let (mo, d, h, mi, sec) = (n(5..7), n(8..10), n(11..13), n(14..16), n(17..19));
     (1..=12).contains(&mo) && (1..=31).contains(&d) && h < 24 && mi < 60 && sec < 60
 }
+
+/// Canonical stored shape: `YYYY-MM-DDTHH:MM:SS.fffZ` (UTC, exactly three fractional digits).
+/// Returns the input unchanged when it is not a valid timestamp.
+pub fn normalize_timestamp(s: &str) -> String {
+    if !valid_timestamp(s) {
+        return s.to_string();
+    }
+    let base = &s[..19];
+    let frac = s[19..s.len() - 1].trim_start_matches('.');
+    format!("{base}.{:0<3}Z", &frac[..frac.len().min(3)])
+}
+
+/// SQL expression giving a sortable canonical key for legacy (`...SSZ`) and canonical rows alike.
+const TS_KEY: &str = "strftime('%Y-%m-%dT%H:%M:%f', started_at)";
 
 pub fn validate(input: &UsageAddInput) -> Result<(), String> {
     if input.asset_id.trim().is_empty() {
@@ -99,7 +113,7 @@ fn row(r: &rusqlite::Row) -> rusqlite::Result<UsageEntry> {
         id: r.get(0)?,
         asset_id: r.get(1)?,
         kind: r.get(2)?,
-        started_at: r.get(3)?,
+        started_at: normalize_timestamp(&r.get::<_, String>(3)?),
         hours: r.get(4)?,
         source: r.get(5)?,
         session_id: r.get(6)?,
@@ -136,7 +150,7 @@ pub fn add(conn: &Connection, input: &UsageAddInput) -> Result<UsageEntry, Strin
             id,
             input.asset_id,
             input.kind.as_deref().unwrap_or("play"),
-            input.started_at,
+            normalize_timestamp(&input.started_at),
             input.hours,
             input.source,
             input.session_id,
@@ -156,9 +170,11 @@ pub fn list(conn: &Connection, asset_id: &str, since: Option<&str>) -> Result<Ve
             return Err(format!("since must be a UTC ISO timestamp, got '{s}'"));
         }
     }
+    // Compare on a canonical key so legacy rows without milliseconds order correctly against new ones.
+    let since = since.map(normalize_timestamp);
     let mut stmt = conn
         .prepare(&format!(
-            "SELECT {COLS} FROM asset_usage WHERE asset_id = ?1 AND (?2 IS NULL OR started_at >= ?2) ORDER BY started_at, created_at, id"
+            "SELECT {COLS} FROM asset_usage WHERE asset_id = ?1 AND (?2 IS NULL OR {TS_KEY} >= strftime('%Y-%m-%dT%H:%M:%f', ?2)) ORDER BY {TS_KEY}, created_at, id"
         ))
         .map_err(e2s)?;
     let rows = stmt.query_map(params![asset_id, since], row).map_err(e2s)?;
@@ -204,6 +220,30 @@ pub fn usage_confirm(app: AppHandle, id: String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn normalize_pads_and_truncates_fraction() {
+        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00Z"), "2026-10-10T20:00:00.000Z");
+        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00.5Z"), "2026-10-10T20:00:00.500Z");
+        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00.123Z"), "2026-10-10T20:00:00.123Z");
+        assert_eq!(super::normalize_timestamp("junk"), "junk");
+    }
+
+    #[test]
+    fn legacy_rows_order_and_filter_chronologically() {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        crate::db::apply_migrations(&c).unwrap();
+        c.execute("INSERT INTO asset (id, nickname, is_deleted, created_at, updated_at) VALUES ('a1','S',0,'x','x')", []).unwrap();
+        for (id, ts) in [("l1", "2026-10-10T20:00:00Z"), ("l2", "2026-10-10T20:00:00.500Z"), ("l3", "2026-10-10T19:59:59Z")] {
+            c.execute("INSERT INTO asset_usage (id, asset_id, kind, started_at, hours, source, created_at) VALUES (?1,'a1','play',?2,1,'manual','x')", params![id, ts]).unwrap();
+        }
+        let all = list(&c, "a1", None).unwrap();
+        assert_eq!(all.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["l3", "l1", "l2"]);
+        assert_eq!(all[1].started_at, "2026-10-10T20:00:00.000Z");
+        let since = list(&c, "a1", Some("2026-10-10T20:00:00Z")).unwrap();
+        assert_eq!(since.len(), 2);
+    }
+
     use super::*;
     use crate::db::apply_migrations;
     use serde_json::Value;

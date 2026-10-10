@@ -47,7 +47,6 @@ fn count(c: &Connection, sql: &str) -> i64 {
 /// rewrite is destroyed (full_side_scan -> scan_alignment, vinyl_event, wear_scan)
 /// and every `ON DELETE SET NULL` link from other features is cut.
 #[test]
-#[ignore = "BUG-01: persist_run INSERT OR REPLACE cascades away repeat-scan alignments"]
 fn bug01_resaving_a_run_keeps_its_repeat_scan_alignment() {
     let mut c = mem_db();
     persist_run(&mut c, &run("scan-1")).unwrap();
@@ -74,7 +73,6 @@ fn bug01_resaving_a_run_keeps_its_repeat_scan_alignment() {
 /// BUG-01 (second face): links from other features (`ON DELETE SET NULL`) are cut
 /// by the same REPLACE, e.g. a confirmed hours entry proposed from this run.
 #[test]
-#[ignore = "BUG-01: persist_run INSERT OR REPLACE nulls asset_usage.session_id"]
 fn bug01_resaving_a_run_keeps_usage_links() {
     let mut c = mem_db();
     persist_run(&mut c, &run("live-1")).unwrap();
@@ -99,7 +97,6 @@ fn bug01_resaving_a_run_keeps_usage_links() {
 /// `valid_timestamp` accepts both `...SSZ` and `...SS.fffZ`. '.' sorts before 'Z',
 /// so an entry at 20:00:00.500Z is dropped by `since = 20:00:00Z` although it is later.
 #[test]
-#[ignore = "BUG-11: usage since-filter compares mixed timestamp shapes as text"]
 fn bug11_since_filter_keeps_later_entries_with_milliseconds() {
     let c = mem_db();
     c.execute(
@@ -120,7 +117,6 @@ fn bug11_since_filter_keeps_later_entries_with_milliseconds() {
 /// BUG-12: tail reads of logs larger than 2 MiB seek past the BOM, so a UTF-16LE
 /// log is decoded as UTF-8 (NUL-interleaved text) and yields nothing.
 #[test]
-#[ignore = "BUG-12: UTF-16 logs over 2 MiB lose their BOM in the tail read"]
 fn bug12_large_utf16_log_still_yields_spans() {
     let dir = std::env::temp_dir().join(format!("deckchek-audit-utf16-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
