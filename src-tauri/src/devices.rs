@@ -38,6 +38,11 @@ pub struct DeviceTestResultInput {
     #[serde(default)]
     pub detail: Option<Value>,
     pub created_at: Option<String>,
+    /// Test medium used for this result (FS-06); kept only when that medium exists.
+    #[serde(default)]
+    pub media_id: Option<String>,
+    #[serde(default)]
+    pub media_track_key: Option<String>,
 }
 
 fn e2s(e: rusqlite::Error) -> String {
@@ -299,10 +304,12 @@ fn result_row(r: &rusqlite::Row) -> rusqlite::Result<Value> {
         "status": r.get::<_, String>(5)?,
         "detail": serde_json::from_str::<Value>(&detail).unwrap_or(Value::Null),
         "createdAt": r.get::<_, String>(7)?,
+        "mediaId": r.get::<_, Option<String>>(8)?,
+        "mediaTrackKey": r.get::<_, Option<String>>(9)?,
     }))
 }
 
-const RESULT_COLS: &str = "id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at";
+const RESULT_COLS: &str = "id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at, media_id, media_track_key";
 
 pub fn save_result(conn: &Connection, input: &DeviceTestResultInput) -> Result<Value, String> {
     if !RESULT_STATUSES.contains(&input.status.as_str()) {
@@ -320,10 +327,15 @@ pub fn save_result(conn: &Connection, input: &DeviceTestResultInput) -> Result<V
     let session = input.session_id.clone().filter(|sid| {
         conn.query_row("SELECT COUNT(*) FROM session WHERE id = ?1", [sid], |r| r.get::<_, i64>(0)).map(|n| n > 0).unwrap_or(false)
     });
+    // Like the session id, a medium reference is only kept when the medium row exists (FK); the track key rides along.
+    let media = input.media_id.clone().filter(|m| {
+        conn.query_row("SELECT COUNT(*) FROM test_media WHERE id = ?1", [m], |r| r.get::<_, i64>(0)).map(|n| n > 0).unwrap_or(false)
+    });
+    let media_track = media.as_ref().and_then(|_| input.media_track_key.clone().filter(|k| !k.is_empty()));
     let detail = serde_json::to_string(input.detail.as_ref().unwrap_or(&json!({}))).map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT OR REPLACE INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        params![id, input.asset_id, input.profile_id, input.test_id, session, input.status, detail, created],
+        "INSERT OR REPLACE INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at, media_id, media_track_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![id, input.asset_id, input.profile_id, input.test_id, session, input.status, detail, created, media, media_track],
     )
     .map_err(e2s)?;
     conn.query_row(&format!("SELECT {RESULT_COLS} FROM device_test_result WHERE id = ?1"), [&id], result_row).map_err(e2s)
@@ -488,7 +500,7 @@ mod tests {
         let used_asset = first[2].asset_id.clone().unwrap();
         save_result(&c, &DeviceTestResultInput {
             id: None, asset_id: used_asset.clone(), profile_id: "gone-used".into(), test_id: "t".into(), session_id: None,
-            status: "pass".into(), detail: None, created_at: None,
+            status: "pass".into(), detail: None, created_at: None, media_id: None, media_track_key: None,
         })
         .unwrap();
         // an empty shipped set (library failed to load) must not wipe anything
@@ -530,6 +542,7 @@ mod tests {
         let input = |status: &str, test: &str, session: Option<&str>, at: &str| DeviceTestResultInput {
             id: None, asset_id: asset.clone(), profile_id: "acme-y".into(), test_id: test.into(), session_id: session.map(str::to_string),
             status: status.into(), detail: Some(json!({"detail": "Pass: 1==1", "metrics": [{"metricId": "driver_present", "value": 1}]})), created_at: Some(at.into()),
+            media_id: None, media_track_key: None,
         };
         let a = save_result(&c, &input("pass", "t-driver", None, "2026-10-01T10:00:00Z")).unwrap();
         assert_eq!(a["status"], "pass");
@@ -554,6 +567,34 @@ mod tests {
         again.id = Some(a["id"].as_str().unwrap().to_string());
         save_result(&c, &again).unwrap();
         assert_eq!(list_results(&c, None).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn result_stores_and_returns_media_reference() {
+        let mut c = mem();
+        let synced = sync_profiles(&mut c, &[profile("acme-y", "Acme", "Y-2")]).unwrap();
+        let asset = synced[0].asset_id.clone().unwrap();
+        c.execute("INSERT INTO test_media (id, source, kind, name, version, profile_json, created_at, updated_at) VALUES ('ortofon-test-record','builtin','test_record','Ortofon',1,'{}','t','t')", []).unwrap();
+        let input = |media: Option<&str>, track: Option<&str>| DeviceTestResultInput {
+            id: None, asset_id: asset.clone(), profile_id: "acme-y".into(), test_id: "t-speed".into(), session_id: None,
+            status: "pass".into(), detail: None, created_at: Some("2026-10-05T10:00:00Z".into()),
+            media_id: media.map(str::to_string), media_track_key: track.map(str::to_string),
+        };
+        let a = save_result(&c, &input(Some("ortofon-test-record"), Some("t5"))).unwrap();
+        assert_eq!(a["mediaId"], "ortofon-test-record");
+        assert_eq!(a["mediaTrackKey"], "t5");
+        let listed = list_results(&c, Some(&asset)).unwrap();
+        assert_eq!((listed[0]["mediaId"].as_str(), listed[0]["mediaTrackKey"].as_str()), (Some("ortofon-test-record"), Some("t5")));
+        // no medium: both stay null; an unknown medium (or a track key without a medium) is dropped, not an FK error
+        let b = save_result(&c, &input(None, Some("t5"))).unwrap();
+        assert_eq!((b["mediaId"].clone(), b["mediaTrackKey"].clone()), (Value::Null, Value::Null));
+        let d = save_result(&c, &input(Some("no-such-medium"), Some("t5"))).unwrap();
+        assert_eq!((d["mediaId"].clone(), d["mediaTrackKey"].clone()), (Value::Null, Value::Null));
+        // camelCase JSON from the UI deserialises, and old payloads without the fields still do
+        let from_ui: DeviceTestResultInput = serde_json::from_value(json!({"assetId": "a", "profileId": "p", "testId": "t", "status": "pass", "mediaId": "m", "mediaTrackKey": "k"})).unwrap();
+        assert_eq!((from_ui.media_id.as_deref(), from_ui.media_track_key.as_deref()), (Some("m"), Some("k")));
+        let old: DeviceTestResultInput = serde_json::from_value(json!({"assetId": "a", "profileId": "p", "testId": "t", "status": "pass"})).unwrap();
+        assert!(old.media_id.is_none() && old.media_track_key.is_none());
     }
 
     #[test]
