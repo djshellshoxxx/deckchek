@@ -31,6 +31,7 @@ import { dataScreenDefs } from './ui/screens/data.js';
 // [FS-12] screens imports
 // [FS-13] screens imports
 // [FS-14] screens imports
+import { scratchScreenDefs } from './ui/screens/scratch.js';
 // [FS-15] screens imports
 // [FS-20] screens imports
 // [FS-21] screens imports
@@ -64,6 +65,7 @@ const SCREENS = [
   // [FS-12] screens
   // [FS-13] screens
   // [FS-14] screens
+  ...scratchScreenDefs(),
   // [FS-15] screens
   // [FS-20] screens
   // [FS-21] screens
