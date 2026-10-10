@@ -207,17 +207,27 @@ export function applyPrefill(select, described) {
   const fieldOf = id => scope.querySelector(`[data-param="${id}"]`);
   const warning = described?.expected?.unverified ? (described.expected.warning || UNVERIFIED_WARNING) : null;
   const shown = [];
-  const ref = fieldOf('referenceHz'), rpm = fieldOf('nominalRpm');
-  for (const input of [ref, rpm]) if (input?.dataset.fromMedium) { noteFor(input, null); }
+  const ref = fieldOf('referenceHz'), rpm = fieldOf('nominalRpm'), fmt = fieldOf('timecodeFormat');
+  for (const input of [ref, rpm, fmt]) if (input?.dataset.fromMedium) { noteFor(input, null); }
+  if (fmt?.dataset.mediumSet) { setField(fmt, ''); delete fmt.dataset.mediumSet; } // medium cleared: back to auto-detect
   if (!described) return shown;
   const e = described.expected;
+  const fmtName = timecodeFormatChoice(fmt, e);
+  if (fmt && fmtName) { setField(fmt, fmtName); fmt.dataset.mediumSet = '1'; noteFor(fmt, `${e.label}.`, warning); shown.push('timecode format'); fmt.addEventListener('change', clearOnEdit); }
   if (ref && Number.isFinite(e.referenceHz)) { setField(ref, Number(e.referenceHz.toFixed(3))); noteFor(ref, `${e.label}.`, warning); shown.push('reference tone'); ref.addEventListener('input', clearOnEdit, { once: false }); }
   const rpmValue = rpmOption(e.nominalRpm);
   if (rpm && rpmValue) { setField(rpm, rpmValue); noteFor(rpm, `${e.label}.`, warning); shown.push('nominal speed'); rpm.addEventListener('change', clearOnEdit); }
   return shown;
 }
+/** The decoder format a timecode medium selects, when the form's format list offers it; else null (auto-detect stays). */
+export function timecodeFormatChoice(field, expected) {
+  const name = expected?.formatName;
+  if (!field || !name) return null;
+  return [...(field.options || [])].some(o => o.value === name) ? name : null;
+}
 function clearOnEdit(event) {
   if (programmatic) return;
+  delete event.currentTarget.dataset.mediumSet;
   noteFor(event.currentTarget, null); // a manual edit overrides the medium (precedence: user > medium)
 }
 

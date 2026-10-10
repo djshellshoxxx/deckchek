@@ -6,13 +6,14 @@
 
 const SETTINGS_KEY = 'deckchek.ui.v1';
 
-const flag = (spec, milestone, def, label, description) => Object.freeze({ default: def, milestone, spec, label, description });
+// `wired: false` marks a flag with no code behind it yet: the Experimental features panel hides it.
+const flag = (spec, milestone, def, label, description, wired = true) => Object.freeze({ default: def, milestone, spec, label, description, wired });
 
 export const FEATURES = Object.freeze({
   setupWizard: flag('FS-01', 'M5', true, 'First-run setup wizard', 'Guided first-run setup of input, calibration and device library.'),
-  diagnosticsBundle: flag('FS-02', 'M5', false, 'Diagnostics bundle', 'Crash capture and a shareable diagnostics bundle.'),
+  diagnosticsBundle: flag('FS-02', 'M5', true, 'Diagnostics bundle', 'Crash capture and a shareable diagnostics bundle (always on; nothing reads this flag).', false),
   pdfExport: flag('FS-03', 'M5', true, 'PDF reports', 'Export reports as PDF.'),
-  testMedia: flag('FS-06', 'M5', false, 'Test-media library', 'Catalogue of test records and control media.'),
+  testMedia: flag('FS-06', 'M5', true, 'Test-media library', 'Catalogue of test records and control media.'),
   backup: flag('FS-08', 'M5', true, 'Backup and restore', 'Back up and restore the local database and files.'),
   pregig: flag('FS-10', 'M6', false, 'Pre-gig check', 'One-pass readiness check before a gig.'),
   latencyTuner: flag('FS-11', 'M6', false, 'DVS latency and buffer tuner', 'Measure round-trip latency and suggest buffer sizes.'),
@@ -21,15 +22,15 @@ export const FEATURES = Object.freeze({
   scratchTest: flag('FS-14', 'M6', false, 'Scratch stress test', 'Timecode stress test under scratching.'),
   humHunter: flag('FS-15', 'M6', false, 'Hum hunter', 'Locate mains hum and ground-loop sources.'),
   feedbackStep: flag('FS-15', 'M6', false, 'Booth feedback step', 'Booth feedback detection step in the hum hunter.'),
-  certificates: flag('FS-20', 'M7', false, 'Used-gear certificate', 'Test certificates for used gear.'),
-  population: flag('FS-21', 'M7', true, 'Unit vs population', 'Compare a unit against population data.'),
-  packs: flag('FS-21', 'M7', false, 'Population packs', 'Import and export population packs.'),
-  service: flag('FS-22', 'M7', false, 'Service worksheets', 'Service job worksheets.'),
-  fleet: flag('FS-23', 'M7', true, 'Venue fleet dashboard', 'Fleet overview across venues.'),
-  phoneImport: flag('FS-30', 'M8', false, 'Phone import', 'Import results from the mobile companion.'),
-  liveMonitor: flag('FS-31', 'M8', false, 'Live timecode monitor', 'Live timecode doctor beside DJ software.'),
-  mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.'),
-  gearLedger: flag('FS-33', 'M8', false, 'Gear ledger', 'Static gear ledger export.'),
+  certificates: flag('FS-20', 'M7', false, 'Used-gear certificate', 'Test certificates for used gear.', false),
+  population: flag('FS-21', 'M7', false, 'Unit vs population', 'Compare a unit against population data.', false),
+  packs: flag('FS-21', 'M7', false, 'Population packs', 'Import and export population packs.', false),
+  service: flag('FS-22', 'M7', false, 'Service worksheets', 'Service job worksheets.', false),
+  fleet: flag('FS-23', 'M7', false, 'Venue fleet dashboard', 'Fleet overview across venues.', false),
+  phoneImport: flag('FS-30', 'M8', false, 'Phone import', 'Import results from the mobile companion.', false),
+  liveMonitor: flag('FS-31', 'M8', false, 'Live timecode monitor', 'Live timecode doctor beside DJ software.', false),
+  mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.', false),
+  gearLedger: flag('FS-33', 'M8', false, 'Gear ledger', 'Static gear ledger export.', false),
 });
 
 let storageOverride; // undefined -> globalThis.localStorage
@@ -77,6 +78,17 @@ export function setEnabled(name, on) {
     if (store) store.setItem(SETTINGS_KEY, JSON.stringify({ ...readRecord(), features: next }));
   } catch { /* storage unavailable: the flag still holds for this session when bound */ }
   for (const fn of listeners) { try { fn({ name, enabled: isEnabled(name) }); } catch (error) { console.error('feature listener failed', error); } }
+}
+
+/** Drop every override so each flag returns to its default. */
+export function resetFeatures() {
+  const names = Object.keys(overrides());
+  if (bound) bound.features = {};
+  try {
+    const store = getStorage();
+    if (store) { const rec = readRecord(); delete rec.features; store.setItem(SETTINGS_KEY, JSON.stringify(rec)); }
+  } catch { /* storage unavailable */ }
+  for (const name of names) for (const fn of listeners) { try { fn({ name, enabled: isEnabled(name) }); } catch (error) { console.error('feature listener failed', error); } }
 }
 
 export function onFeatureChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }

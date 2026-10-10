@@ -30,9 +30,9 @@ test('every features.* flag mentioned in docs/specs exists in FEATURES', () => {
   for (const name of mentioned) assert.ok(name in FEATURES, `missing flag ${name}`);
 });
 
-test('defaults follow the plan: wizard, pdf, backup, population, fleet on; new features off', () => {
+test('defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off', () => {
   fresh();
-  for (const n of ['setupWizard', 'pdfExport', 'backup', 'population', 'fleet']) assert.equal(isEnabled(n), true, n);
+  for (const n of ['setupWizard', 'pdfExport', 'backup', 'testMedia', 'diagnosticsBundle']) assert.equal(isEnabled(n), true, n);
   for (const n of ['pregig', 'liveMonitor', 'packs', 'service', 'gearLedger']) assert.equal(isEnabled(n), false, n);
   assert.equal(isEnabled('doesNotExist'), false);
 });
@@ -56,9 +56,9 @@ test('corrupt or unavailable storage falls back to defaults', () => {
   configureFeatures({ storage: { getItem: () => '{not json', setItem: () => { throw new Error('quota'); } } });
   assert.equal(isEnabled('setupWizard'), true);
   assert.doesNotThrow(() => setEnabled('pregig', true));
-  configureFeatures({ storage: { getItem: () => JSON.stringify({ features: { pregig: 'yes', fleet: false } }), setItem() {} } });
+  configureFeatures({ storage: { getItem: () => JSON.stringify({ features: { pregig: 'yes', backup: false } }), setItem() {} } });
   assert.equal(isEnabled('pregig'), false); // non-boolean ignored
-  assert.equal(isEnabled('fleet'), false);
+  assert.equal(isEnabled('backup'), false);
   configureFeatures({ storage: null });
   assert.equal(isEnabled('backup'), true);
 });
@@ -82,4 +82,25 @@ test('change listeners fire and can be removed', () => {
   off();
   setEnabled('service', false);
   assert.deepEqual(seen, [{ name: 'service', enabled: true }]);
+});
+
+test('resetFeatures drops every override and notifies listeners', async () => {
+  const storage = fresh();
+  const { resetFeatures } = await import('../app/features.js');
+  setEnabled('pregig', true); setEnabled('backup', false);
+  const seen = [];
+  const off = onFeatureChange(e => seen.push(e.name));
+  resetFeatures(); off();
+  assert.equal(isEnabled('pregig'), false);
+  assert.equal(isEnabled('backup'), true);
+  assert.equal(JSON.parse(storage.raw()).features, undefined);
+  assert.deepEqual(seen.sort(), ['backup', 'pregig']);
+});
+
+test('flags with no code behind them are marked unwired and default off (except always-on diagnostics)', () => {
+  for (const [name, meta] of Object.entries(FEATURES)) {
+    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, false, name); assert.equal(meta.default, false, name); }
+  }
+  assert.equal(FEATURES.diagnosticsBundle.wired, false);
+  assert.equal(FEATURES.testMedia.default, true);
 });

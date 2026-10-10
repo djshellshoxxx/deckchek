@@ -322,3 +322,18 @@ test('native mode calls the Rust commands with camelCase args', async () => {
   assert.deepEqual(calls[1], ['media_owned_set', { mediaId: 'x', owned: true }]);
   assert.deepEqual(calls[2], ['media_custom_delete', { id: 'y' }]);
 });
+
+test('GAP-04: every built-in timecode medium maps onto a format the DVS form offers (medium sets the decoder format)', async () => {
+  const { PARAMS } = await import('../app/ui/workflows/definitions.js');
+  const { timecodeFormatChoice } = await import('../app/ui/media-picker.js');
+  const param = PARAMS.find(p => p.id === 'timecodeFormat');
+  assert.ok(param && param.modes.includes('DVS signal'));
+  assert.deepEqual(param.options[0], ['', 'Auto-detect']);
+  const field = { options: param.options.map(([value]) => ({ value })) };
+  for (const p of PROFILES.filter(x => x.kind === 'timecode')) {
+    const expected = expectedValuesFor(p, null, 'dvs');
+    assert.equal(timecodeFormatChoice(field, expected), toTimecodeFormat(p).name, p.id);
+  }
+  assert.equal(timecodeFormatChoice(field, { formatName: 'Unknown DVS' }), null);
+  assert.equal(timecodeFormatChoice(null, { formatName: 'Serato CV02.5' }), null);
+});

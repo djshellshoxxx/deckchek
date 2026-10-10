@@ -91,6 +91,15 @@ export const pdfExportEnabled = () => isEnabled('pdfExport');
 
 const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report' };
 
+/** FS-00 §3 save toast actions: [Open] and [Show in folder] for the file just written (desktop only). */
+export function savedActions(path) {
+  if (!path || !isNative()) return [];
+  return [
+    { label: 'Open', run: () => { import('../external-links.js').then(m => m.openAppPath(path, { toast })); } },
+    { label: 'Show in folder', run: () => { import('../external-links.js').then(m => m.revealAppPath(path, { toast })); } },
+  ];
+}
+
 /**
  * Exports a PDF through report-pdf.js with progress and error feedback. The native save dialog
  * and the print-dialog fallback are handled there; this only reports the outcome.
@@ -111,7 +120,7 @@ export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, b
     if (res.fallback) {
       toast(res.reason === 'error' ? `Couldn't create the PDF directly (${res.error?.message || 'unknown error'}). The print dialog is open: choose “Save as PDF”.` : 'The print dialog is open: choose “Save as PDF” to create the PDF.', { type: res.reason === 'error' ? 'warn' : 'info', timeout: 8000 });
     } else {
-      toast(`${label} saved as PDF${res.pages ? ` · ${res.pages} page${res.pages === 1 ? '' : 's'}` : ''}.`, { type: 'success', timeout: 5000 });
+      toast(`${label} saved as PDF${res.pages ? ` · ${res.pages} page${res.pages === 1 ? '' : 's'}` : ''}.`, { type: 'success', timeout: 8000, actions: savedActions(res.path) });
     }
     if (res.warnings?.length) toast(res.warnings.map(w => w.message).join(' '), { type: 'warn', timeout: 8000 });
     return res;
@@ -119,7 +128,10 @@ export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, b
     endProgress();
     const message = error?.code === 'busy' ? 'A PDF is already being created. Wait for it to finish.'
       : `The PDF could not be created: ${error?.message || error}${error?.retryable ? ' You can try again.' : ''}`;
-    toast(message, { type: 'error', ...(htmlFallback ? { action: { label: 'Export HTML instead', run: htmlFallback } } : {}) });
+    const actions = [];
+    if (error?.retryable || error?.code === 'timeout') actions.push({ label: 'Retry', run: () => exportPdfWithFeedback(kind, data, { htmlFallback, button }) });
+    if (htmlFallback) actions.push({ label: 'Export HTML instead', run: htmlFallback });
+    toast(message, { type: 'error', ...(actions.length ? { actions } : {}) });
     return { error };
   } finally {
     if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }

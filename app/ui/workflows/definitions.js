@@ -1,6 +1,8 @@
 // Declarative workflow definitions: modes (tests), setup parameters,
 // checklists, wiring hints and the key readouts shown first in results.
 
+import { TIMECODE_FORMATS } from '../../timecode.js';
+
 const SPEED_MODES = ['Speed & pitch', 'Pitch map', 'Quartz lock', 'Warm-up speed'];
 
 export const PARAMS = [
@@ -12,6 +14,7 @@ export const PARAMS = [
   { id: 'warmupElapsed', label: 'Elapsed since cold start', unit: 'min', type: 'number', value: 0, min: 0, max: 120, step: .5, modes: ['Warm-up speed'], help: 'Use the same track and route for every checkpoint.' },
   { id: 'stopSec', label: 'Brake marker', unit: 's', type: 'number', value: 3, min: 0, step: .01, modes: ['Startup & brake'], help: 'Time in the recording where you pressed stop/brake.' },
   { id: 'separationActive', label: 'Isolated test-track channel', type: 'select', value: 'left', options: [['left', 'Left only'], ['right', 'Right only']], modes: ['Channel separation'], help: 'Record both the left-only and right-only tracks to get azimuth evidence.' },
+  { id: 'timecodeFormat', label: 'Timecode format', type: 'select', value: '', options: [['', 'Auto-detect'], ...TIMECODE_FORMATS.map(f => [f.name, f.name])], modes: ['DVS signal'], help: 'Choosing a timecode medium sets this. Auto-detect only guesses from the carrier frequency, so pick the format when you know it.' },
   { id: 'recordTitle', label: 'Record title', type: 'text', value: '', modes: ['Vinyl side scan'], help: 'Used to match repeat scans of the same side.' },
   { id: 'sideLabel', label: 'Side', type: 'text', value: 'A', modes: ['Vinyl side scan'] },
 ];
