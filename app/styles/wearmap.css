@@ -181,3 +181,9 @@
   .gm-sel, .tl-sel { stroke: Highlight; }
   .wm-swatch { forced-color-adjust: none; }
 }
+
+/* Inspector waveform snippet (FS-13 AC-7) */
+.wm-scope-fig { margin: 0 0 8px; }
+.wm-scope { width: 100%; height: auto; display: block; background: var(--surface-2, transparent); border-radius: 4px; }
+.wm-scope-l { fill: var(--info, #1d4ed8); opacity: .85; }
+.wm-scope-r { fill: var(--warn, #b45309); opacity: .85; }

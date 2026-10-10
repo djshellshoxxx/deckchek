@@ -20,7 +20,7 @@ import { benchmarkVerdict, createStylusApi } from '../../stylus-wear.js';
 import { grooveMapSvg, timelineSvg, legendGradient, METRIC_INFO } from '../plots-groove.js';
 import {
   createRecordsApi, createWearMapApi, scanFormats, defaultSides, sideLength, copyName, scanAudio, startLiveScan, progressModel,
-  verdictContext, finishScan, scanView, drawGeometry, drawTurns, compareModel, recommendation, binDetails, listStylusAssets,
+  verdictContext, finishScan, scanView, drawGeometry, drawTurns, compareModel, recommendation, binDetails, scopeSvg, listStylusAssets,
   saveDraft, loadDraft, clearDraft, loadPrefs, savePrefs,
 } from '../workflows/wearmap.js';
 
@@ -508,12 +508,19 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
     if (counts) counts.innerHTML = [['pass', 'Good', p.counts.good], ['warn', 'Degraded', p.counts.degraded], ['fail', 'Bad', p.counts.bad], ['info', 'Interrupted', p.counts.interrupted]]
       .map(([s, l, n]) => `<span class="wm-count">${chip(s, `${l} ${n}`, { size: 14 })}</span>`).join('');
     const lastBin = bins.at(-1);
-    if (lastBin) showInspector({ title: `Latest bin · ${lastBin.idx}`, body: h('div', { class: 'wm-inspect' }, h('table', { class: 'mini wm-inspect-table' }, h('tbody', {}, ...binDetails(lastBin).map(([k, val]) => h('tr', {}, h('th', { scope: 'row', text: k }), h('td', { class: 'num', text: val })))))), open: false });
+    if (lastBin) showInspector({ title: `Latest bin · ${lastBin.idx}`, body: h('div', { class: 'wm-inspect' }, scopeFigure(lastBin), h('table', { class: 'mini wm-inspect-table' }, h('tbody', {}, ...binDetails(lastBin).map(([k, val]) => h('tr', {}, h('th', { scope: 'row', text: k }), h('td', { class: 'num', text: val })))))), open: false });
     const warn = q('#wm-cap-warn');
     if (warn) {
       const text = p.lockWarning ? 'No timecode lock on most of the side so far. Check the format selection and the phono/line switch.' : p.overrun ? 'Past the expected side length. Stop at the run-out.' : '';
       if (warn.dataset.text !== text) { warn.dataset.text = text; warn.replaceChildren(); if (text) { warn.append(h('div', { class: 'banner banner-warn', role: 'alert' }, h('span', { class: 'banner-text', text }))); } }
     }
+  }
+
+  /** Waveform snippet of a bin (live session only); otherwise a plain note, because raw audio is not stored. */
+  function scopeFigure(bin) {
+    const svg = scopeSvg(bin?.scope);
+    return h('figure', { class: 'wm-scope-fig' }, svg ? h('div', { html: svg }) : null,
+      h('figcaption', { class: 'muted small', text: svg ? 'Peak envelope of this bin, left over right. Kept for this session only.' : 'No waveform: raw audio is not stored, so scans opened from History show numbers only.' }));
   }
 
   // ----- finish and save
@@ -754,8 +761,8 @@ export function createVinylScanScreen(section, { records = createRecordsApi(), a
     const box = h('div', { class: 'wm-inspect' },
       h('p', { class: 'wm-inspect-head' }, h('span', { html: chip(b.cls === 'bad' ? 'fail' : b.cls === 'degraded' ? 'warn' : b.cls === 'good' ? 'pass' : 'info', b.cls, { size: 14 }) }), h('strong', { class: 'num', text: ` Bin ${b.idx} · ${formatTime(b.tSec)}` })),
       st.selected == null ? h('p', { class: 'muted small', text: 'Worst bin shown. Select any bin on the map or timeline.' }) : null,
-      h('table', { class: 'mini wm-inspect-table' }, h('tbody', {}, ...binDetails(b, { delta: d }).map(([k, val]) => h('tr', {}, h('th', { scope: 'row', text: k }), h('td', { class: 'num', text: val }))))),
-      h('p', { class: 'field-help', text: 'Wear scans keep per-bin numbers only, not the audio, so there is no scope snippet to replay for this bin.' }));
+      scopeFigure(b),
+      h('table', { class: 'mini wm-inspect-table' }, h('tbody', {}, ...binDetails(b, { delta: d }).map(([k, val]) => h('tr', {}, h('th', { scope: 'row', text: k }), h('td', { class: 'num', text: val }))))));
     showInspector({ title: `Bin ${b.idx}`, body: box, open: false });
   }
   function navKey(e) {

@@ -178,6 +178,30 @@ export function detectSkips(left,right,sampleRate,{carrierHz,phaseSign=1,minDeg=
   return out;
 }
 
+// ------------------------------------------------------------------------------------------ scope snippets
+
+/** Bins newer than this keep their scope snippet in memory (a ring buffer; older ones are dropped). */
+export const SCOPE_KEEP_BINS=1500;
+export const SCOPE_COLS=120;
+/**
+ * Compact peak envelope of one bin for the inspector (FS-13 AC-7): per column the min and max sample of each
+ * channel, scaled to -127..127 (8 bit is plenty for a picture). Raw audio is never retained.
+ * @returns {{cols:number,l:number[],r:number[]}}
+ */
+export function scopeEnvelope(left,right,n,cols=SCOPE_COLS){
+  const count=Math.max(0,Math.min(n|0,left?.length||0,right?.length||0));
+  if(count<cols)return null;
+  const out={cols,l:[],r:[]};
+  for(let c=0;c<cols;c++){
+    const a=Math.floor(c*count/cols),b=Math.floor((c+1)*count/cols);
+    let lmin=Infinity,lmax=-Infinity,rmin=Infinity,rmax=-Infinity;
+    for(let i=a;i<b;i++){const x=left[i],y=right[i];if(x<lmin)lmin=x;if(x>lmax)lmax=x;if(y<rmin)rmin=y;if(y>rmax)rmax=y;}
+    const q=v=>Math.max(-127,Math.min(127,Math.round(v*127)));
+    out.l.push(q(lmin),q(lmax));out.r.push(q(rmin),q(rmax));
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------------------------------ scanner
 
 /**
@@ -275,7 +299,9 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
     }else{bin.flags|=FLAGS.interrupted;if(!bin.reasons.length)bin.reasons.push('short');prevTrailingSilence=0;}
     if(!(bin.flags&FLAGS.interrupted)){pushRef(refLevels,bin.levelDbfs);if(!(bin.flags&FLAGS.speedShift))pushRef(refCarriers,bin.carrierHz);}
     bin.cls=classifyBin(bin);
-    bins.push(bin);idx++;startSample+=fill+missing;fill=0;missing=0;discont=false;
+    if(n>=lw)bin.scope=scopeEnvelope(bufL,bufR,n);
+    bins.push(bin);idx++;
+    const old=bins[bins.length-1-SCOPE_KEEP_BINS];if(old&&old.scope)delete old.scope;startSample+=fill+missing;fill=0;missing=0;discont=false;
     try{onBin?.(bin,{updated:false});}catch{/* owner callback */}
     return bin;
   }

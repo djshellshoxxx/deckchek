@@ -618,3 +618,22 @@ test('defaults match the spec values', () => {
   assert.deepEqual(FLAGS, { interrupted: 1, speedShift: 2, clip: 4 });
   assert.ok(TIMECODE_FORMATS.length > 0);
 });
+
+test('FS-13 AC-7: bins carry a compact scope snippet, old snippets are dropped, drafts never store them', async () => {
+  const { scopeEnvelope, createScanner, SCOPE_COLS, SCOPE_KEEP_BINS } = await import('../app/wear-map.js');
+  const { saveDraft } = await import('../app/ui/workflows/wearmap.js');
+  const l = Float32Array.from({ length: 1200 }, (_, i) => Math.sin(i / 20) * 0.5), r = Float32Array.from({ length: 1200 }, () => 0.25);
+  const env = scopeEnvelope(l, r, 1200);
+  assert.equal(env.cols, SCOPE_COLS); assert.equal(env.l.length, SCOPE_COLS * 2); assert.equal(env.r.length, SCOPE_COLS * 2);
+  assert.ok(env.l.every(v => v >= -127 && v <= 127)); assert.ok(Math.max(...env.l) >= 60);
+  assert.deepEqual(new Set(env.r), new Set([32]));
+  assert.equal(scopeEnvelope(l, r, 50), null, 'too short for a picture');
+  const sr = 8000, sc = createScanner({ format: 'Serato CV02.5', sampleRate: sr, binSec: 1 });
+  const tone = Float32Array.from({ length: sr }, (_, i) => Math.sin(2 * Math.PI * 1000 * i / sr) * 0.4);
+  for (let k = 0; k < 3; k++) sc.push(tone, tone);
+  assert.ok(sc.bins.every(b => b.scope && b.scope.cols === SCOPE_COLS));
+  assert.ok(SCOPE_KEEP_BINS >= 600, 'a 20 minute side at 2 s bins keeps every snippet');
+  const mem = new Map(); const storage = { setItem: (k, v) => mem.set(k, v), getItem: k => mem.get(k) };
+  assert.ok(saveDraft(storage, { recordSideId: 's', format: 'f', result: { bins: sc.bins } }));
+  assert.ok(![...mem.values()][0].includes('"scope"'));
+});
