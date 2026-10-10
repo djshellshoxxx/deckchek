@@ -10,6 +10,8 @@ pub mod domain;
 // [FS-00] mods
 mod userfiles;
 mod app_state;
+mod usage;
+mod processes;
 // [FS-01] mods
 mod wizard;
 // [FS-02] mods
@@ -56,6 +58,8 @@ pub fn run() {
             // [FS-00] handlers
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
+            usage::usage_add, usage::usage_list, usage::usage_delete, usage::usage_confirm,
+            processes::dj_processes, processes::top_cpu,
             // [FS-01] handlers
             wizard::wizard_state_get, wizard::wizard_state_save, wizard::wizard_create_assets,
             wizard::wizard_apply_gear, wizard::wizard_has_user_data,
