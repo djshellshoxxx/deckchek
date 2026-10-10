@@ -11,6 +11,7 @@ pub mod domain;
 mod userfiles;
 mod app_state;
 // [FS-01] mods
+mod wizard;
 // [FS-02] mods
 // [FS-03] mods
 // [FS-06] mods
@@ -52,6 +53,8 @@ pub fn run() {
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
             // [FS-01] handlers
+            wizard::wizard_state_get, wizard::wizard_state_save, wizard::wizard_create_assets,
+            wizard::wizard_apply_gear, wizard::wizard_has_user_data,
             // [FS-02] handlers
             // [FS-03] handlers
             // [FS-06] handlers
