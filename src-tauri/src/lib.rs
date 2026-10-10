@@ -31,6 +31,7 @@ mod backup;
 // [FS-13] mods
 // [FS-14] mods
 // [FS-15] mods
+mod humrun;
 // [FS-20] mods
 // [FS-21] mods
 // [FS-22] mods
@@ -84,6 +85,7 @@ pub fn run() {
             // [FS-13] handlers
             // [FS-14] handlers
             // [FS-15] handlers
+            humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
             // [FS-20] handlers
             // [FS-21] handlers
             // [FS-22] handlers

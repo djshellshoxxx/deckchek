@@ -1,0 +1,75 @@
+{
+  "module": "humrun",
+  "spec": "FS-15 §5, AC-7",
+  "notes": "Tauri maps camelCase JS argument names to snake_case Rust parameters. Errors are strings prefixed with a code: HUMRUN_INVALID, HUMRUN_NOT_FOUND, HUMRUN_DB. levelDbfs is the DeckChek output level of a feedback step (never above -12 dBFS); hum steps leave it null.",
+  "commands": {
+    "hum_run_save": {
+      "request": {
+        "input": {
+          "sessionId": null,
+          "venueId": "venue-1",
+          "setupId": null,
+          "kind": "hum",
+          "mainsHz": 50,
+          "verdict": "Hum dropped 18 dB when the turntable ground was connected. The turntable ground wire was open.",
+          "causes": [
+            { "id": "tt_ground_missing", "label": "Phono ground wire missing or open", "confidence": 0.85, "evidence": "Hum dropped 18.0 dB at step C.", "nextAction": "Keep the turntable ground wire on the mixer GND terminal." }
+          ],
+          "steps": [
+            { "stepId": "mixer_alone", "label": "Mixer alone", "fundamentalDbfs": -92.5, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -92.5 }], "totalDbfs": -91.8, "floorDbfs": -104.0, "deltaDb": null, "skipped": false, "note": null },
+            { "stepId": "deck_cables", "label": "Deck cables, no ground wire", "fundamentalDbfs": -58.1, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -58.1 }, { "n": 2, "hz": 100, "dbfs": -66.0 }], "totalDbfs": -57.4, "floorDbfs": -103.0, "deltaDb": 34.4, "skipped": false, "note": null },
+            { "stepId": "tt_ground", "label": "Turntable ground wire connected", "fundamentalDbfs": -76.3, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -76.3 }], "totalDbfs": -75.4, "floorDbfs": -103.5, "deltaDb": -18.0, "skipped": false, "note": "SL-1200MK4" },
+            { "stepId": "laptop_usb", "label": "Laptop USB (on battery)", "skipped": true }
+          ]
+        }
+      },
+      "response": {
+        "id": "8f0c2a7e-3a59-4c1b-9d2e-6b9f4d1e2a10",
+        "sessionId": null,
+        "venueId": "venue-1",
+        "setupId": null,
+        "kind": "hum",
+        "mainsHz": 50,
+        "verdict": "Hum dropped 18 dB when the turntable ground was connected. The turntable ground wire was open.",
+        "causes": [
+          { "id": "tt_ground_missing", "label": "Phono ground wire missing or open", "confidence": 0.85, "evidence": "Hum dropped 18.0 dB at step C.", "nextAction": "Keep the turntable ground wire on the mixer GND terminal." }
+        ],
+        "createdAt": "2026-10-10T20:00:00.000Z",
+        "steps": [
+          { "idx": 0, "stepId": "mixer_alone", "label": "Mixer alone", "fundamentalDbfs": -92.5, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -92.5 }], "totalDbfs": -91.8, "floorDbfs": -104.0, "deltaDb": null, "levelDbfs": null, "peakHz": null, "growthDbPerS": null, "onset": false, "skipped": false, "note": null },
+          { "idx": 1, "stepId": "deck_cables", "label": "Deck cables, no ground wire", "fundamentalDbfs": -58.1, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -58.1 }, { "n": 2, "hz": 100, "dbfs": -66.0 }], "totalDbfs": -57.4, "floorDbfs": -103.0, "deltaDb": 34.4, "levelDbfs": null, "peakHz": null, "growthDbPerS": null, "onset": false, "skipped": false, "note": null },
+          { "idx": 2, "stepId": "tt_ground", "label": "Turntable ground wire connected", "fundamentalDbfs": -76.3, "harmonics": [{ "n": 1, "hz": 50, "dbfs": -76.3 }], "totalDbfs": -75.4, "floorDbfs": -103.5, "deltaDb": -18.0, "levelDbfs": null, "peakHz": null, "growthDbPerS": null, "onset": false, "skipped": false, "note": "SL-1200MK4" },
+          { "idx": 3, "stepId": "laptop_usb", "label": "Laptop USB (on battery)", "fundamentalDbfs": null, "harmonics": [], "totalDbfs": null, "floorDbfs": null, "deltaDb": null, "levelDbfs": null, "peakHz": null, "growthDbPerS": null, "onset": false, "skipped": true, "note": null }
+        ]
+      }
+    },
+    "hum_run_save_feedback": {
+      "command": "hum_run_save",
+      "request": {
+        "input": {
+          "sessionId": null, "venueId": "venue-1", "setupId": null, "kind": "feedback", "mainsHz": null,
+          "verdict": "Feedback onset at 63.2 Hz on step 9 (-36 dBFS).",
+          "causes": [],
+          "steps": [
+            { "stepId": "level_1", "label": "Step 1 (-60 dBFS)", "levelDbfs": -60, "totalDbfs": -71.2, "skipped": false },
+            { "stepId": "level_9", "label": "Step 9 (-36 dBFS)", "levelDbfs": -36, "totalDbfs": -38.0, "peakHz": 63.2, "growthDbPerS": 4.1, "onset": true }
+          ]
+        }
+      }
+    },
+    "hum_run_list": {
+      "request": { "filter": { "venueId": "venue-1", "sessionId": null, "kind": null, "limit": 20 } },
+      "response": [
+        { "id": "8f0c2a7e-3a59-4c1b-9d2e-6b9f4d1e2a10", "sessionId": null, "venueId": "venue-1", "setupId": null, "kind": "hum", "mainsHz": 50, "verdict": "Hum dropped 18 dB when the turntable ground was connected. The turntable ground wire was open.", "createdAt": "2026-10-10T20:00:00.000Z", "stepCount": 4, "onset": false }
+      ]
+    },
+    "hum_run_get": {
+      "request": { "id": "8f0c2a7e-3a59-4c1b-9d2e-6b9f4d1e2a10" },
+      "response": "same shape as hum_run_save.response, or null when the id is unknown"
+    },
+    "hum_run_delete": {
+      "request": { "id": "8f0c2a7e-3a59-4c1b-9d2e-6b9f4d1e2a10" },
+      "response": true
+    }
+  }
+}
