@@ -1,0 +1,85 @@
+/* FS-14 Scratch stress test. Tokens come from styles.css; no colour is used on its own (every state also has text). */
+.scratch-panel { display: grid; gap: 16px; margin-top: 16px; align-content: start; }
+.scratch-panel:focus { outline: none; }
+.scratch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.scratch-center { display: grid; gap: 14px; justify-items: start; max-width: 560px; }
+.scratch-center .progress { width: 100%; }
+.scratch-center .progress span { background: var(--accent); }
+.scratch-uncal { margin-left: 4px; vertical-align: middle; }
+.scratch-skip-note { margin-top: 6px; }
+.scratch-safety .banner-text span { color: var(--text); }
+
+/* setup */
+.scratch-proto { list-style: none; display: grid; gap: 10px; margin: 0 0 12px; padding: 0; counter-reset: p; }
+.scratch-proto li { display: grid; gap: 2px; padding-left: 36px; position: relative; counter-increment: p; }
+.scratch-proto li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font: 700 13px/1 var(--font-ui); }
+.scratch-fix { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.scratch-fix li { display: grid; gap: 2px; padding-left: 12px; border-left: 3px solid var(--warn); }
+#sc-level { width: 100%; }
+input[type="range"] { accent-color: var(--accent); min-height: 28px; }
+
+/* guided run */
+.scratch-run { display: grid; gap: 14px; }
+.scratch-run-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.scratch-pattern-name { font: 700 34px/40px var(--font-display); letter-spacing: -.01em; }
+.scratch-pattern-name:focus { outline: none; }
+.scratch-phase { display: grid; justify-items: end; gap: 2px; }
+.scratch-phase-label { font: 700 18px/24px var(--font-ui); padding: 2px 12px; border-radius: var(--r-md); border: 2px solid var(--border-soft); background: var(--raised); }
+.scratch-phase-label[data-phase="perform"] { border-color: var(--pass); background: var(--pass-bg); color: var(--text); }
+.scratch-phase-label[data-phase="countin"] { border-color: var(--warn); background: var(--warn-bg); }
+.scratch-count { font: 700 44px/48px var(--font-display); font-variant-numeric: tabular-nums; min-height: 48px; }
+.scratch-stage { position: relative; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--sunken); padding: 8px 12px; }
+.scratch-diagram { width: 100%; height: auto; display: block; max-height: 190px; }
+.scratch-diagram .plot-line { stroke-width: 3; }
+.scratch-playhead { position: absolute; top: 8px; bottom: 8px; width: 3px; margin-left: -1px; background: var(--focus); border-radius: 2px; left: calc(12px + (100% - 24px) * var(--f, 0)); transition: left 60ms linear; pointer-events: none; }
+.scratch-playhead[hidden] { display: none; }
+.scratch-beats { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; padding: 0; }
+.scratch-beats li { display: grid; place-items: center; min-height: 56px; border-radius: var(--r-md); border: 2px solid var(--border-soft); background: var(--surface); color: var(--text-muted); font: 700 26px/1 var(--font-display); position: relative; }
+.scratch-beats li.on { border-color: var(--accent); background: var(--accent); color: var(--on-accent); animation: scratch-beat .18s ease-out; }
+.scratch-beats li.on::after { content: ""; position: absolute; left: 10%; right: 10%; bottom: 6px; height: 4px; border-radius: 2px; background: currentColor; }
+@keyframes scratch-beat { from { transform: scale(1.06); } to { transform: none; } }
+.scratch-run-foot { display: flex; gap: 16px 24px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.scratch-pills { list-style: none; display: flex; gap: 8px; margin: 0; padding: 0; flex-wrap: wrap; }
+.scratch-pills .pill { padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border-soft); font-weight: 600; font-size: 13px; color: var(--text-muted); }
+.scratch-pills .pill[data-state="now"] { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+.scratch-pills .pill[data-state="done"]::before { content: "\2713\00a0"; color: var(--pass); }
+.scratch-level { display: flex; gap: 8px; align-items: center; }
+.scratch-metro { font-weight: 600; }
+[data-metronome="muted"] .scratch-metro, [data-metronome="stopped"] .scratch-metro { color: var(--warn); }
+#sc-mute[aria-pressed="true"] { background: var(--warn-bg); border-color: var(--warn); }
+
+/* results */
+.scratch-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 0; }
+.scratch-stats div { display: grid; gap: 2px; }
+.scratch-stats dt { color: var(--text-muted); font-size: 13px; }
+.scratch-stats dd { margin: 0; font: 600 24px/30px var(--font-display); }
+.scratch-timeline { min-width: 560px; }
+.scratch-panel .card:has(.scratch-timeline) { overflow-x: auto; }
+.scratch-band { fill: var(--raised); opacity: .7; }
+.scratch-mark { stroke-width: 2; }
+.scratch-mark-loss { stroke: var(--fail); }
+.scratch-mark-dir { stroke: var(--review); stroke-dasharray: 3 3; }
+.scratch-mark-skip { stroke: var(--warn); stroke-width: 3; stroke-dasharray: 8 3; }
+.scratch-mark-rev { stroke: var(--text-faint); stroke-width: 1; opacity: .5; }
+.scratch-legend { list-style: none; display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 0; padding: 0; font-size: 13px; color: var(--text-muted); }
+.scratch-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 18px; height: 0; border-top: 3px solid; }
+.sw-loss { border-color: var(--fail); } .sw-dir { border-color: var(--review); border-top-style: dotted; } .sw-skip { border-color: var(--warn); border-top-style: dashed; } .sw-rev { border-color: var(--text-faint); border-top-width: 1px; }
+.scratch-events { margin-top: 12px; }
+.scratch-events summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; font-weight: 600; color: var(--accent); }
+.scratch-history .btn-ghost { color: var(--text); font-weight: 600; }
+@media (max-width: 900px) { .scratch-pattern-name { font-size: 26px; line-height: 32px; } .scratch-count { font-size: 34px; } }
+@media (prefers-reduced-motion: reduce) {
+  .scratch-playhead { display: none; transition: none; }
+  .scratch-beats li.on { animation: none; }
+}
+.scratch-ack { margin-top: 14px; }
+.scratch-ack input[type="checkbox"] { width: 24px; height: 24px; flex: none; }
+#sc-result { display: grid; gap: 16px; }
+.scratch-run .progress span { background: var(--accent); }
+.scratch-panel table.data tbody th { display: table-cell; font-weight: 600; }
+.scratch-panel table.data td.r { white-space: nowrap; }
+.scratch-panel .verdict .verdict-note { margin: 0; }
+.scratch-cmp-fields { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.scratch-panel .table-wrap { overflow-x: auto; }
+.scratch-saved { display: inline-flex; gap: 6px; align-items: center; color: var(--pass); font-weight: 600; }
