@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "traktor-scratch-mk2-cd",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "Native Instruments",
+  "name": "Traktor Scratch Control CD MK2",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "Traktor Scratch MK2 CD"
+  },
+  "notes": "xwax traktor_mk2_cd.",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    }
+  ]
+}

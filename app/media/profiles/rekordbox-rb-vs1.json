@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "rekordbox-rb-vs1",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "AlphaTheta (Pioneer DJ)",
+  "name": "rekordbox DVS Control Vinyl (RB-VS1)",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "rekordbox RB-VS1"
+  },
+  "notes": "xwax pioneer_a/pioneer_b.",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    }
+  ]
+}

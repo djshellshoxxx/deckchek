@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "analogue-productions-ultimate-test-lp",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": "Analogue Productions",
+  "name": "Ultimate Analogue Test LP",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [
+    {
+      "key": "ref-1k",
+      "side": null,
+      "trackNo": null,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "1 kHz reference tone (mono)",
+      "notes": "Level not verified."
+    },
+    {
+      "key": "tone-10k",
+      "side": null,
+      "trackNo": null,
+      "purpose": "reference_tone",
+      "frequencyHz": 10000,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "10 kHz tone",
+      "notes": "Level not verified."
+    },
+    {
+      "key": "sweeps",
+      "side": null,
+      "trackNo": null,
+      "purpose": "sweep",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Sweeps",
+      "notes": "Ranges not verified."
+    },
+    {
+      "key": "vta",
+      "side": null,
+      "trackNo": null,
+      "purpose": "vta",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "VTA track",
+      "notes": "Details not verified."
+    },
+    {
+      "key": "wow-flutter-3150",
+      "side": null,
+      "trackNo": null,
+      "purpose": "wow_flutter",
+      "frequencyHz": 3150,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Wow & flutter 3150 Hz"
+    },
+    {
+      "key": "anti-skate-315",
+      "side": null,
+      "trackNo": null,
+      "purpose": "anti_skate",
+      "frequencyHz": 315,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Anti-skate 315 Hz, stepping 0 to +12 dB",
+      "notes": "Step levels not verified."
+    },
+    {
+      "key": "pink-noise",
+      "side": null,
+      "trackNo": null,
+      "purpose": "noise",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Pink noise"
+    },
+    {
+      "key": "silent-groove",
+      "side": null,
+      "trackNo": null,
+      "purpose": "silence",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Silent groove"
+    }
+  ],
+  "timecode": null,
+  "notes": "From a retailer snippet only. Track order, sides and exact levels are unknown and not recorded here. Re-check against the sleeve.",
+  "sources": [
+    {
+      "title": "Music Direct: Ultimate Analogue Test LP",
+      "url": "https://www.musicdirect.com/music/vinyl/ultimate-analog-test-lp-analogue-productions-test-vinyl-lp/",
+      "verified": false
+    }
+  ]
+}

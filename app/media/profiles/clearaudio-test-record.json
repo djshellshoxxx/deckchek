@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "clearaudio-test-record",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": "Clearaudio",
+  "name": "Clearaudio test record",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [
+    {
+      "key": "speed-3150",
+      "side": null,
+      "trackNo": null,
+      "purpose": "speed_tone",
+      "frequencyHz": 3150,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "3150 Hz speed tone",
+      "notes": "One side carries a 3150 Hz speed tone (snippet only)."
+    },
+    {
+      "key": "balance",
+      "side": null,
+      "trackNo": null,
+      "purpose": "balance",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Balance tracks",
+      "notes": "Frequencies and levels not verified."
+    },
+    {
+      "key": "tracking",
+      "side": null,
+      "trackNo": null,
+      "purpose": "tracking",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Tracking tracks",
+      "notes": "Frequencies and levels not verified."
+    }
+  ],
+  "timecode": null,
+  "notes": "Snippet only. Side layout, track numbers and levels are unknown.",
+  "sources": [
+    {
+      "title": "Clearaudio Stroboscope test record manual (snippet only)",
+      "url": "https://www.clearaudio.de/_assets/_pdf/manuals/accessories/CA_Stroboscope%20Testrecord_E+D.pdf",
+      "verified": false
+    }
+  ]
+}

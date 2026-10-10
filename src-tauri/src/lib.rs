@@ -17,6 +17,7 @@ mod diagnostics;
 // [FS-03] mods
 mod pdf;
 // [FS-06] mods
+mod media;
 // [FS-07] mods
 mod links;
 // [FS-08] mods
@@ -63,6 +64,7 @@ pub fn run() {
             // [FS-03] handlers
             pdf::pdf_render,
             // [FS-06] handlers
+            media::media_profiles_sync, media::media_list, media::media_custom_save, media::media_custom_delete, media::media_owned_set,
             // [FS-07] handlers
             links::open_external_url, links::open_path, links::reveal_path,
             // [FS-08] handlers

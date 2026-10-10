@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "id": "ortofon-test-record",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": "Ortofon",
+  "name": "Ortofon Stereo Test Record",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [
+    {
+      "key": "t1",
+      "side": null,
+      "trackNo": 1,
+      "purpose": "sweep",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": 28,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "800 Hz–50 kHz log sweep",
+      "notes": "Log sweep 800 Hz to 50 kHz; L/R cut separately per retailer summary. Which of tracks 1-4 is which channel is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t2",
+      "side": null,
+      "trackNo": 2,
+      "purpose": "sweep",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": 28,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "800 Hz–50 kHz log sweep",
+      "notes": "Log sweep 800 Hz to 50 kHz; L/R cut separately per retailer summary. Which of tracks 1-4 is which channel is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t3",
+      "side": null,
+      "trackNo": 3,
+      "purpose": "sweep",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": 28,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "800 Hz–50 kHz log sweep",
+      "notes": "Log sweep 800 Hz to 50 kHz; L/R cut separately per retailer summary. Which of tracks 1-4 is which channel is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t4",
+      "side": null,
+      "trackNo": 4,
+      "purpose": "sweep",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": 28,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "800 Hz–50 kHz log sweep",
+      "notes": "Log sweep 800 Hz to 50 kHz; L/R cut separately per retailer summary. Which of tracks 1-4 is which channel is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t5",
+      "side": null,
+      "trackNo": 5,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": {
+        "value": 5,
+        "unit": "cm/s_rms"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "1 kHz reference at 5 cm/s RMS",
+      "notes": "Channel assignment of tracks 5-8 is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t6",
+      "side": null,
+      "trackNo": 6,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": {
+        "value": 5,
+        "unit": "cm/s_rms"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "1 kHz reference at 5 cm/s RMS",
+      "notes": "Channel assignment of tracks 5-8 is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t7",
+      "side": null,
+      "trackNo": 7,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": {
+        "value": 5,
+        "unit": "cm/s_rms"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "1 kHz reference at 5 cm/s RMS",
+      "notes": "Channel assignment of tracks 5-8 is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t8",
+      "side": null,
+      "trackNo": 8,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": {
+        "value": 5,
+        "unit": "cm/s_rms"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "1 kHz reference at 5 cm/s RMS",
+      "notes": "Channel assignment of tracks 5-8 is not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t9",
+      "side": null,
+      "trackNo": 9,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 50,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 50 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t10",
+      "side": null,
+      "trackNo": 10,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 60,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 60 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t11",
+      "side": null,
+      "trackNo": 11,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 70,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 70 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t12",
+      "side": null,
+      "trackNo": 12,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 80,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 80 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t13",
+      "side": null,
+      "trackNo": 13,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 90,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 90 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t14",
+      "side": null,
+      "trackNo": 14,
+      "purpose": "tracking",
+      "frequencyHz": 315,
+      "level": {
+        "value": 100,
+        "unit": "um_peak"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "315 Hz lateral, 100 µm peak",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    },
+    {
+      "key": "t15",
+      "side": null,
+      "trackNo": 15,
+      "purpose": "square_wave",
+      "frequencyHz": null,
+      "level": null,
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified",
+      "label": "Square wave",
+      "notes": "Frequency and level not verified.",
+      "source": "https://www.stoneaudio.co.uk/products/ortofon-test-record"
+    }
+  ],
+  "timecode": null,
+  "notes": "Track summary is from a retailer snippet only (user guide PDF not opened). Side and per-channel assignments are unknown. Re-check every value against the physical sleeve.",
+  "sources": [
+    {
+      "title": "Stone Audio: Ortofon test record",
+      "url": "https://www.stoneaudio.co.uk/products/ortofon-test-record",
+      "verified": false
+    },
+    {
+      "title": "Ortofon test record user guide (PDF; not opened)",
+      "url": "https://www.audioadvisor.com/content/pdf/Ortofon_Test_Record_User_Guide.pdf",
+      "verified": false
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "generic-1khz-0db",
+  "version": 1,
+  "kind": "test_record",
+  "manufacturer": null,
+  "name": "Generic 1 kHz / 0 dB reference",
+  "playbackRpm": null,
+  "confidence": "unverified",
+  "tracks": [
+    {
+      "key": "ref-1k",
+      "side": null,
+      "trackNo": null,
+      "purpose": "reference_tone",
+      "frequencyHz": 1000,
+      "level": {
+        "value": 0,
+        "unit": "db"
+      },
+      "durationS": null,
+      "channel": null,
+      "confidence": "unverified"
+    }
+  ],
+  "timecode": null,
+  "notes": "Defines the nominal only (1 kHz at the reference level of your disc or file).",
+  "sources": [
+    {
+      "title": "Audiogon forum: 3000 vs 3150 Hz test records (snippet only; not opened)",
+      "url": "https://forum.audiogon.com/posts/404303",
+      "verified": false
+    }
+  ]
+}

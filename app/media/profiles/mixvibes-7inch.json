@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "mixvibes-7inch",
+  "version": 1,
+  "kind": "timecode",
+  "manufacturer": "MixVibes",
+  "name": "MixVibes 7 inch",
+  "playbackRpm": null,
+  "confidence": "confirmed",
+  "tracks": [],
+  "timecode": {
+    "formatName": "MixVibes 7\""
+  },
+  "notes": "xwax mixvibes_7inch.",
+  "sources": [
+    {
+      "title": "xwax timecoder.c timecode_defs[] as vendored in Mixxx (lib/xwax/timecoder.c, commit b02e84aa)",
+      "url": "https://github.com/xwax/xwax",
+      "verified": true
+    }
+  ]
+}
