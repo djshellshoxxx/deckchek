@@ -1,5 +1,6 @@
 // Audio input/output glue: file decoding, live native capture sessions
-// (via ../capture.js), WebAudio playback, device listing and error mapping.
+// (via ../capture.js), the capture lease + streaming capture bridge (FS-00 §4.7),
+// WebAudio playback, device listing and error mapping.
 
 import * as capture from '../capture.js';
 import { levelBus } from './meters.js';
@@ -80,8 +81,247 @@ export async function listInputDevices() {
   return { backend: 'browser', devices: [] };
 }
 
+// ---------------------------------------------------------------- capture lease (FS-00 §4.7)
+
+export const CAPTURE_BUSY = 'CAPTURE_BUSY';
+
+const HOLDER_LABELS = {
+  'live-capture': 'A live capture',
+  'stream-capture': 'An audio stream',
+  'live-monitor': 'Live monitor',
+  'wear-map': 'Wear map',
+  'scratch-stress': 'Scratch stress test',
+  'latency-tuner': 'Latency tuner',
+  'pre-gig': 'Pre-gig check',
+  'hum-hunter': 'Hum hunter',
+  'setup-wizard': 'Setup wizard',
+};
+
+/** Sentence-start label for a lease holder id ("live-monitor" -> "Live monitor"). */
+export function captureHolderLabel(holder) {
+  const id = String(holder ?? '').trim();
+  if (!id) return 'Another capture';
+  if (HOLDER_LABELS[id]) return HOLDER_LABELS[id];
+  const words = id.replace(/^fs\d+:/i, '').replace(/[-_.:]+/g, ' ').trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : 'Another capture';
+}
+
+/** Error thrown when the capture lease is held by another feature. */
+export class CaptureBusyError extends Error {
+  constructor(info = {}) {
+    super(info.message || `The audio input is busy: "${info.holder || 'another capture'}" is already running.`);
+    this.name = 'CaptureBusyError';
+    this.code = CAPTURE_BUSY;
+    this.holder = info.holder ?? null;
+    this.since = Number.isFinite(info.since) ? info.since : null;
+    this.kind = info.kind ?? null;
+    this.deviceName = info.deviceName ?? null;
+    this.leaseId = info.leaseId ?? null;
+  }
+}
+
+export const isCaptureBusy = error => error?.code === CAPTURE_BUSY;
+
+/** Turn a structured CAPTURE_BUSY rejection into a CaptureBusyError; anything else is returned unchanged. */
+export function normalizeCaptureError(error) {
+  if (error instanceof CaptureBusyError) return error;
+  if (error && typeof error === 'object' && error.code === CAPTURE_BUSY) return new CaptureBusyError(error);
+  return error;
+}
+
+function tauriApi(tauri) {
+  const t = tauri === undefined ? (typeof window !== 'undefined' ? window.__TAURI__ : null) : tauri;
+  return t?.core && typeof t.core.invoke === 'function' ? t : null;
+}
+
+function requireTauriApi(tauri) {
+  const t = tauriApi(tauri);
+  if (!t) throw new Error('Native audio capture is only available in the DeckChek desktop app.');
+  return t;
+}
+
+// Sessions started from this page, by lease id, so "Stop and continue" can end them cleanly.
+const activeCaptures = new Map();
+
+/** Lease status: {held, leaseId, holder, deviceName, since, kind} ({held:false, supported:false} in browser mode). */
+export async function captureLeaseStatus({ tauri } = {}) {
+  const t = tauriApi(tauri);
+  if (!t) return { held: false, supported: false, leaseId: null, holder: null, deviceName: null, since: null, kind: null };
+  return { supported: true, ...(await t.core.invoke('capture_lease_status')) };
+}
+
+/** Hold the input for a capture path that is not a live/stream session. Rejects with CaptureBusyError. */
+export async function acquireCaptureLease(holder, { deviceName = null, tauri } = {}) {
+  const t = requireTauriApi(tauri);
+  try { return await t.core.invoke('capture_lease_acquire', { holder, deviceName }); } catch (error) { throw normalizeCaptureError(error); }
+}
+
+export async function releaseCaptureLease(leaseId, { tauri } = {}) {
+  const t = tauriApi(tauri);
+  if (!t || leaseId == null) return false;
+  return t.core.invoke('capture_lease_release', { leaseId });
+}
+
+/**
+ * Stop whatever holds the input ("Stop <holder> and continue"). Sessions started from this page are
+ * stopped through their own controller (their owners get onPreempted); anything else, e.g. a session
+ * left over from before a reload, is stopped natively. Resolves the stopped holder's status, or null.
+ */
+export async function preemptCapture({ tauri } = {}) {
+  const t = tauriApi(tauri);
+  if (!t) return null;
+  const status = await t.core.invoke('capture_lease_status');
+  if (!status?.held) return null;
+  const local = activeCaptures.get(status.leaseId);
+  if (local) {
+    try { await local.preempt(); } catch { /* fall through to the native stop */ }
+  }
+  const after = await t.core.invoke('capture_lease_status');
+  if (after?.held && after.leaseId === status.leaseId) await t.core.invoke('capture_preempt');
+  return status;
+}
+
+// ---------------------------------------------------------------- stream blocks
+
+export const STREAM_HEADER_BYTES = 48;
+const STREAM_MAGIC = 0x42534344; // "DCSB" little endian
+const FLAG_FINAL = 1, FLAG_DISCONTINUITY = 2;
+const littleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
+function toArrayBuffer(data) {
+  if (data instanceof ArrayBuffer) return data;
+  if (ArrayBuffer.isView(data)) return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  if (Array.isArray(data)) return new Uint8Array(data).buffer;
+  throw new Error('Stream block is not binary data.');
+}
+
+function readF32(buffer, offset, frames) {
+  if (littleEndian) return new Float32Array(buffer.slice(offset, offset + frames * 4));
+  const v = new DataView(buffer), out = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) out[i] = v.getFloat32(offset + i * 4, true);
+  return out;
+}
+
+/** Decode one binary stream block (format in src-tauri/src/capture.rs) into {seq, sampleRate, frames, left, right, quality}. */
+export function decodeStreamBlock(data) {
+  const buffer = toArrayBuffer(data);
+  if (buffer.byteLength < STREAM_HEADER_BYTES) throw new Error('Stream block is truncated.');
+  const v = new DataView(buffer);
+  if (v.getUint32(0, true) !== STREAM_MAGIC) throw new Error('Not a DeckChek stream block.');
+  if (v.getUint16(4, true) !== 1) throw new Error(`Unsupported stream block version ${v.getUint16(4, true)}.`);
+  const flags = v.getUint16(6, true), frames = v.getUint32(16, true);
+  if (buffer.byteLength !== STREAM_HEADER_BYTES + frames * 8) throw new Error('Stream block length does not match its frame count.');
+  return {
+    seq: v.getUint32(8, true),
+    sampleRate: v.getUint32(12, true),
+    frames,
+    left: readF32(buffer, STREAM_HEADER_BYTES, frames),
+    right: readF32(buffer, STREAM_HEADER_BYTES + frames * 4, frames),
+    quality: {
+      droppedBlocks: v.getUint32(20, true),
+      streamErrors: v.getUint32(24, true),
+      overrunSamples: v.getFloat64(32, true),
+      framesCaptured: v.getFloat64(40, true),
+      discontinuity: Boolean(flags & FLAG_DISCONTINUITY),
+      final: Boolean(flags & FLAG_FINAL),
+    },
+  };
+}
+
+const FINAL_BLOCK_WAIT_MS = 2000;
+
+/**
+ * Start a streaming capture (FS-13, FS-31): stereo f32 blocks of `blockMs` arrive in order through
+ * onBlock(block) (may be async; the next block waits for it, and the block is acknowledged after it
+ * resolves, which is what Rust's lag window measures). Rejects with CaptureBusyError when another
+ * feature holds the input. Returns {info, stop() -> summary, stats(), ended}. onEnd({reason, summary})
+ * fires once: reason 'stopped' (stop()), 'preempted' (Stop and continue), 'deviceLost' or 'sinkClosed'.
+ */
+export async function startStreamSession({ holder, deviceName = null, sampleRate = null, blockMs = 1000, onBlock = null, onEnd = null, onPreempted = null, tauri } = {}) {
+  const t = requireTauriApi(tauri);
+  const ChannelClass = t.core.Channel;
+  if (typeof ChannelClass !== 'function') throw new Error('Streaming capture needs the Tauri Channel API.');
+  const channel = new ChannelClass();
+  const stats = { blocks: 0, frames: 0, droppedBlocks: 0, discontinuities: 0, lastSeq: null, decodeErrors: 0 };
+  let info = null, ended = false, summary = null, endReason = null, stopping = null;
+  let finalSeen = false, resolveFinal;
+  const finalBlock = new Promise(resolve => { resolveFinal = resolve; });
+  let chain = Promise.resolve();
+  const early = [];
+
+  const finish = (reason, sum) => {
+    if (ended) return;
+    ended = true; endReason = reason; summary = sum ?? summary;
+    if (info) activeCaptures.delete(info.streamId);
+    try { onEnd?.({ reason, summary }); } catch { /* owner callback */ }
+  };
+
+  const handle = async data => {
+    let block;
+    try { block = decodeStreamBlock(data); } catch { stats.decodeErrors++; return; }
+    stats.blocks++; stats.frames += block.frames; stats.lastSeq = block.seq;
+    stats.droppedBlocks = block.quality.droppedBlocks;
+    if (block.quality.discontinuity) stats.discontinuities++;
+    try { if (block.frames || !block.quality.final) await onBlock?.(block); } catch { /* owner callback; keep streaming */ }
+    if (!block.quality.final) t.core.invoke('stream_capture_ack', { streamId: info.streamId, seq: block.seq }).catch(() => {});
+    else {
+      finalSeen = true; resolveFinal();
+      if (!stopping) {
+        // Ended by itself (device lost, preempted natively): collect the summary and release the slot.
+        let sum = null;
+        try { sum = await t.core.invoke('stop_stream_capture'); } catch { /* already reaped */ }
+        // No summary (or a plain stop by someone else) means it was stopped natively: a preempt.
+        finish(!sum || sum.ended === 'stopped' ? 'preempted' : sum.ended, sum);
+      }
+    }
+  };
+  channel.onmessage = data => {
+    if (!info) { early.push(data); return; }
+    chain = chain.then(() => handle(data));
+  };
+
+  try {
+    info = await t.core.invoke('start_stream_capture', { deviceName, sampleRate, blockMs, holder: holder || null, channel });
+  } catch (error) {
+    throw normalizeCaptureError(error);
+  }
+  early.splice(0).forEach(d => { chain = chain.then(() => handle(d)); });
+
+  async function stop(reason = 'stopped') {
+    if (ended) return summary;
+    if (!stopping) {
+      stopping = (async () => {
+        let sum = null;
+        try { sum = await t.core.invoke('stop_stream_capture'); } catch (error) { if (!finalSeen) throw error; }
+        if (!finalSeen) await Promise.race([finalBlock, new Promise(r => setTimeout(r, FINAL_BLOCK_WAIT_MS))]);
+        await chain;
+        finish(reason, sum);
+        return summary;
+      })();
+    }
+    return stopping;
+  }
+
+  activeCaptures.set(info.streamId, {
+    kind: 'stream', holder: info.holder,
+    async preempt() { await stop('preempted'); try { onPreempted?.(); } catch { /* owner callback */ } },
+  });
+
+  return {
+    info,
+    stop: () => stop('stopped'),
+    stats: () => ({ ...stats }),
+    get ended() { return ended; },
+    get endReason() { return endReason; },
+  };
+}
+
 /** Map backend error text to a user-facing failure with cause, consequence and next step. */
 export function classifyCaptureError(error) {
+  if (isCaptureBusy(error)) {
+    const who = captureHolderLabel(error.holder);
+    return { kind: 'busy', title: 'Input is busy', message: `${who} is using the audio input. Stop it, then retry.`, holder: error.holder ?? null, since: error.since ?? null, raw: String(error.message || CAPTURE_BUSY) };
+  }
   const text = String(error?.message || error || 'Unknown error');
   const t = text.toLowerCase();
   if (/only available in the deckchek desktop app|tauri/.test(t)) return { kind: 'unavailable', title: 'Live capture needs the desktop app', message: 'This browser preview cannot open audio inputs. Load a recorded file instead, or run the DeckChek desktop app.', raw: text };
@@ -95,8 +335,10 @@ export function classifyCaptureError(error) {
 /**
  * Start a live session. Levels go to levelBus (and onLevels). Returns a controller:
  * { info, stop() -> {audio, quality, streamErrors, deviceName}, cancel(), elapsed() }.
+ * Rejects with CaptureBusyError when another feature holds the input (see ./capture-busy.js);
+ * onPreempted fires after "Stop and continue" ended this session for another feature.
  */
-export async function startLiveSession({ deviceName = null, maxSeconds = 60, onLevels = null, onStatus = null } = {}) {
+export async function startLiveSession({ deviceName = null, maxSeconds = 60, onLevels = null, onStatus = null, onPreempted = null } = {}) {
   levelBus.reset();
   let lastEvent = performance.now(), elapsedSec = 0, overruns = 0;
   const unlisten = capture.onLevels(levels => {
@@ -111,7 +353,7 @@ export async function startLiveSession({ deviceName = null, maxSeconds = 60, onL
     info = await capture.startLive({ deviceName: deviceName || null, maxSeconds });
   } catch (error) {
     unlisten();
-    throw error;
+    throw normalizeCaptureError(error);
   }
   const started = performance.now();
   let stopped = false;
@@ -125,16 +367,20 @@ export async function startLiveSession({ deviceName = null, maxSeconds = 60, onL
     if (stopped) throw new Error('Capture already stopped.');
     stopped = true;
     clearInterval(poll);
+    if (leaseId != null) activeCaptures.delete(leaseId);
     try {
       const result = await capture.stopLive();
       const audio = payloadToAudio(result?.payload);
       return { audio, quality: result?.quality || null, streamErrors: result?.payload?.streamErrors || [], deviceName: result?.payload?.deviceName || info?.deviceName || deviceName || 'input' };
     } finally { unlisten(); }
   }
+  async function cancel() { if (!stopped) { try { await stop(); } catch { /* discard */ } } levelBus.reset(); }
+  const leaseId = info?.leaseId ?? null;
+  if (leaseId != null) activeCaptures.set(leaseId, { kind: 'live', holder: 'live-capture', async preempt() { await cancel(); try { onPreempted?.(); } catch { /* owner callback */ } } });
   return {
     info,
     stop,
-    async cancel() { if (!stopped) { try { await stop(); } catch { /* discard */ } } levelBus.reset(); },
+    cancel,
     elapsed: () => elapsedSec || (performance.now() - started) / 1000,
     overruns: () => overruns,
     get stopped() { return stopped; },
