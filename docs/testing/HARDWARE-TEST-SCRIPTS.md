@@ -41,6 +41,7 @@ Safety, applies to every script:
 | H-06 | FS-06 test-media library | Prefilled values vs sleeve; observed carriers | SL-1200MK4, PLX-CRSS12, test record, CV02.5, MK2 vinyl, Audio 8 DJ |
 | H-07 | FS-07 external links | Link allowlist, confirm dialog, copy fallback | Machine with a default browser; a VM with no default browser |
 | H-08 | FS-08 backup and restore | Round trip, tamper rejection, second machine | Owner's profile with PLX-CRSS12 and SL-1200MK4 assets, Audio 8 DJ calibration, DDJ map |
+| H-15 | FS-15 booth feedback and hum hunter | Hum isolation steps on three mixers, feedback step test, abort timing, stop on navigation and close | SL-1200MK4, Twelve MK2, DJM-A9, Xone:23C, Audio 8 DJ, Pioneer monitors, laptop charger, a loop recording cable |
 
 IDs follow the feature spec number (`H-NN` = spec `NN`), as the plan and the spec §8 cross-references do. There is no H-04 or H-05, because the M5 index has no FS-04 or FS-05 (see section 9).
 
@@ -177,6 +178,32 @@ This script moves your profile data. Do the first two steps in order and do not 
 
 ---
 
+## H-15 Booth feedback and hum hunter (FS-15)
+
+Enable `humHunter` and `feedbackStep` under Options > Advanced > Experimental features first. The hum part only listens. The feedback part makes sound: do steps 8 to 14 with the **monitor and booth volume all the way down** and your hand on the master. DeckChek never plays above its cap (default -30 dBFS, absolute -12 dBFS), but the mixer gain and the PA can still make it loud. Never lift, cut or tape over a mains safety earth in any step; "ground lift" means only an audio ground-lift switch or DI box.
+
+Run steps 1 to 7 once per mixer: Rane Twelve MK2, Pioneer DJM-A9 (phono input), Allen & Heath Xone:23C. Record the mixer name next to each result. Use the SL-1200MK4 as the turntable, the Audio 8 DJ as the capture interface, and take the mixer's record or master output into an Audio 8 DJ input.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Open Hum and feedback > Hum hunter. Pick the Audio 8 DJ input and channel. Leave mains on Auto. Press Start. With nothing plugged into the mixer channel, watch the live meter for 5 s. | The live hum meter shows the mains fundamental (50 Hz or 60 Hz, matching the venue mains), harmonics 2 to 6 in dBFS, and "dB above the noise floor". Mains frequency matches your region. | `H-15/1` mixer, detected mains Hz, hum above floor dB |
+| 2 | Step A "Mixer alone": press Space (or Measure 5 s). Do not touch anything. | A 5 s progress bar runs, then the step shows a total hum level. | `H-15/2` step A total dBFS |
+| 3 | Step B: connect the deck RCA cables to the phono input, ground wire **disconnected**. Measure. | Result shows delta vs step A. If hum rose 6 dB or more, the message reads "This connection introduces hum". | `H-15/3` step B total dBFS, delta dB, message |
+| 4 | Step C: connect the turntable ground wire to the mixer GND terminal. Measure. | If hum drops 6 dB or more, the message reads "Hum source is downstream of this connection". Note the delta. | `H-15/4` step C total dBFS, delta dB, message |
+| 5 | Step C check: lift the ground wire again, measure by pressing Previous step and Measure again, then reconnect. | Hum rises again by about the same amount (about 10 dB or more if the ground was working). If it does not change, the app should rank "ground wire not making contact" higher. | `H-15/5` delta dB, top cause shown |
+| 6 | Steps D and E: connect the laptop USB on battery and measure, then plug in the charger and measure. Skip F and G with S unless the mixer has an audio ground-lift switch. | Each step shows its delta. A rise at E ranks "Laptop charger" above other causes. Skipped steps are marked and the result says conclusions across them are less certain. | `H-15/6` D and E deltas, top cause |
+| 7 | At the result: read the verdict, the ranked causes (confidence and "Try"), and open Runs. | A one-line verdict that matches what you observed. Cause list has confidence percentages and a next action each, with no instruction to alter mains wiring. The run is listed on the Runs tab with its step table. Remove the USB charger and rerun once; the cause list changes accordingly. | `H-15/7` verdict text, top 2 causes, matches reality Y/N |
+| 8 | Feedback test setup (volume down): choose the interface output into a spare mixer channel with its fader down, the booth mic or record-out as input, 63 Hz sine, cap -30, step 3 dB. Read the screen before ticking anything. | The safety banner states -12 dBFS absolute limit. Start stays disabled until all three boxes are ticked. The plan line reads "Starts at -60 dBFS ... never goes above -30 dBFS". | `H-15/8` PASS/FAIL |
+| 9 | Tick the boxes and press Start. Before touching anything else, press Tab once. | Output starts at -60 dBFS (display and, with the mixer meter, near silence). Focus is on the large STOP button, which is the first tab stop. The current level, cap and "Output playing" are on screen. | `H-15/9` PASS/FAIL |
+| 10 | Wait 4 s, then press Raise (or R) once. Raise the mixer channel fader slightly until the tone is just audible in the booth. | The level rises by exactly 3 dB per press, only when you press. Raise is disabled for about 4 s after each step. It never rises on its own. | `H-15/10` levels observed |
+| 11 | Press Esc. Then start again and press Space. | Both stop the tone at once. The banner says output is silent and shows the stop time. The partial run is saved. | `H-15/11` PASS/FAIL, stop time shown |
+| 12 | Abort timing: feed the mixer's record output back to the input so the room can howl (a loop cable or the booth mic near the monitor), keep the volume low, and step up until onset. Compare with a screen or phone video of the monitor level meter. | The app stops the output by itself when the howl is detected. Banner: "Feedback detected: output stopped automatically" with frequency and step. The tone is silent within 100 ms of the detection. | `H-15/12` onset Hz, step, level dBFS, abort delay ms (from video), loop gain margin dB |
+| 13 | Compare the deck on a flexible table with the deck on isolation feet or a heavier base. Repeat step 12 for each. | Onset step is later (or absent up to the cap) on the isolated deck. Guidance for onset below 120 Hz mentions decoupling and high-passing the booth monitor. | `H-15/13` onset step each, difference in steps |
+| 14 | Safety exits. While the tone is playing: (a) click another screen in the rail; (b) start again and switch to the Runs tab; (c) start again and close the DeckChek window; (d) start again and unplug the input cable; (e) start again, raise nothing and wait 60 s without touching anything. | In (a), (b) and (c) the tone stops immediately. In (d) the tone stops within about 1 s and the banner says input lost. In (e) it stops at 60 s with the inactivity message. Clipping the input hard (raise mixer gain) also stops it with a clipping message. | `H-15/14` PASS/FAIL for a to e, plus clipping |
+| 15 | Run the whole hum procedure once on an interface with no output device selected (or with the output unplugged) and open the Feedback tab. | Feedback test is disabled with an explanation. Hum hunter still works with the input only. | `H-15/15` PASS/FAIL |
+
+---
+
 ## 9. Open items and defaults for the owner
 
 These need an owner decision. Until they are decided, the defaults below apply and are recorded in H-00 step 9.
@@ -201,7 +228,6 @@ These specs also have manual hardware steps in their §8. They keep their spec-n
 | H-12 | Stylus wear tracker | M6 |
 | H-13 | Control-vinyl wear map | M6 |
 | H-14 | Scratch stress test | M6 |
-| H-15 | Booth feedback and hum hunter | M6 |
 | H-20 to H-23 | Used-gear certificate, unit comparison, service worksheets, fleet dashboard | M7 |
 | H-30 | Mobile companion | M8 (blocked) |
 | H-31 | Timecode doctor live monitor (2 h CPU budget) | M8 |

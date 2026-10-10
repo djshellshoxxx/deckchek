@@ -33,6 +33,7 @@ import { stylusScreenDefs } from './ui/screens/stylus.js';
 // [FS-13] screens imports
 // [FS-14] screens imports
 // [FS-15] screens imports
+import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-20] screens imports
 // [FS-21] screens imports
 // [FS-22] screens imports
@@ -67,6 +68,7 @@ const SCREENS = [
   // [FS-13] screens
   // [FS-14] screens
   // [FS-15] screens
+  ...humScreenDefs(),
   // [FS-20] screens
   // [FS-21] screens
   // [FS-22] screens
