@@ -32,6 +32,7 @@ import { pregigScreenDefs } from './ui/screens/pregig.js';
 // [FS-12] screens imports
 import { stylusScreenDefs } from './ui/screens/stylus.js';
 // [FS-13] screens imports
+import { vinylScanScreenDefs } from './ui/screens/vinylscan.js';
 // [FS-14] screens imports
 import { scratchScreenDefs } from './ui/screens/scratch.js';
 // [FS-15] screens imports
@@ -69,6 +70,7 @@ const SCREENS = [
   // [FS-12] screens
   ...stylusScreenDefs(),
   // [FS-13] screens
+  ...vinylScanScreenDefs(),
   // [FS-14] screens
   ...scratchScreenDefs(),
   // [FS-15] screens

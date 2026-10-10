@@ -24,7 +24,10 @@ export const WEAR_DEFAULTS=Object.freeze({
   lockLostErrorPct:20,                 // spec §3 error state: lock lost for > 20 % of the side
   clipLevel:.999,
   refBins:31,                          // running medians (level, carrier) over this many recent valid bins
-  minCoverage:.05                      // less of the side than this -> verdict 'incomplete'
+  minCoverage:.05,                     // less of the side than this -> verdict 'incomplete'
+  skipMinDeg:30,                       // needle skip: carrier phase step at least this large (deg) ...
+  skipSigma:7,                         // ... and this many robust standard deviations above the step noise
+  skipWinSec:.002                      // averaging window either side of a candidate step
 });
 
 /** Bin flags as stored in wear_bin.flags. */
@@ -53,6 +56,8 @@ export const DEFAULT_TURNS=12;
 /** SNR changes below this are "within noise" (FS-13 §6). */
 export const NOISE_DB=3;
 export const MAX_BINS=5000;
+/** Skips kept in a saved scan's summary (the summary is capped at 64 KiB in Rust). */
+export const MAX_SUMMARY_SKIPS=200;
 
 /**
  * Sequential colour ramp (cividis: perceptually uniform and readable with deuteranopia/protanopia),
@@ -117,6 +122,60 @@ export function referenceBaseline(refBins,{firstPct=5}={}){
   const n=v.length,mx=v.reduce((a,b)=>a+b.tSec,0)/n,my=v.reduce((a,b)=>a+b.snrDb,0)/n;
   let sxy=0,sxx=0;for(const b of v){sxy+=(b.tSec-mx)*(b.snrDb-my);sxx+=(b.tSec-mx)**2;}
   return {snr0:median(head.map(b=>b.snrDb)),slopeDbPerSec:sxx>0?sxy/sxx:0,n};
+}
+
+// ------------------------------------------------------------------------------------------ needle skips
+
+const wrapPi=x=>x-2*Math.PI*Math.round(x/(2*Math.PI));
+
+/**
+ * Needle skips (FS-13 §7) in one stretch of quadrature timecode. A skip moves the stylus to another groove, so
+ * the carrier phase, common to both channels, steps by the fractional part of the cycles jumped; the L/R
+ * quadrature relation, which analyzeTimecode scores, is unchanged. The instantaneous carrier phase is
+ * atan2(L, phaseSign * R) after per-channel level normalisation; its residual against the expected carrier
+ * advance is integrated, and the step statistic D(i) = S(i) - (S(i-m) + S(i+m)) / 2, where S(i) is the mean
+ * residual phase over the m samples after i minus the m samples before, is zero for any constant speed error
+ * and any speed change (kink), and equals the step size at a skip. Peaks above max(minDeg, sigma x robust
+ * noise) are skips. Windows touching samples with no carrier (dropouts, silence) are not tested. Steps close to
+ * a whole number of cycles (|step| < minDeg) and steps within 2m samples of the stretch edges are not seen.
+ * @returns {Array<{sample:number,sec:number,deg:number}>}
+ */
+export function detectSkips(left,right,sampleRate,{carrierHz,phaseSign=1,minDeg=WEAR_DEFAULTS.skipMinDeg,sigma=WEAR_DEFAULTS.skipSigma,winSec=WEAR_DEFAULTS.skipWinSec}={}){
+  const n=Math.min(left?.length||0,right?.length||0),m=Math.max(8,Math.round(winSec*sampleRate));
+  if(!fin(carrierHz)||carrierHz<=0||n<5*m)return [];
+  let pl=0,pr=0;for(let i=0;i<n;i++){pl+=left[i]*left[i];pr+=right[i]*right[i];}
+  const aL=Math.sqrt(2*pl/n),aR=Math.sqrt(2*pr/n);
+  if(!(aL>1e-6&&aR>1e-6))return [];
+  const s=phaseSign===-1?-1:1,w=2*Math.PI*carrierHz/sampleRate;
+  // cumulative residual phase and a prefix count of samples without carrier
+  const P=new Float64Array(n+1),bad=new Int32Array(n+1);
+  let prev=null,phi=0;
+  for(let i=0;i<n;i++){
+    const x=left[i]/aL,y=s*right[i]/aR,mag=x*x+y*y,ok=mag>.09&&mag<9;
+    bad[i+1]=bad[i]+(ok?0:1);
+    if(ok){const a=Math.atan2(x,y);if(prev!=null)phi+=wrapPi(wrapPi(a-prev)-w);prev=a;}
+    else prev=null; // re-anchor after a gap: the gap itself never reads as a step
+    P[i+1]=P[i]+phi;
+  }
+  const mean=(a,b)=>(P[b]-P[a])/(b-a),S=i=>mean(i,i+m)-mean(i-m,i);
+  const lo=2*m,hi=n-2*m,D=new Float64Array(Math.max(0,hi-lo));
+  for(let i=lo;i<hi;i++)D[i-lo]=bad[i+2*m]-bad[i-2*m]?0:S(i)-(S(i-m)+S(i+m))/2;
+  if(!D.length)return [];
+  // robust noise of D from a decimated sample (skips are rare, so the median absolute value is noise)
+  const sample=[];for(let k=0;k<D.length;k+=7)sample.push(Math.abs(D[k]));
+  sample.sort((a,b)=>a-b);
+  const noise=1.4826*sample[sample.length>>1];
+  const thr=Math.max(minDeg*Math.PI/180,sigma*noise);
+  const out=[];
+  for(let k=0;k<D.length;k++){
+    if(Math.abs(D[k])<thr)continue;
+    // the step's own peak lies within m after a side lobe (-step/2 at -m); take the largest in 3m
+    let best=k;for(let j=k+1;j<Math.min(D.length,k+3*m);j++)if(Math.abs(D[j])>Math.abs(D[best]))best=j;
+    const i=best+lo;
+    out.push({sample:i,sec:round(i/sampleRate,6),deg:round(wrapPi(D[best])*180/Math.PI,3)});
+    k=best+2*m; // skip the trailing side lobe
+  }
+  return out;
 }
 
 // ------------------------------------------------------------------------------------------ scanner
@@ -204,6 +263,13 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
             }
           }
           if(bin.snrDb<o.lockSnrDb)bin.reasons.push('no-lock');
+          else if(sure.length){
+            const hits=detectSkips(l,r,sampleRate,{carrierHz:bin.carrierHz,phaseSign:fmt.phaseSign,minDeg:o.skipMinDeg,sigma:o.skipSigma,winSec:o.skipWinSec});
+            if(hits.length){
+              bin.skips=hits.map(x=>({tSec:round(tSec+x.sec,4),deg:round(x.deg,1)}));
+              bin.flags|=FLAGS.interrupted;bin.reasons.push('skip');
+            }
+          }
         }else bin.reasons.push('no-lock');
       }else if(!silentAll){bin.flags|=FLAGS.interrupted;bin.reasons.push('short');}
     }else{bin.flags|=FLAGS.interrupted;if(!bin.reasons.length)bin.reasons.push('short');prevTrailingSilence=0;}
@@ -249,7 +315,8 @@ export function createScanner({format,sampleRate,binSec=WEAR_DEFAULTS.binSec,nom
   function result(final){
     const flushEnv=final&&envFill>0?[...env,envN>Math.max(1,envFill/2)?round(10*Math.log10(Math.max(envPow/envN,1e-24)),3):null]:env.slice();
     return {format:fmt.name,formatInfo:{name:fmt.name,carrierHz:fmt.carrierHz,phaseSign:fmt.phaseSign??1},sampleRate,binSec,nominalRpm,
-      bins:bins.map(b=>({...b,reasons:[...b.reasons]})),elapsedSec:round(elapsedSec(),3),
+      bins:bins.map(b=>({...b,reasons:[...b.reasons],...(b.skips?{skips:b.skips.map(x=>({...x}))}:{})})),elapsedSec:round(elapsedSec(),3),
+      skips:bins.flatMap(b=>b.skips||[]).map(x=>({...x})),
       envelope:{hz:1,db:flushEnv},needleDropSec,fromNeedleDrop:needleDropSec!=null&&needleDropSec>=o.edgeSilenceSec,finished:final};
   }
   return {
@@ -589,7 +656,7 @@ export function toScanRecord(result,v,{recordSideId,sideLabel=null,sideDurationS
   const summary={v:1,sideLabel,sideDurationSec:sd,coverageBasis:cov.basis,elapsedSec:result.elapsedSec,validBins:st.validBins,interruptedBins:st.interruptedBins,
     goodPct:st.goodPct,degradedPct:st.degradedPct,badPct:st.badPct,lockLostPct:st.lockLostPct,lowSnrPct:st.lowSnrPct,dropouts:st.dropouts,
     fromNeedleDrop:result.fromNeedleDrop,needleDropSec:result.needleDropSec,worst:v.worst,envelope:result.envelope,reasons:v.reasons,stylusNote:v.stylusNote,
-    message:v.message,nominalRpm:result.nominalRpm,sampleRate:result.sampleRate};
+    message:v.message,nominalRpm:result.nominalRpm,sampleRate:result.sampleRate,skips:(result.skips||[]).slice(0,MAX_SUMMARY_SKIPS).map(x=>({tSec:x.tSec,deg:x.deg}))};
   return validateScanRecord({fullSideScanId,recordSideId,sessionId,stylusAssetId,format:result.format,binSec:result.binSec,coverage:cov.coverage,
     verdict:v.verdict,score:v.score,summary,geometry:{...geometry},bins:result.bins.map(b=>Object.fromEntries(DB_BIN_KEYS.map(k=>[k,b[k]??(k==='dropouts'||k==='flags'?0:null)])))});
 }
