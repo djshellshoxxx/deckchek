@@ -2110,6 +2110,15 @@ mod tests {
     }
 
     #[test]
+    fn manifest_contract_round_trips_with_the_js_example() {
+        let raw = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/backup-manifest.json")).unwrap();
+        let v: Value = serde_json::from_str(&raw).unwrap();
+        let m: Manifest = serde_json::from_value(v.clone()).unwrap();
+        assert_eq!(m.counts, Counts { runs: 128, assets: 12, profiles: 3, midi_maps: 4 });
+        assert_eq!(serde_json::to_value(&m).unwrap(), v, "field names match exactly");
+    }
+
+    #[test]
     fn errors_serialize_with_code_and_message() {
         let v = serde_json::to_value(BackupError::new("too_new", "m")).unwrap();
         assert_eq!(v, json!({ "code": "too_new", "message": "m" }));
