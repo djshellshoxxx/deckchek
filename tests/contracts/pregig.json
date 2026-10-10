@@ -1,0 +1,245 @@
+{
+  "pregig_processes": {
+    "command": "pregig_processes",
+    "response": {
+      "supported": true,
+      "apps": [
+        {
+          "app": "Traktor Pro",
+          "running": true,
+          "exe": "Traktor.exe",
+          "pid": 4242,
+          "version": null
+        },
+        {
+          "app": "Serato DJ Pro",
+          "running": false,
+          "exe": "Serato DJ Pro.exe",
+          "pid": null,
+          "version": null
+        }
+      ],
+      "scannedAt": "2026-10-10T18:00:00Z"
+    }
+  },
+  "pregig_preset_upsert": {
+    "command": "pregig_preset_upsert",
+    "request": {
+      "preset": {
+        "id": "preset-contract",
+        "name": "Technics+Audio8+Traktor MK2",
+        "setupId": null,
+        "json": {
+          "v": 1,
+          "name": "Technics+Audio8+Traktor MK2",
+          "software": "Traktor Pro",
+          "audioDevice": "Traktor Audio 8 DJ",
+          "sampleRate": 48000,
+          "decks": [
+            {
+              "id": "A",
+              "input": [
+                0,
+                1
+              ],
+              "format": "Traktor Scratch MK2",
+              "mixerChannel": "1"
+            }
+          ],
+          "profileIds": {
+            "turntables": [
+              "technics-sl-1200mk4"
+            ],
+            "interface": "traktor-audio-8-dj",
+            "media": "traktor-scratch-timecode"
+          }
+        }
+      }
+    },
+    "response": {
+      "id": "preset-contract",
+      "name": "Technics+Audio8+Traktor MK2",
+      "builtin": false,
+      "setupId": null,
+      "json": {
+        "v": 1,
+        "name": "Technics+Audio8+Traktor MK2",
+        "software": "Traktor Pro",
+        "audioDevice": "Traktor Audio 8 DJ",
+        "sampleRate": 48000,
+        "decks": [
+          {
+            "id": "A",
+            "input": [
+              0,
+              1
+            ],
+            "format": "Traktor Scratch MK2",
+            "mixerChannel": "1"
+          }
+        ],
+        "profileIds": {
+          "turntables": [
+            "technics-sl-1200mk4"
+          ],
+          "interface": "traktor-audio-8-dj",
+          "media": "traktor-scratch-timecode"
+        }
+      },
+      "createdAt": "2026-10-10T18:00:00.000Z",
+      "updatedAt": "2026-10-10T18:00:00.000Z"
+    }
+  },
+  "pregig_save_run": {
+    "command": "pregig_save_run",
+    "request": {
+      "run": {
+        "presetId": "preset-contract",
+        "sessionId": null,
+        "venueId": null,
+        "startedAt": "2026-10-10T18:00:00.000Z",
+        "finishedAt": "2026-10-10T18:01:11.000Z",
+        "verdict": "amber",
+        "durationMs": 71000,
+        "appVersion": "0.0.6",
+        "notes": null,
+        "steps": [
+          {
+            "stepId": "audio",
+            "deck": null,
+            "state": "pass",
+            "summary": "Traktor Audio 8 DJ is connected at 48000 Hz.",
+            "evidence": {
+              "device": "Traktor Audio 8 DJ",
+              "sampleRate": 48000
+            },
+            "fix": []
+          },
+          {
+            "stepId": "timecode:A",
+            "deck": "A",
+            "state": "warn",
+            "summary": "Deck A timecode is readable but noisy (SNR 22.0 dB).",
+            "evidence": {
+              "snrDb": 22.0,
+              "balanceDb": 0.4,
+              "phaseErrDeg": 3.1,
+              "dropouts": 0,
+              "speedErrPct": 0.1
+            },
+            "fix": [
+              {
+                "label": "Clean stylus and control vinyl",
+                "text": "Clean the stylus and the control vinyl, and check the phono/line switch.",
+                "action": {
+                  "kind": "navigate",
+                  "to": "dvs"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  "pregig_list_runs": {
+    "command": "pregig_list_runs",
+    "request": {
+      "presetId": "preset-contract",
+      "limit": 10
+    },
+    "response": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "presetId": "preset-contract",
+        "sessionId": null,
+        "venueId": null,
+        "startedAt": "2026-10-10T18:00:00.000Z",
+        "finishedAt": "2026-10-10T18:01:11.000Z",
+        "verdict": "amber",
+        "durationMs": 71000,
+        "appVersion": "0.0.6",
+        "notes": null,
+        "stepCount": 2,
+        "failCount": 0,
+        "warnCount": 1
+      }
+    ]
+  },
+  "pregig_get_run": {
+    "command": "pregig_get_run",
+    "request": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "response": {
+      "run": {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "presetId": "preset-contract",
+        "sessionId": null,
+        "venueId": null,
+        "startedAt": "2026-10-10T18:00:00.000Z",
+        "finishedAt": "2026-10-10T18:01:11.000Z",
+        "verdict": "amber",
+        "durationMs": 71000,
+        "appVersion": "0.0.6",
+        "notes": null,
+        "stepCount": 2,
+        "failCount": 0,
+        "warnCount": 1
+      },
+      "steps": [
+        {
+          "id": "step-id",
+          "runId": "00000000-0000-4000-8000-000000000001",
+          "stepId": "audio",
+          "deck": null,
+          "state": "pass",
+          "summary": "Traktor Audio 8 DJ is connected at 48000 Hz.",
+          "evidence": {
+            "device": "Traktor Audio 8 DJ",
+            "sampleRate": 48000
+          },
+          "fix": []
+        },
+        {
+          "id": "step-id",
+          "runId": "00000000-0000-4000-8000-000000000001",
+          "stepId": "timecode:A",
+          "deck": "A",
+          "state": "warn",
+          "summary": "Deck A timecode is readable but noisy (SNR 22.0 dB).",
+          "evidence": {
+            "snrDb": 22.0,
+            "balanceDb": 0.4,
+            "phaseErrDeg": 3.1,
+            "dropouts": 0,
+            "speedErrPct": 0.1
+          },
+          "fix": [
+            {
+              "label": "Clean stylus and control vinyl",
+              "text": "Clean the stylus and the control vinyl, and check the phono/line switch.",
+              "action": {
+                "kind": "navigate",
+                "to": "dvs"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "pregig_preset_list": {
+    "command": "pregig_preset_list"
+  },
+  "pregig_preset_delete": {
+    "command": "pregig_preset_delete",
+    "request": {
+      "id": "preset-contract"
+    },
+    "response": true
+  }
+}

@@ -26,6 +26,7 @@ mod links;
 // [FS-08] mods
 mod backup;
 // [FS-10] mods
+mod pregig;
 // [FS-11] mods
 // [FS-12] mods
 mod stylus;
@@ -85,6 +86,8 @@ pub fn run() {
             backup::backup_create, backup::backup_inspect, backup::backup_restore, backup::backup_list,
             backup::backup_settings_get, backup::backup_settings_set, backup::backup_import_workspace,
             // [FS-10] handlers
+            pregig::pregig_processes, pregig::pregig_save_run, pregig::pregig_list_runs, pregig::pregig_get_run,
+            pregig::pregig_preset_upsert, pregig::pregig_preset_list, pregig::pregig_preset_delete,
             // [FS-11] handlers
             // [FS-12] handlers
             stylus::stylus_benchmark_save, stylus::stylus_benchmark_list, stylus::stylus_alert_snooze, stylus::stylus_alert_list,
