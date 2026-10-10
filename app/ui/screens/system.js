@@ -4,6 +4,8 @@
 import { h, esc, formatDate, download } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { toast, announce } from '../live.js';
+import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
+import { onFeatureChange } from '../../features.js';
 import { createSystemBridge, interpretSystemScan, summarizeFindings, buildSystemReportHtml, parseDriverDate } from '../../system-check.js';
 
 const SEV_CHIP = { error: ['fail', 'ERROR'], warning: ['warn', 'WARNING'], info: ['info', 'INFO'], ok: ['pass', 'OK'] };
@@ -38,6 +40,7 @@ export function createSystemScreen(section) {
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('system', { size: 24 })}</span><div><h1 tabindex="-1">System Health</h1>
       <p class="lede">Checks your Windows audio drivers, the Windows event logs and your DJ software’s own logs, then tells you in plain English what it found and what to do about it.</p></div></div>
       <div class="head-actions"><button type="button" class="btn btn-secondary" id="sys-export" disabled>${icon('download', { size: 18 })}<span>Export report</span></button>
+      <button type="button" class="btn btn-secondary" id="sys-export-pdf" disabled${pdfExportEnabled() ? '' : ' hidden'}>${icon('download', { size: 18 })}<span>Export PDF</span></button>
       <button type="button" class="btn btn-primary" id="sys-run">${icon('refresh', { size: 18 })}<span>Run full scan</span></button></div></header>
     <p class="sys-status muted small" id="sys-status" role="status" aria-live="polite"></p>
     <div id="sys-body" class="sys-body"></div>`;
@@ -83,6 +86,7 @@ export function createSystemScreen(section) {
     else el.textContent = '';
     $('#sys-run').disabled = anyBusy() || state.unsupported;
     $('#sys-export').disabled = anyBusy() || !state.scannedAt || unsupportedByBackend();
+    $('#sys-export-pdf').disabled = $('#sys-export').disabled;
     $('#sys-run').querySelector('span').textContent = state.scannedAt ? 'Run full scan again' : 'Run full scan';
   }
 
@@ -271,16 +275,26 @@ export function createSystemScreen(section) {
   }
 
   // ---------- export ----------
+  function reportArgs() {
+    const all = findings();
+    return { findings: all, summary: summarizeFindings(all), generatedAt: new Date().toISOString(), drivers: state.areas.drivers.status === 'done' ? state.areas.drivers.data : null };
+  }
   function exportReport() {
     if (!state.scannedAt || unsupportedByBackend()) { toast('Run a scan first, then export the report.', { type: 'warn' }); return; }
-    const all = findings();
-    const html = buildSystemReportHtml({ findings: all, summary: summarizeFindings(all), generatedAt: new Date().toISOString(), drivers: state.areas.drivers.status === 'done' ? state.areas.drivers.data : null });
+    const html = buildSystemReportHtml(reportArgs());
     download(`deckchek-system-health-${new Date().toISOString().slice(0, 10)}.html`, html, 'text/html');
     toast('System Health report exported.', { type: 'success', timeout: 3000 });
   }
 
   $('#sys-run').addEventListener('click', runAll);
   $('#sys-export').addEventListener('click', exportReport);
+  function exportPdf() {
+    if (!state.scannedAt || unsupportedByBackend()) { toast('Run a scan first, then export the report.', { type: 'warn' }); return; }
+    const args = reportArgs();
+    return exportPdfWithFeedback('systemHealth', args, { button: $('#sys-export-pdf'), htmlFallback: () => download(`deckchek-system-health-${new Date().toISOString().slice(0, 10)}.html`, buildSystemReportHtml(args), 'text/html') });
+  }
+  $('#sys-export-pdf').addEventListener('click', exportPdf);
+  onFeatureChange(({ name }) => { if (name === 'pdfExport') $('#sys-export-pdf').hidden = !pdfExportEnabled(); });
   render();
 
   return {
