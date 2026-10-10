@@ -1,6 +1,6 @@
 # DeckChek implementation status
 
-Updated: 2026-10-10
+Updated: 2026-10-10 (v0.0.5)
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
@@ -68,9 +68,33 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Backup and restore (FS-08): verified single-file `.deckchek-backup` (online SQLite snapshot, settings, MIDI maps), restore with confirmation, migration, safety backup and atomic swap, schedule (daily, weekly, on exit with a 5 s cap, retention), browser workspace import, free-disk-space check before backup and restore on Windows (skipped elsewhere); on-exit backup runs from `RunEvent::ExitRequested` / `Exit`. Flag `backup`.
 - Shell: feature-flagged rail entries follow flag changes without reload; the shared confirm dialog no longer settles early after a rapid cancel and reopen.
 
-## M5 pending
+## M5 shipped in v0.0.5
 
-- PDF reports (FS-03): the renderer and print host are being delivered by a separate job; HTML, CSV and JSON exports remain the shipped formats until it lands.
+- First-run setup wizard (FS-01), resumable, re-runnable from Options.
+- Crash log, diagnostics bundle and support dialog (FS-02); nothing is uploaded.
+- PDF export (FS-03): WebView2 `PrintToPdf` through a hidden print host on Windows, print-dialog fallback elsewhere and in browser mode. Export PDF on History run detail, System Health, Devices and workflow results. Windows spike: GO (hidden first render 3385 ms including WebView2 warm-up, 549 ms for the 5-page fixture, page footer text extracted correctly; CI run 38017573510).
+- Test-media library (FS-06) with the Test medium picker and `media_id` on device results.
+- External links and file reveal (FS-07).
+- Backup and restore plus the Data screen (FS-08): verified single-file backup, schedule, safety backup and atomic restore.
+- Feature flags registry (`app/features.js`) with live rail updates.
+- Migration runner with transactional, versioned migrations 0001-0005 and upgrade fixtures (`tests/fixtures/db/v0.04.sql`, `v0.0.5.sql`); every fixture is upgraded in the Rust tests.
+- Timecode facts (carrier frequencies, side lengths, phase flags) confirmed against xwax `timecoder.c` as vendored in Mixxx (facts only, no GPL source in the repo).
+- Windows CI: Rust tests, the UI smoke test (ui-smoke) and the PDF spike run on Windows; installer and portable artifacts, release by manual dispatch.
+
+### Flag defaults in v0.0.5
+
+- Default on: `setupWizard`, `pdfExport`, `backup` (plus the M7 flags `population` and `fleet`, which have no UI yet).
+- Default off (enable under Options > Advanced > Experimental features): `diagnosticsBundle`, `testMedia`, and every M6 to M8 flag (pre-gig, latency tuner, stylus wear, wear map, scratch test, hum hunter, feedback step, certificates, packs, service, phone import, live monitor, mapper studio, gear ledger).
+- Flags hide UI only; the Rust commands always exist.
+
+### Known limits (v0.0.5)
+
+- The owner's hardware runs (docs/testing/HARDWARE-TEST-SCRIPTS.md, results in docs/testing/results/v0.0.5.md) are pending; features are not hardware-validated.
+- Windows installers are unsigned and there is no auto-update.
+- PDF: the first export after launch takes several seconds (WebView2 warm-up); the runtime must provide `ICoreWebView2_7`, otherwise the print fallback is used. `PrintToPdf` cannot embed attachments.
+- Disk-space check before backup and restore is Windows only.
+- Browser mode: diagnostics zip holds settings and a workspace summary only; PDF uses the print dialog.
+- MK2 carrier (2500 Hz per xwax) is still to be measured on the owner's vinyl; DDJ-S8 and SL-1200MK4 identities unconfirmed.
 
 ## Not yet complete
 
@@ -86,7 +110,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
 - CDJ transport/media/digital-output diagnostics beyond shared audio/pitch/DVS analysis.
 - Technician/Engineering worksheets and model-specific service workflows.
-- PDF reports (FS-03, in progress), installer/update validation and release signing.
+- Installer/update validation and release signing.
 - macOS native build (out of scope for current beta).
 
 ## Current release interpretation

@@ -39,14 +39,27 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Playwright UI smoke test (62 checks).
 - [x] Device library (0.0.3, 0.0.4 removes the M-Audio profile and prunes retired profiles on sync): profiles synced to the catalog, "My <model>" units, Devices screen, per-device test plans and runners, device_test_result persistence, learned MIDI maps, device HTML reports.
 
+## M5 shipped (0.0.5)
+
+- [x] First-run setup wizard (FS-01).
+- [x] Crash log, diagnostics bundle and support dialog (FS-02).
+- [x] PDF export (FS-03), Windows spike GO.
+- [x] Test-media library (FS-06), external links (FS-07), backup/restore and Data screen (FS-08).
+- [x] Feature flags, migration runner (0001-0005) and upgrade fixtures (v0.04, v0.0.5).
+- [x] Timecode facts confirmed against xwax.
+- [x] Windows CI including ui-smoke and the PDF spike.
+- Flags: `setupWizard`, `pdfExport`, `backup` default on; `diagnosticsBundle`, `testMedia` and all M6+ flags default off until the owner's hardware run passes.
+- Known limits: hardware runs pending (docs/testing/results/v0.0.5.md), unsigned installers, no auto-update, first PDF export slow (WebView2 warm-up).
+
 ## Active beta validation gates
+
+- [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
 
 - [ ] Real-hardware validation of thresholds and accuracy against known references (SPEC-08/19).
 - [ ] Test on a physical Windows machine with real audio interfaces.
 - [x] Loopback calibration output-device selector.
 - [ ] Run every device test plan on the user's own gear; confirm unit identities (DDJ-S8, SL-1200MK4; Xone:23C and Traktor MK2 vinyl are owner-confirmed, MK2 carrier 2500 Hz still to be measured) and replace unverified specs/thresholds with confirmed values.
 - [ ] Ship published MIDI maps where official MIDI message lists can be obtained (DJM-A9, PLX-CRSS12, TWELVE MK2).
-- [ ] Verify the Tauri opener for document links (currently falls back to copying the URL in the desktop app).
 - [x] History shows metric labels and asset names for native runs.
 
 ## Later spec work
@@ -59,4 +72,4 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.
 - [ ] Controller/MIDI/HID DeckChek workflows.
 - [ ] Technician/Engineering service worksheets and model-specific workflows.
-- [ ] PDF reports, code signing, auto-update and support bundles.
+- [ ] Code signing and auto-update.
