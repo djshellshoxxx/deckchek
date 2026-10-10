@@ -1714,17 +1714,18 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
         }
         Err(e) => s.errors.push(format!("powercfg SUB_PROCESSOR: {e}")),
     }
-    // Fixed script; the only interpolated value is a clamped integer.
+    // Fixed script; the only interpolated value is a clamped integer. No double
+    // quotes, so Windows argument quoting cannot change it; tab is [char]9.
     let script = format!(
-        "$ErrorActionPreference='SilentlyContinue'; $inv=[cultureinfo]::InvariantCulture; \
-         Get-NetAdapter -Physical | Where-Object {{ $_.PhysicalMediaType -match '802\\.11|Wireless' -or $_.InterfaceDescription -match 'Wi-?Fi|Wireless|WLAN|802\\.11' }} | ForEach-Object {{ \"WIFI`t\" + ($_.Name -replace \"`t\",' ') + \"`t\" + $_.Status }}; \
-         Get-PnpDevice -Class Bluetooth -PresentOnly | Where-Object {{ $_.FriendlyName }} | ForEach-Object {{ \"BT`t\" + ($_.FriendlyName -replace \"`t\",' ') + \"`t\" + $_.Status }}; \
-         $b = @(Get-CimInstance -ClassName Win32_Battery); if ($b.Count -gt 0) {{ foreach ($x in $b) {{ \"BATTERY`t\" + $x.BatteryStatus }} }} else {{ \"BATTERY`tnone\" }}; \
+        "$ErrorActionPreference='SilentlyContinue'; $inv=[cultureinfo]::InvariantCulture; $t=[string][char]9; \
+         Get-NetAdapter -Physical | Where-Object {{ $_.PhysicalMediaType -match '802\\.11|Wireless' -or $_.InterfaceDescription -match 'Wi-?Fi|Wireless|WLAN|802\\.11' }} | ForEach-Object {{ 'WIFI' + $t + ($_.Name -replace $t,' ') + $t + $_.Status }}; \
+         Get-PnpDevice -Class Bluetooth -PresentOnly | Where-Object {{ $_.FriendlyName }} | ForEach-Object {{ 'BT' + $t + ($_.FriendlyName -replace $t,' ') + $t + $_.Status }}; \
+         $b = @(Get-CimInstance -ClassName Win32_Battery); if ($b.Count -gt 0) {{ foreach ($x in $b) {{ 'BATTERY' + $t + $x.BatteryStatus }} }} else {{ 'BATTERY' + $t + 'none' }}; \
          $sets = Get-Counter -Counter '\\Processor Information(_Total)\\% DPC Time','\\Processor Information(_Total)\\% Interrupt Time' -SampleInterval 1 -MaxSamples {n}; \
-         foreach ($set in $sets) {{ $d=$null; $i=$null; foreach ($c in $set.CounterSamples) {{ if ($c.Path -like '*dpc time') {{ $d=$c.CookedValue }} elseif ($c.Path -like '*interrupt time') {{ $i=$c.CookedValue }} }}; if ($d -ne $null -and $i -ne $null) {{ \"DPC`t\" + ([double]$d).ToString($inv) + \"`t\" + ([double]$i).ToString($inv) }} }}",
+         foreach ($set in $sets) {{ $d=$null; $i=$null; foreach ($c in $set.CounterSamples) {{ if ($c.Path -like '*dpc time') {{ $d=$c.CookedValue }} elseif ($c.Path -like '*interrupt time') {{ $i=$c.CookedValue }} }}; if ($d -ne $null -and $i -ne $null) {{ 'DPC' + $t + ([double]$d).ToString($inv) + $t + ([double]$i).ToString($inv) }} }}",
         n = dpc_seconds
     );
-    match run("powershell.exe", &["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script], 20 + dpc_seconds as u64) {
+    match run("powershell.exe", &["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script.as_str()], 20 + dpc_seconds as u64) {
         Ok(t) => {
             let f = parse_ps_facts(&t);
             s.wifi = f.wifi;
