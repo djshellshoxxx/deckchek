@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0009_stylus_wear.sql` (+ shared `0006_asset_usage.sql`, FS-00). Milestone: M6. Size: M. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built, including proposals from DeckChek capture sessions (AC-2) and a PDF report. Not built: the guided benchmark capture.
+
 ## 1. Summary, Goals, Non-goals
 
 Tracks each cartridge/stylus as an `asset` (SPEC-01/07): accumulated play hours from manual entry, DVS session time and DeckChek captures; runs a periodic benchmark (THD on a 1 kHz track, channel separation, timecode SNR and phase) and fits trend lines; compares hours and trend against the manufacturer-rated life and raises replacement alerts.

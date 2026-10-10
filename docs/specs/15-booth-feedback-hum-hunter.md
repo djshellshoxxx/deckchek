@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0012_hum_feedback.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built. AC-7: runs save with an optional venue; the venue report (printable kind `venue`) lists them from Equipment > Venues and the Runs tab, and each run exports as a PDF. The `booth` and `deck_position` tables are not written.
+
 ## 1. Summary, Goals, Non-goals
 
 A guided finder for ground-loop hum and low-frequency/booth feedback. For hum it walks through step-by-step disconnect / ground-lift isolation, measures the 50/60 Hz family and harmonics at each step and follows a decision tree to the likely source. For feedback it runs a controlled, very-low-level step test with a safety limiter and abort. It extends SPEC-05 (venue diagnostics, s8 and s23) with a hum workflow.

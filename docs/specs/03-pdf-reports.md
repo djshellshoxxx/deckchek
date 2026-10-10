@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** All report types export: run, device, System Health, pre-gig, latency, stylus, wear map, scratch, hum and the venue report (`app/ui/workflows/m6-reports.js`). A timeout shows Retry beside "Export HTML instead", and the saved toast offers Open and Show in folder (FS-07).
+
 ## 1. Summary, goals, non-goals
 Export every report type (run report, device report, System Health report, later certificate) as a paginated, offline-generated PDF with header/footer, page numbers and SVG charts. Decision: render the existing HTML reports with a dedicated print stylesheet and convert using the Windows WebView2 `PrintToPdf` API in a hidden webview.
 

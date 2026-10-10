@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0004_test_media.sql`. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** On by default. AC-3 is met through a Timecode format field on the DVS form that a timecode medium sets (Auto-detect remains the fallback); the scratch and control-vinyl forms also take a medium. The pickers are in the Speed, Cartridge and DVS forms and the format pickers of the scratch and control-vinyl forms; pre-gig maps media to formats with a fixed table.
+
 ## 1. Summary, goals, non-goals
 A catalog of test records (reference-tone LPs, tracking/anti-skate/wow-flutter tracks) and DVS timecode media (Serato, Traktor, rekordbox, Mixxx/xwax formats), stored as versioned JSON profiles like device profiles. The user can add custom media. Selecting a medium in the Speed, Cartridge, DVS or timecode tests pre-fills expected values (reference frequency, level, carrier, track number) and records which medium produced a result.
 
@@ -106,7 +108,7 @@ Unit: `validateMediaProfile` (missing fields, bad enum, negative frequency, >100
 ## 9. Definition of done
 - [ ] Schema, built-ins with provenance, custom CRUD, pickers in 4 tests, results store media id
 - [ ] Docs: DEVICE-PROFILE-SCHEMA.md sibling `MEDIA-PROFILE-SCHEMA.md`, SPEC-01/02 cross reference
-Rollout: no flag; pickers default "Auto" so existing behaviour is unchanged.
+Rollout: no flag in the spec; as built `testMedia` defaults to on (pickers default "Auto" so existing behaviour is unchanged) and Experimental features can switch the library off.
 
 ## 10. Dependencies, risks, open questions, effort
 Depends on: device library sync pattern (`devices.rs`), `timecode.js` (after `M5-tc-facts`), FS-00 (feature registry). Backups (FS-08) include `test_media` automatically because it lives in the database. Risks: wrong catalog values misleading users (mitigated by confidence flags); sleeve data copyright (facts only, no audio). Open: verify Technics/Pioneer/HFN tracks. Resolved: rekordbox carrier = 1000 Hz (xwax `pioneer_a/b`); NoiseMap does not change the carrier (serato defs all 1000 Hz). Effort: L (~26 agent-hours incl. research verification).

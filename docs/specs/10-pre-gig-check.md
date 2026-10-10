@@ -2,6 +2,8 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0008_pregig.sql`. Milestone: M6. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
+> **Implementation status (2026-10-10, audit fixes).** Built except deck B on inputs beyond 1-2, which is reported as "coming next" until a pair picker passes `pairs` to capture (follow-up). PDF export exists (kind `pregig`).
+
 Status: draft. File: `docs/specs/10-pre-gig-check.md`. Reuses terms from SPEC-02, SPEC-05, SYSTEM-CHECK-CONTRACT.md.
 
 ## 1. Summary, Goals, Non-goals
