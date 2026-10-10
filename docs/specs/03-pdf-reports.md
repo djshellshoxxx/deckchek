@@ -58,3 +58,26 @@ Depends on: FS-07 (`open_path`/`reveal_path` for "Open" / "Show in folder"), FS-
 - `PrintToPdfStreamAsync` .NET variant exists (snippet only) — a Rust equivalent `PrintToPdfStream` is an alternative that avoids disk path handling.
 - Tauri-specific print API: search returned nothing; Tauri 2 `Webview::print()` behaviour UNKNOWN — needs verification.
 - Crates printpdf/genpdf/typst: not researched online this session (no results fetched); characterised from general knowledge, mark as unverified.
+
+### 11.1 M5-pdf-spike (2026-10-10) — implementation notes and go/no-go
+**Built.** `src-tauri/src/pdf.rs`: `pdf_render(html, destPath, opts?)` async command (`opts = {paper:"A4"|"Letter", landscape, scale}`, unknown keys rejected) → `{path, bytes, pages}` or `{code, message, unsupported}`. Flow (Windows): validate (scale 0.1–2.0, HTML non-empty and ≤ 32 MB, path via `userfiles::validate_save_path(.., ["pdf"])`) → global print lock → hidden `WebviewWindowBuilder` (`visible(false)`, `skip_taskbar`, `on_navigation` locked to `tauri://localhost` / `http(s)://tauri.localhost`) on `WebviewUrl::App("print-host.html")` → wait `PageLoadEvent::Finished` → `eval_with_callback("…__dcPrintHost.render(<json>)")` → poll `__dcPrintHost.state` every 50 ms until `ready` → `with_webview`: `ICoreWebView2Controller::CoreWebView2().cast::<ICoreWebView2_7>()`, `environment().cast::<ICoreWebView2Environment6>().CreatePrintSettings()` (paper in inches, orientation, scale, §6 margins, `ShouldPrintBackgrounds=true`, `ShouldPrintHeaderAndFooter=false`) → `PrintToPdf(tmp, settings, PrintToPdfCompletedHandler)` into a hidden sibling temp file → check `%PDF-` + `%%EOF` → rename over the destination → `userfiles::record_written` → destroy window. One 20 s deadline covers every step (AC-7). A runtime without `ICoreWebView2_7`/`Environment6` maps to `unsupported`. Only Tauri's `eval_with_callback` is used for JS↔Rust, so the print window needs no capability/IPC permission (it is in no capability file). `app/print-host.{html,js}`: module script, parses the report with `DOMParser`, strips script/iframe/object/embed/base/meta-refresh/form, `on*` attributes, remote/`javascript:` URLs, `@import` and remote `url()`; adopts `<style>`/same-origin `<link rel=stylesheet>` and body; waits `document.fonts.ready` + images (5 s cap) + one macrotask (no rAF: it stalls in hidden windows); states `idle → loading → ready | error`. Non-Windows: same validation, then `{code:"unsupported", unsupported:true}`; the UI uses the AC-6 iframe fallback.
+**Verified here (Linux).** 12 unit tests in `pdf.rs` (options, scale range, paper inches, HTML caps, path refusals incl. relative/extension/missing folder/`CON`, error JSON, navigation allowlist, page counter, `%PDF-`/`%%EOF` check, temp path, non-Windows stub). Windows code type-checked and clippy-clean with `cargo check/clippy --target x86_64-pc-windows-msvc --tests` (APIs checked against webview2-com 0.39.1 / windows 0.62.2 / tauri 2.12.1 sources). The print host was exercised in Playwright Chromium under the app CSP: injected `<script>`, `onerror`, `javascript:` link, remote stylesheet and `@import` all removed; the 160-row fixture printed to an 18 KB `%PDF-` file.
+**Windows CI step (to add to `windows-rust-tests` or `windows-build.yml`; owned by the CI job, not this spike):**
+```yaml
+- name: PDF spike (WebView2 PrintToPdf)
+  run: cargo test --manifest-path src-tauri/Cargo.toml --lib pdf::windows_spike -- --ignored --nocapture --test-threads=1
+  env:
+    DECKCHEK_PDF_SPIKE_DIR: ${{ runner.temp }}\deckchek-pdf-spike
+- uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: pdf-spike
+    path: ${{ runner.temp }}\deckchek-pdf-spike
+    if-no-files-found: ignore
+```
+The test builds a Tauri app with `any_thread()` and no main window, renders the fixed report (`spike_fixture_html()`, ~4 A4 pages with `@page`, a repeating `thead`, an SVG chart) once in a hidden window and once in an off-screen visible window, prints one `PDF-SPIKE mode=… took=…ms result=…` line per mode, and asserts the hidden-window file starts with `%PDF-` and is > 5 KB.
+**Go/no-go for M5-pdf (decided from the CI log + artifact):**
+- **GO** (Option A as specified) if the hidden-mode run passes, takes < 10 s on the runner, and the artifact opens in Edge with selectable text, the SVG as vectors, the chip fill printed, and `thead` repeated on page 2.
+- **GO with off-screen window** if hidden fails (timeout in `PrintToPdf` or load) but off-screen passes: M5-pdf switches `HostMode::Hidden` → `Offscreen` (one-line change) and keeps everything else.
+- **NO-GO** (fall back to AC-6 iframe print + HTML export for all platforms in v0.0.5, revisit Option E) if both modes fail, or either exceeds 20 s, or `cast::<ICoreWebView2_7>` returns `unsupported` on the runner's evergreen runtime.
+- **Open for M5-pdf (does not block GO):** whether `@page` margin boxes (`counter(pages)`) render in the runner's WebView2 (inspect the artifact's page footer; if absent use the §4 fallback); whether CSS `@page` margins override the explicit `PrintSettings` margins (they are set to the same §6 values, so either way the layout is correct); the `pages` count heuristic (`/Type /Page` scan) vs `lopdf` for AC-2.
