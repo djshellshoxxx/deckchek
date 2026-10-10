@@ -13,7 +13,6 @@
 #![cfg_attr(not(windows), allow(dead_code))]
 
 use serde::Serialize;
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use crate::system_check::{iso_from_unix, scan_dj_logs};
@@ -136,12 +135,7 @@ pub fn spans_from_text(text: &str, modified_secs: i64) -> Vec<(i64, i64)> {
 
 fn read_tail(path: &Path) -> Option<String> {
     let mut f = std::fs::File::open(path).ok()?;
-    let len = f.metadata().ok()?.len();
-    if len > MAX_READ_BYTES {
-        f.seek(SeekFrom::Start(len - MAX_READ_BYTES)).ok()?;
-    }
-    let mut buf = Vec::new();
-    f.take(MAX_READ_BYTES).read_to_end(&mut buf).ok()?;
+    let buf = crate::system_check::read_tail_bytes(&mut f, MAX_READ_BYTES).ok()?;
     Some(crate::system_check::decode_text(&buf))
 }
 

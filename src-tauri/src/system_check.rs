@@ -248,6 +248,32 @@ pub fn decode_text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(b).into_owned()
 }
 
+/// Read up to the last `max_bytes` of an open file. The encoding is sniffed from the file head first: for
+/// UTF-16 the seek is rounded to a code-unit boundary and the BOM is re-attached, so `decode_text` keeps
+/// the right encoding for the tail.
+pub fn read_tail_bytes(f: &mut std::fs::File, max_bytes: u64) -> std::io::Result<Vec<u8>> {
+    let len = f.metadata()?.len();
+    let mut bom = [0u8; 2];
+    f.seek(SeekFrom::Start(0))?;
+    let got = f.read(&mut bom)?;
+    let utf16 = got == 2 && (bom == [0xFF, 0xFE] || bom == [0xFE, 0xFF]);
+    let mut buf = Vec::new();
+    if len > max_bytes {
+        let mut start = len - max_bytes;
+        if utf16 && start % 2 == 1 {
+            start += 1;
+        }
+        f.seek(SeekFrom::Start(start))?;
+        if utf16 {
+            buf.extend_from_slice(&bom);
+        }
+    } else {
+        f.seek(SeekFrom::Start(0))?;
+    }
+    f.take(max_bytes).read_to_end(&mut buf)?;
+    Ok(buf)
+}
+
 pub fn truncate_chars(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()
@@ -1035,11 +1061,7 @@ fn read_tail_text(path: &Path, max_bytes: u64) -> Result<String, String> {
     let mut f = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let len = f.metadata().map(|m| m.len()).unwrap_or(0);
     let truncated = len > max_bytes;
-    if truncated {
-        f.seek(SeekFrom::Start(len - max_bytes)).map_err(|e| format!("{}: {e}", path.display()))?;
-    }
-    let mut buf = Vec::new();
-    f.take(max_bytes).read_to_end(&mut buf).map_err(|e| format!("{}: {e}", path.display()))?;
+    let buf = read_tail_bytes(&mut f, max_bytes).map_err(|e| format!("{}: {e}", path.display()))?;
     let text = decode_text(&buf);
     if truncated {
         Ok(match text.find('\n') {

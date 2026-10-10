@@ -101,14 +101,56 @@ fn lock(state: &MidiState) -> Result<std::sync::MutexGuard<'_, Inner>, String> {
     state.inner.lock().map_err(|_| "MIDI state poisoned".to_string())
 }
 
+/// Names in `open` that no longer appear among the ports the OS reports (device unplugged).
+pub fn stale_names<'a>(open: impl Iterator<Item = &'a String>, present: &[String]) -> Vec<String> {
+    let mut v: Vec<String> = open.filter(|n| !present.iter().any(|p| p == *n)).cloned().collect();
+    v.sort();
+    v
+}
+
+fn input_names(mi: &MidiInput) -> Vec<String> {
+    mi.ports().iter().filter_map(|p| mi.port_name(p).ok()).collect()
+}
+
+fn output_names(mo: &MidiOutput) -> Vec<String> {
+    mo.ports().iter().filter_map(|p| mo.port_name(p).ok()).collect()
+}
+
+/// Drop (and close) every cached connection whose port has disappeared, so a replug reopens fresh.
+fn prune_stale(inner: &mut Inner, inputs_present: &[String], outputs_present: &[String]) {
+    for n in stale_names(inner.inputs.keys(), inputs_present) {
+        if let Some(c) = inner.inputs.remove(&n) {
+            c.close();
+        }
+    }
+    for n in stale_names(inner.outputs.keys(), outputs_present) {
+        if let Some(c) = inner.outputs.remove(&n) {
+            c.close();
+        }
+    }
+}
+
+fn prune_with_os(inner: &mut Inner) {
+    if let (Ok(mi), Ok(mo)) = (MidiInput::new("deckchek-prune-in"), MidiOutput::new("deckchek-prune-out")) {
+        prune_stale(inner, &input_names(&mi), &output_names(&mo));
+    }
+}
+
 #[tauri::command]
-pub fn midi_list_ports() -> Result<PortList, String> {
+pub fn midi_list_ports(state: State<'_, MidiState>) -> Result<PortList, String> {
     let inp = MidiInput::new("deckchek-list-in").map_err(|e| e.to_string())?;
     let out = MidiOutput::new("deckchek-list-out").map_err(|e| e.to_string())?;
     let inputs = inp.ports().iter().enumerate()
         .map(|(index, p)| PortInfo { index, name: inp.port_name(p).unwrap_or_default() }).collect();
     let outputs = out.ports().iter().enumerate()
         .map(|(index, p)| PortInfo { index, name: out.port_name(p).unwrap_or_default() }).collect();
+    if let Ok(mut inner) = lock(&state) {
+        let (i, o): (Vec<String>, Vec<String>) = (
+            inp.ports().iter().filter_map(|p| inp.port_name(p).ok()).collect(),
+            out.ports().iter().filter_map(|p| out.port_name(p).ok()).collect(),
+        );
+        prune_stale(&mut inner, &i, &o);
+    }
     Ok(PortList { inputs, outputs })
 }
 
@@ -133,11 +175,18 @@ fn ensure_pump(inner: &mut Inner, app: AppHandle, emitted: Arc<AtomicU64>) -> Sy
 #[tauri::command]
 pub fn midi_open_input(app: AppHandle, state: State<'_, MidiState>, name: String) -> Result<(), String> {
     let mut inner = lock(&state)?;
-    if inner.inputs.contains_key(&name) {
-        return Ok(());
-    }
     let mut mi = MidiInput::new("deckchek-in").map_err(|e| e.to_string())?;
     mi.ignore(midir::Ignore::None);
+    // A cached connection whose port vanished is dead: close it and reconnect (or report not found).
+    let present = input_names(&mi);
+    if inner.inputs.contains_key(&name) {
+        if present.iter().any(|p| p == &name) {
+            return Ok(());
+        }
+        if let Some(c) = inner.inputs.remove(&name) {
+            c.close();
+        }
+    }
     let port = mi.ports().into_iter()
         .find(|p| mi.port_name(p).map(|n| n == name).unwrap_or(false))
         .ok_or_else(|| format!("MIDI input not found: {name}"))?;
@@ -163,15 +212,33 @@ pub fn midi_close_input(state: State<'_, MidiState>, name: String) -> Result<(),
 #[tauri::command]
 pub fn midi_send(state: State<'_, MidiState>, name: String, bytes: Vec<u8>) -> Result<(), String> {
     let mut inner = lock(&state)?;
-    if !inner.outputs.contains_key(&name) {
-        let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
-        let port = mo.ports().into_iter()
-            .find(|p| mo.port_name(p).map(|n| n == name).unwrap_or(false))
-            .ok_or_else(|| format!("MIDI output not found: {name}"))?;
-        let conn = mo.connect(&port, "deckchek-output").map_err(|e| e.to_string())?;
-        inner.outputs.insert(name.clone(), conn);
+    for attempt in 0..2 {
+        if !inner.outputs.contains_key(&name) {
+            let conn = connect_output(&name)?;
+            inner.outputs.insert(name.clone(), conn);
+        }
+        match inner.outputs.get_mut(&name).unwrap().send(&bytes) {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                // The cached connection is stale (device unplugged/replugged): drop it and retry once.
+                if let Some(c) = inner.outputs.remove(&name) {
+                    c.close();
+                }
+                if attempt == 1 {
+                    return Err(format!("MIDI send to {name} failed: {e}"));
+                }
+            }
+        }
     }
-    inner.outputs.get_mut(&name).unwrap().send(&bytes).map_err(|e| e.to_string())
+    Err(format!("MIDI send to {name} failed"))
+}
+
+fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
+    let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
+    let port = mo.ports().into_iter()
+        .find(|p| mo.port_name(p).map(|n| n == name).unwrap_or(false))
+        .ok_or_else(|| format!("MIDI output not found: {name}"))?;
+    mo.connect(&port, "deckchek-output").map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -188,7 +255,8 @@ pub fn midi_close_all(state: State<'_, MidiState>) -> Result<(), String> {
 
 #[tauri::command]
 pub fn midi_status(state: State<'_, MidiState>) -> Result<MidiStatus, String> {
-    let inner = lock(&state)?;
+    let mut inner = lock(&state)?;
+    prune_with_os(&mut inner);
     let mut open_inputs: Vec<String> = inner.inputs.keys().cloned().collect();
     let mut open_outputs: Vec<String> = inner.outputs.keys().cloned().collect();
     open_inputs.sort();
@@ -203,6 +271,16 @@ pub fn midi_status(state: State<'_, MidiState>) -> Result<MidiStatus, String> {
 
 #[cfg(test)]
 mod tests {
+    use super::stale_names;
+
+    #[test]
+    fn stale_names_lists_connections_whose_port_vanished() {
+        let open = vec!["DDJ".to_string(), "Gone".to_string()];
+        let present = vec!["DDJ".to_string(), "Other".to_string()];
+        assert_eq!(stale_names(open.iter(), &present), vec!["Gone".to_string()]);
+        assert!(stale_names(open.iter(), &open).is_empty());
+    }
+
     use super::*;
 
     fn msg(i: u64) -> MidiMessage {

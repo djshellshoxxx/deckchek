@@ -335,7 +335,7 @@ pub fn save_result(conn: &Connection, input: &DeviceTestResultInput) -> Result<V
     let media_track = media.as_ref().and_then(|_| input.media_track_key.clone().filter(|k| !k.is_empty()));
     let detail = serde_json::to_string(input.detail.as_ref().unwrap_or(&json!({}))).map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT OR REPLACE INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at, media_id, media_track_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at, media_id, media_track_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) ON CONFLICT(id) DO UPDATE SET asset_id = excluded.asset_id, profile_id = excluded.profile_id, test_id = excluded.test_id, session_id = excluded.session_id, status = excluded.status, detail_json = excluded.detail_json, created_at = excluded.created_at, media_id = excluded.media_id, media_track_key = excluded.media_track_key",
         params![id, input.asset_id, input.profile_id, input.test_id, session, input.status, detail, created, media, media_track],
     )
     .map_err(e2s)?;

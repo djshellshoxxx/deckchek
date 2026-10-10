@@ -308,11 +308,18 @@ pub fn persist_run(conn: &mut Connection, run: &PersistRun) -> Result<(), String
     let config = config.to_string();
     let session_type = run.session_type.as_deref().or(run.workflow.as_deref()).filter(|s| !s.trim().is_empty()).unwrap_or("diagnostic");
 
-    // INSERT OR REPLACE cascades away any earlier children of the same run id.
+    // Upsert in place: REPLACE would delete the old row first and, with foreign_keys=ON, cascade away /
+    // null out every other feature's rows that point at this session (scan alignments, hours, wear...).
     tx.execute(
-        "INSERT OR REPLACE INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json) VALUES (?1, ?2, ?8, ?3, ?9, ?4, 1, 'completed', ?5, NULL, ?6, ?7)",
+        "INSERT INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json) VALUES (?1, ?2, ?8, ?3, ?9, ?4, 1, 'completed', ?5, NULL, ?6, ?7) \
+         ON CONFLICT(id) DO UPDATE SET session_type = excluded.session_type, setup_id = excluded.setup_id, started_at = excluded.started_at, ended_at = excluded.ended_at, app_version = excluded.app_version, schema_version = excluded.schema_version, status = excluded.status, context_profile = excluded.context_profile, session_quality = excluded.session_quality, config_snapshot_json = excluded.config_snapshot_json",
         params![run.id, session_type, started_at, env!("CARGO_PKG_VERSION"), run.test, run.score.map(|v| v / 100.0), config, setup_id, ended_at],
     ).map_err(e2s)?;
+    // The run's own derived rows are rewritten below; clear the old ones explicitly (link tables cascade
+    // from these rows, and nothing else references them).
+    for table in ["hypothesis", "evidence", "measurement"] {
+        tx.execute(&format!("DELETE FROM {table} WHERE session_id = ?1"), [&run.id]).map_err(e2s)?;
+    }
 
     let mut measurement_ids: std::collections::HashMap<&str, String> = std::collections::HashMap::new();
     for m in &run.measurements {
