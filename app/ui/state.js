@@ -96,5 +96,66 @@ export function calibrationStatus(deviceName = settings.deviceName, sampleRate =
   return { state: 'none', profile: null, reasons: ['no calibration profile'] };
 }
 
+// ---------- backup bridge (FS-08) ----------
+// `deckchek.ui.v1` and `deckchek.calibration.v1` live in WebView localStorage, so the Data screen hands
+// them to Rust when backing up and writes the restored copies back (validated) before the reload.
+const MAX_SETTINGS_JSON = 256 * 1024;
+const MAX_PROFILE_JSON = 1024 * 1024;
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const isPlainObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+function stripUnsafe(value, depth = 0) {
+  if (depth > 8) return undefined;
+  if (Array.isArray(value)) return value.map(v => stripUnsafe(v, depth + 1));
+  if (isPlainObject(value)) {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) if (!UNSAFE_KEYS.has(k)) out[k] = stripUnsafe(v, depth + 1);
+    return out;
+  }
+  return value;
+}
+
+/** Restored UI settings -> a safe plain object, or null when absent / wrong shape / too large. */
+export function sanitizeUiSettings(value) {
+  if (!isPlainObject(value)) return null;
+  const clean = stripUnsafe(value);
+  try { if (JSON.stringify(clean).length > MAX_SETTINGS_JSON) return null; } catch { return null; }
+  return clean;
+}
+
+/** Restored calibration map ({key: profileJson}) -> {map, accepted, skipped}; invalid entries are dropped. */
+export function sanitizeCalibrationMap(value) {
+  const map = Object.create(null);
+  let accepted = 0, skipped = 0;
+  if (!isPlainObject(value)) return { map: {}, accepted, skipped };
+  for (const [key, text] of Object.entries(value)) {
+    if (UNSAFE_KEYS.has(key) || key.length > 200 || typeof text !== 'string' || text.length > MAX_PROFILE_JSON) { skipped += 1; continue; }
+    try { deserializeProfile(text); map[key] = text; accepted += 1; } catch { skipped += 1; }
+  }
+  return { map: { ...map }, accepted, skipped };
+}
+
+/** Snapshot of the two localStorage-backed blobs for `backup_create` / `backup_restore`. */
+export function exportSettingsBlob() {
+  return { ui: { ...settings }, calibration: storageGet(PROFILES_KEY, {}) || {} };
+}
+
+/**
+ * Writes restored settings back. Pass the `settings` and `calibrationProfiles` fields of the restore
+ * result. Missing or malformed parts are left untouched. Returns {settings: boolean, profiles, skipped}.
+ */
+export function importSettingsBlob({ settings: ui = null, calibrationProfiles = null } = {}) {
+  const result = { settings: false, profiles: 0, skipped: 0 };
+  const cleanUi = sanitizeUiSettings(ui);
+  if (cleanUi && storageSet(SETTINGS_KEY, cleanUi)) result.settings = true;
+  if (isPlainObject(calibrationProfiles)) {
+    const { map, accepted, skipped } = sanitizeCalibrationMap(calibrationProfiles);
+    result.skipped = skipped;
+    if (storageSet(PROFILES_KEY, map)) result.profiles = accepted;
+  }
+  if (result.settings || result.profiles) emit('calibration');
+  return result;
+}
+
 // ---------- current-screen hooks for global shortcuts ----------
 export const active = { screen: null };
