@@ -10,8 +10,11 @@
 //! - Archive entry names are never used as paths: only the fixed names above are
 //!   read, each into a path DeckChek chooses. An archive holding any absolute,
 //!   drive-letter, backslash or `..` entry name is refused outright.
-//! - Every read entry is size-capped (DB 2 GiB, JSON 5 MiB) and ratio-capped (100:1
-//!   once past 1 MiB), counted on the bytes actually inflated, not the declared size.
+//! - Declared sizes are capped per entry (DB 2 GiB, any other entry 64 MiB) and in
+//!   total (2.5 GiB); inflating past an entry's declared size aborts the read, so a
+//!   lying header cannot smuggle more bytes. A compression-ratio limit (1000:1) applies
+//!   only to entries declared above 256 MiB, so a highly compressible database that
+//!   DeckChek itself wrote is never refused.
 //! - Restore never writes the live database until the extracted copy has passed its
 //!   checksum, `integrity_check` and migration in a temp file next to it; the swap is
 //!   rename-based (same volume) and is rolled back on any error, under the FS-00
@@ -46,10 +49,25 @@ const CAL_ENTRY: &str = "settings/calibration.json";
 const MIDI_ENTRY: &str = "data/midi-maps.json";
 
 pub const MAX_DB_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-pub const MAX_JSON_BYTES: u64 = 5 * 1024 * 1024;
-/// Decompression ratio guard (zip bomb), applied once an entry inflates past [`RATIO_FLOOR`].
-pub const MAX_RATIO: u64 = 100;
-const RATIO_FLOOR: u64 = 1024 * 1024;
+/// Cap for every entry other than the database (manifest, settings, MIDI maps).
+pub const MAX_OTHER_BYTES: u64 = 64 * 1024 * 1024;
+/// Cap on the sum of all declared entry sizes in one archive.
+pub const MAX_TOTAL_BYTES: u64 = MAX_DB_BYTES + MAX_DB_BYTES / 4;
+/// Ratio limit (zip bomb), applied only to entries declared above [`RATIO_FLOOR`].
+pub const MAX_RATIO: u64 = 1000;
+pub const RATIO_FLOOR: u64 = 256 * 1024 * 1024;
+
+/// Archive read limits; production always uses [`LIMITS`] (tests shrink them).
+#[derive(Debug, Clone, Copy)]
+pub struct Limits {
+    pub db: u64,
+    pub other: u64,
+    pub total: u64,
+    pub ratio: u64,
+    pub ratio_floor: u64,
+}
+
+pub const LIMITS: Limits = Limits { db: MAX_DB_BYTES, other: MAX_OTHER_BYTES, total: MAX_TOTAL_BYTES, ratio: MAX_RATIO, ratio_floor: RATIO_FLOOR };
 const MAX_ENTRIES: usize = 100_000;
 
 /// Online-backup step size and pause (FS-08 §6; tunable).
@@ -276,6 +294,19 @@ pub struct Ctx {
     pub live_db: PathBuf,
     pub backups_dir: PathBuf,
     pub gate: &'static RwLock<()>,
+    /// Whether a live capture is running; restore is refused while it is.
+    pub capture_running: CaptureCheck,
+}
+
+pub type CaptureCheck = std::sync::Arc<dyn Fn() -> bool + Send + Sync>;
+
+#[cfg(test)]
+pub fn no_capture() -> CaptureCheck {
+    std::sync::Arc::new(|| false)
+}
+
+fn capture_blocked() -> BackupError {
+    BackupError::new("capture_running", "Stop the capture before restoring. Restore replaces the database a running capture may save into.")
 }
 
 /// Points where tests inject a restore failure (production passes `None`).
@@ -396,17 +427,21 @@ pub fn entry_name_safe(name: &str) -> bool {
     !trimmed.is_empty() && trimmed.split('/').all(|s| !s.is_empty() && s != "." && s != "..")
 }
 
-/// Streams one entry into `sink`, enforcing the size cap and the ratio guard on the
-/// inflated byte count. Returns (bytes, sha256 hex).
-fn read_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, max: u64, sink: &mut dyn Write) -> Result<(u64, String), BackupError> {
+/// Streams one entry into `sink`. Refuses entries whose declared size exceeds `max`,
+/// entries declared above the ratio floor that compress beyond the ratio limit, and
+/// any entry that inflates past its declared size (lying header). Returns (bytes, sha256 hex).
+fn read_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, max: u64, lim: &Limits, sink: &mut dyn Write) -> Result<(u64, String), BackupError> {
     let mut f = archive
         .by_name(name)
         .map_err(|_| BackupError::new("missing_entry", format!("The backup is incomplete: {name} is missing.")))?;
-    let too_large = || BackupError::new("too_large", format!("The backup entry {name} is larger than DeckChek accepts and was refused."));
-    if f.size() > max {
-        return Err(too_large());
+    let declared = f.size();
+    if declared > max {
+        return Err(BackupError::new("too_large", format!("The backup entry {name} is larger than DeckChek accepts and was refused.")));
     }
     let compressed = f.compressed_size().max(1);
+    if declared > lim.ratio_floor && declared > compressed.saturating_mul(lim.ratio) {
+        return Err(BackupError::new("zip_bomb", format!("The backup entry {name} expands far more than a real backup would and was refused.")));
+    }
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 64 * 1024];
     let mut total = 0u64;
@@ -416,27 +451,27 @@ fn read_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, max: u64,
             break;
         }
         total += n as u64;
-        if total > max {
-            return Err(too_large());
-        }
-        if total > RATIO_FLOOR && total > compressed.saturating_mul(MAX_RATIO) {
-            return Err(BackupError::new("zip_bomb", format!("The backup entry {name} expands far more than a real backup would and was refused.")));
+        if total > declared {
+            return Err(BackupError::new("size_mismatch", format!("The backup entry {name} expands beyond its declared size and was refused.")));
         }
         h.update(&buf[..n]);
         sink.write_all(&buf[..n]).map_err(|e| io_err("extract the backup", e))?;
     }
+    if total != declared {
+        return Err(BackupError::new("corrupt", format!("The backup entry {name} is shorter than its declared size.")));
+    }
     Ok((total, hex(&h.finalize())))
 }
 
-fn known_limit(name: &str) -> Option<u64> {
+fn known_limit(name: &str, lim: &Limits) -> Option<u64> {
     match name {
-        DB_ENTRY => Some(MAX_DB_BYTES),
-        UI_ENTRY | CAL_ENTRY | MIDI_ENTRY => Some(MAX_JSON_BYTES),
+        DB_ENTRY => Some(lim.db),
+        UI_ENTRY | CAL_ENTRY | MIDI_ENTRY => Some(lim.other),
         _ => None,
     }
 }
 
-fn open_archive(path: &Path) -> Result<ZipArchive<File>, BackupError> {
+fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupError> {
     let f = File::open(path).map_err(|e| io_err("open the backup file", e))?;
     let archive = ZipArchive::new(f).map_err(|_| bad_zip())?;
     if archive.len() > MAX_ENTRIES {
@@ -444,6 +479,14 @@ fn open_archive(path: &Path) -> Result<ZipArchive<File>, BackupError> {
     }
     if archive.file_names().any(|n| !entry_name_safe(n)) {
         return Err(BackupError::new("unsafe_entry", "The backup contains an unsafe file name (absolute path or '..') and was refused."));
+    }
+    let mut archive = archive;
+    let mut declared = 0u64;
+    for i in 0..archive.len() {
+        declared = declared.saturating_add(archive.by_index_raw(i).map_err(|_| bad_zip())?.size());
+    }
+    if declared > lim.total {
+        return Err(BackupError::new("too_large", "The backup declares more data than DeckChek accepts and was refused."));
     }
     Ok(archive)
 }
@@ -455,9 +498,13 @@ fn too_new_message(v: i64) -> String {
 /// Full verification: zip structure, entry names, manifest shape and versions, and the
 /// size + sha256 of every known file listed in the manifest. Touches nothing on disk.
 fn verify_archive(path: &Path) -> Result<Manifest, BackupError> {
-    let mut archive = open_archive(path)?;
+    verify_archive_with(path, &LIMITS)
+}
+
+fn verify_archive_with(path: &Path, lim: &Limits) -> Result<Manifest, BackupError> {
+    let mut archive = open_archive(path, lim)?;
     let mut raw = Vec::new();
-    read_entry(&mut archive, MANIFEST, MAX_JSON_BYTES, &mut raw)
+    read_entry(&mut archive, MANIFEST, lim.other, lim, &mut raw)
         .map_err(|e| if e.code == "missing_entry" { BackupError::new("missing_manifest", "This file is not a DeckChek backup (manifest.json is missing).") } else { e })?;
     let bad_manifest = || BackupError::new("bad_manifest", "The backup's manifest is malformed.");
     let v: Value = serde_json::from_slice(&raw).map_err(|_| bad_manifest())?;
@@ -490,8 +537,8 @@ fn verify_archive(path: &Path) -> Result<Manifest, BackupError> {
     }
     for f in &manifest.files {
         // Unknown names (later additive formats, e.g. photos/) are neither read nor used.
-        let Some(limit) = known_limit(&f.name) else { continue };
-        let (bytes, sha) = read_entry(&mut archive, &f.name, limit, &mut io::sink())?;
+        let Some(limit) = known_limit(&f.name, lim) else { continue };
+        let (bytes, sha) = read_entry(&mut archive, &f.name, limit, lim, &mut io::sink())?;
         if bytes != f.bytes || !sha.eq_ignore_ascii_case(&f.sha256) {
             return Err(BackupError::new("checksum", format!("The backup is damaged: {} does not match its checksum.", f.name)));
         }
@@ -666,8 +713,8 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         blobs.push((CAL_ENTRY, serde_json::to_vec(cal).map_err(|e| BackupError::new("bad_settings", e.to_string()))?));
     }
     blobs.push((MIDI_ENTRY, serde_json::to_vec_pretty(&midi).map_err(|e| BackupError::new("bad_settings", e.to_string()))?));
-    if let Some((name, _)) = blobs.iter().find(|(_, b)| b.len() as u64 > MAX_JSON_BYTES) {
-        return Err(BackupError::new("too_large", format!("{name} is larger than 5 MiB and cannot be backed up.")));
+    if let Some((name, _)) = blobs.iter().find(|(_, b)| b.len() as u64 > MAX_OTHER_BYTES) {
+        return Err(BackupError::new("too_large", format!("{name} is larger than 64 MiB and cannot be backed up.")));
     }
 
     let (db_bytes, db_sha) = sha_file(&snap)?;
@@ -736,7 +783,7 @@ fn unique_path(dir: &Path, prefix: &str, ms: i64) -> PathBuf {
 fn read_settings_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, m: &Manifest, name: &str, warnings: &mut Vec<String>) -> Result<Value, BackupError> {
     let Some(f) = m.files.iter().find(|f| f.name == name) else { return Ok(Value::Null) };
     let mut raw = Vec::new();
-    let (bytes, sha) = read_entry(archive, name, MAX_JSON_BYTES, &mut raw)?;
+    let (bytes, sha) = read_entry(archive, name, MAX_OTHER_BYTES, &LIMITS, &mut raw)?;
     if bytes != f.bytes || !sha.eq_ignore_ascii_case(&f.sha256) {
         return Err(BackupError::new("checksum", format!("The backup is damaged: {name} does not match its checksum.")));
     }
@@ -779,6 +826,9 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     if !confirm {
         return Err(BackupError::new("not_confirmed", "Restore needs confirmation: it replaces your current data."));
     }
+    if (ctx.capture_running)() {
+        return Err(capture_blocked());
+    }
     let manifest = verify_archive(path)?;
     let live = ctx.live_db.as_path();
     let tmp = restore_tmp(live);
@@ -789,10 +839,10 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 
     let mut warnings = Vec::new();
     let (ui, cal) = {
-        let mut archive = open_archive(path)?;
+        let mut archive = open_archive(path, &LIMITS)?;
         let entry = manifest.files.iter().find(|f| f.name == DB_ENTRY).expect("verified manifest lists the DB");
         let mut out = BufWriter::new(File::create(&tmp).map_err(|e| io_err("extract the backup", e))?);
-        let (bytes, sha) = read_entry(&mut archive, DB_ENTRY, MAX_DB_BYTES, &mut out)?;
+        let (bytes, sha) = read_entry(&mut archive, DB_ENTRY, MAX_DB_BYTES, &LIMITS, &mut out)?;
         let f = out.into_inner().map_err(|e| io_err("extract the backup", e.into_error()))?;
         f.sync_all().map_err(|e| io_err("extract the backup", e))?;
         drop(f);
@@ -828,6 +878,9 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 
     // From here no other connection may be open on the live DB.
     let _write = ctx.gate.write().unwrap_or_else(PoisonError::into_inner);
+    if (ctx.capture_running)() {
+        return Err(capture_blocked()); // a capture started while the copy was prepared
+    }
     let safety = if live.is_file() {
         fs::create_dir_all(&ctx.backups_dir).map_err(|e| io_err("create the backups folder", e))?;
         let dest = unique_path(&ctx.backups_dir, "auto-pre-restore-", now_ms());
@@ -947,9 +1000,9 @@ pub fn recover_on_startup(ctx: &Ctx) -> Vec<String> {
 // ---------------------------------------------------------------- list, retention, log
 
 fn read_manifest_quick(path: &Path) -> Option<Manifest> {
-    let mut archive = open_archive(path).ok()?;
+    let mut archive = open_archive(path, &LIMITS).ok()?;
     let mut raw = Vec::new();
-    read_entry(&mut archive, MANIFEST, MAX_JSON_BYTES, &mut raw).ok()?;
+    read_entry(&mut archive, MANIFEST, MAX_OTHER_BYTES, &LIMITS, &mut raw).ok()?;
     serde_json::from_slice(&raw).ok()
 }
 
@@ -1090,7 +1143,7 @@ pub fn is_due(mode: Mode, last_ms: Option<i64>, now: i64) -> bool {
 fn read_settings_cache(dir: &Path) -> SettingsBlob {
     let p = dir.join(SETTINGS_CACHE);
     match fs::metadata(&p) {
-        Ok(m) if m.len() <= 2 * MAX_JSON_BYTES => fs::read(&p).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default(),
+        Ok(m) if m.len() <= MAX_OTHER_BYTES => fs::read(&p).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default(),
         _ => SettingsBlob::default(),
     }
 }
@@ -1169,7 +1222,9 @@ fn app_ctx(app: &AppHandle) -> Result<Ctx, BackupError> {
     let live = db::database_path(app).map_err(|e| BackupError::new("io", e))?;
     let dir = app.path().app_data_dir().map_err(|e| BackupError::new("io", e.to_string()))?.join("backups");
     fs::create_dir_all(&dir).map_err(|e| io_err("create the backups folder", e))?;
-    Ok(Ctx { live_db: live, backups_dir: dir, gate: db::gate() })
+    let capture = app.try_state::<crate::capture::LiveCaptureState>().map(|s| s.inner().clone());
+    let capture_running: CaptureCheck = std::sync::Arc::new(move || capture.as_ref().is_some_and(crate::capture::is_running));
+    Ok(Ctx { live_db: live, backups_dir: dir, gate: db::gate(), capture_running })
 }
 
 /// Opens (creating and migrating if needed) the live DB through the gate.
@@ -1367,7 +1422,7 @@ mod tests {
             fs::create_dir_all(root.join("app data").join("backups")).unwrap();
             fs::create_dir_all(root.join("out")).unwrap();
             let gate: &'static RwLock<()> = Box::leak(Box::new(RwLock::new(())));
-            let ctx = Ctx { live_db: root.join("app data").join("deckchek.sqlite3"), backups_dir: root.join("app data").join("backups"), gate };
+            let ctx = Ctx { live_db: root.join("app data").join("deckchek.sqlite3"), backups_dir: root.join("app data").join("backups"), gate, capture_running: no_capture() };
             Env { root, ctx }
         }
         fn out(&self, name: &str) -> PathBuf {
@@ -1710,35 +1765,171 @@ mod tests {
         assert!(inspect_file(&extra).valid);
     }
 
+    fn small_db_bytes(env: &Env) -> Vec<u8> {
+        let src = env.out("src.sqlite3");
+        make_db(&src, "src", 1);
+        let good = backup_of(env, &src, "good.deckchek-backup");
+        let p = env.out("g.sqlite3");
+        extract_db(&good, &p);
+        fs::read(&p).unwrap()
+    }
+
+    /// Rewrites the uncompressed size recorded for `name` in both its local header and
+    /// its central-directory record (a "lying header").
+    fn patch_declared_size(zip: &mut [u8], name: &str, size: u32) {
+        let mut patched = 0;
+        let mut i = 0;
+        while i + 46 <= zip.len() {
+            let sig = &zip[i..i + 4];
+            let (name_at, size_at) = if sig == b"PK\x03\x04" { (30, 22) } else if sig == b"PK\x01\x02" { (46, 24) } else { (0, 0) };
+            if name_at > 0 {
+                let len_at = if name_at == 30 { 26 } else { 28 };
+                let n = u16::from_le_bytes([zip[i + len_at], zip[i + len_at + 1]]) as usize;
+                if zip.get(i + name_at..i + name_at + n) == Some(name.as_bytes()) {
+                    zip[i + size_at..i + size_at + 4].copy_from_slice(&size.to_le_bytes());
+                    patched += 1;
+                }
+            }
+            i += 1;
+        }
+        assert_eq!(patched, 2, "local + central header patched");
+    }
+
     #[test]
-    fn oversized_and_zip_bomb_entries_are_refused() {
-        let env = Env::new("bomb");
+    fn entry_and_total_size_caps_and_ratio_floor() {
+        let env = Env::new("caps");
+        let db_bytes = small_db_bytes(&env);
+        // shrunken limits exercise the same code paths as the production ones
+        let lim = Limits { db: MAX_DB_BYTES, other: 1024 * 1024, total: 3 * 1024 * 1024, ratio: 100, ratio_floor: 1024 * 1024 };
+        let code = |p: &Path| verify_archive_with(p, &lim).unwrap_err().code;
+
+        let big = vec![b' '; 1024 * 1024 + 1];
+        let p = env.out("big.deckchek-backup");
+        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &big)]);
+        assert_eq!(code(&p), "too_large", "per-entry declared cap");
+
+        let p = env.out("hugemanifest.deckchek-backup");
+        write_zip(&p, &[(MANIFEST, &big)]);
+        assert_eq!(code(&p), "too_large", "the manifest is capped too");
+
+        let chunk = vec![b' '; 1024 * 1024];
+        let p = env.out("total.deckchek-backup");
+        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &chunk), (CAL_ENTRY, &chunk), (MIDI_ENTRY, &chunk), ("photos/a.jpg", &chunk)]);
+        assert_eq!(code(&p), "too_large", "total declared cap counts every entry, known or not");
+
+        // ratio limit applies above the floor only
+        let db_zeros = vec![0u8; 2 * 1024 * 1024];
+        let p = env.out("ratio.deckchek-backup");
+        crafted(&p, 2, &[(DB_ENTRY, &db_zeros)]);
+        assert_eq!(code(&p), "zip_bomb");
+        let under_floor = vec![0u8; 1024 * 1024];
+        let p = env.out("underfloor.deckchek-backup");
+        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &under_floor)]);
+        assert!(verify_archive_with(&p, &lim).is_ok(), "1000:1 data below the floor is accepted");
+
+        // production limits: highly compressible entries well past 1 MiB are accepted
+        let p = env.out("zeros.deckchek-backup");
+        let zeros = vec![0u8; 8 * 1024 * 1024];
+        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (CAL_ENTRY, &zeros)]);
+        assert!(inspect_file(&p).valid);
+        assert_eq!((LIMITS.db, LIMITS.other, LIMITS.total, LIMITS.ratio, LIMITS.ratio_floor), (2 << 30, 64 << 20, (2 << 30) + (512 << 20), 1000, 256 << 20));
+    }
+
+    #[test]
+    fn lying_header_zip_bomb_is_refused() {
+        let env = Env::new("liar-bomb");
+        make_db(env.live(), "live", 3);
+        let db_bytes = small_db_bytes(&env);
+        let before = fs::read(env.live()).unwrap();
+        // 16 MiB of zeros that claims to be 1 KiB: caught when inflation passes 1 KiB
+        let bomb = vec![0u8; 16 * 1024 * 1024];
+        for (entry, label) in [(UI_ENTRY, "settings"), (DB_ENTRY, "database")] {
+            let p = env.out(&format!("lying-{label}.deckchek-backup"));
+            let files: Vec<(&str, &[u8])> = if entry == DB_ENTRY { vec![(DB_ENTRY, &bomb)] } else { vec![(DB_ENTRY, &db_bytes), (UI_ENTRY, &bomb)] };
+            crafted(&p, current_schema_version(), &files);
+            let mut raw = fs::read(&p).unwrap();
+            patch_declared_size(&mut raw, entry, 1024);
+            fs::write(&p, &raw).unwrap();
+            let r = inspect_file(&p);
+            assert!(!r.valid, "{label}");
+            assert!(matches!(r.error_code.as_deref(), Some("size_mismatch") | Some("corrupt") | Some("checksum")), "{label}: {:?}", r.error_code);
+            assert!(restore_backup(&env.ctx, &p, true, &SettingsBlob::default(), None).is_err());
+            assert_eq!(fs::read(env.live()).unwrap(), before);
+            no_restore_leftovers(&env);
+        }
+        // the overrun check itself (not CRC or checksum) is what stops the read
+        let p = env.out("lying-settings.deckchek-backup");
+        let mut a = ZipArchive::new(File::open(&p).unwrap()).unwrap();
+        let e = read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut io::sink()).unwrap_err();
+        assert_eq!(e.code, "size_mismatch");
+    }
+
+    #[test]
+    fn highly_compressible_databases_round_trip() {
+        let env = Env::new("compressible");
+        make_db(env.live(), "live", 2);
+        // zero-filled blobs: ~1000:1 under deflate, as a real backup could be
+        let src = env.out("zeros.sqlite3");
+        make_db(&src, "src", 3);
+        {
+            let c = Connection::open(&src).unwrap();
+            c.execute_batch("CREATE TABLE filler (b BLOB);").unwrap();
+            for _ in 0..40 {
+                c.execute("INSERT INTO filler (b) VALUES (zeroblob(250000))", []).unwrap();
+            }
+        }
+        let dest = backup_of(&env, &src, "zeros.deckchek-backup");
+        assert!(inspect_file(&dest).valid);
+        let r = restore_backup(&env.ctx, &dest, true, &SettingsBlob::default(), None).unwrap();
+        assert!(r.safety_backup.is_some());
+        assert_eq!(rows(env.live(), "session"), 3);
+        assert_eq!(rows(env.live(), "filler"), 40);
+
+        // VACUUM-less file with a large zero freelist, packed as-is into an archive
+        let loose = env.out("loose.sqlite3");
+        make_db(&loose, "loose", 4);
+        {
+            let c = Connection::open(&loose).unwrap();
+            c.execute_batch("PRAGMA secure_delete=ON; CREATE TABLE filler (b BLOB);").unwrap();
+            for _ in 0..40 {
+                c.execute("INSERT INTO filler (b) VALUES (randomblob(250000))", []).unwrap();
+            }
+            c.execute_batch("DELETE FROM filler;").unwrap();
+            let free: i64 = c.query_row("PRAGMA freelist_count", [], |x| x.get(0)).unwrap();
+            assert!(free > 2000, "freelist {free}");
+        }
+        let bytes = fs::read(&loose).unwrap();
+        let p = env.out("loose.deckchek-backup");
+        crafted(&p, current_schema_version(), &[(DB_ENTRY, &bytes)]);
+        assert!(inspect_file(&p).valid, "{:?}", inspect_file(&p).errors);
+        restore_backup(&env.ctx, &p, true, &SettingsBlob::default(), None).unwrap();
+        assert_eq!(rows(env.live(), "session"), 4);
+        no_restore_leftovers(&env);
+    }
+
+    #[test]
+    fn restore_is_refused_while_a_capture_runs() {
+        assert!(!crate::capture::is_running(&crate::capture::LiveCaptureState::default()));
+        let env = Env::new("capture");
+        make_db(env.live(), "live", 3);
         let src = env.out("src.sqlite3");
         make_db(&src, "src", 1);
         let good = backup_of(&env, &src, "good.deckchek-backup");
-        let db_bytes = {
-            let p = env.out("g.sqlite3");
-            extract_db(&good, &p);
-            fs::read(&p).unwrap()
-        };
-        // > 5 MiB JSON entry: refused on size, even though it compresses well
-        let big = vec![b' '; (MAX_JSON_BYTES + 1) as usize];
-        let p = env.out("big.deckchek-backup");
-        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &big)]);
-        assert_eq!(inspect_file(&p).error_code.as_deref(), Some("too_large"));
-        // 3 MiB of zeros (~1000:1) is under the size cap but trips the ratio guard
-        let bomb = vec![0u8; 3 * 1024 * 1024];
-        let p = env.out("ratio.deckchek-backup");
-        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (CAL_ENTRY, &bomb)]);
-        assert_eq!(inspect_file(&p).error_code.as_deref(), Some("zip_bomb"));
-        // the manifest itself is size-capped too
-        let p = env.out("hugemanifest.deckchek-backup");
-        write_zip(&p, &[(MANIFEST, &big)]);
-        assert_eq!(inspect_file(&p).error_code.as_deref(), Some("too_large"));
-        // small, highly compressible entries stay fine (ratio applies past 1 MiB)
-        let p = env.out("smallzeros.deckchek-backup");
-        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, b"{}"), (MIDI_ENTRY, &vec![b' '; 512 * 1024])]);
-        assert!(inspect_file(&p).valid);
+        let before = fs::read(env.live()).unwrap();
+        let running = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: std::sync::Arc::new(|| true) };
+        let e = restore_backup(&running, &good, true, &SettingsBlob::default(), None).unwrap_err();
+        assert_eq!(e.code, "capture_running");
+        assert!(e.message.starts_with("Stop the capture before restoring"));
+        assert_eq!(fs::read(env.live()).unwrap(), before);
+        assert!(fs::read_dir(&env.ctx.backups_dir).unwrap().next().is_none(), "no safety backup either");
+        no_restore_leftovers(&env);
+        // a capture that starts while the copy is being prepared is caught at the swap
+        let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let c2 = calls.clone();
+        let late = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: std::sync::Arc::new(move || c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0) };
+        assert_eq!(restore_backup(&late, &good, true, &SettingsBlob::default(), None).unwrap_err().code, "capture_running");
+        assert_eq!(fs::read(env.live()).unwrap(), before);
+        no_restore_leftovers(&env);
     }
 
     // ---------- AC-4 / AC-5: restore with safety backup and migration ----------
@@ -1902,7 +2093,7 @@ mod tests {
         // safety backup cannot be written (backups "folder" is a file): nothing restored
         let blocked_dir = env.root.join("not-a-dir");
         fs::write(&blocked_dir, b"x").unwrap();
-        let ctx2 = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: blocked_dir.join("backups"), gate: env.ctx.gate };
+        let ctx2 = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: blocked_dir.join("backups"), gate: env.ctx.gate, capture_running: no_capture() };
         assert!(restore_backup(&ctx2, &good, true, &none, None).is_err());
         assert_untouched(&env, &before, "safety backup failed");
 
@@ -1929,7 +2120,7 @@ mod tests {
         let good = backup_of(&env, &src, "good.deckchek-backup");
         let reader = env.ctx.gate.read().unwrap();
         let handle = {
-            let ctx = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate };
+            let ctx = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: no_capture() };
             std::thread::spawn(move || restore_backup(&ctx, &good, true, &SettingsBlob::default(), None).map(|_| ()))
         };
         std::thread::sleep(Duration::from_millis(300));

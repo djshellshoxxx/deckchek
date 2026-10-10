@@ -314,6 +314,11 @@ struct Session {
 #[derive(Clone, Default)]
 pub struct LiveCaptureState(Arc<Mutex<Option<Session>>>);
 
+/// Whether a live capture session is open (FS-08 refuses restore meanwhile).
+pub(crate) fn is_running(state: &LiveCaptureState) -> bool {
+    state.0.lock().map(|slot| slot.is_some()).unwrap_or(true)
+}
+
 fn build_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
