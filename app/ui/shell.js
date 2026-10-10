@@ -252,6 +252,7 @@ export function initShell(defs) {
   });
   globalThis.matchMedia?.('(prefers-color-scheme: light)').addEventListener?.('change', () => refreshMeterThemes());
   // [FS-01] init
+  import('./workflows/setup-wizard.js').then(m => m.installSetupWizard()).catch(error => console.warn('Setup wizard unavailable:', error));
   // [FS-07] init
   import('../external-links.js').then(m => m.installLinkInterceptor(document, { toast, confirm: m.linkConfirmDialog })).catch(() => { /* links fall back to inert anchors */ });
   // [FS-23] init
