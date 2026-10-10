@@ -11,7 +11,7 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-02](02-diagnostics-bundle.md) | Crash capture & diagnostics bundle | Ready\* (issue repo name) | L | FS-00, FS-07 | M5 | — | `diagnosticsBundle` |
 | [FS-03](03-pdf-reports.md) | PDF reports (WebView2 PrintToPdf) | Spike (PrintToPdf via `with_webview`) | L | FS-00, FS-07 | M5 | — | `pdfExport` |
 | [FS-06](06-test-media-library.md) | Test-media library | Ready | L | FS-00, `M5-tc-facts` | M5 | 0004 | `testMedia` |
-| [FS-07](07-open-external-links.md) | Open external links / reveal files | Ready\* (allowlist domains) | S | FS-00 (F0-platform) | M5 | — | — |
+| [FS-07](07-open-external-links.md) | Open external links / reveal files | Ready\* (allowlist domains) | S | FS-00 (M5-F0-platform) | M5 | — | — |
 | [FS-08](08-backup-restore.md) | Backup & restore | Ready | L | FS-00 (gate, fixture), FS-02 (log) | M5 | 0005 | `backup` |
 | [FS-10](10-pre-gig-check.md) | Pre-gig check | Ready | L | FS-00 (hum.js, lease, processes), FS-06; FS-11 optional | M6 | 0008 | `pregig` |
 | [FS-11](11-dvs-latency-buffer-tuner.md) | DVS latency & buffer tuner | Spike (cpal WASAPI fixed buffers) | L | FS-00 (audio_out, lease, processes) | M6 | 0007 | `latencyTuner` |

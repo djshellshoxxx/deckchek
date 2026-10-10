@@ -31,66 +31,67 @@ Twenty feature specs were written in parallel and each re-invented the same infr
 
 ## 4. Architecture
 
-### 4.1 Hotspot scaffolding (job F0-scaffold, first job of M5)
+### 4.1 Hotspot scaffolding (job M5-F0-scaffold, first job of M5)
 Files every feature touches get **named anchor blocks** created up front, so each job edits only its own block and git merges cleanly:
 - `src-tauri/src/lib.rs`: one `// [FS-NN] mods` line group and one `// [FS-NN] handlers` group per spec inside `generate_handler![…]`, plus `// [FS-NN] setup` inside `.setup(…)`.
 - `app/app.js`: `// [FS-NN] screens` import + registration blocks.
 - `app/index.html`: per-feature `<link rel="stylesheet" href="./styles/<feature>.css">` slots; feature CSS lives in `app/styles/<feature>.css` (new directory), not in `styles.css`.
 - `app/ui/workflows/definitions.js`: per-feature anchor in the `WORKFLOWS` list.
+- `app/ui/shell.js`: per-feature anchors in the Options/Help menus and in `initShell` start-up hooks (FS-01 auto-start, FS-07 link interceptor, FS-23 reminders banner, FS-31 tray state).
 - `src-tauri/Cargo.toml`: dependencies are only added by a milestone's foundation job (wave 0), never by feature jobs, so `Cargo.lock` never conflicts inside a wave.
 Rule: a feature job may add lines only inside its own anchors; anything else in a hotspot file is a foundation change.
 
-### 4.2 Migrations and DB access (job F0-db)
+### 4.2 Migrations and DB access (job M5-F0-db)
 - `src-tauri/build.rs` scans `database/migrations/*.sql`, validates names `^\d{4}_[a-z0-9_]+\.sql$`, and generates `$OUT_DIR/migrations.rs` containing `pub const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!(…)), …]`; `db.rs` does `include!(concat!(env!("OUT_DIR"), "/migrations.rs"))`. `cargo:rerun-if-changed=../database/migrations`.
 - `apply_migrations` writes the `schema_migration` row **inside** the migration transaction (today it is written after `COMMIT`, so a crash in between would re-run a non-idempotent `ALTER TABLE ADD COLUMN`).
 - Migration files must not contain `BEGIN`/`COMMIT` (the runner wraps them) — enforced by a test that greps each file.
 - Connection gate: `db::gate()` returns a process-wide `RwLock<()>`; `open_database` takes a read guard held by the returned wrapper; FS-08 restore takes the write guard. No other behaviour changes.
 - Fixture: `tests/fixtures/db/v0.04.sql` — a text dump (reviewable) made by applying 0001+0002 and inserting representative rows (2 manufacturers, 4 products, 3 assets incl. one auto-created, 1 venue/booth/position, 2 sessions with captures and measurements, 1 device_profile + 3 device_test_result, 1 asset_midi_map, 1 maintenance_event). Loaded by Rust tests via `execute_batch`.
 
-### 4.3 Platform plugins and crates (job F0-platform)
+### 4.3 Platform plugins and crates (job M5-F0-platform)
 Added once, pinned to exact versions in `Cargo.lock` (licences: all MIT and/or Apache-2.0):
 `tauri-plugin-dialog` 2.x, `tauri-plugin-opener` 2.x (FS-07 owns the policy), `zip` 2.x (`default-features=false, features=["deflate"]`), `sha2` 0.10, `rusqlite` features `["bundled","backup"]`, and for FS-03 `webview2-com` + `windows` at the versions already in wry's dependency tree (cfg(windows)). New `src-tauri/capabilities/default.json` (none exists today): `core:default`, `dialog:allow-save`, `dialog:allow-open`, opener permissions per FS-07 (no `opener:allow-open-url` wildcard). CSP unchanged.
 
-### 4.4 `userfiles.rs` (job F0-platform)
+### 4.4 `userfiles.rs` (job M5-F0-platform)
 - `validate_save_path(path, allowed_exts: &[&str]) -> Result<PathBuf, UserFileError>`; `record_written(path)` (feeds FS-07 `WrittenPaths`); `sanitize_file_stem(s) -> String` (`[^A-Za-z0-9._ -]` → `_`, max 80, reserved names suffixed `_`).
 - Commands: `userfiles_write_text(path, content, allowedExt) -> {path, bytes}`; `userfiles_write_folder(dir, files:[{relPath, text?|base64?}], allowedExts) -> {written, path}` (FS-33; any FS that exports folders).
 - JS `app/userfiles.js`: `saveTextFile({suggestedName, content, ext})` (dialog + write, or Blob download in browser mode).
 
-### 4.5 `app_state` (job F0-db)
+### 4.5 `app_state` (job M5-F0-db)
 Rust commands `app_state_get(key) -> {value, updatedAt}|null`, `app_state_set(key, value) -> ()`, `app_state_delete(key)`; value JSON <= 256 KiB; keys `^[a-z][a-z0-9_.]{0,63}$`. JS `app/app-state.js` with localStorage fallback `deckchek.appstate.v1`. Known keys: `wizard` (FS-01), `backup` (FS-08), `monitor` (FS-31), `features` is NOT here (see 4.14). Rule: UI preferences stay in `deckchek.ui.v1` (localStorage); state Rust must read, or that must survive a WebView reset, goes to `app_state`.
 
-### 4.6 `app/hum.js` (job F1-dsp, M6 wave 0)
+### 4.6 `app/hum.js` (job M6-F1-dsp, M6 wave 0)
 Single signature used by FS-10, FS-15 (and optionally FS-31):
 `humMeasure(samples, sampleRate, {mains:'auto'|50|60='auto', harmonics=8, windowSec}) -> {mainsHz, fundamentalDbfs, harmonics:[{n,hz,dbfs}], totalDbfs, floorDbfs, humToFloorDb, oddEvenRatio, uncertaintyDb}`; `detectMains(samples, sampleRate) -> {mainsHz, confidence}`; `removeTone(samples, sampleRate, hz) -> Float32Array` (fitTone residual, used to measure hum under a timecode carrier). Built on `fitTone` (`app/calibration.js`) and consistent with `humMetrics` (`app/core.js`, whose output must not change).
 
-### 4.7 Capture lease and streaming capture (jobs F1-capture-lease, F1-stream)
+### 4.7 Capture lease and streaming capture (jobs M6-F1-capture, M6-F1-capture)
 - `capture::CaptureLease` in managed state: `capture_lease_acquire(holder, deviceName) -> {leaseId}|CAPTURE_BUSY`, `capture_lease_release(leaseId)`, `capture_lease_status()`. `start_live_capture` and every new capture path acquire it internally (existing callers unchanged).
 - `start_stream_capture(deviceName?, sampleRate?, blockMs=1000, channel: tauri::ipc::Channel<Block>)` → stereo f32 blocks `{seq, sampleRate, left, right, quality}` over the Channel (not events: binary-friendly, ordered); `stop_stream_capture()`. Backpressure: if the webview lags > 5 blocks, oldest blocks are dropped and counted in `quality.droppedBlocks`. Used by FS-13 and FS-31.
 
-### 4.8 Shared hours ledger (job F1-usage)
+### 4.8 Shared hours ledger (job M6-F1-usage)
 `asset_usage` table (§5.3) + commands `usage_add`, `usage_list(assetId,{since?})`, `usage_delete`, `usage_confirm(id)`. JS `app/usage-hours.js`: `mergeIntervals(entries)` (priority manual > djlog > deckchek > import; overlapping lower-priority time removed), `totalHours(entries,{since})`, `proposeFromSessions(sessions, assetId, {capHours=12})`. Used by FS-12 (stylus life, baseline = last `stylus_replaced` event) and FS-23 (hours-based reminders).
 
-### 4.9 `audio_out.rs` (job F1-audio-out)
-cpal output engine (first Rust output path — today output is WebAudio `playStereo`): `list_native_audio_outputs()`, `audio_play_buffer(device?, {sampleRate,left,right}, {levelDbfs, capDbfs, loop})`, `audio_play_tone(device?, {type:'sine'|'pinkband'|'chirp', freqHz?, levelDbfs, capDbfs, rampMs})`, `audio_set_level(handle, levelDbfs)`, `audio_stop(handle)`. Hard absolute cap `ABS_MAX_DBFS = -12.0` applied in the callback after a per-sample limiter; ramps >= 10 ms; 60 s inactivity auto-mute for tone mode; all streams stopped on window close/`RunEvent::Exit`. Used by FS-11 (duplex latency), FS-15 (feedback step); FS-01 may keep WebAudio for its tone but must clamp to -12 dBFS via `clampLevelDbfs` in `app/ui/audio-io.js`.
+### 4.9 `audio_out.rs` (job M6-F1-audio-out)
+cpal output engine (first Rust output path — today output is WebAudio `playStereo`): `list_native_audio_outputs()`, `audio_play_buffer(device?, {sampleRate,left,right}, {levelDbfs, capDbfs, loop})`, `audio_play_tone(device?, {type:'sine'|'pinkband'|'chirp', freqHz?, levelDbfs, capDbfs, rampMs})`, `audio_set_level(handle, levelDbfs)`, `audio_stop(handle)`. Hard absolute cap `ABS_MAX_DBFS = -12.0` applied in the callback after a per-sample limiter; ramps >= 10 ms; 60 s inactivity auto-mute for tone mode; all streams stopped on window close/`RunEvent::Exit`. Used by FS-11 (duplex latency), FS-15 (feedback step); JS bridge `app/audio-out.js` (incl. `clampLevelDbfs`). FS-01 (M5, before this engine exists) keeps WebAudio `playStereo` for its tone and clamps to -12 dBFS locally.
 
-### 4.10 `processes.rs` (job F1-usage)
+### 4.10 `processes.rs` (job M6-F1-usage)
 `dj_processes() -> {supported, apps:[{app, exe, pid, running}]}` and `top_cpu(n) -> [{exe, cpuPct}]` from `tasklist /FO CSV /NH` (and `Get-Counter` for CPU) via `system_check::run_with_timeout` and `is_dj_program`. Exe names only, never command lines. Used by FS-10, FS-11, FS-12.
 
-### 4.11 Photo store (job F2-photo, M7 wave 0)
+### 4.11 Photo store (job M7-F2-photo, M7 wave 0)
 - JS `app/photo-store.js`: `preparePhoto(file) -> {bytes(jpeg), width, height, sha256}` — decode via `createImageBitmap`, draw to canvas <= 1600 px long edge, `toBlob('image/jpeg', 0.82)` (re-encode strips EXIF/GPS), reject sources > 8 MB or failing magic-byte sniff.
 - Rust `photo.rs`: `photo_attach({ownerKind:'asset'|'service_job'|'certificate', ownerId, bytesB64, caption?, stage?, isPrimary?}) -> {photoId, sha256}` (re-checks JPEG magic, scans for and rejects APP1/EXIF markers, size <= 2 MB after processing, writes `<app_data_dir>/photos/<sha256>.jpg` if absent), `photo_list(ownerKind, ownerId)`, `photo_unlink(linkId)` (file deleted when no links remain), `photo_read(photoId) -> bytesB64`.
 - Extends FS-08 backup with the `photos/` prefix (see FS-08 §5).
 
-### 4.12 Canonical JSON, SHA-256, QR (job F2-canonical)
+### 4.12 Canonical JSON, SHA-256, QR (job M7-F2-canonical)
 - `app/canonical-json.js` `canonicalJson(value) -> string` and `src-tauri/src/canonical.rs` `canonical_json(&Value) -> Result<String>`; rules §6.1.
 - `app/sha256.js`: `sha256Hex(bytesOrString)` using `crypto.subtle` when available, pure-JS fallback (~3 KB) for `file://` pages and old WebViews. Rust uses `sha2`.
 - `app/vendor/qr.js`: one vendored MIT QR generator (candidate `qrcode-generator` by Kazuhiko Arase, MIT; exact version and licence text pinned at vendoring, header comment kept). Wrapper `qrSvg(text, {ecc:'L'|'M'}) -> svg string`. Used by FS-20 (desktop) and FS-30 (copied to `mobile/vendor/`).
 - Shared vectors `tests/fixtures/canonical-vectors.json` (input, canonical string, sha256) consumed by JS and Rust tests.
 
-### 4.13 `app/metric-compat.js` (job F2-canonical)
+### 4.13 `app/metric-compat.js` (job M7-F2-canonical)
 `methodCompatible(a:{key,version}, b:{key,version}, registry) -> boolean` (equal key and unit, equal version or mutually listed in `analysis_method.parameters_json.compat`), `combinedUncertainty(uA,uB)` (RSS), `deltaVerdict(delta, u, {k:2, higherIsBetter})`. Used by FS-21 and FS-22.
 
-### 4.14 Feature registry (job F0-scaffold)
+### 4.14 Feature registry (job M5-F0-scaffold)
 `app/features.js`: `FEATURES = {setupWizard:{default:true, milestone:'M5', spec:'FS-01'}, …}`, `isEnabled(name)`, `setEnabled(name, on)` persisted in `deckchek.ui.v1.features`. Rust never gates on flags (commands always exist; flags only hide UI). Flags: `setupWizard`, `diagnosticsBundle`, `pdfExport`, `testMedia`, `backup`, `pregig`, `latencyTuner`, `stylusWear`, `wearMap`, `scratchTest`, `humHunter`, `feedbackStep`, `certificates`, `population`, `packs`, `service`, `fleet`, `phoneImport`, `liveMonitor`, `mapperStudio`, `gearLedger`. A test asserts every `features.*` mentioned in `docs/specs/*.md` exists in `FEATURES`.
 
 ### 4.15 Conventions for ids, profiles and catalogs
@@ -190,7 +191,7 @@ All SQL parameterised. `userfiles` rejects traversal and reserved names (§2 AC-
 All §2 ACs green in CI (Linux + Windows); fixtures committed; anchors present; `docs/specs/00-INDEX.md` and `IMPLEMENTATION-STATUS.md` updated; every feature spec referencing FS-00 compiles against the delivered API names (grep check in review).
 
 ## 10. Dependencies, risks, open questions, effort
-Jobs: M5 wave 0 — `F0-scaffold` (anchors, feature registry), `F0-db` (build.rs migrations, runner fix, gate, `app_state`, v0.04 fixture), `F0-platform` (plugins, crates, capability file, `userfiles`). M6 wave 0 — `F1-dsp` (hum.js, signals fixture), `F1-capture-lease`, `F1-stream`, `F1-audio-out`, `F1-usage` (ledger + processes). M7 wave 0 — `F2-photo`, `F2-canonical` (canonical/sha/QR/metric-compat). Risks: build.rs `include_str!` path handling on Windows (test on windows-rust-tests); `ipc::Channel` throughput for 48 kHz stereo f32 (≈ 384 KB/s; spike first); WebView canvas JPEG encoder availability (WebView2 supports it). Open: QR library final pick. Effort: XL in total (~60 agent-hours) split as above.
+Jobs: M5 wave 0 — `M5-F0-scaffold` (anchors, feature registry), `M5-F0-db` (build.rs migrations, runner fix, gate, `app_state`, v0.04 fixture), `M5-F0-platform` (plugins, crates, capability file, `userfiles`). M6 wave 0 — `M6-F1-dsp` (hum.js, signals fixture), `M6-F1-capture` (lease + streaming), `M6-F1-audio-out`, `M6-F1-usage` (ledger + processes). M7 wave 0 — `M7-F2-photo`, `M7-F2-canonical` (canonical/sha/QR/metric-compat). Risks: build.rs `include_str!` path handling on Windows (test on windows-rust-tests); `ipc::Channel` throughput for 48 kHz stereo f32 (≈ 384 KB/s; spike first); WebView canvas JPEG encoder availability (WebView2 supports it). Open: QR library final pick. Effort: XL in total (~60 agent-hours) split as above.
 
 ## 11. Research notes
 - Repo facts verified 2026-10-10: `src-tauri/src/db.rs` (`MIGRATIONS` hand-listed; version row inserted after `COMMIT`), `src-tauri/src/devices.rs` (sync auto-creates "My <model>" assets), no `src-tauri/capabilities/` directory, CSP in `tauri.conf.json`, no Rust audio output (`audio.rs`/`capture.rs` are input-only), `app/ui/audio-io.js` `playStereo` (WebAudio), `app/core.js` `humMetrics`, `src-tauri/src/system_check.rs` `run_with_timeout`/`is_dj_program`, CI `.github/workflows/test.yml` does not run `tools/ui-smoke.mjs`.

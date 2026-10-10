@@ -38,7 +38,7 @@ JS:
 - `app/hum-tree.js`: `HUM_STEPS`, `rankCauses(stepResults) -> Cause[]`, `deltaDb(prev, cur)`.
 - `app/feedback.js`: `stepPlan({startDbfs:-60, stepDb:3, capDbfs:-30})`, `detectHowl(spectraHistory) -> {onset:boolean, freqHz, growthDbPerS}`, `limiter(buffer, capDbfs)`, `rampToSilence()`.
 - `app/ui/workflows/hum.js`, `app/ui/workflows/feedback.js`.
-Rust: output playback uses the shared FS-00 `audio_out.rs` engine (job F1-audio-out): `audio_play_tone(device?, spec:{type:'pinkband'|'sine', freqHz?, levelDbfs, capDbfs, rampMs}) -> {handle}`; `audio_set_level(handle, levelDbfs)` (clamped in Rust to cap); `audio_stop(handle)` (fade 20 ms); `list_native_audio_outputs()`. The safety limiter and the hard-coded absolute max -12 dBFS live in Rust so a JS bug cannot exceed the cap. Verified: the repo has no Rust output path today (cpal 0.16 is used for input only; `app/ui/audio-io.js playStereo` is WebAudio), so F1-audio-out builds it. Reuses `start_live_capture` under the capture lease. Deps: none new.
+Rust: output playback uses the shared FS-00 `audio_out.rs` engine (job M6-F1-audio-out): `audio_play_tone(device?, spec:{type:'pinkband'|'sine', freqHz?, levelDbfs, capDbfs, rampMs}) -> {handle}`; `audio_set_level(handle, levelDbfs)` (clamped in Rust to cap); `audio_stop(handle)` (fade 20 ms); `list_native_audio_outputs()`. The safety limiter and the hard-coded absolute max -12 dBFS live in Rust so a JS bug cannot exceed the cap. Verified: the repo has no Rust output path today (cpal 0.16 is used for input only; `app/ui/audio-io.js playStereo` is WebAudio), so M6-F1-audio-out builds it. Reuses `start_live_capture` under the capture lease. Deps: none new.
 
 ## 5. Data model
 

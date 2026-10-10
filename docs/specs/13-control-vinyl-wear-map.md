@@ -35,10 +35,10 @@ Copy: "Use the other side. Side A has 14 dropouts between 18:40 and 21:10 and SN
 
 JS:
 - `app/wear-map.js` (pure): `scanSide(chunks, {format, binSec}) -> Bin[]` (streaming: `createScanner({format, sampleRate, binSec})` with `push(left,right)` and `finish()`), `positionToRadius(tSec, geom)`, `binsToArcs(bins, geom, metric) -> ArcPath[]`, `alignScans(a,b) -> {offsetSec, confidence}`, `diffScans(a,b) -> BinDelta[]`, `verdict(bins, history, thresholds)`, `QUALITY_COLOR_RAMP`.
-- `app/ui/plots.js`: add `drawGrooveMap(canvas, arcs, opts)` and `drawTimeline`.
-- `app/ui/workflows/wearmap.js`, `app/ui/screens/vinylscan.js` (extend).
+- `app/ui/plots-groove.js` (new file, not `plots.js`, to avoid cross-job conflicts): `drawGrooveMap(canvas, arcs, opts)` and `drawTimeline`.
+- `app/ui/workflows/wearmap.js`, `app/ui/screens/vinylscan.js` (new — verified 2026-10-10 that no Vinyl Scan screen exists yet; this spec creates it with the Control vinyl tab only).
 Reuses `analyzeTimecode` per bin (windowSec 0.1, dropoutDb 12), `findFormat`, `normalizedLevelTrace`, `compareEventMaps` (diagnostics.js), `start_live_capture`/`stop_live_capture` (long capture needs a streaming chunk event).
-Rust: uses the FS-00 streaming capture (`start_stream_capture` delivering 1 s stereo blocks over a Tauri `ipc::Channel`, job F1-stream) and keeps only per-bin features in JS (whole-side audio would be 20 min x 48 kHz x 2 x 4 B = 460 MB). New commands: `wearmap_save(scan) -> {id}`, `wearmap_list(recordSideId?) -> ScanSummary[]`, `wearmap_get(id) -> Scan`, `wearmap_delete(id)`. Deps: none.
+Rust: uses the FS-00 streaming capture (`start_stream_capture` delivering 1 s stereo blocks over a Tauri `ipc::Channel`, job M6-F1-capture) and keeps only per-bin features in JS (whole-side audio would be 20 min x 48 kHz x 2 x 4 B = 460 MB). New commands: `wearmap_save(scan) -> {id}`, `wearmap_list(recordSideId?) -> ScanSummary[]`, `wearmap_get(id) -> Scan`, `wearmap_delete(id)`. Deps: none.
 
 ## 5. Data model
 

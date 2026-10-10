@@ -34,7 +34,7 @@ Copy: "Lock lost 3 times (longest 42 ms). Recovery 18 ms median. Needle skipped 
 
 JS:
 - `app/scratch.js` (pure): `instantVelocity({left,right,sampleRate}, {format, winMs:5, hopMs:2.5}) -> {t[],v[],snr[],level[]}`, `detectReversals(vel, {minPeak, minGapMs}) -> Reversal[]`, `detectLockLoss(trace, thr) -> Loss[]`, `detectDirectionErrors(...)`, `detectSkips(...)`, `scoreScratch(events, protocol) -> {score, components}`, `PROTOCOL_V1`, `metronomeSchedule(bpm, pattern) -> ClickEvent[]`.
-- `app/ui/workflows/scratch.js`, `app/ui/screens/dvs.js` addition.
+- `app/ui/workflows/scratch.js`, `app/ui/screens/scratch.js` (new; there is no `dvs.js` screen today — the DVS entry is a workflow in `definitions.js`, which gets a link in this spec's anchor).
 - Metronome via WebAudio `AudioContext` (scheduled clicks, lookahead 100 ms, `setSinkId` for output device where available).
 Reuses `findFormat`, `analyzeTimecode` (baseline and SNR), `toneAmplitude`/`fitTone` for carrier phase, `dvsIntegrityTimeline`, `subsonicPeak`, `compareEventMaps`.
 Rust: none required for DSP; capture via `start_live_capture` with `max_seconds` 120 under the FS-00 capture lease. Commands `scratch_save(run)`, `scratch_list(filter)`, `scratch_get(id)`. Deps: none.

@@ -21,7 +21,7 @@ Manual, support and source links open in the user's default browser through the 
 Entry points: Help menu (manual, support, release notes, GitHub issues), device-profile source links, System Health "Learn more" links, report footers, Spec 02 "Report on GitHub". Visuals: external links show an "external" icon and `rel`-like text for screen readers ("opens in your browser"). Confirm dialog copy: "Open this link in your browser? **example.org** — https://example.org/path. DeckChek hasn't verified this site." Buttons: Open (primary), Copy link, Cancel (default focus). States: success (silent), fallback (toast with Copy), blocked (toast), loading (none), offline (browser may show its own error; no pre-check), unsupported (no opener permission -> copy-only mode). Shortcut: F1 opens the manual; Enter on a focused link opens. A11y: links are real `<a>` with discernible text; dialog uses `aria-describedby` for the full URL; focus returns to the link.
 
 ## 4. Architecture
-Plugin: `tauri-plugin-opener` (v2.x, MIT/Apache-2.0; exact version pinned by FS-00 job F0-platform, which also adds it to `Cargo.toml`/`lib.rs` and creates `src-tauri/capabilities/default.json` — no capabilities directory exists today). Do NOT use deprecated `tauri-plugin-shell` `open`. Plugin init `.plugin(tauri_plugin_opener::init())`, JS access via `window.__TAURI__.opener.openUrl` (global enabled by `withGlobalTauri`). Capability file `src-tauri/capabilities/default.json`:
+Plugin: `tauri-plugin-opener` (v2.x, MIT/Apache-2.0; exact version pinned by FS-00 job M5-F0-platform, which also adds it to `Cargo.toml`/`lib.rs` and creates `src-tauri/capabilities/default.json` — no capabilities directory exists today). Do NOT use deprecated `tauri-plugin-shell` `open`. Plugin init `.plugin(tauri_plugin_opener::init())`, JS access via `window.__TAURI__.opener.openUrl` (global enabled by `withGlobalTauri`). Capability file `src-tauri/capabilities/default.json`:
 ```json
 { "identifier":"default","windows":["main"],
   "permissions":["core:default",
@@ -51,7 +51,7 @@ Unit (`tests/external-links.test.mjs`): classify matrix — `https://github.com/
 Rollout: no flag.
 
 ## 10. Dependencies, risks, open questions, effort
-Depends on: FS-00 F0-platform (plugin + capability file + `userfiles.rs`). Used by FS-02, 03, 06, 08, 20, 22, 23, 30 (help link), 33. Risks: Rust OpenerExt API names differ by plugin version — UNKNOWN, verify at pin. Open (owner): final allowlist domains (manufacturer support sites need verification). Decided: "always allow" is session-only in v1. Effort: S (~8 agent-hours).
+Depends on: FS-00 M5-F0-platform (plugin + capability file + `userfiles.rs`). Used by FS-02, 03, 06, 08, 20, 22, 23, 30 (help link), 33. Risks: Rust OpenerExt API names differ by plugin version — UNKNOWN, verify at pin. Open (owner): final allowlist domains (manufacturer support sites need verification). Decided: "always allow" is session-only in v1. Effort: S (~8 agent-hours).
 
 ## 11. Research notes
 - Tauri opener plugin docs: https://v2.tauri.app/plugin/opener/ (snippet only): default permission set allows opening mailto/tel/http/https; permissions and scopes configured in capabilities; example scope entries `{ "url": "https://tauri.app" }`.
