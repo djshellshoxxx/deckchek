@@ -62,7 +62,7 @@
       "value": 1000,
       "unit": "Hz",
       "tolerance": null,
-      "source": "mixxx.org DVS internals pt.3",
+      "source": "xwax lib/xwax/timecoder.c as vendored in Mixxx (timecode definitions) serato_2a/serato_2b/serato_cd resolution 1000; https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
       "confidence": "confirmed",
       "notes": "At 33 1/3 rpm; AM-modulated LFSR code."
     },
@@ -72,9 +72,9 @@
       "value": 1350,
       "unit": "Hz",
       "tolerance": null,
-      "source": "Derived: 1000 x 45/33.333",
-      "confidence": "unverified",
-      "notes": "Proportional scaling."
+      "source": "Derived: carrier = xwax resolution (1000) x playback speed (timecoder_get_resolution, lib/xwax/timecoder.h); 45/33.333 = 1.35",
+      "confidence": "confirmed",
+      "notes": "Proportional scaling per xwax timecoder_get_resolution (resolution x speed)."
     },
     {
       "key": "quadrature",
@@ -117,8 +117,8 @@
         "quadrature": true,
         "leadInSec": null,
         "notes": "NoiseMap control tone; lead-in length not found.",
-        "source": "https://mixxx.org/news/2025-08-27-dvs-internals-pt3/",
-        "confidence": "unverified"
+        "source": "xwax lib/xwax/timecoder.c as vendored in Mixxx (timecode definitions) serato_2a/serato_2b (carrier 1000 Hz only; NoiseMap code is not stated)",
+        "confidence": "confirmed"
       }
     ]
   },

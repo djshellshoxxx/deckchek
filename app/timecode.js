@@ -2,18 +2,26 @@
 import {rms,dbfs,toneAmplitude,normalizeMeasurement} from './core.js';
 import {fitTone,refineToneFrequency} from './calibration.js';
 
-const XWAX='xwax src/timecoder.c format table (https://github.com/xwax/xwax)';
+const XWAX='xwax timecoder.c timecode definitions as vendored in Mixxx (lib/xwax/timecoder.c)';
 const MIXXX='https://mixxx.org/news/2021-12-22-dvs-internals-pt2/';
 const MIXXX3='https://mixxx.org/news/2025-08-27-dvs-internals-pt3/';
-/** Built-in formats. confidence: 'confirmed' = matches xwax/Mixxx documentation; 'unverified' = not independently confirmed. */
+// Side builder: durationSec = lengthCycles / resolution (cycles per second at 33 1/3 rpm), as in xwax.
+const sides=(hz,...a)=>a.map(([label,lengthCycles])=>({label,lengthCycles,durationSec:lengthCycles/hz}));
+// phaseSign: -1 for xwax SWITCH_PHASE (270 deg instead of 90); primary: 'left' for SWITCH_PRIMARY. Polarity (SWITCH_POLARITY) is bit decoding only and not modelled here.
+const F=(o)=>({atRpm:33.333333,quadrature:true,phaseSign:1,primary:'right',source:XWAX,confidence:'confirmed',...o});
+/** Built-in formats; facts from xwax lib/xwax/timecoder.c. confidence: 'confirmed' = present in xwax timecoder.c; 'unverified' = not independently confirmed. */
 export const TIMECODE_FORMATS=[
-  {name:'Serato CV02.5',vendor:'Serato',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Serato control vinyl/CD, 1 kHz carrier at 33 1/3 rpm (xwax serato_2a/2b/cd).',source:XWAX+'; '+MIXXX,confidence:'confirmed'},
-  {name:'Traktor Scratch MK1',vendor:'Native Instruments',carrierHz:2000,atRpm:33.333333,quadrature:true,notes:'2 kHz carrier (xwax traktor_a/b, which cover the MK1 timecode).',source:XWAX,confidence:'confirmed'},
-  {name:'Traktor Scratch MK2',vendor:'Native Instruments',carrierHz:2500,atRpm:33.333333,quadrature:true,notes:'2.5 kHz carrier at 33 1/3 rpm per Mixxx Traktor MK2 support (PR 14569, DVS internals Pt. 3) and xwax-devel discussion; not independently measured. The MK1 value is 2 kHz.',source:MIXXX3+'; https://github.com/mixxxdj/mixxx/pull/14569',confidence:'unverified'},
-  {name:'rekordbox RB-VS1',vendor:'AlphaTheta (Pioneer DJ)',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Carrier frequency of rekordbox control vinyl is not documented in xwax/Mixxx sources; 1 kHz is an assumption. Verify with a known-good disc.',source:null,confidence:'unverified'},
-  {name:'MixVibes DVS V2',vendor:'MixVibes',carrierHz:1300,atRpm:33.333333,quadrature:true,notes:'xwax mixvibes_v2 resolution 1300.',source:XWAX,confidence:'confirmed'},
-  {name:'Serato CV02 (xwax serato_2a)',vendor:'Serato',carrierHz:1000,atRpm:33.333333,quadrature:true,notes:'Mixxx/xwax-compatible Serato timecode.',source:XWAX,confidence:'confirmed'},
-  {name:'Final Scratch',vendor:'Stanton / N2IT',carrierHz:1200,atRpm:33.333333,quadrature:true,notes:'1.2 kHz carrier (Mixxx documentation).',source:MIXXX,confidence:'unverified'}
+  F({name:'Serato CV02.5',vendor:'Serato',carrierHz:1000,xwaxId:'serato_2a/serato_2b',sides:sides(1000,['A',712000],['B',922000]),notes:'Serato control vinyl, 1 kHz carrier at 33 1/3 rpm (xwax serato_2a/2b). Whether the CV02.5 NoiseMap uses exactly this code is not stated in timecoder.c; the carrier is.',source:XWAX+'; '+MIXXX}),
+  F({name:'Serato CD',vendor:'Serato',carrierHz:1000,xwaxId:'serato_cd',sides:sides(1000,['CD',950000]),notes:'xwax serato_cd, 1 kHz carrier.'}),
+  F({name:'Traktor Scratch MK1',vendor:'Native Instruments',carrierHz:2000,phaseSign:-1,primary:'left',xwaxId:'traktor_a/traktor_b',sides:sides(2000,['A',1500000],['B',2110000]),notes:'2 kHz carrier (xwax traktor_a/b: SWITCH_PRIMARY, SWITCH_POLARITY, SWITCH_PHASE).'}),
+  F({name:'Traktor Scratch MK2',vendor:'Native Instruments',carrierHz:2500,xwaxId:'traktor_mk2_a/traktor_mk2_b',sides:sides(2500,['A',1845000],['B',2590000]),notes:'2.5 kHz carrier (xwax traktor_mk2_a/b, 110-bit code with offset modulation).',source:XWAX+'; '+MIXXX3+'; https://github.com/mixxxdj/mixxx/pull/14569'}),
+  F({name:'Traktor Scratch MK2 CD',vendor:'Native Instruments',carrierHz:3000,xwaxId:'traktor_mk2_cd',sides:sides(3000,['CD',4500000]),notes:'3 kHz carrier (xwax traktor_mk2_cd, 110-bit code).'}),
+  F({name:'rekordbox RB-VS1',vendor:'AlphaTheta (Pioneer DJ)',carrierHz:1000,xwaxId:'pioneer_a/pioneer_b',sides:sides(1000,['A',635000],['B',918500]),notes:'xwax pioneer_a/b: 1 kHz carrier, SWITCH_POLARITY.'}),
+  F({name:'MixVibes DVS V2',vendor:'MixVibes',carrierHz:1300,phaseSign:-1,xwaxId:'mixvibes_v2',sides:sides(1300,['12"',950000]),notes:'xwax mixvibes_v2 resolution 1300, SWITCH_PHASE.'}),
+  F({name:'MixVibes 7"',vendor:'MixVibes',carrierHz:1300,phaseSign:-1,xwaxId:'mixvibes_7inch',sides:sides(1300,['7"',312000]),notes:'xwax mixvibes_7inch resolution 1300, SWITCH_PHASE.'}),
+  F({name:'Algoriddim djay',vendor:'Algoriddim',carrierHz:1000,xwaxId:'algoriddim_a/algoriddim_b',sides:sides(1000,['A',600000],['B',900000]),notes:'xwax algoriddim_a/b (djay PRO AI 12"), 1 kHz carrier.'}),
+  F({name:'Serato CV02 (xwax serato_2a)',vendor:'Serato',carrierHz:1000,xwaxId:'serato_2a/serato_2b',sides:sides(1000,['A',712000],['B',922000]),notes:'Mixxx/xwax-compatible Serato timecode.'}),
+  F({name:'Final Scratch',vendor:'Stanton / N2IT',carrierHz:1200,xwaxId:null,sides:[],notes:'1.2 kHz carrier (Mixxx documentation); not in xwax timecoder.c.',source:MIXXX,confidence:'unverified'})
 ];
 
 /** Merge profile-supplied formats over the built-ins (matched by case-insensitive name; profile wins). */
@@ -23,7 +31,7 @@ export function mergeFormats(profileFormats=[]){
     if(!pf?.name||!Number.isFinite(pf.carrierHz))continue;
     const f={atRpm:33.333333,quadrature:true,vendor:null,notes:null,source:null,confidence:'unverified',...pf};
     const i=out.findIndex(x=>x.name.toLowerCase()===f.name.toLowerCase());
-    if(i>=0)out[i]=f;else out.push(f);
+    if(i>=0){const b=out[i];out[i]={phaseSign:b.phaseSign,primary:b.primary,xwaxId:b.xwaxId,sides:b.sides,...f};}else out.push({phaseSign:1,primary:'right',xwaxId:null,sides:[],...f});
   }
   return out;
 }
@@ -65,7 +73,7 @@ export function analyzeTimecode({left,right,sampleRate},{format,nominalRpm=33.33
   const ok=trace.filter(t=>!t.dropout);
   const carrierHz=median(ok.map(t=>t.carrierHz)),phaseDeg=median(ok.map(t=>t.phaseDeg)),balanceDb=median(ok.map(t=>t.balanceDb)),snrDb=median(ok.map(t=>t.snrDb));
   const speedErr=(carrierHz/expectedHz-1)*100,phaseErr=Math.abs(Math.abs(phaseDeg)-90);
-  const direction=!Number.isFinite(phaseDeg)?'unknown':phaseDeg>0?'forward':'reverse';
+  const direction=!Number.isFinite(phaseDeg)?'unknown':phaseDeg*(fmt.phaseSign===-1?-1:1)>0?'forward':'reverse';
   const m=(metricId,label,value,unit,extra={})=>normalizeMeasurement({metricId,label,value,unit,...extra});
   const measurements=[
     m('tc_carrier_hz','Carrier frequency',carrierHz,'Hz'),
