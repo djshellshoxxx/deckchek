@@ -1,0 +1,50 @@
+{
+  "usage_add": {
+    "command": "usage_add",
+    "request": {
+      "input": {
+        "assetId": "asset-1",
+        "kind": "play",
+        "startedAt": "2026-10-10T20:00:00.000Z",
+        "hours": 3.5,
+        "source": "manual",
+        "sessionId": null,
+        "note": "Friday club night",
+        "confirmed": true
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "assetId": "asset-1",
+      "kind": "play",
+      "startedAt": "2026-10-10T20:00:00.000Z",
+      "hours": 3.5,
+      "source": "manual",
+      "sessionId": null,
+      "note": "Friday club night",
+      "confirmed": true,
+      "createdAt": "2026-10-10T23:30:00.000Z"
+    }
+  },
+  "usage_list": {
+    "command": "usage_list",
+    "request": { "assetId": "asset-1", "since": "2026-10-01T00:00:00.000Z" }
+  },
+  "usage_delete": { "command": "usage_delete", "request": { "id": "00000000-0000-4000-8000-000000000001" }, "response": true },
+  "usage_confirm": { "command": "usage_confirm", "request": { "id": "00000000-0000-4000-8000-000000000001" } },
+  "dj_processes": {
+    "command": "dj_processes",
+    "response": {
+      "supported": true,
+      "apps": [
+        { "app": "Serato DJ Pro", "exe": "Serato DJ Pro.exe", "pid": 4242, "running": true },
+        { "app": "Traktor Pro", "exe": "Traktor.exe", "pid": null, "running": false }
+      ]
+    }
+  },
+  "top_cpu": {
+    "command": "top_cpu",
+    "request": { "n": 5 },
+    "response": [{ "exe": "chrome.exe", "cpuPct": 12.5 }, { "exe": "System", "cpuPct": 0.4 }]
+  }
+}
