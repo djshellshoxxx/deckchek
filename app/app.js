@@ -25,6 +25,7 @@ initDiagnostics(); // error hooks, Ctrl+Shift+D, startup crash prompt (FS-02)
 import { mediaScreenDefs } from './ui/screens/media.js';
 // [FS-07] screens imports
 // [FS-08] screens imports
+import { dataScreenDefs } from './ui/screens/data.js';
 // [FS-10] screens imports
 // [FS-11] screens imports
 // [FS-12] screens imports
@@ -57,6 +58,7 @@ const SCREENS = [
   ...mediaScreenDefs(),
   // [FS-07] screens
   // [FS-08] screens
+  ...dataScreenDefs(),
   // [FS-10] screens
   // [FS-11] screens
   // [FS-12] screens
