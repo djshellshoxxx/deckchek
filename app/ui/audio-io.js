@@ -1,6 +1,7 @@
 // Audio input/output glue: file decoding, live native capture sessions
 // (via ../capture.js), the capture lease + streaming capture bridge (FS-00 §4.7),
-// WebAudio playback, device listing and error mapping.
+// input-pair selection for multichannel interfaces, WebAudio playback, device
+// listing and error mapping.
 
 import * as capture from '../capture.js';
 import { levelBus } from './meters.js';
@@ -63,11 +64,24 @@ export async function decodeAudioFile(file) {
   }
 }
 
+export { inputPairs, parsePairSelection, resolvePairs } from '../capture.js';
+
+/**
+ * Native payload -> {left, right, sampleRate, channels, durationSec, pairs}. left/right are the first
+ * selected pair; pairs = [{pair:{label,first,second,mono}, left, right}] for every selected pair
+ * (pairs[0] shares left/right). Payloads from before pair support yield one pair, 1-2 (or mono 1).
+ */
 export function payloadToAudio(payload) {
   const left = Float32Array.from(payload?.left || []);
   const right = payload?.right?.length ? Float32Array.from(payload.right) : Float32Array.from(left);
   const sampleRate = payload?.sampleRate || 48000;
-  return { left, right, sampleRate, channels: payload?.channels || 2, durationSec: left.length / sampleRate };
+  const channels = payload?.channels || 2;
+  const firstPair = payload?.pairs?.[0] || capture.inputPairs(Math.min(channels, 2))[0] || { label: '1-2', first: 1, second: 2, mono: false };
+  const extra = (payload?.extraPairs || []).map(x => {
+    const l = Float32Array.from(x?.left || []);
+    return { pair: { label: x.label, first: x.first, second: x.second, mono: Boolean(x.mono) }, left: l, right: x?.right?.length ? Float32Array.from(x.right) : Float32Array.from(l) };
+  });
+  return { left, right, sampleRate, channels, durationSec: left.length / sampleRate, pairs: [{ pair: firstPair, left, right }, ...extra] };
 }
 
 export const liveAvailable = () => capture.isNativeAvailable();
@@ -76,7 +90,15 @@ export const liveAvailable = () => capture.isNativeAvailable();
 export async function listInputDevices() {
   if (capture.isNativeAvailable()) {
     const list = await capture.listInputs();
-    return { backend: 'native', devices: (list || []).map(d => ({ id: d.name, name: d.name, isDefault: Boolean(d.isDefault) })) };
+    return {
+      backend: 'native',
+      devices: (list || []).map(d => {
+        const maxChannels = Number.isFinite(d.maxChannels) ? d.maxChannels : null;
+        // Older backends report no channel info: assume the stereo pair they always captured.
+        const pairs = Array.isArray(d.pairs) ? d.pairs : capture.inputPairs(maxChannels ?? 2);
+        return { id: d.name, name: d.name, isDefault: Boolean(d.isDefault), maxChannels, defaultChannels: d.defaultChannels ?? null, pairs };
+      }),
+    };
   }
   return { backend: 'browser', devices: [] };
 }
@@ -94,6 +116,7 @@ const HOLDER_LABELS = {
   'latency-tuner': 'Latency tuner',
   'pre-gig': 'Pre-gig check',
   'hum-hunter': 'Hum hunter',
+  'native-capture': 'A recording',
   'setup-wizard': 'Setup wizard',
 };
 
@@ -202,21 +225,37 @@ function readF32(buffer, offset, frames) {
   return out;
 }
 
-/** Decode one binary stream block (format in src-tauri/src/capture.rs) into {seq, sampleRate, frames, left, right, quality}. */
+/**
+ * Decode one binary stream block (format in src-tauri/src/capture.rs) into
+ * {seq, sampleRate, frames, left, right, pairs:[{left, right}], quality}. Version 1 carries one pair;
+ * version 2 (several selected pairs) has the pair count at offset 28 and left/right per pair.
+ * left/right are always the first pair.
+ */
 export function decodeStreamBlock(data) {
   const buffer = toArrayBuffer(data);
   if (buffer.byteLength < STREAM_HEADER_BYTES) throw new Error('Stream block is truncated.');
   const v = new DataView(buffer);
   if (v.getUint32(0, true) !== STREAM_MAGIC) throw new Error('Not a DeckChek stream block.');
-  if (v.getUint16(4, true) !== 1) throw new Error(`Unsupported stream block version ${v.getUint16(4, true)}.`);
+  const version = v.getUint16(4, true);
+  let pairCount = 1;
+  if (version === 2) {
+    pairCount = v.getUint32(28, true);
+    if (!pairCount) throw new Error('Stream block version 2 declares no input pairs.');
+  } else if (version !== 1) throw new Error(`Unsupported stream block version ${version}.`);
   const flags = v.getUint16(6, true), frames = v.getUint32(16, true);
-  if (buffer.byteLength !== STREAM_HEADER_BYTES + frames * 8) throw new Error('Stream block length does not match its frame count.');
+  if (buffer.byteLength !== STREAM_HEADER_BYTES + frames * 8 * pairCount) throw new Error('Stream block length does not match its frame count.');
+  const pairs = [];
+  for (let p = 0; p < pairCount; p++) {
+    const base = STREAM_HEADER_BYTES + p * frames * 8;
+    pairs.push({ left: readF32(buffer, base, frames), right: readF32(buffer, base + frames * 4, frames) });
+  }
   return {
     seq: v.getUint32(8, true),
     sampleRate: v.getUint32(12, true),
     frames,
-    left: readF32(buffer, STREAM_HEADER_BYTES, frames),
-    right: readF32(buffer, STREAM_HEADER_BYTES + frames * 4, frames),
+    left: pairs[0].left,
+    right: pairs[0].right,
+    pairs,
     quality: {
       droppedBlocks: v.getUint32(20, true),
       streamErrors: v.getUint32(24, true),
@@ -236,9 +275,12 @@ const FINAL_BLOCK_WAIT_MS = 2000;
  * resolves, which is what Rust's lag window measures). Rejects with CaptureBusyError when another
  * feature holds the input. Returns {info, stop() -> summary, stats(), ended}. onEnd({reason, summary})
  * fires once: reason 'stopped' (stop()), 'preempted' (Stop and continue), 'deviceLost' or 'sinkClosed'.
+ * `pairs` selects input pairs (3, "3-4", [1, 3], pair objects from listInputDevices; default 1-2):
+ * info.pairs lists them and each block's pairs[i] = {pair, left, right} in that order.
  */
-export async function startStreamSession({ holder, deviceName = null, sampleRate = null, blockMs = 1000, onBlock = null, onEnd = null, onPreempted = null, tauri } = {}) {
+export async function startStreamSession({ holder, deviceName = null, sampleRate = null, blockMs = 1000, pairs = null, onBlock = null, onEnd = null, onPreempted = null, tauri } = {}) {
   const t = requireTauriApi(tauri);
+  const pairArgs = capture.pairArgs(pairs); // throws on a malformed selection before anything starts
   const ChannelClass = t.core.Channel;
   if (typeof ChannelClass !== 'function') throw new Error('Streaming capture needs the Tauri Channel API.');
   const channel = new ChannelClass();
@@ -259,6 +301,7 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
   const handle = async data => {
     let block;
     try { block = decodeStreamBlock(data); } catch { stats.decodeErrors++; return; }
+    block.pairs.forEach((p, i) => { p.pair = info.pairs?.[i] ?? (i === 0 ? { label: '1-2', first: 1, second: 2, mono: false } : null); });
     stats.blocks++; stats.frames += block.frames; stats.lastSeq = block.seq;
     stats.droppedBlocks = block.quality.droppedBlocks;
     if (block.quality.discontinuity) stats.discontinuities++;
@@ -281,7 +324,7 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
   };
 
   try {
-    info = await t.core.invoke('start_stream_capture', { deviceName, sampleRate, blockMs, holder: holder || null, channel });
+    info = await t.core.invoke('start_stream_capture', { deviceName, sampleRate, blockMs, holder: holder || null, channel, ...pairArgs });
   } catch (error) {
     throw normalizeCaptureError(error);
   }
@@ -325,6 +368,8 @@ export function classifyCaptureError(error) {
   const text = String(error?.message || error || 'Unknown error');
   const t = text.toLowerCase();
   if (/only available in the deckchek desktop app|tauri/.test(t)) return { kind: 'unavailable', title: 'Live capture needs the desktop app', message: 'This browser preview cannot open audio inputs. Load a recorded file instead, or run the DeckChek desktop app.', raw: text };
+  if (/^input pair|input pairs? (start|are given)|pairs can be captured|is selected twice/.test(t)) return { kind: 'pair', title: 'Input pair not available', message: `${text} Pick one of the listed pairs for this interface and retry.`, raw: text };
+  if (/stopped because another deckchek feature/.test(t)) return { kind: 'preempted', title: 'Capture stopped', message: 'Another DeckChek feature took over the audio input. Run this check again when it has finished.', raw: text };
   if (/permission|denied|not allowed|access/.test(t)) return { kind: 'permission', title: 'Microphone access was denied', message: 'Windows blocked DeckChek from the input. Open Settings › Privacy › Microphone, allow desktop apps, then retry.', raw: text };
   if (/no (default )?input|not found|no device|no such device|unavailable device/.test(t)) return { kind: 'no-device', title: 'No input device found', message: 'The selected input is not connected or was unplugged. Reconnect the interface, choose an input in the top bar, then retry.', raw: text };
   if (/already running|in use|busy|exclusive/.test(t)) return { kind: 'busy', title: 'Input is busy', message: 'Another capture or application is holding the input. Stop it (or close the other app) and retry.', raw: text };
@@ -333,12 +378,32 @@ export function classifyCaptureError(error) {
 }
 
 /**
- * Start a live session. Levels go to levelBus (and onLevels). Returns a controller:
- * { info, stop() -> {audio, quality, streamErrors, deviceName}, cancel(), elapsed() }.
+ * Bounded native capture (<= 30 s) of one or more input pairs under the capture lease. Resolves
+ * {audio (see payloadToAudio, incl. audio.pairs), streamErrors, deviceName}. Rejects with
+ * CaptureBusyError when another feature holds the input; "Stop and continue" from elsewhere
+ * cancels it (classifyCaptureError kind 'preempted').
+ */
+export async function captureClip({ deviceName = null, durationSec, pairs = null, holder = null } = {}) {
+  let payload;
+  try {
+    payload = await capture.captureNative({ deviceName: deviceName || null, durationSec, pairs, holder });
+  } catch (error) {
+    throw normalizeCaptureError(error);
+  }
+  return { audio: payloadToAudio(payload), streamErrors: payload?.streamErrors || [], deviceName: payload?.deviceName || deviceName || 'input' };
+}
+
+/**
+ * Start a live session. Levels go to levelBus (and onLevels); each levels event carries the first
+ * pair at top level and every selected pair in `levels.pairs` ([{label, first, peakL, ...}]).
+ * `pairs` selects input pairs (default 1-2). Returns a controller:
+ * { info, stop() -> {audio, quality, streamErrors, deviceName}, cancel(), elapsed() }; audio.pairs
+ * holds every selected pair.
  * Rejects with CaptureBusyError when another feature holds the input (see ./capture-busy.js);
  * onPreempted fires after "Stop and continue" ended this session for another feature.
  */
-export async function startLiveSession({ deviceName = null, maxSeconds = 60, onLevels = null, onStatus = null, onPreempted = null } = {}) {
+export async function startLiveSession({ deviceName = null, maxSeconds = 60, pairs = null, onLevels = null, onStatus = null, onPreempted = null } = {}) {
+  capture.parsePairSelection(pairs); // throws on a malformed selection before anything starts
   levelBus.reset();
   let lastEvent = performance.now(), elapsedSec = 0, overruns = 0;
   const unlisten = capture.onLevels(levels => {
@@ -350,7 +415,7 @@ export async function startLiveSession({ deviceName = null, maxSeconds = 60, onL
   });
   let info;
   try {
-    info = await capture.startLive({ deviceName: deviceName || null, maxSeconds });
+    info = await capture.startLive({ deviceName: deviceName || null, maxSeconds, pairs });
   } catch (error) {
     unlisten();
     throw normalizeCaptureError(error);
