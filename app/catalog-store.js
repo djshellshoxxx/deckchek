@@ -1,5 +1,7 @@
 // Async bridge to the Rust catalog/run commands, with a localStorage fallback
 // exposing the same API for browser-only use.
+import { isEnabled } from './features.js';
+
 export const ENTITIES = ['manufacturer', 'product', 'asset', 'setup', 'venue'];
 const STORE_KEY = 'deckchek.catalog.v1';
 const SEARCH_FIELDS = {
@@ -95,8 +97,8 @@ export const productCategory = c => PRODUCT_CATEGORY[c] || 'other';
 export const specProvenance = confidence => (confidence === 'confirmed' ? 'manufacturer-doc' : 'research-unverified');
 const trimmed = v => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-/** Upsert manufacturer/product/specs/profile rows; first sight of a profile also creates a "My <model>" asset. */
-export function syncProfilesLocal(state, profiles, now = new Date().toISOString()) {
+/** Upsert manufacturer/product/specs/profile rows; first sight of a profile also creates a "My <model>" asset (unless createAssets is false: the setup wizard decides, FS-01 AC-6). */
+export function syncProfilesLocal(state, profiles, now = new Date().toISOString(), { createAssets = true } = {}) {
   const out = [];
   for (const p of profiles || []) {
     const id = trimmed(p?.id), manufacturer = trimmed(p?.manufacturer), model = trimmed(p?.model);
@@ -121,7 +123,7 @@ export function syncProfilesLocal(state, profiles, now = new Date().toISOString(
     const version = !existing ? 1 : changed ? existing.version + 1 : existing.version;
     state.deviceProfiles[id] = { id, productId: product.id, json, version, loadedAt: now };
     let assetId = null;
-    if (created) assetId = upsertRecord(state, 'asset', { productId: product.id, nickname: `My ${model}`, notes: 'Created from the DeckChek device library. Rename it and add the serial number in Equipment.' }, now).id;
+    if (created && createAssets) assetId = upsertRecord(state, 'asset', { productId: product.id, nickname: `My ${model}`, notes: 'Created from the DeckChek device library. Rename it and add the serial number in Equipment.' }, now).id;
     out.push({ profileId: id, manufacturerId: m.id, productId: product.id, version, created, changed, assetId });
   }
   pruneRetiredProfilesLocal(state, out.map(o => o.profileId), now);
@@ -175,12 +177,96 @@ export function listDeviceResultsLocal(state, assetId = null) {
   return state.deviceResults.filter(r => !assetId || r.assetId === assetId).slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(r => ({ ...r }));
 }
 
+// ---------- setup wizard gear (FS-01 AC-6; mirrors src-tauri/src/wizard.rs) ----------
+export const WIZARD_ASSET_NOTE = 'Added by the DeckChek setup wizard. Rename it and add the serial number in Equipment.';
+
+/** True when an asset is referenced by a test result, MIDI map or setup (so retiring it would orphan history). */
+function assetInUseLocal(state, assetId) {
+  return state.deviceResults.some(r => r.assetId === assetId) || Boolean(state.midiMaps[assetId])
+    || state.catalog.setup.some(su => (su.components || []).some(c => c.assetId === assetId));
+}
+
+/**
+ * Make sure each profile id in `owned` has a live "My <model>" asset (reviving a soft-deleted one rather than adding a
+ * twin) and, when `retire` is set, soft-delete the untouched library-created assets of every other profile.
+ * Unknown profile ids reject the whole call before anything changes. Returns {created, existing, removed}.
+ */
+export function applyGearLocal(state, owned, { retire = false } = {}, now = new Date().toISOString()) {
+  const ids = [...new Set((owned || []).map(x => String(x ?? '').trim()))];
+  if (ids.length > 500) throw new Error('too many product ids');
+  const resolved = ids.map(id => {
+    const dp = state.deviceProfiles[id];
+    if (!id || id.length > 128 || !dp) throw new Error(`unknown product id '${id}'`);
+    let model = '';
+    try { model = JSON.parse(dp.json || '{}').model || ''; } catch { /* fall back to the product row */ }
+    return { id, productId: dp.productId, model: model || state.catalog.product.find(p => p.id === dp.productId)?.model || '' };
+  });
+  const out = { created: [], existing: [], removed: [] };
+  for (const { id, productId, model } of resolved) {
+    const mine = state.catalog.asset.filter(a => a.productId === productId);
+    const live = mine.find(a => !a.isDeleted);
+    if (live) { out.existing.push({ productId: id, assetId: live.id }); continue; }
+    const revived = mine.filter(a => a.isDeleted).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
+    if (revived) {
+      Object.assign(revived, { isDeleted: false, retiredDate: null, updatedAt: now });
+      out.created.push({ productId: id, assetId: revived.id });
+    } else {
+      const asset = upsertRecord(state, 'asset', { productId, nickname: `My ${model}`, notes: WIZARD_ASSET_NOTE }, now);
+      out.created.push({ productId: id, assetId: asset.id });
+    }
+  }
+  if (retire) {
+    const keep = new Set(ids);
+    for (const [pid, dp] of Object.entries(state.deviceProfiles)) {
+      if (keep.has(pid)) continue;
+      let model = '';
+      try { model = JSON.parse(dp.json || '{}').model || ''; } catch { /* skip */ }
+      for (const a of state.catalog.asset) {
+        if (a.productId !== dp.productId || a.isDeleted || !String(a.notes || '').startsWith(AUTO_ASSET_NOTE)) continue;
+        if (a.updatedAt !== a.createdAt || a.nickname !== `My ${model}` || assetInUseLocal(state, a.id)) continue;
+        Object.assign(a, { isDeleted: true, retiredDate: a.retiredDate || now.slice(0, 10), updatedAt: now });
+        out.removed.push({ productId: pid, assetId: a.id });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Whether DeckChek's setup wizard owns gear creation. It does when the flag is on, except under browser automation
+ * (navigator.webdriver) unless the wizard smoke test opts in with localStorage 'deckchek.wizard.e2e' = '1'. Other UI
+ * smoke tests start from fresh storage and must not meet a modal dialog.
+ */
+export function wizardAutomationBypass() {
+  try {
+    if (globalThis.navigator?.webdriver !== true) return false;
+    return globalThis.localStorage?.getItem('deckchek.wizard.e2e') !== '1';
+  } catch { return false; }
+}
+export function wizardManagesGear() { return isEnabled('setupWizard') && !wizardAutomationBypass(); }
+
 const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? globalThis.__TAURI__?.core?.invoke ?? null;
 
 export function createCatalogStore({ invoke = nativeInvoke(), storage = globalThis.localStorage } = {}) {
   const mutate = fn => { const s = loadState(storage); const out = fn(s); saveState(storage, s); return out; };
+  let userData = null; // memoised: the state before the first device-library sync (FS-01 AC-10)
   return {
     native: Boolean(invoke),
+    /**
+     * True when the database already holds a run or an asset. The first call pins the answer, and
+     * syncDeviceProfiles makes that call before its first sync, so assets created by older builds count (v0.04
+     * users keep their gear and are not re-prompted) while ones created by this session's own sync do not.
+     */
+    hasUserData() {
+      userData ??= (async () => {
+        try {
+          if (invoke) return Boolean(await invoke('wizard_has_user_data'));
+          const s = loadState(storage);
+          return s.runs.length > 0 || s.catalog.asset.length > 0;
+        } catch { return false; }
+      })();
+      return userData;
+    },
     async list(entity, filter) {
       assertEntity(entity);
       if (invoke) return invoke('catalog_list', { entity, filter: filter ?? null });
@@ -211,9 +297,17 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
       mutate(s => { s.runs = [run, ...s.runs.filter(r => r.id !== run.id)]; });
     },
     /** Sync researched device profiles into the catalog (idempotent). */
-    async syncDeviceProfiles(profiles) {
-      if (invoke) return invoke('device_profiles_sync', { profiles });
-      return mutate(s => syncProfilesLocal(s, profiles));
+    async syncDeviceProfiles(profiles, { createAssets } = {}) {
+      await this.hasUserData();
+      const create = createAssets ?? !wizardManagesGear();
+      if (invoke) return invoke('device_profiles_sync', { profiles, createAssets: create });
+      return mutate(s => syncProfilesLocal(s, profiles, undefined, { createAssets: create }));
+    },
+    /** Wizard finish step: `retire` (first run) also retires untouched library-created assets of unticked gear. */
+    async applyGear(profileIds, { retire = false } = {}) {
+      const ids = Array.isArray(profileIds) ? profileIds : [];
+      if (invoke) return invoke(retire ? 'wizard_apply_gear' : 'wizard_create_assets', { productIds: ids });
+      return mutate(s => applyGearLocal(s, ids, { retire }));
     },
     async saveDeviceTestResult(result) {
       if (invoke) return invoke('device_test_result_save', { result });
