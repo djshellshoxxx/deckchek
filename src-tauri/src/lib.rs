@@ -55,7 +55,7 @@ pub fn run() {
         .manage(capture::LiveCaptureState::default())
         .manage(midi::MidiState::default())
         .invoke_handler(tauri::generate_handler![
-            commands::runtime_status, commands::initialize_database, commands::save_diagnostic_run,
+            commands::initialize_database, commands::save_diagnostic_run,
             commands::list_runs, commands::get_run, commands::save_scan_alignment,
             audio::list_native_audio_inputs, audio::capture_native_audio,
             capture::start_live_capture, capture::stop_live_capture, capture::live_capture_status,
@@ -148,6 +148,8 @@ pub fn run() {
             // [FS-31] setup
             // [FS-32] setup
             // [FS-33] setup
+            // [FS-02] `--debug-crash` (debug builds, or DECKCHEK_ALLOW_DEBUG_CRASH=1): last, so the panic goes through every hook above
+            diagnostics::debug_crash_if_requested(_app);
             Ok(())
         })
         .build(tauri::generate_context!())
