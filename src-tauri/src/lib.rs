@@ -34,6 +34,7 @@ mod dj_sessions;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
+mod humrun;
 // [FS-20] mods
 // [FS-21] mods
 // [FS-22] mods
@@ -93,6 +94,7 @@ pub fn run() {
             // [FS-14] handlers
             scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
+            humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
             // [FS-20] handlers
             // [FS-21] handlers
             // [FS-22] handlers
