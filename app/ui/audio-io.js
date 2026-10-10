@@ -4,6 +4,7 @@
 // listing and error mapping.
 
 import * as capture from '../capture.js';
+import { ABS_MAX_DBFS } from '../audio-out.js';
 import { levelBus } from './meters.js';
 
 /**
@@ -163,9 +164,6 @@ function requireTauriApi(tauri) {
   return t;
 }
 
-// Sessions started from this page, by lease id, so "Stop and continue" can end them cleanly.
-const activeCaptures = new Map();
-
 /** Lease status: {held, leaseId, holder, deviceName, since, kind} ({held:false, supported:false} in browser mode). */
 export async function captureLeaseStatus({ tauri } = {}) {
   const t = tauriApi(tauri);
@@ -186,23 +184,10 @@ export async function releaseCaptureLease(leaseId, { tauri } = {}) {
 }
 
 /**
- * Stop whatever holds the input ("Stop <holder> and continue"). Sessions started from this page are
- * stopped through their own controller (their owners get onPreempted); anything else, e.g. a session
- * left over from before a reload, is stopped natively. Resolves the stopped holder's status, or null.
+ * Stop whatever holds the input ("Stop <holder> and continue"); see capture.js preemptCapture.
+ * Sessions started from this page end through their own controller (their owners get onPreempted).
  */
-export async function preemptCapture({ tauri } = {}) {
-  const t = tauriApi(tauri);
-  if (!t) return null;
-  const status = await t.core.invoke('capture_lease_status');
-  if (!status?.held) return null;
-  const local = activeCaptures.get(status.leaseId);
-  if (local) {
-    try { await local.preempt(); } catch { /* fall through to the native stop */ }
-  }
-  const after = await t.core.invoke('capture_lease_status');
-  if (after?.held && after.leaseId === status.leaseId) await t.core.invoke('capture_preempt');
-  return status;
-}
+export const preemptCapture = capture.preemptCapture;
 
 // ---------------------------------------------------------------- stream blocks
 
@@ -294,7 +279,7 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
   const finish = (reason, sum) => {
     if (ended) return;
     ended = true; endReason = reason; summary = sum ?? summary;
-    if (info) activeCaptures.delete(info.streamId);
+    if (info) capture.unregisterCapture(info.streamId);
     try { onEnd?.({ reason, summary }); } catch { /* owner callback */ }
   };
 
@@ -311,8 +296,9 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
       finalSeen = true; resolveFinal();
       if (!stopping) {
         // Ended by itself (device lost, preempted natively): collect the summary and release the slot.
+        // The stream id makes sure a newer stream (another feature's) is never stopped by this reap.
         let sum = null;
-        try { sum = await t.core.invoke('stop_stream_capture'); } catch { /* already reaped */ }
+        try { sum = await t.core.invoke('stop_stream_capture', { streamId: info.streamId }); } catch { /* already reaped */ }
         // No summary (or a plain stop by someone else) means it was stopped natively: a preempt.
         finish(!sum || sum.ended === 'stopped' ? 'preempted' : sum.ended, sum);
       }
@@ -335,7 +321,7 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
     if (!stopping) {
       stopping = (async () => {
         let sum = null;
-        try { sum = await t.core.invoke('stop_stream_capture'); } catch (error) { if (!finalSeen) throw error; }
+        try { sum = await t.core.invoke('stop_stream_capture', { streamId: info.streamId }); } catch (error) { if (!finalSeen) throw error; }
         if (!finalSeen) await Promise.race([finalBlock, new Promise(r => setTimeout(r, FINAL_BLOCK_WAIT_MS))]);
         await chain;
         finish(reason, sum);
@@ -345,7 +331,7 @@ export async function startStreamSession({ holder, deviceName = null, sampleRate
     return stopping;
   }
 
-  activeCaptures.set(info.streamId, {
+  capture.registerCapture(info.streamId, {
     kind: 'stream', holder: info.holder,
     async preempt() { await stop('preempted'); try { onPreempted?.(); } catch { /* owner callback */ } },
   });
@@ -369,6 +355,7 @@ export function classifyCaptureError(error) {
   const t = text.toLowerCase();
   if (/only available in the deckchek desktop app|tauri/.test(t)) return { kind: 'unavailable', title: 'Live capture needs the desktop app', message: 'This browser preview cannot open audio inputs. Load a recorded file instead, or run the DeckChek desktop app.', raw: text };
   if (/^input pair|input pairs? (start|are given)|pairs can be captured|is selected twice/.test(t)) return { kind: 'pair', title: 'Input pair not available', message: `${text} Pick one of the listed pairs for this interface and retry.`, raw: text };
+  if (/^capture_stopping|still stopping/.test(t)) return { kind: 'busy', title: 'Input is still stopping', message: 'The other capture has not let go of the audio input yet. Wait a moment, then retry.', raw: text };
   if (/stopped because another deckchek feature/.test(t)) return { kind: 'preempted', title: 'Capture stopped', message: 'Another DeckChek feature took over the audio input. Run this check again when it has finished.', raw: text };
   if (/permission|denied|not allowed|access/.test(t)) return { kind: 'permission', title: 'Microphone access was denied', message: 'Windows blocked DeckChek from the input. Open Settings › Privacy › Microphone, allow desktop apps, then retry.', raw: text };
   if (/no (default )?input|not found|no device|no such device|unavailable device/.test(t)) return { kind: 'no-device', title: 'No input device found', message: 'The selected input is not connected or was unplugged. Reconnect the interface, choose an input in the top bar, then retry.', raw: text };
@@ -400,7 +387,11 @@ export async function captureClip({ deviceName = null, durationSec, pairs = null
  * { info, stop() -> {audio, quality, streamErrors, deviceName}, cancel(), elapsed() }; audio.pairs
  * holds every selected pair.
  * Rejects with CaptureBusyError when another feature holds the input (see ./capture-busy.js);
- * onPreempted fires after "Stop and continue" ended this session for another feature.
+ * onPreempted fires after "Stop and continue" ended this session for another feature. A session
+ * only ever stops its own lease: after a preempt, stop() resolves the audio recorded up to the
+ * preempt (result.preempted = true) when this page stopped it, or rejects with the "stopped because
+ * another DeckChek feature" error when it was stopped natively; it never stops or returns the
+ * capture of the feature that took over.
  */
 export async function startLiveSession({ deviceName = null, maxSeconds = 60, pairs = null, onLevels = null, onStatus = null, onPreempted = null } = {}) {
   capture.parsePairSelection(pairs); // throws on a malformed selection before anything starts
@@ -421,27 +412,52 @@ export async function startLiveSession({ deviceName = null, maxSeconds = 60, pai
     throw normalizeCaptureError(error);
   }
   const started = performance.now();
-  let stopped = false;
+  const leaseId = info?.leaseId ?? null;
+  let stopped = false, preempted = null, unlistenPreempt = () => {};
   const poll = setInterval(async () => {
     try {
       const st = await capture.status();
       if (st && !stopped) onStatus?.({ running: st.running, elapsedSec: st.elapsedSec, quality: st.quality, sinceLastLevelsMs: performance.now() - lastEvent });
     } catch { /* status is advisory */ }
   }, 1000);
+  const release = () => { clearInterval(poll); capture.unregisterCapture(leaseId); unlistenPreempt(); unlisten(); };
   async function stop() {
-    if (stopped) throw new Error('Capture already stopped.');
+    if (stopped) {
+      if (preempted?.result) return preempted.result;
+      if (preempted) throw new Error(PREEMPTED_MESSAGE);
+      throw new Error('Capture already stopped.');
+    }
     stopped = true;
-    clearInterval(poll);
-    if (leaseId != null) activeCaptures.delete(leaseId);
     try {
-      const result = await capture.stopLive();
+      const result = await capture.stopLive(leaseId);
       const audio = payloadToAudio(result?.payload);
       return { audio, quality: result?.quality || null, streamErrors: result?.payload?.streamErrors || [], deviceName: result?.payload?.deviceName || info?.deviceName || deviceName || 'input' };
-    } finally { unlisten(); }
+    } finally { release(); }
   }
   async function cancel() { if (!stopped) { try { await stop(); } catch { /* discard */ } } levelBus.reset(); }
-  const leaseId = info?.leaseId ?? null;
-  if (leaseId != null) activeCaptures.set(leaseId, { kind: 'live', holder: 'live-capture', async preempt() { await cancel(); try { onPreempted?.(); } catch { /* owner callback */ } } });
+  const notifyPreempted = () => { try { onPreempted?.(); } catch { /* owner callback */ } };
+  if (leaseId != null) {
+    capture.registerCapture(leaseId, {
+      kind: 'live', holder: 'live-capture',
+      async preempt() {
+        if (stopped) return;
+        preempted = {};
+        try { preempted.result = { ...(await stop()), preempted: true }; } catch { /* stopped natively meanwhile */ }
+        levelBus.reset();
+        notifyPreempted();
+      },
+    });
+    // Stopped natively by another feature (or a session from another window): stop polling and
+    // tell the owner; its later stop() rejects instead of stopping the new holder's capture.
+    try {
+      unlistenPreempt = capture.onPreempted(grant => {
+        if (stopped || grant?.leaseId !== leaseId) return;
+        stopped = true; preempted = {};
+        release(); levelBus.reset();
+        notifyPreempted();
+      });
+    } catch { /* no event API: stop() still refuses another feature's capture */ }
+  }
   return {
     info,
     stop,
@@ -467,7 +483,29 @@ export async function listOutputDevices() {
   } catch { return []; }
 }
 
-/** Play a stereo buffer via WebAudio on the default output, or on sinkId when given. Returns {done, stop}. */
+const PREEMPTED_MESSAGE = 'The capture was stopped because another DeckChek feature needed the audio input.';
+
+/** Linear amplitude of the -12 dBFS output cap (audio-out.js ABS_MAX_DBFS), rounded down. */
+export const ABS_MAX_AMP = Math.floor(10 ** (ABS_MAX_DBFS / 20) * 1e7) / 1e7;
+
+/**
+ * Copies of left/right whose peak is at most `capAmp`: a louder buffer is scaled down as a whole
+ * (the waveform stays intact, so a calibration stimulus keeps its shape), non-finite samples become 0.
+ */
+export function capStereo(left, right, capAmp = ABS_MAX_AMP) {
+  const r = right || left;
+  const clean = x => (Number.isFinite(x) ? x : 0);
+  let peak = 0;
+  for (const ch of [left, r]) for (let i = 0; i < ch.length; i++) peak = Math.max(peak, Math.abs(clean(ch[i])));
+  const gain = peak > capAmp ? capAmp / peak : 1;
+  const out = ch => Float32Array.from(ch, x => Math.max(-capAmp, Math.min(capAmp, clean(x) * gain)));
+  return { left: out(left), right: out(r), gain };
+}
+
+/**
+ * Play a stereo buffer via WebAudio on the default output, or on sinkId when given. Returns {done, stop}.
+ * The buffer is capped at -12 dBFS first (capStereo), like every native output path.
+ */
 export async function playStereo({ left, right, sampleRate }, { sinkId = '' } = {}) {
   const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!Context) throw new Error('Web Audio playback is unavailable.');
@@ -475,8 +513,9 @@ export async function playStereo({ left, right, sampleRate }, { sinkId = '' } = 
   try { ctx = new Context({ sampleRate }); } catch { ctx = new Context(); }
   if (sinkId && typeof ctx.setSinkId === 'function') { try { await ctx.setSinkId(sinkId); } catch { /* fall back to default output */ } }
   await ctx.resume?.();
-  const buffer = ctx.createBuffer(2, left.length, sampleRate);
-  buffer.copyToChannel(left, 0); buffer.copyToChannel(right || left, 1);
+  const capped = capStereo(left, right);
+  const buffer = ctx.createBuffer(2, capped.left.length, sampleRate);
+  buffer.copyToChannel(capped.left, 0); buffer.copyToChannel(capped.right, 1);
   const src = ctx.createBufferSource();
   src.buffer = buffer; src.connect(ctx.destination);
   const done = new Promise(resolve => { src.onended = () => { ctx.close().catch(() => {}); resolve(); }; });
