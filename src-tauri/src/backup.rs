@@ -1803,7 +1803,17 @@ mod tests {
         };
         std::thread::sleep(Duration::from_millis(30));
         let dest = env.out("busy.deckchek-backup");
-        let r = create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}).unwrap();
+        // "busy" is the documented try-again answer; a starved reader on a loaded Windows runner may get it
+        let mut attempt = 0;
+        let r = loop {
+            match create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}) {
+                Err(e) if e.code == "busy" && attempt < 3 => {
+                    attempt += 1;
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                other => break other.unwrap(),
+            }
+        };
         stop.store(true, std::sync::atomic::Ordering::Relaxed);
         let written = writer.join().unwrap();
         assert!(written > 0, "writer made progress during the backup");
