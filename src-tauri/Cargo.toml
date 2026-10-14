@@ -18,14 +18,17 @@ serde_json = "1"
 rusqlite = { version = "0.32", features = ["backup", "bundled"] }
 cpal = "0.16"
 rtrb = "0.3"
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 midir = "0.10"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 base64 = "0.22"
+ed25519-dalek = "2"
+getrandom = "0.3"
+tauri-plugin-notification = "2"
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39"
-windows = { version = "0.62", features = ["Win32_Foundation"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
