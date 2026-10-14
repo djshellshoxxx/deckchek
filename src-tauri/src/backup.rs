@@ -4,7 +4,9 @@
 //! (written first), `db/deckchek.sqlite3` (online-backup snapshot, integrity-checked
 //! and VACUUMed), optional `settings/ui.json` + `settings/calibration.json` (handed
 //! over by the webview, which owns those localStorage keys) and
-//! `data/midi-maps.json` (redundant export of `asset_midi_map` for readability).
+//! `data/midi-maps.json` (redundant export of `asset_midi_map` for readability), and from
+//! M7 the photo store as `photos/<sha256>.jpg` entries (FS-00 §4.11, FS-08 §5), read from and
+//! restored into `photos/` beside the database. Any other `photos/` name is ignored.
 //!
 //! Safety rules:
 //! - Archive entry names are never used as paths: only the fixed names above are
@@ -47,6 +49,7 @@ const DB_ENTRY: &str = "db/deckchek.sqlite3";
 const UI_ENTRY: &str = "settings/ui.json";
 const CAL_ENTRY: &str = "settings/calibration.json";
 const MIDI_ENTRY: &str = "data/midi-maps.json";
+const PHOTO_PREFIX: &str = "photos/";
 
 pub const MAX_DB_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 /// Cap for every entry other than the database (manifest, settings, MIDI maps).
@@ -467,8 +470,36 @@ fn known_limit(name: &str, lim: &Limits) -> Option<u64> {
     match name {
         DB_ENTRY => Some(lim.db),
         UI_ENTRY | CAL_ENTRY | MIDI_ENTRY => Some(lim.other),
+        n if photo_entry_sha(n).is_some() => Some(crate::photo::MAX_PHOTO_BYTES as u64),
         _ => None,
     }
+}
+
+/// `photos/<64 lowercase hex>.jpg` -> the hash; every other name is not a photo entry.
+fn photo_entry_sha(name: &str) -> Option<&str> {
+    let sha = name.strip_prefix(PHOTO_PREFIX)?.strip_suffix(".jpg")?;
+    (sha.len() == 64 && sha.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))).then_some(sha)
+}
+
+/// Photos referenced by the snapshot's `photo` table whose file is present and still matches its
+/// hash: (archive entry name, file path, bytes). Missing or damaged files are left out, not fatal.
+fn photo_files(snap: &Path, photos_dir: &Path) -> Vec<(String, PathBuf, ManifestFile)> {
+    let Ok(c) = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY) else { return Vec::new() };
+    let Ok(mut st) = c.prepare("SELECT sha256 FROM photo ORDER BY sha256") else { return Vec::new() };
+    let Ok(rows) = st.query_map([], |r| r.get::<_, String>(0)) else { return Vec::new() };
+    let mut out = Vec::new();
+    for sha in rows.flatten() {
+        let name = format!("{PHOTO_PREFIX}{sha}.jpg");
+        if photo_entry_sha(&name).is_none() {
+            continue;
+        }
+        let path = photos_dir.join(format!("{sha}.jpg"));
+        match sha_file(&path) {
+            Ok((bytes, hash)) if hash == sha && bytes <= crate::photo::MAX_PHOTO_BYTES as u64 => out.push((name.clone(), path, ManifestFile { name, bytes, sha256: hash })),
+            _ => {}
+        }
+    }
+    out
 }
 
 fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupError> {
@@ -753,6 +784,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         (counts, schema_version(&c)?, midi_maps_json(&c)?)
     };
     let counts = Counts { profiles: calibration_count(settings.calibration.as_ref()), ..counts_db };
+    let photos = photo_files(&snap, &live.parent().unwrap_or(Path::new(".")).join("photos"));
 
     let mut blobs: Vec<(&str, Vec<u8>)> = Vec::new();
     if let Some(ui) = settings.ui.as_ref().filter(|v| !v.is_null()) {
@@ -770,6 +802,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
     let created_ms = now_ms();
     let mut files = vec![ManifestFile { name: DB_ENTRY.into(), bytes: db_bytes, sha256: db_sha }];
     files.extend(blobs.iter().map(|(n, b)| ManifestFile { name: (*n).into(), bytes: b.len() as u64, sha256: sha_hex(b) }));
+    files.extend(photos.iter().map(|(_, _, f)| f.clone()));
     let manifest = Manifest {
         format: FORMAT.into(),
         format_version: FORMAT_VERSION,
@@ -781,7 +814,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         files,
     };
 
-    write_archive(&partial, &manifest, &snap, &blobs)?;
+    write_archive(&partial, &manifest, &snap, &blobs, &photos)?;
     remove_quietly(&snap);
     verify_archive(&partial).map_err(|e| BackupError::new("verify_failed", format!("The new backup did not verify ({}); nothing was saved.", e.message)))?;
     fs::rename(&partial, dest).map_err(|e| io_err("save the backup file", e))?;
@@ -790,7 +823,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
     Ok(CreateResult { path: dest.to_string_lossy().into_owned(), bytes, created_at: manifest.created_at, kind, counts, schema_version: schema })
 }
 
-fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(&str, Vec<u8>)]) -> Result<(), BackupError> {
+fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(&str, Vec<u8>)], photos: &[(String, PathBuf, ManifestFile)]) -> Result<(), BackupError> {
     let write_err = |e: zip::result::ZipError| match e {
         zip::result::ZipError::Io(io) => io_err("write the backup file", io),
         other => BackupError::new("io", format!("Could not write the backup file ({other}).")),
@@ -808,6 +841,11 @@ fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(
     for (name, bytes) in blobs {
         zw.start_file(*name, opts).map_err(write_err)?;
         zw.write_all(bytes).map_err(|e| io_err("write the backup file", e))?;
+    }
+    for (name, path, _) in photos {
+        zw.start_file(name.as_str(), opts).map_err(write_err)?;
+        let mut f = File::open(path).map_err(|e| io_err("read a photo", e))?;
+        io::copy(&mut f, &mut zw).map_err(|e| io_err("write the backup file", e))?;
     }
     let buf = zw.finish().map_err(write_err)?;
     let file = buf.into_inner().map_err(|e| io_err("write the backup file", e.into_error()))?;
@@ -947,6 +985,7 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 
     swap_in(live, &tmp, fail)?;
     temps.disarm();
+    restore_photos(path, &manifest, &live.parent().unwrap_or(Path::new(".")).join("photos"), &mut warnings);
     Ok(RestoreResult {
         restored_from: path.to_string_lossy().into_owned(),
         upgraded_from: (from < current_v).then_some(from),
@@ -956,6 +995,47 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
         calibration_profiles: cal,
         warnings,
     })
+}
+
+/// Copies the archive's `photos/<sha256>.jpg` entries into `photos_dir` (content-addressed, so an
+/// identical file already there is kept). Best effort after the database swap: each failure is a
+/// warning, never an error, because the restored database is already in place.
+fn restore_photos(path: &Path, manifest: &Manifest, photos_dir: &Path, warnings: &mut Vec<String>) {
+    let wanted: Vec<(&ManifestFile, &str)> = manifest.files.iter().filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha))).collect();
+    if wanted.is_empty() {
+        return;
+    }
+    let mut failed = 0usize;
+    let result = (|| -> Result<(), BackupError> {
+        fs::create_dir_all(photos_dir).map_err(|e| io_err("create the photos folder", e))?;
+        let mut archive = open_archive(path, &LIMITS)?;
+        for (f, sha) in wanted {
+            let target = photos_dir.join(format!("{sha}.jpg"));
+            if fs::metadata(&target).map(|m| m.is_file() && m.len() == f.bytes).unwrap_or(false) {
+                continue;
+            }
+            let tmp = sidecar(&target, ".restore-tmp");
+            let one = (|| -> Result<(), BackupError> {
+                let mut out = BufWriter::new(File::create(&tmp).map_err(|e| io_err("restore a photo", e))?);
+                let (bytes, hash) = read_entry(&mut archive, &f.name, crate::photo::MAX_PHOTO_BYTES as u64, &LIMITS, &mut out)?;
+                out.into_inner().map_err(|e| io_err("restore a photo", e.into_error()))?.sync_all().map_err(|e| io_err("restore a photo", e))?;
+                if bytes != f.bytes || !hash.eq_ignore_ascii_case(&f.sha256) || hash != sha {
+                    return Err(BackupError::new("checksum", "a photo does not match its checksum"));
+                }
+                fs::rename(&tmp, &target).map_err(|e| io_err("restore a photo", e))
+            })();
+            if one.is_err() {
+                remove_quietly(&tmp);
+                failed += 1;
+            }
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        warnings.push(format!("The photos could not be restored: {}", e.message));
+    } else if failed > 0 {
+        warnings.push(format!("{failed} photo(s) could not be restored; the rest of the backup was restored."));
+    }
 }
 
 /// live (+ journal/wal/shm) → `.restore-bak`, tmp → live, verify; any error rolls back.
@@ -1723,7 +1803,17 @@ mod tests {
         };
         std::thread::sleep(Duration::from_millis(30));
         let dest = env.out("busy.deckchek-backup");
-        let r = create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}).unwrap();
+        // "busy" is the documented try-again answer; a starved reader on a loaded Windows runner may get it
+        let mut attempt = 0;
+        let r = loop {
+            match create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}) {
+                Err(e) if e.code == "busy" && attempt < 3 => {
+                    attempt += 1;
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                other => break other.unwrap(),
+            }
+        };
         stop.store(true, std::sync::atomic::Ordering::Relaxed);
         let written = writer.join().unwrap();
         assert!(written > 0, "writer made progress during the backup");
@@ -2404,5 +2494,100 @@ mod tests {
         let e = io_err("save the backup", io::Error::new(io::ErrorKind::StorageFull, "/home/secret/path"));
         assert_eq!(e.code, "disk_full");
         assert!(!e.message.contains("secret"));
+    }
+
+    // ---------- FS-00 §4.11: photo store in the archive ----------
+
+    fn attach_photo(env: &Env, owner: &str, seed: u8) -> crate::photo::PhotoAttached {
+        use base64::Engine;
+        let jpg = crate::photo::test_support::tiny_jpeg(64, 48, &[], seed);
+        let mut c = Connection::open(env.live()).unwrap();
+        c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        let input = crate::photo::PhotoAttachInput {
+            owner_kind: "asset".into(),
+            owner_id: owner.into(),
+            bytes_b64: base64::engine::general_purpose::STANDARD.encode(&jpg),
+            caption: None,
+            alt_text: None,
+            stage: None,
+            is_primary: None,
+        };
+        crate::photo::attach(&mut c, &env.live().parent().unwrap().join("photos"), &input).unwrap()
+    }
+
+    #[test]
+    fn photos_are_archived_verified_and_restored_into_the_photos_folder() {
+        let env = Env::new("photos");
+        make_db(env.live(), "p", 1);
+        let a = attach_photo(&env, "asset-1", 1);
+        let b = attach_photo(&env, "asset-1", 2);
+        let dest = env.out("photos.deckchek-backup");
+        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        let m = verify_archive(&dest).unwrap();
+        let names: Vec<&str> = m.files.iter().map(|f| f.name.as_str()).filter(|n| n.starts_with("photos/")).collect();
+        let mut want = vec![format!("photos/{}.jpg", a.sha256), format!("photos/{}.jpg", b.sha256)];
+        want.sort();
+        assert_eq!(names, want.iter().map(String::as_str).collect::<Vec<_>>());
+        assert_eq!(m.format_version, 1, "additive: the format version does not change");
+
+        // lose the files and the rows' owner, then restore: the files come back, byte for byte
+        let photos = env.live().parent().unwrap().join("photos");
+        let original = fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap();
+        fs::remove_dir_all(&photos).unwrap();
+        let r = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
+        assert!(r.warnings.is_empty(), "{:?}", r.warnings);
+        assert_eq!(fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(), original);
+        assert!(photos.join(format!("{}.jpg", b.sha256)).is_file());
+        let conn = db::open_database(env.live()).unwrap();
+        let rows = crate::photo::list(&conn, "asset", "asset-1").unwrap();
+        assert_eq!(rows.len(), 2);
+        assert!(crate::photo::read(&conn, &photos, &rows[0].photo_id).is_ok());
+    }
+
+    #[test]
+    fn backup_skips_missing_or_damaged_photo_files_and_still_succeeds() {
+        let env = Env::new("photos-missing");
+        make_db(env.live(), "p", 1);
+        let a = attach_photo(&env, "asset-1", 3);
+        let b = attach_photo(&env, "asset-1", 4);
+        let photos = env.live().parent().unwrap().join("photos");
+        fs::remove_file(photos.join(format!("{}.jpg", a.sha256))).unwrap();
+        fs::write(photos.join(format!("{}.jpg", b.sha256)), b"damaged").unwrap();
+        let dest = env.out("skip.deckchek-backup");
+        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        assert!(verify_archive(&dest).unwrap().files.iter().all(|f| !f.name.starts_with("photos/")));
+    }
+
+    #[test]
+    fn tampered_photo_entries_are_refused_and_unknown_photo_names_are_ignored() {
+        let env = Env::new("photos-bad");
+        make_db(env.live(), "p", 1);
+        let a = attach_photo(&env, "asset-1", 5);
+        let dest = env.out("tamper.deckchek-backup");
+        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        let db_copy = env.out("db.sqlite3");
+        extract_db(&dest, &db_copy);
+        let db_bytes = fs::read(&db_copy).unwrap();
+
+        // a photo entry whose bytes differ from the manifest's hash is a checksum failure
+        let name = format!("photos/{}.jpg", a.sha256);
+        let m = manifest_bytes(2, 1, &[(DB_ENTRY, &db_bytes), (name.as_str(), b"the manifest hashes these bytes")]);
+        write_zip(&env.out("tamper2.deckchek-backup"), &[(MANIFEST, &m), (DB_ENTRY, &db_bytes), (name.as_str(), b"but these were stored")]);
+        assert_eq!(verify_archive(&env.out("tamper2.deckchek-backup")).unwrap_err().code, "checksum");
+
+        // names that are not photos/<sha256>.jpg are neither read nor extracted
+        let other = env.out("other.deckchek-backup");
+        crafted(&other, 2, &[(DB_ENTRY, &db_bytes), ("photos/notes.txt", b"hi"), ("photos/a.jpg", b"hi"), ("photos/UPPER.jpg", b"hi")]);
+        verify_archive(&other).unwrap();
+        let photos = env.live().parent().unwrap().join("photos");
+        fs::remove_dir_all(&photos).unwrap();
+        let r = restore_backup(&env.ctx, &other, true, &settings(), None).unwrap();
+        assert!(r.warnings.is_empty());
+        assert!(!photos.exists(), "nothing under photos/ was extracted");
+
+        // path tricks in the manifest are refused before anything is read
+        let m = manifest_bytes(2, 1, &[(DB_ENTRY, &db_bytes), ("photos/../../evil.jpg", b"x")]);
+        write_zip(&env.out("evil.deckchek-backup"), &[(MANIFEST, &m), (DB_ENTRY, &db_bytes)]);
+        assert_eq!(verify_archive(&env.out("evil.deckchek-backup")).unwrap_err().code, "bad_manifest");
     }
 }

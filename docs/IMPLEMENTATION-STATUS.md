@@ -1,6 +1,6 @@
 # DeckChek implementation status
 
-Updated: 2026-10-10 (v0.0.5, after the missing-features audit fixes)
+Updated: 2026-10-14 (v0.0.5 shipped; M7 wave-0 foundations merged on top of the audit fixes)
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
@@ -96,7 +96,22 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - PDF kinds for latency, stylus, wear map, scratch, hum and a venue report (`app/ui/workflows/m6-reports.js`, `tests/m6-reports.test.mjs`); a PDF timeout offers Retry and the saved toast offers Open and Show in folder.
 - Wear-map bin inspector waveform snippet; Windows tuning tab lists busiest programs and DJ software.
 - Flags `population`, `fleet` and the other M7/M8 flags default off and are hidden from the panel (no code behind them); `diagnosticsBundle` is always on and unread.
-- Deferred, not fixed here: canonical JSON and the photo store (M7), the `capture`, `booth`, `deck_position`, `support_configuration` and `vinyl_event` tables (GAP-11, GAP-12, schema only), published MIDI maps (GAP-17, needs vendor documents), and `userfiles_write_folder`, which has its `saveFolder` bridge but no screen until FS-33.
+- Deferred, not fixed here: the `capture`, `booth`, `deck_position`, `support_configuration` and `vinyl_event` tables (GAP-11, GAP-12, schema only), published MIDI maps (GAP-17, needs vendor documents), and `userfiles_write_folder`, which has its `saveFolder` bridge but no screen until FS-33.
+
+## M7 wave-0 foundations (no user-facing screen yet)
+
+- Canonical JSON (FS-00 §6.1) in Rust and JS with shared vectors, SHA-256 (`crypto.subtle` with a pure-JS fallback), vendored QR generator (qrcode-generator 1.4.4, MIT) with `qrSvg`, and `metric-compat` (`methodCompatible`, `combinedUncertainty`, `deltaVerdict`).
+- Photo store: migration 0013, `photo_attach` / `photo_list` / `photo_unlink` / `photo_read`, `preparePhoto` (canvas re-encode, 1600 px, JPEG 0.82) and an in-memory browser-mode twin. The backup archive carries `photos/<sha256>.jpg`. Nothing in the UI uses the store until FS-20, FS-22 and FS-33 land, so there is no photo screen and no browser smoke flow.
+- Crates for all of M7/M8 added once: `ed25519-dalek`, `getrandom`, `tauri-plugin-notification` (unregistered), DPAPI `windows` feature (cfg(windows), unused until FS-20/FS-33), tauri `tray-icon` and `image-png`. `ed25519-dalek` is BSD-3-Clause (permissive); all other additions are MIT and/or Apache-2.0.
+- DB upgrade fixture `tests/fixtures/db/v0.0.7.sql` (schema 0001-0013, rows in every table). The v0.0.6 fixture was never added.
+- Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there), and the notification plugin is not exercised.
+
+## M8 additions: FS-30 Mobile companion (implemented and test-covered, hardware-unvalidated)
+
+- Desktop: `0018_session_origin.sql` (`session.origin` default `desktop`, `session.source_device`); `save_diagnostic_run` stores `origin` (`desktop` or `phone`) and `sourceDevice`, `get_run` returns them. `app/phone-run.js` builds, hashes, validates and frames (QR) the DeckChek Mobile v1 result; `app/ui/workflows/import-phone.js` is the "Import phone results" screen (flag `phoneImport`, wired, off by default): paste JSON or QR text or open a file, hash status as a word (matches, differs, none; a mismatch warns and never blocks), asset picker (serial or nickname hint preselects), Add to History with `origin: "phone"`. Phone measurements are tagged `phone`, flagged `uncalibrated` and never calibrated. Smoke `tools/smoke/phone-import.mjs`.
+- Hash: FS-00 canonical JSON only allows integers, so the hash is over `canonicalJson(hashView(export without sha256))`, where `hashView` turns every fractional number into its shortest decimal string. Integrity only, not a signature.
+- PWA in `mobile/` (see `mobile/README.md`): Speed by reference tone (reuses `speedFromReferenceTone`, `frequencyTrace`, `speedStabilityMetrics`, `rpmUncertainty`), mains strobe helper with the four-row dot table and an on-screen strobe (photosensitivity confirmation first), Vibration (accelerometer RMS and dominant 0.5-30 Hz peak), SPL (A/C weighted, always labelled uncalibrated, single-point calibration), Results with file, share sheet, copy and QR (several QR frames when large). `tools/build-mobile.mjs` copies the shared engines into `mobile/vendor/` and stamps the service-worker precache; `--check` runs in CI. Tests `tests/mobile-*.test.mjs`, `tests/phone-run.test.mjs`; smoke `tools/smoke/mobile-pwa.mjs` (fake microphone, offline reload).
+- Not done, by decision: hosting. `.github/workflows/pages-mobile.yml` is `workflow_dispatch` only and its deploy job needs the `deploy` input ticked; nothing is published until the owner decides (R12). Camera strobe analysis stays post-MVP. Not validated on real phones (iOS motion permission, Android sensor rate, phone clock error, mic AGC) or against a printed strobe disc.
 
 ## M5 shipped in v0.0.5
 
@@ -114,7 +129,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 ### Flag defaults in v0.0.5
 
 - Default on: `setupWizard`, `pdfExport`, `backup`, `testMedia` and `diagnosticsBundle` (the last has no effect: the diagnostics bundle is always on).
-- Default off (enable under Options > Support > Experimental features…): the M6 flags (pre-gig, latency tuner, stylus wear, wear map, scratch test, hum hunter, feedback step). The M7 and M8 flags (certificates, population, packs, service, fleet, phone import, live monitor, mapper studio, gear ledger) are also off, but have no code yet and are not listed in the panel.
+- Default off (enable under Options > Support > Experimental features…): the M6 flags (pre-gig, latency tuner, stylus wear, wear map, scratch test, hum hunter, feedback step). The M7 and M8 flags (certificates, population, packs, service, fleet, live monitor, mapper studio, gear ledger) are also off, but have no code yet and are not listed in the panel; `phoneImport` (FS-30) is off and listed.
 - Flags hide UI only; the Rust commands always exist.
 - Note: v0.0.5 as shipped had no way to toggle flags in the desktop UI; the panel arrives with the audit fixes above.
 

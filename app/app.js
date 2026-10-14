@@ -43,6 +43,7 @@ import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-22] screens imports
 // [FS-23] screens imports
 // [FS-30] screens imports
+import { phoneImportScreenDefs } from './ui/workflows/import-phone.js';
 // [FS-31] screens imports
 // [FS-32] screens imports
 // [FS-33] screens imports
@@ -82,6 +83,7 @@ const SCREENS = [
   // [FS-22] screens
   // [FS-23] screens
   // [FS-30] screens
+  ...phoneImportScreenDefs(),
   // [FS-31] screens
   // [FS-32] screens
   // [FS-33] screens

@@ -31,9 +31,11 @@ jobs:
       - name: Release tags need gap-free migrations
         if: startsWith(github.ref, 'refs/tags/v')
         run: node tools/check-migrations.mjs --contiguous
-      - name: Syntax-check every app module
+      - name: Mobile vendor copies match app/ (FS-30)
+        run: node tools/build-mobile.mjs --check
+      - name: Syntax-check every app and mobile module
         run: |
-          find app -name '*.js' -print0 | while IFS= read -r -d '' f; do
+          find app mobile -name '*.js' -print0 | while IFS= read -r -d '' f; do
             echo "node --check $f"
             node --check "$f"
           done

@@ -1,0 +1,51 @@
+name: DeckChek Mobile (GitHub Pages)
+
+# Hosting is NOT decided (FS-30 §10, DEVELOPMENT-PLAN R12): GitHub Pages would publish the PWA's JavaScript, which
+# includes the DSP engines app/core.js and app/advanced.js, publicly. Until the owner chooses, this workflow runs
+# only when somebody starts it by hand, and the deploy job needs an explicit "deploy" tick on top of that.
+# There is deliberately no push, tag or schedule trigger. tests/mobile-build.test.mjs fails if one is added.
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Publish to GitHub Pages (leave off to only build and check)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-mobile
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vendored engines and precache list are up to date
+        run: node tools/build-mobile.mjs --check
+      - name: Mobile tests
+        run: node --test tests/mobile-*.test.mjs tests/phone-run.test.mjs
+      - name: Package mobile/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile
+
+  deploy:
+    if: ${{ inputs.deploy }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
