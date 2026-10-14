@@ -1,0 +1,8 @@
+# Copied unchanged from app/ by tools/build-mobile.mjs. Run it again after changing a shared file.
+f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247  core.js
+d361fa2eab4ce80f9bb992108fa2d930fe722cd625f79a7f1cce6736218f7f2e  advanced.js
+ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72  calibration.js
+1d34f1b5b6bc1094980ff22ab74ecf3d424b944db165e97df7f5c1daf89568c3  canonical-json.js
+149be96b973ffa7a0d4e1ae38f211f3b7db9f904ed2596701c6c90ea95883855  sha256.js
+296618eed947be0e902e84493213b5a68257057a250c62330e29fd5ceb24fd5a  phone-run.js
+218c682500bfadfb7d8881d5011cb20d627ff8954a142ba57f0062ddea321376  qr.js
