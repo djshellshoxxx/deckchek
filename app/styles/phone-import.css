@@ -1,0 +1,13 @@
+/* FS-30 Import phone results. Tokens come from styles.css. */
+.pi-card { display: grid; gap: 12px; margin-top: 16px; }
+.pi-text { width: 100%; box-sizing: border-box; min-height: 160px; resize: vertical; font-family: var(--mono, ui-monospace, Consolas, monospace); font-size: 13px; padding: 10px 12px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface); color: var(--text); }
+.pi-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pi-status:empty { display: none; }
+.pi-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.pi-facts dt { color: var(--text-muted); }
+.pi-facts dd { margin: 0; overflow-wrap: anywhere; }
+.pi-table { width: 100%; border-collapse: collapse; }
+.pi-table th, .pi-table td { padding: 8px 10px; border-bottom: 1px solid var(--divider); text-align: left; }
+.pi-table td.pi-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pi-done { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.pi-done p { margin: 0; }
