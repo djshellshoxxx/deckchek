@@ -1246,6 +1246,43 @@ mod tests {
     }
 
     #[test]
+    fn v007_fixture_carries_schema_through_0013_with_rows_in_every_table() {
+        let (_, sql) = fixtures().into_iter().find(|(n, _)| n == "v0.0.7.sql").expect("tests/fixtures/db/v0.0.7.sql");
+        let c = load_fixture(&sql);
+        assert_healthy(&c, "v0.0.7 as loaded");
+        assert_eq!(applied_migrations(&c).unwrap(), (1..=13).collect::<Vec<i64>>(), "migrations 0001..0013");
+        // the fixture's schema is what 0001..0013 produce on an empty database
+        let fresh = Connection::open_in_memory().unwrap();
+        apply_migration_list(&fresh, &MIGRATIONS[..13], None).unwrap();
+        let strip = |v: Vec<(String, String, Option<String>)>| v.into_iter().map(|(t, n, _)| (t, n)).collect::<Vec<_>>();
+        assert_eq!(strip(schema_snapshot(&c)), strip(schema_snapshot(&fresh)));
+        for (table, n) in row_counts(&c) {
+            assert!(n > 0, "fixture table {table} has no rows");
+        }
+        let n = |q: &str| -> i64 { c.query_row(q, [], |r| r.get(0)).unwrap() };
+        assert_eq!(n("SELECT COUNT(*) FROM photo"), 1);
+        assert_eq!(n("SELECT COUNT(*) FROM photo_link WHERE photo_id = 'f0000000-0000-4000-8000-000000000001'"), 2, "one photo shared by two owners");
+        assert_eq!(n("SELECT COUNT(*) FROM schema_migration WHERE app_version = '0.0.7'"), 8);
+    }
+
+    #[test]
+    fn photo_store_migration_enforces_its_constraints() {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        apply_migrations(&c).unwrap();
+        c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p1','h1','image/jpeg',1,1,1,'t')", []).unwrap();
+        assert!(c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p2','h2','image/png',1,1,1,'t')", []).is_err(), "jpeg only");
+        assert!(c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p3','h1','image/jpeg',1,1,1,'t')", []).is_err(), "sha256 unique");
+        let link = "INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES (?1,'p1',?2,'o','t')";
+        c.execute(link, ["l1", "asset"]).unwrap();
+        assert!(c.execute(link, ["l2", "asset"]).is_err(), "one link per (photo, owner)");
+        assert!(c.execute(link, ["l3", "venue"]).is_err(), "owner_kind check");
+        c.execute("INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES ('l4','nope','asset','o','t')", []).expect_err("photo must exist");
+        c.execute("DELETE FROM photo WHERE id = 'p1'", []).unwrap();
+        assert_eq!(c.query_row::<i64, _, _>("SELECT COUNT(*) FROM photo_link", [], |r| r.get(0)).unwrap(), 0, "links cascade");
+    }
+
+    #[test]
     fn every_release_fixture_upgrades_without_losing_rows() {
         let all = fixtures();
         assert!(all.iter().any(|(n, _)| n == "v0.04.sql"), "v0.04 fixture missing");
