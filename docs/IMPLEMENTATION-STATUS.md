@@ -1,6 +1,6 @@
 # DeckChek implementation status
 
-Updated: 2026-10-10 (v0.0.5, after the missing-features audit fixes)
+Updated: 2026-10-14 (v0.0.5 shipped; M7 wave-0 foundations merged on top of the audit fixes)
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
@@ -96,7 +96,15 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - PDF kinds for latency, stylus, wear map, scratch, hum and a venue report (`app/ui/workflows/m6-reports.js`, `tests/m6-reports.test.mjs`); a PDF timeout offers Retry and the saved toast offers Open and Show in folder.
 - Wear-map bin inspector waveform snippet; Windows tuning tab lists busiest programs and DJ software.
 - Flags `population`, `fleet` and the other M7/M8 flags default off and are hidden from the panel (no code behind them); `diagnosticsBundle` is always on and unread.
-- Deferred, not fixed here: canonical JSON and the photo store (M7), the `capture`, `booth`, `deck_position`, `support_configuration` and `vinyl_event` tables (GAP-11, GAP-12, schema only), published MIDI maps (GAP-17, needs vendor documents), and `userfiles_write_folder`, which has its `saveFolder` bridge but no screen until FS-33.
+- Deferred, not fixed here: the `capture`, `booth`, `deck_position`, `support_configuration` and `vinyl_event` tables (GAP-11, GAP-12, schema only), published MIDI maps (GAP-17, needs vendor documents), and `userfiles_write_folder`, which has its `saveFolder` bridge but no screen until FS-33.
+
+## M7 wave-0 foundations (no user-facing screen yet)
+
+- Canonical JSON (FS-00 §6.1) in Rust and JS with shared vectors, SHA-256 (`crypto.subtle` with a pure-JS fallback), vendored QR generator (qrcode-generator 1.4.4, MIT) with `qrSvg`, and `metric-compat` (`methodCompatible`, `combinedUncertainty`, `deltaVerdict`).
+- Photo store: migration 0013, `photo_attach` / `photo_list` / `photo_unlink` / `photo_read`, `preparePhoto` (canvas re-encode, 1600 px, JPEG 0.82) and an in-memory browser-mode twin. The backup archive carries `photos/<sha256>.jpg`. Nothing in the UI uses the store until FS-20, FS-22 and FS-33 land, so there is no photo screen and no browser smoke flow.
+- Crates for all of M7/M8 added once: `ed25519-dalek`, `getrandom`, `tauri-plugin-notification` (unregistered), DPAPI `windows` feature (cfg(windows), unused until FS-20/FS-33), tauri `tray-icon` and `image-png`. `ed25519-dalek` is BSD-3-Clause (permissive); all other additions are MIT and/or Apache-2.0.
+- DB upgrade fixture `tests/fixtures/db/v0.0.7.sql` (schema 0001-0013, rows in every table). The v0.0.6 fixture was never added.
+- Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there), and the notification plugin is not exercised.
 
 ## M5 shipped in v0.0.5
 
