@@ -8,6 +8,7 @@ mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+pub mod canonical; // canonical JSON + SHA-256 (FS-00 §4.12); consumed by FS-20/30/33 jobs
 mod userfiles;
 mod app_state;
 mod usage;
