@@ -8,6 +8,15 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer model feature reference",
+      "type": "support-article",
+      "url": "https://www.denondj.com/sclive4",
+      "language": "en",
+      "notes": [
+        "The integrated speakers are an actual testable output path."
+      ]
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.denondj.com/downloads",
@@ -83,6 +92,50 @@
       "source": "https://www.denondj.com/downloads",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.denondj.com/sclive4",
+      "confidence": "confirmed",
+      "notes": [
+        "The integrated speakers are an actual testable output path."
+      ]
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://www.denondj.com/sclive4",
+      "confidence": "confirmed",
+      "notes": [
+        "The integrated speakers are an actual testable output path."
+      ]
+    },
+    {
+      "key": "verified_media_slots",
+      "label": "media slots",
+      "value": 3,
+      "unit": "count",
+      "source": "https://www.denondj.com/sclive4",
+      "confidence": "confirmed",
+      "notes": [
+        "The integrated speakers are an actual testable output path."
+      ]
+    },
+    {
+      "key": "verified_integrated_speakers",
+      "label": "integrated speakers",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.denondj.com/sclive4",
+      "confidence": "confirmed",
+      "notes": [
+        "The integrated speakers are an actual testable output path."
+      ]
     }
   ],
   "midi": {
@@ -259,6 +312,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-sc-live-4-verified-paths",
+      "title": "Integrated monitor speakers and standalone library",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Load known-good offline reference media.",
+        "Switch integrated speakers on and off and measure output subjectively.",
+        "Verify touchscreen/media slots and record firmware."
+      ],
+      "equipment": [
+        "Hardware",
+        "Reference test source or software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
