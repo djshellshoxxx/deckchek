@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer detailed product feature and specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -78,6 +84,42 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_external_source_inputs",
+      "label": "external source inputs",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_standalone_analog_mixer",
+      "label": "standalone analog mixer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
     }
   ],
   "midi": {
@@ -216,6 +258,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-1000-verified-feature",
+      "title": "Four-channel external mixer routing",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect known-good external sources to each of the four mixer input paths.",
+        "Route each source independently through cue and master.",
+        "Repeat with DJ software disconnected where the manual permits analog standalone mixing."
+      ],
+      "equipment": [
+        "Reference signals",
+        "Supported host software or accessories"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
