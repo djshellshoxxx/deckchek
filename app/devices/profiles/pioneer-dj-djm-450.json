@@ -128,13 +128,13 @@
       "id": "pioneer-dj-djm-450-fader",
       "category": "mixer",
       "title": "Channel and crossfader sweep",
-      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
-      "method": "midi:fader",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings. Mixer fader must be measured through an analog/audio path unless the manufacturer explicitly publishes its MIDI mapping.",
+      "method": "manual:inspection",
       "params": {},
       "steps": [
-        "Check DJM-450 official manual, ports and operating mode.",
-        "Exercise all fader controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
-        "Repeat, save evidence and distinguish unobservable from failed hardware."
+        "Connect suitable known-good LINE level input (use PHONO only for true PHONO reference sources).",
+        "Sweep channel and crossfaders while metering/audio-capturing signal, including cut/bleed endpoints.",
+        "Compare left/right paths and record observed dropout/scratch/noise. MIDI may be captured separately only if documented."
       ],
       "equipment": [
         "Device",
