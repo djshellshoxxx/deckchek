@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Specific manufacturer product specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -83,6 +89,62 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_standalone_usb_playback_decks",
+      "label": "standalone usb playback decks",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_software_control_decks",
+      "label": "software control decks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_beat_fx",
+      "label": "beat fx",
+      "value": 14,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_sound_color_fx",
+      "label": "sound color fx",
+      "value": 6,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -259,6 +321,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-xdj-xz-verified-deck-modes",
+      "title": "Two standalone USB decks versus four mixer channels",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Load reference tracks to USB decks 1 and 2, validate media playback.",
+        "Connect external line/phono sources to channels 3 and 4 and inspect routing.",
+        "With supported laptop DJ software test all four software decks; never assume four independent standalone USB decks."
+      ],
+      "equipment": [
+        "Compatible media",
+        "Computer and software as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
