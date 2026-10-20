@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer model documentation and feature FAQ",
+      "type": "support-article",
+      "url": "https://www.denondj.com/prime-go",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.denondj.com/downloads",
@@ -83,6 +89,46 @@
       "source": "https://www.denondj.com/downloads",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.denondj.com/prime-go",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://www.denondj.com/prime-go",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_battery_powered",
+      "label": "battery powered",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.denondj.com/prime-go",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_microphone_inputs",
+      "label": "microphone inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.denondj.com/prime-go",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.denondj.com/prime-go",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -259,6 +305,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-verified-mode-check",
+      "title": "Battery and offline playback",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Run on fully charged internal battery with external power disconnected.",
+        "Play reference tracks from local storage on both decks and observe output stability.",
+        "Record measured run time and battery condition as user evidence, not manufacturer guarantee."
+      ],
+      "equipment": [
+        "Known-good media",
+        "Compatible OS / software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
