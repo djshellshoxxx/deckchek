@@ -8,6 +8,13 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Verified manufacturer capability reference",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "language": "en",
+      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/documents/ddj-flx4/",
@@ -46,7 +53,7 @@
       "present": true,
       "vendorId": null,
       "productIds": [],
-      "classCompliant": null
+      "classCompliant": true
     },
     "midi": {
       "usbMidi": null,
@@ -72,6 +79,16 @@
       "name": "Serato DJ Lite",
       "role": "claimed companion / operating mode; verify model and version",
       "minVersion": null
+    },
+    {
+      "name": "djay",
+      "role": "manufacturer-listed software",
+      "minVersion": null
+    },
+    {
+      "name": "Traktor Play",
+      "role": "manufacturer-listed software",
+      "minVersion": null
     }
   ],
   "specs": [
@@ -83,6 +100,69 @@
       "source": "https://www.pioneerdj.com/en/support/documents/ddj-flx4/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_usb_audio_class_compliant",
+      "label": "usb audio class compliant",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_usb_type_c_ports",
+      "label": "usb type c ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_microphone_input",
+      "label": "microphone input",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_smart_fader",
+      "label": "smart fader",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_smart_cfx",
+      "label": "smart cfx",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
     }
   ],
   "midi": {
@@ -221,6 +301,63 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-flx4-verified-smart-fader",
+      "category": "software",
+      "title": "Smart Fader enable and blend",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Enable Smart Fader in supported software.",
+        "Play two different-tempo test tracks and move channel and cross faders.",
+        "Check blending, disable Smart Fader and verify ordinary fader behavior."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-flx4-verified-smart-cfx",
+      "category": "software",
+      "title": "Smart CFX switching and control",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Activate Smart CFX in compatible desktop software.",
+        "Move CFX control and verify effect mix changes.",
+        "Deactivate and verify expected filter/control behavior."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-flx4-verified-microphone",
+      "category": "audio",
+      "title": "Microphone input USB return and monitoring",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect compatible mic to rear mic socket.",
+        "Check microphone attenuation and master mix.",
+        "Verify microphone appears over USB when supported; separately record Bluetooth operating mode."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
