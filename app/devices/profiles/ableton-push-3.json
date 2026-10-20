@@ -8,6 +8,13 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Verified manufacturer capability reference",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "language": "en",
+      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
@@ -38,6 +45,12 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Push 3 technical FAQ",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8483166334748-Push-3-Technical-FAQ",
+      "language": "en"
     }
   ],
   "connectivity": {
@@ -77,6 +90,60 @@
       "source": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_balanced_analog_inputs",
+      "label": "balanced analog inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_balanced_analog_outputs",
+      "label": "balanced analog outputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_audio_sample_rate_max",
+      "label": "audio sample rate max",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_adat_expansion_inputs_total",
+      "label": "adat expansion inputs total",
+      "value": 10,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_pedal_cv_output",
+      "label": "pedal cv output",
+      "value": true,
+      "unit": "bool",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
     }
   ],
   "midi": {
@@ -214,6 +281,44 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-audio-modes",
+      "category": "audio",
+      "title": "Input impedance/gain mode and ADAT expansion",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect known-good LINE signal to input 1 and 2 and capture.",
+        "Check supported instrument and high gain modes with suitable source and safe levels.",
+        "Attach compatible ADAT interface and verify expanded input mapping."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-cv",
+      "category": "software",
+      "title": "Pedal CV output configuration",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Enable CV functionality on the appropriate pedal port.",
+        "Use an appropriate meter or CV-compatible receiving device to observe controlled output.",
+        "Do not test CV input on analog audio jacks: it is unsupported."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
