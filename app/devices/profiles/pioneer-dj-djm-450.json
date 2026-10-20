@@ -8,6 +8,13 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "language": "en",
+      "notes": ""
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -77,6 +84,38 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_beat_fx",
+      "label": "beat fx",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_sound_color_fx",
+      "label": "sound color fx",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_magvel_crossfader",
+      "label": "magvel crossfader",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -176,6 +215,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-verified-extra",
+      "title": "Two-channel DSP effects and analog sources",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect valid LINE or PHONO source to each channel.",
+        "Cycle eight Beat FX and four Sound Color FX against reference signal.",
+        "Test crossfader full travel and output bleed through mixer audio path."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
