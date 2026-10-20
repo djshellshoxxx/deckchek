@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer detailed product feature and specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -78,6 +84,24 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_type_b_ports",
+      "label": "usb type b ports",
+      "value": 1,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
     }
   ],
   "midi": {
@@ -216,6 +240,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-rev1-verified-feature",
+      "title": "Scratch-style control workflow",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect supported Serato DJ Lite installation.",
+        "Test jog, cue, fader and FX engagement in both deck directions.",
+        "Capture MIDI learn responses and keep unsupported features marked unverified."
+      ],
+      "equipment": [
+        "Reference signals",
+        "Supported host software or accessories"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
