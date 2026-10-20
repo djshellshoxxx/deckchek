@@ -1,0 +1,41 @@
+# Device research expansion — batch 2026-10-20
+
+Status: **researched candidates**, not automatically activated runnable hardware profiles. Device detection, MIDI mappings, and hardware test results remain unverified until confirmed on physical units. Do not infer MIDI CC/note assignments from the visible control layout.
+
+## Capability and test vocabulary
+
+Test methods: `midi_control_sweep` (learn each button/fader/encoder with event logging and min/max/dead-zone checks); `midi_feedback` (LED/display feedback only after protocol verified); `jog_motion` (direction, resolution, discontinuities, touch state); `motor_platter` (motor start/stop and platter speeds; manufacturer diagnostic or manual observation, not unrestricted MIDI command); `audio_loopback` (channel identification, stereo polarity/balance, frequency response/noise with calibrated loopback); `routing_matrix` (exercise every supported input/output path one at a time); `media_playback` (USB/library, load/cue/loop/pitch, human-assisted); `driver_enumeration` (USB MIDI/audio device, endpoint count and operating-system driver); `network_link` (device discovery and connectivity only when publicly documented protocol and test environment permit); `manual_display` (onscreen elements confirmed by human); `manual_physical` (crossfader feel, input switches, physical connectivity). Mark tests `automated`, `guided`, or `manual` separately. Never label a guided check automated.
+
+## Manufacturer-verified candidate records
+
+| ID (proposed) | Manufacturer / model | Category | Published capabilities | Appropriate test families | Source |
+|---|---|---|---|---|---|
+| alphatheta-xdj-az | AlphaTheta XDJ-AZ | ALL_IN_ONE / MIXER / MEDIA_PLAYER | Four-deck standalone playback, four mixer channels, 10.1-inch capacitive screen, 206 mm jogs, 2 USB-A ports and one USB-C, PRO DJ LINK LAN, wireless SonicLink headphone transmission, two RCA line/phono input pairs, XLR and RCA master, TRS booth | media_playback, jog_motion, audio_loopback, routing_matrix, manual_display, manual_physical, network_link (guided) | https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/ |
+| hercules-djcontrol-inpulse-t7 | Hercules DJControl Inpulse T7 | DJ_CONTROLLER / MOTORIZED | Two removable 7-inch discs on motorized platters, 33 1/3 RPM and software-dependent 45 RPM, integrated 24-bit/44.1 kHz audio, two XLR and RCA master pairs, dual-size headphone outs, microphone input, pitch faders, eight pads per deck, Serato/DJUCED | driver_enumeration, midi_control_sweep, jog_motion, motor_platter (guided/vendor tool), audio_loopback, routing_matrix, manual_physical | https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/ ; https://ts.hercules.com/download/sound/manuals/DJC_Inpulse_T7/HERCULES_DJC_INPULSE_T7_-_USER_MANUAL_EN.pdf |
+| reloop-mixon-8-pro | Reloop Mixon 8 Pro | DJ_CONTROLLER / MIXER | Four channel controller, two 149-mm touch jogs with displays, Serato and djay Pro, dual USB audio connectivity, standalone analog mixing, two phono and four line inputs, FX toggles | driver_enumeration, midi_control_sweep, jog_motion, routing_matrix, audio_loopback, manual_display | https://www.reloop.com/reloop-mixon-8-pro |
+| allen-heath-xone-96 | Allen & Heath Xone:96 | MIXER / AUDIO_INTERFACE / MIDI | 6+2 analog mixer, four main 4-band EQ channels, two VCF filters, two independent USB interfaces each supporting 12 in/12 out, 32-bit up to 96 kHz, X:LINK, 5-pin MIDI out, phono inputs on channels 1-4 | driver_enumeration, audio_loopback, routing_matrix, midi_control_sweep (only documented transmitted controls), manual_physical | https://www.allen-heath.com/hardware/xone-series/xone96/ ; https://support.allen-heath.com/hc/en-gb/articles/43053562464017-Xone-96-User-Guide |
+| novation-launch-control-xl-3 | Novation Launch Control XL 3 | MIDI_CONTROLLER | 24 RGB rotary encoders, eight 60 mm faders, sixteen assignable buttons, OLED screen, USB-C, 5-pin DIN MIDI In/Out/Out2-Thru, custom modes, separate USB MIDI/DAW interfaces | driver_enumeration, midi_control_sweep, midi_feedback (per programmer guide), manual_display, routing_matrix (DIN MIDI routing; guided) | https://userguides.novationmusic.com/hc/en-gb/articles/26190536231570-Launch-Control-XL-3-s-Specifications ; https://userguides.novationmusic.com/hc/en-gb/articles/27840466285586-About-the-Launch-Control-XL-3-programmer-s-reference-guide |
+| novation-launch-control-3 | Novation Launch Control 3 | MIDI_CONTROLLER | Sixteen RGB rotary encoders, eight buttons, OLED, USB-C and three DIN MIDI ports | driver_enumeration, midi_control_sweep, manual_display, routing_matrix (guided) | https://userguides.novationmusic.com/hc/en-gb/articles/30683924222098-Launch-Control-3-s-Specifications |
+
+## Test-case design derived from these devices
+
+1. **Motor-driven platter:** require a motor test state separate from jog touch/movement. On the Inpulse T7 the vendor manual describes a dedicated platter test in its diagnostic panel; guide the operator to run that procedure, observe rotation, record pass/fail per side, and never assume generic MIDI jog events can energize the motor.
+2. **Multiple USB soundcards:** enumerate USB interfaces independently. On the Xone:96 compare 12-in/12-out enumeration, channel mappings, sample-rate support and loopback results on USB 1 and USB 2 without collapsing both into one audio interface.
+3. **Standalone and controller modes:** XDJ-AZ and Mixon 8 Pro have fundamentally different computer-connected versus standalone capabilities. The test plan must filter by active operating mode.
+4. **Multi-interface MIDI:** Launch Control XL 3 exposes distinct main and DAW USB MIDI interfaces. Test each separately; ensure a control movement is not counted as duplicate independent hardware events when ports mirror data.
+5. **Analog versus software processing:** mark physical analog EQ/filter/sends and standalone audio routes as guided capture checks, not MIDI tests unless the vendor publishes control mappings.
+6. **Screens and LEDs:** until device-specific feedback protocol is validated, use guided visual assertions with human confirmation. Do not send guessed SysEx commands.
+7. **MIDI map lifecycle:** store observed message type/channel/number, absolute vs relative encoding, selected mode/layer, firmware version and discovery time. Distinguish learned hardware mapping from a verified published MIDI implementation chart.
+8. **Audio measurement:** calibrate capture interface and document sample rate, signal level, wiring and uncertainty; report loopback evidence without presenting manufacturer specs as measured pass thresholds.
+
+## Additional catalog discovery queue (unverified; do not assign hardware specifications)
+
+Research in later batches: Pioneer DJ/AlphaTheta DDJ-FLX4, DDJ-FLX10, DDJ-GRV6, DDJ-REV5, DDJ-REV7, OPUS-QUAD, CDJ-3000, DJM-A9, DJM-V10; Denon DJ PRIME 4+, SC LIVE 4, SC6000, PRIME GO+; RANE FOUR, PERFORMER, ONE, TWELVE MKII, SEVENTY-TWO MKII; Native Instruments Traktor Kontrol S4 MK3, S3, X1 MK3, Z1 MK2, F1; Hercules Inpulse 200 MK2, Inpulse 500, T7 Premium; Numark Mixtrack Platinum FX, NS4FX, Mixstream Pro+, Party Mix II; Reloop Buddy, Ready, FLUX, Elite; Allen & Heath Xone:K2/K3, Xone:92, Xone:PX5; Akai APC40 MK2, APC64, MPD218; Novation Launchpad Pro MK3, Launchkey MK4; Behringer X-Touch Mini, CMD series. A model's appearance in this queue is not evidence of feature support.
+
+## Import and release acceptance gates
+
+- De-duplicate against `app/devices/profiles` by normalized manufacturer/model/variant before inserting.
+- Preserve source URL, retrieval date (2026-10-20), per-field provenance `MANUFACTURER_PUBLISHED` or `OFFICIAL_MANUAL`, and optional firmware applicability.
+- Build profile JSON following actual existing schema; do not invent property names or update the generated index manually. Run `tools/build-device-index.mjs`, profile validator and JS/Rust test suites.
+- Do not claim hardware verification until exercised on actual hardware. Record `NOT_TESTED`, `NOT_SUPPORTED`, `INVALID`, and `INCONCLUSIVE` distinctly.
+- Never mark a device auto-detectable without observed VID/PID or manufacturer-supported identification, and do not treat third-party MIDI mappings as authoritative without provenance.
