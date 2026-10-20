@@ -8,6 +8,13 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://novationmusic.com/products/launch-control-xl-mk2",
+      "language": "en",
+      "notes": "MK2 model must be confirmed; Launch Control XL 3 is different"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://support.novationmusic.com/",
@@ -82,6 +89,30 @@
       "source": "https://support.novationmusic.com/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_faders",
+      "label": "faders",
+      "value": 8,
+      "unit": "count",
+      "source": "https://novationmusic.com/products/launch-control-xl-mk2",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_knobs",
+      "label": "knobs",
+      "value": 24,
+      "unit": "count",
+      "source": "https://novationmusic.com/products/launch-control-xl-mk2",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_buttons",
+      "label": "buttons",
+      "value": 16,
+      "unit": "count",
+      "source": "https://novationmusic.com/products/launch-control-xl-mk2",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -181,6 +212,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "novation-launch-control-xl-verified-extra",
+      "title": "Every physical fader, knob and button",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Set device to default MIDI user layout.",
+        "Sweep all eight faders and 24 knobs end-to-end, recording continuity.",
+        "Activate all sixteen buttons and record note/CC events and LED feedback."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
