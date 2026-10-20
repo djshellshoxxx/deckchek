@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer model documentation and feature FAQ",
+      "type": "support-article",
+      "url": "https://www.numark.com/product/mixstream-pro",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://cdn.inmusicbrands.com/Numark/products/Mixstream_Pro/Mixstream_Pro_User_Guide_v2.pdf",
@@ -83,6 +89,54 @@
       "source": "https://cdn.inmusicbrands.com/Numark/products/Mixstream_Pro/Mixstream_Pro_User_Guide_v2.pdf",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_media_ports",
+      "label": "usb media ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_sd_ports",
+      "label": "sd ports",
+      "value": 1,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_jog_diameter_inches",
+      "label": "jog diameter inches",
+      "value": 6,
+      "unit": "inch",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_integrated_speakers",
+      "label": "integrated speakers",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.numark.com/product/mixstream-pro",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -259,6 +313,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "numark-mixstream-pro-verified-mode-check",
+      "title": "Integrated speakers and offline USB/SD",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Load known-good reference audio through each of two USB slots and SD.",
+        "Switch onboard monitor speakers on/off and inspect noise and balance.",
+        "Test main XLR/RCA and headphone outputs independently."
+      ],
+      "equipment": [
+        "Known-good media",
+        "Compatible OS / software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
