@@ -37,3 +37,19 @@ For each device, the URL under `documents` points to an official manufacturer's 
 6. Expand model coverage to legacy/discontinued devices, modular deck controllers, media players, rotary mixers, MIDI keyboards, trigger grids and unusual multichannel interfaces.
 
 The existing provisional `pioneer-ddj-s8` identity remains an unresolved separate cleanup issue. Do not treat that profile's assumed hardware properties as verified.
+
+## Manufacturer-confirmed detailed capability pass (2026-10-20)
+
+Seven profiles have received specific manufacturer-confirmed numerical or categorical capability entries and feature-targeted guided tests:
+
+| Profile | Primary sources and test scope |
+|---|---|
+| pioneer-dj-ddj-flx4 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/ ; USB class compliance, 2 channels, Smart Fader / Smart CFX, microphone, pads |
+| denon-dj-prime-4 | https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions ; independent zone, input pairs, storage ports, simultaneous outputs. This file represents PRIME 4+; do not equate with PRIME 4 original. |
+| native-instruments-traktor-kontrol-s4-mk3 | https://www.native-instruments.com/products/traktor-kontrol-s4 ; motorized Haptic Drive, mixer operation, pads and displays |
+| allen-and-heath-xone-96 | https://www.allen-heath.com/hardware/xone-series/xone96/ and https://support.allen-heath.com/hc/en-gb/articles/43084536824849-Xone-96-MIDI-Implementation ; dual USB, filter, MIDI channel and mixer paths |
+| ableton-push-3 | https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications ; balanced audio, ADAT, pedal CV. Standalone playback is restricted to the standalone variant, not controller-only hardware. |
+| hercules-djcontrol-inpulse-t7 | https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/ ; motorized 7-inch platter, audio, FX, cue, stem controls |
+| novation-launchpad-pro-mk3 | https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3 and https://userguides.novationmusic.com/hc/en-gb/articles/25494530115346-Launchpad-Pro-MK3-interface ; pressure-sensitive pads, standalone sequencer, MIDI ports, custom modes, published CC ranges |
+
+The *remaining 30 newly added research profiles* retain preliminary test planning only and require the same per-model deep-dive. Test procedures remain **unvalidated on physical hardware**, even for the seven manufacturer-sourced profiles. Any quoted factory specification is distinct from a measured pass/fail threshold.
