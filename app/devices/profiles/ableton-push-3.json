@@ -1,0 +1,358 @@
+{
+  "schemaVersion": 1,
+  "id": "ableton-push-3",
+  "manufacturer": "Ableton",
+  "model": "Push 3",
+  "category": "controller",
+  "summary": "Hardware diagnostic research profile. Candidate features: pad,encoder,button,usb,display,audio. Software: Ableton Live.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8831904851740-Getting-Started-with-MPE-on-Push-3",
+      "language": "en",
+      "notes": ""
+    },
+    {
+      "title": "Verified manufacturer capability reference",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "language": "en",
+      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Push 3 technical FAQ",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8483166334748-Push-3-Technical-FAQ",
+      "language": "en"
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "Push 3"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Ableton Live",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "pad,encoder,button,usb,display,audio",
+      "unit": "",
+      "source": "https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_balanced_analog_inputs",
+      "label": "balanced analog inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_balanced_analog_outputs",
+      "label": "balanced analog outputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_audio_sample_rate_max",
+      "label": "audio sample rate max",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_adat_expansion_inputs_total",
+      "label": "adat expansion inputs total",
+      "value": 10,
+      "unit": "count",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_pedal_cv_output",
+      "label": "pedal cv output",
+      "value": true,
+      "unit": "bool",
+      "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_mpe_expression_supported",
+      "label": "mpe expression supported",
+      "value": true,
+      "unit": "bool",
+      "source": "https://help.ableton.com/hc/en-us/articles/8831904851740-Getting-Started-with-MPE-on-Push-3",
+      "confidence": "confirmed"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "ableton-push-3-pad",
+      "category": "midi",
+      "title": "Pad trigger and LED coverage",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all pad controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-encoder",
+      "category": "midi",
+      "title": "Encoder detent and push",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:coverage",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all encoder controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-button",
+      "category": "midi",
+      "title": "Button switch matrix",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all button controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-display",
+      "category": "software",
+      "title": "Display and menu navigation",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all display controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-audio",
+      "category": "audio",
+      "title": "Audio output channel integrity",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Check Push 3 official manual, ports and operating mode.",
+        "Exercise all audio controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-audio-modes",
+      "category": "audio",
+      "title": "Input impedance/gain mode and ADAT expansion",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect known-good LINE signal to input 1 and 2 and capture.",
+        "Check supported instrument and high gain modes with suitable source and safe levels.",
+        "Attach compatible ADAT interface and verify expanded input mapping."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-cv",
+      "category": "software",
+      "title": "Pedal CV output configuration",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Enable CV functionality on the appropriate pedal port.",
+        "Use an appropriate meter or CV-compatible receiving device to observe controlled output.",
+        "Do not test CV input on analog audio jacks: it is unsupported."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-extra",
+      "title": "MPE velocity pressure and per-note expression",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Set Push expression mode to MPE and load an MPE-compatible instrument.",
+        "Play distinct notes with velocity, held pressure and multidimensional movement.",
+        "Validate generated MIDI expression and audible instrument behavior in the supported host."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

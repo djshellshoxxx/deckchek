@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "id": "akai-professional-apc40-mkii",
+  "manufacturer": "Akai Professional",
+  "model": "APC40 MKII",
+  "category": "controller",
+  "summary": "Hardware diagnostic research profile. Candidate features: fader,encoder,button,pad,usb. Software: Ableton Live.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer controls and technical specifications",
+      "type": "manual",
+      "url": "https://www.akaipro.com/apc40-mk2/",
+      "language": "en"
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://www.akaipro.com/support",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://www.akaipro.com/support",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://www.akaipro.com/support",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "APC40 MKII"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Ableton Live",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "fader,encoder,button,pad,usb",
+      "unit": "",
+      "source": "https://www.akaipro.com/support",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_rgb_clip_grid",
+      "label": "rgb clip grid",
+      "value": 40,
+      "unit": "count",
+      "source": "https://www.akaipro.com/apc40-mk2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_faders",
+      "label": "faders",
+      "value": 9,
+      "unit": "count",
+      "source": "https://www.akaipro.com/apc40-mk2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_channel_knobs",
+      "label": "channel knobs",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.akaipro.com/apc40-mk2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_device_knobs",
+      "label": "device knobs",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.akaipro.com/apc40-mk2/",
+      "confidence": "confirmed"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "akai-professional-apc40-mkii-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Check APC40 MKII official manual, ports and operating mode.",
+        "Exercise all fader controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-encoder",
+      "category": "midi",
+      "title": "Encoder detent and push",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:coverage",
+      "params": {},
+      "steps": [
+        "Check APC40 MKII official manual, ports and operating mode.",
+        "Exercise all encoder controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-button",
+      "category": "midi",
+      "title": "Button switch matrix",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check APC40 MKII official manual, ports and operating mode.",
+        "Exercise all button controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-pad",
+      "category": "midi",
+      "title": "Pad trigger and LED coverage",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check APC40 MKII official manual, ports and operating mode.",
+        "Exercise all pad controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check APC40 MKII official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "akai-professional-apc40-mkii-verified-controls",
+      "title": "5x8 RGB grid clip-state feedback",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Launch all 40 grid pads and check MIDI/Live response.",
+        "Observe RGB LED differences for loaded playing recording states.",
+        "Sweep all nine faders and sixteen knobs and test send-bank navigation."
+      ],
+      "equipment": [
+        "Hardware",
+        "Compatible MIDI monitor or reference source"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

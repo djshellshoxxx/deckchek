@@ -1,0 +1,98 @@
+name: Cross-platform desktop release validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/cross-platform-release-validation.yml'
+      - 'src-tauri/**'
+      - 'app/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'database/**'
+      - 'package.json'
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: node tools/build-device-index.mjs --check
+      - run: node tools/check-timecode-facts.mjs
+      - run: node tools/check-migrations.mjs
+      - name: Syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' f; do node --check "$f"; done < <(find app -type f -name '*.js' -print0)
+
+  build:
+    needs: verification
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+            bundles: nsis,msi
+            output: src-tauri/target/release/deckchek.exe
+          - os: macos-15
+            name: macos-arm64
+            bundles: app,dmg
+            output: src-tauri/target/release/bundle
+          - os: macos-15-intel
+            name: macos-x64
+            bundles: app,dmg
+            output: src-tauri/target/release/bundle
+          - os: ubuntu-22.04
+            name: linux-x64
+            bundles: deb,appimage
+            output: src-tauri/target/release/bundle
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install Linux Tauri prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev
+      - name: Install Tauri CLI
+        uses: taiki-e/install-action@v2
+        with:
+          tool: tauri-cli
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Compile check
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Build platform bundles
+        run: cargo tauri build --bundles ${{ matrix.bundles }}
+      - name: Publish CI build artifacts (not a GitHub Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deckchek-${{ matrix.name }}
+          path: |
+            ${{ matrix.output }}
+            src-tauri/target/release/bundle
+          if-no-files-found: error
+          retention-days: 14
+
+# Deliberately no GitHub Release publishing here.
+# Mac artifacts are unsigned/not notarized, and automated success does not
+# establish audio backend functionality on physical hardware.

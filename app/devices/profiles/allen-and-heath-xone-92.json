@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "id": "allen-and-heath-xone-92",
+  "manufacturer": "Allen & Heath",
+  "model": "Xone:92",
+  "category": "mixer",
+  "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio. Software: analog.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer model feature reference",
+      "type": "support-article",
+      "url": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "language": "en",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://www.allen-heath.com/hardware/xone-series/",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://www.allen-heath.com/hardware/xone-series/",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://www.allen-heath.com/hardware/xone-series/",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": false,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "Xone:92"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "analog",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "fader,eq,audio",
+      "unit": "",
+      "source": "https://www.allen-heath.com/hardware/xone-series/",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_phono_line_channels",
+      "label": "phono line channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_microphone_line_channels",
+      "label": "microphone line channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_eq_bands",
+      "label": "eq bands",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_dual_analog_filters",
+      "label": "dual analog filters",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_all_analog_signal_bus",
+      "label": "all analog signal bus",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "allen-and-heath-xone-92-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings. Mixer fader must be measured through an analog/audio path unless the manufacturer explicitly publishes its MIDI mapping.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect suitable known-good LINE level input (use PHONO only for true PHONO reference sources).",
+        "Sweep channel and crossfaders while metering/audio-capturing signal, including cut/bleed endpoints.",
+        "Compare left/right paths and record observed dropout/scratch/noise. MIDI may be captured separately only if documented."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "allen-and-heath-xone-92-eq",
+      "category": "mixer",
+      "title": "Equalizer and gain sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check Xone:92 official manual, ports and operating mode.",
+        "Exercise all eq controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "allen-and-heath-xone-92-audio",
+      "category": "audio",
+      "title": "Audio output channel integrity",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Check Xone:92 official manual, ports and operating mode.",
+        "Exercise all audio controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "allen-and-heath-xone-92-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "allen-and-heath-xone-92-verified-paths",
+      "title": "Analogue phono/line routing and VCF",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check line and phono sources using proper levels.",
+        "Sweep each 4-band EQ, filters, fader and cue path.",
+        "Record left/right audio and hum measurements; do not require MIDI or USB."
+      ],
+      "equipment": [
+        "Hardware",
+        "Reference test source or software"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

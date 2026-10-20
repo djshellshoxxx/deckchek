@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "id": "pioneer-dj-djm-450",
+  "manufacturer": "Pioneer DJ",
+  "model": "DJM-450",
+  "category": "mixer",
+  "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio,usb. Software: rekordbox.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "language": "en",
+      "notes": ""
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/support/",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "DJM-450"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "rekordbox",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "fader,eq,audio,usb",
+      "unit": "",
+      "source": "https://www.pioneerdj.com/en/support/",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_beat_fx",
+      "label": "beat fx",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_sound_color_fx",
+      "label": "sound color fx",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_magvel_crossfader",
+      "label": "magvel crossfader",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
+      "confidence": "confirmed"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "pioneer-dj-djm-450-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings. Mixer fader must be measured through an analog/audio path unless the manufacturer explicitly publishes its MIDI mapping.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect suitable known-good LINE level input (use PHONO only for true PHONO reference sources).",
+        "Sweep channel and crossfaders while metering/audio-capturing signal, including cut/bleed endpoints.",
+        "Compare left/right paths and record observed dropout/scratch/noise. MIDI may be captured separately only if documented."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-eq",
+      "category": "mixer",
+      "title": "Equalizer and gain sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check DJM-450 official manual, ports and operating mode.",
+        "Exercise all eq controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-audio",
+      "category": "audio",
+      "title": "Audio output channel integrity",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Check DJM-450 official manual, ports and operating mode.",
+        "Exercise all audio controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check DJM-450 official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-450-verified-extra",
+      "title": "Two-channel DSP effects and analog sources",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect valid LINE or PHONO source to each channel.",
+        "Cycle eight Beat FX and four Sound Color FX against reference signal.",
+        "Test crossfader full travel and output bleed through mixer audio path."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

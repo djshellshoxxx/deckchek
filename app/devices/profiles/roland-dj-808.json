@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "id": "roland-dj-808",
+  "manufacturer": "Roland",
+  "model": "DJ-808",
+  "category": "controller",
+  "summary": "Hardware diagnostic research profile. Candidate features: jog,pad,fader,eq,audio,usb. Software: Serato DJ Pro.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Model specific official feature reference",
+      "type": "manual",
+      "url": "https://www.roland.com/global/products/dj-808/support/",
+      "language": "en"
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://www.roland.com/global/support/",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://www.roland.com/global/support/",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://www.roland.com/global/support/",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "DJ-808"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "jog,pad,fader,eq,audio,usb",
+      "unit": "",
+      "source": "https://www.roland.com/global/support/",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_tr_s_drum_sequencer",
+      "label": "tr s drum sequencer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_vt_voice_transformer",
+      "label": "vt voice transformer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_aira_link_ports",
+      "label": "aira link ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_bit_depth",
+      "label": "interface bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_sample_rate",
+      "label": "interface sample rate",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "roland-dj-808-jog",
+      "category": "midi",
+      "title": "Jog movement, touch and direction",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:jog",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all jog controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-pad",
+      "category": "midi",
+      "title": "Pad trigger and LED coverage",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all pad controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all fader controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-eq",
+      "category": "mixer",
+      "title": "Equalizer and gain sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all eq controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-audio",
+      "category": "audio",
+      "title": "Audio output channel integrity",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all audio controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check DJ-808 official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-verified-special-functions",
+      "title": "TR-S sequencer, voice transform and AIRA Link",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Test sequencer transport and the TR-606/707/808/909 sound kit selections.",
+        "Feed an appropriate microphone signal and verify VT Pitch/Formant/Ducking paths.",
+        "Test compatible AIRA Link equipment and observe clock/signal without claiming MIDI-only compatibility."
+      ],
+      "equipment": [
+        "Device and known-good reference source"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

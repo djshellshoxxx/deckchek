@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "id": "novation-launchpad-pro-mk3",
+  "manufacturer": "Novation",
+  "model": "Launchpad Pro MK3",
+  "category": "controller",
+  "summary": "Hardware diagnostic research profile. Candidate features: pad,button,usb. Software: Ableton Live,generic MIDI.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer-specific capabilities and mode reference",
+      "type": "manual",
+      "url": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "language": "en"
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://support.novationmusic.com/",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://support.novationmusic.com/",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://support.novationmusic.com/",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Novation MK3 programmer and user guide downloads",
+      "type": "midi-message-list",
+      "url": "https://downloads.novationmusic.com/novation/launchpad-mk3/launchpad-pro-mk3-0",
+      "language": "en"
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "Launchpad Pro MK3"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Ableton Live",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    },
+    {
+      "name": "generic MIDI",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "pad,button,usb",
+      "unit": "",
+      "source": "https://support.novationmusic.com/",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_velocity_pressure_pads",
+      "label": "velocity pressure pads",
+      "value": 64,
+      "unit": "count",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_sequencer_tracks",
+      "label": "sequencer tracks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_sequencer_steps",
+      "label": "sequencer steps",
+      "value": 32,
+      "unit": "steps",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_custom_modes",
+      "label": "custom modes",
+      "value": 8,
+      "unit": "count",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_midi_out_ports",
+      "label": "midi out ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented capability, not a measured baseline."
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "novation-launchpad-pro-mk3-pad",
+      "category": "midi",
+      "title": "Pad trigger and LED coverage",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check Launchpad Pro MK3 official manual, ports and operating mode.",
+        "Exercise all pad controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-button",
+      "category": "midi",
+      "title": "Button switch matrix",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check Launchpad Pro MK3 official manual, ports and operating mode.",
+        "Exercise all button controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check Launchpad Pro MK3 official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-verified-velocity",
+      "title": "Pad velocity and pressure sensitivity",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Enable mode exposing per-pad velocity and pressure.",
+        "Strike all 64 pads at soft, medium and hard dynamics and hold pressure.",
+        "Record event continuity, range and consistency, without enforcing arbitrary force-to-velocity thresholds."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible software or MIDI monitor"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-verified-sequencer",
+      "title": "Standalone sequencer four-track pattern integrity",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Create a short reference pattern on each of four sequencer tracks.",
+        "Check 32-step playback, transport, mutation and probability settings.",
+        "Capture MIDI output and timing while no computer host is required for standalone control."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible software or MIDI monitor"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launchpad-pro-mk3-verified-mapping",
+      "title": "Published custom-mode CC groups",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Use Custom 1 and verify eight virtual faders map to CC 7 through 14.",
+        "Use Custom 2 and verify eight virtual faders map to CC 15 through 22.",
+        "Verify Programmer Mode and LED feedback with official implementation chart before using exact note/LED assertions."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible software or MIDI monitor"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

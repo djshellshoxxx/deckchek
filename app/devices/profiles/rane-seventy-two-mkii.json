@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "id": "rane-seventy-two-mkii",
+  "manufacturer": "RANE",
+  "model": "SEVENTY-TWO MKII",
+  "category": "mixer",
+  "summary": "Hardware diagnostic research profile. Candidate features: pad,fader,eq,audio,usb,display. Software: Serato DJ Pro.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Manufacturer model-specific features, guide and downloads",
+      "type": "manual",
+      "url": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "language": "en"
+    },
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://www.rane.com/downloads",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://www.rane.com/downloads",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://www.rane.com/downloads",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "SEVENTY-TWO MKII"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Serato DJ Pro",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "pad,fader,eq,audio,usb,display",
+      "unit": "",
+      "source": "https://www.rane.com/downloads",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_multitouch_display",
+      "label": "multitouch display",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_dual_dvs_inputs",
+      "label": "dual dvs inputs",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_tension_adjustable_crossfader",
+      "label": "tension adjustable crossfader",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "rane-seventy-two-mkii-pad",
+      "category": "midi",
+      "title": "Pad trigger and LED coverage",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check SEVENTY-TWO MKII official manual, ports and operating mode.",
+        "Exercise all pad controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings. Mixer fader must be measured through an analog/audio path unless the manufacturer explicitly publishes its MIDI mapping.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect suitable known-good LINE level input (use PHONO only for true PHONO reference sources).",
+        "Sweep channel and crossfaders while metering/audio-capturing signal, including cut/bleed endpoints.",
+        "Compare left/right paths and record observed dropout/scratch/noise. MIDI may be captured separately only if documented."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-eq",
+      "category": "mixer",
+      "title": "Equalizer and gain sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check SEVENTY-TWO MKII official manual, ports and operating mode.",
+        "Exercise all eq controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-audio",
+      "category": "audio",
+      "title": "Audio output channel integrity",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Check SEVENTY-TWO MKII official manual, ports and operating mode.",
+        "Exercise all audio controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check SEVENTY-TWO MKII official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-display",
+      "category": "software",
+      "title": "Display and menu navigation",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check SEVENTY-TWO MKII official manual, ports and operating mode.",
+        "Exercise all display controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-verified-capabilities",
+      "title": "Dual DVS and multitouch workflow",
+      "category": "mixer",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Select supported Serato DJ Pro mode and connect test DVS sources.",
+        "Check left and right DVS input paths and both physical channel routing.",
+        "Operate multi-touch screen and crossfader tension, noting mechanical observations."
+      ],
+      "equipment": [
+        "Device and compatible reference source"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

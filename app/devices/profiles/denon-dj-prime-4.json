@@ -1,0 +1,373 @@
+{
+  "schemaVersion": 1,
+  "id": "denon-dj-prime-4",
+  "manufacturer": "Denon DJ",
+  "model": "PRIME 4+",
+  "category": "controller",
+  "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "documents": [
+    {
+      "title": "Verified manufacturer capability reference",
+      "type": "support-article",
+      "url": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "language": "en",
+      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+    },
+    {
+      "title": "Manufacturer manual/product documentation",
+      "type": "manual",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Direct manual for some models; otherwise manufacturer's product/support landing page. Verify exact variant."
+    },
+    {
+      "title": "Firmware, driver and downloads",
+      "type": "driver",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Check the model-specific download page and operating system."
+    },
+    {
+      "title": "Manufacturer support",
+      "type": "support-article",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Official source entry point."
+    },
+    {
+      "title": "Service manual (public availability not established)",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Do not substitute operating instructions for a service manual."
+    },
+    {
+      "title": "MIDI implementation chart (not verified)",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "PRIME 4+"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Engine DJ",
+      "role": "claimed companion / operating mode; verify model and version",
+      "minVersion": null
+    },
+    {
+      "name": "standalone",
+      "role": "claimed companion / operating mode; verify model and version",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware functions for diagnostic planning",
+      "value": "jog, pad, fader, eq, audio, usb, media, display",
+      "unit": "",
+      "source": "https://www.denondj.com/downloads",
+      "confidence": "unverified",
+      "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_main_decks",
+      "label": "main decks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_headphone_outputs",
+      "label": "headphone outputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_external_usb_media_ports",
+      "label": "external usb media ports",
+      "value": 4,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_sd_slots",
+      "label": "sd slots",
+      "value": 1,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_ethernet_ports",
+      "label": "ethernet ports",
+      "value": 1,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_zone_stereo_xlr",
+      "label": "zone stereo xlr",
+      "value": true,
+      "unit": "bool",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_phono_line_input_pairs",
+      "label": "phono line input pairs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "denon-dj-prime-4-jog",
+      "category": "midi",
+      "title": "Jog rotation and touch",
+      "why": "Check jog function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "midi:jog",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each jog element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-pad",
+      "category": "midi",
+      "title": "Pad and mode coverage",
+      "why": "Check pad function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each pad element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-fader",
+      "category": "mixer",
+      "title": "Fader endpoint and continuity",
+      "why": "Check fader function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each fader element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-eq",
+      "category": "mixer",
+      "title": "EQ and trim range",
+      "why": "Check eq function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each eq element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-audio",
+      "category": "audio",
+      "title": "Audio output and cue channel integrity",
+      "why": "Check audio function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each audio element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-usb",
+      "category": "usb",
+      "title": "USB detection and reconnection",
+      "why": "Check usb function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each usb element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-media",
+      "category": "software",
+      "title": "Standalone media browse load and play",
+      "why": "Check media function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each media element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-display",
+      "category": "software",
+      "title": "Display and menu navigation",
+      "why": "Check display function on PRIME 4+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME 4+ manual for the relevant connectors and operating mode.",
+        "Exercise each display element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-firmware",
+      "category": "software",
+      "title": "Firmware and application compatibility",
+      "why": "Prevent mismatched firmware and software versions from being reported as hardware failure.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Read installed firmware and hardware revision.",
+        "Compare with the model-specific official compatibility and downloads pages.",
+        "Record operating system, application version, firmware and documentation URL."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-verified-zone",
+      "category": "audio",
+      "title": "Zone assignment and independent stereo output",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Route a reference track to master and zone outputs.",
+        "Switch the Zone Channel Assign to deck 4 and load independent reference media.",
+        "Meter independent zone L/R output and verify master isolation."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-4-verified-sources",
+      "category": "software",
+      "title": "All media and external input routing",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Test each of four USB media sockets and SD slot with known compatible files.",
+        "Route both switchable phono/line input pairs with correct levels.",
+        "Record per-port read failures and per-channel input/output observations."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

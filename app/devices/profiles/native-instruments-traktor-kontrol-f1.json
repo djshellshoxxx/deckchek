@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "id": "native-instruments-traktor-kontrol-f1",
+  "manufacturer": "Native Instruments",
+  "model": "TRAKTOR KONTROL F1",
+  "category": "controller",
+  "summary": "controller profile with pad, fader, usb diagnostic groups. Companion workflow(s): Traktor Pro.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "documents": [
+    {
+      "title": "Manufacturer controls and technical specifications",
+      "type": "manual",
+      "url": "https://www.native-instruments.com/en/support/downloads/",
+      "language": "en"
+    },
+    {
+      "title": "Manufacturer manual/product documentation",
+      "type": "manual",
+      "url": "https://www.native-instruments.com/en/support/downloads/",
+      "language": "en",
+      "notes": "Direct manual for some models; otherwise manufacturer's product/support landing page. Verify exact variant."
+    },
+    {
+      "title": "Firmware, driver and downloads",
+      "type": "driver",
+      "url": "https://www.native-instruments.com/en/support/downloads/",
+      "language": "en",
+      "notes": "Check the model-specific download page and operating system."
+    },
+    {
+      "title": "Manufacturer support",
+      "type": "support-article",
+      "url": "https://www.native-instruments.com/en/support/downloads/",
+      "language": "en",
+      "notes": "Official source entry point."
+    },
+    {
+      "title": "Service manual (public availability not established)",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Do not substitute operating instructions for a service manual."
+    },
+    {
+      "title": "MIDI implementation chart (not verified)",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "TRAKTOR KONTROL F1"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Traktor Pro",
+      "role": "claimed companion / operating mode; verify model and version",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware functions for diagnostic planning",
+      "value": "pad, fader, usb",
+      "unit": "",
+      "source": "https://www.native-instruments.com/en/support/downloads/",
+      "confidence": "unverified",
+      "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_pads",
+      "label": "pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/en/support/downloads/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_faders",
+      "label": "faders",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/en/support/downloads/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_knobs",
+      "label": "knobs",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/en/support/downloads/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_encoder",
+      "label": "encoder",
+      "value": 1,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/en/support/downloads/",
+      "confidence": "confirmed"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "native-instruments-traktor-kontrol-f1-pad",
+      "category": "midi",
+      "title": "Pad and mode coverage",
+      "why": "Check pad function on TRAKTOR KONTROL F1; avoid assumptions about HID or analog routing.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Consult the exact TRAKTOR KONTROL F1 manual for the relevant connectors and operating mode.",
+        "Exercise each pad element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-f1-fader",
+      "category": "mixer",
+      "title": "Fader endpoint and continuity",
+      "why": "Check fader function on TRAKTOR KONTROL F1; avoid assumptions about HID or analog routing.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Consult the exact TRAKTOR KONTROL F1 manual for the relevant connectors and operating mode.",
+        "Exercise each fader element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-f1-usb",
+      "category": "usb",
+      "title": "USB detection and reconnection",
+      "why": "Check usb function on TRAKTOR KONTROL F1; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact TRAKTOR KONTROL F1 manual for the relevant connectors and operating mode.",
+        "Exercise each usb element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-f1-firmware",
+      "category": "software",
+      "title": "Firmware and application compatibility",
+      "why": "Prevent mismatched firmware and software versions from being reported as hardware failure.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Read installed firmware and hardware revision.",
+        "Compare with the model-specific official compatibility and downloads pages.",
+        "Record operating system, application version, firmware and documentation URL."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-f1-verified-controls",
+      "title": "Remix Deck pad, fader and encoder mapping",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Verify every one of 16 pads across Remix Deck layers.",
+        "Sweep four faders and four knobs then rotate/push encoder.",
+        "Check 7-segment display feedback against NI Controller Editor mapping."
+      ],
+      "equipment": [
+        "Hardware",
+        "Compatible MIDI monitor or reference source"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}

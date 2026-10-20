@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "id": "denon-dj-prime-go",
+  "manufacturer": "Denon DJ",
+  "model": "PRIME GO+",
+  "category": "controller",
+  "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. This entry is PRIME GO+, not original PRIME GO; these units differ in Ethernet, streaming support, processor and battery life.",
+  "documents": [
+    {
+      "title": "PRIME GO+ official specifications",
+      "type": "manual",
+      "url": "https://www.denondj.com/prime-go-plus",
+      "language": "en"
+    },
+    {
+      "title": "PRIME GO+ model-specific driver/compatibility FAQ",
+      "type": "driver",
+      "url": "https://support.denondj.com/en/support/solutions/articles/69000860918-denon-dj-prime-go-frequently-asked-questions",
+      "language": "en"
+    },
+    {
+      "title": "Manufacturer manual/product documentation",
+      "type": "manual",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Direct manual for some models; otherwise manufacturer's product/support landing page. Verify exact variant."
+    },
+    {
+      "title": "Firmware, driver and downloads",
+      "type": "driver",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Check the model-specific download page and operating system."
+    },
+    {
+      "title": "Manufacturer support",
+      "type": "support-article",
+      "url": "https://www.denondj.com/downloads",
+      "language": "en",
+      "notes": "Official source entry point."
+    },
+    {
+      "title": "Service manual (public availability not established)",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Do not substitute operating instructions for a service manual."
+    },
+    {
+      "title": "MIDI implementation chart (not verified)",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "PRIME GO+"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Engine DJ",
+      "role": "claimed companion / operating mode; verify model and version",
+      "minVersion": null
+    },
+    {
+      "name": "standalone",
+      "role": "claimed companion / operating mode; verify model and version",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware functions for diagnostic planning",
+      "value": "jog, pad, fader, eq, audio, usb, media, display",
+      "unit": "",
+      "source": "https://www.denondj.com/downloads",
+      "confidence": "unverified",
+      "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.denondj.com/prime-go-plus",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://www.denondj.com/prime-go-plus",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_battery_powered",
+      "label": "battery powered",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.denondj.com/prime-go-plus",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_microphone_inputs",
+      "label": "microphone inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.denondj.com/prime-go-plus",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.denondj.com/prime-go-plus",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_ethernet_port",
+      "label": "Built-in Ethernet port",
+      "value": false,
+      "unit": "bool",
+      "confidence": "confirmed",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000860918-denon-dj-prime-go-frequently-asked-questions",
+      "notes": "Prime GO+ removes built-in Ethernet available on earlier PRIME GO; USB-to-Ethernet adapters supported."
+    },
+    {
+      "key": "verified_main_fx",
+      "label": "Main FX",
+      "value": 26,
+      "unit": "count",
+      "confidence": "confirmed",
+      "source": "https://www.denondj.com/prime-go-plus"
+    },
+    {
+      "key": "verified_touch_fx",
+      "label": "Touch FX",
+      "value": 10,
+      "unit": "count",
+      "confidence": "confirmed",
+      "source": "https://www.denondj.com/prime-go-plus"
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "denon-dj-prime-go-jog",
+      "category": "midi",
+      "title": "Jog rotation and touch",
+      "why": "Check jog function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "midi:jog",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each jog element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-pad",
+      "category": "midi",
+      "title": "Pad and mode coverage",
+      "why": "Check pad function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each pad element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-fader",
+      "category": "mixer",
+      "title": "Fader endpoint and continuity",
+      "why": "Check fader function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each fader element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-eq",
+      "category": "mixer",
+      "title": "EQ and trim range",
+      "why": "Check eq function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each eq element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-audio",
+      "category": "audio",
+      "title": "Audio output and cue channel integrity",
+      "why": "Check audio function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "quick:Signal health",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each audio element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-usb",
+      "category": "usb",
+      "title": "USB detection and reconnection",
+      "why": "Check usb function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each usb element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-media",
+      "category": "software",
+      "title": "Standalone media browse load and play",
+      "why": "Check media function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each media element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-display",
+      "category": "software",
+      "title": "Display and menu navigation",
+      "why": "Check display function on PRIME GO+; avoid assumptions about HID or analog routing.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Consult the exact PRIME GO+ manual for the relevant connectors and operating mode.",
+        "Exercise each display element on the device and observe MIDI, HID/software response or audio measurement as applicable.",
+        "Check slow and fast transitions, all channels/sides, and repeats; save raw evidence and mark unobservable functions as not tested."
+      ],
+      "equipment": [
+        "Connected device",
+        "Compatible host software or capture interface when required"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-firmware",
+      "category": "software",
+      "title": "Firmware and application compatibility",
+      "why": "Prevent mismatched firmware and software versions from being reported as hardware failure.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Read installed firmware and hardware revision.",
+        "Compare with the model-specific official compatibility and downloads pages.",
+        "Record operating system, application version, firmware and documentation URL."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-verified-mode-check",
+      "title": "Battery and offline playback",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Run on fully charged internal battery with external power disconnected.",
+        "Play reference tracks from local storage on both decks and observe output stability.",
+        "Record measured run time and battery condition as user evidence, not manufacturer guarantee."
+      ],
+      "equipment": [
+        "Known-good media",
+        "Compatible OS / software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-verified-bt-network",
+      "title": "PRIME GO+ Bluetooth and wireless routing",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Verify compatible Bluetooth input and output behavior.",
+        "Test Wi-Fi streaming only with an available supported service account.",
+        "Record Engine OS revision and confirm absence of built-in Ethernet port."
+      ],
+      "equipment": [
+        "PRIME GO+",
+        "Test audio device"
+      ],
+      "severity": "major",
+      "pass": null
+    }
+  ]
+}
