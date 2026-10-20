@@ -8,6 +8,15 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer model feature reference",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "language": "en",
+      "notes": [
+        "Official MIDI message list and hardware diagram are available on manufacturer site; use a separate mapping validation phase."
+      ]
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -78,6 +87,39 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "confidence": "confirmed",
+      "notes": [
+        "Official MIDI message list and hardware diagram are available on manufacturer site; use a separate mapping validation phase."
+      ]
+    },
+    {
+      "key": "verified_usb_type_c_ports",
+      "label": "usb type c ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "confidence": "confirmed",
+      "notes": [
+        "Official MIDI message list and hardware diagram are available on manufacturer site; use a separate mapping validation phase."
+      ]
+    },
+    {
+      "key": "verified_on_jog_display",
+      "label": "on jog display",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
+      "confidence": "confirmed",
+      "notes": [
+        "Official MIDI message list and hardware diagram are available on manufacturer site; use a separate mapping validation phase."
+      ]
     }
   ],
   "midi": {
@@ -216,6 +258,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-rev5-verified-paths",
+      "title": "Jog display, USB and controller functionality",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect USB to one of supported ports.",
+        "Test platter/display indicators while controlling supported software.",
+        "Compare captured MIDI with manufacturer's published MIDI message list."
+      ],
+      "equipment": [
+        "Hardware",
+        "Reference test source or software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
