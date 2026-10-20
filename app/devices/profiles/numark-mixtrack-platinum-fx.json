@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Model specific official feature reference",
+      "type": "manual",
+      "url": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.numark.com/support",
@@ -78,6 +84,51 @@
       "source": "https://www.numark.com/support",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_virtual_decks",
+      "label": "virtual decks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_jog_diameter_inches",
+      "label": "jog diameter inches",
+      "value": 6,
+      "unit": "inch",
+      "source": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_effects_paddles",
+      "label": "effects paddles",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.numark.com/product/mixtrack-platinum-fx",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
     }
   ],
   "midi": {
@@ -216,6 +267,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "numark-mixtrack-platinum-fx-verified-special-functions",
+      "title": "Jog display, four-deck control and paddle FX",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check both jog screens and capacitive touch response.",
+        "Switch deck layers and verify control of each of four virtual decks.",
+        "Test both FX paddles and effect selection, then return to bypass."
+      ],
+      "equipment": [
+        "Device and known-good reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
