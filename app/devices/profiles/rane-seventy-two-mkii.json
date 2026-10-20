@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer model-specific features, guide and downloads",
+      "type": "manual",
+      "url": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.rane.com/downloads",
@@ -77,6 +83,38 @@
       "source": "https://www.rane.com/downloads",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_multitouch_display",
+      "label": "multitouch display",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_dual_dvs_inputs",
+      "label": "dual dvs inputs",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_tension_adjustable_crossfader",
+      "label": "tension adjustable crossfader",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -214,6 +252,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "rane-seventy-two-mkii-verified-capabilities",
+      "title": "Dual DVS and multitouch workflow",
+      "category": "mixer",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Select supported Serato DJ Pro mode and connect test DVS sources.",
+        "Check left and right DVS input paths and both physical channel routing.",
+        "Operate multi-touch screen and crossfader tension, noting mechanical observations."
+      ],
+      "equipment": [
+        "Device and compatible reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
