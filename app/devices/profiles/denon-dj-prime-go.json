@@ -5,12 +5,18 @@
   "model": "PRIME GO+",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. This entry is PRIME GO+, not original PRIME GO; these units differ in Ethernet, streaming support, processor and battery life.",
   "documents": [
     {
-      "title": "Manufacturer model documentation and feature FAQ",
-      "type": "support-article",
-      "url": "https://www.denondj.com/prime-go",
+      "title": "PRIME GO+ official specifications",
+      "type": "manual",
+      "url": "https://www.denondj.com/prime-go-plus",
+      "language": "en"
+    },
+    {
+      "title": "PRIME GO+ model-specific driver/compatibility FAQ",
+      "type": "driver",
+      "url": "https://support.denondj.com/en/support/solutions/articles/69000860918-denon-dj-prime-go-frequently-asked-questions",
       "language": "en"
     },
     {
@@ -95,7 +101,7 @@
       "label": "standalone decks",
       "value": 2,
       "unit": "count",
-      "source": "https://www.denondj.com/prime-go",
+      "source": "https://www.denondj.com/prime-go-plus",
       "confidence": "confirmed"
     },
     {
@@ -103,7 +109,7 @@
       "label": "touchscreen inches",
       "value": 7,
       "unit": "inch",
-      "source": "https://www.denondj.com/prime-go",
+      "source": "https://www.denondj.com/prime-go-plus",
       "confidence": "confirmed"
     },
     {
@@ -111,7 +117,7 @@
       "label": "battery powered",
       "value": true,
       "unit": "bool",
-      "source": "https://www.denondj.com/prime-go",
+      "source": "https://www.denondj.com/prime-go-plus",
       "confidence": "confirmed"
     },
     {
@@ -119,7 +125,7 @@
       "label": "microphone inputs",
       "value": 2,
       "unit": "count",
-      "source": "https://www.denondj.com/prime-go",
+      "source": "https://www.denondj.com/prime-go-plus",
       "confidence": "confirmed"
     },
     {
@@ -127,8 +133,33 @@
       "label": "audio bit depth",
       "value": 24,
       "unit": "bit",
-      "source": "https://www.denondj.com/prime-go",
+      "source": "https://www.denondj.com/prime-go-plus",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_ethernet_port",
+      "label": "Built-in Ethernet port",
+      "value": false,
+      "unit": "bool",
+      "confidence": "confirmed",
+      "source": "https://support.denondj.com/en/support/solutions/articles/69000860918-denon-dj-prime-go-frequently-asked-questions",
+      "notes": "Prime GO+ removes built-in Ethernet available on earlier PRIME GO; USB-to-Ethernet adapters supported."
+    },
+    {
+      "key": "verified_main_fx",
+      "label": "Main FX",
+      "value": 26,
+      "unit": "count",
+      "confidence": "confirmed",
+      "source": "https://www.denondj.com/prime-go-plus"
+    },
+    {
+      "key": "verified_touch_fx",
+      "label": "Touch FX",
+      "value": 10,
+      "unit": "count",
+      "confidence": "confirmed",
+      "source": "https://www.denondj.com/prime-go-plus"
     }
   ],
   "midi": {
@@ -321,6 +352,24 @@
       "equipment": [
         "Known-good media",
         "Compatible OS / software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "denon-dj-prime-go-verified-bt-network",
+      "title": "PRIME GO+ Bluetooth and wireless routing",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Verify compatible Bluetooth input and output behavior.",
+        "Test Wi-Fi streaming only with an available supported service account.",
+        "Record Engine OS revision and confirm absence of built-in Ethernet port."
+      ],
+      "equipment": [
+        "PRIME GO+",
+        "Test audio device"
       ],
       "severity": "major",
       "pass": null
