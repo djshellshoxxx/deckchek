@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer controls and technical specifications",
+      "type": "manual",
+      "url": "https://www.ecler.com/products/warm2/",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.ecler.com/",
@@ -77,6 +83,46 @@
       "source": "https://www.ecler.com/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_phono_inputs",
+      "label": "phono inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.ecler.com/products/warm2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_line_inputs",
+      "label": "line inputs",
+      "value": 3,
+      "unit": "count",
+      "source": "https://www.ecler.com/products/warm2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 3,
+      "unit": "count",
+      "source": "https://www.ecler.com/products/warm2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_analog_rotary_faders",
+      "label": "analog rotary faders",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.ecler.com/products/warm2/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_three_band_isolator",
+      "label": "three band isolator",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.ecler.com/products/warm2/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -157,6 +203,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "ecler-warm2-verified-controls",
+      "title": "Rotary analog mixer isolator and signal routes",
+      "category": "mixer",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inject LINE reference signal and sweep all rotary volume/EQ controls.",
+        "Sweep three-band fourth-order isolator and verify full cut response.",
+        "Repeat at PHONO input with a suitable cartridge signal; do not attempt MIDI testing."
+      ],
+      "equipment": [
+        "Hardware",
+        "Compatible MIDI monitor or reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
