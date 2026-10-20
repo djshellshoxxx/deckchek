@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Specific manufacturer product specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-rev7-n/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -78,6 +84,30 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-rev7-n/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_motorized_jog",
+      "label": "motorized jog",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-rev7-n/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_on_jog_displays",
+      "label": "on jog displays",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-rev7-n/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -235,6 +265,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-ddj-rev7-verified-deck-modes",
+      "title": "Motorized deck and MAGVEL scratch control",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Run supported Serato DJ Pro or rekordbox mode and rotate motorized platters.",
+        "Verify both jog displays, start/stop and touch sensitivity.",
+        "Sweep the MAGVEL crossfader and record audio cut/bleed."
+      ],
+      "equipment": [
+        "Compatible media",
+        "Computer and software as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
