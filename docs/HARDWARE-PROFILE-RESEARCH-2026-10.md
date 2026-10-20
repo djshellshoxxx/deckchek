@@ -53,3 +53,12 @@ Seven profiles have received specific manufacturer-confirmed numerical or catego
 | novation-launchpad-pro-mk3 | https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3 and https://userguides.novationmusic.com/hc/en-gb/articles/25494530115346-Launchpad-Pro-MK3-interface ; pressure-sensitive pads, standalone sequencer, MIDI ports, custom modes, published CC ranges |
 
 The *remaining 30 newly added research profiles* retain preliminary test planning only and require the same per-model deep-dive. Test procedures remain **unvalidated on physical hardware**, even for the seven manufacturer-sourced profiles. Any quoted factory specification is distinct from a measured pass/fail threshold.
+
+## Additional manufacturer capability confirmations
+
+- RANE ONE (original, not MKII): https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences- ; 7-inch motorized platters, 16 pads, dual soundcards and microphone inputs. Do not assign MKII-specific OLED or onboard effects to original ONE.
+- Pioneer DJ DDJ-REV5: https://www.pioneerdj.com/en/product/dj-controllers/ ; 2-channel operation, dual USB-C and jog display. Published manufacturer hardware diagram and MIDI message list merit exact mapping transcription.
+- Denon DJ SC LIVE 4: https://www.denondj.com/sclive4 ; four decks, 7-inch touchscreen, three media slots and built-in monitor speakers.
+- Allen & Heath Xone:92: https://www.allen-heath.com/hardware/xone-series/xone92/ ; analogue four phono/line channels, two microphone/line channels, four-band EQ and two filters. The model generation/revision should be recorded: Mk2 is not automatically identical to older Xone:92 units.
+
+**Current model-specific research coverage: 11 of 37 newly seeded profiles. The other 26 new entries remain general research seeds.** New specifications are manufacturer claims; diagnostic tests have not been conducted on real units.
