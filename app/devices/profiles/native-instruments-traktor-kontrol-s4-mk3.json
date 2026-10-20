@@ -8,6 +8,13 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Verified manufacturer capability reference",
+      "type": "support-article",
+      "url": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "language": "en",
+      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf",
@@ -78,6 +85,51 @@
       "source": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_rgb_pads",
+      "label": "rgb pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_motorized_haptic_jog",
+      "label": "motorized haptic jog",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_color_displays",
+      "label": "color displays",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_external_audio_inputs",
+      "label": "external audio inputs",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
     }
   ],
   "midi": {
@@ -254,6 +306,44 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-s4-mk3-verified-haptic",
+      "category": "software",
+      "title": "Jog Haptic Drive modes and feedback",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Open Traktor Pro 3 or later and select JOG mode.",
+        "Repeat in motorized TT mode and compare touch/rim response.",
+        "Inspect haptic cue ticks, tension and mode indicators."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-traktor-kontrol-s4-mk3-verified-mixer",
+      "category": "mixer",
+      "title": "Standalone analog mixer mode",
+      "why": "Validate this manufacturer-documented feature using a known-good signal or application.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Disconnect DJ software as permitted by the official instructions.",
+        "Connect known-good supported sources to external input channels.",
+        "Verify mixing and output routing without claiming standalone deck playback."
+      ],
+      "equipment": [
+        "Device",
+        "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
