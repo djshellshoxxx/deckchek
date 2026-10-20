@@ -8,6 +8,13 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "language": "en",
+      "notes": ""
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -82,6 +89,46 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_software_deck_control",
+      "label": "software deck control",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 4.3,
+      "unit": "inch",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_beat_fx",
+      "label": "beat fx",
+      "value": 22,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touch_midi",
+      "label": "touch midi",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -219,6 +266,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-s11-verified-extra",
+      "title": "Touch MIDI and Deck 3/4 operation",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Select each touch page and check proper touch locations.",
+        "Load auxiliary decks 3 and 4 with supported Serato or rekordbox setup.",
+        "Test Deck Move, Touch FX and Smooth Echo against known-good reference content."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
