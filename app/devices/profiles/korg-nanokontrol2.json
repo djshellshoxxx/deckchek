@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer controls and technical specifications",
+      "type": "manual",
+      "url": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.korg.com/us/support/",
@@ -77,6 +83,38 @@
       "source": "https://www.korg.com/us/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_knobs",
+      "label": "knobs",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_sliders",
+      "label": "sliders",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_buttons",
+      "label": "buttons",
+      "value": 24,
+      "unit": "count",
+      "source": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_bus_powered",
+      "label": "bus powered",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -176,6 +214,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "korg-nanokontrol2-verified-controls",
+      "title": "Eight controls per row and transport response",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Capture all eight knob CC sweeps and slider CC sweeps.",
+        "Operate 24 channel buttons and all transport buttons individually.",
+        "Verify mapping under selected DAW mode or KORG Editor configuration."
+      ],
+      "equipment": [
+        "Hardware",
+        "Compatible MIDI monitor or reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
