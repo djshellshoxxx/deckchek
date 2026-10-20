@@ -8,6 +8,15 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer model feature reference",
+      "type": "support-article",
+      "url": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "language": "en",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.allen-heath.com/hardware/xone-series/",
@@ -77,6 +86,61 @@
       "source": "https://www.allen-heath.com/hardware/xone-series/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_phono_line_channels",
+      "label": "phono line channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_microphone_line_channels",
+      "label": "microphone line channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_eq_bands",
+      "label": "eq bands",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_dual_analog_filters",
+      "label": "dual analog filters",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
+    },
+    {
+      "key": "verified_all_analog_signal_bus",
+      "label": "all analog signal bus",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.allen-heath.com/hardware/xone-series/xone92/",
+      "confidence": "confirmed",
+      "notes": [
+        "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
+      ]
     }
   ],
   "midi": {
@@ -157,6 +221,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "allen-and-heath-xone-92-verified-paths",
+      "title": "Analogue phono/line routing and VCF",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check line and phono sources using proper levels.",
+        "Sweep each 4-band EQ, filters, fader and cue path.",
+        "Record left/right audio and hum measurements; do not require MIDI or USB."
+      ],
+      "equipment": [
+        "Hardware",
+        "Reference test source or software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
