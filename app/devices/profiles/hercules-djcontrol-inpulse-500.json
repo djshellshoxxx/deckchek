@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Model specific official feature reference",
+      "type": "manual",
+      "url": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://support.hercules.com/en/",
@@ -82,6 +88,60 @@
       "source": "https://support.hercules.com/en/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_jog_diameter_inches",
+      "label": "jog diameter inches",
+      "value": 5.5,
+      "unit": "inch",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_sample_rate",
+      "label": "audio sample rate",
+      "value": 44100,
+      "unit": "Hz",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_balanced_microphone_input",
+      "label": "balanced microphone input",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_hardware_aux_filter",
+      "label": "hardware aux filter",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
     }
   ],
   "midi": {
@@ -219,6 +279,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "hercules-djcontrol-inpulse-500-verified-special-functions",
+      "title": "External AUX filter and beatmatch guide",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Feed line-level reference audio through supported AUX input.",
+        "Sweep hardware AUX filter with and without DJ software active.",
+        "Check beat-align tempo LEDs in compatible DJUCED/Serato operation."
+      ],
+      "equipment": [
+        "Device and known-good reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
