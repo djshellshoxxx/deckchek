@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer detailed product feature and specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx10/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -83,6 +89,33 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx10/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_track_separation",
+      "label": "track separation",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx10/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_dmx_output",
+      "label": "dmx output",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx10/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
     }
   ],
   "midi": {
@@ -221,6 +254,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "alphatheta-ddj-flx10-verified-feature",
+      "title": "Track separation and DMX lighting output",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "In rekordbox use separated vocal/drum/instrument stems and verify mute/isolation.",
+        "Connect a compatible isolated DMX fixture/tester and select rekordbox lighting.",
+        "Confirm lighting changes track intended parameters; do not assume DMX is an audio output."
+      ],
+      "equipment": [
+        "Reference signals",
+        "Supported host software or accessories"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
