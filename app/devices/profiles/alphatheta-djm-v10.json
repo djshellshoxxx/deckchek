@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer model-specific features, guide and downloads",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -77,6 +83,46 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 6,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_eq_bands_per_channel",
+      "label": "eq bands per channel",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_audio_rate",
+      "label": "usb audio rate",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_audio_bit_depth",
+      "label": "usb audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_dual_usb_host_supported",
+      "label": "dual usb host supported",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -176,6 +222,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "alphatheta-djm-v10-verified-capabilities",
+      "title": "Six-channel mixing and compressor/EQ",
+      "category": "mixer",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inject clean signal into each of six source paths in sequence.",
+        "Sweep each four-band EQ and per-channel compressor with reference levels.",
+        "Verify send/return, USB routing, MIDI clock, and master isolator separately."
+      ],
+      "equipment": [
+        "Device and compatible reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
