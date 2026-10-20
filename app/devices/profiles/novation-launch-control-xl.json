@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "id": "novation-launch-control-xl",
+  "manufacturer": "Novation",
+  "model": "Launch Control XL",
+  "category": "controller",
+  "summary": "Hardware diagnostic research profile. Candidate features: fader,encoder,button,usb. Software: Ableton Live,generic MIDI.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "documents": [
+    {
+      "title": "Official manufacturer documentation or support entry",
+      "type": "manual",
+      "url": "https://support.novationmusic.com/",
+      "language": "en",
+      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+    },
+    {
+      "title": "Driver and firmware support",
+      "type": "driver",
+      "url": "https://support.novationmusic.com/",
+      "language": "en",
+      "notes": "Confirm OS-specific driver and version."
+    },
+    {
+      "title": "Support and product help",
+      "type": "support-article",
+      "url": "https://support.novationmusic.com/",
+      "language": "en"
+    },
+    {
+      "title": "Service manual",
+      "type": "service-manual",
+      "url": "",
+      "notes": "Not found/verified as publicly available."
+    },
+    {
+      "title": "MIDI/HID map",
+      "type": "midi-message-list",
+      "url": "",
+      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    }
+  ],
+  "connectivity": {
+    "usb": {
+      "present": true,
+      "vendorId": null,
+      "productIds": [],
+      "classCompliant": null
+    },
+    "midi": {
+      "usbMidi": null,
+      "din": null,
+      "portNamePatterns": [
+        "Launch Control XL"
+      ]
+    },
+    "audio": {
+      "usbChannelsIn": null,
+      "usbChannelsOut": null,
+      "sampleRatesHz": [],
+      "bitDepth": null
+    }
+  },
+  "software": [
+    {
+      "name": "Ableton Live",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    },
+    {
+      "name": "generic MIDI",
+      "role": "companion or operating mode; exact compatibility pending verification",
+      "minVersion": null
+    }
+  ],
+  "specs": [
+    {
+      "key": "candidate_capabilities",
+      "label": "Candidate hardware test groups",
+      "value": "fader,encoder,button,usb",
+      "unit": "",
+      "source": "https://support.novationmusic.com/",
+      "confidence": "unverified",
+      "notes": "Model-dependent test planner; not exact control count or specification."
+    }
+  ],
+  "midi": {
+    "mapSource": "learn",
+    "complete": false,
+    "controls": []
+  },
+  "tests": [
+    {
+      "id": "novation-launch-control-xl-fader",
+      "category": "mixer",
+      "title": "Channel and crossfader sweep",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:fader",
+      "params": {},
+      "steps": [
+        "Check Launch Control XL official manual, ports and operating mode.",
+        "Exercise all fader controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launch-control-xl-encoder",
+      "category": "midi",
+      "title": "Encoder detent and push",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:coverage",
+      "params": {},
+      "steps": [
+        "Check Launch Control XL official manual, ports and operating mode.",
+        "Exercise all encoder controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launch-control-xl-button",
+      "category": "midi",
+      "title": "Button switch matrix",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "midi:button",
+      "params": {},
+      "steps": [
+        "Check Launch Control XL official manual, ports and operating mode.",
+        "Exercise all button controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launch-control-xl-usb",
+      "category": "usb",
+      "title": "USB discovery and reconnect",
+      "why": "Test actual hardware response without inventing MIDI IDs, audio tolerances or HID mappings.",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Check Launch Control XL official manual, ports and operating mode.",
+        "Exercise all usb controls or signal routes using MIDI monitor, DJ software or external measurement as appropriate.",
+        "Repeat, save evidence and distinguish unobservable from failed hardware."
+      ],
+      "equipment": [
+        "Device",
+        "Compatible host or measurement interface as needed"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "novation-launch-control-xl-version",
+      "category": "software",
+      "title": "Firmware and software compatibility",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Inspect device model and installed firmware.",
+        "Check exact model's official support page for updates and compatible software.",
+        "Record version, OS, source and date."
+      ],
+      "equipment": [
+        "Manufacturer documentation"
+      ],
+      "severity": "minor",
+      "pass": null
+    }
+  ]
+}
