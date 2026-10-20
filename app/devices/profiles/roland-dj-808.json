@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Model specific official feature reference",
+      "type": "manual",
+      "url": "https://www.roland.com/global/products/dj-808/support/",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.roland.com/global/support/",
@@ -77,6 +83,60 @@
       "source": "https://www.roland.com/global/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_tr_s_drum_sequencer",
+      "label": "tr s drum sequencer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_vt_voice_transformer",
+      "label": "vt voice transformer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_aira_link_ports",
+      "label": "aira link ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_bit_depth",
+      "label": "interface bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_sample_rate",
+      "label": "interface sample rate",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://www.roland.com/global/products/dj-808/support/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
     }
   ],
   "midi": {
@@ -214,6 +274,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "roland-dj-808-verified-special-functions",
+      "title": "TR-S sequencer, voice transform and AIRA Link",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Test sequencer transport and the TR-606/707/808/909 sound kit selections.",
+        "Feed an appropriate microphone signal and verify VT Pitch/Formant/Ducking paths.",
+        "Test compatible AIRA Link equipment and observe clock/signal without claiming MIDI-only compatibility."
+      ],
+      "equipment": [
+        "Device and known-good reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
