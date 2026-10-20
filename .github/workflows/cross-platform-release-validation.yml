@@ -12,6 +12,7 @@ on:
       - 'database/**'
       - 'package.json'
   push:
+    branches: [main]
     tags: ['v*']
 
 permissions:
