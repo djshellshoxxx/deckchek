@@ -1,64 +1,67 @@
-# Hardware-profile research expansion (2026-10-20)
+# DeckChek DJ controller, mixer and MIDI hardware research
+Research pass: 2026-10-20
 
-This batch adds **37** preliminary DJ controller, mixer and MIDI surface profiles to the existing **9** profiles, for **46 indexed profiles**. They are directly readable by DeckChek's existing `app/devices/library.js` loader and the existing Devices UI. These are **test-plan research seeds**, not evidence of hardware validation or verified exhaustive technical inventories.
+## Coverage and status
 
-## Source and evidence policy
+- 9 prior profiles, plus 37 new hardware profiles = **46 indexed models**.
+- All 37 new profiles now include **at least one model-specific manufacturer reference**, manufacturer-backed `verified_*` specifications, and an added model-specific guided test.
+- The first 37 profiles were created as cautious research seeds. Published feature claims are not equivalent to measured DeckChek validation. Profiles still retain `midi.mapSource="learn"`, `midi.complete=false`, null VID/PID, unknown exact MIDI/HID mappings and uncalibrated `pass:null` for guided tests.
+- Most service-manual URLs remain blank because public availability was not established. Never replace them with unsupported guesses.
+- Official support landing pages alone do not establish a driver name/version for a specific OS. Visit manufacturer model pages and compare signed package and current firmware revision.
+- Tests still require actual units and reference fixtures; GitHub validation of JSON and software tests must precede merge.
 
-For each device, the URL under `documents` points to an official manufacturer's documentation, product, or support location. Only a few are direct model manuals; most are **support landing pages and require follow-up**. Blank service-manual and exact MIDI-map URLs mean **not verified**, not nonexistent. Fields `specs[].confidence=unverified` deliberately mark capability inventories as preliminary. Exact VID/PID, CC/note/SysEx/HID mapping, audio-channel counts, compatibility versions, driver names, service schematics, reference tolerances, and firmware build numbers are omitted instead of guessed. A physical unit and its correct revision-specific manual are needed to establish those facts.
+## Manufacturer source register
 
-### Particularly useful verified official documentation
+The exact direct links and provenance are retained within each corresponding `app/devices/profiles/*.json`. Research highlights:
 
-- Pioneer DJ DDJ-FLX4 manual listing: https://www.pioneerdj.com/en/support/documents/ddj-flx4/
-- Pioneer DJ DDJ-FLX4 software/firmware information: https://www.pioneerdj.com/en/support/software-information/controller/ddj-flx4/
-- Denon DJ product manuals/drivers: https://www.denondj.com/downloads
-- Traktor Kontrol S4 MK3 manual: https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf
-- Numark Mixstream Pro guide: https://cdn.inmusicbrands.com/Numark/products/Mixstream_Pro/Mixstream_Pro_User_Guide_v2.pdf
-- Ableton Push manual entry: https://help.ableton.com/hc/en-us/articles/206328564-Push-User-Manual
-- Ableton Push 3 hardware FAQ: https://help.ableton.com/hc/en-us/articles/8483166334748-Push-3-Technical-FAQ
+| Manufacturer / unit | Primary model-specific reference | Distinct confirmed feature and diagnostic focus |
+|---|---|---|
+| Pioneer DJ DDJ-FLX4 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/ | Smart Fader, Smart CFX, class compliant USB, mic USB output |
+| Pioneer DJ DDJ-REV1 | https://www.pioneerdj.com/en/product/dj-controllers/ | Scratch-style two-deck controller; verify individual MIDI mapping |
+| Pioneer DJ DDJ-REV5 | https://www.pioneerdj.com/en/product/dj-controllers/ | Dual USB-C, on-jog display; separate manufacturer hardware diagram and MIDI map |
+| Pioneer DJ DDJ-REV7 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-rev7-n/ | Motorized jogs and MAGVEL fader |
+| AlphaTheta DDJ-GRV6 | https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/ | Four channels; Groove Circuit (rekordbox) vs Stems FX (Serato) |
+| AlphaTheta DDJ-FLX10 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx10/ | Four channels, Track Separation, DMX |
+| Pioneer DJ DDJ-1000 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/ | Four-channel rekordbox controller with external source mixing |
+| Pioneer DJ XDJ-RX3 | https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/ | Two standalone decks, 10.1-inch touchscreen, Touch Preview |
+| Pioneer DJ XDJ-XZ | https://www.pioneerdj.com/en-gb/product/all-in-one-system/xdj-xz/black/specifications/ | Four-channel mixer **but only two standalone USB decks**, four software decks |
+| AlphaTheta XDJ-AZ | https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/ | Four standalone decks and SonicLink monitoring |
+| Denon DJ PRIME 4+ | https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions | Four decks, independently assignable zone output, multiple media paths |
+| Denon DJ PRIME GO+ | https://www.denondj.com/prime-go-plus | Battery-powered, Bluetooth, 7-inch screen, 26 Main FX; **no built-in Ethernet** unlike original PRIME GO |
+| Denon DJ SC LIVE 4 | https://www.denondj.com/sclive4 | Four standalone decks, built-in speakers and three media slots |
+| Numark Mixstream Pro | https://www.numark.com/product/mixstream-pro | Two decks, built-in speakers, USB/SD and onboard Engine Lighting |
+| Numark Mixtrack Platinum FX | https://www.numark.com/product/mixtrack-platinum-fx | Four software deck layers, 16 pads, two FX paddles, jog displays |
+| RANE ONE | https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences- | Seven-inch motorized platters and two USB soundcards; avoid ONE MKII-exclusive features |
+| RANE PERFORMER | https://support.rane.com/en/support/solutions/articles/69000851441-rane-performer-frequently-asked-questions | Motor torque setting and Stem Split routing |
+| RANE FOUR | https://support.rane.com/en/support/solutions/articles/69000828752-rane-four-frequently-asked-questions | Serato Stems Split to four channel strips |
+| NI Traktor Kontrol S4 MK3 | https://www.native-instruments.com/products/traktor-kontrol-s4 | Four channels, Haptic Drive, analog external mixer mode |
+| NI Traktor Kontrol F1 | https://www.native-instruments.com/en/support/downloads/ | Sixteen pads, four knobs and four faders; Controller Editor mapping |
+| Hercules DJControl Inpulse 500 | https://www.hercules.com/en/product/djcontrol-inpulse-500/ | Hardware AUX filter, beatmatch indicators and independent microphone path |
+| Hercules DJControl Inpulse T7 | https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/ | Seven-inch motorized platters, 33⅓ RPM, software-dependent 45 RPM |
+| Roland DJ-808 | https://www.roland.com/global/products/dj-808/support/ | Built-in TR-S drum sequencer, VT microphone transformer and AIRA Link |
+| Pioneer DJ DJM-450 | https://www.pioneerdj.com/en/product/dj-mixers/djm-450/ | Two channels, eight Beat FX, four Sound Color FX, Magvel |
+| Pioneer DJ DJM-900NXS2 | https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/ | Four phono inputs, dual USB, Sound Color/Beat FX, independent send/return |
+| Pioneer DJ DJM-S11 | https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/ | 4.3-inch touch MIDI, two mixer channels and four software decks |
+| Pioneer DJ DJM-V10 | https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/ | Six channels, four-band EQ, per-channel compressor, dual USB |
+| RANE SEVENTY-TWO MKII | https://www.rane.com/downloads/?product=Seventy-Two+MKII | Multi-touch battle mixer, dual DVS, tension-adjustable fader; official firmware and drivers |
+| Allen & Heath Xone:96 | https://www.allen-heath.com/hardware/xone-series/xone96/ | Dual 32-bit/96-kHz USB, dual VCF and published MIDI channel maps |
+| Allen & Heath Xone:92 | https://www.allen-heath.com/hardware/xone-series/xone92/ | Analog routing, dual filters, four-band EQ; confirm 92 versus 92 Mk2 |
+| Ecler WARM2 | https://www.ecler.com/products/warm2/ | Rotary 2+1 channel analog mixer and three-band master isolator |
+| Korg nanoKONTROL2 | https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php | Eight knobs, eight sliders and 24 buttons |
+| Akai Professional APC40 MKII | https://www.akaipro.com/apc40-mk2/ | 5 × 8 RGB grid, nine faders, 16 knobs |
+| Novation Launchpad Pro MK3 | https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3 | 64 pressure/velocity pads and four-track sequencer; published programmer guide |
+| Novation Launch Control XL | https://novationmusic.com/products/launch-control-xl-mk2 | Eight faders, 24 knobs and 16 buttons; **MK2 model**, not Launch Control XL 3 |
+| Ableton Push 3 | https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications | ADAT expansion, pedal CV, MPE; controller-only versus standalone edition must be recorded |
+| NI MASCHINE MK3 | https://www.native-instruments.com/products/maschine | 16 pads, Smart Strip, eight touch knobs, two displays and audio interface |
 
-## Test dispatch / instrumentation caveats
+## Remaining deep-verification gates
 
-- **MIDI** jogs, pads, faders, buttons and encoders: DeckChek's existing MIDI runners work only if controls actually expose MIDI. Vendor HID, application-specific protocols, and analog-only controls require an observable host-application/manual check or a future transport-specific runner.
-- **Audio** output checks require an appropriately routed external capture path; the USB port does not guarantee a USB audio interface. Record input gain, calibration and routing.
-- **Standalone** file playback is only applicable where the actual product supports onboard transport.
-- **Motor** checks are guided inspections; no claimed torque or speed calibration.
-- **Analog mixer** fader/knob MIDI tests cannot pass without a MIDI signal. These should use guided audio/manual checks.
-- **Display/LED** tests are guided inspections unless a model-specific feedback protocol has been documented.
-- Until physical hardware and protocol mappings are validated, result states must be **not tested / unsupported / inconclusive**, not fabricated passing results.
-- Avoid labeling these records as fully researched, certified, or complete. The fields purposely do not supply detailed port counts and schematics.
+1. **Exact per-control lists and physical counts**: inspect each model-specific operating manual, revision/date and hardware diagrams. A product description or manufacturer marketing page confirms only listed attributes, not the complete front/back-panel enumeration.
+2. **Transport visibility**: capture real MIDI, SysEx, HID and application-feedback protocols on connected units. Do not infer MIDI mapping for purely analog controls.
+3. **Drivers and firmware**: record official direct downloads (Windows, macOS, Linux where supported), required/optional status, signed publisher, versions, hashes where applicable, release notes and tested OS.
+4. **Service manuals**: search manufacturer service portals, licensed technician resources and publicly released schematics. Explicitly record restricted/unknown availability.
+5. **Safety and measurement**: reference test signals, signal-chain diagrams, expected gain/impedance/routing, setup and uncertainty; do not create unsupported electrical pass/fail tolerances.
+6. **Programmatic testing**: versioned test prerequisites, MIDI Learn fallback, analogue/HID skip states, reproducible fixtures and real-hardware regression.
+7. **Release gates**: run `node tools/build-device-index.mjs --check` and `npm test`, validate user-interface rendering and attach test evidence. No real-hardware test is claimed by these research edits.
 
-## Next research and engineering gates
-
-1. Per-model official manual and regional revisions, with a direct deep link, document publication/revision date, and primary-source provenance for individual controls, I/O, and supported operating systems.
-2. Confirm per-platform USB VID/PID, MIDI endpoint names and message mapping, HID availability, LED feedback, audio paths and driver packages with physical-device traces.
-3. Add conditional test dispatch that detects MIDI vs HID vs analog faders and refuses impossible runners; do not count an absent MIDI response as a hardware defect without proving MIDI transport.
-4. Verify all external URLs automatically at build time; external links remain non-executable and are subject to the app's allowlist/confirmation policy.
-5. Build manufacturer/model matrix tests plus fixture-backed MIDI and audio regressions, then real-hardware acceptance runs and firmware compatibility recording.
-6. Expand model coverage to legacy/discontinued devices, modular deck controllers, media players, rotary mixers, MIDI keyboards, trigger grids and unusual multichannel interfaces.
-
-The existing provisional `pioneer-ddj-s8` identity remains an unresolved separate cleanup issue. Do not treat that profile's assumed hardware properties as verified.
-
-## Manufacturer-confirmed detailed capability pass (2026-10-20)
-
-Seven profiles have received specific manufacturer-confirmed numerical or categorical capability entries and feature-targeted guided tests:
-
-| Profile | Primary sources and test scope |
-|---|---|
-| pioneer-dj-ddj-flx4 | https://www.pioneerdj.com/en/product/dj-controllers/ddj-flx4/ ; USB class compliance, 2 channels, Smart Fader / Smart CFX, microphone, pads |
-| denon-dj-prime-4 | https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions ; independent zone, input pairs, storage ports, simultaneous outputs. This file represents PRIME 4+; do not equate with PRIME 4 original. |
-| native-instruments-traktor-kontrol-s4-mk3 | https://www.native-instruments.com/products/traktor-kontrol-s4 ; motorized Haptic Drive, mixer operation, pads and displays |
-| allen-and-heath-xone-96 | https://www.allen-heath.com/hardware/xone-series/xone96/ and https://support.allen-heath.com/hc/en-gb/articles/43084536824849-Xone-96-MIDI-Implementation ; dual USB, filter, MIDI channel and mixer paths |
-| ableton-push-3 | https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications ; balanced audio, ADAT, pedal CV. Standalone playback is restricted to the standalone variant, not controller-only hardware. |
-| hercules-djcontrol-inpulse-t7 | https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/ ; motorized 7-inch platter, audio, FX, cue, stem controls |
-| novation-launchpad-pro-mk3 | https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3 and https://userguides.novationmusic.com/hc/en-gb/articles/25494530115346-Launchpad-Pro-MK3-interface ; pressure-sensitive pads, standalone sequencer, MIDI ports, custom modes, published CC ranges |
-
-The *remaining 30 newly added research profiles* retain preliminary test planning only and require the same per-model deep-dive. Test procedures remain **unvalidated on physical hardware**, even for the seven manufacturer-sourced profiles. Any quoted factory specification is distinct from a measured pass/fail threshold.
-
-## Additional manufacturer capability confirmations
-
-- RANE ONE (original, not MKII): https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences- ; 7-inch motorized platters, 16 pads, dual soundcards and microphone inputs. Do not assign MKII-specific OLED or onboard effects to original ONE.
-- Pioneer DJ DDJ-REV5: https://www.pioneerdj.com/en/product/dj-controllers/ ; 2-channel operation, dual USB-C and jog display. Published manufacturer hardware diagram and MIDI message list merit exact mapping transcription.
-- Denon DJ SC LIVE 4: https://www.denondj.com/sclive4 ; four decks, 7-inch touchscreen, three media slots and built-in monitor speakers.
-- Allen & Heath Xone:92: https://www.allen-heath.com/hardware/xone-series/xone92/ ; analogue four phono/line channels, two microphone/line channels, four-band EQ and two filters. The model generation/revision should be recorded: Mk2 is not automatically identical to older Xone:92 units.
-
-**Current model-specific research coverage: 11 of 37 newly seeded profiles. The other 26 new entries remain general research seeds.** New specifications are manufacturer claims; diagnostic tests have not been conducted on real units.
+**Provenance states:** `confirmed` means manufacturer-published; `unverified` means preliminary research; it never means independently measured or certified.
