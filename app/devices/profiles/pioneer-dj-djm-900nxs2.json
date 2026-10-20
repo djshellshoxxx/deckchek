@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Model specific official feature reference",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -77,6 +83,69 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_mixer_channels",
+      "label": "mixer channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_phono_inputs",
+      "label": "phono inputs",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_usb_host_ports",
+      "label": "usb host ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_sound_color_fx",
+      "label": "sound color fx",
+      "value": 6,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_beat_fx",
+      "label": "beat fx",
+      "value": 14,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_sample_rate",
+      "label": "interface sample rate",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_interface_bit_depth",
+      "label": "interface bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
+      "confidence": "confirmed",
+      "notes": "Published manufacturer capability"
     }
   ],
   "midi": {
@@ -176,6 +245,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-djm-900nxs2-verified-special-functions",
+      "title": "Effects and send-return routing",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Play reference input on each channel.",
+        "Cycle six Sound Color FX and fourteen Beat FX; compare dry/wet routing.",
+        "Insert external send-return processor and confirm effect-bypass isolation."
+      ],
+      "equipment": [
+        "Device and known-good reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
