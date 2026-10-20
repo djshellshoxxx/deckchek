@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer detailed product feature and specifications",
+      "type": "manual",
+      "url": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/",
@@ -83,6 +89,51 @@
       "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 4,
+      "unit": "count",
+      "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 10.1,
+      "unit": "inch",
+      "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_jog_diameter",
+      "label": "jog diameter",
+      "value": 206,
+      "unit": "mm",
+      "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_soniclink_transmitter",
+      "label": "soniclink transmitter",
+      "value": true,
+      "unit": "bool",
+      "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_network_lan",
+      "label": "network lan",
+      "value": true,
+      "unit": "bool",
+      "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
     }
   ],
   "midi": {
@@ -259,6 +310,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "alphatheta-xdj-az-verified-feature",
+      "title": "Four-deck standalone playback and SonicLink",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Load reference music on all four standalone decks.",
+        "Measure analog master/booth routing and touchscreen navigation.",
+        "Pair compatible SonicLink headphones and check left/right monitoring separately from Bluetooth audio."
+      ],
+      "equipment": [
+        "Reference signals",
+        "Supported host software or accessories"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
