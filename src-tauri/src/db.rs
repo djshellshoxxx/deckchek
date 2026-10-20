@@ -86,7 +86,18 @@ pub struct PersistRun {
     /// Existing setup the run used (session.setup_id); unknown ids are rejected.
     #[serde(default)]
     pub setup_id: Option<String>,
+    /// Where the run came from (FS-30): `desktop` (default) or `phone` (imported from DeckChek Mobile).
+    #[serde(default)]
+    pub origin: Option<String>,
+    /// Short description of the capturing device for imported runs (stored in session.source_device).
+    #[serde(default)]
+    pub source_device: Option<String>,
 }
+
+/// Session origins accepted by `persist_run`.
+pub const SESSION_ORIGINS: &[&str] = &["desktop", "phone"];
+/// Longest `sourceDevice` text kept.
+pub const MAX_SOURCE_DEVICE: usize = 200;
 
 /// Longest capture span a run may claim (24 h).
 pub const MAX_CAPTURE_SEC: f64 = 86_400.0;
@@ -280,6 +291,11 @@ fn e2s(e: rusqlite::Error) -> String {
 pub fn persist_run(conn: &mut Connection, run: &PersistRun) -> Result<(), String> {
     let (started_at, ended_at, duration_sec) = capture_span(conn, run)?;
     let setup_id = run.setup_id.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let origin = run.origin.as_deref().map(str::trim).filter(|s| !s.is_empty()).unwrap_or("desktop");
+    if !SESSION_ORIGINS.contains(&origin) {
+        return Err(format!("origin must be one of {}", SESSION_ORIGINS.join(", ")));
+    }
+    let source_device: Option<String> = run.source_device.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(|s| s.chars().take(MAX_SOURCE_DEVICE).collect());
     let tx = conn.transaction().map_err(e2s)?;
     if let Some(setup) = setup_id {
         let known: i64 = tx.query_row("SELECT COUNT(*) FROM setup WHERE id = ?1", [setup], |r| r.get(0)).map_err(e2s)?;
@@ -311,9 +327,9 @@ pub fn persist_run(conn: &mut Connection, run: &PersistRun) -> Result<(), String
     // Upsert in place: REPLACE would delete the old row first and, with foreign_keys=ON, cascade away /
     // null out every other feature's rows that point at this session (scan alignments, hours, wear...).
     tx.execute(
-        "INSERT INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json) VALUES (?1, ?2, ?8, ?3, ?9, ?4, 1, 'completed', ?5, NULL, ?6, ?7) \
-         ON CONFLICT(id) DO UPDATE SET session_type = excluded.session_type, setup_id = excluded.setup_id, started_at = excluded.started_at, ended_at = excluded.ended_at, app_version = excluded.app_version, schema_version = excluded.schema_version, status = excluded.status, context_profile = excluded.context_profile, session_quality = excluded.session_quality, config_snapshot_json = excluded.config_snapshot_json",
-        params![run.id, session_type, started_at, env!("CARGO_PKG_VERSION"), run.test, run.score.map(|v| v / 100.0), config, setup_id, ended_at],
+        "INSERT INTO session (id, session_type, setup_id, started_at, ended_at, app_version, schema_version, status, context_profile, operator_notes, session_quality, config_snapshot_json, origin, source_device) VALUES (?1, ?2, ?8, ?3, ?9, ?4, 1, 'completed', ?5, NULL, ?6, ?7, ?10, ?11) \
+         ON CONFLICT(id) DO UPDATE SET origin = excluded.origin, source_device = excluded.source_device, session_type = excluded.session_type, setup_id = excluded.setup_id, started_at = excluded.started_at, ended_at = excluded.ended_at, app_version = excluded.app_version, schema_version = excluded.schema_version, status = excluded.status, context_profile = excluded.context_profile, session_quality = excluded.session_quality, config_snapshot_json = excluded.config_snapshot_json",
+        params![run.id, session_type, started_at, env!("CARGO_PKG_VERSION"), run.test, run.score.map(|v| v / 100.0), config, setup_id, ended_at, origin, source_device],
     ).map_err(e2s)?;
     // The run's own derived rows are rewritten below; clear the old ones explicitly (link tables cascade
     // from these rows, and nothing else references them).
@@ -496,7 +512,7 @@ pub fn list_capture_sessions(conn: &Connection, since: Option<&str>, asset_id: O
 /// evidence (each entry has evidenceId, weight, summary, measurementIds).
 pub fn get_run(conn: &Connection, id: &str) -> Result<Option<Value>, String> {
     let session = conn.query_row(
-        "SELECT id, session_type, setup_id, started_at, ended_at, status, context_profile, session_quality, config_snapshot_json FROM session WHERE id = ?1",
+        "SELECT id, session_type, setup_id, started_at, ended_at, status, context_profile, session_quality, config_snapshot_json, origin, source_device FROM session WHERE id = ?1",
         [id],
         |r| {
             let config: String = r.get(8)?;
@@ -510,6 +526,8 @@ pub fn get_run(conn: &Connection, id: &str) -> Result<Option<Value>, String> {
                 "test": r.get::<_, Option<String>>(6)?,
                 "score": r.get::<_, Option<f64>>(7)?.map(|v| v * 100.0),
                 "config": serde_json::from_str::<Value>(&config).unwrap_or(Value::Null),
+                "origin": r.get::<_, String>(9)?,
+                "sourceDevice": r.get::<_, Option<String>>(10)?,
             }))
         },
     );
@@ -889,6 +907,34 @@ mod tests {
         c.query_row("SELECT started_at, ended_at, config_snapshot_json FROM session WHERE id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap()
     }
 
+    fn origin_of(c: &Connection, id: &str) -> (String, Option<String>) {
+        c.query_row("SELECT origin, source_device FROM session WHERE id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?))).unwrap()
+    }
+
+    #[test]
+    fn session_origin_defaults_to_desktop_and_phone_runs_keep_their_device() {
+        let mut c = mem();
+        persist_run(&mut c, &timed("desk", "2026-10-06T08:00:00Z")).unwrap();
+        assert_eq!(origin_of(&c, "desk"), ("desktop".into(), None));
+        let mut phone = timed("ph", "2026-10-06T09:00:00Z");
+        phone.origin = Some("phone".into());
+        phone.source_device = Some(" Pixel 8 / Chrome ".into());
+        persist_run(&mut c, &phone).unwrap();
+        assert_eq!(origin_of(&c, "ph"), ("phone".into(), Some("Pixel 8 / Chrome".into())));
+        assert_eq!(get_run(&c, "ph").unwrap().unwrap()["origin"], "phone");
+        assert_eq!(get_run(&c, "ph").unwrap().unwrap()["sourceDevice"], "Pixel 8 / Chrome");
+        // Saving the same run again keeps the origin (upsert in place).
+        persist_run(&mut c, &phone).unwrap();
+        assert_eq!(origin_of(&c, "ph").0, "phone");
+        let mut bad = timed("bad", "2026-10-06T09:00:00Z");
+        bad.origin = Some("cloud".into());
+        assert!(persist_run(&mut c, &bad).unwrap_err().contains("origin must be one of"));
+        let mut long = timed("long", "2026-10-06T09:00:00Z");
+        long.source_device = Some("x".repeat(500));
+        persist_run(&mut c, &long).unwrap();
+        assert_eq!(origin_of(&c, "long").1.unwrap().chars().count(), MAX_SOURCE_DEVICE);
+    }
+
     #[test]
     fn legacy_run_keeps_started_equal_to_ended_and_config_unchanged() {
         let mut c = mem();
@@ -1243,6 +1289,43 @@ mod tests {
         assert_eq!(n("SELECT COUNT(*) FROM asset_midi_map"), 1);
         assert_eq!(n("SELECT COUNT(*) FROM maintenance_event"), 1);
         assert_eq!(n("SELECT COUNT(*) FROM schema_migration WHERE version = 1000"), 1, "starter-catalog seed marker");
+    }
+
+    #[test]
+    fn v007_fixture_carries_schema_through_0013_with_rows_in_every_table() {
+        let (_, sql) = fixtures().into_iter().find(|(n, _)| n == "v0.0.7.sql").expect("tests/fixtures/db/v0.0.7.sql");
+        let c = load_fixture(&sql);
+        assert_healthy(&c, "v0.0.7 as loaded");
+        assert_eq!(applied_migrations(&c).unwrap(), (1..=13).collect::<Vec<i64>>(), "migrations 0001..0013");
+        // the fixture's schema is what 0001..0013 produce on an empty database
+        let fresh = Connection::open_in_memory().unwrap();
+        apply_migration_list(&fresh, &MIGRATIONS[..13], None).unwrap();
+        let strip = |v: Vec<(String, String, Option<String>)>| v.into_iter().map(|(t, n, _)| (t, n)).collect::<Vec<_>>();
+        assert_eq!(strip(schema_snapshot(&c)), strip(schema_snapshot(&fresh)));
+        for (table, n) in row_counts(&c) {
+            assert!(n > 0, "fixture table {table} has no rows");
+        }
+        let n = |q: &str| -> i64 { c.query_row(q, [], |r| r.get(0)).unwrap() };
+        assert_eq!(n("SELECT COUNT(*) FROM photo"), 1);
+        assert_eq!(n("SELECT COUNT(*) FROM photo_link WHERE photo_id = 'f0000000-0000-4000-8000-000000000001'"), 2, "one photo shared by two owners");
+        assert_eq!(n("SELECT COUNT(*) FROM schema_migration WHERE app_version = '0.0.7'"), 8);
+    }
+
+    #[test]
+    fn photo_store_migration_enforces_its_constraints() {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        apply_migrations(&c).unwrap();
+        c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p1','h1','image/jpeg',1,1,1,'t')", []).unwrap();
+        assert!(c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p2','h2','image/png',1,1,1,'t')", []).is_err(), "jpeg only");
+        assert!(c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p3','h1','image/jpeg',1,1,1,'t')", []).is_err(), "sha256 unique");
+        let link = "INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES (?1,'p1',?2,'o','t')";
+        c.execute(link, ["l1", "asset"]).unwrap();
+        assert!(c.execute(link, ["l2", "asset"]).is_err(), "one link per (photo, owner)");
+        assert!(c.execute(link, ["l3", "venue"]).is_err(), "owner_kind check");
+        c.execute("INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES ('l4','nope','asset','o','t')", []).expect_err("photo must exist");
+        c.execute("DELETE FROM photo WHERE id = 'p1'", []).unwrap();
+        assert_eq!(c.query_row::<i64, _, _>("SELECT COUNT(*) FROM photo_link", [], |r| r.get(0)).unwrap(), 0, "links cascade");
     }
 
     #[test]

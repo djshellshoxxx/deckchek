@@ -51,6 +51,13 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - Flags: `setupWizard`, `pdfExport`, `backup` default on; `diagnosticsBundle`, `testMedia` and all M6+ flags default off until the owner's hardware run passes.
 - Known limits: hardware runs pending (docs/testing/results/v0.0.5.md), unsigned installers, no auto-update, first PDF export slow (WebView2 warm-up).
 
+## M7 wave 0 (foundations, done)
+
+- [x] Canonical JSON, SHA-256, QR (`qrSvg`) and `metric-compat` with shared vectors (AC-7).
+- [x] Photo store, migration 0013 and the `photos/` backup entries (AC-8); fixture `v0.0.7.sql`.
+- [x] M7/M8 crates and tauri features added once (`ed25519-dalek`, `getrandom`, notification plugin, DPAPI feature, `tray-icon`, `image-png`).
+- [ ] Follow-ups owned by the feature jobs: first screen that uses the photo store (FS-20/22/33), register the notification plugin and add its capability when FS-23 needs it, DPAPI wrapper (cfg(windows)) with a Windows CI test.
+
 ## Active beta validation gates
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0E1013">
+  <meta name="description" content="DeckChek Mobile: platter speed, strobe, plinth vibration and sound level from your phone. Works offline. Nothing leaves your phone.">
+  <title>DeckChek Mobile</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <div id="update" class="update" hidden role="status">
+    <span>A new version is ready.</span>
+    <button type="button" class="btn btn-primary" id="update-now">Update now</button>
+    <button type="button" class="btn btn-secondary" id="update-later">Later</button>
+  </div>
+  <header class="top"><span class="brand">DeckChek Mobile</span><span class="tag">Phone companion</span></header>
+  <main id="view" tabindex="-1"></main>
+  <nav class="tabs" aria-label="Screens">
+    <a href="#speed" data-screen="speed">Speed</a>
+    <a href="#strobe" data-screen="strobe">Strobe</a>
+    <a href="#vibration" data-screen="vibration">Vibration</a>
+    <a href="#spl" data-screen="spl">SPL</a>
+    <a href="#results" data-screen="results">Results</a>
+  </nav>
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><p class="state">DeckChek Mobile needs JavaScript.</p></noscript>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

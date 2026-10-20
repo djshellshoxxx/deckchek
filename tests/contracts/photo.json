@@ -1,0 +1,55 @@
+{
+  "photo_attach": {
+    "command": "photo_attach",
+    "request": {
+      "input": {
+        "ownerKind": "asset",
+        "ownerId": "asset-1",
+        "bytesB64": "/9j/4AAQSkZJRgABAQAAAQABAAD/wAALCAMgBLABAREA/9oACAEBAAA/ABIB/wBW/9B4/9k=",
+        "caption": "Front panel",
+        "altText": "Turntable front panel before service",
+        "stage": "before",
+        "isPrimary": true
+      }
+    },
+    "response": {
+      "photoId": "00000000-0000-4000-8000-000000000001",
+      "sha256": "9d9f1fd2a343913f91a119481327ef37fd5967b31e1a10447f0833fa772f6243",
+      "linkId": "00000000-0000-4000-8000-000000000002",
+      "width": 1200,
+      "height": 800,
+      "bytes": 53,
+      "deduplicated": false
+    }
+  },
+  "photo_list": {
+    "command": "photo_list",
+    "request": { "ownerKind": "asset", "ownerId": "asset-1" },
+    "response": [
+      {
+        "linkId": "00000000-0000-4000-8000-000000000002",
+        "photoId": "00000000-0000-4000-8000-000000000001",
+        "sha256": "9d9f1fd2a343913f91a119481327ef37fd5967b31e1a10447f0833fa772f6243",
+        "width": 1200,
+        "height": 800,
+        "bytes": 53,
+        "caption": "Front panel",
+        "altText": "Turntable front panel before service",
+        "stage": "before",
+        "isPrimary": true,
+        "sort": 0,
+        "createdAt": "2026-10-14T10:00:00.000Z"
+      }
+    ]
+  },
+  "photo_unlink": {
+    "command": "photo_unlink",
+    "request": { "linkId": "00000000-0000-4000-8000-000000000002" },
+    "response": { "unlinked": true, "fileDeleted": true }
+  },
+  "photo_read": {
+    "command": "photo_read",
+    "request": { "photoId": "00000000-0000-4000-8000-000000000001" },
+    "response": "/9j/4AAQSkZJRgABAQAAAQABAAD/wAALCAMgBLABAREA/9oACAEBAAA/ABIB/wBW/9B4/9k="
+  }
+}

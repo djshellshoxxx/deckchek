@@ -8,6 +8,8 @@ mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+pub mod canonical;
+pub mod photo; // content-addressed photo store (FS-00 §4.11) // canonical JSON + SHA-256 (FS-00 §4.12); consumed by FS-20/30/33 jobs
 mod userfiles;
 mod app_state;
 mod usage;
@@ -70,6 +72,7 @@ pub fn run() {
             capture::start_stream_capture, capture::stream_capture_ack, capture::stop_stream_capture,
             userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
             app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
+            photo::photo_attach, photo::photo_list, photo::photo_unlink, photo::photo_read,
             usage::usage_add, usage::usage_list, usage::usage_delete, usage::usage_confirm,
             processes::dj_processes, processes::top_cpu,
             audio_out::list_native_audio_outputs, audio_out::audio_play_buffer, audio_out::audio_play_tone,

@@ -28,6 +28,7 @@ export function toPersistRun(run) {
     sampleRate: run.sampleRate ?? null, channels: run.channels ?? null, measurements, findings,
     score: Number.isFinite(run.score) ? run.score : null, sessionType: run.sessionType || run.workflow || 'diagnostic', workflow: run.workflow || null,
     ...persistCaptureFields(run),
+    ...(run.origin === 'phone' ? { origin: 'phone', sourceDevice: run.sourceDevice ?? null, assetId: run.assetId ?? null } : {}), // FS-30
   };
 }
 
