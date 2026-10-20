@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Specific manufacturer product specifications",
+      "type": "manual",
+      "url": "https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.pioneerdj.com/en/support/",
@@ -83,6 +89,38 @@
       "source": "https://www.pioneerdj.com/en/support/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_standalone_decks",
+      "label": "standalone decks",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touchscreen_inches",
+      "label": "touchscreen inches",
+      "value": 10.1,
+      "unit": "inch",
+      "source": "https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touch_preview",
+      "label": "touch preview",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_release_fx",
+      "label": "release fx",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.pioneerdj.com/en/product/all-in-one-dj-systems/xdj-rx3/",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -259,6 +297,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "pioneer-dj-xdj-rx3-verified-deck-modes",
+      "title": "Standalone media and touch preview",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Load a compatible media source and reference tracks.",
+        "Preview track segments through the touchscreen without loading them to deck.",
+        "Check all eight Release FX types and return to dry audio."
+      ],
+      "equipment": [
+        "Compatible media",
+        "Computer and software as applicable"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
