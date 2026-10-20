@@ -8,6 +8,15 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer model feature reference",
+      "type": "support-article",
+      "url": "https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences-",
+      "language": "en",
+      "notes": [
+        "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
+      ]
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://www.rane.com/downloads",
@@ -78,6 +87,50 @@
       "source": "https://www.rane.com/downloads",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_motor_platter_inches",
+      "label": "motor platter inches",
+      "value": 7,
+      "unit": "inch",
+      "source": "https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences-",
+      "confidence": "confirmed",
+      "notes": [
+        "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
+      ]
+    },
+    {
+      "key": "verified_performance_pads",
+      "label": "performance pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences-",
+      "confidence": "confirmed",
+      "notes": [
+        "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
+      ]
+    },
+    {
+      "key": "verified_usb_soundcards",
+      "label": "usb soundcards",
+      "value": 2,
+      "unit": "count",
+      "source": "https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences-",
+      "confidence": "confirmed",
+      "notes": [
+        "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
+      ]
+    },
+    {
+      "key": "verified_microphone_combo_inputs",
+      "label": "microphone combo inputs",
+      "value": 2,
+      "unit": "count",
+      "source": "https://support.rane.com/en/support/solutions/articles/69000871126-rane-one-x-rane-one-mkii-what-are-the-differences-",
+      "confidence": "confirmed",
+      "notes": [
+        "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
+      ]
     }
   ],
   "midi": {
@@ -235,6 +288,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "rane-one-verified-paths",
+      "title": "Dual USB and motorized control surface",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Connect two supported computers to the two USB soundcards.",
+        "Switch the active host and test audio continuity.",
+        "Test motor and pads with supported DJ application; do not assume ONE MKII features."
+      ],
+      "equipment": [
+        "Hardware",
+        "Reference test source or software"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
