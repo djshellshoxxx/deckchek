@@ -8,6 +8,12 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer model-specific features, guide and downloads",
+      "type": "manual",
+      "url": "https://www.native-instruments.com/products/maschine",
+      "language": "en"
+    },
+    {
       "title": "Official manufacturer documentation or support entry",
       "type": "manual",
       "url": "https://www.native-instruments.com/en/support/downloads/",
@@ -77,6 +83,54 @@
       "source": "https://www.native-instruments.com/en/support/downloads/",
       "confidence": "unverified",
       "notes": "Model-dependent test planner; not exact control count or specification."
+    },
+    {
+      "key": "verified_velocity_sensitive_pads",
+      "label": "velocity sensitive pads",
+      "value": 16,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_touch_knobs",
+      "label": "touch knobs",
+      "value": 8,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_color_displays",
+      "label": "color displays",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_audio_sample_rate_max",
+      "label": "audio sample rate max",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "audio bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
+    },
+    {
+      "key": "verified_smart_strip",
+      "label": "smart strip",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.native-instruments.com/products/maschine",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -214,6 +268,23 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "native-instruments-maschine-mk3-verified-capabilities",
+      "title": "Pressure pads, Smart Strip and onboard audio",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Test all 16 pads across velocity and aftertouch modes supported by NI software.",
+        "Sweep eight touch knobs and Smart Strip for position continuity.",
+        "Verify both displays and capture reference line-input/output audio at supported rate."
+      ],
+      "equipment": [
+        "Device and compatible reference source"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
