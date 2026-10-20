@@ -8,6 +8,12 @@
   "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
   "documents": [
     {
+      "title": "Manufacturer detailed product feature and specifications",
+      "type": "manual",
+      "url": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "language": "en"
+    },
+    {
       "title": "Manufacturer manual/product documentation",
       "type": "manual",
       "url": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/",
@@ -83,6 +89,51 @@
       "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/",
       "confidence": "unverified",
       "notes": "These category-level capabilities require checking the exact hardware documentation."
+    },
+    {
+      "key": "verified_channels",
+      "label": "channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_jog_diameter",
+      "label": "jog diameter",
+      "value": 206,
+      "unit": "mm",
+      "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_hot_cues",
+      "label": "hot cues",
+      "value": 8,
+      "unit": "count",
+      "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_type_c_ports",
+      "label": "usb type c ports",
+      "value": 2,
+      "unit": "count",
+      "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_groove_circuit",
+      "label": "groove circuit",
+      "value": true,
+      "unit": "bool",
+      "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
+      "confidence": "confirmed",
+      "notes": "Source model page; inspect revision for deviations."
     }
   ],
   "midi": {
@@ -221,6 +272,24 @@
         "Manufacturer documentation"
       ],
       "severity": "minor",
+      "pass": null
+    },
+    {
+      "id": "alphatheta-ddj-grv6-verified-feature",
+      "title": "Groove Circuit Drum Swap/Roll/Release",
+      "category": "software",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Run rekordbox for Mac/Windows and load a supported reference track.",
+        "Use Drum Swap, then Roll/Trans, then Release; log effects and compare deactivation.",
+        "In Serato, check Stems FX instead; do not expect rekordbox Groove Circuit behavior."
+      ],
+      "equipment": [
+        "Reference signals",
+        "Supported host software or accessories"
+      ],
+      "severity": "major",
       "pass": null
     }
   ]
