@@ -8,6 +8,13 @@
   "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
+      "title": "Manufacturer feature support",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/8831904851740-Getting-Started-with-MPE-on-Push-3",
+      "language": "en",
+      "notes": ""
+    },
+    {
       "title": "Verified manufacturer capability reference",
       "type": "support-article",
       "url": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
@@ -144,6 +151,14 @@
       "source": "https://help.ableton.com/hc/en-us/articles/8483423483036-Push-3-Audio-Interface-Specifications",
       "confidence": "confirmed",
       "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_mpe_expression_supported",
+      "label": "mpe expression supported",
+      "value": true,
+      "unit": "bool",
+      "source": "https://help.ableton.com/hc/en-us/articles/8831904851740-Getting-Started-with-MPE-on-Push-3",
+      "confidence": "confirmed"
     }
   ],
   "midi": {
@@ -317,6 +332,24 @@
       "equipment": [
         "Device",
         "Known-good test signal or compatible software"
+      ],
+      "severity": "major",
+      "pass": null
+    },
+    {
+      "id": "ableton-push-3-verified-extra",
+      "title": "MPE velocity pressure and per-note expression",
+      "category": "midi",
+      "method": "manual:inspection",
+      "params": {},
+      "steps": [
+        "Set Push expression mode to MPE and load an MPE-compatible instrument.",
+        "Play distinct notes with velocity, held pressure and multidimensional movement.",
+        "Validate generated MIDI expression and audible instrument behavior in the supported host."
+      ],
+      "equipment": [
+        "Hardware",
+        "Supported software and meter as applicable"
       ],
       "severity": "major",
       "pass": null
