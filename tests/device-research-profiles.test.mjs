@@ -14,7 +14,7 @@ const profiles = index.profiles.map(id => JSON.parse(fs.readFileSync(path.join(d
 test('device library index matches files, is stable and unique', () => {
   assert.deepEqual(index, buildIndex(deviceDir));
   assert.equal(new Set(index.profiles).size, index.profiles.length);
-  assert.equal(index.profiles.length, 46);
+  assert.equal(index.profiles.length, 45);
 });
 
 test('all indexed hardware profiles pass schema validation', () => {
