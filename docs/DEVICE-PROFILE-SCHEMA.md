@@ -79,4 +79,11 @@ New engines (being built in parallel):
 - `midi:latency` — params {}; metricId `midi_jitter_ms` (inter-message timing jitter under constant motion).
 - `driver:check` — params {}; uses System Health driver scan matched by `drivers[].deviceNamePatterns`; metricIds `driver_present`, `driver_signed`, `driver_status_ok`, `asio_registered`.
 - `software:check` — params {software}; uses DJ-log scan; metricIds `software_installed`, `software_crashes_90d`, `software_log_errors`.
+- `midi:conformance` — SPEC-36; Identity Request plus message/stream validation; metricIds `midi_invalid_messages`, `midi_sysex_malformed`, `midi_stuck_notes`, `midi_orphan_note_offs`, `midi_unpaired_14bit`, `midi_active_sensing_gap_ms`, `midi_clock_jitter_percent`, `midi_identity_reply`.
+- `midi:gm` — SPEC-36; ten audible General MIDI Level 1 checks (needs a MIDI output); metricId `midi_gm_ok_percent`. Auto-added only when `midi.generalMidi` is `true` (optional boolean: the device has a built-in General MIDI sound source).
+- `audio:quality` — SPEC-35; plays the DeckChek stimulus through the device output and records it; metricIds `aq_*` (THD+N, SNR, noise floor, separation, balance, polarity, flatness, linearity, dropouts, clipping, ...). Thresholds are DeckChek test definitions evaluated by the runner (no single `pass`).
 - `manual:inspection` — guided checklist the user ticks (mechanical/visual items); `steps` are the checklist.
+
+
+## Baseline plan (SPEC-34)
+`app/devices/test-plan.js` derives the device's capabilities from the profile and appends a baseline test (`auto: true`, id `auto-*`) for every capability that has no test with the required method: physical inspection, driver check, DJ-software log scan, MIDI conformance, control coverage, MIDI timing, output audio quality and (with `midi.generalMidi`) the General MIDI check. Hand-written tests always win; profiles on disk are not edited. `node tools/check-device-coverage.mjs` audits every profile (`--markdown` regenerates `docs/testing/DEVICE-TEST-COVERAGE.md`).

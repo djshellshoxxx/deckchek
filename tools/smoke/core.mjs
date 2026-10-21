@@ -259,6 +259,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
 }
 
 let PROFILE_IDS = [];
+let IMAGE_COUNT = 0;
 async function deviceShot(page, name) { await page.evaluate(() => { document.activeElement?.blur(); document.getElementById('toasts')?.replaceChildren(); }); await shot(page, name); if (DEVICE_SHOTS) { fs.mkdirSync(DEVICE_SHOTS, { recursive: true }); fs.copyFileSync(path.join(SHOTS, `${name}.png`), path.join(DEVICE_SHOTS, `${name}.png`)); } }
 const openDevice = async (page, id) => {
   await page.click('.rail-item[data-screen="devices"]');
@@ -274,7 +275,8 @@ async function devicesBrowser(page, wav, extra) {
   await page.waitForSelector('.dev-card');
   check('Devices: one card per profile', (await page.locator('.dev-card').count()) === PROFILE_IDS.length, `${await page.locator('.dev-card').count()}`);
   check('Devices: unverified-spec badges shown', (await page.locator('.dev-card .badge-unverified').count()) >= 8);
-  check('Devices: cards show category, test count and images', (await page.locator('.dev-card .dev-cat').count()) === PROFILE_IDS.length && (await page.locator('.dev-card .dev-thumb img').count()) === PROFILE_IDS.length);
+  check('Devices: cards show category, test count and images', (await page.locator('.dev-card .dev-cat').count()) === PROFILE_IDS.length && (await page.locator('.dev-card .dev-thumb img').count()) === IMAGE_COUNT);
+  await page.evaluate(() => document.querySelectorAll('.dev-thumb img').forEach(i => { i.loading = 'eager'; })); // lazy images below the fold never load otherwise
   const devImagesLoaded = () => [...document.querySelectorAll('.dev-thumb img')].every(i => i.complete && i.naturalWidth > 0);
   await page.waitForFunction(devImagesLoaded, null, { timeout: 10000 }).catch(() => {}); // images decode asynchronously
   const imgsOk = await page.evaluate(devImagesLoaded);
@@ -296,15 +298,15 @@ async function devicesBrowser(page, wav, extra) {
     const specs = await page.locator('#dev-specs tr[data-spec]').count();
     check(`Devices: ${id} detail renders plan, specs and docs`, tests > 5 && runnable === tests && specs > 0 && (await page.locator('#dev-docs').innerText()).length > 10, `${tests} tests, ${runnable} runnable, ${specs} specs`);
   }
-  await openDevice(page, 'pioneer-ddj-s8');
-  check('Devices: DDJ-S8 identity note shown prominently', /could not be found/.test(await page.locator('.dev-identity').innerText()));
+  await openDevice(page, 'pioneer-djm-a9');
+  check('Devices: DJM-A9 identity note shown prominently', /No ambiguity on the model/.test(await page.locator('.dev-identity').innerText()));
   check('Devices: MIDI learn-mode explanation', (await page.locator('#dev-midi .dev-learn-explain').count()) === 1);
   check('Devices: spec table marks unverified specs', (await page.locator('#dev-specs .chip-warn').count()) >= 3);
   const da = await a11yAudit(page);
   check('Devices: a11y names + target sizes (detail)', !da.unnamed.length && !da.small.length, [...da.unnamed, ...da.small].slice(0, 3).join(' | '));
   await page.evaluate(() => { document.getElementById('main').scrollTop = 0; });
   await deviceShot(page, 'device-detail-dark');
-  await page.locator('#dev-plan .dev-test[data-test="ddjs8-midi-coverage"] .dev-test-main').click();
+  await page.locator('#dev-plan .dev-test[data-test="djma9-midi-coverage"] .dev-test-main').click();
   check('Devices: test details open in the inspector', /Pass criterion/.test(await page.locator('#inspector-body').innerText()));
   await shot(page, 'device-test-inspector-dark');
   await openDevice(page, 'technics-sl-1200mk4');
@@ -313,8 +315,8 @@ async function devicesBrowser(page, wav, extra) {
   check('Devices: Xone:23C identity confirmed by owner', /Confirmed by the owner/.test(await page.locator('.dev-identity').innerText()));
 
   // manual:inspection checklist
-  await openDevice(page, 'pioneer-ddj-s8');
-  await page.click('button[data-run-test="ddjs8-jogs"]');
+  await openDevice(page, 'pioneer-djm-a9');
+  await page.click('button[data-run-test="djma9-faders"]');
   await page.waitForSelector('.dev-checklist');
   check('Manual: Save disabled until every item answered', await page.locator('#dev-check-save').isDisabled());
   const items = page.locator('.dev-check-item');
@@ -330,32 +332,41 @@ async function devicesBrowser(page, wav, extra) {
   await deviceShot(page, 'device-manual-result-dark');
   await page.click('#dev-run-done');
   await page.waitForSelector('#dev-plan .dev-test');
-  check('Manual: device page shows the FAIL status and progress', /FAIL/.test(await page.locator('.dev-test[data-test="ddjs8-jogs"]').innerText()));
+  check('Manual: device page shows the FAIL status and progress', /FAIL/.test(await page.locator('.dev-test[data-test="djma9-faders"]').innerText()));
 
   // driver:check without Tauri: desktop-only state, skip records a skipped result
-  await page.click('button[data-run-test="ddjs8-driver"]');
+  await page.click('button[data-run-test="djma9-driver"]');
   await page.waitForSelector('#dev-scan-run');
   check('Driver check: browser shows desktop-only state with Run disabled', await page.locator('#dev-scan-run').isDisabled() && /Windows app/.test(await page.locator('#dev-runner').innerText()));
   await page.click('#dev-run-back');
 
   // quick:Signal health dispatches to the guided workflow, saves a linked result and returns
-  await openDevice(page, 'pioneer-ddj-s8');
-  await page.click('button[data-run-test="ddjs8-usb-master"]');
+  await openDevice(page, 'pioneer-djm-a9');
+  await page.click('button[data-run-test="djma9-master-out"]');
   await page.waitForSelector('#screen-quick:not([hidden]) #device-test-banner');
-  check('Workflow test: Quick Check opens with the device banner', /Running My DDJ-S8 · Master output signal health/.test(await page.locator('#device-test-banner').innerText()));
-  check('Workflow test: profile steps shown in Setup', /Play a test tone in Serato/.test(await page.locator('#screen-quick .card-device').innerText()) && /Master out/.test(await page.locator('#screen-quick .card-device').innerText()));
+  check('Workflow test: Quick Check opens with the device banner', /Running My DJM-A9 · Master output signal health/.test(await page.locator('#device-test-banner').innerText()));
+  check('Workflow test: profile steps shown in Setup', /Play a test tone from USB ch1/.test(await page.locator('#screen-quick .card-device').innerText()) && /Connect MASTER/.test(await page.locator('#screen-quick .card-device').innerText()));
   await shot(page, 'device-workflow-setup-dark');
   await page.setInputFiles('#quick-file', wav);
   await page.click('#quick-analyze');
   await page.waitForSelector('#screen-quick .step-results:not([hidden]) .verdict', { timeout: 20000 });
   await page.waitForFunction(() => /Saved to the/.test(document.getElementById('device-test-banner')?.innerText || ''), null, { timeout: 5000 }).catch(() => {});
-  check('Workflow test: results banner confirms the saved device result', /Saved to the Pioneer DJ DDJ-S8 test plan/.test(await page.locator('#device-test-banner').innerText()));
-  const wfRes = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1')).deviceResults.find(r => r.testId === 'ddjs8-usb-master'));
+  check('Workflow test: results banner confirms the saved device result', /Saved to the Pioneer DJ DJM-A9 test plan/.test(await page.locator('#device-test-banner').innerText()));
+  const wfRes = await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.catalog.v1')).deviceResults.find(r => r.testId === 'djma9-master-out'));
   check('Workflow test: result linked to the saved run (session id)', !!wfRes?.sessionId && wfRes.detail.runId === wfRes.sessionId && wfRes.detail.measurements.length > 3, JSON.stringify(wfRes?.status));
   await page.click('#device-test-back');
   await page.waitForSelector('#screen-devices:not([hidden]) #dev-plan .dev-test');
-  check('Workflow test: returns to the device page with a status', !/NOT RUN/.test(await page.locator('.dev-test[data-test="ddjs8-usb-master"] .dev-test-status').innerText()));
+  check('Workflow test: returns to the device page with a status', !/NOT RUN/.test(await page.locator('.dev-test[data-test="djma9-master-out"] .dev-test-status').innerText()));
   check('Workflow test: banner cleared on the workflow screen', await page.evaluate(() => !document.querySelector('#screen-quick #device-test-banner')));
+
+  // FS-34/35: auto-added baseline tests are in the plan and the audio-quality runner explains the browser limits
+  await openDevice(page, 'pioneer-djm-a9');
+  check('Plan: baseline tests auto-added (MIDI conformance, output audio quality)', (await page.locator('.dev-test[data-test="auto-midi-conformance"]').count()) === 1 && (await page.locator('.dev-test[data-test="auto-audio-quality"]').count()) === 1);
+  await page.click('button[data-run-test="auto-audio-quality"]');
+  await page.waitForSelector('#aq-wav');
+  check('Audio quality: browser mode offers the WAV + recording analysis and disables Run', await page.locator('#aq-run').isDisabled() && (await page.locator('#aq-file').count()) === 1 && /desktop app/.test(await page.locator('#dev-runner').innerText()));
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
 
   // timecode:format-check from a recorded quadrature file (1 kHz = Serato CV02.5 at 33 1/3)
   await openDevice(page, 'serato-control-vinyl-cv025');
@@ -371,12 +382,12 @@ async function devicesBrowser(page, wav, extra) {
   check('Timecode: clean quadrature saves PASS with ~1000 Hz carrier', tcRes?.status === 'pass' && Math.abs(tcRes.detail.measurements.find(m => m.metricId === 'tc_carrier_hz').value - 1000) < 2, `${tcRes?.status}`);
   await shot(page, 'device-timecode-dark');
   await page.click('#dev-run-done');
-  await openDevice(page, 'pioneer-ddj-s8');
+  await openDevice(page, 'pioneer-djm-a9');
 
   // report export
   const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+e')]);
   const report = fs.readFileSync(await dl.path(), 'utf8');
-  check('Device report: Ctrl+E exports HTML with statuses and the unverified-spec disclaimer', /deckchek-device-ddj-s8/.test(dl.suggestedFilename()) && /Unverified specifications/.test(report) && /FAIL/.test(report) && /Jog wheel inspection/.test(report));
+  check('Device report: Ctrl+E exports HTML with statuses and the unverified-spec disclaimer', /deckchek-device-djm-a9/.test(dl.suggestedFilename()) && /Unverified specifications/.test(report) && /FAIL/.test(report) && /Crossfader and channel fader feel/.test(report));
 
   // light theme screenshots
   await page.click('#theme-toggle');
@@ -396,22 +407,22 @@ async function devicesDesktop(page) {
   check('Desktop devices: device_profiles_sync stored every profile and created assets', db.profiles === PROFILE_IDS.length && db.assets === PROFILE_IDS.length, JSON.stringify(db));
 
   // driver:check with the mocked system scan
-  await openDevice(page, 'pioneer-ddj-s8');
-  await page.click('button[data-run-test="ddjs8-driver"]');
+  await openDevice(page, 'pioneer-djm-a9');
+  await page.click('button[data-run-test="djma9-driver"]');
   await page.click('#dev-scan-run');
   await page.waitForSelector('#dev-run-result .banner-result');
-  check('Driver check: scan evaluated (DDJ-S8 not in scan -> Driver not found)', /Driver not found/.test(await page.locator('#dev-runner').innerText()));
-  const drv = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-driver'));
+  check('Driver check: scan evaluated (DJM-A9 not in scan -> Driver not found)', /Driver not found/.test(await page.locator('#dev-runner').innerText()));
+  const drv = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'djma9-driver'));
   check('Driver check: device_test_result_save stored FAIL with driver_present = 0', drv?.status === 'fail' && drv.detail.measurements.find(m => m.metricId === 'driver_present')?.value === 0);
   await shot(page, 'device-driver-dark');
 
   // midi:coverage, learn mode with a mocked MIDI port
   await page.click('#dev-run-back');
   await page.waitForSelector('#dev-plan .dev-test');
-  await page.click('button[data-run-test="ddjs8-midi-coverage"]');
+  await page.click('button[data-run-test="djma9-midi-coverage"]');
   await page.waitForSelector('#midi-port');
-  check('MIDI: port auto-selected from portNamePatterns', (await page.inputValue('#midi-port')) === 'DDJ-S8 MIDI 1');
-  await page.waitForFunction(() => window.__mockMidi.open.includes('DDJ-S8 MIDI 1'));
+  check('MIDI: port auto-selected from portNamePatterns', (await page.inputValue('#midi-port')) === 'DJM-A9 MIDI 1');
+  await page.waitForFunction(() => window.__mockMidi.open.includes('DJM-A9 MIDI 1'));
   check('MIDI: port opened', true);
   await page.evaluate(() => { const e = window.__emitMidi; e([0x90, 11, 127]); e([0x80, 11, 0]); for (let v = 0; v <= 127; v += 8) e([0xB0, 31, v]); e([0x90, 12, 127]); e([0x80, 12, 0]); });
   await page.waitForFunction(() => document.querySelectorAll('.dev-learn-row').length === 3);
@@ -426,7 +437,7 @@ async function devicesDesktop(page) {
   await shot(page, 'device-midi-learn-dark');
   await page.click('#midi-finish');
   await page.waitForSelector('#dev-run-result .banner-result');
-  const cov1 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-midi-coverage'));
+  const cov1 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'djma9-midi-coverage'));
   check('MIDI coverage (learn): result saved as REVIEW with discovered count', cov1?.status === 'unknown' && cov1.detail.discovered === 3);
   // second run uses the learned map
   await page.click('#dev-run-result button:has-text("Run again")');
@@ -435,30 +446,53 @@ async function devicesDesktop(page) {
   await page.evaluate(() => { const e = window.__emitMidi; e([0x90, 11, 127]); e([0x80, 11, 0]); e([0xB0, 31, 0]); e([0xB0, 31, 127]); });
   await page.waitForFunction(() => document.querySelectorAll('.dev-tile.seen').length === 2);
   await page.click('#midi-finish');
-  await page.waitForFunction(() => window.__mockDb.deviceResults.filter(r => r.testId === 'ddjs8-midi-coverage').length === 2);
-  const cov2 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'ddjs8-midi-coverage'));
+  await page.waitForFunction(() => window.__mockDb.deviceResults.filter(r => r.testId === 'djma9-midi-coverage').length === 2);
+  const cov2 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'djma9-midi-coverage'));
   check('MIDI coverage (mapped): all controls seen -> PASS', cov2.status === 'pass' && cov2.detail.measurements.find(m => m.metricId === 'midi_controls_seen_percent')?.value === 100, cov2.status);
   await shot(page, 'device-midi-coverage-dark');
+
+  // midi:conformance (auto-added test): Identity Request goes out, a clean stream passes, a malformed one fails
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  await page.click('button[data-run-test="auto-midi-conformance"]');
+  await page.waitForSelector('#conf-title');
+  await page.waitForFunction(() => window.__mockMidi.sent.some(m => m.bytes.join() === [0xf0, 0x7e, 0x7f, 6, 1, 0xf7].join()));
+  check('MIDI conformance: Identity Request sent to the output port', true);
+  await page.evaluate(() => { const e = window.__emitMidi; e([0xf0, 0x7e, 0, 6, 2, 0x42, 1, 0, 2, 0, 1, 0, 0, 0, 0xf7]); e([0x90, 10, 100]); e([0x80, 10, 0]); e([0xb0, 7, 64]); e([0xfe]); });
+  await page.waitForFunction(() => /IDENTIFIED/.test(document.getElementById('dev-runner').innerText));
+  await page.click('#midi-finish');
+  await page.waitForSelector('#dev-run-result .banner-result');
+  const conf1 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'auto-midi-conformance'));
+  check('MIDI conformance: clean stream saves PASS with identity and zero invalid messages', conf1?.status === 'pass' && conf1.detail.measurements.find(m => m.metricId === 'midi_invalid_messages')?.value === 0 && conf1.detail.measurements.find(m => m.metricId === 'midi_identity_reply')?.value === 1, conf1?.status);
+  await page.click('#dev-run-result button:has-text("Run again")');
+  await page.waitForSelector('#conf-title');
+  await page.evaluate(() => { const e = window.__emitMidi; e([0x90, 60, 200]); e([0x90, 61, 90]); });
+  await page.waitForFunction(() => /1 invalid/.test(document.getElementById('dev-runner').innerText));
+  await page.click('#midi-finish');
+  await page.waitForFunction(() => window.__mockDb.deviceResults.filter(r => r.testId === 'auto-midi-conformance').length === 2);
+  const conf2 = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'auto-midi-conformance'));
+  check('MIDI conformance: invalid message and stuck note save FAIL with findings', conf2?.status === 'fail' && conf2.detail.findings.some(f => f.id === 'midi-invalid') && conf2.detail.findings.some(f => f.id === 'midi-stuck'), conf2?.status);
+  await shot(page, 'device-midi-conformance-dark');
 
   // no MIDI device present -> clear empty state
   await page.evaluate(() => { window.__mockMidi.ports = []; });
   await page.click('#dev-run-back');
   await page.waitForSelector('#dev-plan .dev-test');
-  await page.click('button[data-run-test="ddjs8-jog-jog1"]');
+  await page.click('button[data-run-test="djma9-fader-ch1_fader"]');
   await page.waitForSelector('#midi-empty');
   check('MIDI: clear state when no MIDI port is present', /No MIDI device found/.test(await page.locator('#midi-empty').innerText()));
   const ma = await a11yAudit(page);
   check('MIDI: a11y names + target sizes', !ma.unnamed.length && !ma.small.length, [...ma.unnamed, ...ma.small].slice(0, 3).join(' | '));
   await page.click('#dev-run-back');
   await page.waitForSelector('#dev-plan .dev-test');
-  check('Desktop devices: progress reflects saved results', /FAIL/.test(await page.locator('.dev-test[data-test="ddjs8-driver"]').innerText()) && /PASS/.test(await page.locator('.dev-test[data-test="ddjs8-midi-coverage"]').innerText()));
+  check('Desktop devices: progress reflects saved results', /FAIL/.test(await page.locator('.dev-test[data-test="djma9-driver"]').innerText()) && /PASS/.test(await page.locator('.dev-test[data-test="djma9-midi-coverage"]').innerText()));
 }
 
 // Minimal Tauri mock: catalog/run commands in memory, synthetic live capture.
 export function tauriMock() {
   const listeners = {};
   const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
-  const midiState = { ports: ['Focusrite USB MIDI', 'DDJ-S8 MIDI 1'], open: [], sent: [] };
+  const midiState = { ports: ['Focusrite USB MIDI', 'DJM-A9 MIDI 1'], open: [], sent: [] };
   let running = false, started = 0, timer = null;
   const sr = 48000;
   const emit = (name, payload) => (listeners[name] || []).forEach(cb => cb({ payload }));
@@ -542,7 +576,7 @@ export function tauriMock() {
   window.__mockDb = db;
   window.__mockMidi = midiState;
   let midiT = 1000;
-  window.__emitMidi = bytes => { midiT += 2500; emit('midi-message', [{ port: midiState.open.at(-1) || 'DDJ-S8 MIDI 1', timestampUs: midiT, bytes }]); };
+  window.__emitMidi = bytes => { midiT += 2500; emit('midi-message', [{ port: midiState.open.at(-1) || 'DJM-A9 MIDI 1', timestampUs: midiT, bytes }]); };
   try {
     if (!('setSinkId' in AudioContext.prototype)) AudioContext.prototype.setSinkId = async () => {};
     navigator.mediaDevices.enumerateDevices = async () => [
@@ -647,6 +681,7 @@ async function desktopMode(browser, base) {
 export default async function run(ctx) {
   ({ check, ROOT, SHOTS } = ctx);
   PROFILE_IDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'devices', 'index.json'), 'utf8')).profiles;
+  IMAGE_COUNT = PROFILE_IDS.filter(id => JSON.parse(fs.readFileSync(path.join(ROOT, 'devices', 'profiles', `${id}.json`), 'utf8')).image).length;
   const { browser, base, tmp } = ctx;
   const wav = writeToneWav(tmp, {});
   const wav3k = writeToneWav(tmp, { hz: 3150, seconds: 6, name: 'tone-3150.wav' });

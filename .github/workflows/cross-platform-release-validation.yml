@@ -32,6 +32,7 @@ jobs:
           node-version: '22'
       - run: npm test
       - run: node tools/build-device-index.mjs --check
+      - run: node tools/check-device-coverage.mjs --check
       - run: node tools/check-timecode-facts.mjs
       - run: node tools/check-migrations.mjs
       - name: Syntax check

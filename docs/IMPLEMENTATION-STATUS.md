@@ -113,6 +113,12 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - PWA in `mobile/` (see `mobile/README.md`): Speed by reference tone (reuses `speedFromReferenceTone`, `frequencyTrace`, `speedStabilityMetrics`, `rpmUncertainty`), mains strobe helper with the four-row dot table and an on-screen strobe (photosensitivity confirmation first), Vibration (accelerometer RMS and dominant 0.5-30 Hz peak), SPL (A/C weighted, always labelled uncalibrated, single-point calibration), Results with file, share sheet, copy and QR (several QR frames when large). `tools/build-mobile.mjs` copies the shared engines into `mobile/vendor/` and stamps the service-worker precache; `--check` runs in CI. Tests `tests/mobile-*.test.mjs`, `tests/phone-run.test.mjs`; smoke `tools/smoke/mobile-pwa.mjs` (fake microphone, offline reload).
 - Not done, by decision: hosting. `.github/workflows/pages-mobile.yml` is `workflow_dispatch` only and its deploy job needs the `deploy` input ticked; nothing is published until the owner decides (R12). Camera strobe analysis stays post-MVP. Not validated on real phones (iOS motion permission, Android sensor rate, phone clock error, mic AGC) or against a printed strobe disc.
 
+## M9 additions: device test completeness (implemented and test-covered, hardware-unvalidated)
+- FS-34: `app/devices/test-plan.js` (capabilities, `completePlan`, `auditProfile`, metric registry), applied in `ensureLibrary`; `tools/check-device-coverage.mjs` and the generated `docs/testing/DEVICE-TEST-COVERAGE.md` (all 45 profiles fully testable). Tests: `tests/device-test-plan.test.mjs`.
+- FS-35: `app/audio-quality.js` (stimulus, A-weighting via FFT, THD+N/THD, noise, SNR, separation, balance, polarity, response, linearity, dropouts), `app/devices/audio-session.js` (record-then-play orchestration with injected deps), `app/ui/devices/audio-runner.js`. Tests: `tests/audio-quality.test.mjs`, `tests/audio-session.test.mjs`.
+- FS-36: `app/midi-conformance.js` and the `conformance` / `gm` panels in `app/ui/devices/midi-runner.js`. Tests: `tests/midi-conformance.test.mjs`.
+- UI smoke (`tools/smoke/core.mjs`) now drives the DJM-A9 (the DDJ-S8 profile was removed) and covers the auto-added tests.
+
 ## M5 shipped in v0.0.5
 
 - First-run setup wizard (FS-01), resumable, re-runnable from Options.

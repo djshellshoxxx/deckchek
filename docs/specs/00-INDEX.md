@@ -27,6 +27,9 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-31](31-timecode-doctor-live-monitor.md) | Timecode doctor live monitor | Spike (shared-mode capture beside DJ software on owner's interfaces) | L | FS-00 (stream capture, lease) | M8 | 0019 | `liveMonitor` |
 | [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Ready\* (owner's DDJ model) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
 | [FS-33](33-gear-ledger.md) | Gear ledger static export | Ready | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
+| [FS-34](34-device-test-completeness.md) | Device test completeness (capabilities, baseline plan, audit) | Ready | M | device library | M9 | — | — |
+| [FS-35](35-audio-quality-test.md) | Output audio-quality test | Ready | L | FS-00 (audio_out, capture), calibration | M9 | — | — |
+| [FS-36](36-general-midi-test.md) | General MIDI testing (conformance + GM sound check) | Ready | M | midi.js, midi-tests.js | M9 | — | — |
 
 Numbering gaps (04, 05, 09, 16–19, 24–29) are intentional; they leave room for future specs in the same groups (essentials 0x, DJ 1x, pro 2x, companion 3x).
 

@@ -6,6 +6,7 @@ import { h, esc, formatNumber } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import * as midiBridge from '../../midi.js';
 import { parseMessage, matchControl, createCoverageSession, analyzeFader, analyzeJog, analyzeButton, analyzeTiming, buildLedSequence } from '../../midi-tests.js';
+import { analyzeStream, conformanceFindings, parseIdentityReply, IDENTITY_REQUEST, gmSteps, gmCleanup, evaluateGm } from '../../midi-conformance.js';
 import { evaluateOutcome, effectiveMidiMap, learnedControls, learnKey, inferControlType, pickMidiPort, midiFindings } from '../../devices/dispatch.js';
 import { linePlot } from '../plots.js';
 import { stepsCard, readoutGrid, findingList } from './runners.js';
@@ -95,7 +96,7 @@ export function runMidi(host, ctx) {
     try { await midi.open(st.port); st.opened = st.port; st.status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(st.port)}.</span>`; }
     catch (error) { st.status.innerHTML = `${chip('fail', 'NOT CONNECTED', { size: 14 })} <span>${esc(error?.message || error)}</span>`; return; }
     st.unsub?.();
-    st.unsub = midi.onMessage(raw => { if (raw.port && raw.port !== st.port) return; const msg = parseMessage(raw.bytes); if (msg.kind === 'clock' || msg.kind === 'other') return; st.panel?.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs() }); });
+    st.unsub = midi.onMessage(raw => { if (raw.port && raw.port !== st.port) return; const msg = parseMessage(raw.bytes); if (!st.panel?.wantsRaw && (msg.kind === 'clock' || msg.kind === 'other')) return; st.panel?.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs(), raw: raw.bytes }); });
     st.panel?.dispose?.();
     st.panel = PANELS[kind]();
   }
@@ -378,6 +379,102 @@ export function runMidi(host, ctx) {
       })));
       body.replaceChildren(card);
       return { onMessage: (msg, t) => { if (tgt.value(msg) == null) return; stamps.push(t.tUs); draw(); } };
+    },
+
+    conformance() {
+      const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
+      card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek asks the device to identify itself, then checks every message it sends while you use the controls: well-formed bytes, SysEx, notes that never release, and Active Sensing / Clock timing.' }));
+      const events = [];
+      let lastT = 0, lastR = 0, identity = { status: st.outPort ? 'pending' : 'no-port', info: null };
+      const idLine = h('p', { class: 'dev-target', role: 'status' });
+      const stats = h('p', { class: 'num dev-live-stats', 'aria-live': 'off', text: '0 messages' });
+      const showId = () => {
+        idLine.innerHTML = identity.status === 'ok' ? `${chip('pass', 'IDENTIFIED', { size: 14 })} <span>Manufacturer id <strong class="num">${esc(identity.info.manufacturerHex)}</strong> · family ${identity.info.family} · model ${identity.info.member} · version ${esc(identity.info.versionText)}</span>`
+          : identity.status === 'none' ? `${chip('review', 'NO ANSWER', { size: 14 })} <span>No reply to the Identity Request within 1.5 s. Many DJ controllers do not implement it.</span>`
+          : identity.status === 'no-port' ? `${chip('info', 'SKIPPED', { size: 14 })} <span>No MIDI output port was found, so the Identity Request was not sent.</span>`
+          : `${chip('review', 'ASKING', { size: 14 })} <span>Sending the Identity Request…</span>`;
+      };
+      const probe = async () => {
+        if (!st.outPort) { identity = { status: 'no-port', info: null }; showId(); return; }
+        identity = { status: 'pending', info: null }; showId();
+        try { await midi.send(st.outPort, IDENTITY_REQUEST); } catch (error) { identity = { status: 'none', info: null }; showId(); toast(`Could not send to ${st.outPort}: ${error?.message || error}`, { type: 'warn' }); return; }
+        await new Promise(r => setTimeout(r, 1500));
+        if (identity.status === 'pending') identity = { status: 'none', info: null };
+        showId();
+      };
+      const draw = throttle(() => { const a = analyzeStream(events); stats.textContent = `${a.total} messages · ${a.invalid.length + a.sysexBad.length} invalid · channels ${a.channels.join(', ') || '—'}`; });
+      card.append(idLine, stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Use every kind of control for about 15 seconds, hold one pad for a second, then finish.' }),
+        h('button', { type: 'button', class: 'btn btn-ghost', text: 'Ask again', onclick: probe }),
+        finishBtn('Finish test', () => {
+          const endUs = lastT + (nowUs() - lastR);
+          const a = analyzeStream(events, { endUs });
+          const measurements = [...a.measurements, { metricId: 'midi_identity_reply', label: 'Identity Reply received', value: identity.status === 'ok' ? 1 : 0, unit: 'bool', qualityFlags: identity.status === 'no-port' ? ['no-output-port'] : [] }];
+          const findings = conformanceFindings(a, identity);
+          if (identity.status === 'ok') findings.push({ id: 'midi-identified', severity: 'info', title: `Device identified (manufacturer id ${identity.info.manufacturerHex})`, meaning: `Family ${identity.info.family}, model ${identity.info.member}, version ${identity.info.versionText}. Look the manufacturer id up in the MIDI Association SysEx ID list.`, action: '' });
+          const bad = a.invalid.length + a.sysexBad.length + a.stuck.length;
+          const override = !a.total ? { status: 'unknown', detail: 'No MIDI messages were received, so nothing could be checked.', criterion: 'conformance' }
+            : bad ? { status: 'fail', detail: `${a.invalid.length} invalid, ${a.sysexBad.length} malformed SysEx and ${a.stuck.length} stuck note(s) in ${a.total} messages.`, criterion: 'conformance' }
+            : a.orphans ? { status: 'unknown', detail: `${a.total} messages are well formed, but ${a.orphans} note-off(s) had no note-on — review.`, criterion: 'conformance' }
+            : { status: 'pass', detail: `All ${a.total} messages are valid MIDI; no stuck notes.`, criterion: 'conformance' };
+          card.append(resultBlock(measurements, findings));
+          complete(measurements, findings, { kinds: a.kinds, channels: a.channels, identity: identity.info, identityStatus: identity.status, clock: a.clock, sensing: a.sensing }, override);
+        })));
+      body.replaceChildren(card);
+      showId(); probe();
+      return { wantsRaw: true, onMessage: (msg, t) => {
+        const bytes = Array.from(t.raw || []);
+        if (!bytes.length) return;
+        const reply = identity.status === 'pending' ? parseIdentityReply(bytes) : null;
+        if (reply) { identity = { status: 'ok', info: reply }; showId(); }
+        events.push({ tUs: t.tUs, bytes }); lastT = t.tUs; lastR = t.rUs; draw();
+      } };
+    },
+
+    gm() {
+      const card = h('section', { class: 'card', 'aria-labelledby': 'gm-title' });
+      card.append(h('h2', { class: 'card-title', id: 'gm-title', text: 'General MIDI sound check' }), h('p', { class: 'muted small', text: 'For devices with a built-in General MIDI sound source. DeckChek sends GM System On, then ten short musical checks. Turn the unit’s output up a little, listen, and answer for each.' }));
+      if (!st.outPort) {
+        card.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>No MIDI output port</h2><p>The test needs to send notes to the device. Connect it and refresh the ports, or skip this test if it has no General MIDI sound source.</p>` }),
+          h('div', { class: 'step-footer' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Skip test', onclick: () => ctx.skip('No MIDI output port, or the device has no General MIDI sound source.') })));
+        body.replaceChildren(card);
+        return { onMessage() {} };
+      }
+      const steps = gmSteps(), answers = {};
+      let token = 0, playing = false;
+      const send = async bytes => { try { await midi.send(st.outPort, bytes); } catch (error) { toast(`Could not send to ${st.outPort}: ${error?.message || error}`, { type: 'error' }); throw error; } };
+      const silence = async () => { token++; for (const b of gmCleanup()) { try { await midi.send(st.outPort, b); } catch { /* port gone */ } } };
+      const list = h('ol', { class: 'dev-gm-list' });
+      const status = h('p', { class: 'muted small', role: 'status' });
+      const save = finishBtn('Save result', () => {
+        const r = evaluateGm(answers, steps);
+        card.append(resultBlock(r.measurements, r.findings));
+        complete(r.measurements, r.findings, { answers }, { status: r.status, detail: r.detail, criterion: 'user' });
+      });
+      save.disabled = true;
+      const refresh = () => { const r = evaluateGm(answers, steps); save.disabled = r.status == null; status.textContent = r.status == null ? r.detail : `Result: ${r.status === 'pass' ? 'PASS' : r.status === 'fail' ? 'FAIL' : 'SKIPPED'} — ${r.detail}`; };
+      steps.forEach((s, i) => {
+        const li = h('li', { class: 'dev-gm-step', 'data-step': s.id });
+        const playBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: `gm-play-${s.id}`, html: `${icon('play', { size: 14 })}<span>Play</span>` });
+        const group = h('div', { class: 'segmented dev-answer', role: 'radiogroup', 'aria-label': `Step ${i + 1}: ${s.question}` });
+        for (const [val, label, tone] of [['yes', 'Yes', 'pass'], ['no', 'No', 'fail'], ['na', 'N/A', 'info']]) {
+          const b = h('button', { type: 'button', role: 'radio', class: `seg seg-${tone}`, 'aria-checked': 'false', 'data-answer': val, text: label });
+          b.addEventListener('click', () => { answers[s.id] = val; group.querySelectorAll('[role=radio]').forEach(x => x.setAttribute('aria-checked', String(x === b))); refresh(); });
+          group.append(b);
+        }
+        playBtn.addEventListener('click', async () => {
+          if (playing) { await silence(); playing = false; return; }
+          playing = true; const mine = ++token;
+          const orig = playBtn.innerHTML; playBtn.innerHTML = `${icon('stop', { size: 14 })}<span>Stop</span>`;
+          try { for (const msg of s.messages) { if (token !== mine) break; await send(msg.bytes); if (msg.delayMs) await new Promise(r => setTimeout(r, msg.delayMs)); } }
+          catch { /* reported by send */ }
+          finally { if (token === mine) { for (let c = 1; c <= 16; c++) { try { await midi.send(st.outPort, [0xb0 | (c - 1), 123, 0]); } catch { break; } } } playing = false; playBtn.innerHTML = orig; }
+        });
+        li.append(h('div', { class: 'dev-gm-head' }, h('strong', { text: `${i + 1}. ${s.title}` }), playBtn), h('p', { class: 'muted small', text: s.question }), group);
+        list.append(li);
+      });
+      card.append(list, h('div', { class: 'step-footer' }, status, h('button', { type: 'button', class: 'btn btn-ghost', text: 'Silence everything', onclick: () => { silence(); playing = false; } }), save));
+      body.replaceChildren(card);
+      return { onMessage() {}, dispose() { silence(); } };
     },
   };
 

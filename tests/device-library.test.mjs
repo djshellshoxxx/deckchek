@@ -39,9 +39,9 @@ test('validateProfile reports structural errors', () => {
 });
 
 test('loadProfiles fetches the index and reports bad files without throwing', async () => {
-  const files = { './devices/index.json': { profiles: ['pioneer-ddj-s8', 'broken', 'missing'] }, './devices/profiles/pioneer-ddj-s8.json': byId('pioneer-ddj-s8'), './devices/profiles/broken.json': { id: 'broken' } };
+  const files = { './devices/index.json': { profiles: ['pioneer-djm-a9', 'broken', 'missing'] }, './devices/profiles/pioneer-djm-a9.json': byId('pioneer-djm-a9'), './devices/profiles/broken.json': { id: 'broken' } };
   const res = await loadProfiles({ fetchJson: async url => { if (!(url in files)) throw new Error('404'); return files[url]; } });
-  assert.deepEqual(res.profiles.map(p => p.id), ['pioneer-ddj-s8']);
+  assert.deepEqual(res.profiles.map(p => p.id), ['pioneer-djm-a9']);
   assert.deepEqual(res.problems.map(p => p.id).sort(), ['broken', 'missing']);
 });
 
@@ -107,27 +107,27 @@ test('evaluateChecklist: problem fails, all N/A skips, unanswered blocks', () =>
 });
 
 test('groupTestsByCategory, specSummary and progressFor', () => {
-  const p = byId('pioneer-ddj-s8');
+  const p = byId('pioneer-djm-a9');
   const groups = groupTestsByCategory(p);
   assert.equal(groups.reduce((n, g) => n + g.tests.length, 0), p.tests.length);
   assert.equal(groups[0].category, 'driver');
   const s = specSummary(p);
-  assert.equal(s.unverified, 3);
+  assert.equal(s.unverified, 8);
   assert.equal(s.hasUnverified, true);
   assert.equal(s.midiLearn, true);
   assert.equal(specSummary(byId('allen-heath-xone-23')).hasUnverified, false);
   const results = [
-    { profileId: p.id, testId: 'ddjs8-driver', status: 'fail', createdAt: '2026-01-01' },
-    { profileId: p.id, testId: 'ddjs8-driver', status: 'pass', createdAt: '2026-01-02' },
-    { profileId: p.id, testId: 'ddjs8-led', status: 'skipped', createdAt: '2026-01-02' },
-    { profileId: 'other', testId: 'ddjs8-jogs', status: 'fail', createdAt: '2026-01-02' },
+    { profileId: p.id, testId: 'djma9-driver', status: 'fail', createdAt: '2026-01-01' },
+    { profileId: p.id, testId: 'djma9-driver', status: 'pass', createdAt: '2026-01-02' },
+    { profileId: p.id, testId: 'djma9-led', status: 'skipped', createdAt: '2026-01-02' },
+    { profileId: 'other', testId: 'djma9-faders', status: 'fail', createdAt: '2026-01-02' },
   ];
-  assert.equal(latestResults(results).get('ddjs8-driver').status, 'pass');
+  assert.equal(latestResults(results).get('djma9-driver').status, 'pass');
   const prog = progressFor(p, results);
   assert.deepEqual({ ...prog }, { total: p.tests.length, passed: 1, failed: 0, unknown: 0, skipped: 1, untested: p.tests.length - 2, done: 2 });
   const docs = documentLinks(p);
   assert.ok(docs.links.every(d => d.url.startsWith('http')));
-  assert.equal(docs.missing.length, 2);
+  assert.equal(docs.missing.length, 1);
 });
 
 test('MIDI map helpers: learn, merge, port matching, findings', () => {
@@ -217,18 +217,18 @@ test('catalog-store fallback: profile sync prunes retired profiles and their aut
 
 test('catalog-store fallback: device results and learned maps round trip', async () => {
   const store = createCatalogStore({ invoke: null, storage: memStorage() });
-  const [synced] = await store.syncDeviceProfiles([byId('pioneer-ddj-s8')], { createAssets: true });
-  const r1 = await store.saveDeviceTestResult({ assetId: synced.assetId, profileId: 'pioneer-ddj-s8', testId: 'ddjs8-driver', status: 'pass', detail: { summary: 'ok' }, sessionId: 'nope', createdAt: '2026-10-01T00:00:00Z' });
+  const [synced] = await store.syncDeviceProfiles([byId('pioneer-djm-a9')], { createAssets: true });
+  const r1 = await store.saveDeviceTestResult({ assetId: synced.assetId, profileId: 'pioneer-djm-a9', testId: 'djma9-driver', status: 'pass', detail: { summary: 'ok' }, sessionId: 'nope', createdAt: '2026-10-01T00:00:00Z' });
   assert.equal(r1.sessionId, null);
   await store.saveRun({ id: 'run-1', test: 'Stereo balance', createdAt: 'x', measurements: [], findings: [] });
-  const r2 = await store.saveDeviceTestResult({ assetId: synced.assetId, profileId: 'pioneer-ddj-s8', testId: 'ddjs8-phones', status: 'unknown', sessionId: 'run-1', createdAt: '2026-10-02T00:00:00Z' });
+  const r2 = await store.saveDeviceTestResult({ assetId: synced.assetId, profileId: 'pioneer-djm-a9', testId: 'djma9-phones', status: 'unknown', sessionId: 'run-1', createdAt: '2026-10-02T00:00:00Z' });
   assert.equal(r2.sessionId, 'run-1');
   await assert.rejects(() => store.saveDeviceTestResult({ assetId: 'a', profileId: 'p', testId: 't', status: 'meh' }));
   const list = await store.listDeviceTestResults(synced.assetId);
-  assert.deepEqual(list.map(r => r.testId), ['ddjs8-phones', 'ddjs8-driver']);
+  assert.deepEqual(list.map(r => r.testId), ['djma9-phones', 'djma9-driver']);
   assert.equal((await store.listDeviceTestResults('other')).length, 0);
   assert.equal(await store.getMidiMap(synced.assetId), null);
-  await store.saveMidiMap(synced.assetId, 'pioneer-ddj-s8', { mapSource: 'learned', controls: [{ id: 'play' }] });
+  await store.saveMidiMap(synced.assetId, 'pioneer-djm-a9', { mapSource: 'learned', controls: [{ id: 'play' }] });
   assert.equal((await store.getMidiMap(synced.assetId)).map.controls[0].id, 'play');
 });
 

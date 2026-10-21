@@ -786,3 +786,8 @@ dialog[data-ui-assistance] { background: var(--surface); color: var(--text); }
   .dev-check-item { grid-template-columns: 28px minmax(0, 1fr); }
   .dev-check-item .dev-answer { grid-column: 2; justify-self: start; }
 }
+
+/* SPEC-36 General MIDI sound check */
+.dev-gm-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.dev-gm-step { border: 1px solid var(--border, #d9dde3); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.dev-gm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
