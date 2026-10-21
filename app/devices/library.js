@@ -15,8 +15,9 @@ export const TEST_CATEGORY_LABELS = {
 export const PASS_OPS = ['abs<=', '<=', '>=', 'between', 'equals', 'all-seen'];
 export const SEVERITIES = ['critical', 'major', 'minor'];
 /** Engines a test method can name, as `<engine>:<mode>`. */
-export const METHOD_ENGINES = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'timecode', 'midi', 'driver', 'software', 'manual'];
-export const MIDI_KINDS = ['coverage', 'fader', 'jog', 'button', 'led', 'latency'];
+export const METHOD_ENGINES = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'timecode', 'midi', 'audio', 'driver', 'software', 'manual'];
+export const MIDI_KINDS = ['coverage', 'fader', 'jog', 'button', 'led', 'latency', 'conformance', 'gm'];
+export const AUDIO_KINDS = ['quality'];
 
 /** Split "speed:Pitch map" into {engine:'speed', mode:'Pitch map'}. */
 export function parseMethod(method) {
@@ -56,6 +57,7 @@ export function validateProfile(p) {
       const { engine, mode } = parseMethod(t?.method);
       if (!METHOD_ENGINES.includes(engine)) errors.push(`${where}: unknown method "${t?.method}"`);
       else if (engine === 'midi' && !MIDI_KINDS.includes(mode)) errors.push(`${where}: unknown MIDI test "${mode}"`);
+      else if (engine === 'audio' && !AUDIO_KINDS.includes(mode)) errors.push(`${where}: unknown audio test "${mode}"`);
       if (!TEST_CATEGORIES.includes(t?.category)) warnings.push(`${where}: unknown category "${t?.category}"`);
       if (!Array.isArray(t?.steps) || !t.steps.length) warnings.push(`${where}: no steps`);
       if (t?.pass != null) {

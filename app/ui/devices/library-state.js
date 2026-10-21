@@ -2,6 +2,7 @@
 // products (after sync), the user's units (assets) and saved test results.
 
 import { loadProfiles } from '../../devices/library.js';
+import { completePlan } from '../../devices/test-plan.js';
 import { store, emit } from '../state.js';
 import { mediaRefFromParams } from '../media-picker.js';
 
@@ -21,7 +22,7 @@ export function ensureLibrary({ force = false } = {}) {
   loading = (async () => {
     try {
       const { profiles, problems, warnings } = await loadProfiles();
-      lib.profiles = profiles; lib.problems = problems; lib.warnings = warnings;
+      lib.profiles = profiles.map(completePlan); lib.problems = problems; lib.warnings = warnings;
       try {
         const synced = await store.syncDeviceProfiles(profiles);
         lib.products = new Map(synced.map(s => [s.profileId, s.productId]));

@@ -24,6 +24,7 @@ jobs:
       - run: npm test
       - name: Device index is up to date
         run: node tools/build-device-index.mjs --check
+        run: node tools/check-device-coverage.mjs --check
       - name: Timecode facts are consistent
         run: node tools/check-timecode-facts.mjs
       - name: Migration names and numbering

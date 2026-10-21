@@ -69,6 +69,16 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Ship published MIDI maps where official MIDI message lists can be obtained (DJM-A9, PLX-CRSS12, TWELVE MK2).
 - [x] History shows metric labels and asset names for native runs.
 
+## M9: every device testable (FS-34/35/36)
+
+- [x] FS-34 capability model, baseline plan and audit; CI check of `docs/testing/DEVICE-TEST-COVERAGE.md`.
+- [x] FS-35 output audio-quality test (`audio:quality`) with simulated-device unit tests.
+- [x] FS-36 `midi:conformance` and `midi:gm`.
+- [x] Smoke test retargeted from the removed DDJ-S8 to the DJM-A9; stale device-library unit tests fixed.
+- [ ] Run the audio-quality test against real hardware (interface loopback calibrated first) and tune the default thresholds.
+- [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify the manufacturer ids in Identity replies against the MIDI Association list.
+- [ ] Cancel an in-flight capture when playback fails (today the clip ends on its own timer, ~15 s, and holds the input lease until then).
+
 ## Later spec work
 
 - [ ] Vendor-specific DVS analyzers where technically and legally supportable.

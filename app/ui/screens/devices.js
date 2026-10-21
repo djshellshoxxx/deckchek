@@ -18,6 +18,7 @@ import { describeMediaRef } from '../media-picker.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
 import { runTimecode } from '../devices/timecode-runner.js';
 import { runMidi } from '../devices/midi-runner.js';
+import { runAudio } from '../devices/audio-runner.js';
 
 const RESULT_CHIP = { pass: ['pass', 'PASS'], fail: ['fail', 'FAIL'], unknown: ['review', 'REVIEW'], skipped: ['info', 'SKIPPED'] };
 export function statusChip(status, { size = 14 } = {}) {
@@ -366,7 +367,7 @@ export function createDevicesScreen(section) {
     const cat = groupTestsByCategory(p).find(g => g.tests.includes(test));
     section.innerHTML = `
       <nav class="dev-crumbs" aria-label="Breadcrumb"><button type="button" class="btn btn-ghost btn-sm" id="dev-run-back">${icon('chevronLeft', { size: 18 })}<span>${esc(p.model)}</span></button></nav>
-      <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon(d.runner === 'midi' ? 'keyboard' : d.runner === 'timecode' ? 'dvs' : d.runner === 'manual' ? 'check' : 'system', { size: 24 })}</span><div>
+      <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon(d.runner === 'midi' ? 'keyboard' : d.runner === 'audio' ? 'wave' : d.runner === 'timecode' ? 'dvs' : d.runner === 'manual' ? 'check' : 'system', { size: 24 })}</span><div>
         <span class="dev-mfr">${esc(p.manufacturer)} ${esc(p.model)} · ${esc(unit.nickname)}</span><h1 tabindex="-1">${esc(test.title)}</h1>
         <p class="dev-head-tags"><span class="dev-cat">${esc(cat?.label || test.category)}</span><span class="badge">${esc(methodLabel(test).toUpperCase())}</span><span class="badge">${esc((SEVERITY_LABEL[test.severity] || '').toUpperCase())}</span></p></div></div></header>
       <div class="banner banner-device" role="status" id="dev-run-banner"><span class="banner-device-icon">${icon('devices', { size: 22 })}</span><div class="banner-text"><strong>Running ${esc(p.model)} · ${esc(test.title)}</strong><span>${st.queue ? `${esc(queueText())} · ` : ''}The result is saved to ${esc(unit.nickname)}.</span></div><div class="banner-actions" id="dev-run-actions"></div></div>
@@ -397,7 +398,7 @@ export function createDevicesScreen(section) {
     };
     if (d.runner === 'midi') { try { ctx.learned = await store.getMidiMap(unit.id); } catch { ctx.learned = null; } }
     if (!host.isConnected) return;
-    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi }[d.runner];
+    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi, audio: runAudio }[d.runner];
     st.runner = runner(host, ctx) || null;
     document.getElementById('main').scrollTop = 0;
     $('h1')?.focus();

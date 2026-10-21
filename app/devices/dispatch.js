@@ -4,7 +4,7 @@
 
 import { WORKFLOWS, paramsForTest } from '../ui/workflows/definitions.js';
 import { evaluatePass } from '../device-checks.js';
-import { parseMethod, groupTestsByCategory, latestResults, progressFor, specSummary, CATEGORY_LABELS } from './library.js';
+import { parseMethod, groupTestsByCategory, latestResults, progressFor, specSummary, CATEGORY_LABELS, MIDI_KINDS, AUDIO_KINDS } from './library.js';
 
 const norm = s => String(s || '').trim().toLowerCase();
 
@@ -23,7 +23,8 @@ export function dispatchFor(test, workflows = WORKFLOWS) {
   }
   switch (engine) {
     case 'timecode': return mode === 'format-check' ? { runner: 'timecode' } : { runner: 'unsupported', reason: `Unknown timecode test "${mode}".` };
-    case 'midi': return ['coverage', 'fader', 'jog', 'button', 'led', 'latency'].includes(mode) ? { runner: 'midi', kind: mode } : { runner: 'unsupported', reason: `Unknown MIDI test "${mode}".` };
+    case 'audio': return AUDIO_KINDS.includes(mode) ? { runner: 'audio', kind: mode } : { runner: 'unsupported', reason: `Unknown audio test "${mode}".` };
+    case 'midi': return MIDI_KINDS.includes(mode) ? { runner: 'midi', kind: mode } : { runner: 'unsupported', reason: `Unknown MIDI test "${mode}".` };
     case 'driver': return { runner: 'driver' };
     case 'software': return { runner: 'software' };
     case 'manual': return { runner: 'manual' };
@@ -37,7 +38,8 @@ export function methodLabel(test) {
   switch (d.runner) {
     case 'workflow': return `${d.workflowTitle} · ${d.modeLabel}`;
     case 'timecode': return 'Timecode check';
-    case 'midi': return `MIDI · ${d.kind[0].toUpperCase()}${d.kind.slice(1)}`;
+    case 'midi': return d.kind === 'gm' ? 'MIDI · General MIDI' : `MIDI · ${d.kind[0].toUpperCase()}${d.kind.slice(1)}`;
+    case 'audio': return 'Audio quality';
     case 'driver': return 'Driver scan';
     case 'software': return 'Software log scan';
     case 'manual': return 'Checklist';
