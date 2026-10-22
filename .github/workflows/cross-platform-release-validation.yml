@@ -96,7 +96,9 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y gcc-i686-linux-gnu pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev libwebkit2gtk-4.1-dev:i386 libayatana-appindicator3-dev:i386 librsvg2-dev:i386 libasound2-dev:i386 libssl-dev:i386
+          # Ayatana AppIndicator is amd64-only in Jammy. Tauri's tray loader
+          # supports the legacy appindicator3 runtime for the 32-bit package.
+          sudo apt-get install -y gcc-i686-linux-gnu pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev libwebkit2gtk-4.1-dev:i386 librsvg2-dev:i386 libasound2-dev:i386 libssl-dev:i386
       - name: Install Tauri CLI
         uses: taiki-e/install-action@v2
         with:
@@ -118,6 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$BUILD_NAME" == linux-x86 ]]; then export PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig; fi
+          if [[ "$BUILD_NAME" == linux-x86 ]]; then export TAURI_TRAY=libappindicator3; fi
           if [[ -n "$TARGET" ]]; then cargo tauri build --target "$TARGET" --bundles "${{ matrix.bundles }}"; else cargo tauri build --bundles "${{ matrix.bundles }}"; fi
       - name: Stage uniquely named packages
         shell: bash
