@@ -80,12 +80,15 @@ export function validatePack(json, { metricRegistry } = {}) {
 /** No identity or free-text source fields are ever copied into a pack. */
 export function buildPack({ rows, appVersion, packId, contributor, createdMonth }, { metricRegistry } = {}) {
   if (!Array.isArray(rows)) throw new TypeError('Rows must be an array');
+  if (!Array.from(rows).every(row => typeof row?.value === 'number' && Number.isFinite(row.value))) {
+    throw new TypeError('Pack values must be finite numbers');
+  }
   const pack = {
     format: 'deckchek-pack', version: 1,
     packId: packId ?? globalThis.crypto.randomUUID(),
     createdMonth: createdMonth ?? new Date().toISOString().slice(0, 7),
     appVersion, contributor: contributor ?? globalThis.crypto.randomUUID(),
-    rows: rows.map(row => ({ ...normalizedRow(row), value: Number(Number(row.value).toPrecision(3)) })),
+    rows: rows.map(row => ({ ...normalizedRow(row), value: Number(row.value.toPrecision(3)) })),
   };
   const checked = validatePack(pack, { metricRegistry });
   if (!checked.ok) throw new Error(checked.errors.join('; '));

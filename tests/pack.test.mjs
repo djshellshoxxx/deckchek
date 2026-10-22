@@ -36,6 +36,14 @@ test('pack validation rejects unknown fields, unknown metrics, poison values and
   assert.equal(validatePack(valid).ok, false, 'unknown plausible range cannot be imported');
 });
 
+test('pack builder never fabricates measurements by coercing non-numeric source values', () => {
+  for (const value of [null, '', '0', true, false, undefined, NaN, Infinity]) {
+    assert.throws(() => buildPack({ ...input(), rows: [{ ...row, value }] }, { metricRegistry }), /finite numbers/);
+  }
+  assert.throws(() => buildPack({ ...input(), rows: new Array(1) }, { metricRegistry }), /finite numbers/);
+  assert.equal(buildPack({ ...input(), rows: [{ ...row, value: 0 }] }, { metricRegistry }).rows[0].value, 0);
+});
+
 test('pack limits apply to UTF-8 bytes, row counts and invalid JSON without throwing', () => {
   for (const value of ['{', 'x'.repeat(5 * 1024 * 1024 + 1), null, [], { ...input(), rows: Array(100001).fill(row) }]) {
     assert.equal(validatePack(value, { metricRegistry }).ok, false);
