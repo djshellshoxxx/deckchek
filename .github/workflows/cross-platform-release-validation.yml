@@ -98,7 +98,14 @@ jobs:
           tool: tauri-cli
       - name: Rust tests
         if: matrix.name != 'linux-x86'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        shell: bash
+        run: |
+          set +e
+          cargo test --locked --manifest-path src-tauri/Cargo.toml 2>&1 | tee "$RUNNER_TEMP/deckchek-rust-tests.log"
+          test_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$test_status" -ne 0 ]]; then node tools/annotate-rust-failure.mjs "$RUNNER_TEMP/deckchek-rust-tests.log" || printf '::warning::Could not summarize the Rust test failure.\n'; fi
+          exit "$test_status"
       - name: Compile target
         if: matrix.name != 'linux-x86'
         shell: bash
