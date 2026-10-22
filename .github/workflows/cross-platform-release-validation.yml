@@ -81,7 +81,7 @@ jobs:
           node-version: '22'
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Rust cross target
-        if: matrix.target != ''
+        if: matrix.target != '' && matrix.name != 'linux-x86'
         run: rustup target add "${{ matrix.target }}"
       - uses: Swatinem/rust-cache@v2
         with:
@@ -91,21 +91,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
-      - name: Install Linux x86 Tauri prerequisites
-        if: matrix.name == 'linux-x86'
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          # Ayatana AppIndicator is amd64-only in Jammy. Tauri's tray loader
-          # supports the legacy appindicator3 runtime for the 32-bit package.
-          sudo apt-get install -y gcc-i686-linux-gnu pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev libwebkit2gtk-4.1-dev:i386 librsvg2-dev:i386 libasound2-dev:i386 libssl-dev:i386
       - name: Install Tauri CLI
+        if: matrix.name != 'linux-x86'
         uses: taiki-e/install-action@v2
         with:
           tool: tauri-cli
       - name: Rust tests
+        if: matrix.name != 'linux-x86'
         run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: Compile target
+        if: matrix.name != 'linux-x86'
         shell: bash
         env:
           BUILD_NAME: ${{ matrix.name }}
@@ -119,8 +114,21 @@ jobs:
           BUILD_NAME: ${{ matrix.name }}
         run: |
           set -euo pipefail
-          if [[ "$BUILD_NAME" == linux-x86 ]]; then export PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig; fi
-          if [[ "$BUILD_NAME" == linux-x86 ]]; then export TAURI_TRAY=libappindicator3; fi
+          if [[ "$BUILD_NAME" == linux-x86 ]]; then
+            docker run --platform linux/386 --rm \
+              -v "$GITHUB_WORKSPACE:/work" -w /work i386/ubuntu:22.04 \
+              bash -euc '
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libasound2-dev libssl-dev
+                curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+                export PATH="/root/.cargo/bin:$PATH" CARGO_TARGET_DIR=/work/src-tauri/target
+                rustup target add i686-unknown-linux-gnu
+                cargo install tauri-cli --locked
+                cargo test --manifest-path src-tauri/Cargo.toml
+                cargo tauri build --target i686-unknown-linux-gnu --bundles deb
+              '
+            exit 0
+          fi
           if [[ -n "$TARGET" ]]; then cargo tauri build --target "$TARGET" --bundles "${{ matrix.bundles }}"; else cargo tauri build --bundles "${{ matrix.bundles }}"; fi
       - name: Stage uniquely named packages
         shell: bash
@@ -175,3 +183,4 @@ jobs:
             macOS packages are unsigned and not notarized. Windows installers are unsigned. Review SHA256SUMS after download.
           files: |
             release-artifacts/**/*
+            release-artifacts/SHA256SUMS

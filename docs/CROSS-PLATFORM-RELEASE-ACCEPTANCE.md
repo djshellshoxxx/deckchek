@@ -11,7 +11,7 @@ The GitHub Actions workflow `.github/workflows/cross-platform-release-validation
 | macOS Apple silicon | `macos-15` | app bundle and DMG |
 | macOS Intel x64 | `macos-15-intel` | app bundle and DMG |
 | Linux x64 | `ubuntu-22.04` | DEB and AppImage |
-| Linux x86 | `ubuntu-22.04` with i686 Rust and system libraries | DEB |
+| Linux x86 | `ubuntu-22.04` runner building inside an i386 Ubuntu 22.04 container | DEB |
 
 These are configured build targets, not verified downloadable products until CI succeeds for the same commit. The release job adds SHA-256 checksums. Windows installers and macOS packages are currently unsigned; macOS is not notarized.
 
