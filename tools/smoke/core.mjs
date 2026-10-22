@@ -474,6 +474,7 @@ export function tauriMock() {
   const handlers = {
     initialize_database: () => '/mock/deckchek.sqlite3',
     list_native_audio_inputs: () => [{ name: 'Focusrite USB (In 1/2)', isDefault: true }, { name: 'Rane SEVENTY-TWO MKII', isDefault: false }],
+    list_native_audio_outputs: () => [{ name: 'Focusrite USB Audio', sampleRate: sr, channels: 2 }, { name: 'Speakers', sampleRate: sr, channels: 2 }],
     start_live_capture: () => {
       if (running) throw 'Capture is already running.';
       running = true; started = Date.now();
@@ -640,6 +641,7 @@ async function desktopMode(browser, base) {
   await page.waitForFunction(() => !document.querySelector('#cal-out-field').hidden, null, { timeout: 5000 }).catch(() => {});
   check('output selector shown when outputs are available', await page.locator('#cal-out-field').isVisible());
   check('output selector lists devices', (await page.locator('#cal-output option').count()) === 3);
+  await page.waitForFunction(() => document.querySelectorAll('#sig-output option').length === 3);
   check('speaker signal playback enables only after native output enumeration', await page.locator('#sig-play-tone').isEnabled() && await page.locator('#sig-play-ambience').isEnabled());
   check('calibration Run loopback enabled in desktop', !(await page.locator('#cal-start').isDisabled()));
   await systemHealth(page);
