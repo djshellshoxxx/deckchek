@@ -37,7 +37,9 @@ export default async function run({ browser, tmp, check, SHOTS }) {
   try {
     const ctx = await phoneBrowser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark', permissions: ['microphone'], hasTouch: true, isMobile: true });
     const page = await ctx.newPage();
-    errors.push(...watchConsole(page, 'mobile'));
+    const browserErrors = watchConsole(page, 'mobile');
+    // Retain the watcher array until this nested browser has completed.
+    errors.push(browserErrors);
     await page.goto(base);
     await page.waitForSelector('#view h1');
     check('mobile: opens on Speed with five tabs', (await page.locator('.tabs a').count()) === 5 && /Speed/.test(await page.locator('#view h1').innerText()));
@@ -172,7 +174,7 @@ export default async function run({ browser, tmp, check, SHOTS }) {
     // ----- light theme
     const light = await phoneBrowser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'light', permissions: ['microphone'] });
     const lp = await light.newPage();
-    errors.push(...watchConsole(lp, 'mobile-light'));
+    errors.push(watchConsole(lp, 'mobile-light'));
     await lp.goto(`${base}#strobe`);
     await lp.waitForSelector('#strobe-table');
     await lp.screenshot({ path: `${SHOTS}/mobile-strobe-light.png` });
@@ -181,5 +183,5 @@ export default async function run({ browser, tmp, check, SHOTS }) {
     await phoneBrowser.close();
     server.close();
   }
-  return errors;
+  return errors.flat();
 }

@@ -7,7 +7,7 @@ export default async function run({ browser, base, check }) {
   const errors = [];
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
-  errors.push(...watchConsole(page, 'integration'));
+  errors.push(watchConsole(page, 'integration'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
 
@@ -77,7 +77,7 @@ export default async function run({ browser, base, check }) {
   };
   await openPanel();
   const listed = await page.locator('dialog.experimental-dialog [data-feature]').evaluateAll(els => els.map(e => e.dataset.feature));
-  check('experimental: panel lists the wired flags only', listed.includes('pregig') && listed.includes('humHunter') && !listed.includes('fleet') && !listed.includes('diagnosticsBundle'), listed.join(','));
+  check('experimental: panel lists the wired flags only', listed.includes('pregig') && listed.includes('humHunter') && listed.includes('fleet') && !listed.includes('diagnosticsBundle'), listed.join(','));
   check('experimental: ships-off flags carry the Experimental chip', (await page.locator('dialog.experimental-dialog .experimental-chip').count()) >= 7);
   check('experimental: test media is on by default, M6 screens are hidden', (await rail('media')) === 1 && (await rail('pregig')) === 0 && (await rail('hum')) === 0);
   const M6 = [['pregig', 'pregig'], ['latencyTuner', 'latency'], ['stylusWear', 'stylus'], ['wearMap', 'vinylscan'], ['scratchTest', 'scratch'], ['humHunter', 'hum'], ['testMedia', 'media']];
@@ -139,5 +139,5 @@ export default async function run({ browser, base, check }) {
   check('history: run detail names the test medium used', /Ortofon/.test(await page.locator('[data-test-medium]').innerText()));
 
   await context.close();
-  return errors;
+  return errors.flat();
 }
