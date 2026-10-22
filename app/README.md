@@ -25,6 +25,7 @@ review it without compiling Tauri.
 - `population.js` — FS-21 pure population statistics, contributor weighting, method/unit compatibility and deterministic bootstrap intervals. It never changes raw observations, converts units or decides pass/fail.
 - `pack.js` — FS-21 whitelist pack builder, strict preview validation and an in-memory ownership-aware pack store. Callers must supply a product/metric registry with exact units and plausible numeric bounds; unknown bounds are rejected. File dialogs, native persistence and the comparison screen remain pending, so the population flags stay unavailable.
 - `fleet.js`, `fleet-api.js`, `ui/screens/fleet.js`, `ui/booth-sheet.js` — experimental FS-23 fleet policy, native evidence/mutation bridge, grid/maintenance/location UI and printable booth sheet. SQLite reference validation lives in `src-tauri/src/fleet.rs`; browser mode states that native persistence is unavailable. Confirmed usage-ledger hours remain estimates and never imply measured runtime or hardware health.
+- `ui/fleet-templates.js` — product-scoped reminder policy editor. Applying a template validates the exact product and retains one reminder identity per template/asset pair.
 
 See [BUILDING.md](../BUILDING.md) for tests and the UI smoke test.
 

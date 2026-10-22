@@ -21,7 +21,8 @@ The Fleet option is now available under Experimental features and remains off by
 - Venue/booth/position creation, rename and parent change. Deletion requires typing the existing name and is blocked when any asset is placed or a saved setup still references the location; assets and historical records are preserved.
 - Booth sheet is registered with the shared PDF/print path and includes positions, asset/model, serial, last test, health, due status and a notes area. Browser mode explains that native fleet persistence is unavailable.
 - Configurable stale-result days and startup-banner preference. Keyboard `/`, `E`, `N` and arrow-key grid navigation are supported.
-- Remaining FS-23 work: product/category reminder templates, a richer events timeline with date/type filters, move-to handling during a referenced-location deletion, default-on qualification, and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
+- Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
+- Remaining FS-23 work: move-to handling during a referenced-location deletion, default-on qualification, and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
 
 ## Implemented and test-covered
 

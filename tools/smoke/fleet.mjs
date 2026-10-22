@@ -7,17 +7,19 @@ import { composePrintable } from '../../app/report-pdf.js';
 function fleetMock() {
   const before = window.__TAURI__.core.invoke;
   const old = new Date(Date.now() - 200 * 86400000).toISOString(), now = new Date().toISOString();
-  const data = { venues: [{ id: 'v', name: 'Club' }], booths: [{ id: 'b', venueId: 'v', name: 'Booth' }], positions: [{ id: 'p', boothId: 'b', name: 'Left' }], rows: [
-    { assetId: 'a', nickname: 'Deck A', productName: 'Test turntable', serialNumber: 'SN1', category: 'turntable', createdAt: old, installedDate: old, hoursTotal: 510, deckPositionId: 'p', position: 'Left', boothId: 'b', booth: 'Booth', venueId: 'v', venue: 'Club', lastResults: [{ testId: 'signal', status: 'fail', createdAt: now }], reminders: [{ id: 'r', assetId: 'a', title: 'Clean faders', basis: 'days', intervalValue: 90, warnBefore: 14, enabled: true, createdAt: old, lastDoneAt: null, hoursAtLastEvent: null }] },
+  const data = { products: [{ id: 'model', model: 'Test turntable' }], templates: [], venues: [{ id: 'v', name: 'Club' }], booths: [{ id: 'b', venueId: 'v', name: 'Booth' }], positions: [{ id: 'p', boothId: 'b', name: 'Left' }], rows: [
+    { assetId: 'a', productId: 'model', nickname: 'Deck A', productName: 'Test turntable', serialNumber: 'SN1', category: 'turntable', createdAt: old, installedDate: old, hoursTotal: 510, deckPositionId: 'p', position: 'Left', boothId: 'b', booth: 'Booth', venueId: 'v', venue: 'Club', lastResults: [{ testId: 'signal', status: 'fail', createdAt: now }], reminders: [{ id: 'r', assetId: 'a', title: 'Clean faders', basis: 'days', intervalValue: 90, warnBefore: 14, enabled: true, createdAt: old, lastDoneAt: null, hoursAtLastEvent: null }] },
     { assetId: 'other', nickname: 'Untested mixer', productName: 'Test mixer', category: 'mixer', createdAt: old, hoursTotal: 0, lastResults: [], reminders: [] },
   ] };
   const events = []; window.__fleet = { data, events, csv: null };
   window.__TAURI__.dialog = { save: async () => '/tmp/fleet.csv' };
   window.__TAURI__.core.invoke = async (command, args = {}) => {
     if (command === 'fleet_snapshot') return structuredClone(data);
-    if (command === 'maintenance_list') return events.filter(e => e.assetId === args.assetId);
+    if (command === 'maintenance_list') return events.filter(e => e.assetId === args.assetId && (!args.eventType || e.eventType === args.eventType) && (!args.from || e.eventAt.slice(0, 10) >= args.from) && (!args.to || e.eventAt.slice(0, 10) <= args.to));
     if (command === 'reminder_snooze') { for (const row of data.rows) for (const reminder of row.reminders) if (reminder.id === args.id) reminder.snoozedUntil = args.untilIso; return null; }
     if (command === 'reminder_upsert') { const row = data.rows.find(r => r.assetId === args.input.assetId); const id = `r${row.reminders.length + 1}`; row.reminders.push({ ...args.input, id, enabled: true, createdAt: now }); return id; }
+    if (command === 'reminder_template_upsert') { const id = args.input.id || `template-${data.templates.length + 1}`; data.templates = data.templates.filter(t => t.id !== id); data.templates.push({ ...args.input, id }); return id; }
+    if (command === 'reminder_apply_template') { const row = data.rows.find(r => r.assetId === args.assetId), template = data.templates.find(t => t.id === args.templateId); if (row.productId !== template.productId) throw 'wrong product'; const id = `${template.id}:${row.assetId}`; row.reminders = row.reminders.filter(r => r.id !== id); row.reminders.push({ ...template, id, enabled: true, createdAt: now }); return id; }
     if (command === 'maintenance_log') { const event = { ...args.input, id: `e${events.length + 1}`, hoursAtEvent: 510 }; events.push(event); for (const row of data.rows) for (const reminder of row.reminders) if (reminder.id === event.reminderId) { reminder.lastDoneAt = event.eventAt; reminder.hoursAtLastEvent = 510; } return event.id; }
     if (command === 'fleet_place_asset') { const row = data.rows.find(r => r.assetId === args.assetId); row.deckPositionId = args.deckPositionId; row.position = args.deckPositionId ? 'Left' : null; row.boothId = args.deckPositionId ? 'b' : null; row.booth = args.deckPositionId ? 'Booth' : null; row.venueId = args.deckPositionId ? 'v' : null; row.venue = args.deckPositionId ? 'Club' : null; return null; }
     if (command === 'booth_upsert') { const id = args.input.id || `b${data.booths.length + 1}`; data.booths = data.booths.filter(row => row.id !== id); data.booths.push({ id, venueId: args.input.parentId, name: args.input.name }); return id; }
@@ -57,6 +59,22 @@ export default async function run({ browser, base, check, ROOT }) {
   await page.locator('#fleet-event-form textarea').fill('Faders cleaned'); await page.locator('#fleet-event-form').getByRole('button', { name: 'Log event' }).click();
   await page.waitForFunction(() => window.__fleet.events.length === 1); await page.waitForFunction(() => document.getElementById('fleet-events')?.textContent.includes('Faders cleaned'));
   check('fleet: completing a reminder resets the due state and records maintenance', /Clean faders: ok/.test(await page.locator('#fleet-detail').innerText()));
+  await page.locator('#fleet-event-filters select').selectOption('repair');
+  await page.waitForFunction(() => document.getElementById('fleet-events')?.textContent.includes('No maintenance matches'));
+  check('fleet: maintenance timeline filters by event type', true);
+  await page.locator('#fleet-event-filters select').selectOption('');
+  await page.waitForFunction(() => document.getElementById('fleet-events')?.textContent.includes('Faders cleaned'));
+  await page.locator('#fleet-event-filters input[name="from"]').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
+  await page.waitForFunction(() => document.getElementById('fleet-events')?.textContent.includes('No maintenance matches'));
+  check('fleet: maintenance timeline filters by UTC date', true);
+  await page.locator('#fleet-templates input[name="title"]').fill('Quarterly inspection');
+  await page.locator('#fleet-templates').getByRole('button', { name: 'Save template' }).click();
+  await page.waitForFunction(() => window.__fleet.data.templates.length === 1);
+  check('fleet: a product reminder template persists', (await page.locator('#fleet-templates').innerText()).includes('Quarterly inspection'));
+  await page.getByRole('button', { name: 'Apply to selected asset', exact: true }).click();
+  await page.waitForFunction(() => window.__fleet.data.rows[0].reminders.length === 3);
+  await page.getByRole('button', { name: 'Apply to selected asset', exact: true }).click();
+  check('fleet: applying a product template repeatedly does not duplicate reminders', await page.evaluate(() => window.__fleet.data.rows[0].reminders.length === 3));
   await page.selectOption('#fleet-placement', ''); await page.getByRole('button', { name: 'Move asset', exact: true }).click();
   await page.waitForFunction(() => window.__fleet.data.rows[0].deckPositionId === null);
   check('fleet: keyboard placement can unplace a unit without deleting it', (await page.locator('#fleet-grid tbody').innerText()).includes('Unplaced'));

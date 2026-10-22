@@ -70,8 +70,8 @@ fn hours_since_completion(
 }
 
 pub fn snapshot(conn: &Connection) -> Result<Value, String> {
-    let mut query = conn.prepare("SELECT a.id,a.nickname,a.serial_number,a.installed_date,a.created_at,p.model,p.category,a.deck_position_id,d.name,d.booth_id,b.name,b.venue_id,v.name FROM asset a LEFT JOIN product p ON p.id=a.product_id LEFT JOIN deck_position d ON d.id=a.deck_position_id LEFT JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE a.is_deleted=0 ORDER BY a.nickname COLLATE NOCASE,a.id").map_err(err)?;
-    let assets = query.query_map([], |r| Ok(json!({"assetId":r.get::<_,String>(0)?,"nickname":r.get::<_,String>(1)?,"serialNumber":r.get::<_,Option<String>>(2)?,"installedDate":r.get::<_,Option<String>>(3)?,"createdAt":r.get::<_,String>(4)?,"productName":r.get::<_,Option<String>>(5)?,"category":r.get::<_,Option<String>>(6)?,"deckPositionId":r.get::<_,Option<String>>(7)?,"position":r.get::<_,Option<String>>(8)?,"boothId":r.get::<_,Option<String>>(9)?,"booth":r.get::<_,Option<String>>(10)?,"venueId":r.get::<_,Option<String>>(11)?,"venue":r.get::<_,Option<String>>(12)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    let mut query = conn.prepare("SELECT a.id,a.nickname,a.serial_number,a.installed_date,a.created_at,p.model,p.category,a.deck_position_id,d.name,d.booth_id,b.name,b.venue_id,v.name,a.product_id FROM asset a LEFT JOIN product p ON p.id=a.product_id LEFT JOIN deck_position d ON d.id=a.deck_position_id LEFT JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE a.is_deleted=0 ORDER BY a.nickname COLLATE NOCASE,a.id").map_err(err)?;
+    let assets = query.query_map([], |r| Ok(json!({"assetId":r.get::<_,String>(0)?,"nickname":r.get::<_,String>(1)?,"serialNumber":r.get::<_,Option<String>>(2)?,"installedDate":r.get::<_,Option<String>>(3)?,"createdAt":r.get::<_,String>(4)?,"productName":r.get::<_,Option<String>>(5)?,"category":r.get::<_,Option<String>>(6)?,"deckPositionId":r.get::<_,Option<String>>(7)?,"position":r.get::<_,Option<String>>(8)?,"boothId":r.get::<_,Option<String>>(9)?,"booth":r.get::<_,Option<String>>(10)?,"venueId":r.get::<_,Option<String>>(11)?,"venue":r.get::<_,Option<String>>(12)?,"productId":r.get::<_,Option<String>>(13)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     let mut rows = Vec::with_capacity(assets.len());
     for mut asset in assets {
         let id = asset["assetId"].as_str().unwrap().to_string();
@@ -95,7 +95,14 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
         .map_err(err)?;
     let positions = positions.query_map([],|r| Ok(json!({"id":r.get::<_,String>(0)?,"boothId":r.get::<_,String>(1)?,"name":r.get::<_,String>(2)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     let venues = crate::catalog::list(conn, crate::catalog::Entity::Venue, None)?;
-    Ok(json!({"rows":rows,"venues":venues,"booths":booths,"positions":positions}))
+    let products = crate::catalog::list(conn, crate::catalog::Entity::Product, None)?;
+    let templates: Vec<_> = reminders(conn, None)?
+        .into_iter()
+        .filter(|row| row["assetId"].is_null())
+        .collect();
+    Ok(
+        json!({"rows":rows,"venues":venues,"booths":booths,"positions":positions,"products":products,"templates":templates}),
+    )
 }
 
 pub fn reminders(conn: &Connection, asset: Option<&str>) -> Result<Vec<Value>, String> {
@@ -121,23 +128,27 @@ pub struct ReminderInput {
     pub interval_value: f64,
     pub warn_before: Option<f64>,
 }
-pub fn save_reminder(conn: &Connection, input: &ReminderInput) -> Result<String, String> {
-    asset_exists(conn, &input.asset_id)?;
-    text(&input.title, "title", 200)?;
-    let warning = input.warn_before.unwrap_or(14.0);
-    if !matches!(input.basis.as_str(), "days" | "hours")
-        || !input.interval_value.is_finite()
-        || input.interval_value <= 0.0
-        || input.interval_value > 1_000_000.0
+fn validate_policy(title: &str, basis: &str, interval: f64, warning: f64) -> Result<(), String> {
+    text(title, "title", 200)?;
+    if !matches!(basis, "days" | "hours")
+        || !interval.is_finite()
+        || interval <= 0.0
+        || interval > 1_000_000.0
         || !warning.is_finite()
         || warning < 0.0
         || warning > 1_000_000.0
     {
         return Err("invalid reminder interval".into());
     }
-    if input.basis == "days" && input.interval_value.fract() != 0.0 {
+    if basis == "days" && interval.fract() != 0.0 {
         return Err("days interval must be a whole calendar day".into());
     }
+    Ok(())
+}
+pub fn save_reminder(conn: &Connection, input: &ReminderInput) -> Result<String, String> {
+    asset_exists(conn, &input.asset_id)?;
+    let warning = input.warn_before.unwrap_or(14.0);
+    validate_policy(&input.title, &input.basis, input.interval_value, warning)?;
     let id = input.id.clone().unwrap_or_else(new_id);
     let owner: Option<String> = conn
         .query_row(
@@ -153,8 +164,64 @@ pub fn save_reminder(conn: &Connection, input: &ReminderInput) -> Result<String,
     {
         return Err("reminder belongs to another asset".into());
     }
-    conn.execute("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(id) DO UPDATE SET title=excluded.title,basis=excluded.basis,interval_value=excluded.interval_value,warn_before=excluded.warn_before",params![id,input.asset_id,input.title.trim(),input.basis,input.interval_value,warning,now_iso(conn)?]).map_err(err)?;
+    let changed = conn.execute("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(id) DO UPDATE SET title=excluded.title,basis=excluded.basis,interval_value=excluded.interval_value,warn_before=excluded.warn_before WHERE maintenance_reminder.asset_id=excluded.asset_id",params![id,input.asset_id,input.title.trim(),input.basis,input.interval_value,warning,now_iso(conn)?]).map_err(err)?;
+    if changed == 0 {
+        return Err("reminder identity belongs to another target".into());
+    }
     Ok(id)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TemplateInput {
+    pub id: Option<String>,
+    pub product_id: String,
+    pub title: String,
+    pub basis: String,
+    pub interval_value: f64,
+    pub warn_before: Option<f64>,
+}
+pub fn save_template(conn: &Connection, input: &TemplateInput) -> Result<String, String> {
+    let warning = input.warn_before.unwrap_or(14.0);
+    validate_policy(&input.title, &input.basis, input.interval_value, warning)?;
+    let id = input.id.clone().unwrap_or_else(new_id);
+    let previous: Option<(Option<String>, Option<String>)> = conn
+        .query_row(
+            "SELECT asset_id,product_id FROM maintenance_reminder WHERE id=?1",
+            [&id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(err)?;
+    if previous.is_some_and(|(asset, product)| {
+        asset.is_some() || product.as_deref() != Some(input.product_id.as_str())
+    }) {
+        return Err("template identity belongs to another target".into());
+    }
+    let changed = conn.execute("INSERT INTO maintenance_reminder(id,product_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(id) DO UPDATE SET title=excluded.title,basis=excluded.basis,interval_value=excluded.interval_value,warn_before=excluded.warn_before WHERE maintenance_reminder.asset_id IS NULL AND maintenance_reminder.product_id=excluded.product_id",params![id,input.product_id,input.title.trim(),input.basis,input.interval_value,warning,now_iso(conn)?]).map_err(err)?;
+    if changed == 0 {
+        return Err("template identity belongs to another target".into());
+    }
+    Ok(id)
+}
+pub fn apply_template(conn: &Connection, template: &str, asset: &str) -> Result<String, String> {
+    asset_exists(conn, asset)?;
+    let row:(String,String,f64,f64)=conn.query_row("SELECT r.title,r.basis,r.interval_value,r.warn_before FROM maintenance_reminder r JOIN asset a ON a.product_id=r.product_id WHERE r.id=?1 AND r.asset_id IS NULL AND r.enabled=1 AND a.id=?2",params![template,asset],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).map_err(|_|"template is unavailable or belongs to a different product".to_string())?;
+    let identity = serde_json::to_vec(&[template, asset]).map_err(|error| error.to_string())?;
+    save_reminder(
+        conn,
+        &ReminderInput {
+            id: Some(format!(
+                "template:{}",
+                crate::canonical::sha256_hex(&identity)
+            )),
+            asset_id: asset.into(),
+            title: row.0,
+            basis: row.1,
+            interval_value: row.2,
+            warn_before: Some(row.3),
+        },
+    )
 }
 
 pub fn snooze(conn: &Connection, id: &str, until: &str) -> Result<(), String> {
@@ -217,10 +284,36 @@ pub fn log_maintenance(conn: &Connection, input: &MaintenanceInput) -> Result<St
     Ok(id)
 }
 
+#[cfg(test)]
 pub fn maintenance_events(conn: &Connection, asset: &str) -> Result<Vec<Value>, String> {
+    maintenance_filtered(conn, asset, None, None, None)
+}
+pub fn maintenance_filtered(
+    conn: &Connection,
+    asset: &str,
+    from: Option<&str>,
+    to: Option<&str>,
+    event_type: Option<&str>,
+) -> Result<Vec<Value>, String> {
     asset_exists(conn, asset)?;
-    let mut query=conn.prepare("SELECT id,event_type,event_at,description,reminder_id,hours_at_event FROM maintenance_event WHERE asset_id=?1 ORDER BY julianday(event_at) DESC,id DESC LIMIT 1000").map_err(err)?;
-    let rows = query.query_map([asset],|r|Ok(json!({"id":r.get::<_,String>(0)?,"eventType":r.get::<_,String>(1)?,"eventAt":r.get::<_,String>(2)?,"description":r.get::<_,Option<String>>(3)?,"reminderId":r.get::<_,Option<String>>(4)?,"hoursAtEvent":r.get::<_,Option<f64>>(5)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    for value in [from, to].into_iter().flatten() {
+        if value.len() != 10 || !timestamp_valid(conn, &format!("{value}T00:00:00Z"))? {
+            return Err("maintenance filters require UTC calendar dates".into());
+        }
+    }
+    if from.zip(to).is_some_and(|(from, to)| from > to) {
+        return Err("maintenance date range is reversed".into());
+    }
+    if event_type.is_some_and(|kind| {
+        !matches!(
+            kind,
+            "clean" | "lubricate" | "calibrate" | "repair" | "replace_part" | "inspect" | "other"
+        )
+    }) {
+        return Err("unknown maintenance event type".into());
+    }
+    let mut query=conn.prepare("SELECT id,event_type,event_at,description,reminder_id,hours_at_event FROM maintenance_event WHERE asset_id=?1 AND (?2 IS NULL OR julianday(event_at)>=julianday(?2)) AND (?3 IS NULL OR julianday(event_at)<julianday(?3,'+1 day')) AND (?4 IS NULL OR event_type=?4) ORDER BY julianday(event_at) DESC,id DESC LIMIT 1000").map_err(err)?;
+    let rows = query.query_map(params![asset,from,to,event_type],|r|Ok(json!({"id":r.get::<_,String>(0)?,"eventType":r.get::<_,String>(1)?,"eventAt":r.get::<_,String>(2)?,"description":r.get::<_,Option<String>>(3)?,"reminderId":r.get::<_,Option<String>>(4)?,"hoursAtEvent":r.get::<_,Option<f64>>(5)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     Ok(rows)
 }
 
@@ -325,6 +418,20 @@ pub fn reminder_upsert(app: AppHandle, input: ReminderInput) -> Result<String, S
     save_reminder(&conn, &input)
 }
 #[tauri::command]
+pub fn reminder_template_upsert(app: AppHandle, input: TemplateInput) -> Result<String, String> {
+    let conn = open_database(&database_path(&app)?)?;
+    save_template(&conn, &input)
+}
+#[tauri::command]
+pub fn reminder_apply_template(
+    app: AppHandle,
+    template_id: String,
+    asset_id: String,
+) -> Result<String, String> {
+    let conn = open_database(&database_path(&app)?)?;
+    apply_template(&conn, &template_id, &asset_id)
+}
+#[tauri::command]
 pub fn reminder_snooze(app: AppHandle, id: String, until_iso: String) -> Result<(), String> {
     let conn = open_database(&database_path(&app)?)?;
     snooze(&conn, &id, &until_iso)
@@ -335,9 +442,21 @@ pub fn maintenance_log(app: AppHandle, input: MaintenanceInput) -> Result<String
     log_maintenance(&conn, &input)
 }
 #[tauri::command]
-pub fn maintenance_list(app: AppHandle, asset_id: String) -> Result<Vec<Value>, String> {
+pub fn maintenance_list(
+    app: AppHandle,
+    asset_id: String,
+    from: Option<String>,
+    to: Option<String>,
+    event_type: Option<String>,
+) -> Result<Vec<Value>, String> {
     let conn = open_database(&database_path(&app)?)?;
-    maintenance_events(&conn, &asset_id)
+    maintenance_filtered(
+        &conn,
+        &asset_id,
+        from.as_deref(),
+        to.as_deref(),
+        event_type.as_deref(),
+    )
 }
 #[tauri::command]
 pub fn booth_upsert(app: AppHandle, input: LocationInput) -> Result<String, String> {
@@ -631,5 +750,84 @@ mod tests {
             hours_since_completion(&conn, "unit", "2026-01-10T00:00:00Z").unwrap(),
             Some(0.0)
         );
+    }
+
+    #[test]
+    fn product_reminder_templates_apply_idempotently_and_reject_wrong_products() {
+        let conn = database();
+        conn.execute_batch("INSERT INTO product(id,category,model,created_at,updated_at) VALUES('model','turntable','Reference','2026-01-01','2026-01-01');UPDATE asset SET product_id='model' WHERE id='unit';").unwrap();
+        let input = TemplateInput {
+            id: None,
+            product_id: "model".into(),
+            title: "Inspect stylus".into(),
+            basis: "hours".into(),
+            interval_value: 300.0,
+            warn_before: Some(20.0),
+        };
+        let template = save_template(&conn, &input).unwrap();
+        let first = apply_template(&conn, &template, "unit").unwrap();
+        assert_eq!(apply_template(&conn, &template, "unit").unwrap(), first);
+        assert_eq!(reminders(&conn, Some("unit")).unwrap().len(), 1);
+        assert!(apply_template(&conn, &template, "other").is_err());
+        let view = snapshot(&conn).unwrap();
+        assert_eq!(view["templates"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            view["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["assetId"] == "unit")
+                .unwrap()["productId"],
+            "model"
+        );
+        let mut takeover = ReminderInput {
+            id: Some(template),
+            asset_id: "unit".into(),
+            title: "Hijack".into(),
+            basis: "days".into(),
+            interval_value: 90.0,
+            warn_before: None,
+        };
+        assert!(save_reminder(&conn, &takeover).is_err());
+        takeover.id = None;
+        assert!(save_reminder(&conn, &takeover).is_ok());
+    }
+
+    #[test]
+    fn maintenance_history_filters_utc_dates_and_event_types_before_limiting() {
+        let conn = database();
+        for (date, kind) in [
+            ("2026-01-01", "clean"),
+            ("2026-01-02", "repair"),
+            ("2026-01-03", "clean"),
+        ] {
+            log_maintenance(
+                &conn,
+                &MaintenanceInput {
+                    asset_id: "unit".into(),
+                    event_type: kind.into(),
+                    event_at: format!("{date}T23:00:00Z"),
+                    description: None,
+                    reminder_id: None,
+                },
+            )
+            .unwrap();
+        }
+        let rows = maintenance_filtered(
+            &conn,
+            "unit",
+            Some("2026-01-02"),
+            Some("2026-01-03"),
+            Some("clean"),
+        )
+        .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["eventAt"], "2026-01-03T23:00:00Z");
+        assert!(maintenance_filtered(&conn, "unit", Some("2026-02-31"), None, None).is_err());
+        assert!(
+            maintenance_filtered(&conn, "unit", Some("2026-01-03"), Some("2026-01-01"), None)
+                .is_err()
+        );
+        assert!(maintenance_filtered(&conn, "unit", None, None, Some("injected")).is_err());
     }
 }

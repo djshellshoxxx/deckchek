@@ -10,6 +10,7 @@ import { saveTextFile } from '../../userfiles.js';
 import { isEnabled, onFeatureChange } from '../../features.js';
 import { registerBoothSheet } from '../booth-sheet.js';
 import { exportPdfWithFeedback } from '../persistence.js';
+import { fleetTemplatePanel } from '../fleet-templates.js';
 
 const HEALTH = { never: 'Never tested', healthy: 'Healthy', review: 'Review', attention: 'Attention' };
 const label = (text, input) => h('label', { class: 'field' }, h('span', { class: 'field-label', text }), input);
@@ -50,7 +51,7 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     const gridHost = h('div', { id: 'fleet-grid-host' });
     content.replaceChildren(h('section', { class: 'card' }, summary, filters,
       h('div', { class: 'action-bar' }, button('Export CSV', exportCsv, { id: 'fleet-export' }), button('Refresh', load)), gridHost),
-      h('section', { class: 'card', id: 'fleet-detail' }), locationEditor(), settingsEditor());
+      h('section', { class: 'card', id: 'fleet-detail' }), locationEditor(), fleetTemplatePanel({ view, selectedAsset: view.rows.find(r => r.assetId === state.selected), api, act }), settingsEditor());
     renderRows(); renderDetail();
   }
   function renderRows() {
@@ -82,6 +83,7 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   }
   function renderDetail() {
     const host = content.querySelector('#fleet-detail'), row = state.view.rows.find(r => r.assetId === state.selected);
+    content.querySelector('#fleet-templates')?.replaceWith(fleetTemplatePanel({ view: state.view, selectedAsset: row, api, act }));
     if (!row) { host.replaceChildren(h('p', { text: 'Choose an asset to place it, review reminders or log maintenance.' })); return; }
     const placement = h('select', { id: 'fleet-placement' }, option('', 'Unplaced'), ...state.view.positions.map(p => option(p.id, `${state.view.booths.find(b => b.id === p.boothId)?.name || ''} / ${p.name}`)));
     placement.value = row.deckPositionId ?? '';
@@ -95,11 +97,22 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     eventForm.append(h('h3', { text: 'Log maintenance' }), h('div', { class: 'field-grid' }, label('Event type', kind), label('Description', description), label('Completes reminder', completes)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Log event' }));
     eventForm.addEventListener('submit', event => { event.preventDefault(); act(() => api.log({ assetId: row.assetId, eventType: kind.value, eventAt: new Date().toISOString(), description: description.value, reminderId: completes.value || null })); });
     const reminders = h('ul', {}, ...row.reminders.map(reminder => h('li', {}, h('span', { text: dueText(reminder) }), button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString()))))));
-    const events = h('div', { id: 'fleet-events', 'aria-live': 'polite', text: 'Loading maintenance history…' });
+    const events = h('div', { id: 'fleet-events', 'aria-live': 'polite', text: 'Loading maintenance history…' }), eventFilters = h('div', { class: 'field-grid', id: 'fleet-event-filters' }),
+      from = h('input', { type: 'date', name: 'from' }), to = h('input', { type: 'date', name: 'to' }), eventType = h('select', { name: 'eventType' }, option('', 'All events'), ...['clean', 'lubricate', 'calibrate', 'repair', 'replace_part', 'inspect', 'other'].map(v => option(v, v.replaceAll('_', ' '))));
+    eventFilters.append(label('From (UTC date)', from), label('To (UTC date)', to), label('Event type', eventType));
     host.replaceChildren(h('h2', { tabindex: '-1', text: row.nickname }), h('p', { text: `${HEALTH[row.health]} · ${row.hoursTotal.toFixed(1)} tracked hours (estimate)` }),
       h('div', { class: 'action-bar' }, button('Run tests', () => navigateTo('devices', { assetId: row.assetId })), label('Move to position', placement), button('Move asset', () => act(() => api.place(row.assetId, placement.value || null)))),
-      h('h3', { text: 'Reminders' }), reminders, reminderForm, eventForm, h('h3', { text: 'Recent maintenance (latest 1,000)' }), events);
-    api.events(row.assetId).then(rows => { if (state.selected !== row.assetId) return; events.replaceChildren(rows.length ? h('ul', {}, ...rows.map(e => h('li', { text: `${e.eventAt.slice(0, 10)} · ${e.eventType.replaceAll('_', ' ')} · ${e.description || ''}` }))) : h('p', { text: 'No maintenance recorded.' })); }).catch(error => { events.textContent = friendly(error); });
+      h('h3', { text: 'Reminders' }), reminders, reminderForm, eventForm, h('h3', { text: 'Maintenance history (latest 1,000 matching events)' }), eventFilters, events);
+    let eventRequest = 0;
+    const loadEvents = async () => {
+      const request = ++eventRequest;
+      try { const rows = await api.events(row.assetId, { from: from.value || null, to: to.value || null, eventType: eventType.value || null });
+        if (request !== eventRequest || state.selected !== row.assetId || !events.isConnected) return;
+        events.replaceChildren(rows.length ? h('ul', {}, ...rows.map(e => h('li', { text: `${e.eventAt.slice(0, 10)} · ${e.eventType.replaceAll('_', ' ')} · ${e.description || ''}` }))) : h('p', { text: 'No maintenance matches these filters.' }));
+      } catch (error) { if (request === eventRequest && events.isConnected) events.textContent = friendly(error); }
+    };
+    for (const filter of [from, to, eventType]) filter.addEventListener('change', loadEvents);
+    loadEvents();
   }
   function locationEditor() {
     const form = h('form', { id: 'fleet-location-form' }), kind = h('select', { name: 'kind' }, option('booth', 'Booth'), option('position', 'Position'), option('venue', 'Venue')),

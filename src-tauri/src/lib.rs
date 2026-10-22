@@ -120,6 +120,7 @@ pub fn run() {
             fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
             fleet::maintenance_log, fleet::maintenance_list, fleet::booth_upsert, fleet::position_upsert,
             fleet::fleet_location_delete,
+            fleet::reminder_template_upsert, fleet::reminder_apply_template,
             // [FS-30] handlers
             // [FS-31] handlers
             // [FS-32] handlers
