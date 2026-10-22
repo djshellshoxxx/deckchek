@@ -377,7 +377,7 @@ async function devicesBrowser(page, wav, extra) {
   // report export
   const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+e')]);
   const report = fs.readFileSync(await dl.path(), 'utf8');
-  check('Device report: Ctrl+E exports HTML with statuses and the unverified-spec disclaimer', /deckchek-device-pioneer-dj-djm-a9/.test(dl.suggestedFilename()) && /Unverified specifications/.test(report) && /FAIL/.test(report) && /Knobs, jog dial, buttons/.test(report));
+  check('Device report: Ctrl+E exports HTML with statuses and the unverified-spec disclaimer', /deckchek-device-djm-a9-my-djm-a9/.test(dl.suggestedFilename()) && /Unverified specifications/.test(report) && /FAIL/.test(report) && /Knobs, jog dial, buttons/.test(report));
 
   // light theme screenshots
   await page.click('#theme-toggle');
