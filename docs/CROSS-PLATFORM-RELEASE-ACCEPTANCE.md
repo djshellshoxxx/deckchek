@@ -1,23 +1,37 @@
-# Cross-platform desktop build acceptance
+# Cross-platform release acceptance
 
-This repository now contains `.github/workflows/cross-platform-release-validation.yml`, a **validation and artifact pipeline**, not an auto-publishing release pipeline.
+The GitHub Actions workflow `.github/workflows/cross-platform-release-validation.yml` runs the JavaScript, device-catalog, timecode-fact, migration and Rust checks, builds the desktop packages, uploads target-specific artifacts, and publishes a prerelease for `v*` tags only after every build job succeeds.
 
-- Windows x64: portable executable, NSIS, MSI.
-- macOS arm64: application bundle and DMG on `macos-15`.
-- macOS Intel x64: application bundle and DMG on `macos-15-intel`.
-- Linux x64: DEB and AppImage on `ubuntu-22.04`.
+## Configured targets
 
-Every build depends on JavaScript unit tests, device index checks, migration checks, timecode facts and JS syntax checks. Every platform then runs Rust unit tests and compile checks before packaging. Artifacts are retained 14 days if jobs succeed.
+| Target | Runner | Packages attempted |
+|---|---|---|
+| Windows x64 | `windows-latest` | portable executable, NSIS, MSI |
+| Windows x86 | `windows-latest` | x86 NSIS and MSI |
+| macOS Apple silicon | `macos-15` | app bundle and DMG |
+| macOS Intel x64 | `macos-15-intel` | app bundle and DMG |
+| Linux x64 | `ubuntu-22.04` | DEB and AppImage |
+| Linux x86 | `ubuntu-22.04` runner building inside a Debian Bookworm i386 container | DEB |
 
-## Acceptance before creating a public GitHub Release
+These are configured build targets, not verified downloadable products until CI succeeds for the same commit. The release job adds SHA-256 checksums. Windows installers and macOS packages are currently unsigned; macOS is not notarized.
 
-1. Each build and test job must be green for the **same integration commit**. Do not publish archives just because a workflow started.
-2. Reconcile `feat/hardware-profile-catalog-20261020` with `claude/epic-thompson-tvwx9n` and main. Resolve migration files by ordered numeric IDs and test existing database upgrades, not just fresh installation.
-3. Run browser + desktop UI smoke tests, system audio capture tests, and manual hardware verification on at least representative supported devices. Document test evidence and limitations.
-4. Inspect Windows portable executable and NSIS/MSI installation/uninstallation, Linux runtime dynamic libraries, and macOS app entitlements, privacy permissions, signing and notarization. **Mac outputs are unsigned until a certificate is configured.**
-5. Upload package checksums and release notes documenting OS/architecture, hardware-validation scope, open bugs and known driver/HID incompatibilities.
-6. Run a second audit on the release-candidate commit to ensure no new regressions, unfinished profile mapping or stale import paths.
+## Release gate
+
+1. All verification and platform build jobs must pass for the exact tagged commit. Resolve any cross-branch or migration conflict before tagging; test both fresh setup and upgrades.
+2. Verify that every expected package exists, has the intended architecture, installs and launches, and is covered by the generated checksum manifest.
+3. Run desktop UI smoke tests and audio input/output smoke tests on each supported OS. Automated compile success does not establish that a host audio driver or endpoint works.
+4. Perform manual verification on representative DJ hardware: generic DVS signal capture, supported MIDI controls, audio routing and at least one representative driver configuration per OS. Report unsupported hardware and methods clearly.
+5. Inspect installer/uninstaller behavior, Linux runtime dependencies, and macOS privacy permissions, signing and notarization requirements. Do not imply signed or notarized distribution.
+6. Run the regression suite and repository audits on the release candidate. Record known bugs, hardware coverage, measurement limits and open work in release notes.
+
+## Current validation limits
+
+- Generic DVS tests measure signal presence and properties; they do not decode proprietary Serato, rekordbox or Traktor position unless a validated decoder is implemented.
+- The Rane Twelve MKII profile tests its documented Serato Control Tone output as a signal path; the unit is a motorized DJ controller, not a conventional analog turntable or audio interface.
+- Device profiles describe available test workflows, not proof that every device model has been physically exercised.
+- Windows driver inventory and event-log diagnostics are OS-specific. macOS and Linux must show unavailable for unsupported driver-health checks.
+- Generated tones, sweeps, ambient beds and PCM WAV fixtures test a source or observed path. They do not alone measure soundcard converter quality, PA frequency response, distortion, maximum SPL or sound pressure exposure.
 
 ## Status
 
-Workflow source is committed to the hardware research branch. **No successful run, uploaded package, or GitHub Release has yet been verified.** CI platform and Tauri version compatibility are subject to actual action results. The macOS runners are documented by GitHub as arm64 `macos-15` and Intel `macos-15-intel`.
+The cross-platform workflow and targets are configured in the current working branch. No cross-platform CI run or package from this branch has yet been verified. Do not tag a release until all gates above pass or the release notes state the remaining limitations accurately.

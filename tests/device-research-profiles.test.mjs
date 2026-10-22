@@ -50,3 +50,16 @@ test('standalone capabilities do not mix up model generations', () => {
   assert.equal(go.model, 'PRIME GO+');
   assert.equal(go.specs.find(s => s.key === 'verified_ethernet_port')?.value, false);
 });
+
+test('Pioneer PLX-CRSS12 and Rane Twelve MK2 expose explicit, qualified DVS checks', () => {
+  const pioneer = profiles.find(p => p.id === 'pioneer-plx-crss12');
+  const rane = profiles.find(p => p.id === 'rane-twelve-mk2');
+  assert.ok(pioneer.tests.some(t => t.id === 'crss12-tc-serato' && t.method === 'timecode:format-check'));
+  assert.ok(pioneer.tests.some(t => t.id === 'crss12-tc-rb' && t.method === 'timecode:format-check'));
+  assert.ok(pioneer.tests.some(t => t.id === 'crss12-dvs-serato' && t.method === 'dvs:DVS signal'));
+  assert.ok(rane.connectivity.analog.some(x => /RCA outputs carry the Serato Control Tone/.test(x)));
+  const controlTone = rane.tests.find(t => t.id === 'twelve-dvs-serato-control-tone');
+  assert.equal(controlTone.method, 'timecode:format-check');
+  assert.equal(controlTone.params.sourceType, 'hardware-generated control signal');
+  assert.ok(controlTone.steps.some(x => /cannot certify absolute-position decoding/.test(x)));
+});

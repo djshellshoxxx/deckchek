@@ -1,4 +1,4 @@
-name: Cross-platform desktop release validation
+name: Cross-platform desktop release
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: platform-validation-${{ github.ref }}
+  group: platform-release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,52 +48,139 @@ jobs:
         include:
           - os: windows-latest
             name: windows-x64
+            target: ''
             bundles: nsis,msi
-            output: src-tauri/target/release/deckchek.exe
+          - os: windows-latest
+            name: windows-x86
+            target: i686-pc-windows-msvc
+            bundles: nsis,msi
           - os: macos-15
             name: macos-arm64
+            target: ''
             bundles: app,dmg
-            output: src-tauri/target/release/bundle
           - os: macos-15-intel
             name: macos-x64
+            target: ''
             bundles: app,dmg
-            output: src-tauri/target/release/bundle
           - os: ubuntu-22.04
             name: linux-x64
+            target: ''
             bundles: deb,appimage
-            output: src-tauri/target/release/bundle
+          - os: ubuntu-22.04
+            name: linux-x86
+            target: i686-unknown-linux-gnu
+            bundles: deb
     runs-on: ${{ matrix.os }}
+    env:
+      TARGET: ${{ matrix.target }}
+      CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER: i686-linux-gnu-gcc
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust cross target
+        if: matrix.target != '' && matrix.name != 'linux-x86'
+        run: rustup target add "${{ matrix.target }}"
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - name: Install Linux Tauri prerequisites
-        if: runner.os == 'Linux'
+      - name: Install Linux x64 Tauri prerequisites
+        if: runner.os == 'Linux' && matrix.name == 'linux-x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
       - name: Install Tauri CLI
+        if: matrix.name != 'linux-x86'
         uses: taiki-e/install-action@v2
         with:
           tool: tauri-cli
       - name: Rust tests
+        if: matrix.name != 'linux-x86'
         run: cargo test --manifest-path src-tauri/Cargo.toml
-      - name: Compile check
-        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Compile target
+        if: matrix.name != 'linux-x86'
+        shell: bash
+        env:
+          BUILD_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          if [[ "$BUILD_NAME" == linux-x86 ]]; then export PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig; fi
+          if [[ -n "$TARGET" ]]; then cargo check --manifest-path src-tauri/Cargo.toml --target "$TARGET"; else cargo check --manifest-path src-tauri/Cargo.toml; fi
       - name: Build platform bundles
-        run: cargo tauri build --bundles ${{ matrix.bundles }}
-      - name: Publish CI build artifacts (not a GitHub Release)
-        uses: actions/upload-artifact@v4
+        shell: bash
+        env:
+          BUILD_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          if [[ "$BUILD_NAME" == linux-x86 ]]; then
+            docker run --platform linux/386 --rm \
+              -v "$GITHUB_WORKSPACE:/work" -w /work debian:bookworm \
+              bash -euc '
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev librsvg2-bin libasound2-dev libssl-dev
+                curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-host i686-unknown-linux-gnu --default-toolchain stable
+                export PATH="/root/.cargo/bin:$PATH" CARGO_TARGET_DIR=/work/src-tauri/target
+                rustup target add i686-unknown-linux-gnu
+                cargo install tauri-cli --locked
+                cargo test --manifest-path src-tauri/Cargo.toml
+                cargo tauri build --target i686-unknown-linux-gnu --bundles deb
+              '
+            exit 0
+          fi
+          if [[ -n "$TARGET" ]]; then cargo tauri build --target "$TARGET" --bundles "${{ matrix.bundles }}"; else cargo tauri build --bundles "${{ matrix.bundles }}"; fi
+      - name: Stage uniquely named packages
+        shell: bash
+        env:
+          BUILD_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          release_dir="src-tauri/target/release"
+          [[ -z "$TARGET" ]] || release_dir="src-tauri/target/$TARGET/release"
+          mkdir -p "release-staging/$BUILD_NAME"
+          if [[ -d "$release_dir/bundle" ]]; then
+            while IFS= read -r -d '' file; do
+              base="$(basename "$file")"
+              cp "$file" "release-staging/$BUILD_NAME/${BUILD_NAME}-${base}"
+            done < <(find "$release_dir/bundle" -type f \( -iname '*.exe' -o -iname '*.msi' -o -iname '*.deb' -o -iname '*.appimage' -o -iname '*.dmg' \) -print0)
+          fi
+          for binary in "$release_dir/deckchek.exe" "$release_dir/deckchek"; do
+            if [[ -f "$binary" ]]; then cp "$binary" "release-staging/$BUILD_NAME/${BUILD_NAME}-$(basename "$binary")"; fi
+          done
+          test -n "$(find "release-staging/$BUILD_NAME" -type f -print -quit)"
+      - uses: actions/upload-artifact@v4
         with:
           name: deckchek-${{ matrix.name }}
-          path: |
-            ${{ matrix.output }}
-            src-tauri/target/release/bundle
+          path: release-staging/${{ matrix.name }}/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
-# Deliberately no GitHub Release publishing here.
-# Mac artifacts are unsigned/not notarized, and automated success does not
-# establish audio backend functionality on physical hardware.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - name: Create package checksums
+        run: |
+          set -euo pipefail
+          find release-artifacts -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > release-artifacts/SHA256SUMS
+      - name: Publish cross-platform beta release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DeckChek Beta ${{ github.ref_name }}
+          prerelease: true
+          body: |
+            Cross-platform DeckChek beta packages for Windows x64 and x86, macOS Intel and Apple silicon, and Linux x64 and x86.
+
+            These packages have passed the repository's automated checks on this tag. Physical device, driver, measurement-accuracy, and venue PA validation remain separate; see the repository's implementation status and release acceptance documents.
+
+            macOS packages are unsigned and not notarized. Windows installers are unsigned. Review SHA256SUMS after download.
+          files: |
+            release-artifacts/**/*
+            release-artifacts/SHA256SUMS

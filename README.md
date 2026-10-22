@@ -106,13 +106,9 @@ Milestone 5 adds a first-run setup wizard, a local diagnostics bundle with crash
 
 See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation.
 
-## Download the Windows beta
+## Builds and release status
 
-Automated Windows builds (portable deckchek.exe, NSIS and MSI installers) are available from:
-- **GitHub Actions**: Latest workflow run artifacts on the `main` branch
-- **GitHub Releases**: Tagged releases (v*) with published installers
-
-Real-hardware validation remains in progress (SPEC-08/19). macOS build is out of scope for this beta.
+The cross-platform validation workflow targets Windows x64 and x86, macOS Intel and Apple silicon, and Linux x64 and x86. Tag builds publish a prerelease with checksums only after all automated build and test jobs pass. A configured target means a build is attempted; it does not establish OS audio-driver support or physical hardware validation. See [Cross-Platform Release Acceptance](docs/CROSS-PLATFORM-RELEASE-ACCEPTANCE.md) and [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for verified artifacts and known limits.
 
 ## Additional engineering research
 
@@ -120,6 +116,8 @@ Real-hardware validation remains in progress (SPEC-08/19). macOS build is out of
 - [Scientific journals, books and measurement evidence](docs/SCIENTIFIC-RESEARCH.md)
 - [SPEC-18 Open Source Reuse and Validation](docs/SPEC-18-open-source-reuse-and-validation.md)
 - [SPEC-19 Scientific Measurement and Validation](docs/SPEC-19-scientific-measurement-and-validation.md)
+- [SPEC-20 Audio Output Test Signals and Format Fixtures](docs/SPEC-20-audio-output-test-signals.md)
+- [Cross-Platform Release Acceptance](docs/CROSS-PLATFORM-RELEASE-ACCEPTANCE.md)
 
 These documents define candidates and validation requirements. Dependencies, detectors and standards conformity remain unimplemented until verified; research additions do not change the product license.
 

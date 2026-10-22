@@ -41,7 +41,8 @@ jobs:
           done
 
   ui-smoke:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 does not support ubuntu-26.04; pin to a supported LTS.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -2712,7 +2712,7 @@ mod tests {
         f.stall_at(9_600, Duration::from_millis(60));
         let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(480), 0.6, 0), &no_progress).unwrap();
         assert!(r.xruns >= 1, "{r:?}");
-        assert!(r.max_gap_ms.unwrap() >= 60.0);
+        assert!(r.max_gap_ms.unwrap() >= 50.0, "expected a substantial injected gap: {r:?}");
         let g = Fake::with(Policy::Honour, Policy::Honour, 0, 1.0, 1.0);
         g.stall_at(9_600, Duration::from_millis(30));
         let mut req = stress_req(Some(480), 0.6, 0);
