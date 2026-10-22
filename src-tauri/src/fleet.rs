@@ -312,7 +312,7 @@ pub fn maintenance_filtered(
     }) {
         return Err("unknown maintenance event type".into());
     }
-    let mut query=conn.prepare("SELECT id,event_type,event_at,description,reminder_id,hours_at_event FROM maintenance_event WHERE asset_id=?1 AND (?2 IS NULL OR julianday(event_at)>=julianday(?2)) AND (?3 IS NULL OR julianday(event_at)<julianday(?3,'+1 day')) AND (?4 IS NULL OR event_type=?4) ORDER BY julianday(event_at) DESC,id DESC LIMIT 1000").map_err(err)?;
+    let mut query=conn.prepare("SELECT id,event_type,event_at,description,reminder_id,hours_at_event FROM maintenance_event WHERE asset_id=?1 AND (?2 IS NULL OR julianday(event_at)>=julianday(?2)) AND (?3 IS NULL OR julianday(event_at)<julianday(?3)+1) AND (?4 IS NULL OR event_type=?4) ORDER BY julianday(event_at) DESC,id DESC LIMIT 1000").map_err(err)?;
     let rows = query.query_map(params![asset,from,to,event_type],|r|Ok(json!({"id":r.get::<_,String>(0)?,"eventType":r.get::<_,String>(1)?,"eventAt":r.get::<_,String>(2)?,"description":r.get::<_,Option<String>>(3)?,"reminderId":r.get::<_,Option<String>>(4)?,"hoursAtEvent":r.get::<_,Option<f64>>(5)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     Ok(rows)
 }
@@ -880,5 +880,12 @@ mod tests {
                 .is_err()
         );
         assert!(maintenance_filtered(&conn, "unit", None, None, Some("injected")).is_err());
+        log_maintenance(&conn, &MaintenanceInput {
+            asset_id: "unit".into(), event_type: "inspect".into(),
+            event_at: "9999-12-31T23:59:59.999Z".into(), description: None, reminder_id: None,
+        }).unwrap();
+        let maximum_day = maintenance_filtered(&conn, "unit", Some("9999-12-31"), Some("9999-12-31"), None).unwrap();
+        assert_eq!(maximum_day.len(), 1, "maximum accepted date must remain inclusive without calendar overflow");
+        assert_eq!(maximum_day[0]["eventAt"], "9999-12-31T23:59:59.999Z");
     }
 }
