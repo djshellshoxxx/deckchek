@@ -640,6 +640,7 @@ async function desktopMode(browser, base) {
   await page.waitForFunction(() => !document.querySelector('#cal-out-field').hidden, null, { timeout: 5000 }).catch(() => {});
   check('output selector shown when outputs are available', await page.locator('#cal-out-field').isVisible());
   check('output selector lists devices', (await page.locator('#cal-output option').count()) === 3);
+  check('speaker signal playback enables only after native output enumeration', await page.locator('#sig-play-tone').isEnabled() && await page.locator('#sig-play-ambience').isEnabled());
   check('calibration Run loopback enabled in desktop', !(await page.locator('#cal-start').isDisabled()));
   await systemHealth(page);
   await devicesDesktop(page);
