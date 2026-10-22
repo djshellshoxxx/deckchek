@@ -145,7 +145,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
       try { await audioOut.stop(handle); }
       catch (error) { try { await audioOut.stopAll(); } catch { /* the native exit guard also silences on app close */ } message = `Stop requested; check output if sound continues. ${String(error?.message || error)}`; }
     }
-    $('#sig-status').textContent = message;
+    if (message !== null) $('#sig-status').textContent = message;
   }
   async function startTestSignal(kind) {
     if (!audioOut.supported) { $('#sig-status').textContent = 'Native signal playback requires the DeckChek desktop app.'; return; }
@@ -352,7 +352,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     isRunning: () => state.running,
     /** Stop playback and discard an in-flight capture (host dialog closing or the user leaving the step). */
     dispose: async () => {
-      await stopTestSignal('Output stopped because Calibration closed.');
+      await stopTestSignal(state.testHandle != null ? 'Output stopped because Calibration closed.' : null);
       state.playback?.stop();
       const session = state.session; state.session = null;
       try { await session?.cancel(); } catch { /* already stopped */ }
