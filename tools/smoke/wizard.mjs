@@ -458,7 +458,7 @@ export default async function run({ browser, base, check, SHOTS }) {
     await page.waitForSelector('.rail-item');
     await page.waitForFunction(() => window.__wiz.saved, null, { timeout: 8000 });
     const upgradeState = await page.evaluate(() => ({ hasUserData: window.__wiz.hasUserData || window.__wizExistingData === true, saved: window.__wiz.saved, openDialogs: document.querySelectorAll('dialog.wizard[open]').length, sync: window.__wiz.calls.find(c => c[0] === 'device_profiles_sync')?.[1] || null }));
-    check('wizard AC-10 (desktop): existing data -> auto-completed, no dialog, createAssets:false on sync', await open(page) === 0 && upgradeState.saved?.status === 'completed' && upgradeState.saved?.answers?.autoCompleted === true && upgradeState.sync?.createAssets === false, JSON.stringify(upgradeState));
+    check('wizard AC-10 (desktop): existing data auto-completes without creating assets', await open(page) === 0 && upgradeState.saved?.status === 'completed' && upgradeState.saved?.answers?.autoCompleted === true && (!upgradeState.sync || upgradeState.sync.createAssets === false) && (await page.evaluate(() => window.__mockDb.catalog.asset.length)) === 0, JSON.stringify(upgradeState));
     await context.close();
   }
 
