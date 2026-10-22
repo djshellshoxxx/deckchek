@@ -18,11 +18,11 @@ The Fleet option is now available under Experimental features and remains off by
 - Fleet grid: venue/booth/category/health/search filters, sortable columns, latest result per test, explicit Never tested/Review/Attention states, failing items, tracked-hour estimates and due reminders. Exports contain exactly the selected rows, UTF-8 BOM, RFC 4180 quoting and formula-injection protection.
 - Per-asset placement and test-profile handoff; maintenance logging, reminders in calendar days or confirmed tracked hours, completing-event resets, one-day snooze; startup summary and badge with at most five listed reminders. Calendar calculations use UTC dates and reject invalid dates, impossible intervals and four-digit-year overflow.
 - Hours reminders query the current confirmed ledger by the maintenance timestamp, so importing older usage cannot falsely advance a reminder. An entry spanning that timestamp has no measured within-entry distribution: the reminder is Unknown until the entry is split or reviewed. Stored hours-at-event are historical audit data, not a subtraction baseline.
-- Venue/booth/position creation, rename and parent change. Deletion requires typing the existing name and is blocked when any asset is placed or a saved setup still references the location; assets and historical records are preserved.
+- Venue/booth/position creation, rename and parent change. Deletion previews affected counts and requires typing the existing name. Occupied locations remain blocked unless an explicit outside destination or Unplaced is selected; moves, audit events and deletion commit atomically. Saved setup/support references still block deletion and roll back any moves; assets and historical records are preserved.
 - Booth sheet is registered with the shared PDF/print path and includes positions, asset/model, serial, last test, health, due status and a notes area. Browser mode explains that native fleet persistence is unavailable.
 - Configurable stale-result days and startup-banner preference. Keyboard `/`, `E`, `N` and arrow-key grid navigation are supported.
 - Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
-- Remaining FS-23 work: move-to handling during a referenced-location deletion, default-on qualification, and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
+- Remaining FS-23 work: default-on qualification and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
 
 ## Implemented and test-covered
 
@@ -170,7 +170,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
 - Mature vinyl classifiers and held-out false-positive corpus validation.
 - Venue hierarchy, controlled level-step feedback test, isolation A/B workflow and incident log.
-- Maintenance/fleet trend dashboards and reminders.
+- Fleet default-on qualification and real-database/hardware walkthrough; trend dashboards beyond the experimental FS-23 view.
 - Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.
 - Device-profile pass thresholds and most specs are unverified research (marked in the UI and reports); identity of the DDJ-S8 and Technics MK4 units must be confirmed on the hardware.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.

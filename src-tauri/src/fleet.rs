@@ -332,14 +332,18 @@ pub fn place(conn: &mut Connection, asset: &str, position: Option<&str>) -> Resu
         }
     }
     let tx = conn.transaction().map_err(err)?;
+    place_in_transaction(&tx, asset, position)?;
+    tx.commit().map_err(err)
+}
+
+fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) -> Result<(), String> {
+    let previous: Option<String> = tx.query_row("SELECT deck_position_id FROM asset WHERE id=?1", [asset], |r| r.get(0)).map_err(err)?;
     tx.execute(
         "UPDATE asset SET deck_position_id=?2,updated_at=?3 WHERE id=?1",
         params![asset, position, now_iso(&tx)?],
     )
     .map_err(err)?;
-    let description = position
-        .map(|id| format!("Moved to position {id}"))
-        .unwrap_or_else(|| "Moved to Unplaced".into());
+    let description = format!("Moved from {} to {}", previous.as_deref().unwrap_or("Unplaced"), position.unwrap_or("Unplaced"));
     log_maintenance(
         &tx,
         &MaintenanceInput {
@@ -350,7 +354,7 @@ pub fn place(conn: &mut Connection, asset: &str, position: Option<&str>) -> Resu
             reminder_id: None,
         },
     )?;
-    tx.commit().map_err(err)
+    Ok(())
 }
 
 #[derive(Debug, Deserialize)]
@@ -377,24 +381,42 @@ pub fn save_location(
     Ok(id)
 }
 
-pub fn delete_location(conn: &mut Connection, kind: &str, id: &str) -> Result<(), String> {
-    let (count_sql, delete_sql) = match kind {
-        "venue" => ("SELECT COUNT(*) FROM asset a JOIN deck_position d ON d.id=a.deck_position_id JOIN booth b ON b.id=d.booth_id WHERE b.venue_id=?1", "DELETE FROM venue WHERE id=?1"),
-        "booth" => ("SELECT COUNT(*) FROM asset a JOIN deck_position d ON d.id=a.deck_position_id WHERE d.booth_id=?1", "DELETE FROM booth WHERE id=?1"),
-        "position" => ("SELECT COUNT(*) FROM asset WHERE deck_position_id=?1", "DELETE FROM deck_position WHERE id=?1"),
+/// Explicitly supplied by the user; a null position means Unplaced.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocationMove {
+    pub deck_position_id: Option<String>,
+}
+
+pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Option<&LocationMove>) -> Result<(), String> {
+    let (scope, delete_sql) = match kind {
+        "venue" => ("b.venue_id=?1", "DELETE FROM venue WHERE id=?1"),
+        "booth" => ("d.booth_id=?1", "DELETE FROM booth WHERE id=?1"),
+        "position" => ("d.id=?1", "DELETE FROM deck_position WHERE id=?1"),
         _ => return Err("unknown location kind".into()),
     };
     let tx = conn.transaction().map_err(err)?;
-    let placed: i64 = tx
-        .query_row(count_sql, [id], |row| row.get(0))
-        .map_err(err)?;
-    if placed > 0 {
-        return Err(format!(
-            "move or unplace {placed} assets before deleting this location"
-        ));
+    let assets = {
+        let mut query = tx.prepare(&format!("SELECT a.id FROM asset a JOIN deck_position d ON d.id=a.deck_position_id JOIN booth b ON b.id=d.booth_id WHERE {scope}")).map_err(err)?;
+        let rows = query.query_map([id], |row| row.get::<_,String>(0)).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+        rows
+    };
+    if let Some(target) = move_to {
+        if let Some(position) = &target.deck_position_id {
+            let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM deck_position WHERE id=?1)", [position], |r|r.get(0)).map_err(err)?;
+            if !exists { return Err("destination position not found".into()); }
+            let inside: bool = tx.query_row(&format!("SELECT EXISTS(SELECT 1 FROM deck_position d JOIN booth b ON b.id=d.booth_id WHERE {scope} AND d.id=?2)"), params![id,position], |r|r.get(0)).map_err(err)?;
+            if inside { return Err("destination must be outside the location being deleted".into()); }
+        }
+        for asset in &assets {
+            place_in_transaction(&tx, asset, target.deck_position_id.as_deref())?;
+        }
+    } else if !assets.is_empty() {
+        return Err(format!("move or unplace {} assets before deleting this location", assets.len()));
     }
-    tx.execute(delete_sql, [id])
-        .map_err(|_| "location is still referenced by a setup or diagnostic record".to_string())?;
+    let deleted = tx.execute(delete_sql, [id])
+        .map_err(|_| "location is still referenced by a setup or diagnostic record; no assets were moved".to_string())?;
+    if deleted != 1 { return Err("location not found".into()); }
     tx.commit().map_err(err)
 }
 
@@ -469,9 +491,9 @@ pub fn position_upsert(app: AppHandle, input: LocationInput) -> Result<String, S
     save_location(&conn, "position", &input)
 }
 #[tauri::command]
-pub fn fleet_location_delete(app: AppHandle, kind: String, id: String) -> Result<(), String> {
+pub fn fleet_location_delete(app: AppHandle, kind: String, id: String, move_to: Option<LocationMove>) -> Result<(), String> {
     let mut conn = open_database(&database_path(&app)?)?;
-    delete_location(&mut conn, &kind, &id)
+    delete_location(&mut conn, &kind, &id, move_to.as_ref())
 }
 
 #[cfg(test)]
@@ -638,6 +660,35 @@ mod tests {
     }
 
     #[test]
+    fn location_delete_moves_assets_atomically_and_rejects_its_own_subtree() {
+        for kind in ["venue", "booth", "position"] {
+            let mut conn = database();
+            place(&mut conn, "unit", Some("position")).unwrap();
+            conn.execute_batch("INSERT INTO venue(id,name,created_at,updated_at) VALUES('destination','Other club','2026-01-01','2026-01-01'); INSERT INTO booth(id,venue_id,name) VALUES('destination-booth','destination','Other booth'); INSERT INTO deck_position(id,booth_id,name) VALUES('destination-position','destination-booth','Right');").unwrap();
+            let id = match kind { "venue" => "venue", "booth" => "booth", _ => "position" };
+            let target = LocationMove { deck_position_id: Some("position".into()) };
+            assert!(delete_location(&mut conn, kind, id, Some(&target)).unwrap_err().contains("outside"));
+            let target = LocationMove { deck_position_id: Some("missing".into()) };
+            assert!(delete_location(&mut conn, kind, id, Some(&target)).unwrap_err().contains("not found"));
+            let target = LocationMove { deck_position_id: Some("destination-position".into()) };
+            conn.execute_batch("INSERT INTO setup(id,name,deck_position_id,created_at) VALUES('setup','Saved chain','position','2026-01-01');").unwrap();
+            let before: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get(0)).unwrap();
+            assert!(delete_location(&mut conn, kind, id, Some(&target)).is_err());
+            assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,String>(0)).unwrap(), "position");
+            assert_eq!(conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get::<_,i64>(0)).unwrap(), before);
+            conn.execute("DELETE FROM setup WHERE id='setup'", []).unwrap();
+            delete_location(&mut conn, kind, id, Some(&target)).unwrap();
+            assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,String>(0)).unwrap(), "destination-position");
+            assert_eq!(conn.query_row("SELECT COUNT(*) FROM asset", [], |r|r.get::<_,i64>(0)).unwrap(), 2);
+            assert_eq!(conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get::<_,i64>(0)).unwrap(), before + 1);
+        }
+        let mut conn = database();
+        place(&mut conn, "unit", Some("position")).unwrap();
+        delete_location(&mut conn, "venue", "venue", Some(&LocationMove { deck_position_id: None })).unwrap();
+        assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,Option<String>>(0)).unwrap(), None);
+    }
+
+    #[test]
     fn occupied_locations_and_referenced_setups_cannot_be_deleted() {
         let mut conn = database();
         place(&mut conn, "unit", Some("position")).unwrap();
@@ -647,16 +698,16 @@ mod tests {
                 "booth" => "booth",
                 _ => "position",
             };
-            assert!(delete_location(&mut conn, kind, id)
+            assert!(delete_location(&mut conn, kind, id, None)
                 .unwrap_err()
                 .contains("move or unplace"));
         }
         place(&mut conn, "unit", None).unwrap();
         conn.execute_batch("INSERT INTO setup(id,name,venue_id,created_at) VALUES('setup','Chain','venue','2026-10-22');").unwrap();
-        assert!(delete_location(&mut conn, "venue", "venue").is_err());
+        assert!(delete_location(&mut conn, "venue", "venue", None).is_err());
         conn.execute("DELETE FROM setup WHERE id='setup'", [])
             .unwrap();
-        delete_location(&mut conn, "venue", "venue").unwrap();
+        delete_location(&mut conn, "venue", "venue", None).unwrap();
         assert_eq!(
             snapshot(&conn).unwrap()["rows"].as_array().unwrap().len(),
             2

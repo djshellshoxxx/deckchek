@@ -117,11 +117,18 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   function locationEditor() {
     const form = h('form', { id: 'fleet-location-form' }), kind = h('select', { name: 'kind' }, option('booth', 'Booth'), option('position', 'Position'), option('venue', 'Venue')),
       existing = h('select', { name: 'existing' }), parent = h('select', { name: 'parent' }), name = h('input', { name: 'name', required: true, maxlength: 200 }),
-      confirmation = h('input', { name: 'confirmation', autocomplete: 'off' }), remove = button('Delete empty location', () => act(() => api.deleteLocation(kind.value, existing.value)), { disabled: true });
+      confirmation = h('input', { name: 'confirmation', autocomplete: 'off' }), destination = h('select', { name: 'deleteDestination' }), impact = h('p', { id: 'fleet-delete-impact' }),
+      remove = button('Delete empty location', () => act(() => api.deleteLocation(kind.value, existing.value, destination.value ? { deckPositionId: destination.value === 'unplaced' ? null : destination.value.slice(9) } : null)), { disabled: true });
     const records = () => kind.value === 'venue' ? state.view.venues : kind.value === 'booth' ? state.view.booths : state.view.positions;
     const choose = () => {
       const row = records().find(row => row.id === existing.value);
       name.value = row?.name || ''; confirmation.value = ''; remove.disabled = true;
+      const booths = state.view.booths.filter(b => kind.value === 'venue' ? b.venueId === existing.value : kind.value === 'booth' && b.id === existing.value);
+      const positions = state.view.positions.filter(p => kind.value === 'position' ? p.id === existing.value : booths.some(b => b.id === p.boothId));
+      const affected = state.view.rows.filter(a => positions.some(p => p.id === a.deckPositionId));
+      impact.textContent = row ? `Deletion affects ${affected.length} assets, ${booths.length} booths and ${positions.length} positions. Saved setup or diagnostic references block deletion; failed deletion rolls back all moves.` : 'Choose an existing location to delete.';
+      destination.replaceChildren(option('', 'Keep occupied locations blocked'), option('unplaced', 'Move assets to Unplaced'), ...state.view.positions.filter(p => !positions.some(inside => inside.id === p.id)).map(p => option(`position:${p.id}`, `Move assets to ${p.name}`)));
+      destination.disabled = !row; remove.textContent = 'Delete empty location';
       if (row && kind.value !== 'venue') parent.value = row.venueId ?? row.boothId;
     };
     const update = () => {
@@ -130,11 +137,12 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
       parent.disabled = kind.value === 'venue'; choose();
     };
     kind.addEventListener('change', update); existing.addEventListener('change', choose);
+    destination.addEventListener('change', () => { remove.textContent = destination.value ? 'Move assets and delete location' : 'Delete empty location'; });
     confirmation.addEventListener('input', () => { remove.disabled = !existing.value || confirmation.value !== records().find(row => row.id === existing.value)?.name; });
     update();
-    form.append(h('h2', { text: 'Venues and positions' }), h('p', { text: 'Add a venue, a booth and a position, then place an asset above. Existing locations can be renamed or moved. Deletion keeps assets and diagnostic history safe: move or unplace assets and clear setup references first.' }),
+    form.append(h('h2', { text: 'Venues and positions' }), h('p', { text: 'Add a venue, a booth and a position, then place an asset above. Existing locations can be renamed or moved. Choose a destination to move or unplace affected assets atomically with deletion; clear saved setup references first.' }),
       h('div', { class: 'field-grid' }, label('Location type', kind), label('Edit', existing), label('Parent', parent), label('Name', name)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save location' }),
-      label('Type the existing name to enable deletion', confirmation), remove);
+      impact, label('Assets when deleting', destination), label('Type the existing name to enable deletion', confirmation), remove);
     form.addEventListener('submit', event => { event.preventDefault(); act(() => kind.value === 'venue'
       ? store.upsert('venue', { id: existing.value || undefined, name: name.value })
       : (kind.value === 'booth' ? api.saveBooth : api.savePosition)({ id: existing.value || null, parentId: parent.value, name: name.value })); });

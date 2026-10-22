@@ -25,7 +25,16 @@ function fleetMock() {
     if (command === 'booth_upsert') { const id = args.input.id || `b${data.booths.length + 1}`; data.booths = data.booths.filter(row => row.id !== id); data.booths.push({ id, venueId: args.input.parentId, name: args.input.name }); return id; }
     if (command === 'position_upsert') { const id = `p${data.positions.length + 1}`; data.positions.push({ id, boothId: args.input.parentId, name: args.input.name }); return id; }
     if (command === 'userfiles_write_text' && args.allowedExt === 'csv') { window.__fleet.csv = args.content; return { path: args.path, bytes: args.content.length }; }
-    if (command === 'fleet_location_delete') { data.booths = data.booths.filter(row => row.id !== args.id); return null; }
+    if (command === 'fleet_location_delete') {
+      window.__fleet.deletion = structuredClone(args);
+      if (args.kind === 'position') {
+        const assets = data.rows.filter(row => row.deckPositionId === args.id);
+        if (assets.length && !args.moveTo) throw 'occupied location';
+        for (const row of assets) { row.deckPositionId = args.moveTo.deckPositionId; row.position = row.boothId = row.booth = row.venueId = row.venue = null; }
+        data.positions = data.positions.filter(row => row.id !== args.id);
+      }
+      data.booths = data.booths.filter(row => row.id !== args.id); return null;
+    }
     return before(command, args);
   };
 }
@@ -92,6 +101,16 @@ export default async function run({ browser, base, check, ROOT }) {
   await page.getByRole('button', { name: 'Delete empty location', exact: true }).click();
   await page.waitForFunction(() => window.__fleet.data.booths.length === 1);
   check('fleet: empty-location deletion preserves fleet assets', await page.evaluate(() => window.__fleet.data.rows.length === 2));
+  await page.evaluate(() => { const row = window.__fleet.data.rows[0]; row.deckPositionId = 'p'; row.position = 'Left'; row.boothId = 'b'; row.venueId = 'v'; });
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await page.locator('#fleet-location-form select[name="kind"]').selectOption('position');
+  await page.locator('#fleet-location-form select[name="existing"]').selectOption('p');
+  check('fleet: deletion previews asset count and excludes its own destination', (await page.locator('#fleet-delete-impact').innerText()).includes('1 assets') && (await page.locator('#fleet-location-form select[name="deleteDestination"] option[value="position:p"]').count()) === 0);
+  await page.locator('#fleet-location-form select[name="deleteDestination"]').selectOption('unplaced');
+  await page.locator('#fleet-location-form input[name="confirmation"]').fill('Left');
+  await page.getByRole('button', { name: 'Move assets and delete location', exact: true }).click();
+  await page.waitForFunction(() => window.__fleet.data.positions.length === 0);
+  check('fleet: occupied deletion explicitly unplaces and preserves assets', await page.evaluate(() => window.__fleet.deletion.moveTo.deckPositionId === null && window.__fleet.data.rows.length === 2 && window.__fleet.data.rows[0].deckPositionId === null));
   await context.close();
   const browserContext = await browser.newContext(); await browserContext.addInitScript(() => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { fleet: true } })));
   const browserPage = await browserContext.newPage(); errors.push(watchConsole(browserPage, 'fleet-browser')); await browserPage.goto(base); await browserPage.click('.rail-item[data-screen="fleet"]');

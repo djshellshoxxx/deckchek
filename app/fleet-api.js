@@ -33,6 +33,6 @@ export function createFleetApi(invoke = globalThis.window?.__TAURI__?.core?.invo
     events: (assetId, filters = {}) => call('maintenance_list', { assetId, ...filters }),
     saveBooth: input => call('booth_upsert', { input }),
     savePosition: input => call('position_upsert', { input }),
-    deleteLocation: (kind, id) => call('fleet_location_delete', { kind, id }),
+    deleteLocation: (kind, id, moveTo = null) => call('fleet_location_delete', { kind, id, moveTo }),
   };
 }
