@@ -23,9 +23,9 @@ export function latestResults(results = []) {
   return [...latest.values()];
 }
 
-export function computeHealth({ lastResults = [], now = new Date().toISOString(), staleDays = 90 } = {}) {
+export function computeHealth({ lastResults = [], lastSessionAt = null, now = new Date().toISOString(), staleDays = 90 } = {}) {
   const results = latestResults(lastResults);
-  if (!results.length) return 'never';
+  if (!results.length) return Number.isFinite(day(lastSessionAt)) ? 'review' : 'never';
   if (results.some(result => result.status === 'fail')) return 'attention';
   const today = day(now);
   if (!Number.isFinite(today) || !Number.isFinite(staleDays) || staleDays < 0) return 'review';

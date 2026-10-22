@@ -16,7 +16,7 @@ const label = (text, input) => h('label', { class: 'field' }, h('span', { class:
 const button = (text, onclick, attrs = {}) => h('button', { type: 'button', class: 'btn btn-secondary', text, onclick, ...attrs });
 const option = (value, text) => h('option', { value, text });
 const friendly = error => typeof error === 'string' ? error : error?.message || 'Fleet operation failed.';
-const dueText = reminder => `${reminder.title}: ${reminder.state === 'dueSoon' ? 'Due soon' : reminder.state}${reminder.dueAt ? ` ${reminder.dueAt}` : Number.isFinite(reminder.dueInHours) ? ` (${reminder.dueInHours.toFixed(1)} tracked h remaining)` : ''}${reminder.snoozed ? ' (snoozed)' : ''}`;
+const dueText = reminder => `${reminder.title}: ${reminder.state === 'dueSoon' ? 'Due soon' : reminder.state}${reminder.dueAt ? ` ${reminder.dueAt}` : Number.isFinite(reminder.dueInHours) ? ` (${reminder.dueInHours.toFixed(1)} tracked h remaining)` : reminder.basis === 'hours' && reminder.state === 'unknown' ? ' (review usage history at the maintenance boundary)' : ''}${reminder.snoozed ? ' (snoozed)' : ''}`;
 
 export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   const state = { view: null, selected: null, filters: {}, sort: 'nickname', descending: false };

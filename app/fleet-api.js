@@ -7,10 +7,10 @@ export function decorateFleet(snapshot, { now = new Date().toISOString(), staleD
     const results = latestResults(row.lastResults);
     const reminders = (row.reminders ?? []).map(reminder => ({ ...reminder,
       ...reminderStatus({ ...reminder, installedDate: row.installedDate, createdAt: row.createdAt }, reminder.lastDoneAt,
-        Math.max(0, row.hoursTotal - (reminder.hoursAtLastEvent ?? 0)), now) }));
-    return { ...row, health: computeHealth({ lastResults: results, now, staleDays }), reminders,
+        reminder.lastDoneAt ? reminder.hoursSinceCompletion : row.hoursTotal, now) }));
+    return { ...row, health: computeHealth({ lastResults: results, lastSessionAt: row.lastSessionAt, now, staleDays }), reminders,
       failing: results.filter(result => result.status === 'fail').map(result => ({ testId: result.testId, name: result.name || result.testId })),
-      lastTestedAt: results.map(result => result.createdAt).filter(date => Number.isFinite(Date.parse(date))).sort().at(-1) ?? null };
+      lastTestedAt: [...results.map(result => result.createdAt), row.lastSessionAt].filter(date => typeof date === 'string' && Number.isFinite(Date.parse(date))).sort().at(-1) ?? null };
   });
   const selected = filterFleet(rows, filters);
   return { ...snapshot, rows: selected, tiles: summarizeFleet(selected) };

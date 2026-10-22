@@ -5,6 +5,7 @@ import { computeHealth, reminderStatus, fleetToCsv, filterFleet, summarizeFleet 
 const now = '2026-10-22T12:00:00Z';
 test('fleet health uses the latest result per test; no readings never means healthy', () => {
   assert.equal(computeHealth({ lastResults: [], now }), 'never');
+  assert.equal(computeHealth({ lastResults: [], lastSessionAt: '2026-10-21', now }), 'review', 'a generic session supplies evidence but no device-level pass');
   const lastResults = [{ testId: 'a', status: 'fail', createdAt: '2026-10-20' }, { testId: 'a', status: 'pass', createdAt: '2026-10-21' }];
   assert.equal(computeHealth({ lastResults, now }), 'healthy');
   assert.equal(computeHealth({ lastResults: [...lastResults, { testId: 'b', status: 'fail', createdAt: '2026-10-21' }], now }), 'attention');

@@ -40,6 +40,35 @@ fn hours(conn: &Connection, asset: &str, until: Option<&str>) -> Result<f64, Str
     conn.query_row("SELECT COALESCE(SUM(hours),0) FROM asset_usage WHERE asset_id=?1 AND confirmed=1 AND (?2 IS NULL OR julianday(started_at)<=julianday(?2))", params![asset,until], |r| r.get(0)).map_err(err)
 }
 
+/// Confirmed ledger hours whose entire recorded span starts at/after completion.
+/// A straddling entry has no measured within-entry time distribution; return
+/// unknown until the user splits/reviews it rather than inventing runtime.
+fn hours_since_completion(
+    conn: &Connection,
+    asset: &str,
+    completed: &str,
+) -> Result<Option<f64>, String> {
+    let mut query = conn.prepare("SELECT hours,(julianday(?2)-julianday(started_at))*24.0 FROM asset_usage WHERE asset_id=?1 AND confirmed=1").map_err(err)?;
+    let entries = query
+        .query_map(params![asset, completed], |row| {
+            Ok((row.get::<_, f64>(0)?, row.get::<_, Option<f64>>(1)?))
+        })
+        .map_err(err)?;
+    let mut total = 0.0;
+    for entry in entries {
+        let (hours, elapsed) = entry.map_err(err)?;
+        let Some(elapsed) = elapsed else {
+            return Ok(None);
+        };
+        if elapsed <= 0.0 {
+            total += hours;
+        } else if elapsed < hours - 0.000001 {
+            return Ok(None);
+        }
+    }
+    Ok(Some(total))
+}
+
 pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     let mut query = conn.prepare("SELECT a.id,a.nickname,a.serial_number,a.installed_date,a.created_at,p.model,p.category,a.deck_position_id,d.name,d.booth_id,b.name,b.venue_id,v.name FROM asset a LEFT JOIN product p ON p.id=a.product_id LEFT JOIN deck_position d ON d.id=a.deck_position_id LEFT JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE a.is_deleted=0 ORDER BY a.nickname COLLATE NOCASE,a.id").map_err(err)?;
     let assets = query.query_map([], |r| Ok(json!({"assetId":r.get::<_,String>(0)?,"nickname":r.get::<_,String>(1)?,"serialNumber":r.get::<_,Option<String>>(2)?,"installedDate":r.get::<_,Option<String>>(3)?,"createdAt":r.get::<_,String>(4)?,"productName":r.get::<_,Option<String>>(5)?,"category":r.get::<_,Option<String>>(6)?,"deckPositionId":r.get::<_,Option<String>>(7)?,"position":r.get::<_,Option<String>>(8)?,"boothId":r.get::<_,Option<String>>(9)?,"booth":r.get::<_,Option<String>>(10)?,"venueId":r.get::<_,Option<String>>(11)?,"venue":r.get::<_,Option<String>>(12)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
@@ -49,6 +78,10 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
         let mut tests = conn.prepare("SELECT test_id,status,created_at,id FROM (SELECT test_id,status,created_at,id,ROW_NUMBER() OVER(PARTITION BY test_id ORDER BY julianday(created_at) DESC,id DESC) AS rank FROM device_test_result WHERE asset_id=?1) WHERE rank=1 ORDER BY test_id").map_err(err)?;
         let results = tests.query_map([&id], |r| Ok(json!({"testId":r.get::<_,String>(0)?,"status":r.get::<_,String>(1)?,"createdAt":r.get::<_,String>(2)?,"id":r.get::<_,String>(3)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
         asset["lastResults"] = json!(results);
+        let last_session: Option<String> = conn.query_row(
+            "SELECT MAX(COALESCE(ended_at,started_at)) FROM session WHERE status='completed' AND (CASE WHEN json_valid(config_snapshot_json) THEN COALESCE(json_extract(config_snapshot_json,'$.assetId'),json_extract(config_snapshot_json,'$.deviceId')) ELSE NULL END=?1 OR setup_id IN (SELECT setup_id FROM setup_component WHERE asset_id=?1))",
+            [&id], |row| row.get(0)).map_err(err)?;
+        asset["lastSessionAt"] = json!(last_session);
         asset["hoursTotal"] = json!(hours(conn, &id, None)?);
         asset["reminders"] = json!(reminders(conn, Some(&id))?);
         rows.push(asset);
@@ -67,7 +100,14 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
 
 pub fn reminders(conn: &Connection, asset: Option<&str>) -> Result<Vec<Value>, String> {
     let mut query = conn.prepare("SELECT r.id,r.asset_id,r.product_id,r.title,r.basis,r.interval_value,r.warn_before,r.enabled,r.snoozed_until,r.created_at,(SELECT event_at FROM maintenance_event e WHERE e.reminder_id=r.id ORDER BY julianday(event_at) DESC,e.id DESC LIMIT 1),(SELECT hours_at_event FROM maintenance_event e WHERE e.reminder_id=r.id ORDER BY julianday(event_at) DESC,e.id DESC LIMIT 1) FROM maintenance_reminder r WHERE (?1 IS NULL OR r.asset_id=?1) ORDER BY r.title,r.id").map_err(err)?;
-    let rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?,"lastDoneAt":r.get::<_,Option<String>>(10)?,"hoursAtLastEvent":r.get::<_,Option<f64>>(11)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    let mut rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?,"lastDoneAt":r.get::<_,Option<String>>(10)?,"hoursAtLastEvent":r.get::<_,Option<f64>>(11)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    for row in &mut rows {
+        if let (Some(asset), Some(completed)) =
+            (row["assetId"].as_str(), row["lastDoneAt"].as_str())
+        {
+            row["hoursSinceCompletion"] = json!(hours_since_completion(conn, asset, completed)?);
+        }
+    }
     Ok(rows)
 }
 
@@ -520,5 +560,76 @@ mod tests {
         };
         assert!(log_maintenance(&conn, &input).is_err());
         assert!(maintenance_events(&conn, "unit").unwrap().is_empty());
+    }
+
+    #[test]
+    fn generic_sessions_supply_test_dates_without_inventing_device_results() {
+        let conn = database();
+        conn.execute("INSERT INTO session(id,session_type,started_at,ended_at,app_version,schema_version,status,config_snapshot_json) VALUES('generic','diagnostic','2026-10-21T12:00:00Z','2026-10-21T12:01:00Z','0.0.8',1,'completed',?1)", [r#"{"assetId":"unit"}"#]).unwrap();
+        let snapshot = snapshot(&conn).unwrap();
+        let row = snapshot["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["assetId"] == "unit")
+            .unwrap();
+        assert_eq!(row["lastSessionAt"], "2026-10-21T12:01:00Z");
+        assert!(row["lastResults"].as_array().unwrap().is_empty());
+        let other = snapshot["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["assetId"] == "other")
+            .unwrap();
+        assert!(other["lastSessionAt"].is_null());
+    }
+
+    #[test]
+    fn backfilled_pre_maintenance_usage_does_not_advance_an_hours_reminder() {
+        let conn = database();
+        let mut input = reminder("unit");
+        input.basis = "hours".into();
+        let id = save_reminder(&conn, &input).unwrap();
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,kind,started_at,hours,source,confirmed,created_at) VALUES('initial','unit','play','2026-01-01T00:00:00Z',2,'manual',1,'2026-01-01');").unwrap();
+        log_maintenance(
+            &conn,
+            &MaintenanceInput {
+                asset_id: "unit".into(),
+                event_type: "inspect".into(),
+                event_at: "2026-01-10T00:00:00Z".into(),
+                description: None,
+                reminder_id: Some(id),
+            },
+        )
+        .unwrap();
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,kind,started_at,hours,source,confirmed,created_at) VALUES('backfill','unit','play','2026-01-03T00:00:00Z',10,'import',1,'2026-10-22'),('ends-at-boundary','unit','play','2026-01-09T22:00:00Z',2,'manual',1,'2026-10-22');").unwrap();
+        assert_eq!(
+            reminders(&conn, Some("unit")).unwrap()[0]["hoursSinceCompletion"],
+            0.0
+        );
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,kind,started_at,hours,source,confirmed,created_at) VALUES('after','unit','play','2026-01-11T00:00:00Z',3,'manual',1,'2026-10-22');").unwrap();
+        assert_eq!(
+            reminders(&conn, Some("unit")).unwrap()[0]["hoursSinceCompletion"],
+            3.0
+        );
+    }
+
+    #[test]
+    fn usage_spanning_maintenance_returns_unknown_instead_of_assumed_runtime() {
+        let conn = database();
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,kind,started_at,hours,source,confirmed,created_at) VALUES('straddles','unit','play','2026-01-09T23:00:00Z',2,'manual',1,'2026-01-10');").unwrap();
+        assert_eq!(
+            hours_since_completion(&conn, "unit", "2026-01-10T00:00:00Z").unwrap(),
+            None
+        );
+        conn.execute(
+            "UPDATE asset_usage SET confirmed=0 WHERE id='straddles'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(
+            hours_since_completion(&conn, "unit", "2026-01-10T00:00:00Z").unwrap(),
+            Some(0.0)
+        );
     }
 }

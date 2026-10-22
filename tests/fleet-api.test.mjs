@@ -4,10 +4,17 @@ import { createFleetApi, decorateFleet } from '../app/fleet-api.js';
 import { renderBoothSheetHtml } from '../app/ui/booth-sheet.js';
 
 test('fleet adapter keeps untested evidence neutral and resets hours after maintenance', () => {
-  const view = decorateFleet({ rows: [{ assetId: 'a', createdAt: '2026-01-01', hoursTotal: 510, lastResults: [], reminders: [{ id: 'r', enabled: true, basis: 'hours', intervalValue: 500, lastDoneAt: '2026-10-21', hoursAtLastEvent: 500 }] }] }, { now: '2026-10-22T00:00:00Z' });
+  const view = decorateFleet({ rows: [{ assetId: 'a', createdAt: '2026-01-01', hoursTotal: 510, lastResults: [], reminders: [{ id: 'r', enabled: true, basis: 'hours', intervalValue: 500, lastDoneAt: '2026-10-21', hoursAtLastEvent: 500, hoursSinceCompletion: 10 }] }] }, { now: '2026-10-22T00:00:00Z' });
   assert.equal(view.rows[0].health, 'never');
   assert.equal(view.rows[0].reminders[0].dueInHours, 490);
   assert.equal(view.tiles.overdue, 0);
+});
+
+test('fleet adapter never infers elapsed runtime from a revised historical total', () => {
+  const base = { assetId: 'a', createdAt: '2026-01-01', hoursTotal: 12, lastResults: [], reminders: [{ id: 'r', enabled: true, basis: 'hours', intervalValue: 10, lastDoneAt: '2026-10-21', hoursAtLastEvent: 2, hoursSinceCompletion: 0 }] };
+  assert.equal(decorateFleet({ rows: [base] }).rows[0].reminders[0].dueInHours, 10);
+  const uncertain = { ...base, reminders: [{ ...base.reminders[0], hoursSinceCompletion: null }] };
+  assert.equal(decorateFleet({ rows: [uncertain] }).rows[0].reminders[0].state, 'unknown');
 });
 
 test('native fleet bridge sends exactly the registered command argument names', async () => {
