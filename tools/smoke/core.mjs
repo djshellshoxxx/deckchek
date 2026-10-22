@@ -344,7 +344,7 @@ async function devicesBrowser(page, wav, extra) {
   await page.click('button[data-run-test="djma9-master-out"]');
   await page.waitForSelector('#screen-quick:not([hidden]) #device-test-banner');
   check('Workflow test: Quick Check opens with the device banner', /Running My DJM-A9 · Master output signal health/.test(await page.locator('#device-test-banner').innerText()));
-  check('Workflow test: profile steps shown in Setup', /Play a test tone in Serato/.test(await page.locator('#screen-quick .card-device').innerText()) && /Master out/.test(await page.locator('#screen-quick .card-device').innerText()));
+  check('Workflow test: profile steps shown in Setup', /Play a test tone from USB ch1/.test(await page.locator('#screen-quick .card-device').innerText()) && /Master output/.test(await page.locator('#screen-quick .card-device').innerText()));
   await shot(page, 'device-workflow-setup-dark');
   await page.setInputFiles('#quick-file', wav);
   await page.click('#quick-analyze');
