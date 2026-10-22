@@ -116,7 +116,7 @@ jobs:
           set -euo pipefail
           if [[ "$BUILD_NAME" == linux-x86 ]]; then
             docker run --platform linux/386 --rm \
-              -v "$GITHUB_WORKSPACE:/work" -w /work i386/ubuntu:22.04 \
+              -v "$GITHUB_WORKSPACE:/work" -w /work ubuntu:22.04 \
               bash -euc '
                 apt-get update
                 DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libasound2-dev libssl-dev
