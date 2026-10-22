@@ -33,7 +33,7 @@ export default async function run({ browser, tmp, check, SHOTS }) {
   const wav = path.join(tmp, 'mobile-fake-mic-1010.wav');
   fs.writeFileSync(wav, encodeWav16({ left: tone, right: tone, sampleRate: 48000 }));
   const chromium = browser.browserType();
-  const phoneBrowser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`] });
+  const phoneBrowser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${wav}`] });
   try {
     const ctx = await phoneBrowser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark', permissions: ['microphone'], hasTouch: true, isMobile: true });
     const page = await ctx.newPage();
@@ -118,6 +118,9 @@ export default async function run({ browser, tmp, check, SHOTS }) {
     await page.click('#strobe-stop');
 
     // ----- Vibration (AC-7): no sensor events here, then an iOS-style denial
+    // A desktop browser may expose no sensor API at all. Explicitly supply a
+    // supported-but-silent sensor so this tests the no-events branch.
+    await page.evaluate(() => { window.DeviceMotionEvent = function DeviceMotionEvent() {}; });
     await page.click('.tabs a[data-screen="vibration"]');
     await page.click('#vib-start');
     await page.waitForSelector('#vib-status .state-error', { timeout: 8000 });
