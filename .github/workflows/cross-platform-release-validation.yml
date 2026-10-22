@@ -119,7 +119,7 @@ jobs:
               -v "$GITHUB_WORKSPACE:/work" -w /work ubuntu:22.04 \
               bash -euc '
                 apt-get update
-                DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libasound2-dev libssl-dev
+                DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev librsvg2-bin libasound2-dev libssl-dev
                 curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
                 export PATH="/root/.cargo/bin:$PATH" CARGO_TARGET_DIR=/work/src-tauri/target
                 rustup target add i686-unknown-linux-gnu
