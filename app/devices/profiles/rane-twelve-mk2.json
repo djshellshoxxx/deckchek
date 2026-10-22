@@ -9,7 +9,7 @@
   ],
   "category": "controller",
   "summary": "Motorized 12-inch vinyl-style MIDI DJ controller with platter, strip search, pitch fader and performance pads; no audio interface.",
-  "identityNotes": "MK2 (MKII) assumed; user manual v1.1 exists. Original MK1 differs. Egress limits prevented reading the manual in this session, so details come from search snippets and are flagged unverified.",
+  "identityNotes": "MK2 (MKII) assumed; the official Rane support setup guide confirms the underside RCA outputs emit a Serato Control Tone in Serato DVS mode. The Twelve is a motorized control system, not an analog turntable or audio interface. Vendor-specific decoding and measurement thresholds are not implemented.",
   "image": {
     "file": "rane-twelve-mk2.svg",
     "kind": "illustration",
@@ -24,6 +24,13 @@
       "url": "https://cdn.inmusicbrands.com/rane/twelveMKII/Twelve_MKII-UserGuide-v1.1.pdf",
       "language": "en",
       "notes": "Not fetched in this session; read it to confirm specs/controls."
+    },
+    {
+      "title": "Rane Twelve MKII setup and connectivity — DVS control-tone routing",
+      "type": "support-article",
+      "url": "https://support.rane.com/en/support/solutions/articles/69000828932-rane-twelve-mkii-setup-and-connectivity",
+      "language": "en",
+      "notes": "Official guide confirms the underside stereo RCA connections emit a Serato Control Tone; route them to a Serato-enabled mixer/controller DVS input and select Serato DVS mode."
     },
     {
       "title": "Rane DJ Twelve FAQ",
@@ -57,7 +64,10 @@
       ]
     },
     "audio": null,
-    "analog": []
+    "analog": [
+      "Underside stereo RCA outputs carry the Serato Control Tone in Serato DVS mode (manufacturer confirmed)",
+      "RCA outputs connect to a Serato-enabled mixer/controller DVS input; no built-in audio interface"
+    ]
   },
   "drivers": [
     {
@@ -831,6 +841,32 @@
       "equipment": [],
       "severity": "minor",
       "software": "Traktor Pro",
+      "pass": null
+    },
+    {
+      "id": "twelve-dvs-serato-control-tone",
+      "category": "timecode",
+      "title": "Serato Control Tone from the RCA outputs (generic signal check)",
+      "why": "The manufacturer documents a Serato Control Tone output for DVS. This checks the physical signal path and carrier health; it does not decode Serato's proprietary absolute position or guarantee software lock.",
+      "method": "timecode:format-check",
+      "params": {
+        "format": "Serato CV02.5",
+        "sourceType": "hardware-generated control signal",
+        "nominalRpm": 33.333333
+      },
+      "steps": [
+        "Connect the underside stereo RCA outputs to a Serato-enabled mixer/controller DVS input, then connect the mixer/controller to the capture device or choose its exposed input pair.",
+        "Set the Twelve MKII display to Serato DVS mode; start the platter and select Relative mode in Serato DJ Pro.",
+        "Run the generic format-check on the routed stereo signal while steady, then repeat while moving the platter slowly in both directions.",
+        "Interpret this as carrier/phase/balance/SNR/dropout evidence only. A result cannot certify absolute-position decoding or substitute for a Serato control-scope check."
+      ],
+      "equipment": [
+        "Stereo RCA cables",
+        "Serato-enabled DVS mixer/controller",
+        "Available stereo capture input"
+      ],
+      "severity": "major",
+      "software": "Serato DJ Pro",
       "pass": null
     }
   ]

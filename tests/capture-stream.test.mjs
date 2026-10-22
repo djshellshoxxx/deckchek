@@ -141,7 +141,8 @@ test('stream bridge passes the contract argument names and acks each block after
   assert.deepEqual(Object.keys(args).sort(), Object.keys(CONTRACT.commands.start_stream_capture.request).sort());
   assert.equal(s.info.streamId, 10);
   for (let seq = 0; seq < 3; seq++) f.emit({ seq, left: [seq, seq + 0.5] });
-  await tick(30);
+  const deadline = Date.now() + 1000;
+  while (got.length < 3 && Date.now() < deadline) await tick(10);
   assert.deepEqual(got, [0, 1, 2], 'blocks in order, one at a time');
   const acks = f.calls.filter(c => c[0] === 'stream_capture_ack').map(c => c[1]);
   assert.deepEqual(acks, [0, 1, 2].map(seq => ({ streamId: 10, seq })));

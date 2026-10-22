@@ -15,6 +15,8 @@ import { announce, toast } from '../live.js';
 import { confirmDialog, currentDeviceName, setCaptureStatus } from '../shell.js';
 import { emptyState } from '../workflows/flow.js';
 import { relatedCard } from '../crosslinks.js';
+import { audioOut, ABS_MAX_DBFS, SAFETY_COPY } from '../../audio-out.js';
+import { TEST_TONES, AMBIENCE_PRESETS, ambientLoop, toneRequest, toneBuffer, encodePcmWav } from '../../test-signals.js';
 
 const ISSUE_STATUS = { error: 'fail', warning: 'warn' };
 
@@ -24,7 +26,7 @@ const ISSUE_STATUS = { error: 'fail', warning: 'warn' };
  * `sinkId` preselects the output device.
  */
 export function createCalibrationScreen(section, { embedded = false, sinkId = '' } = {}) {
-  const state = { profile: null, running: false, level: -20, duration: 2, playback: null, session: null };
+  const state = { profile: null, running: false, level: -20, duration: 2, playback: null, session: null, testHandle: null, testTimer: null, heartbeat: null, testGeneration: 0 };
 
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('calibration', { size: 24 })}</span><div><h1 tabindex="-1">Calibration</h1>
@@ -61,6 +63,22 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
           <p class="small muted">Play this through the chain under test (or burn it to a test medium) for Speed &amp; Pitch and Quick Check.</p>
           <button type="button" class="btn btn-secondary" id="generate-tone">${icon('download', { size: 18 })}<span>1 kHz reference WAV</span></button>
           <p class="small muted">10 s · stereo · 48 kHz · −9.1 dBFS peak</p></section>
+        <section class="card card-quiet stack" aria-labelledby="cal-signal-title">
+          <h2 id="cal-signal-title" class="card-title">Speaker &amp; PA test signals</h2>
+          <p class="small muted">Low-level tones, bass sweeps, routing checks and original synthetic ambience for testing an audio chain or keeping a quiet sound bed during setup. Start with the system gain low.</p>
+          <p class="hint hint-warn" id="sig-safety">${icon('warn', { size: 16 })}<span>${SAFETY_COPY} The device, amplifier and venue master controls can still make a capped digital signal loud.</span></p>
+          <label class="field"><span class="field-label">Output device</span><select id="sig-output"><option value="">System default output</option></select></label>
+          <label class="field"><span class="field-label">Test tone</span><select id="sig-tone">${TEST_TONES.map(t => `<option value="${esc(t.id)}">${esc(t.label)} · ${esc(t.group)}</option>`).join('')}</select></label>
+          <label class="field"><span class="field-label">Tone level</span><select id="sig-level"><option value="-36">−36 dBFS · very low</option><option value="-30" selected>−30 dBFS · recommended</option><option value="-24">−24 dBFS</option><option value="-18">−18 dBFS</option><option value="-12">−12 dBFS · maximum</option></select></label>
+          <div class="capture-buttons"><button type="button" class="btn btn-primary" id="sig-play-tone">${icon('play', { size: 16 })}<span>Play selected tone</span></button><button type="button" class="btn btn-secondary" id="sig-stop" disabled>${icon('stop', { size: 16 })}<span>Stop output</span></button></div>
+          <label class="field"><span class="field-label">Ambient loop</span><select id="sig-ambience">${AMBIENCE_PRESETS.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('')}</select><span class="field-help" id="sig-ambience-desc"></span></label>
+          <button type="button" class="btn btn-secondary" id="sig-play-ambience">${icon('play', { size: 16 })}<span>Play ambience at −36 dBFS</span></button>
+          <p class="small muted" role="status" id="sig-status">Native signal playback is available in the DeckChek desktop app. Continuous output stops when you leave Calibration.</p>
+          <div class="field-grid"><label class="field"><span class="field-label">WAV sample rate</span><select id="sig-rate"><option value="44100">44.1 kHz</option><option value="48000" selected>48 kHz</option><option value="96000">96 kHz</option></select></label>
+            <label class="field"><span class="field-label">PCM bit depth</span><select id="sig-bits"><option value="16">16-bit</option><option value="24" selected>24-bit</option><option value="32">32-bit</option></select></label></div>
+          <button type="button" class="btn btn-secondary" id="sig-download-wav">${icon('download', { size: 16 })}<span>Download 1 kHz WAV test file</span></button>
+          <p class="small muted" id="sig-format-note">Stereo uncompressed PCM · bitrate = sample rate × bit depth × 2 channels. Captured-file analysis reports file format; endpoint bit depth depends on its driver and is not inferred here.</p>
+        </section>
       </aside>
     </div>`;
 
@@ -94,6 +112,78 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     const want = prev || (embedded ? sinkId : '');
     sel.value = [...sel.options].some(o => o.value === want) ? want : '';
     renderTarget();
+  }
+  async function populateTestOutputs() {
+    const select = $('#sig-output');
+    if (!audioOut.supported) {
+      $('#sig-status').textContent = 'Native signal playback is available in the DeckChek desktop app.';
+      $('#sig-play-tone').disabled = true;
+      $('#sig-play-ambience').disabled = true;
+      return;
+    }
+    try {
+      const outputs = await audioOut.listOutputs();
+      const previous = select.value;
+      select.replaceChildren(h('option', { value: '', text: 'System default output' }), ...(outputs || []).map(d => h('option', { value: d.name, text: `${d.name}${d.sampleRate ? ` · ${d.sampleRate} Hz` : ''}${d.channels ? ` · ${d.channels} ch` : ''}` })));
+      select.value = [...select.options].some(option => option.value === previous) ? previous : '';
+      $('#sig-play-tone').disabled = outputs.length === 0;
+      $('#sig-play-ambience').disabled = outputs.length === 0;
+      $('#sig-status').textContent = outputs.length ? `Detected ${outputs.length} native output${outputs.length === 1 ? '' : 's'}. Reported default format information is shown when the driver exposes it.` : 'No native audio outputs were found.';
+    } catch (error) {
+      $('#sig-play-tone').disabled = true;
+      $('#sig-play-ambience').disabled = true;
+      $('#sig-status').textContent = `Could not list audio outputs: ${String(error?.message || error)}`;
+    }
+  }
+  async function stopTestSignal(message = 'Output stopped.') {
+    state.testGeneration++;
+    clearTimeout(state.testTimer); state.testTimer = null;
+    clearInterval(state.heartbeat); state.heartbeat = null;
+    const handle = state.testHandle; state.testHandle = null;
+    $('#sig-stop').disabled = true;
+    if (handle != null) {
+      try { await audioOut.stop(handle); }
+      catch (error) { try { await audioOut.stopAll(); } catch { /* the native exit guard also silences on app close */ } message = `Stop requested; check output if sound continues. ${String(error?.message || error)}`; }
+    }
+    $('#sig-status').textContent = message;
+  }
+  async function startTestSignal(kind) {
+    if (!audioOut.supported) { $('#sig-status').textContent = 'Native signal playback requires the DeckChek desktop app.'; return; }
+    await stopTestSignal('Starting selected signal…');
+    const generation = state.testGeneration;
+    const device = $('#sig-output').value || null;
+    const level = Number($('#sig-level').value);
+    try {
+      let play;
+      let duration = 0;
+      if (kind === 'ambience') {
+        const preset = AMBIENCE_PRESETS.find(item => item.id === $('#sig-ambience').value);
+        const loop = ambientLoop(preset.id);
+        play = await audioOut.playBuffer(loop, { levelDbfs: -36, capDbfs: ABS_MAX_DBFS, loop: true, rampMs: 60 }, { device });
+        state.heartbeat = setInterval(async () => {
+          if (state.testHandle == null) return;
+          try { await audioOut.setLevel(state.testHandle, -36, { capDbfs: ABS_MAX_DBFS }); }
+          catch (error) { await stopTestSignal(`Ambient loop stopped after an output error: ${String(error?.message || error)}`); }
+        }, 45_000);
+        $('#sig-status').textContent = `${preset.label} playing at −36 dBFS. Click Stop output or leave Calibration to stop it.`;
+      } else {
+        const spec = toneRequest($('#sig-tone').value, level);
+        duration = spec.durationSec;
+        if (spec.channel) {
+          const buffer = toneBuffer(spec);
+          play = await audioOut.playBuffer(buffer, { levelDbfs: spec.levelDbfs, capDbfs: ABS_MAX_DBFS, loop: false, rampMs: 30 }, { device });
+        } else {
+          play = await audioOut.playTone(spec, { device });
+        }
+        $('#sig-status').textContent = `${spec.label} playing at ${spec.levelDbfs} dBFS. It will stop automatically in ${duration} s.`;
+        state.testTimer = setTimeout(() => { stopTestSignal('Test tone finished; output is silent.'); }, duration * 1000 + 350);
+      }
+      if (generation !== state.testGeneration) { await audioOut.stop(play.handle); return; }
+      state.testHandle = play.handle;
+      $('#sig-stop').disabled = false;
+    } catch (error) {
+      await stopTestSignal(`Signal could not play: ${String(error?.message || error)}`);
+    }
   }
   function stimulus(sampleRate = settings.sampleRate) {
     return loopbackStimulus({ sampleRate, durationSec: Number($('#cal-duration').value), levelDbfs: Number($('#cal-level').value) });
@@ -232,9 +322,26 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     download('deckchek-1000hz-reference-10s.wav', new Blob([encodeWav16({ left: tone, right: tone, sampleRate: 48000 })], { type: 'audio/wav' }));
     toast('Generated 10 s stereo 1 kHz reference WAV.', { type: 'success' });
   });
+  $('#sig-play-tone').addEventListener('click', () => startTestSignal('tone'));
+  $('#sig-play-ambience').addEventListener('click', () => startTestSignal('ambience'));
+  $('#sig-stop').addEventListener('click', () => stopTestSignal());
+  $('#sig-ambience').addEventListener('change', () => {
+    const preset = AMBIENCE_PRESETS.find(item => item.id === $('#sig-ambience').value);
+    $('#sig-ambience-desc').textContent = preset?.description || '';
+  });
+  $('#sig-download-wav').addEventListener('click', () => {
+    const sampleRate = Number($('#sig-rate').value), bits = Number($('#sig-bits').value);
+    const amplitude = 10 ** (-20 / 20), tone = generateSine({ frequencyHz: 1000, sampleRate, durationSec: 5, amplitude });
+    const wav = encodePcmWav({ left: tone, right: tone, sampleRate, bits });
+    const bitrate = sampleRate * bits * 2;
+    download(`deckchek-1khz-${sampleRate}-${bits}bit-${bitrate}bps.wav`, new Blob([wav], { type: 'audio/wav' }));
+    toast(`Generated stereo PCM: ${sampleRate} Hz, ${bits}-bit, ${bitrate.toLocaleString()} bit/s.`, { type: 'success' });
+  });
   on('calibration', () => { renderTarget(); renderList(); });
   on('settings', ({ key }) => { if (key === 'deviceName' || key === 'sampleRate') renderTarget(); });
   renderTarget();
+  $('#sig-ambience-desc').textContent = AMBIENCE_PRESETS[0].description;
+  populateTestOutputs();
   $('#cal-output').addEventListener('change', renderTarget);
   renderList();
   $('#cal-profile').append(emptyState({ icon: 'calibration', title: 'No profile analysed yet', text: 'Run the loopback or import a recording to see gain, mismatch, noise floor, latency and clock error.' }));
@@ -245,10 +352,12 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     isRunning: () => state.running,
     /** Stop playback and discard an in-flight capture (host dialog closing or the user leaving the step). */
     dispose: async () => {
+      await stopTestSignal('Output stopped because Calibration closed.');
       state.playback?.stop();
       const session = state.session; state.session = null;
       try { await session?.cancel(); } catch { /* already stopped */ }
     },
+    onHide: () => { stopTestSignal('Output stopped because you left Calibration.'); },
     onSpace: () => { if (liveAvailable()) { runLoopback(); return true; } return false; },
     onEscape: () => { if (state.running) { state.playback?.stop(); return true; } return false; },
     onExport: () => state.profile ? download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(state.profile), 'application/json') : toast('Analyse a loopback first — then Ctrl+E exports the profile.'),
