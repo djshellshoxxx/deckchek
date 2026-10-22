@@ -353,7 +353,7 @@ async function devicesBrowser(page, wav, extra) {
   check('Workflow test: Quick Check opens with the device banner', /Running My DJM-A9 · Master output signal health/.test(await page.locator('#device-test-banner').innerText()));
   await page.waitForFunction(() => !!document.querySelector('#screen-quick .card-device'), null, { timeout: 5000 }).catch(() => {});
   const profileSteps = await page.evaluate(() => document.querySelector('#screen-quick .card-device')?.innerText || '(missing device test steps card)');
-  check('Workflow test: profile steps shown in Setup', /Play a test tone from USB ch1/.test(profileSteps) && /Master output/.test(profileSteps), profileSteps);
+  check('Workflow test: profile steps shown in Setup', /Play a test tone from USB ch1/.test(profileSteps) && /Connect MASTER to an audio interface/.test(profileSteps) && /Run Signal health for 10 s/.test(profileSteps), profileSteps);
   await shot(page, 'device-workflow-setup-dark');
   await page.setInputFiles('#quick-file', wav);
   await page.click('#quick-analyze');
