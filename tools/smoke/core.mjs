@@ -175,6 +175,12 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   // Calibration from an imported (digital) loopback recording
   await page.click('.rail-item[data-screen="calibration"]');
   check('output selector hidden when no output devices are listed', await page.locator('#cal-out-field').isHidden());
+  await page.waitForFunction(() => /Native signal playback is available/.test(document.querySelector('#sig-status')?.textContent || ''));
+  check('speaker test signals explain browser playback limits and disable play safely', await page.locator('#sig-play-tone').isDisabled() && await page.locator('#sig-play-ambience').isDisabled() && /gain low/.test(await page.locator('#sig-safety').innerText()));
+  check('speaker signal controls offer tone, ambience, sample-rate and bit-depth choices', (await page.locator('#sig-tone option').count()) === 13 && (await page.locator('#sig-ambience option').count()) === 3 && (await page.locator('#sig-rate option').count()) === 3 && (await page.locator('#sig-bits option').count()) === 3);
+  const [signalDownload] = await Promise.all([page.waitForEvent('download'), page.click('#sig-download-wav')]);
+  const signalWav = fs.readFileSync(await signalDownload.path());
+  check('speaker WAV export metadata matches 48 kHz 24-bit stereo bitrate', signalDownload.suggestedFilename() === 'deckchek-1khz-48000-24bit-2304000bps.wav' && signalWav.readUInt16LE(20) === 1 && signalWav.readUInt16LE(22) === 2 && signalWav.readUInt32LE(24) === 48000 && signalWav.readUInt32LE(28) === 288000 && signalWav.readUInt16LE(34) === 24 && signalWav.length === 1440044);
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#cal-import')]);
   await chooser.setFiles(extra.loopback);
   await page.waitForSelector('#cal-profile .verdict');
