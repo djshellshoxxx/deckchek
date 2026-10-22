@@ -37,7 +37,7 @@ function wizardNativeMock() {
     switch (cmd) {
       case 'wizard_state_get': return w.saved ? { ...w.saved, version: 1 } : { status: 'none', step: 1, answers: {}, updatedAt: null, completedAt: null, version: 1 };
       case 'wizard_state_save': w.saved = { ...args.state, updatedAt: new Date().toISOString(), completedAt: args.state.status === 'completed' ? new Date().toISOString() : null }; return null;
-      case 'wizard_has_user_data': return w.hasUserData;
+      case 'wizard_has_user_data': return w.hasUserData || window.__wizExistingData === true;
       case 'wizard_create_assets': case 'wizard_apply_gear': return gear(args.productIds);
       case 'start_live_capture': if (w.failCapture) throw 'No default input device found'; break;
       case 'device_profiles_sync':
@@ -452,12 +452,13 @@ export default async function run({ browser, base, check, SHOTS }) {
 
   // ---- AC-10 native: existing v0.04 data -> no wizard, gear kept
   {
-    const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true, before: () => { window.__wiz.hasUserData = true; } });
+    const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true, before: () => { window.__wizExistingData = true; if (window.__wiz) window.__wiz.hasUserData = true; } });
     errors.push(...watchConsole(page, 'wizard-desktop-upgrade'));
     await page.goto(base);
     await page.waitForSelector('.rail-item');
     await page.waitForFunction(() => window.__wiz.saved, null, { timeout: 8000 });
-    check('wizard AC-10 (desktop): existing data -> auto-completed, no dialog, createAssets:false on sync', await open(page) === 0 && await page.evaluate(() => window.__wiz.saved.status === 'completed' && window.__wiz.saved.answers.autoCompleted === true && window.__wiz.calls.find(c => c[0] === 'device_profiles_sync')?.[1].createAssets === false));
+    const upgradeState = await page.evaluate(() => ({ hasUserData: window.__wiz.hasUserData || window.__wizExistingData === true, saved: window.__wiz.saved, openDialogs: document.querySelectorAll('dialog.wizard[open]').length, sync: window.__wiz.calls.find(c => c[0] === 'device_profiles_sync')?.[1] || null }));
+    check('wizard AC-10 (desktop): existing data -> auto-completed, no dialog, createAssets:false on sync', await open(page) === 0 && upgradeState.saved?.status === 'completed' && upgradeState.saved?.answers?.autoCompleted === true && upgradeState.sync?.createAssets === false, JSON.stringify(upgradeState));
     await context.close();
   }
 
