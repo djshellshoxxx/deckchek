@@ -130,6 +130,15 @@ jobs:
             exit 0
           fi
           if [[ -n "$TARGET" ]]; then cargo tauri build --target "$TARGET" --bundles "${{ matrix.bundles }}"; else cargo tauri build --bundles "${{ matrix.bundles }}"; fi
+      - name: Verify macOS audio-input privacy metadata
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$app"
+          usage="$(/usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$app/Contents/Info.plist")"
+          test -n "$usage"
       - name: Stage uniquely named packages
         shell: bash
         env:
@@ -163,13 +172,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: release-artifacts
       - name: Create package checksums
         run: |
           set -euo pipefail
-          find release-artifacts -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > release-artifacts/SHA256SUMS
+          node tools/release-checksums.mjs release-artifacts
       - name: Publish cross-platform beta release
         uses: softprops/action-gh-release@v2
         with:
