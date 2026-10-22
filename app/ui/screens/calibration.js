@@ -357,7 +357,7 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
       const session = state.session; state.session = null;
       try { await session?.cancel(); } catch { /* already stopped */ }
     },
-    onHide: () => { stopTestSignal('Output stopped because you left Calibration.'); },
+    onHide: () => { stopTestSignal(state.testHandle != null ? 'Output stopped because you left Calibration.' : null); },
     onSpace: () => { if (liveAvailable()) { runLoopback(); return true; } return false; },
     onEscape: () => { if (state.running) { state.playback?.stop(); return true; } return false; },
     onExport: () => state.profile ? download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(state.profile), 'application/json') : toast('Analyse a loopback first — then Ctrl+E exports the profile.'),
