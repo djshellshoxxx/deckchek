@@ -20,9 +20,11 @@ files; the integration agent reviewed the diff and transport callers.
 | PR9, claude/amazing-fermat-csql4g | `a4d844b22df478a141c06a6561c941d6461a8aea` | Diverges at `81c871bb3069d641cac8bea594cb393daa04a297`; FS-34/35/36 remain separate |
 | PR10, docs/readme-and-wiki | `4cfa38cf127881f07a7ab9e408f2fb701c4ff984` | Separate documentation; preserved |
 
-Local branch: `local/deckchek-midi-boundaries-20261025`. No existing branch was
+Initial local branch: `local/deckchek-midi-boundaries-20261025`. No existing branch was
 reset, overwritten, deleted, or merged. No source push, PR write, CI dispatch,
-release, deployment, dependency installation, or credentials change occurred.
+release, deployment, dependency installation, or credentials change occurred
+during the initial local implementation batch. Later checkpoint publication is
+covered separately below.
 Fleet remains default-off and unwired on the chosen baseline.
 
 ## Completed requirement and evidence
@@ -82,3 +84,41 @@ installed `/usr/bin/chromium`; no download was attempted. Logs are in
   refs first. Keep PR10 docs and PR13 fleet work distinct; fleet expansion is not
   a prerequisite for core diagnostics. Hardware threshold qualification and
   vendor-specific DVS decoding remain outstanding.
+
+## GitHub checkpoint preparation
+
+The owner subsequently authorized source checkpoint publication and handoff
+readiness. Preserve `a8442aa6b554c5f053fb0eb5ae495e790e3943a4` unchanged; add only
+handoff documentation on `checkpoint/deckchek-midi-boundaries-20261025`.
+The source and tests remain exactly those validated by 846 JS / 186 browser
+checks. No additional implementation worker is needed for this documentation
+and publication batch.
+
+Fresh fetch confirmed the table's main/PR9/PR12/PR13 refs unchanged. The intended
+new checkpoint remote branch was absent. Source/staged diffs were reviewed;
+outgoing content is only the MIDI fix, tests, and generic/detailed handoffs, with
+no private research packs or runtime logs. A local heuristic secret/private-file
+scan of all four outgoing files found zero matches for private-key blocks,
+common token formats, literal credential assignments, credential-bearing URLs,
+or sensitive filenames. This is not a comprehensive secret-audit claim.
+`git diff --cached --check` passed; comparing staged app/tests/workflows with
+`a8442aa` found no changes, so prior test evidence remains applicable.
+
+All four repository workflows were inspected: tests and desktop matrix pushes
+are limited to main or version tags; Windows build pushes only main; mobile Pages
+is dispatch-only with an explicit deploy input. Pushing this new non-main branch
+without a tag or PR does not select any checked-in workflow. No workflow change,
+PR creation, manual dispatch, deployment, or release is part of this checkpoint.
+
+Merge decision: **leave unmerged; no merge attempt**. Candidate source before
+documentation is `a8442aa6b554c5f053fb0eb5ae495e790e3943a4`; possible main target is
+`9f74fc2ee7952378bf17698bb6d648a8a2fbbb86`, and stack baseline is
+`2a8e528f0d6e669ba57ab892a9aae0b0eeee6f24`. Missing native/hardware acceptance and
+unreconciled PR9/12/13 integration prevent a readiness claim. No existing owner
+branch or original thresholds are changed. A future merger must record fresh
+source/target SHAs and intended action before proceeding.
+
+Recovery instructions and concise status are in `CHECKPOINT.md`. Verify the
+published commit through `git ls-remote origin
+refs/heads/checkpoint/deckchek-midi-boundaries-20261025` before claiming a remote
+checkpoint. This preparation note does not assert publication success.
