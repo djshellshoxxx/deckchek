@@ -6,13 +6,21 @@ const round = (v, d = 3) => (v == null || !Number.isFinite(v) ? v : Math.round(v
 
 /** Parse raw MIDI bytes. channel is 1-16 (null for system messages). */
 export function parseMessage(bytes) {
-  const b = Array.from(bytes || []);
-  if (!b.length) return { kind: 'other', channel: null, number: null, value: null };
+  const other = { kind: 'other', channel: null, number: null, value: null };
+  let b;
+  try { b = Array.from(bytes ?? []); } catch { return other; }
+  if (!b.length || b.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 0xff)) return other;
   const s = b[0];
-  if (s === 0xf0) return { kind: 'sysex', channel: null, number: null, value: null, bytes: b };
-  if (s === 0xf8) return { kind: 'clock', channel: null, number: null, value: null };
-  if (s >= 0xf0 || s < 0x80) return { kind: 'other', channel: null, number: null, value: null };
-  const type = s & 0xf0, channel = (s & 0x0f) + 1, d1 = b[1] ?? 0, d2 = b[2] ?? 0;
+  if (s === 0xf0) {
+    if (b.length < 2 || b[b.length - 1] !== 0xf7 || b.slice(1, -1).some((byte) => byte > 0x7f)) return other;
+    return { kind: 'sysex', channel: null, number: null, value: null, bytes: b };
+  }
+  if (s === 0xf8) return b.length === 1 ? { kind: 'clock', channel: null, number: null, value: null } : other;
+  if (s >= 0xf0 || s < 0x80) return other;
+  const type = s & 0xf0;
+  const length = type === 0xc0 || type === 0xd0 ? 2 : 3;
+  if (b.length !== length || b.slice(1).some((byte) => byte > 0x7f)) return other;
+  const channel = (s & 0x0f) + 1, d1 = b[1], d2 = b[2];
   switch (type) {
     case 0x90: return d2 === 0
       ? { kind: 'note-off', channel, number: d1, value: 0 }
@@ -23,7 +31,7 @@ export function parseMessage(bytes) {
     case 0xc0: return { kind: 'program', channel, number: d1, value: d1 };
     case 0xd0: return { kind: 'aftertouch', channel, number: 0, value: d1 };
     case 0xa0: return { kind: 'aftertouch', channel, number: d1, value: d2 };
-    default: return { kind: 'other', channel, number: d1, value: d2 };
+    default: return other;
   }
 }
 
