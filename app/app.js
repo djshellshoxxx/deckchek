@@ -39,6 +39,7 @@ import { scratchScreenDefs } from './ui/screens/scratch.js';
 // [FS-15] screens imports
 import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-20] screens imports
+import { certificateScreenDefs } from './ui/screens/certificate.js';
 // [FS-21] screens imports
 // [FS-22] screens imports
 // [FS-23] screens imports
@@ -80,6 +81,7 @@ const SCREENS = [
   // [FS-15] screens
   ...humScreenDefs(),
   // [FS-20] screens
+  ...certificateScreenDefs(),
   // [FS-21] screens
   // [FS-22] screens
   // [FS-23] screens
