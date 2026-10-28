@@ -99,7 +99,7 @@ test('resetFeatures drops every override and notifies listeners', async () => {
 
 test('flags with no code behind them are marked unwired and default off (except always-on diagnostics)', () => {
   for (const [name, meta] of Object.entries(FEATURES)) {
-    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet'].includes(name), name); assert.equal(meta.default, false, name); } // FS-23 fleet and FS-30 import have UI adapters
+    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet', 'mapperStudio'].includes(name), name); assert.equal(meta.default, false, name); } // FS-23 fleet, FS-30 import and FS-32 mapper have UI adapters
   }
   assert.equal(FEATURES.diagnosticsBundle.wired, false);
   assert.equal(FEATURES.testMedia.default, true);
