@@ -226,22 +226,32 @@ export function createServiceScreen(section) {
   async function deleteJob(d) {
     const dlg = h('dialog', { class: 'svc-dialog', 'aria-labelledby': 'svc-del-title', id: 'svc-delete-dialog' });
     const inp = h('input', { type: 'text', id: 'svc-del-confirm', autocomplete: 'off', 'aria-describedby': 'svc-del-help' });
-    const ok = h('button', { type: 'submit', class: 'btn btn-danger', id: 'svc-del-ok', disabled: true, text: 'Delete job' });
+    const ok = h('button', { type: 'submit', class: 'btn btn-danger', id: 'svc-del-ok', value: 'confirm', disabled: true, text: 'Delete job' });
+    // A customer with no other job can be erased together with this job (their details would otherwise stay forever).
+    const lastJob = d.customer && d.customer.jobCount <= 1;
+    const eraseBox = lastJob ? h('input', { type: 'checkbox', id: 'svc-del-customer', checked: true }) : null;
     const form = h('form', { method: 'dialog' }, h('h2', { id: 'svc-del-title', text: `Delete job ${d.job.jobNumber}?` }),
-      h('p', { id: 'svc-del-help', text: `This removes the job, its work log, status history, result links and photo links. The customer, the unit and its test results stay. Type ${d.job.jobNumber} to confirm.` }),
+      h('p', { id: 'svc-del-help', text: `This removes the job, its work log, status history, result links and photo links. The unit and its test results stay. Type ${d.job.jobNumber} to confirm.` }),
       h('label', { for: 'svc-del-confirm', text: 'Job number' }), inp,
+      lastJob ? h('label', { class: 'svc-check' }, eraseBox, ' Also delete the customer’s details (they have no other job)') : null,
       h('div', { class: 'svc-actions' }, h('button', { type: 'button', class: 'btn btn-ghost', id: 'svc-del-cancel', text: 'Keep job', onclick: () => dlg.close('cancel') }), ok));
     inp.addEventListener('input', () => { ok.disabled = !deleteConfirmed(d.job, inp.value); });
     dlg.append(form);
     document.body.append(dlg);
     const trigger = document.activeElement;
     dlg.addEventListener('close', async () => {
-      const confirmed = dlg.returnValue !== 'cancel' && deleteConfirmed(d.job, inp.value);
+      const confirmed = dlg.returnValue === 'confirm' && deleteConfirmed(d.job, inp.value); // Esc leaves returnValue empty
+      const erase = !!eraseBox?.checked;
       dlg.remove();
       if (!confirmed) { if (trigger?.isConnected) trigger.focus(); return; }
-      try { await api.remove(d.job.id, inp.value.trim()); toast(`Job ${d.job.jobNumber} deleted.`, { type: 'success', timeout: 3000 }); backToList(); }
-      catch (e) { toast(`Job not deleted: ${friendly(e)}`, { type: 'error' }); }
+      try {
+        await api.remove(d.job.id, inp.value.trim());
+        if (erase && d.customer) await api.removeCustomer(d.customer.id).catch(e => toast(`The customer’s details were kept: ${friendly(e)}`, { type: 'warn' }));
+        toast(`Job ${d.job.jobNumber} deleted.`, { type: 'success', timeout: 3000 });
+        backToList();
+      } catch (e) { toast(`Job not deleted: ${friendly(e)}`, { type: 'error' }); }
     }, { once: true });
+    dlg.returnValue = '';
     dlg.showModal();
     inp.focus();
   }

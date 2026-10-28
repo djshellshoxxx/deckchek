@@ -87,7 +87,7 @@ export function serviceMock() {
     if (cmd === 'job_delete') { const j = job(args.id); if (args.confirm.trim() !== j.jobNumber) throw `type the job number ${j.jobNumber} to delete this job`; svc.jobs = svc.jobs.filter(x => x.id !== j.id); return null; }
     if (cmd === 'customer_list') return svc.customers.filter(c => !args.q || c.name.toLowerCase().includes(String(args.q).toLowerCase()));
     if (cmd === 'customer_update') { const c = svc.customers.find(x => x.id === args.id); Object.assign(c, args.patch); return c; }
-    if (cmd === 'customer_delete') throw 'this customer has 1 job; a customer with jobs cannot be deleted';
+    if (cmd === 'customer_delete') { const k = svc.jobs.filter(j => j.customerId === args.id).length; if (k) throw `this customer has ${k} job${k === 1 ? '' : 's'}; a customer with jobs cannot be deleted`; svc.customers = svc.customers.filter(c => c.id !== args.id); return null; }
     if (cmd === 'photo_read') return '/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==';
     if (cmd === 'photo_unlink') { svc.photos = svc.photos.filter(p => p.linkId !== args.linkId); return { unlinked: true, fileDeleted: false }; }
     throw `unknown command ${cmd}`;
@@ -301,12 +301,20 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('service: AC-7 read-only job hides the work forms', (await page.locator('#svc-part-name').count()) === 0);
   await page.click('#svc-delete');
   await page.waitForSelector('#svc-delete-dialog[open]');
+  await page.fill('#svc-del-confirm', 'J-2026-0002');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#svc-delete-dialog', { state: 'detached' });
+  check('service: Esc in the delete dialog keeps the job even with the number typed', (await page.evaluate(() => window.__svc.jobs.length)) === 2);
+  await page.click('#svc-delete');
+  await page.waitForSelector('#svc-delete-dialog[open]');
+  check('service: deleting a customer\'s only job offers to erase their details (ticked)', await page.locator('#svc-del-customer').isChecked());
   await page.fill('#svc-del-confirm', 'J-2026-0001');
   check('service: AC-7 delete stays disabled until the job number is typed', await page.locator('#svc-del-ok').isDisabled());
   await page.fill('#svc-del-confirm', 'J-2026-0002');
   await page.click('#svc-del-ok');
   await page.waitForSelector('#svc-jobs');
   check('service: AC-7 job deleted after typing its number', (await page.evaluate(() => window.__svc.jobs.length)) === 1);
+  check('service: the customer of the deleted job is erased; the other customer stays', await page.evaluate(() => window.__svc.customers.map(c => c.name).join('|')) === 'Zebedee <Pii>');
 
   // filter chips + search
   await page.click('[data-filter="cancelled"]');
