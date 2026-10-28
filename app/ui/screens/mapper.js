@@ -35,6 +35,8 @@ const STATUS_WARNINGS = 5; // at most this many import notes go into the polite 
 const LISTED_WARNINGS = 1000;
 const KIND_LABEL = { button: 'Button', absolute: 'Fader / knob', relative: 'Encoder' };
 const ENCODING_LABEL = { 'relative-two-complement': "Two's complement (1 = right, 127 = left)", 'relative-offset64': 'Offset 64 (65 = right, 63 = left)', 'absolute-wrap': 'Absolute, wraps around' };
+// Where focus goes when the focused control disappears or turns disabled in a re-render ('@row' = selected row).
+const FOCUS_FALLBACK = { 'mp-clear': ['mp-fn-search', '@row'], 'mp-remove': ['@row', 'mp-learn', 'mp-new'] };
 const ARG_LABEL = { action: 'Action', n: 'Number', unit: 'FX unit', param: 'Parameter', band: 'Band' };
 
 export const COPY_HINTS = {
@@ -243,7 +245,7 @@ export function createMapperScreen(section) {
       tr.tabIndex = sel ? 0 : -1;
       tr.classList.toggle('is-selected', sel);
     }
-    renderCentre();
+    keepFocus(renderCentre);
     if (focus) focusRow();
   }
 
@@ -405,7 +407,7 @@ export function createMapperScreen(section) {
     st.learning.unsub?.();
     clearTimeout(st.learning.timer);
     st.learning = null;
-    renderLeft();
+    keepFocus(renderLeft);
     if (message) { setStatus(message, 'info'); announce(message); }
     return true;
   }
@@ -416,7 +418,7 @@ export function createMapperScreen(section) {
     if (!midi.isAvailable()) { setStatus(`MIDI is not available here (backend: ${midi.backend()}). Use the DeckChek desktop app or a browser with Web MIDI.`, 'warn'); return; }
     if (!st.model) newModel();
     await refreshPorts();
-    if (!st.port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); renderLeft(); return; }
+    if (!st.port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); keepFocus(renderLeft); return; }
     try { await midi.open(st.port); } catch (e) { setStatus(`Could not open ${st.port}: ${e?.message || e}`, 'fail'); return; }
     const unsub = midi.onMessage(msg => {
       if (!st.learning || (msg?.port && msg.port !== st.port)) return;
@@ -433,13 +435,34 @@ export function createMapperScreen(section) {
       focusRow();
     });
     st.learning = { unsub, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
-    renderLeft();
+    keepFocus(renderLeft);
     setStatus(`Listening on ${st.port}: move or press one control. Esc cancels.`, 'info');
     announce('Listening for a MIDI message.');
   }
 
   // ---------------------------------------------------------------- render
-  function focusRow() { section.querySelector(`#mp-rows tr[data-id="${CSS.escape(st.selectedId || '')}"]`)?.focus(); }
+  const selectedRow = () => section.querySelector(`#mp-rows tr[data-id="${CSS.escape(st.selectedId || '')}"]`);
+  function focusRow() { selectedRow()?.focus(); }
+
+  /**
+   * Run a re-render and keep keyboard focus in place: the same field by id (fields have stable ids), the selected
+   * row, or a sensible neighbour when the focused control is gone or now disabled. Never pulls focus from outside.
+   */
+  function keepFocus(render) {
+    const active = document.activeElement;
+    const inside = Boolean(active && active !== document.body && section.contains(active));
+    const fid = inside && active.id ? active.id : null;
+    const onRow = inside && Boolean(active.matches?.('#mp-rows tr'));
+    render();
+    if (!inside || (section.contains(active) && !active.disabled)) return;
+    const tryFocus = el => { if (!el || el.disabled) return false; el.focus(); return document.activeElement === el; };
+    const byId = id => (id === '@row' ? selectedRow() : section.querySelector(`#${CSS.escape(id)}`));
+    if (onRow && tryFocus(selectedRow())) return;
+    if (fid && tryFocus(byId(fid))) return;
+    for (const id of FOCUS_FALLBACK[fid] || []) if (tryFocus(byId(id))) return;
+    if (tryFocus(selectedRow())) return;
+    section.querySelector('h1')?.focus();
+  }
 
   function renderLeft() {
     left.replaceChildren();
@@ -538,7 +561,7 @@ export function createMapperScreen(section) {
     const list = h('div', { id: 'mp-fn-list', class: 'mp-fn-list', role: 'group', 'aria-label': 'Functions' });
     const fill = () => {
       const fs = filterFunctions(search.value);
-      list.replaceChildren(...fs.map(f => h('button', { type: 'button', class: `btn btn-sm ${fn?.id === f.id ? 'btn-primary' : 'btn-secondary'}`, 'data-fn': f.id, 'aria-pressed': String(fn?.id === f.id), disabled: ro,
+      list.replaceChildren(...fs.map(f => h('button', { type: 'button', id: `mp-fn-${f.id}`, class: `btn btn-sm ${fn?.id === f.id ? 'btn-primary' : 'btn-secondary'}`, 'data-fn': f.id, 'aria-pressed': String(fn?.id === f.id), disabled: ro,
         onclick: () => {
           const deckSel = section.querySelector('#mp-deck');
           const next = normalizeFunction({ id: f.id, deck: Number(deckSel?.value) || fn?.deck || 1, args: {} }, st.model.decks);
@@ -575,7 +598,7 @@ export function createMapperScreen(section) {
       h('label', { class: 'mp-field', for: 'mp-target' }, h('span', { class: 'field-label', text: 'DJ software' }), target));
     if (st.target === 'vdj') {
       const force = h('input', { type: 'checkbox', id: 'mp-force', checked: st.force });
-      force.addEventListener('change', () => { st.force = force.checked; renderRight(); });
+      force.addEventListener('change', () => { st.force = force.checked; keepFocus(renderRight); });
       right.append(h('label', { class: 'mp-check', for: 'mp-force' }, force, h('span', { text: 'VirtualDJ already supports this controller (name the definition force-…)' })));
     }
     if (st.target === 'serato' || st.target === 'traktor') right.append(h('p', { class: 'hint hint-warn', id: 'mp-report-note', text: st.target === 'serato' ? 'Experimental/Report: Serato has no published mapping format, so DeckChek writes a report to follow by hand.' : 'Report only: Traktor .tsi files are not written. Follow the report in Traktor\'s Controller Manager.' }));
@@ -593,11 +616,12 @@ export function createMapperScreen(section) {
     right.append(validationBox);
     if (ex.files.length) {
       st.exportView = Math.min(st.exportView, ex.files.length - 1);
-      if (ex.files.length > 1) right.append(h('div', { class: 'mp-tabs', role: 'group', 'aria-label': 'Files in the export' }, ...ex.files.map((f, i) => h('button', { type: 'button', class: `btn btn-sm ${i === st.exportView ? 'btn-primary' : 'btn-secondary'}`, 'aria-pressed': String(i === st.exportView), text: f.name, onclick: () => { st.exportView = i; renderRight(); } }))));
+      if (ex.files.length > 1) right.append(h('div', { class: 'mp-tabs', role: 'group', 'aria-label': 'Files in the export' }, ...ex.files.map((f, i) => h('button', { type: 'button', id: `mp-tab-${i}`, class: `btn btn-sm ${i === st.exportView ? 'btn-primary' : 'btn-secondary'}`, 'aria-pressed': String(i === st.exportView), text: f.name, onclick: () => { st.exportView = i; keepFocus(renderRight); } }))));
       right.append(h('pre', { id: 'mp-preview', class: 'mp-preview', tabindex: '0', 'aria-label': `Preview of ${ex.files[st.exportView].name}` }, ex.files[st.exportView].content));
     }
     right.append(h('div', { class: 'mp-actions' },
-      h('button', { type: 'button', class: 'btn btn-primary', id: 'mp-export-save', disabled: Boolean(ex.errors.length) || !ex.files.length || st.busy, title: 'Save (Ctrl+S)', onclick: saveExport },
+      // While saving the button stays focusable (aria-disabled, guarded in saveExport) so focus does not drop to <body>.
+      h('button', { type: 'button', class: 'btn btn-primary', id: 'mp-export-save', disabled: Boolean(ex.errors.length) || !ex.files.length, 'aria-disabled': st.busy ? 'true' : null, title: 'Save (Ctrl+S)', onclick: saveExport },
         h('span', { html: icon('download', { size: 18 }) }), h('span', { text: ex.report ? 'Save report…' : 'Save…' }))),
       h('p', { class: 'muted small', text: COPY_HINTS[st.target] }));
   }
@@ -607,7 +631,7 @@ export function createMapperScreen(section) {
     if (!ex) return;
     if (ex.errors.length) { setStatus('Fix the problems listed under Export first.', 'fail', { title: 'Not saved.' }); section.querySelector('#mp-validation')?.scrollIntoView?.({ block: 'nearest' }); return; }
     if (st.busy) return;
-    st.busy = true; renderRight();
+    st.busy = true; keepFocus(renderRight);
     try {
       let result;
       if (ex.report) {
@@ -628,18 +652,14 @@ export function createMapperScreen(section) {
     } catch (e) {
       const msg = typeof e === 'string' ? e : e?.message || 'The files could not be written.';
       setStatus(msg, 'fail', { title: 'Not saved.' });
-    } finally { st.busy = false; renderRight(); }
+    } finally { st.busy = false; keepFocus(renderRight); }
   }
 
   function renderAll() {
-    // Keep keyboard focus on the same field across a re-render (fields have stable ids).
-    const active = document.activeElement;
-    const fid = active && section.contains(active) && active.id ? active.id : null;
-    const onRow = Boolean(active?.matches?.('#mp-rows tr'));
-    if (st.readOnly) section.classList.add('mp-readonly'); else section.classList.remove('mp-readonly');
-    renderLeft(); renderCentre(); renderRight();
-    if (fid && !section.contains(active)) section.querySelector(`#${CSS.escape(fid)}`)?.focus();
-    else if (onRow && !section.contains(active)) focusRow();
+    keepFocus(() => {
+      section.classList.toggle('mp-readonly', st.readOnly);
+      renderLeft(); renderCentre(); renderRight();
+    });
   }
 
   // ---------------------------------------------------------------- layout
@@ -676,7 +696,7 @@ export function createMapperScreen(section) {
   });
 
   renderAll();
-  refreshPorts().then(() => renderLeft());
+  refreshPorts().then(() => keepFocus(renderLeft));
   refreshSaved();
   loadLibrary();
   return {
