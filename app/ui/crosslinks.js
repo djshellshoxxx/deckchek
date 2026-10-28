@@ -47,6 +47,7 @@ export function relatedCard(from, { title = 'Next steps' } = {}) {
 /** Buttons for an Equipment asset (cartridge -> stylus + wear map, DVS media -> wear map, interface -> latency), or null. */
 export function equipmentLinkRow(asset, category) {
   const links = equipmentLinks(asset, category, isEnabled);
+  if (isEnabled('fleet')) links.push({ id: 'fleet', label: 'Place in venue', icon: 'equipment', params: { assetId: asset.id } });
   if (!links.length) return null;
   return h('div', { class: 'xlink-row', role: 'group', 'aria-label': 'Related tools', 'data-xlink-card': 'equipment' }, ...links.map(l => linkButton(l)));
 }

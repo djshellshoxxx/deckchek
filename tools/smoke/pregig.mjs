@@ -63,7 +63,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const shot = async (page, name) => { await page.waitForTimeout(200); await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
   const open = async (ctx, label) => {
     const page = await ctx.newPage();
-    errors.push(...watchConsole(page, label));
+    errors.push(watchConsole(page, label));
     await page.goto(base);
     await page.waitForSelector('.rail-item[data-screen="pregig"]');
     await page.click('.rail-item[data-screen="pregig"]');
@@ -76,7 +76,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'pregig-off'));
+  errors.push(watchConsole(po, 'pregig-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('pregig: flag off hides the Pre-gig check screen', (await po.locator('.rail-item[data-screen="pregig"]').count()) === 0);
@@ -268,5 +268,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('pregig: no horizontal scroll at phone width', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await shot(page, 'pregig-narrow-light');
   await ctx.close();
-  return errors;
+  return errors.flat();
 }
