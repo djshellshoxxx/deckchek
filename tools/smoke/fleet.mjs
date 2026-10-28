@@ -14,19 +14,25 @@ function fleetMock(options = {}) {
   const before = window.__TAURI__.core.invoke;
   const old = new Date(Date.now() - 200 * 86400000).toISOString(), now = new Date().toISOString();
   const data = { products: [{ id: 'model', model: 'Test turntable' }], templates: [],
-    venues: options.noVenues ? [] : [{ id: 'v', name: 'Club' }], booths: options.noVenues ? [] : [{ id: 'b', venueId: 'v', name: 'Booth' }], positions: options.noVenues ? [] : [{ id: 'p', boothId: 'b', name: 'Left' }, { id: 'p2', boothId: 'b', name: 'Right' }],
+    venues: options.noVenues ? [] : [{ id: 'v', name: 'Club', venueType: 'club', city: 'Leeds', region: 'Yorkshire', country: 'GB', notes: 'Load-in at the back' }], booths: options.noVenues ? [] : [{ id: 'b', venueId: 'v', name: 'Booth' }], positions: options.noVenues ? [] : [{ id: 'p', boothId: 'b', name: 'Left' }, { id: 'p2', boothId: 'b', name: 'Right' }],
     rows: [
       { assetId: 'a', productId: 'model', nickname: 'Deck A', productName: 'Test turntable', serialNumber: 'SN1', category: 'turntable', createdAt: old, installedDate: old, hoursTotal: 510, deckPositionId: options.noVenues ? null : 'p', position: options.noVenues ? null : 'Left', boothId: options.noVenues ? null : 'b', booth: options.noVenues ? null : 'Booth', venueId: options.noVenues ? null : 'v', venue: options.noVenues ? null : 'Club',
         lastResults: [{ testId: 'signal', name: 'Signal path is clean', status: 'fail', createdAt: now }], reminders: [{ id: 'r', assetId: 'a', title: 'Clean faders', basis: 'days', intervalValue: 90, warnBefore: 14, enabled: true, createdAt: old, lastDoneAt: null, hoursAtLastEvent: null }] },
       { assetId: 'other', nickname: 'Untested mixer', productName: 'Test mixer', category: 'mixer', createdAt: old, hoursTotal: 0, lastResults: [], lastSessionAt: now, reminders: [] },
     ] };
   for (let i = 0; i < (options.extraOverdue || 0); i++) {
-    data.rows.push({ assetId: `x${i}`, nickname: `Extra ${i}`, createdAt: old, installedDate: old, hoursTotal: 0, lastResults: [], reminders: [{ id: `xr${i}`, assetId: `x${i}`, title: `Task ${i}`, basis: 'days', intervalValue: 30, warnBefore: 14, enabled: true, createdAt: old }] });
+    const placed = options.placeExtra ? { deckPositionId: 'p2', position: 'Right', boothId: 'b', booth: 'Booth', venueId: 'v', venue: 'Club' } : {};
+    data.rows.push({ assetId: `x${i}`, nickname: `Extra ${i}`, createdAt: old, installedDate: old, hoursTotal: 0, lastResults: [], ...placed, reminders: [{ id: `xr${i}`, assetId: `x${i}`, title: `Task ${i}`, basis: 'days', intervalValue: 30, warnBefore: 14, enabled: true, createdAt: old }] });
+  }
+  if (options.longName) {
+    const name = 'TechnicsSL1200MK7_left_deck_with_a_very_long_unbroken_nickname_imported_from_a_backup_file_0123456789_ABCDEFGHIJKLMNOP';
+    data.rows.push({ assetId: 'long', nickname: name, productName: 'Turntable', createdAt: old, installedDate: old, hoursTotal: 0, lastResults: [{ testId: 'x', name: 'Unbroken_test_title_'.repeat(5), status: 'fail', createdAt: now }], reminders: [{ id: 'lr', assetId: 'long', title: 'Clean_the_tonearm_pivot_bearing_'.repeat(3), basis: 'days', intervalValue: 30, warnBefore: 14, enabled: true, createdAt: old }] });
   }
   const events = []; window.__fleet = { data, events, csv: null, calls: [] };
   window.__TAURI__.dialog = { save: async () => '/tmp/fleet.csv' };
   window.__TAURI__.core.invoke = async (command, args = {}) => {
     window.__fleet.calls.push(command);
+    if (options.slow && ['reminder_upsert', 'maintenance_log', 'fleet_place_asset', 'catalog_upsert', 'booth_upsert'].includes(command)) await new Promise(resolve => setTimeout(resolve, options.slow));
     if (command === 'fleet_snapshot') return structuredClone(data);
     if (command === 'maintenance_list') return events.filter(e => (!args.assetId || e.assetId === args.assetId) && (!args.eventType || e.eventType === args.eventType) && (!args.from || e.eventAt.slice(0, 10) >= args.from) && (!args.to || e.eventAt.slice(0, 10) <= args.to)).map(e => ({ ...e, assetName: data.rows.find(r => r.assetId === e.assetId)?.nickname }));
     if (command === 'reminder_snooze') { for (const row of data.rows) for (const reminder of row.reminders) if (reminder.id === args.id) reminder.snoozedUntil = args.untilIso; return null; }
@@ -40,7 +46,9 @@ function fleetMock(options = {}) {
     }
     if (command === 'booth_upsert') { const id = args.input.id || `b${data.booths.length + 1}`; data.booths = data.booths.filter(row => row.id !== id); data.booths.push({ id, venueId: args.input.parentId, name: args.input.name }); return id; }
     if (command === 'position_upsert') { const id = `p${data.positions.length + 10}`; data.positions.push({ id, boothId: args.input.parentId, name: args.input.name }); return id; }
-    if (command === 'catalog_upsert' && args.entity === 'venue') { const id = args.record.id || `v${data.venues.length + 1}`; data.venues = data.venues.filter(v => v.id !== id); data.venues.push({ id, name: args.record.name }); return { ...args.record, id }; }
+    // Like catalog::upsert: the record replaces every venue column, so a missing key is stored as null.
+    if (command === 'catalog_upsert' && args.entity === 'venue') { const id = args.record.id || `v${data.venues.length + 1}`; const saved = { id, ...Object.fromEntries(['name', 'venueType', 'city', 'region', 'country', 'notes'].map(k => [k, args.record[k] ?? null])) }; data.venues = data.venues.filter(v => v.id !== id); data.venues.push(saved); return saved; }
+    if (command === 'catalog_list' && args.entity === 'venue') return structuredClone(data.venues);
     if (command === 'userfiles_write_text' && args.allowedExt === 'csv') { window.__fleet.csv = args.content; return { path: args.path, bytes: args.content.length }; }
     if (command === 'fleet_location_delete') {
       window.__fleet.deletion = structuredClone(args);
@@ -91,8 +99,12 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
     check('fleet: AC-6 banner lists five items then "and 2 more"', (await page.locator('#fleet-reminder-banner li').count()) === 5 && /and 2 more/.test(text));
     check('fleet: banner is a non-blocking status region and the rail shows a count badge', (await page.locator('#fleet-reminder-banner').getAttribute('role')) === 'status' && (await page.locator('[data-fleet-badge]').innerText()) === '7');
     check('fleet: banner does not take focus', await page.evaluate(() => !document.getElementById('fleet-reminder-banner').contains(document.activeElement)));
-    await page.click('#fleet-banner-dismiss');
+    await page.locator('#fleet-banner-dismiss').focus();
+    await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.getElementById('fleet-reminder-banner'));
+    await page.waitForFunction(() => /snoozed/i.test(document.getElementById('sr-polite')?.textContent ?? ''), null, { timeout: 2000 }).catch(() => {});
+    check('fleet: regression: dismissing the banner keeps focus in the app and announces the snooze', await page.evaluate(() => document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected && /snoozed/i.test(document.getElementById('sr-polite')?.textContent ?? '')),
+      await page.evaluate(() => `${document.activeElement?.tagName} | ${document.getElementById('sr-polite')?.textContent}`));
     check('fleet: AC-6 dismiss snoozes every listed reminder for a day and deletes none', await page.evaluate(() => {
       const all = window.__fleet.data.rows.flatMap(r => r.reminders);
       return all.length === 7 && all.every(r => Date.parse(r.snoozedUntil) > Date.now() + 23 * 3600e3);
@@ -195,7 +207,9 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.click('#fleet-tab-venues');
   await page.waitForSelector('#fleet-tree');
   check('fleet: venues tree shows venue > booth > position and the unplaced group', /Club/.test(await page.locator('#fleet-tree').innerText()) && /Left/.test(await page.locator('#fleet-tree').innerText()) && (await page.locator('#fleet-unplaced').count()) === 1);
+  await page.locator('#fleet-unplaced select[data-move-asset="a"]').focus();
   await page.locator('#fleet-unplaced select[data-move-asset="a"]').selectOption('p');
+  await page.click('#fleet-unplaced [data-move-go="a"]');
   await page.waitForFunction(() => window.__fleet.data.rows[0].deckPositionId === 'p');
   check('fleet: "Move to…" in the tree places the asset in a position', (await page.locator('[data-drop-position="p"]').innerText()).includes('Deck A'));
   await page.locator('#fleet-location-form input[name="name"]').fill('Second booth');
@@ -232,6 +246,151 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.keyboard.press('n');
   check('fleet: "N" jumps to the new-event form', await page.evaluate(() => document.activeElement?.closest('#fleet-log-form') !== null));
   await context.close();
+
+  // ----- regressions (FS-23 review): data safety, keyboard and screen-reader behaviour -----
+  {
+    const { context: rc, page: rp } = await open({ label: 'reg', mock: { slow: 150 } }, tauriMock);
+    const polite = () => rp.evaluate(() => document.getElementById('sr-polite')?.textContent ?? '');
+    const waitPolite = async re => rp.waitForFunction(source => new RegExp(source, 'i').test(document.getElementById('sr-polite')?.textContent ?? ''), re.source, { timeout: 3000 }).then(() => true, () => false);
+    const active = () => rp.evaluate(() => { const el = document.activeElement; return !el || el === document.body ? 'BODY' : el.id ? `#${el.id}` : el.outerHTML.slice(0, 80); });
+    const placeCalls = () => rp.evaluate(() => window.__fleet.calls.filter(c => c === 'fleet_place_asset').length);
+    await rp.goto(base); await rp.waitForSelector('#fleet-reminder-banner');
+
+    // overlapping banner refreshes leave exactly one banner
+    await rp.evaluate(() => { for (let i = 0; i < 3; i++) globalThis.dispatchEvent(new Event('deckchek:fleet-changed')); });
+    await rp.waitForTimeout(500);
+    check('fleet: regression: overlapping banner refreshes keep a single banner', (await rp.locator('[id="fleet-reminder-banner"]').count()) === 1, `${await rp.locator('[id="fleet-reminder-banner"]').count()} banners`);
+
+    await rp.click('.rail-item[data-screen="fleet"]'); await rp.waitForSelector('#fleet-grid');
+
+    // filter select: arrow keys keep focus on the select and announce the result count
+    await rp.locator('[data-fleet-filter="status"]').focus();
+    await rp.keyboard.press('ArrowDown');
+    await rp.waitForTimeout(100);
+    check('fleet: regression: changing a filter select keeps focus on it', await rp.evaluate(() => document.activeElement?.dataset?.fleetFilter === 'status'), await active());
+    check('fleet: regression: a filter change announces the result count', await waitPolite(/\d+ assets?\b/), await polite());
+    await rp.locator('[data-fleet-filter="status"]').selectOption('');
+    // tile: focus stays on the pressed tile, count announced
+    await rp.locator('[data-tile="attention"]').focus(); await rp.keyboard.press('Enter');
+    check('fleet: regression: pressing a tile keeps focus on it and announces the count', await rp.evaluate(() => document.activeElement?.dataset?.tile === 'attention' && document.activeElement.getAttribute('aria-pressed') === 'true') && await waitPolite(/^1 asset/), `${await active()} | ${await polite()}`);
+    await rp.keyboard.press('Enter');
+    // sort header keeps focus
+    await rp.locator('[data-sort="health"]').focus(); await rp.keyboard.press('Enter');
+    check('fleet: regression: activating a sort header keeps focus on it and announces the order', await rp.evaluate(() => document.activeElement?.dataset?.sort === 'health') && await waitPolite(/sorted by health/), `${await active()} | ${await polite()}`);
+    // tab click with Enter keeps focus on the tab
+    await rp.locator('#fleet-tab-reminders').focus(); await rp.keyboard.press('Enter');
+    check('fleet: regression: activating a tab with Enter keeps focus on that tab', await rp.evaluate(() => document.activeElement?.id === 'fleet-tab-reminders'), await active());
+    await rp.locator('#fleet-tab-overview').focus(); await rp.keyboard.press('Enter');
+    await rp.waitForSelector('#fleet-grid');
+
+    // asset panel: unchanged "Move asset" does not log a fake move
+    await rp.locator('[data-fleet-asset="a"] .fleet-asset-name').click();
+    await rp.waitForSelector('#fleet-reminder-form');
+    await rp.click('#fleet-move'); await rp.waitForTimeout(400);
+    check('fleet: regression: "Move asset" with the placement unchanged does not call place', (await placeCalls()) === 0 && /already/i.test(await polite()), `${await placeCalls()} calls | ${await polite()}`);
+    check('fleet: regression: the per-asset maintenance history is not an aria-live region', (await rp.locator('#fleet-events[aria-live]').count()) === 0);
+
+    // double submit: the reminder form writes once, focus returns to the submit button, success is announced
+    await rp.locator('#fleet-reminder-form input[name="title"]').fill('Replace belt');
+    await rp.locator('#fleet-reminder-form [type="submit"]').focus();
+    await rp.evaluate(() => { const form = document.getElementById('fleet-reminder-form'); form.requestSubmit(); form.requestSubmit(); });
+    await rp.waitForFunction(() => window.__fleet.calls.filter(c => c === 'reminder_upsert').length >= 1);
+    check('fleet: regression: a reminder save is announced and focus returns to its button', await waitPolite(/reminder saved/) && await rp.evaluate(() => document.activeElement?.closest('#fleet-reminder-form') !== null), `${await active()} | ${await polite()}`);
+    await rp.waitForTimeout(400);
+    check('fleet: regression: double-submitting the reminder form saves one reminder', await rp.evaluate(() => window.__fleet.data.rows[0].reminders.filter(r => r.title === 'Replace belt').length === 1), await rp.evaluate(() => window.__fleet.data.rows[0].reminders.map(r => r.title).join(',')));
+    await rp.locator('#fleet-event-form [type="submit"]').dblclick();
+    await rp.waitForTimeout(700);
+    check('fleet: regression: double-clicking "Log event" logs one event', await rp.evaluate(() => window.__fleet.events.length === 1), await rp.evaluate(() => String(window.__fleet.events.length)));
+    await rp.selectOption('#fleet-placement', 'p2');
+    await rp.locator('#fleet-move').dblclick();
+    await rp.waitForTimeout(700);
+    check('fleet: regression: double-clicking "Move asset" moves once', (await placeCalls()) === 1, `${await placeCalls()} calls`);
+    check('fleet: regression: after a move, focus stays on "Move asset" and the move is announced', await rp.evaluate(() => document.activeElement?.id === 'fleet-move') && /moved/i.test(await polite()), `${await active()} | ${await polite()}`);
+    // detail-panel history filter announces a short summary instead of reading the list
+    await rp.locator('#fleet-event-filters select').selectOption('repair');
+    check('fleet: regression: filtering the asset history announces a short summary', await waitPolite(/no maintenance matches|\d+ maintenance events?/), await polite());
+
+    // events tab: the list is not a live region and filters announce a count
+    await rp.click('#fleet-tab-events'); await rp.waitForSelector('#fleet-event-log li');
+    check('fleet: regression: the events log list is not an aria-live region', (await rp.locator('#fleet-event-log[aria-live]').count()) === 0);
+    await rp.locator('#fleet-event-log-filters select[name="eventType"]').selectOption('inspect');
+    check('fleet: regression: filtering the events log announces a count', await waitPolite(/no maintenance matches|\d+ maintenance events?/), await polite());
+
+    // venues: keyboard "Move to…" does not move on arrow keys; drop on own position is a no-op
+    await rp.click('#fleet-tab-venues'); await rp.waitForSelector('#fleet-tree');
+    const before = await placeCalls();
+    const moveSelect = rp.locator('select[data-move-asset="a"]');
+    await moveSelect.focus(); await rp.keyboard.press('ArrowDown'); await rp.keyboard.press('ArrowDown'); await rp.waitForTimeout(400);
+    check('fleet: regression: arrow keys on the tree "Move to…" select do not move the asset', (await placeCalls()) === before && await rp.evaluate(() => document.activeElement?.dataset?.moveAsset === 'a'), `${(await placeCalls()) - before} moves | ${await active()}`);
+    await moveSelect.selectOption('p');
+    await rp.locator('[data-move-go="a"]').focus(); await rp.keyboard.press('Enter');
+    await rp.waitForFunction(() => window.__fleet.data.rows[0].deckPositionId === 'p');
+    check('fleet: regression: the tree Move button moves once, keeps focus on the asset controls and announces it', (await placeCalls()) === before + 1 && await waitPolite(/moved/) && await rp.evaluate(() => Boolean(document.activeElement?.closest('.fleet-asset'))), `${await active()} | ${await polite()}`);
+    await rp.evaluate(() => { const zone = document.querySelector('[data-drop-position="p"]'); const dt = new DataTransfer(); dt.setData('text/plain', 'a'); zone.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); });
+    await rp.waitForTimeout(400);
+    check('fleet: regression: dropping an asset on its own position does not log a move', (await placeCalls()) === before + 1, `${(await placeCalls()) - before} moves`);
+    check('fleet: regression: tree "Move to…" selects carry no per-position options until focused', await rp.evaluate(() => [...document.querySelectorAll('select[data-move-asset]')].filter(s => s !== document.activeElement).every(s => s.options.length <= 2)));
+
+    // venue rename keeps every other column; delete copy is accurate
+    await rp.locator('#fleet-location-form select[name="kind"]').selectOption('venue');
+    await rp.locator('#fleet-location-form select[name="existing"]').selectOption('v');
+    const impact = await rp.locator('#fleet-delete-impact').innerText();
+    check('fleet: regression: venue delete copy says pre-gig and hum runs are unlinked, not that they block', !/diagnostic references block/i.test(impact) && /pre-gig/i.test(impact) && /hum/i.test(impact), impact);
+    await rp.locator('#fleet-location-form input[name="name"]').fill('Club Nova');
+    await rp.locator('#fleet-location-form [type="submit"]').focus(); await rp.keyboard.press('Enter');
+    await rp.waitForFunction(() => window.__fleet.data.venues.some(v => v.name === 'Club Nova'));
+    check('fleet: regression: renaming a venue keeps its type, city, region, country and notes', await rp.evaluate(() => { const v = window.__fleet.data.venues.find(x => x.id === 'v'); return v.name === 'Club Nova' && v.venueType === 'club' && v.city === 'Leeds' && v.region === 'Yorkshire' && v.country === 'GB' && v.notes === 'Load-in at the back'; }),
+      await rp.evaluate(() => JSON.stringify(window.__fleet.data.venues)));
+    check('fleet: regression: saving a location announces it and keeps focus on Save location', await waitPolite(/location saved/) && await rp.evaluate(() => document.activeElement?.closest('#fleet-location-form') !== null), `${await active()} | ${await polite()}`);
+    await rc.close();
+  }
+
+  // ----- regressions: large fleets (reminder cap note, venue tree cap) and long names -----
+  {
+    const { context: nc, page: np } = await open({ label: 'long', mock: { longName: true } }, tauriMock);
+    await np.setViewportSize({ width: 900, height: 900 });
+    await np.goto(base); await np.waitForSelector('#fleet-reminder-banner');
+    // No sideways scroll of <main>, every listed element fits its own box, and the box stays inside its card.
+    const spill = selector => np.evaluate(sel => {
+      const main = document.getElementById('main');
+      const bad = [...document.querySelectorAll(sel)].filter(el => {
+        const card = el.closest('.card'), r = el.getBoundingClientRect(), c = card?.getBoundingClientRect();
+        return el.scrollWidth > el.clientWidth + 1 || (c && r.right > c.right + 1);
+      }).map(el => `${el.tagName}.${el.className}`);
+      if (main.scrollWidth > main.clientWidth + 1) bad.unshift(`main ${main.scrollWidth} > ${main.clientWidth}`);
+      return bad.slice(0, 3).join(', ');
+    }, selector);
+    const bannerSpill = await spill('#fleet-reminder-banner, #fleet-reminder-banner li, #fleet-reminder-banner p');
+    check('fleet: regression: a long unbroken asset name does not overflow the banner', !bannerSpill, bannerSpill);
+    await np.click('.rail-item[data-screen="fleet"]'); await np.waitForSelector('#fleet-grid');
+    const gridSpill = await spill('#fleet-grid, #fleet-grid td, #fleet-grid .fleet-asset-name, #fleet-grid .fleet-failing');
+    check('fleet: regression: long unbroken names do not overflow the fleet grid', !gridSpill, gridSpill);
+    await nc.close();
+    const { context: lc, page: lp } = await open({ label: 'large', mock: { extraOverdue: 505, placeExtra: true } }, tauriMock);
+    await lp.goto(base); await lp.waitForSelector('.rail-item[data-screen="fleet"]');
+    await lp.click('.rail-item[data-screen="fleet"]'); await lp.waitForSelector('#fleet-grid');
+    await lp.click('#fleet-tab-reminders'); await lp.waitForSelector('#fleet-reminder-table');
+    check('fleet: regression: the reminders table says when it shows only the first 500', /first 500 of 506/.test(await lp.locator('#fleet-reminder-cap').innerText({ timeout: 1000 }).catch(() => '')) && (await lp.locator('#fleet-reminder-table tbody tr').count()) === 500);
+    await lp.click('#fleet-tab-venues'); await lp.waitForSelector('#fleet-tree');
+    const treeRows = await lp.locator('[data-drop-position="p2"] li').count();
+    check('fleet: regression: the venues tree caps each position list and says how many more', treeRows === 200 && /and 305 more/.test(await lp.locator('[data-drop-position="p2"]').innerText()), `${treeRows} rows`);
+    check('fleet: regression: the venues tree builds no per-asset option lists up front', (await lp.locator('#fleet-tree option').count()) <= 2 * 300, `${await lp.locator('#fleet-tree option').count()} options`);
+    await lc.close();
+  }
+
+  // ----- regressions: booth sheet print with FS-03 PDF export switched off -----
+  {
+    const PDF_OFF = () => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { pdfExport: false } }));
+    const { context: pc, page: pp } = await open({ label: 'nopdf' }, tauriMock, PDF_OFF);
+    await pp.goto(base); await pp.waitForSelector('.rail-item[data-screen="fleet"]');
+    await pp.click('.rail-item[data-screen="fleet"]'); await pp.waitForSelector('#fleet-grid');
+    await pp.click('#fleet-tab-venues'); await pp.waitForSelector('[data-print-booth="b"]');
+    await pp.evaluate(() => { window.__printFrames = 0; new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) if (n.classList?.contains('dc-print-frame')) window.__printFrames++; }).observe(document.body, { childList: true }); });
+    await pp.click('[data-print-booth="b"]');
+    const printed = await pp.waitForFunction(() => window.__printFrames > 0, null, { timeout: 4000 }).then(() => true, () => false);
+    check('fleet: regression: "Print booth sheet" opens the browser print layout when PDF export is off', printed);
+    await pc.close();
+  }
 
   // ----- empty state -----
   {
@@ -270,6 +429,10 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
     await browserPage.goto(base); await browserPage.click('.rail-item[data-screen="fleet"]');
     await browserPage.waitForSelector('#fleet-unsupported');
     check('fleet: browser mode states native persistence is unavailable (no banner)', /requires the desktop app/.test(await browserPage.locator('#fleet-content').innerText()) && (await browserPage.locator('#fleet-reminder-banner').count()) === 0);
+    let downloads = 0; browserPage.on('download', () => { downloads++; });
+    await browserPage.locator('#screen-fleet h1').focus(); await browserPage.keyboard.press('e'); await browserPage.keyboard.press('Control+e');
+    await browserPage.waitForTimeout(500);
+    check('fleet: regression: the export shortcut writes no CSV in browser mode and says why', downloads === 0 && /desktop app/i.test(await browserPage.locator('#toasts').innerText()), `${downloads} downloads`);
     await browserContext.close();
   }
 

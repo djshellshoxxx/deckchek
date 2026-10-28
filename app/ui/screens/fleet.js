@@ -8,7 +8,7 @@ import { h } from '../dom.js';
 import { chip } from '../icons.js';
 import { settings, setSetting } from '../state.js';
 import { navigateTo, takeHandoff } from '../crosslinks.js';
-import { announce } from '../live.js';
+import { announce, toast } from '../live.js';
 import { createFleetApi } from '../../fleet-api.js';
 import { filterFleet, fleetToCsv, summarizeFleet, reminderWhen, nextDueReminder, HEALTH_META, REMINDER_META } from '../../fleet.js';
 import { saveTextFile } from '../../userfiles.js';
@@ -18,6 +18,7 @@ import { eventsPanel, maintenanceForm, EVENT_TYPES } from '../fleet-events.js';
 
 const TABS = [['overview', 'Overview'], ['venues', 'Venues & positions'], ['reminders', 'Reminders'], ['events', 'Events log']];
 const HEALTH_RANK = { attention: 0, review: 1, never: 2, healthy: 3 };
+const REMINDER_TABLE_CAP = 500;
 const label = (text, input) => h('label', { class: 'field' }, h('span', { class: 'field-label', text }), input);
 const button = (text, onclick, attrs = {}) => h('button', { type: 'button', class: 'btn btn-secondary', text, onclick, ...attrs });
 const option = (value, text) => h('option', { value, text });
@@ -48,15 +49,69 @@ export function sortRows(rows, key, descending) {
   });
 }
 
+const cssEsc = value => (globalThis.CSS?.escape ? globalThis.CSS.escape(String(value)) : String(value).replace(/[^\w-]/g, c => `\\${c}`));
+// Attributes that name a control independently of the DOM node, so the same control can be found after a re-render.
+const FOCUS_KEYS = ['data-fleet-filter', 'data-tile', 'data-sort', 'data-move-asset', 'data-move-go', 'data-print-booth', 'data-snooze', 'data-apply-template', 'data-fleet-asset'];
+
+/** A selector that finds "the same" control after the view is rebuilt; null when `el` is not inside `root`. */
+export function focusSelector(el, root) {
+  if (!el || el === root || !root?.contains?.(el)) return null;
+  if (el.id) return `#${cssEsc(el.id)}`;
+  for (const key of FOCUS_KEYS) if (el.hasAttribute?.(key)) return `[${key}="${cssEsc(el.getAttribute(key))}"]`;
+  const form = el.closest?.('form[id]');
+  if (!form) return null;
+  const name = el.getAttribute?.('name');
+  return name ? `#${cssEsc(form.id)} [name="${cssEsc(name)}"]` : `#${cssEsc(form.id)} [type="submit"]`;
+}
+
 export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   const state = { view: null, selected: null, filters: {}, sort: 'nickname', descending: false, tab: 'overview', loading: false };
   section.innerHTML = `<header class="screen-head"><div class="screen-title"><div><h1 tabindex="-1">Fleet</h1><p class="lede">Recorded checks and maintenance across your venues. Tracked hours are estimates, not true runtime.</p></div></div></header>
     <div id="fleet-status" role="status" aria-live="polite"></div><div class="tabs" role="tablist" aria-label="Fleet sections" id="fleet-tabs"></div><div id="fleet-content" role="tabpanel" tabindex="-1"></div>`;
   const status = section.querySelector('#fleet-status'), content = section.querySelector('#fleet-content'), tabs = section.querySelector('#fleet-tabs');
 
-  const act = async action => {
-    try { await action(); await load(); globalThis.dispatchEvent(new Event('deckchek:fleet-changed')); }
-    catch (error) { status.replaceChildren(h('span', { role: 'alert', text: friendly(error) })); announce(friendly(error), { assertive: true }); }
+  // Re-renders replace the controls, so focus is put back on the matching new control (or `fallback`, or the
+  // panel). Only when focus was lost: a user who has moved on elsewhere keeps their place.
+  function restoreFocus(selector, fallback = null) {
+    const now = document.activeElement;
+    // Focus on the panel container itself counts as lost (a click on a disabled button lands there).
+    if (now && now !== document.body && now !== content && now !== section && now.isConnected && !now.disabled) return;
+    for (const sel of [selector, fallback]) {
+      const el = sel ? section.querySelector(sel) : null;
+      if (el && !el.disabled && !el.closest('[hidden]')) { el.focus(); if (document.activeElement === el) return; }
+    }
+    content.focus();
+  }
+  // Synchronous re-render that keeps the focused control focused.
+  function keepFocus(rerender) {
+    const selector = focusSelector(document.activeElement, section);
+    rerender();
+    if (selector) restoreFocus(selector);
+  }
+
+  // Every mutation goes through here: one at a time (a second click or Enter while a save is in flight is
+  // ignored, so double submits cannot write duplicate rows), the triggering control is disabled meanwhile,
+  // success is announced, and focus returns to the same control after the reload rebuilds the panel.
+  let busy = false;
+  const act = async (action, { done = 'Saved.', control = null, fallback = null } = {}) => {
+    if (busy) return false;
+    busy = true;
+    const selector = focusSelector(control ?? document.activeElement, section);
+    if (control) { control.disabled = true; control.setAttribute('aria-busy', 'true'); }
+    try {
+      await action(); await load();
+      globalThis.dispatchEvent(new Event('deckchek:fleet-changed'));
+      announce(done);
+      restoreFocus(selector, fallback);
+      return true;
+    } catch (error) {
+      status.replaceChildren(h('span', { role: 'alert', text: friendly(error) })); announce(friendly(error), { assertive: true });
+      return false;
+    } finally {
+      busy = false;
+      if (control) { control.disabled = false; control.removeAttribute('aria-busy'); }
+      if (control?.isConnected && document.activeElement === document.body) control.focus();
+    }
   };
   const filtered = () => sortRows(filterFleet(state.view?.rows ?? [], state.filters), state.sort, state.descending);
 
@@ -77,7 +132,7 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   function renderTabs() {
     tabs.replaceChildren(...TABS.map(([id, text]) => h('button', {
       type: 'button', class: 'tab', role: 'tab', id: `fleet-tab-${id}`, 'aria-selected': String(state.tab === id), 'aria-controls': 'fleet-content', tabindex: state.tab === id ? '0' : '-1', text,
-      onclick: () => selectTab(id),
+      onclick: () => selectTab(id, { focusTab: true }),
       onkeydown: e => {
         const i = TABS.findIndex(([t]) => t === state.tab);
         const next = e.key === 'ArrowRight' ? (i + 1) % TABS.length : e.key === 'ArrowLeft' ? (i - 1 + TABS.length) % TABS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : -1;
@@ -104,6 +159,12 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
 
   // ----- overview -----
   async function exportCsv() {
+    // Before the fleet has loaded (or in the browser preview, which has no fleet database) there is nothing
+    // to export: say so instead of saving a header-only file that looks like an empty fleet.
+    if (!api.native || !state.view) {
+      toast(api.native ? 'The fleet is still loading. Export again once it is shown.' : 'Fleet CSV export requires the desktop app.', { type: 'info' });
+      return;
+    }
     try {
       const rows = filtered();
       const result = await saveTextFile({ suggestedName: 'DeckChek-fleet.csv', ext: 'csv', content: fleetToCsv(rows) });
@@ -114,21 +175,21 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
   function tile(key, title, count, filter) {
     const pressed = filter && Object.entries(filter).every(([k, v]) => state.filters[k] === v);
     return h('button', { type: 'button', class: `fleet-tile fleet-tile-${key}`, 'data-tile': key, 'aria-pressed': filter ? String(Boolean(pressed)) : null,
-      onclick: () => { if (!filter) return; for (const k of ['status', 'reminder']) delete state.filters[k]; if (!pressed) Object.assign(state.filters, filter); render(); } },
+      onclick: () => { if (!filter) return; for (const k of ['status', 'reminder']) delete state.filters[k]; if (!pressed) Object.assign(state.filters, filter); keepFocus(render); announceSummary(filtered(), { speak: true }); } },
     h('span', { class: 'fleet-tile-count', text: String(count) }), h('span', { class: 'fleet-tile-label', text: title }));
   }
 
   function filterSelect(name, title, values) {
     const select = h('select', { 'data-fleet-filter': name }, option('', `All ${title.toLowerCase()}`), ...values.map(([id, text]) => option(id, text)));
     select.value = state.filters[name] ?? '';
-    select.addEventListener('change', () => { state.filters[name] = select.value; if (name === 'venueId') delete state.filters.boothId; render(); });
+    select.addEventListener('change', () => { state.filters[name] = select.value; if (name === 'venueId') delete state.filters.boothId; keepFocus(render); announceSummary(filtered(), { speak: true }); });
     return label(title, select);
   }
 
   function renderOverview() {
     const view = state.view, all = summarizeFleet(view.rows);
     const search = h('input', { type: 'search', id: 'fleet-search', value: state.filters.search || '', placeholder: 'Asset, model, serial or location' });
-    search.addEventListener('input', () => { state.filters.search = search.value; renderRows(); });
+    search.addEventListener('input', () => { state.filters.search = search.value; renderRows({ speak: 'later' }); });
     const booths = view.booths.filter(b => !state.filters.venueId || b.venueId === state.filters.venueId);
     const filters = h('div', { class: 'field-grid fleet-filters' }, label('Search fleet', search),
       filterSelect('venueId', 'Venues', view.venues.map(v => [v.id, v.name])),
@@ -138,7 +199,7 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     const tiles = h('div', { class: 'fleet-tiles', id: 'fleet-tiles', role: 'group', 'aria-label': 'Fleet summary; select a tile to filter' },
       tile('attention', 'Attention', all.attention, { status: 'attention' }), tile('overdue', 'Overdue', all.overdue, { reminder: 'overdue' }),
       tile('dueSoon', 'Due soon', all.dueSoon, { reminder: 'dueSoon' }), tile('never', 'Never tested', all.never, { status: 'never' }));
-    content.replaceChildren(h('section', { class: 'card' }, h('p', { id: 'fleet-summary', class: 'sr-only', role: 'status' }), tiles, filters,
+    content.replaceChildren(h('section', { class: 'card' }, h('p', { id: 'fleet-summary', class: 'sr-only' }), tiles, filters,
       h('div', { class: 'action-bar' }, button('Export CSV', exportCsv, { id: 'fleet-export' }), button('Refresh', load, { id: 'fleet-refresh' }),
         h('span', { class: 'muted small', text: 'Shortcuts: / filter · E export · N new event' })),
     h('div', { id: 'fleet-grid-host' })),
@@ -146,14 +207,14 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     renderRows(); renderDetail();
   }
 
-  function renderRows() {
+  function renderRows({ speak = false } = {}) {
     const rows = filtered(), host = content.querySelector('#fleet-grid-host');
     if (!host) return;
     if (!rows.length) {
       host.replaceChildren(view0().rows.length
         ? h('p', { class: 'empty', text: 'No assets match these filters.' })
         : h('div', { class: 'empty', id: 'fleet-no-assets' }, h('p', { text: 'No assets yet. Add decks and mixers in Equipment, then place them in a venue.' }), button('Open Venues & positions', () => selectTab('venues'))));
-      announceSummary(rows); return;
+      announceSummary(rows, { speak }); return;
     }
     const grid = h('table', { role: 'grid', 'aria-label': 'Fleet assets', id: 'fleet-grid', class: 'fleet-grid' });
     const columns = [['nickname', 'Asset'], ['venue', 'Location'], ['lastTestedAt', 'Last tested'], ['health', 'Health'], ['failing', 'Failing items'], ['reminders', 'Next due']];
@@ -161,7 +222,11 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     for (const [key, title] of columns) {
       const sortable = key in SORTS;
       header.append(h('th', { scope: 'col', 'aria-sort': sortable ? (state.sort === key ? (state.descending ? 'descending' : 'ascending') : 'none') : null },
-        sortable ? button(title, () => { state.descending = state.sort === key && !state.descending; state.sort = key; renderRows(); }, { class: 'btn btn-ghost fleet-sort', 'data-sort': key }) : title));
+        sortable ? button(title, () => {
+          state.descending = state.sort === key && !state.descending; state.sort = key;
+          keepFocus(renderRows);
+          announce(`Sorted by ${title.toLowerCase()}, ${state.descending ? 'descending' : 'ascending'}.`);
+        }, { class: 'btn btn-ghost fleet-sort', 'data-sort': key }) : title));
     }
     grid.append(h('thead', {}, header));
     const body = h('tbody');
@@ -185,12 +250,19 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     }
     grid.append(body);
     host.replaceChildren(...[grid, rows.length > 500 ? h('p', { class: 'muted', text: `Showing the first 500 of ${rows.length} matching assets. Narrow the filters or export CSV for all of them.` }) : null].filter(Boolean));
-    announceSummary(rows);
+    announceSummary(rows, { speak });
   }
   const view0 = () => state.view ?? { rows: [] };
-  function announceSummary(rows) {
+  // The summary is spoken through the shared live region (live.js): a region created inside the re-rendered
+  // subtree is not announced. speak: true = now (filter, tile); 'later' = once typing pauses (search box).
+  let speakTimer = null;
+  function announceSummary(rows, { speak = false } = {}) {
     const t = summarizeFleet(rows), el = content.querySelector('#fleet-summary');
-    if (el) el.textContent = `${rows.length} assets. Attention ${t.attention}, overdue ${t.overdue}, due soon ${t.dueSoon}, never tested ${t.never}.`;
+    const text = `${rows.length} asset${rows.length === 1 ? '' : 's'}. Attention ${t.attention}, overdue ${t.overdue}, due soon ${t.dueSoon}, never tested ${t.never}.`;
+    if (el) el.textContent = text;
+    clearTimeout(speakTimer);
+    if (speak === 'later') speakTimer = setTimeout(() => announce(text), 600);
+    else if (speak) announce(text);
   }
   function select(assetId) { state.selected = assetId; content.querySelectorAll('[data-fleet-asset]').forEach(tr => tr.setAttribute('aria-selected', String(tr.dataset.fleetAsset === assetId))); renderDetail(); content.querySelector('#fleet-detail h2')?.focus(); }
 
@@ -200,34 +272,51 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     if (!row) { host.replaceChildren(h('p', { class: 'muted', text: 'Choose an asset to see its recent results, reminders and events, move it, or log maintenance.' })); return; }
     const placement = h('select', { id: 'fleet-placement' }, option('', 'Unplaced'), ...positionOptions(state.view).map(([id, text]) => option(id, text)));
     placement.value = row.deckPositionId ?? '';
+    const move = button('Move asset', () => {
+      const target = placement.value || null;
+      // Moving to where it already is would only log a fake "Moved from A to A" event.
+      if (target === (row.deckPositionId ?? null)) { announce(`${row.nickname} is already ${target ? 'in that position' : 'unplaced'}.`); return; }
+      const where = target ? placement.selectedOptions[0]?.textContent : 'Unplaced';
+      act(() => api.place(row.assetId, target), { done: `${row.nickname} moved to ${where}.`, control: move });
+    }, { id: 'fleet-move' });
     const reminderForm = h('form', { id: 'fleet-reminder-form', class: 'fleet-form' });
     const title = h('input', { name: 'title', required: true, maxlength: 200 }), basis = h('select', { name: 'basis' }, option('days', 'Calendar days'), option('hours', 'Tracked hours')),
       interval = h('input', { name: 'interval', type: 'number', min: 1, max: 1000000, value: 90, required: true }), warning = h('input', { name: 'warning', type: 'number', min: 0, max: 1000000, value: 14, required: true });
     reminderForm.append(h('h3', { text: 'Add reminder' }), h('div', { class: 'field-grid' }, label('Title', title), label('Basis', basis), label('Every (days or tracked hours)', interval), label('Warn before', warning)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save reminder' }));
-    reminderForm.addEventListener('submit', event => { event.preventDefault(); act(() => api.saveReminder({ assetId: row.assetId, title: title.value, basis: basis.value, intervalValue: Number(interval.value), warnBefore: Number(warning.value) })); });
+    reminderForm.addEventListener('submit', event => {
+      event.preventDefault();
+      act(() => api.saveReminder({ assetId: row.assetId, title: title.value, basis: basis.value, intervalValue: Number(interval.value), warnBefore: Number(warning.value) }),
+        { done: `Reminder saved for ${row.nickname}.`, control: reminderForm.querySelector('[type="submit"]') });
+    });
+    const snooze = (reminder, attrs) => {
+      const control = button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString()), { done: `${reminder.title} snoozed for 1 day.`, control }), { 'data-snooze': reminder.id, ...attrs });
+      return control;
+    };
     const reminders = h('ul', { class: 'fleet-reminders' }, ...row.reminders.map(reminder => h('li', {}, reminderChip(reminder), ` ${reminderLine(reminder)} `,
-      button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString())), { 'aria-label': `Snooze ${reminder.title} for 1 day` }))));
+      snooze(reminder, { 'aria-label': `Snooze ${reminder.title} for 1 day` }))));
     const results = (row.lastResults ?? []).filter(r => r.status !== 'pass').slice(0, 10);
-    const events = h('div', { id: 'fleet-events', 'aria-live': 'polite', text: 'Loading maintenance history…' }), eventFilters = h('div', { class: 'field-grid', id: 'fleet-event-filters' });
+    // Not a live region: a long history would be read out in full on every load. Filter changes announce a count.
+    const events = h('div', { id: 'fleet-events', text: 'Loading maintenance history…' }), eventFilters = h('div', { class: 'field-grid', id: 'fleet-event-filters' });
     const from = h('input', { type: 'date', name: 'from' }), to = h('input', { type: 'date', name: 'to' }), eventType = h('select', { name: 'eventType' }, option('', 'All events'), ...EVENT_TYPES.map(v => option(v, v.replaceAll('_', ' '))));
     eventFilters.append(label('From (UTC date)', from), label('To (UTC date)', to), label('Event type', eventType));
     host.replaceChildren(...[h('h2', { tabindex: '-1', text: row.nickname }),
       h('p', {}, healthChip(row), ` ${row.hoursTotal.toFixed(1)} tracked hours (estimate)`),
       results.length ? h('p', { class: 'muted', text: `Needs a look: ${results.map(r => `${r.name ?? r.testId} (${r.status})`).join(', ')}` }) : null,
-      h('div', { class: 'action-bar' }, button('Run tests', () => navigateTo('devices', { assetId: row.assetId }), { id: 'fleet-run-tests' }), label('Move to position', placement), button('Move asset', () => act(() => api.place(row.assetId, placement.value || null)), { id: 'fleet-move' })),
+      h('div', { class: 'action-bar' }, button('Run tests', () => navigateTo('devices', { assetId: row.assetId }), { id: 'fleet-run-tests' }), label('Move to position', placement), move),
       h('h3', { text: 'Reminders' }), row.reminders.length ? reminders : h('p', { class: 'muted', text: 'No reminders for this asset.' }), reminderForm,
       maintenanceForm({ assets: state.view.rows, fixedAsset: row, api, act }),
       h('h3', { text: 'Maintenance history (latest 1,000 matching events)' }), eventFilters, events].filter(Boolean));
     let request = 0;
-    const loadEvents = async () => {
+    const loadEvents = async ({ speak = false } = {}) => {
       const mine = ++request;
       try {
         const rows = await api.events(row.assetId, { from: from.value || null, to: to.value || null, eventType: eventType.value || null });
         if (mine !== request || state.selected !== row.assetId || !events.isConnected) return;
         events.replaceChildren(rows.length ? h('ul', {}, ...rows.map(e => h('li', { text: `${e.eventAt.slice(0, 10)} · ${e.eventType.replaceAll('_', ' ')} · ${e.description || ''}` }))) : h('p', { text: 'No maintenance matches these filters.' }));
-      } catch (error) { if (mine === request && events.isConnected) events.textContent = friendly(error); }
+        if (speak) announce(rows.length ? `${rows.length} maintenance event${rows.length === 1 ? '' : 's'}.` : 'No maintenance matches these filters.');
+      } catch (error) { if (mine === request && events.isConnected) { events.textContent = friendly(error); if (speak) announce(friendly(error), { assertive: true }); } }
     };
-    for (const filter of [from, to, eventType]) filter.addEventListener('change', loadEvents);
+    for (const filter of [from, to, eventType]) filter.addEventListener('change', () => loadEvents({ speak: true }));
     loadEvents();
   }
 
@@ -238,11 +327,18 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
     all.sort((a, b) => (rank[a.reminder.state] ?? 5) - (rank[b.reminder.state] ?? 5) || a.row.nickname.localeCompare(b.row.nickname));
     const list = all.length
       ? h('table', { class: 'fleet-grid', id: 'fleet-reminder-table', 'aria-label': 'All reminders' }, h('thead', {}, h('tr', {}, ...['Asset', 'Reminder', 'State', ''].map(t => h('th', { scope: 'col', text: t })))),
-        h('tbody', {}, ...all.slice(0, 500).map(({ reminder, row }) => h('tr', {}, h('td', { text: row.nickname }), h('td', { text: reminder.title }), h('td', {}, reminderChip(reminder), reminder.snoozed ? ' (snoozed)' : ''),
-          h('td', {}, button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString())), { 'aria-label': `Snooze ${reminder.title} on ${row.nickname} for 1 day` }))))))
+        h('tbody', {}, ...all.slice(0, REMINDER_TABLE_CAP).map(({ reminder, row }) => {
+          const snooze = button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString()), { done: `${reminder.title} on ${row.nickname} snoozed for 1 day.`, control: snooze }),
+            { 'aria-label': `Snooze ${reminder.title} on ${row.nickname} for 1 day`, 'data-snooze': reminder.id });
+          return h('tr', {}, h('td', { text: row.nickname }), h('td', { text: reminder.title }), h('td', {}, reminderChip(reminder), reminder.snoozed ? ' (snoozed)' : ''), h('td', {}, snooze));
+        })))
       : h('p', { class: 'muted', text: 'No reminders yet. Add one from an asset’s panel on Overview, or create a product template below.' });
-    return h('div', { class: 'fleet-stack' }, h('section', { class: 'card' }, h('h2', { text: 'Reminders' }),
-      selected ? h('p', { class: 'muted', text: `Selected asset for templates: ${selected.nickname}` }) : h('p', { class: 'muted', text: 'Select an asset on Overview to apply a template to it.' }), list),
+    // The table stops at the cap (most urgent first); say so, and where the rest can be handled.
+    const capNote = all.length > REMINDER_TABLE_CAP
+      ? h('p', { class: 'muted', id: 'fleet-reminder-cap', text: `Showing the first ${REMINDER_TABLE_CAP} of ${all.length} reminders, most urgent first. Snooze or complete the others from each asset’s panel on Overview.` })
+      : null;
+    return h('div', { class: 'fleet-stack' }, h('section', { class: 'card' }, ...[h('h2', { text: 'Reminders' }),
+      selected ? h('p', { class: 'muted', text: `Selected asset for templates: ${selected.nickname}` }) : h('p', { class: 'muted', text: 'Select an asset on Overview to apply a template to it.' }), capNote, list].filter(Boolean)),
     fleetTemplatePanel({ view: state.view, selectedAsset: selected, api, act }));
   }
 
@@ -253,8 +349,8 @@ export function createFleetScreen(section, { api = createFleetApi() } = {}) {
       event.preventDefault();
       const days = Math.round(Number(stale.value));
       if (!(days >= 1 && days <= 3650)) { announce('Stale days must be between 1 and 3650.', { assertive: true }); return; }
-      setSetting('fleet', { ...settings.fleet, staleDays: days, startupBanner: banner.checked });
-      load(); globalThis.dispatchEvent(new Event('deckchek:fleet-changed'));
+      act(async () => { setSetting('fleet', { ...settings.fleet, staleDays: days, startupBanner: banner.checked }); },
+        { done: 'Fleet settings saved.', control: form.querySelector('[type="submit"]') });
     });
     return form;
   }

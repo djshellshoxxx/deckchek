@@ -1,6 +1,7 @@
 // FS-23 maintenance events: the add-event form (also used in the asset side panel) and the filterable
 // fleet-wide timeline (spec §3 view 4). All text is set with textContent; events come from the database.
 import { h } from './dom.js';
+import { announce } from './live.js';
 
 export const EVENT_TYPES = ['clean', 'lubricate', 'calibrate', 'repair', 'replace_part', 'inspect', 'other'];
 const typeLabel = v => v.replaceAll('_', ' ');
@@ -30,7 +31,9 @@ export function maintenanceForm({ assets, fixedAsset = null, api, act, id = 'fle
     const target = current();
     if (!target) return;
     const eventAt = when.value ? `${when.value}T12:00:00.000Z` : new Date().toISOString();
-    act(() => api.log({ assetId: target.assetId, eventType: kind.value, eventAt, description: description.value.trim() || null, reminderId: completes.value || null }));
+    // `act` runs one save at a time and disables the button meanwhile, so a double click logs one event.
+    act(() => api.log({ assetId: target.assetId, eventType: kind.value, eventAt, description: description.value.trim() || null, reminderId: completes.value || null }),
+      { done: `Maintenance event logged for ${target.nickname}.`, control: form.querySelector('[type="submit"]') });
   });
   return form;
 }
@@ -41,9 +44,10 @@ export function eventsPanel({ view, api, act }) {
   const asset = h('select', { name: 'asset' }, option('', 'All assets'), ...view.rows.map(a => option(a.assetId, a.nickname)));
   const kind = h('select', { name: 'eventType' }, option('', 'All events'), ...EVENT_TYPES.map(v => option(v, typeLabel(v))));
   const from = h('input', { type: 'date', name: 'from' }), to = h('input', { type: 'date', name: 'to' });
-  const list = h('div', { id: 'fleet-event-log', 'aria-live': 'polite', text: 'Loading maintenance events…' });
+  // Not a live region: up to 1,000 events would be read out on every load. Filter changes announce a count.
+  const list = h('div', { id: 'fleet-event-log', text: 'Loading maintenance events…' });
   let request = 0;
-  const load = async () => {
+  const load = async ({ speak = false } = {}) => {
     const mine = ++request;
     try {
       const rows = await api.events(asset.value || null, { from: from.value || null, to: to.value || null, eventType: kind.value || null });
@@ -51,9 +55,14 @@ export function eventsPanel({ view, api, act }) {
       list.replaceChildren(rows.length
         ? h('ol', { class: 'fleet-timeline' }, ...rows.map(e => h('li', { text: `${e.eventAt.slice(0, 10)} · ${e.assetName ?? e.assetId} · ${typeLabel(e.eventType)}${e.description ? ` · ${e.description}` : ''}` })))
         : h('p', { text: 'No maintenance matches these filters.' }));
-    } catch (error) { if (mine === request && list.isConnected) list.textContent = typeof error === 'string' ? error : error?.message || 'Could not load events.'; }
+      if (speak) announce(rows.length ? `${rows.length} maintenance event${rows.length === 1 ? '' : 's'}.` : 'No maintenance matches these filters.');
+    } catch (error) {
+      if (mine !== request || !list.isConnected) return;
+      list.textContent = typeof error === 'string' ? error : error?.message || 'Could not load events.';
+      if (speak) announce(list.textContent, { assertive: true });
+    }
   };
-  for (const filter of [asset, kind, from, to]) filter.addEventListener('change', load);
+  for (const filter of [asset, kind, from, to]) filter.addEventListener('change', () => load({ speak: true }));
   panel.append(h('div', { class: 'field-grid', id: 'fleet-event-log-filters' }, label('Asset', asset), label('Event type', kind), label('From (UTC date)', from), label('To (UTC date)', to)),
     list, maintenanceForm({ assets: view.rows, api, act, id: 'fleet-log-form' }));
   queueMicrotask(load);
