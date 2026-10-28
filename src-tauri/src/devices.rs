@@ -248,6 +248,22 @@ const AUTO_ASSET_NOTE: &str = "Created from the DeckChek device library.";
 /// Remove library entries whose profile no longer ships. The auto-created "My <model>" asset is deleted when nothing
 /// refers to it, otherwise soft-deleted (is_deleted=1, retired_date set). A device_profile row that saved test results
 /// still reference is kept so the history stays valid (foreign key). An empty shipped set prunes nothing.
+/// One `SELECT COUNT(*)` per column that references `asset(id)`, read from SQLite's foreign-key
+/// catalogue so every feature table (stylus, wear map, scratch, certificates, service jobs, fleet
+/// reminders, ...) counts as "in use" without a hand-kept list. A hand-kept list missed tables
+/// added after it, so pruning could fail on a foreign key or cascade-delete reminders
+/// (regression: `prune_keeps_assets_referenced_by_any_feature_table`).
+fn asset_references(conn: &Connection) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare("SELECT m.name, f.\"from\" FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND f.\"table\" = 'asset' ORDER BY m.name, f.\"from\"")
+        .map_err(e2s)?;
+    let pairs = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))).map_err(e2s)?;
+    let quote = |id: &str| format!("\"{}\"", id.replace('"', "\"\""));
+    pairs
+        .map(|p| p.map(|(t, c)| format!("SELECT COUNT(*) FROM {} WHERE {} = ?1", quote(&t), quote(&c))).map_err(e2s))
+        .collect()
+}
+
 pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) -> Result<PruneSummary, String> {
     let mut summary = PruneSummary::default();
     if shipped.is_empty() {
@@ -268,13 +284,12 @@ pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) 
                 let it = stmt.query_map(params![pid, AUTO_ASSET_NOTE], |r| r.get(0)).map_err(e2s)?;
                 it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
             };
+            let refs = asset_references(conn)?;
             for aid in assets {
-                let used = n("SELECT COUNT(*) FROM device_test_result WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM asset_midi_map WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM setup_component WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM asset_settings_snapshot WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM maintenance_event WHERE asset_id = ?1", &aid)?
-                    + n("SELECT COUNT(*) FROM asset_usage WHERE asset_id = ?1", &aid)?;
+                let mut used = n("SELECT COUNT(*) FROM photo_link WHERE owner_kind = 'asset' AND owner_id = ?1", &aid)?;
+                for sql in &refs {
+                    used += n(sql, &aid)?;
+                }
                 if used > 0 {
                     conn.execute("UPDATE asset SET is_deleted = 1, retired_date = COALESCE(retired_date, substr(?2, 1, 10)), updated_at = ?2 WHERE id = ?1", params![aid, now]).map_err(e2s)?;
                     summary.assets_retired.push(aid);
@@ -391,28 +406,43 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
-    with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
+pub async fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_test_result_save(app: AppHandle, result: DeviceTestResultInput) -> Result<Value, String> {
-    with_db(&app, |c| save_result(c, &result))
+pub async fn device_test_result_save(app: AppHandle, result: DeviceTestResultInput) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| save_result(c, &result))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_test_results(app: AppHandle, asset_id: Option<String>) -> Result<Vec<Value>, String> {
-    with_db(&app, |c| list_results(c, asset_id.as_deref()))
+pub async fn device_test_results(app: AppHandle, asset_id: Option<String>) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| list_results(c, asset_id.as_deref()))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_midi_map_save(app: AppHandle, asset_id: String, profile_id: Option<String>, map: Value) -> Result<Value, String> {
-    with_db(&app, |c| save_midi_map(c, &asset_id, profile_id.as_deref(), &map))
+pub async fn device_midi_map_save(app: AppHandle, asset_id: String, profile_id: Option<String>, map: Value) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| save_midi_map(c, &asset_id, profile_id.as_deref(), &map))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_midi_map_get(app: AppHandle, asset_id: String) -> Result<Option<Value>, String> {
-    with_db(&app, |c| get_midi_map(c, &asset_id))
+pub async fn device_midi_map_get(app: AppHandle, asset_id: String) -> Result<Option<Value>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| get_midi_map(c, &asset_id))
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -525,6 +555,25 @@ mod tests {
         // a second sync is stable
         sync_profiles(&mut c, &all[..1]).unwrap();
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 2);
+    }
+
+    #[test]
+    fn prune_keeps_assets_referenced_by_any_feature_table() {
+        let mut c = mem();
+        let all = vec![profile("keep-a", "Acme", "A-1"), profile("gone-stylus", "Acme", "S-1"), profile("gone-photo", "Acme", "P-1"), profile("gone-reminder", "Acme", "R-1")];
+        let first = sync_profiles(&mut c, &all).unwrap();
+        let (stylus, photo, reminder) = (first[1].asset_id.clone().unwrap(), first[2].asset_id.clone().unwrap(), first[3].asset_id.clone().unwrap());
+        c.execute("INSERT INTO stylus_benchmark (id, asset_id, hours_at, created_at) VALUES ('b1', ?1, 3.5, 'x')", [&stylus]).unwrap();
+        c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('ph', ?1, 'image/jpeg', 1, 1, 1, 'x')", ["a".repeat(64)]).unwrap();
+        c.execute("INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES ('pl', 'ph', 'asset', ?1, 'x')", [&photo]).unwrap();
+        c.execute("INSERT INTO maintenance_reminder (id, asset_id, title, basis, interval_value, created_at) VALUES ('r1', ?1, 'Clean', 'days', 30, 'x')", [&reminder]).unwrap();
+        sync_profiles(&mut c, &all[..1]).unwrap();
+        for aid in [&stylus, &photo, &reminder] {
+            assert_eq!(count(&c, &format!("SELECT COUNT(*) FROM asset WHERE id = '{aid}' AND is_deleted = 1")), 1, "{aid} retired, not deleted");
+        }
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM stylus_benchmark"), 1);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM photo_link"), 1);
+        assert_eq!(count(&c, "SELECT COUNT(*) FROM maintenance_reminder"), 1, "reminder not cascade-deleted");
     }
 
     #[test]

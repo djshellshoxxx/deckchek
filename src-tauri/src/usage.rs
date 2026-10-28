@@ -195,27 +195,39 @@ pub fn confirm(conn: &Connection, id: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn usage_add(app: AppHandle, input: UsageAddInput) -> Result<UsageEntry, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    add(&conn, &input)
+pub async fn usage_add(app: AppHandle, input: UsageAddInput) -> Result<UsageEntry, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        add(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_list(app: AppHandle, asset_id: String, since: Option<String>) -> Result<Vec<UsageEntry>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &asset_id, since.as_deref())
+pub async fn usage_list(app: AppHandle, asset_id: String, since: Option<String>) -> Result<Vec<UsageEntry>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &asset_id, since.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn usage_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_confirm(app: AppHandle, id: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    confirm(&conn, &id)
+pub async fn usage_confirm(app: AppHandle, id: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        confirm(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]

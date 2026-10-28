@@ -253,51 +253,75 @@ pub fn rated_life_get(conn: &Connection, asset_id: &str) -> Result<Option<f64>, 
 }
 
 #[tauri::command]
-pub fn stylus_benchmark_save(app: AppHandle, result: BenchmarkInput) -> Result<IdResult, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    benchmark_save(&conn, &result)
+pub async fn stylus_benchmark_save(app: AppHandle, result: BenchmarkInput) -> Result<IdResult, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        benchmark_save(&conn, &result)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_benchmark_list(app: AppHandle, asset_id: String) -> Result<Vec<Benchmark>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    benchmark_list(&conn, &asset_id)
+pub async fn stylus_benchmark_list(app: AppHandle, asset_id: String) -> Result<Vec<Benchmark>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        benchmark_list(&conn, &asset_id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_alert_snooze(app: AppHandle, asset_id: String, kind: String, until: String, severity: Option<String>) -> Result<IdResult, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    alert_snooze(&conn, &asset_id, &kind, &until, severity.as_deref())
+pub async fn stylus_alert_snooze(app: AppHandle, asset_id: String, kind: String, until: String, severity: Option<String>) -> Result<IdResult, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        alert_snooze(&conn, &asset_id, &kind, &until, severity.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_alert_list(app: AppHandle, asset_id: String) -> Result<Vec<StylusAlert>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    alert_list(&conn, &asset_id)
+pub async fn stylus_alert_list(app: AppHandle, asset_id: String) -> Result<Vec<StylusAlert>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        alert_list(&conn, &asset_id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_baseline(app: AppHandle, asset_id: String) -> Result<Option<String>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    baseline(&conn, &asset_id)
+pub async fn stylus_baseline(app: AppHandle, asset_id: String) -> Result<Option<String>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        baseline(&conn, &asset_id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_replace(app: AppHandle, asset_id: String, at: String, note: Option<String>) -> Result<IdResult, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    replace(&conn, &asset_id, &at, note.as_deref())
+pub async fn stylus_replace(app: AppHandle, asset_id: String, at: String, note: Option<String>) -> Result<IdResult, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        replace(&conn, &asset_id, &at, note.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_rated_life_set(app: AppHandle, asset_id: String, hours: Option<f64>) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    rated_life_set(&conn, &asset_id, hours)
+pub async fn stylus_rated_life_set(app: AppHandle, asset_id: String, hours: Option<f64>) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        rated_life_set(&conn, &asset_id, hours)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn stylus_rated_life_get(app: AppHandle, asset_id: String) -> Result<Option<f64>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    rated_life_get(&conn, &asset_id)
+pub async fn stylus_rated_life_get(app: AppHandle, asset_id: String) -> Result<Option<f64>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        rated_life_get(&conn, &asset_id)
+    })
+    .await?
 }
 
 #[cfg(test)]
