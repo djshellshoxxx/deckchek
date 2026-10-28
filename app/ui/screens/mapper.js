@@ -238,6 +238,7 @@ export function createMapperScreen(section) {
 
   /** Move the selection without rebuilding the list or the export: patch the rows in place, redraw the inspector. */
   function selectControl(id, { focus = false } = {}) {
+    commitLabel();
     if (!st.model?.controls.some(c => c.id === id)) return;
     st.selectedId = id;
     for (const tr of left.querySelectorAll('#mp-rows tr')) {
@@ -260,8 +261,48 @@ export function createMapperScreen(section) {
     renderAll();
   }
 
+  // ---- text fields commit without rebuilding what is under the pointer
+  // A text field commits on 'change', which fires on the mousedown that blurs it. Rebuilding the button under the
+  // pointer at that moment swallows the click, so commits patch the list in place and redraw the export pane only
+  // once the pointer is released (after the click has been delivered).
+  let pointerHeld = false;
+  const afterPointer = [];
+  const whenPointerFree = fn => { if (pointerHeld) afterPointer.push(fn); else fn(); };
+  document.addEventListener('pointerdown', () => { pointerHeld = true; }, true);
+  for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, () => {
+    pointerHeld = false;
+    const fns = afterPointer.splice(0);
+    if (fns.length) setTimeout(() => { for (const fn of fns) fn(); });
+  }, true);
+  let refreshQueued = false;
+  const refreshExportPane = () => {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    whenPointerFree(() => { refreshQueued = false; keepFocus(renderRight); });
+  };
+
+  // The control-name field in the inspector: {id, input, timer, pushed}. Typing commits after a short pause, 'change'
+  // commits at once, and any other edit or selection change flushes it first so a typed name is never lost.
+  let labelEdit = null;
+  function commitLabel() {
+    const le = labelEdit;
+    if (!le) return;
+    clearTimeout(le.timer); le.timer = null;
+    const c = st.model?.controls.find(x => x.id === le.id);
+    if (!c || st.readOnly || cleanText(le.input.value) === c.label) return;
+    if (!le.pushed) { undo.push(st.model); le.pushed = true; }
+    st.model = updateControl(st.model, le.id, { label: le.input.value }).model;
+    const next = st.model.controls.find(x => x.id === le.id);
+    const cell = left.querySelector(`#mp-rows tr[data-id="${CSS.escape(le.id)}"] .mp-label > span`);
+    if (!next || !cell) { whenPointerFree(renderAll); return; }
+    cell.textContent = next.label;
+    refreshExportPane();
+  }
+  const dropLabelEdit = () => { if (labelEdit) clearTimeout(labelEdit.timer); labelEdit = null; };
+
   function edit(mutator, { announceText = null } = {}) {
     if (!st.model || st.readOnly) return;
+    commitLabel();
     undo.push(st.model);
     const res = mutator(st.model);
     st.model = res.model || res;
@@ -271,6 +312,7 @@ export function createMapperScreen(section) {
   }
 
   function doUndo() {
+    dropLabelEdit();
     const prev = undo.pop();
     if (!prev) { announce('Nothing to undo.'); return; }
     st.model = prev;
@@ -374,6 +416,7 @@ export function createMapperScreen(section) {
   }
 
   async function saveModel() {
+    commitLabel();
     if (!st.model) return;
     if (st.readOnly) {
       // sanitizeModel rebuilt a newer-version model as a lossy v1 copy; saving it would overwrite the newer row.
@@ -542,12 +585,15 @@ export function createMapperScreen(section) {
   }
 
   function renderCentre() {
+    dropLabelEdit();
     centre.replaceChildren(h('div', { class: 'card-head' }, h('h2', { class: 'card-title', id: 'mp-assign-title', text: 'Function' })));
     const c = selected();
     if (!c) { centre.append(h('p', { class: 'muted', text: 'Select a control in the list, or press Learn and move one.' })); return; }
     const ro = st.readOnly;
     const label = h('input', { id: 'mp-label', type: 'text', value: c.label, maxlength: String(LIMITS.maxText), disabled: ro, autocomplete: 'off' });
-    label.addEventListener('change', () => edit(m => updateControl(m, c.id, { label: label.value })));
+    const le = labelEdit = { id: c.id, input: label, timer: null, pushed: false };
+    label.addEventListener('input', () => { clearTimeout(le.timer); le.timer = setTimeout(() => { if (labelEdit === le) commitLabel(); }, 300); });
+    label.addEventListener('change', () => { if (labelEdit === le) commitLabel(); });
     const kind = h('select', { id: 'mp-kind', disabled: ro }, ...Object.entries(KIND_LABEL).map(([k, t]) => h('option', { value: k, text: t })));
     kind.value = c.kind;
     kind.addEventListener('change', () => edit(m => updateControl(m, c.id, { kind: kind.value, midi: { ...c.midi, encoding: kind.value === 'relative' ? c.midi.encoding || 'relative-two-complement' : undefined } })));
@@ -592,7 +638,9 @@ export function createMapperScreen(section) {
         onclick: () => {
           const deckSel = section.querySelector('#mp-deck');
           const next = normalizeFunction({ id: f.id, deck: Number(deckSel?.value) || fn?.deck || 1, args: {} }, st.model.decks);
-          edit(m => updateControl(m, c.id, { function: next }), { announceText: `${c.label}: ${describeFunction(next)}` });
+          commitLabel();
+          const name = st.model.controls.find(x => x.id === c.id)?.label || c.label;
+          edit(m => updateControl(m, c.id, { function: next }), { announceText: `${name}: ${describeFunction(next)}` });
           section.querySelector(`#mp-fn-list [data-fn="${f.id}"]`)?.focus();
         } }, f.label)));
       if (!fs.length) list.append(h('p', { class: 'muted small', text: 'No function matches.' }));
@@ -654,6 +702,7 @@ export function createMapperScreen(section) {
   }
 
   async function saveExport() {
+    commitLabel();
     const ex = currentExport();
     if (!ex) return;
     if (ex.errors.length) { setStatus('Fix the problems listed under Export first.', 'fail', { title: 'Not saved.' }); section.querySelector('#mp-validation')?.scrollIntoView?.({ block: 'nearest' }); return; }
@@ -692,7 +741,16 @@ export function createMapperScreen(section) {
   }
 
   // ---------------------------------------------------------------- layout
-  nameInput.addEventListener('change', () => edit(m => ({ ...m, name: cleanText(nameInput.value) || m.name })));
+  // The mapping name only changes the export, so it redraws just the export pane (after any click is delivered).
+  nameInput.addEventListener('change', () => {
+    if (!st.model || st.readOnly) return;
+    const name = cleanText(nameInput.value) || st.model.name;
+    if (name === st.model.name) return;
+    commitLabel();
+    undo.push(st.model);
+    st.model = { ...st.model, name };
+    refreshExportPane();
+  });
   decksSelect.addEventListener('change', () => edit(m => ({ ...m, decks: Math.min(MAX_DECKS, Math.max(1, Number(decksSelect.value) || 2)) })));
   section.replaceChildren(
     h('header', { class: 'screen-head' }, h('div', { class: 'screen-title' }, h('span', { class: 'screen-icon', html: icon('keyboard', { size: 24 }) }),
