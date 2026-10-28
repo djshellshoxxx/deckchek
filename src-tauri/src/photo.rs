@@ -411,27 +411,39 @@ pub fn photos_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
-pub fn photo_attach(app: AppHandle, input: PhotoAttachInput) -> Result<PhotoAttached, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    attach(&mut conn, &photos_dir(&app)?, &input)
+pub async fn photo_attach(app: AppHandle, input: PhotoAttachInput) -> Result<PhotoAttached, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        attach(&mut conn, &photos_dir(&app)?, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn photo_list(app: AppHandle, owner_kind: String, owner_id: String) -> Result<Vec<PhotoLinkInfo>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &owner_kind, &owner_id)
+pub async fn photo_list(app: AppHandle, owner_kind: String, owner_id: String) -> Result<Vec<PhotoLinkInfo>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &owner_kind, &owner_id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn photo_unlink(app: AppHandle, link_id: String) -> Result<PhotoUnlinked, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    unlink(&mut conn, &photos_dir(&app)?, &link_id)
+pub async fn photo_unlink(app: AppHandle, link_id: String) -> Result<PhotoUnlinked, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        unlink(&mut conn, &photos_dir(&app)?, &link_id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn photo_read(app: AppHandle, photo_id: String) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    read(&conn, &photos_dir(&app)?, &photo_id)
+pub async fn photo_read(app: AppHandle, photo_id: String) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        read(&conn, &photos_dir(&app)?, &photo_id)
+    })
+    .await?
 }
 
 #[cfg(test)]
