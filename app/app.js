@@ -41,6 +41,7 @@ import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-20] screens imports
 // [FS-21] screens imports
 // [FS-22] screens imports
+import { serviceScreenDefs } from './ui/screens/service.js';
 // [FS-23] screens imports
 import { fleetScreenDefs, initFleetReminders } from './ui/screens/fleet.js';
 // [FS-30] screens imports
@@ -82,6 +83,7 @@ const SCREENS = [
   // [FS-20] screens
   // [FS-21] screens
   // [FS-22] screens
+  ...serviceScreenDefs(),
   // [FS-23] screens
   ...fleetScreenDefs(),
   // [FS-30] screens
