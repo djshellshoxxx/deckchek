@@ -192,6 +192,9 @@ pub struct JobCreateInput {
     pub reported_fault: String,
     pub accessories: Option<Vec<String>>,
     pub arrival_condition: Option<String>,
+    /// The calendar year on the user's clock (the UI's local date), used for the job number so it agrees
+    /// with the opened date the job sheet shows. Must be within one year of the UTC clock.
+    pub local_year: Option<i32>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -499,8 +502,20 @@ pub fn next_job_number(conn: &Connection, year: i32) -> Result<String, String> {
     Ok(format!("{prefix}{:04}", max.unwrap_or(0) + 1))
 }
 
-fn current_year(conn: &Connection) -> Result<i32, String> {
-    conn.query_row("SELECT CAST(strftime('%Y','now') AS INTEGER)", [], |r| r.get(0)).map_err(e2s)
+/// Year for a new job number: the calendar year the user sees, so J-<year> agrees with the job's opened date as
+/// the UI shows it (local time). The UI passes its local year; it must be within one year of the UTC clock
+/// (time zones span at most a day). Without one, the machine's local year is used, never the bare UTC year.
+fn job_year(conn: &Connection, local_year: Option<i32>) -> Result<i32, String> {
+    match local_year {
+        Some(y) => {
+            let utc: i32 = conn.query_row("SELECT CAST(strftime('%Y','now') AS INTEGER)", [], |r| r.get(0)).map_err(e2s)?;
+            if (i64::from(y) - i64::from(utc)).abs() > 1 {
+                return Err("localYear must be within one year of the current date".into());
+            }
+            Ok(y)
+        }
+        None => conn.query_row("SELECT CAST(strftime('%Y','now','localtime') AS INTEGER)", [], |r| r.get(0)).map_err(e2s),
+    }
 }
 
 // ------------------------------------------------------------------ customers
@@ -563,7 +578,7 @@ fn insert_status_log(conn: &Connection, job_id: &str, from: Option<&str>, to: &s
     Ok(())
 }
 
-/// Creates a job in `intake` (AC-1). `year` overrides the current UTC year (tests: year rollover).
+/// Creates a job in `intake` (AC-1). `year` overrides the local year (tests: year rollover).
 pub fn create_at(conn: &mut Connection, input: &JobCreateInput, year: Option<i32>) -> Result<Job, String> {
     let fault = req_text("reportedFault", &input.reported_fault, MAX_FAULT_CHARS, true)?;
     let accessories = check_accessories(&input.accessories)?;
@@ -637,7 +652,7 @@ pub fn create_at(conn: &mut Connection, input: &JobCreateInput, year: Option<i32
     };
     let year = match year {
         Some(y) => y,
-        None => current_year(&tx)?,
+        None => job_year(&tx, input.local_year)?,
     };
     if !(2000..=9999).contains(&year) {
         return Err("year out of range".into());
@@ -1063,16 +1078,49 @@ pub fn comparison(conn: &Connection, id: &str) -> Result<ComparisonData, String>
 
 /// Deletes a job and everything that belongs only to it (AC-7): the caller must type the job number.
 /// The customer and the unit stay. Photos lose their link; files without other links are removed.
+/// Files are removed only after the transaction commits: a rolled-back delete must never leave photo rows
+/// whose files are gone, whereas a file left behind (locked, crash before removal) is a harmless orphan.
 pub fn delete(conn: &mut Connection, dir: &std::path::Path, id: &str, confirm: &str) -> Result<(), String> {
     let tx = conn.transaction().map_err(e2s)?;
     let job = find_job(&tx, id)?;
     if confirm.trim() != job.job_number {
         return Err(format!("type the job number {} to delete this job", job.job_number));
     }
-    photo::unlink_owner(&tx, dir, "service_job", id)?;
+    let photo_ids: Vec<String> = {
+        let mut st = tx.prepare("SELECT DISTINCT photo_id FROM photo_link WHERE owner_kind = 'service_job' AND owner_id = ?1").map_err(e2s)?;
+        let ids = st.query_map([id], |r| r.get(0)).map_err(e2s)?.collect::<rusqlite::Result<_>>().map_err(e2s)?;
+        ids
+    };
+    tx.execute("DELETE FROM photo_link WHERE owner_kind = 'service_job' AND owner_id = ?1", [id]).map_err(e2s)?;
+    let mut orphan_files = Vec::new();
+    for photo_id in &photo_ids {
+        let links: i64 = tx.query_row("SELECT COUNT(*) FROM photo_link WHERE photo_id = ?1", [photo_id], |r| r.get(0)).map_err(e2s)?;
+        if links > 0 {
+            continue;
+        }
+        if let Some(sha) = tx.query_row("SELECT sha256 FROM photo WHERE id = ?1", [photo_id], |r| r.get::<_, String>(0)).optional().map_err(e2s)? {
+            tx.execute("DELETE FROM photo WHERE id = ?1", [photo_id]).map_err(e2s)?;
+            orphan_files.push(sha);
+        }
+    }
     tx.execute("DELETE FROM service_job_log WHERE job_id = ?1 AND amends_id IS NOT NULL", [id]).map_err(e2s)?;
     tx.execute("DELETE FROM service_job WHERE id = ?1", [id]).map_err(e2s)?;
-    tx.commit().map_err(e2s)
+    tx.commit().map_err(e2s)?;
+    for sha in orphan_files {
+        // the same bytes may have been attached again since the commit: keep the file then
+        let reused: i64 = conn.query_row("SELECT COUNT(*) FROM photo WHERE sha256 = ?1", [&sha], |r| r.get(0)).unwrap_or(1);
+        if reused > 0 {
+            continue;
+        }
+        let Ok(path) = photo::photo_file(dir, &sha) else { continue };
+        match std::fs::remove_file(path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            // no path or hash in the log: only that an orphaned file stays behind (harmless)
+            Err(e) => eprintln!("[service] job deleted; an orphaned photo file could not be removed and was left in place ({:?})", e.kind()),
+        }
+    }
+    Ok(())
 }
 
 // ------------------------------------------------------------------ commands
@@ -1247,6 +1295,7 @@ mod tests {
             reported_fault: "Pitch drifts +0.4 %".into(),
             accessories: Some(vec!["Dust cover".into(), "Mains lead".into()]),
             arrival_condition: Some("Light scratches".into()),
+            local_year: None,
         }
     }
 
@@ -1670,6 +1719,70 @@ mod tests {
             for pii in [PII_NAME, PII_PHONE, PII_EMAIL, "Zebedee", "900123"] {
                 assert!(!text.contains(pii), "{} contains customer PII {pii}", p.info.name);
             }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn regression_job_number_year_is_the_local_year_the_user_sees() {
+        let mut c = mem();
+        let utc: i32 = c.query_row("SELECT CAST(strftime('%Y','now') AS INTEGER)", [], |r| r.get(0)).unwrap();
+        // 20:00 on 31 Dec in UTC-5: the UTC clock is already in the new year, the user's calendar is not
+        let j = create(&mut c, &JobCreateInput { local_year: Some(utc - 1), ..input("a1") }).unwrap();
+        assert_eq!(j.job_number, format!("J-{}-0001", utc - 1));
+        // 08:00 on 1 Jan in UTC+10: the UTC clock is still in the old year
+        let j = create(&mut c, &JobCreateInput { local_year: Some(utc + 1), ..input("a2") }).unwrap();
+        assert_eq!(j.job_number, format!("J-{}-0001", utc + 1));
+        // a "local" year more than a day away from the clock is not a time zone: rejected, nothing written
+        let jobs = n(&c, "SELECT COUNT(*) FROM service_job");
+        assert!(create(&mut c, &JobCreateInput { local_year: Some(utc + 2), ..input("a1") }).unwrap_err().contains("localYear"));
+        assert!(create(&mut c, &JobCreateInput { local_year: Some(utc - 2), ..input("a1") }).unwrap_err().contains("localYear"));
+        assert_eq!(n(&c, "SELECT COUNT(*) FROM service_job"), jobs);
+        // without a local year from the UI, the year is the machine's local one (as the job sheet's dates are)
+        let local: i32 = c.query_row("SELECT CAST(strftime('%Y','now','localtime') AS INTEGER)", [], |r| r.get(0)).unwrap();
+        let j = create(&mut c, &input("a1")).unwrap();
+        assert!(j.job_number.starts_with(&format!("J-{local}-")), "{}", j.job_number);
+        // the IPC shape accepts localYear
+        let v: JobCreateInput = serde_json::from_value(json!({"reportedFault": "x", "assetId": "a1", "customerId": "c", "localYear": 2026})).unwrap();
+        assert_eq!(v.local_year, Some(2026));
+    }
+
+    #[test]
+    fn regression_job_delete_removes_photo_files_only_after_commit() {
+        let mut c = mem();
+        let dir = tmp("delete-after-commit");
+        let j = create(&mut c, &input("a1")).unwrap();
+        let b64 = |seed: u8| base64::engine::general_purpose::STANDARD.encode(tiny_jpeg(8, 8, &[], seed));
+        let mut shas = Vec::new();
+        for seed in [1u8, 2, 3] {
+            shas.push(attach_photo(&mut c, &dir, &j.id, &JobPhotoInput { bytes_b64: b64(seed), caption: None, alt_text: None, stage: None }).unwrap().sha256);
+        }
+        // one photo file cannot be removed (locked on Windows; here a non-empty directory in its place)
+        let locked = dir.join(format!("{}.jpg", shas[1]));
+        std::fs::remove_file(&locked).unwrap();
+        std::fs::create_dir_all(locked.join("busy")).unwrap();
+        delete(&mut c, &dir, &j.id, &j.job_number).expect("a file that cannot be removed does not undo the delete");
+        assert_eq!(n(&c, "SELECT COUNT(*) FROM service_job"), 0);
+        assert_eq!(n(&c, "SELECT COUNT(*) FROM photo"), 0, "rows of orphaned photos are gone");
+        assert!(!dir.join(format!("{}.jpg", shas[0])).exists() && !dir.join(format!("{}.jpg", shas[2])).exists(), "removable files are removed");
+        assert!(locked.exists(), "the locked file is left behind as a harmless orphan");
+
+        // a delete that fails before commit leaves every photo row with its file
+        let j = create(&mut c, &input("a2")).unwrap();
+        let mut kept = Vec::new();
+        for seed in [4u8, 5] {
+            kept.push(attach_photo(&mut c, &dir, &j.id, &JobPhotoInput { bytes_b64: b64(seed), caption: None, alt_text: None, stage: None }).unwrap().sha256);
+        }
+        c.execute_batch("CREATE TEMP TRIGGER fail_job_delete BEFORE DELETE ON service_job BEGIN SELECT RAISE(ABORT, 'disk I/O error'); END;").unwrap();
+        assert!(delete(&mut c, &dir, &j.id, &j.job_number).is_err());
+        assert_eq!(n(&c, "SELECT COUNT(*) FROM photo"), 2, "rolled back");
+        for sha in &kept {
+            assert!(dir.join(format!("{sha}.jpg")).is_file(), "no file removed for a rolled-back delete");
+        }
+        c.execute_batch("DROP TRIGGER fail_job_delete;").unwrap();
+        delete(&mut c, &dir, &j.id, &j.job_number).unwrap();
+        for sha in &kept {
+            assert!(!dir.join(format!("{sha}.jpg")).exists());
         }
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -270,3 +270,57 @@ test('bridge passes exactly the Rust argument names and turns errors into messag
   assert.equal(typeof off, 'function');
   assert.equal(typeof (await onJobStatusChanged(() => {}, {})), 'function', 'no-op in the browser');
 });
+
+test('regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key', () => {
+  const F = (phase, testId, value, at) => ({ ...V('midi_fader_jitter_lsb', value, { unit: 'LSB', uncertainty: 0.1, at, label: 'Jitter' }), phase, testId, source: 'deviceTest' });
+  const data = {
+    values: [F('before', 'djma9-fader-ch2_fader', 14, '2026-10-10T10:00:00Z'), F('before', 'djma9-fader-ch4_fader', 0, '2026-10-10T10:05:00Z'), F('after', 'djma9-fader-ch2_fader', 1, '2026-10-12T10:00:00Z')],
+    tests: [
+      { phase: 'before', testId: 'djma9-fader-ch2_fader', status: 'fail', at: '2026-10-10T10:00:00Z', title: 'Channel 2 fader' },
+      { phase: 'before', testId: 'djma9-fader-ch4_fader', status: 'pass', at: '2026-10-10T10:05:00Z', title: 'Channel 4 fader' },
+      { phase: 'after', testId: 'djma9-fader-ch2_fader', status: 'pass', at: '2026-10-12T10:00:00Z', title: 'Channel 2 fader' },
+    ],
+  };
+  const c = buildComparison(data, { higherIsBetter: { midi_fader_jitter_lsb: false } });
+  assert.equal(c.rows.length, 2, 'one row per fader, not one per metric key');
+  const ch2 = c.rows.find(r => r.testId === 'djma9-fader-ch2_fader');
+  const ch4 = c.rows.find(r => r.testId === 'djma9-fader-ch4_fader');
+  assert.deepEqual([ch2.before, ch2.after, ch2.status], [14, 1, 'improved'], 'ch2 before is compared with ch2 after');
+  assert.deepEqual([ch4.before, ch4.after, ch4.status], [0, null, 'missingAfter'], 'ch4 is never compared with ch2');
+  assert.equal(ch2.metricKey, 'midi_fader_jitter_lsb', 'metricKey stays the bare key for bands and directions');
+  assert.notEqual(ch2.key, ch4.key);
+  assert.match(ch2.label, /Channel 2 fader/, 'rows from different tests can be told apart');
+  assert.match(ch4.label, /Channel 4 fader/);
+  assert.equal(c.completeness.state, 'partial', 'ch4 has no after value');
+  // a session-only link (no test id) still pairs by metric key across phases
+  const s = buildComparison({ values: [{ ...V('balance_db', 1.8), phase: 'before', testId: null }, { ...V('balance_db', 0.2), phase: 'after', testId: null }] }, { higherIsBetter: { balance_db: false } });
+  assert.deepEqual(s.rows.map(r => r.status), ['improved']);
+  assert.equal(s.rows[0].label, 'balance_db', 'unambiguous rows keep the plain label');
+});
+
+test('regression: per-test pass bands from the profile apply to their own test only', () => {
+  const h = directionHints({ tests: [{ id: 'ch1', pass: { metricId: 'jit', op: '<=', value: 2 } }, { id: 'xf', pass: { metricId: 'jit', op: '<=', value: 8 } }] });
+  const F = (phase, testId, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId });
+  const c = buildComparison({ values: [F('before', 'ch1', 5), F('after', 'ch1', 1), F('before', 'xf', 5), F('after', 'xf', 1)] }, h);
+  assert.equal(c.rows.find(r => r.testId === 'ch1').passChange, 'fixed', 'ch1 limit is 2: 5 fails, 1 passes');
+  assert.equal(c.rows.find(r => r.testId === 'xf').passChange, null, 'crossfader limit is 8: both pass');
+});
+
+test('regression: job_create sends the local calendar year so the job number matches the opened date the user sees', async () => {
+  const calls = [];
+  const api = createServiceApi(async (cmd, args) => { calls.push([cmd, args]); return {}; });
+  await api.create({ reportedFault: 'x' }, new Date(2026, 11, 31, 20, 0)); // 20:00 local on New Year's Eve
+  assert.deepEqual(calls[0], ['job_create', { input: { reportedFault: 'x', localYear: 2026 } }]);
+  await api.create({ reportedFault: 'y' }, new Date(2027, 0, 1, 8, 0));
+  assert.equal(calls[1][1].input.localYear, 2027);
+  await api.create({ reportedFault: 'z' });
+  assert.equal(calls[2][1].input.localYear, new Date().getFullYear(), 'defaults to now on the local clock');
+});
+
+test('regression: fractional part quantities show their real value on the job sheet', () => {
+  const d = detail({ rest: { log: [L('p1', 'part', { description: 'Hook-up wire (m)', quantity: 0.25, unitCost: 4 }), L('p22', 'part', { description: 'Solder wick', quantity: 0.5, unitCost: 4 }), L('p333', 'part', { description: 'Screw', quantity: 3, unitCost: 0.1 })] } });
+  const html = renderJobSheetHtml(d, cmp, { includeCosts: true, currency: '£' });
+  const qty = [...html.matchAll(/<td>(?:Hook-up wire \(m\)|Solder wick|Screw)<\/td><td class="dc-num">([^<]*)<\/td>/g)].map(m => m[1]);
+  assert.deepEqual(qty, ['0.25', '0.5', '3']);
+  assert.ok(html.includes('£1.00') && html.includes('£2.00'), 'qty x unit cost matches the line total');
+});
