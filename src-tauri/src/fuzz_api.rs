@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 use rusqlite::Connection;
 use serde_json::Value;
 
-use crate::{backup, canonical, db, dj_sessions, links, photo, system_check, userfiles};
+use crate::{backup, canonical, db, dj_sessions, links, pack, photo, system_check, userfiles};
 
 /// Untrusted text inputs are decoded leniently, exactly as the app does for files on disk.
 fn text(data: &[u8]) -> String {
@@ -210,6 +210,27 @@ pub fn fuzz_system_check(data: &[u8]) {
     }
 }
 
+/// Population pack import (FS-21): parse, import twice (idempotent), remove (no orphans).
+pub fn fuzz_pack(data: &[u8]) {
+    let parsed = pack::parse_pack(data);
+    let c = Connection::open_in_memory().expect("mem db");
+    c.execute_batch("PRAGMA foreign_keys=ON;").expect("fk");
+    db::apply_migrations(&c).expect("migrations");
+    let Ok(first) = pack::import(&c, data, Some("fuzz")) else {
+        let n: i64 = c.query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0)).unwrap_or(0);
+        assert_eq!(n, 0, "a refused pack left rows behind");
+        return;
+    };
+    assert!(parsed.is_ok(), "import accepted bytes that parse_pack rejects");
+    let second = pack::import(&c, data, Some("fuzz")).expect("re-import of an accepted pack");
+    assert!(second.duplicate, "importing the same pack twice was not idempotent");
+    pack::remove(&c, &first.pack_id).expect("remove");
+    let left: i64 = c.query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0)).unwrap_or(-1);
+    assert_eq!(left, 0, "pack still listed after removal");
+    let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap_or(0);
+    assert_eq!(fk, 0, "pack removal left dangling foreign keys");
+}
+
 /// Every target, by name, for the drivers.
 pub const TARGETS: &[(&str, fn(&[u8]))] = &[
     ("backup_inspect", fuzz_backup_inspect),
@@ -221,6 +242,7 @@ pub const TARGETS: &[(&str, fn(&[u8]))] = &[
     ("userfiles", fuzz_userfiles),
     ("dj_logs", fuzz_dj_logs),
     ("system_check", fuzz_system_check),
+    ("pack", fuzz_pack),
 ];
 
 #[cfg(test)]
@@ -318,6 +340,7 @@ mod smoke {
     #[test] fn userfiles() { run("userfiles", 5000); }
     #[test] fn dj_logs() { run("dj_logs", 3000); }
     #[test] fn system_check() { run("system_check", 3000); }
+    #[test] fn pack() { run("pack", 1500); }
 
     /// Regenerates the seed corpus from real artefacts (run with `--ignored` after format changes).
     #[test]

@@ -33,7 +33,7 @@ export function buildTargets() {
   const workspace = serializeWorkspaceJson({ equipment: [{ id: 'e1', type: 'turntable', make: 'Technics', model: 'SL-1200' }], runs: [{ id: 'r1', test: 'Quick Check', createdAt: '2026-01-01T00:00:00Z', measurements: [{ metricId: 'balance', value: 0.4, unit: 'dB' }], findings: [{ title: 'ok', severity: 'info' }] }] });
   const manifest = JSON.stringify({ format: 'deckchek-backup', formatVersion: 1, createdAt: '2026-01-01T00:00:00Z', kind: 'manual', appVersion: '0.0.8', schemaVersion: 18, counts: {}, files: [{ name: 'db/deckchek.sqlite3', bytes: 10, sha256: 'a'.repeat(64) }] });
   const canonical = read('tests/fixtures/canonical-vectors.json');
-  const pack = JSON.stringify({ format: 'deckchek-population-pack', version: 1, rows: [{ metricId: 'rpm_error_pct', value: 0.1, unit: '%' }] });
+  const pack = read('src-tauri/fuzz/corpus/pack/good.json'); // same seed as the Rust pack fuzz target
   return [
     { name: 'phone-run', seeds: phone, run: t => { const r = parsePhoneRun(t); if (!r.ok && !r.errors.length) throw new TypeError('rejected without an error'); } },
     { name: 'workspace', throws: true, seeds: [workspace], run: t => workspaceToImportPayload(parseWorkspaceJson(t)) },

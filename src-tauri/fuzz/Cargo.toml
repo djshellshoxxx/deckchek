@@ -80,3 +80,10 @@ path = "fuzz_targets/system_check.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "pack"
+path = "fuzz_targets/pack.rs"
+test = false
+doc = false
+bench = false
