@@ -3,7 +3,7 @@
 // the Data sharing card (anonymous .deckchek-pack export and import). Statistics live in population.js, pack rules in
 // pack.js and pack.rs; this file is layout, forms and inline SVG. Desktop only: the values come from the local database.
 
-import { h, esc, isNative, storageGet, storageSet } from '../dom.js';
+import { h, esc, isNative, isTyping, storageGet, storageSet } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { isEnabled, onFeatureChange } from '../../features.js';
@@ -13,7 +13,7 @@ import { createPackApi } from '../../pack-api.js';
 import { exportRowsFromUnitValues } from '../../pack.js';
 import { metricLabel } from '../metrics.js';
 import {
-  compareToSpec, latestPerAsset, compareToSiblings, historyDelta, populationComparison, describeComparison, stripPlot,
+  compareMetricToSpec, latestPerAsset, compareToSiblings, historyDelta, populationComparison, describeComparison, stripPlot,
   ordinal, N_MIN_PERCENTILE, N_MIN_MEDIAN,
 } from '../../population.js';
 
@@ -27,7 +27,52 @@ const getVersion = async () => { try { return (await window.__TAURI__?.app?.getV
 /** Entry point for other screens (result-row Compare chip, device detail "How does my unit rank?"). */
 export function openCompare(params = null) { navigateTo('compare', params); }
 
+/**
+ * Spec section 3 shortcut: "C opens Compare on a focused result row". A row opts in by carrying
+ * data-compare-asset="<asset id>" and data-compare-metric="<metric key>"; the keydown handler installed by
+ * compareScreenDefs() reads them from the focused element or its closest ancestor. -> {assetId, metric} | null
+ */
+export function compareShortcutParams(event) {
+  if (!event || (event.key !== 'c' && event.key !== 'C') || event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return null;
+  const target = event.target;
+  if (typeof target?.closest !== 'function' || isTyping(target)) return null;
+  const row = target.closest('[data-compare-asset][data-compare-metric]');
+  if (!row) return null;
+  const assetId = row.getAttribute('data-compare-asset'), metric = row.getAttribute('data-compare-metric');
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(assetId ?? '') || !/^[a-z0-9._:-]{1,64}$/.test(metric ?? '')) return null;
+  return { assetId, metric };
+}
+
 // ------------------------------------------------------------------ pure helpers (unit tested)
+
+/** Rows the Rust importer can return at most (pack.rs MAX_ROWS); population_query sets `truncated` beyond it. */
+const POPULATION_ROW_CAP = 100000;
+/** Model/metric rows the import preview renders before summarising the rest. */
+export const PREVIEW_ROW_CAP = 50;
+
+/** The import preview's (product, metric) counts, capped so a hostile pack cannot build a huge table. */
+export function capPreview(counts, limit = PREVIEW_ROW_CAP) {
+  const list = Array.isArray(counts) ? counts : [];
+  return { shown: list.slice(0, limit), more: Math.max(0, list.length - limit) };
+}
+
+/** Visible notice when population_query hit its row cap, or null. */
+export function truncationNotice(result) {
+  if (!result?.truncated) return null;
+  return `Only the first ${POPULATION_ROW_CAP.toLocaleString('en')} reference rows were read, so some contributors may be missing from this comparison. Remove packs you do not need and compare again.`;
+}
+
+/**
+ * Population comparison for the screen. The method registry (analysis_method rows: key, version, parameters_json with
+ * `compat`) comes with the population query as `methods`, so AC-7's mutual-compat rule applies on this path too.
+ */
+export function comparePopulation(result, measurement, def, seed) {
+  const methods = Array.isArray(result?.methods) ? result.methods : [];
+  const registry = methods.filter(m => m && typeof m.key === 'string' && Number.isSafeInteger(m.version))
+    .map(m => ({ key: m.key, version: m.version, parameters_json: m.parametersJson ?? m.parameters_json ?? '{}' }));
+  const higher = def?.higherIsBetter;
+  return populationComparison(Array.isArray(result?.rows) ? result.rows : [], measurement, { higherIsBetter: typeof higher === 'boolean' ? higher : undefined, registry, seed });
+}
 
 /** Group the Rust unit rows into {assets: Map(assetId -> {nickname, productKey, metrics: Set})}. */
 export function indexUnits(rows) {
@@ -62,7 +107,8 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('compare', { size: 24 })}</span><div><h1 tabindex="-1">Compare</h1>
       <p class="lede">How a unit's measurement compares with its published spec, your other units of the same model, and, if you import packs, other people's units. A percentile never decides pass or fail: the spec limit does.</p></div></div></header>
-    <div id="cmp-status" class="cmp-status" role="status" aria-live="polite"></div>
+    <div id="cmp-status" class="cmp-status"></div>
+    <p id="cmp-pop-live" class="sr-only" aria-live="polite" aria-atomic="true"></p>
     <div class="cmp-pickers" id="cmp-pickers">
       <div class="field"><label class="field-label" for="cmp-asset">Unit</label><select id="cmp-asset"></select></div>
       <div class="field"><label class="field-label" for="cmp-metric">Metric</label><select id="cmp-metric"></select></div>
@@ -75,14 +121,26 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
 
   const packsOn = () => isEnabled('packs');
   const visibleTabs = () => TABS.filter(([id]) => id !== 'population' || packsOn());
+  // One announcement channel: the visible banner is not a live region; announce() speaks it once (assertive for errors).
   const setStatus = (text, kind = 'info', rows = []) => {
     status.replaceChildren();
     if (!text) return;
-    status.append(h('div', { class: `banner banner-${kind === 'error' ? 'fail' : kind === 'warn' ? 'warn' : 'info'}`, role: kind === 'error' ? 'alert' : null },
+    status.append(h('div', { class: `banner banner-${kind === 'error' ? 'fail' : kind === 'warn' ? 'warn' : 'info'}`, 'data-kind': kind },
       h('span', { class: 'banner-text', text }),
       rows.length ? h('ul', { class: 'cmp-reasons' }, ...rows.map(r => h('li', { text: `Row ${r.row}: ${r.reason}` }))) : null));
     announce(text, { assertive: kind === 'error' });
   };
+  // The population result arrives asynchronously into a freshly built card, so it is spoken through this persistent
+  // region (separate from the status channel, so an "Imported …" message is not overwritten).
+  const popLive = q('#cmp-pop-live');
+  let popLiveTimer = null;
+  const speakPopulation = text => {
+    popLive.textContent = '';
+    clearTimeout(popLiveTimer);
+    popLiveTimer = setTimeout(() => { popLive.textContent = text; }, 60);
+  };
+  /** After a re-render, put focus on the first of `selectors` that exists (so it never falls back to <body>). */
+  const focusFirst = (...selectors) => { for (const s of selectors) { const el = s && section.querySelector(s); if (el) { el.focus(); return el; } } return null; };
 
   // ----- data -----
   const defOf = metric => st.table?.metrics?.[metric] ?? null;
@@ -122,7 +180,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     if (!list.some(([id]) => id === st.tab)) st.tab = 'spec';
     tabs.replaceChildren(...list.map(([id, label]) => h('button', {
       type: 'button', class: 'tab', role: 'tab', id: `cmp-tab-${id}`, 'aria-selected': String(st.tab === id), 'aria-controls': 'cmp-panel', tabindex: st.tab === id ? '0' : '-1', 'data-tab': id, text: label,
-      onclick: () => selectTab(id),
+      onclick: () => selectTab(id, { focusTab: true }), // the buttons are rebuilt; keep focus on the activated tab
       onkeydown: e => {
         const i = list.findIndex(([t]) => t === st.tab);
         const next = e.key === 'ArrowRight' ? (i + 1) % list.length : e.key === 'ArrowLeft' ? (i - 1 + list.length) % list.length : e.key === 'Home' ? 0 : e.key === 'End' ? list.length - 1 : -1;
@@ -165,7 +223,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     const label = sel.def?.label ?? metricLabel(st.metric);
     const measurement = { value: sel.latest.value, unit: sel.latest.unit };
     const spec = specFor(sel.profile, sel.def);
-    const result = compareToSpec(measurement, spec, { limit: sel.def?.specLimit });
+    const result = compareMetricToSpec(measurement, spec, sel.def); // only a spec that measures the same quantity gets a verdict
     const card = h('section', { class: 'card cmp-card', id: 'cmp-spec', 'aria-label': 'Against the published spec' }, h('h2', { class: 'card-title', text: 'Against the published spec' }));
     card.append(h('p', { id: 'cmp-spec-text', text: specSentence(result, label) }));
     if (result.status === 'ok') {
@@ -230,8 +288,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     if (st.popKey === key && st.pop) return st.pop;
     const result = await api.query(sel.asset.productKey, st.metric, method.key);
     const measurement = { metric: st.metric, method, value: sel.latest.value, unit: sel.latest.unit };
-    const higher = sel.def?.higherIsBetter;
-    st.pop = { result, measurement, comparison: populationComparison(result.rows, measurement, { higherIsBetter: typeof higher === 'boolean' ? higher : undefined, seed: key }) };
+    st.pop = { result, measurement, comparison: comparePopulation(result, measurement, sel.def, key) };
     st.popKey = key;
     return st.pop;
   }
@@ -250,7 +307,10 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     const c = pop.comparison;
     const text = describeComparison(c, pop.measurement);
     card.replaceChildren(h('h2', { class: 'card-title', text: 'Against the reference population' }),
-      h('p', { id: 'cmp-pop-text', 'aria-live': 'polite', text }));
+      h('p', { id: 'cmp-pop-text', text }));
+    const truncated = truncationNotice(pop.result);
+    if (truncated) card.append(h('div', { class: 'banner banner-warn', id: 'cmp-pop-truncated' }, h('span', { class: 'banner-text', text: truncated })));
+    speakPopulation(truncated ? `${text} ${truncated}` : text);
     if (c.status === 'insufficient') card.append(h('p', { class: 'cmp-verdict', html: chip('info', 'NOT ENOUGH DATA') }));
     const geometry = stripPlot(c, pop.measurement.value);
     if (geometry) card.append(stripSvg(geometry, c, pop.measurement, text));
@@ -270,8 +330,10 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   }
 
   function stripSvg(g, c, measurement, text) {
+    // P10-P90 only once a percentile is allowed (20 contributors); from 8 contributors a median line alone (spec section 6).
     const band = g.band ? `<rect x="${g.band.p10}" y="26" width="${Math.max(1, g.band.p90 - g.band.p10)}" height="38" class="cmp-band"/><line x1="${g.band.p50}" y1="22" x2="${g.band.p50}" y2="68" class="cmp-median"/>
-      <text x="${g.band.p10}" y="80" class="cmp-svg-label" text-anchor="middle">P10</text><text x="${g.band.p50}" y="80" class="cmp-svg-label" text-anchor="middle">P50</text><text x="${g.band.p90}" y="80" class="cmp-svg-label" text-anchor="middle">P90</text>` : '';
+      <text x="${g.band.p10}" y="80" class="cmp-svg-label" text-anchor="middle">P10</text><text x="${g.band.p50}" y="80" class="cmp-svg-label" text-anchor="middle">P50</text><text x="${g.band.p90}" y="80" class="cmp-svg-label" text-anchor="middle">P90</text>`
+      : g.median !== null ? `<line x1="${g.median}" y1="22" x2="${g.median}" y2="68" class="cmp-median"/><text x="${g.median}" y="80" class="cmp-svg-label" text-anchor="middle">median</text>` : '';
     const dots = g.dots.map((d, i) => `<circle cx="${d.x}" cy="${45 + ((i * 7) % 5 - 2) * 6}" r="3.5" class="${d.outlier ? 'cmp-dot-out' : 'cmp-dot'}"/>`).join('');
     const mark = g.marker === null ? '' : `<path d="M${g.marker} 4 l7 13 h-14z" class="cmp-marker"/><text x="${g.marker}" y="2" class="cmp-svg-label cmp-you" text-anchor="middle">you</text>`;
     return h('div', { class: 'cmp-strip-wrap', html: `<svg class="cmp-strip" id="cmp-strip" viewBox="-10 -10 580 100" role="img" aria-label="${esc(text)}">${band}${dots}${mark}</svg>` });
@@ -290,7 +352,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     if (st.packs.length) {
       const body = h('tbody');
       st.packs.forEach(p => body.append(h('tr', { 'data-pack': p.id }, h('td', { text: p.sourceLabel || p.id }), h('td', { class: 'r', text: String(p.rowCount) }), h('td', { text: when(p.importedAt) }),
-        h('td', {}, h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-label': `Remove pack ${p.sourceLabel || p.id}`, text: 'Remove', onclick: () => removePack(p) })))));
+        h('td', {}, h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-remove': '', 'aria-label': `Remove pack ${p.sourceLabel || p.id}`, text: 'Remove', onclick: () => removePack(p) })))));
       card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data cmp-table', id: 'cmp-packs' }, h('caption', { class: 'sr-only', text: 'Imported packs' }),
         h('thead', {}, h('tr', {}, h('th', { scope: 'col', text: 'Pack' }), h('th', { scope: 'col', class: 'r', text: 'Rows' }), h('th', { scope: 'col', text: 'Imported' }), h('th', { scope: 'col', text: 'Actions' }))), body)));
     } else card.append(h('p', { class: 'muted', id: 'cmp-no-packs', text: 'No packs imported.' }));
@@ -360,6 +422,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   }
 
   async function importPack() {
+    const triggerId = document.activeElement?.id || null;
     let path, preview;
     try {
       path = await api.pickPack();
@@ -369,11 +432,13 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     const ok = await modal((dlg, finish) => {
       dlg.setAttribute('aria-labelledby', 'cmp-imp-title');
       const body = h('tbody');
-      preview.counts.forEach(c => body.append(h('tr', {}, h('td', { text: c.product }), h('td', { text: defOf(c.metric)?.label ?? c.metric }), h('td', { class: 'r', text: String(c.rows) }))));
+      const { shown, more } = capPreview(preview.counts); // a hostile pack can name thousands of models: render a bounded table
+      shown.forEach(c => body.append(h('tr', {}, h('td', { text: c.product }), h('td', { text: defOf(c.metric)?.label ?? c.metric }), h('td', { class: 'r', text: String(c.rows) }))));
+      if (more) body.append(h('tr', { id: 'cmp-imp-more' }, h('td', { colspan: '3', class: 'muted', text: `…and ${more.toLocaleString('en')} more model/metric pair${more === 1 ? '' : 's'}.` })));
       const label = h('input', { type: 'text', id: 'cmp-imp-label', maxlength: '64', autocomplete: 'off' });
       dlg.append(h('div', { class: 'dialog-form' }, h('h2', { id: 'cmp-imp-title', text: 'Import a pack' }),
         h('p', { text: preview.alreadyImported ? 'This pack is already imported, so importing it again changes nothing.' : `${preview.rows} result${preview.rows === 1 ? '' : 's'} from pack ${preview.packId}, created ${preview.createdMonth} with DeckChek ${preview.appVersion}. Nothing is added until you confirm.` }),
-        h('div', { class: 'table-wrap' }, h('table', { class: 'data cmp-table', id: 'cmp-imp-table' }, h('caption', { class: 'sr-only', text: 'Contents of the pack' }),
+        h('div', { class: 'table-wrap cmp-imp-wrap' }, h('table', { class: 'data cmp-table', id: 'cmp-imp-table' }, h('caption', { class: 'sr-only', text: 'Contents of the pack' }),
           h('thead', {}, h('tr', {}, h('th', { scope: 'col', text: 'Model' }), h('th', { scope: 'col', text: 'Metric' }), h('th', { scope: 'col', class: 'r', text: 'Rows' }))), body)),
         h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'cmp-imp-label', text: 'Label for this pack (optional, stays on this computer)' }), label),
         h('div', { class: 'dialog-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', 'data-initial': '', text: 'Cancel', onclick: () => finish(null) }),
@@ -385,12 +450,22 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
       setStatus(r.duplicate ? 'That pack was already imported. Nothing changed.'
         : r.rejected.length ? `Imported ${r.accepted} result${r.accepted === 1 ? '' : 's'}; ${r.rejected.length} skipped.` : `Imported ${r.accepted} result${r.accepted === 1 ? '' : 's'}.`, r.rejected.length ? 'warn' : 'info', r.rejected);
       await load();
+      // load() rebuilt the card that held the trigger; the inline button is gone once a pack exists
+      focusFirst(triggerId && `#${CSS.escape(triggerId)}`, '#cmp-import');
     } catch (e) { setStatus(friendly(e), 'error', e?.rows ?? []); }
   }
 
   async function removePack(p) {
-    try { const r = await api.remove(p.id); setStatus(r.removed ? `Removed ${p.sourceLabel || p.id}. Percentiles were recomputed.` : 'That pack was already gone.'); await load(); }
-    catch (e) { setStatus(friendly(e), 'error'); }
+    const index = st.packs.findIndex(x => x.id === p.id);
+    try {
+      const r = await api.remove(p.id);
+      setStatus(r.removed ? `Removed ${p.sourceLabel || p.id}. Percentiles were recomputed.` : 'That pack was already gone.');
+      await load();
+      // focus the Remove button now in the same row (the next pack), else the previous one, else Import
+      const buttons = [...section.querySelectorAll('#cmp-packs [data-remove]')];
+      const next = buttons[Math.min(Math.max(index, 0), buttons.length - 1)];
+      if (next) next.focus(); else focusFirst('#cmp-import');
+    } catch (e) { setStatus(friendly(e), 'error'); }
   }
   async function resetToken() {
     try { await api.contributor({ reset: true }); setStatus('Contributor token reset. Packs you export from now on cannot be linked to earlier ones.'); }
@@ -416,9 +491,21 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   };
 }
 
-/** Rail entry for the app shell; it follows features.population live. */
+let shortcutInstalled = false;
+
+/** Rail entry for the app shell; it follows features.population live. Also installs the "C" shortcut (spec section 3). */
 export function compareScreenDefs() {
   const main = document.getElementById('main');
   if (main && !document.getElementById('screen-compare')) main.append(h('section', { class: 'screen', id: 'screen-compare', hidden: true }));
+  if (!shortcutInstalled) {
+    shortcutInstalled = true;
+    document.addEventListener('keydown', event => {
+      if (!isEnabled('population')) return;
+      const params = compareShortcutParams(event);
+      if (!params) return;
+      event.preventDefault();
+      openCompare(params);
+    });
+  }
   return [{ id: 'compare', title: 'Compare', short: 'Compare', icon: 'compare', feature: 'population', create: createCompareScreen }];
 }
