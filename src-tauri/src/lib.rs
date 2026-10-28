@@ -67,8 +67,66 @@ mod mapper;
 // [FS-33] mods
 mod ledger;
 
+// [AUD-08] new-window guard: popups (`target=_blank`, a `window.open` that slips past the JS
+// override, the WebView context menu's "Open link in new window") never become in-app windows.
+
+/// Decides a new-window request. The caller always denies the in-app window; this hands the URL
+/// to the FS-07 policy (`links::open_external_with`) unconfirmed, so only allowlisted https opens
+/// in the system browser and everything else is dropped. Logs the host only (Spec 02 log rule).
+fn route_new_window(url: &tauri::Url, opener: &dyn links::Opener) -> links::OpenResult {
+    let r = links::open_external_with(url.as_str(), false, &links::Allowlist::bundled(), opener);
+    eprintln!("[links] new-window request denied in-app host={} opened={} reason={:?}", r.host, r.opened, r.reason);
+    r
+}
+
+/// The system browser via the opener plugin; a new-window request can only ever open a URL.
+struct SystemBrowser<R: tauri::Runtime>(tauri::AppHandle<R>);
+
+impl<R: tauri::Runtime> links::Opener for SystemBrowser<R> {
+    fn open_url(&self, url: &str) -> Result<(), String> {
+        use tauri_plugin_opener::OpenerExt;
+        self.0.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
+    }
+    fn open_path(&self, _: &std::path::Path) -> Result<(), String> {
+        Err("unsupported".into())
+    }
+    fn reveal(&self, _: &std::path::Path) -> Result<(), String> {
+        Err("unsupported".into())
+    }
+}
+
+/// Installs the new-window guard on a window builder. Every `WebviewWindowBuilder` the app uses
+/// should pass through this.
+pub(crate) fn guard_new_windows<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
+    builder: tauri::WebviewWindowBuilder<'a, R, M>,
+    app: &tauri::AppHandle<R>,
+) -> tauri::WebviewWindowBuilder<'a, R, M> {
+    let app = app.clone();
+    builder.on_new_window(move |url, _features| {
+        let browser = SystemBrowser(app.clone());
+        // Off the WebView callback: launching the browser must not stall the event loop.
+        std::thread::spawn(move || route_new_window(&url, &browser));
+        tauri::webview::NewWindowResponse::Deny
+    })
+}
+
+/// Takes the windows Tauri would create from `tauri.conf.json` and clears their `create` flag, so
+/// `setup` builds them itself with the new-window guard (the config has no such option).
+fn take_config_windows(windows: &mut [tauri::utils::config::WindowConfig]) -> Vec<tauri::utils::config::WindowConfig> {
+    windows
+        .iter_mut()
+        .filter(|w| w.create)
+        .map(|w| {
+            w.create = false;
+            w.clone()
+        })
+        .collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let mut context = tauri::generate_context!();
+    let config_windows = take_config_windows(&mut context.config_mut().app.windows);
     let app = tauri::Builder::default()
         .manage(capture::LiveCaptureState::default())
         .manage(midi::MidiState::default())
@@ -153,7 +211,11 @@ pub fn run() {
             ledger::ledger_public_notes, ledger::ledger_public_note_set, ledger::ledger_export_list, ledger::ledger_export_record,
             ledger::ledger_next_revision, ledger::ledger_customer_units, ledger::ledger_write_folder,
         ])
-        .setup(|_app| {
+        .setup(move |_app| {
+            // [AUD-08] config windows first (where Tauri would have built them), each with the guard
+            for w in &config_windows {
+                guard_new_windows(tauri::WebviewWindowBuilder::from_config(_app.handle(), w)?, _app.handle()).build()?;
+            }
             // [FS-00] setup
             _app.handle().plugin(tauri_plugin_dialog::init())?;
             _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
@@ -193,7 +255,7 @@ pub fn run() {
             selftest::setup();
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building DeckChek");
     app.run(|app, event| {
         // [FS-00] run events: audio_out silences output on main-window close and exit
@@ -203,4 +265,65 @@ pub fn run() {
         // [FS-08] run events: on-exit backup on ExitRequested / Exit
         backup::on_run_event(app, &event);
     });
+}
+
+#[cfg(test)]
+mod aud_08_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::path::Path;
+
+    #[derive(Default)]
+    struct Recorder(RefCell<Vec<String>>);
+    impl links::Opener for Recorder {
+        fn open_url(&self, url: &str) -> Result<(), String> {
+            self.0.borrow_mut().push(url.to_string());
+            Ok(())
+        }
+        fn open_path(&self, _: &Path) -> Result<(), String> {
+            panic!("a new-window request must never open a path")
+        }
+        fn reveal(&self, _: &Path) -> Result<(), String> {
+            panic!("a new-window request must never reveal a path")
+        }
+    }
+
+    /// AUD-08: a popup or "Open link in new window" never opens an in-app window. Its URL goes
+    /// through the FS-07 policy unconfirmed: allowlisted https reaches the system browser,
+    /// everything else (unlisted hosts, other schemes, the app's own pages) is dropped.
+    #[test]
+    fn regression_aud_08_new_window_requests_go_through_the_link_policy_or_are_dropped() {
+        for (url, opens) in [
+            ("https://github.com/deckchek", true),
+            ("https://www.pioneerdj.com/en/", true),
+            ("https://example.org/", false),          // needs confirmation, which a popup cannot give
+            ("https://user:pw@github.com/", false),   // userinfo is never auto-allowlisted
+            ("https://github.com:8443/", false),      // non-default port
+            ("http://github.com/", false),
+            ("file:///C:/Windows/System32/calc.exe", false),
+            ("javascript:alert(1)", false),
+            ("data:text/html,<b>x</b>", false),
+            ("tauri://localhost/index.html", false),
+            ("http://tauri.localhost/report.html", false),
+        ] {
+            let rec = Recorder::default();
+            let r = route_new_window(&tauri::Url::parse(url).unwrap(), &rec);
+            assert_eq!(r.opened, opens, "{url}");
+            assert_eq!(rec.0.borrow().len(), usize::from(opens), "{url}");
+        }
+    }
+
+    /// AUD-08: every window the app builds from its config gets the guard, and none is left for
+    /// Tauri to create unguarded.
+    #[test]
+    fn regression_aud_08_config_windows_are_built_with_the_guard() {
+        let mut ctx_windows = vec![tauri::utils::config::WindowConfig::default(); 2];
+        ctx_windows[1].create = false;
+        let taken = take_config_windows(&mut ctx_windows);
+        assert_eq!(taken.len(), 1, "only windows Tauri would have created");
+        assert!(ctx_windows.iter().all(|w| !w.create), "Tauri must not create any window itself");
+        let src = include_str!("lib.rs");
+        let prod = src.split("#[cfg(test)]\nmod aud_08_tests").next().unwrap();
+        assert!(prod.contains("guard_new_windows(tauri::WebviewWindowBuilder::from_config("), "config windows built with the guard");
+    }
 }
