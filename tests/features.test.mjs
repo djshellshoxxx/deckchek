@@ -99,7 +99,7 @@ test('resetFeatures drops every override and notifies listeners', async () => {
 
 test('flags with no code behind them are marked unwired and default off (except always-on diagnostics)', () => {
   for (const [name, meta] of Object.entries(FEATURES)) {
-    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet', 'population', 'packs'].includes(name), name); assert.equal(meta.default, name === 'fleet', name); } // FS-21 population/packs, FS-23 fleet and FS-30 import have UI adapters; FS-23 ships ON (DEVELOPMENT-PLAN §1.6)
+    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet', 'population', 'packs', 'service'].includes(name), name); assert.equal(meta.default, name === 'fleet', name); } // FS-21 population/packs, FS-22 service, FS-23 fleet and FS-30 import have UI adapters; FS-23 ships ON (DEVELOPMENT-PLAN §1.6)
   }
   assert.equal(FEATURES.diagnosticsBundle.wired, false);
   assert.equal(FEATURES.testMedia.default, true);

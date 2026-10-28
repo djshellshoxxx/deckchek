@@ -53,6 +53,7 @@ mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore]
 // [FS-21] mods
 mod pack;
 // [FS-22] mods
+mod service;
 // [FS-23] mods
 mod fleet;
 // [FS-30] mods
@@ -125,6 +126,9 @@ pub fn run() {
             pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
             pack::population_query, pack::population_unit_values,
             // [FS-22] handlers
+            service::job_create, service::job_get, service::job_list, service::job_update_fields, service::job_set_status,
+            service::job_add_log, service::job_attach_photo, service::job_link_results, service::job_comparison, service::job_delete,
+            service::customer_list, service::customer_update, service::customer_delete,
             // [FS-23] handlers
             fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
             fleet::maintenance_log, fleet::maintenance_list, fleet::booth_upsert, fleet::position_upsert,
