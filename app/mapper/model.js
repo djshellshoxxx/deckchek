@@ -3,9 +3,13 @@
 // mapper screen. Formats (Mixxx, VirtualDJ, reports) convert to and from this model; nothing here knows about them.
 //
 // Control: {id, label, midi:{type, channel, number, status, lsbNumber?, encoding?}, kind, mode, layer,
-//           function:{id, deck, args}|null, feedback:{led:{type, channel, number, on, off}}|null, custom?}
+//           function:{id, deck, args}|null, feedback:{led:{type, channel, number, on, off}}|null, custom?,
+//           mixxxOptions?}
 // `custom` holds a control imported from a DJ-software file that DeckChek does not recognise; it is preserved and
-// written back unchanged to the same target ("unmapped/custom (preserved)", AC-3).
+// written back unchanged to the same target ("unmapped/custom (preserved)", AC-3). A control has a function or a
+// custom entry, never both: assigning a function replaces the preserved entry.
+// `mixxxOptions` keeps extra Mixxx <options> modifiers (invert, soft-takeover, switch, ...) read with a recognised
+// function, so a re-export writes them back; they are dropped when the function changes.
 
 import { functionDef, normalizeFunction, defaultMode, LAYERS, MAX_DECKS, RELATIVE_ENCODINGS } from './vocabulary.js';
 import { parseMessage } from '../midi-tests.js';
@@ -36,13 +40,17 @@ export function controlIdFor(midi, layer = 'base') {
 /** Hardware value kind implied by a message type (a cc can also be a button or an encoder; the user can change it). */
 export const kindForType = type => (type === 'note' ? 'button' : 'absolute');
 
-/** Plain text field: string, control characters removed, trimmed, length-capped. */
+/**
+ * Plain text field: string, control characters removed, trimmed, length-capped. C0, DEL and C1 (U+0080-009F) are the
+ * same set Rust's char::is_control rejects in mapper_model_save, so a cleaned name always saves.
+ */
 export function cleanText(value, max = LIMITS.maxText) {
   if (value == null) return '';
   // eslint-disable-next-line no-control-regex
-  return String(value).replace(/[\u0000-\u001f\u007f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+  return String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+const MIXXX_OPTION = /^[a-z][a-z0-9-]{0,31}$/;
 const int = (v, lo, hi) => { const n = Number(v); return Number.isInteger(n) && n >= lo && n <= hi ? n : null; };
 
 /** Keep the shape of a MIDI descriptor; out-of-range numbers are kept as numbers so validation can report them. */
@@ -110,8 +118,10 @@ export function cleanControl(c) {
     feedback: c.feedback?.led ? { led: cleanLed(c.feedback.led) } : null,
   };
   if (out.feedback && !out.feedback.led) out.feedback = null;
-  const custom = cleanCustom(c.custom);
+  const custom = fn ? null : cleanCustom(c.custom);
   if (custom) out.custom = custom;
+  const opts = fn && Array.isArray(c.mixxxOptions) ? [...new Set(c.mixxxOptions.filter(o => typeof o === 'string' && MIXXX_OPTION.test(o)))].slice(0, 8) : [];
+  if (opts.length) out.mixxxOptions = opts;
   return out;
 }
 
@@ -290,9 +300,13 @@ export function updateControl(model, id, patch) {
   const next = clone(model);
   const i = next.controls.findIndex(c => c.id === id);
   if (i < 0) return { model, id };
-  const merged = cleanControl({ ...next.controls[i], ...clone(patch) });
+  const old = next.controls[i];
+  const p = clone(patch ?? {});
+  // Imported Mixxx option modifiers belong to the function they were read with.
+  if ('function' in p && JSON.stringify(cleanFunction(p.function)) !== JSON.stringify(cleanFunction(old.function))) delete old.mixxxOptions;
+  const merged = cleanControl({ ...old, ...p });
   if (!merged) return { model, id };
-  if (patch && 'function' in patch && patch.function == null) merged.function = null;
+  if ('function' in p && p.function == null) merged.function = null;
   next.controls[i] = merged;
   next.controls = next.controls.map((c, k) => (k === i ? c : { ...c, id: c.id.replace(/~\d+$/, '') }));
   uniqueIds(next.controls);

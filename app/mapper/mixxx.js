@@ -23,6 +23,10 @@ const ENC_SUFFIX = { 'relative-two-complement': 'e2c', 'relative-offset64': 'e64
 const SUFFIX_ENC = Object.fromEntries(Object.entries(ENC_SUFFIX).map(([k, v]) => [v, k]));
 const OPTION_NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_SCRIPT_BYTES = 1024 * 1024;
+/** <options> children DeckChek derives itself; any other one read with a recognised function is kept (mixxxOptions). */
+const OWN_OPTIONS = new Set(['normal', 'selectknob', 'diff', 'script-binding', 'fourteen-bit-msb', 'fourteen-bit-lsb']);
+const extraOptions = opts => (opts || []).filter(o => !OWN_OPTIONS.has(o));
+const hex2 = n => Number(n).toString(16).padStart(2, '0');
 
 const hex = n => `0x${Number(n).toString(16).toUpperCase().padStart(2, '0')}`;
 
@@ -127,7 +131,8 @@ export function exportMixxx(model, { name, author = 'DeckChek', description = ''
   const slot = c => `${c.midi.type === 'cc14' ? 'cc' : c.midi.type}:${c.midi.channel}:${c.midi.number}`;
   const shiftSlots = new Set(m.controls.filter(c => c.layer === 'shift' && c.function).map(slot));
   const controls = [], outputs = [], fns = [];
-  const ctl = (c, status, midino, key, option) => el('control', {}, c.label ? tx('description', c.label) : null, tx('group', key.group), tx('key', key.key), tx('status', hex(status)), tx('midino', hex(midino)), el('options', {}, el(option)));
+  const ctl = (c, status, midino, key, option, extra = []) => el('control', {}, c.label ? tx('description', c.label) : null, tx('group', key.group), tx('key', key.key), tx('status', hex(status)), tx('midino', hex(midino)),
+    el('options', {}, ...(option === 'normal' && extra.length ? extra : [option, ...extra]).map(o => el(o))));
 
   for (const c of m.controls) {
     if (c.custom) {
@@ -151,22 +156,30 @@ export function exportMixxx(model, { name, author = 'DeckChek', description = ''
       || (c.kind === 'relative' && !(relFn && fn.id === 'browse' && enc !== 'relative-offset64'));
     // Controllers that release with a note-off (0x8n) need a twin entry where the release does something.
     const noteOff = c.midi.type === 'note' && releaseMatters(fn);
+    const extra = extraOptions(c.mixxxOptions);
     if (needsScript) {
-      const fname = `${c.layer === 'shift' ? 's' : 'b'}_${functionToken(fn)}${c.kind === 'relative' ? `_${ENC_SUFFIX[enc]}` : ''}`;
-      if (!fns.some(f => f.name === fname)) {
-        const guard = c.layer === 'shift' ? 'if (!P.shifted) { return; }' : collides ? 'if (P.shifted) { return; }' : '';
-        fns.push({ name: fname, body: scriptBody(c, fn, t, guard, fname) });
+      if (extra.length) warnings.push({ code: 'MIXXX_OPTIONS_SCRIPT', controlIds: [c.id], message: `${c.label}: the Mixxx option${extra.length === 1 ? '' : 's'} ${extra.join(', ')} cannot be combined with the generated script and ${extra.length === 1 ? 'is' : 'are'} not written.` });
+      // Controls with the same function share one script function only when the bodies are identical and keep no
+      // per-control state; otherwise the name carries the MIDI message (`__<status><number>`, read back on import).
+      const guard = c.layer === 'shift' ? 'if (!P.shifted) { return; }' : collides ? 'if (P.shifted) { return; }' : '';
+      let fname = `${c.layer === 'shift' ? 's' : 'b'}_${functionToken(fn)}${c.kind === 'relative' ? `_${ENC_SUFFIX[enc]}` : ''}`;
+      let body = scriptBody(c, fn, t, guard, fname);
+      const same = fns.find(f => f.name === fname);
+      if (same && (same.body.join('\n') !== body.join('\n') || body.some(l => l.includes('P.last[')))) {
+        fname = `${fname}__${hex2(c.midi.status)}${hex2(c.midi.number)}`;
+        body = scriptBody(c, fn, t, guard, fname);
       }
+      if (!fns.some(f => f.name === fname)) fns.push({ name: fname, body });
       const key = { group: t.group, key: `${prefix}.${fname}` };
       controls.push(ctl(c, c.midi.status, c.midi.number, key, 'script-binding'));
       if (noteOff) controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, key, 'script-binding'));
     } else if (c.midi.type === 'cc14') {
-      controls.push(ctl(c, c.midi.status, c.midi.number, t, 'fourteen-bit-msb'));
-      controls.push(ctl(c, c.midi.status, c.midi.lsbNumber, t, 'fourteen-bit-lsb'));
+      controls.push(ctl(c, c.midi.status, c.midi.number, t, 'fourteen-bit-msb', extra));
+      controls.push(ctl(c, c.midi.status, c.midi.lsbNumber, t, 'fourteen-bit-lsb', extra));
     } else {
       const option = c.kind === 'relative' ? (enc === 'absolute-wrap' ? 'diff' : 'selectknob') : 'normal';
-      controls.push(ctl(c, c.midi.status, c.midi.number, t, option));
-      if (noteOff) controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, t, option));
+      controls.push(ctl(c, c.midi.status, c.midi.number, t, option, extra));
+      if (noteOff) controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, t, option, extra));
     }
     const led = c.feedback?.led;
     if (led && t.led) {
@@ -194,23 +207,25 @@ export function exportMixxx(model, { name, author = 'DeckChek', description = ''
       el('outputs', {}, ...outputs)));
   const files = [{ name: `${stem}.midi.xml`, content: writeXml(doc) }];
   if (fns.length) files.push({ name: scriptName, content: scriptFile(prefix, presetName, fns) });
+  // The 512 KB gate applies to the files DeckChek generates; preserved third-party scripts are passed through
+  // unchanged under the same 1 MB cap they were imported with (FS-32 §7).
+  const size = checkExportSize(files);
+  if (size) return { files: [], warnings, errors: [size] };
   for (const s of Array.isArray(scripts) ? scripts : []) {
     if (!s || typeof s.content !== 'string' || s.content.length > MAX_SCRIPT_BYTES) continue;
     const fname = fileStem(String(s.name || '').replace(/\.js$/i, '')) + '.js';
     if (preservedFiles.some(f => fileStem(f.filename.replace(/\.js$/i, '')) + '.js' === fname) && !files.some(f => f.name === fname)) files.push({ name: fname, content: s.content });
   }
-  const size = checkExportSize(files);
-  if (size) return { files: [], warnings, errors: [size] };
   return { files, warnings, errors: [] };
 }
 
 // ------------------------------------------------------------------------------------------------ import
 
 let REVERSE = null;
-/** group\0key -> function, and group\0ledKey -> function, built from FUNCTION_TARGETS for decks 1..4. */
+/** group\0key -> function, built from FUNCTION_TARGETS for decks 1..4. */
 function reverse() {
   if (REVERSE) return REVERSE;
-  const keys = new Map(), leds = new Map();
+  const keys = new Map();
   for (const def of FUNCTIONS) {
     const combos = [{}];
     for (const a of def.args) {
@@ -226,16 +241,16 @@ function reverse() {
         if (t.script) continue;
         const k = `${t.group}\u0000${t.key}`;
         if (!keys.has(k)) keys.set(k, fn);
-        if (t.led) { const lk = `${t.group}\u0000${t.led}`; if (!leds.has(lk)) leds.set(lk, fn); }
       }
     }
   }
-  REVERSE = { keys, leds };
+  REVERSE = { keys };
   return REVERSE;
 }
 
 const GROUP_ALIASES = { '[Mixer]': '[Master]' };
-const sameFn = (a, b) => a && b && a.id === b.id && (a.deck ?? null) === (b.deck ?? null) && JSON.stringify(a.args) === JSON.stringify(b.args);
+/** group\0ledKey a control's function lights, or null. Several functions share one (hot cue activate/set/clear). */
+const ledKeyOf = c => { const t = c.function ? FUNCTION_TARGETS.mixxx[c.function.id]?.(c.function) : null; return t?.led ? `${t.group}\u0000${t.led}` : null; };
 
 function parseByte(text) {
   const t = String(text ?? '').trim();
@@ -251,7 +266,8 @@ function parseScriptKey(key) {
   const m = /^[A-Za-z_$][A-Za-z0-9_$]*\.([bs])_([a-z0-9_]+)$/.exec(key);
   if (!m) return null;
   const layer = m[1] === 's' ? 'shift' : 'base';
-  let token = m[2], encoding = null;
+  // `__<status><number>` disambiguates controls that share a function but not a script body (exportMixxx).
+  let token = m[2].replace(/__[0-9a-f]{4}$/, ''), encoding = null;
   const sm = /_(e2c|e64|ewrap)$/.exec(token);
   if (sm) { const fn = parseFunctionToken(token.slice(0, -sm[0].length)); if (fn) return { layer, fn, encoding: SUFFIX_ENC[sm[1]] }; }
   const fn = parseFunctionToken(token);
@@ -291,7 +307,7 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
     const ownPrefix = ownFile?.functionprefix || null;
     const preservedFiles = scriptfiles.filter(f => f !== ownFile);
 
-    const { keys, leds } = reverse();
+    const { keys } = reverse();
     const model = createModel({ name: info.name || 'Imported Mixxx mapping', source: 'import-mixxx', sourceId: cleanText(controller.attrs.id, 80) || null });
     const ctrlNodes = kids(kid(controller, 'controls'), 'control');
     if (ctrlNodes.length > LIMITS.maxControls * 2) warnings.push(`Only the first ${LIMITS.maxControls * 2} <control> entries were read.`);
@@ -312,7 +328,7 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
       }
       const g = GROUP_ALIASES[e.group] || e.group;
       const fn = keys.get(`${g}\u0000${e.key}`);
-      return fn ? { fn, layer: 'base', encoding: e.options.includes('selectknob') ? 'relative-two-complement' : e.options.includes('diff') ? 'absolute-wrap' : null } : null;
+      return fn ? { fn, layer: 'base', encoding: e.options.includes('selectknob') ? 'relative-two-complement' : e.options.includes('diff') ? 'absolute-wrap' : null, extra: extraOptions(e.options) } : null;
     };
     const used = new Set();
     // 14-bit pairs first: an MSB entry joined with the LSB entry of the same group/key/status.
@@ -322,7 +338,7 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
       const r = recognise({ ...e, options: ['normal'] });
       if (!lsb || !r) continue;
       used.add(e); used.add(lsb);
-      model.controls.push(cleanControl({ label: e.description, midi: { type: 'cc14', channel: (e.status & 0x0f) + 1, number: e.midino, lsbNumber: lsb.midino }, kind: 'absolute', layer: 'base', function: r.fn }));
+      model.controls.push(cleanControl({ label: e.description, midi: { type: 'cc14', channel: (e.status & 0x0f) + 1, number: e.midino, lsbNumber: lsb.midino }, kind: 'absolute', layer: 'base', function: r.fn, mixxxOptions: extraOptions(e.options) }));
     }
     for (const e of entries) {
       if (used.has(e)) continue;
@@ -338,7 +354,7 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
       used.add(e);
       if (r) {
         const kind = r.encoding ? 'relative' : valueKind(r.fn) === 'relative' ? 'relative' : valueKind(r.fn);
-        model.controls.push(cleanControl({ label: e.description || undefined, midi: { type, channel, number: e.midino, encoding: kind === 'relative' ? (r.encoding || 'relative-two-complement') : undefined }, kind, layer: r.layer, function: r.fn }));
+        model.controls.push(cleanControl({ label: e.description || undefined, midi: { type, channel, number: e.midino, encoding: kind === 'relative' ? (r.encoding || 'relative-two-complement') : undefined }, kind, layer: r.layer, function: r.fn, mixxxOptions: r.extra }));
       } else {
         model.controls.push({ __entry: e, ...cleanControl({ label: e.description || e.key || undefined, midi: { type, channel, number: e.midino }, layer: 'base',
           custom: { target: 'mixxx', group: e.group, key: e.key, options: e.options.length ? e.options : ['normal'], description: e.description, status: e.status } }) });
@@ -346,14 +362,17 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
     }
     // Note-off twins discovered after their custom control was created.
     for (const c of model.controls) if (c.__entry) { if (c.__entry.noteOff) c.custom.noteOff = true; delete c.__entry; }
+    if (model.controls.length > LIMITS.maxControls) { model.controls.length = LIMITS.maxControls; warnings.push(`Only the first ${LIMITS.maxControls} controls were kept.`); }
+    const ledKeys = new Map(model.controls.map(c => [c, ledKeyOf(c)]));
     const outs = [];
     for (const o of kids(kid(controller, 'outputs'), 'output').slice(0, LIMITS.maxControls)) {
       const group = cleanText(childText(o, 'group'), LIMITS.maxCustomText), key = cleanText(childText(o, 'key'), LIMITS.maxCustomText);
       const status = parseByte(childText(o, 'status')), midino = parseByte(childText(o, 'midino'));
       const on = parseNum(childText(o, 'on')), off = parseNum(childText(o, 'off'));
-      const fn = leds.get(`${GROUP_ALIASES[group] || group}\u0000${key}`);
-      const target = fn && status != null && midino != null && midino <= 127 && [0x90, 0xb0].includes(status & 0xf0)
-        ? model.controls.find(c => c.layer === 'base' && sameFn(c.function, fn) && !c.feedback) : null;
+      // The first base control (file order) whose function lights this group/key takes the LED.
+      const lk = `${GROUP_ALIASES[group] || group}\u0000${key}`;
+      const target = status != null && midino != null && midino <= 127 && [0x90, 0xb0].includes(status & 0xf0)
+        ? model.controls.find(c => c.layer === 'base' && !c.feedback && ledKeys.get(c) === lk) : null;
       if (target) {
         target.feedback = { led: { type: (status & 0xf0) === 0x90 ? 'note' : 'cc', channel: (status & 0x0f) + 1, number: midino, on: Number.isInteger(on) && on <= 127 ? on : 127, off: Number.isInteger(off) && off <= 127 ? off : 0 } };
         continue;
