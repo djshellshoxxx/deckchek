@@ -21,16 +21,37 @@ function nativeApi(handlers, calls = []) {
   return createLedgerApi({ invoke, storage: mem(), catalog, photos: { list: async () => [] } });
 }
 
-test('regression: customer bench units from service jobs are not listed as the owner\'s gear', async () => {
+test('regression: a customer bench unit from a service job stays listed, flagged usedInServiceJobs (never dropped silently)', async () => {
   const api = nativeApi({
     ledger_customer_units: () => ['cust-1'], ledger_public_notes: () => [], maintenance_list: () => [], certificate_list: () => [],
   });
   const gear = await api.listGear();
-  assert.deepEqual(gear.rows.map(r => r.asset.id), ['own-1']);
-  assert.equal(gear.customerUnits, 1);
-  // a failing lookup fails closed: no list that might include customers' units
+  assert.deepEqual(gear.rows.map(r => [r.asset.id, r.usedInServiceJobs]), [['own-1', false], ['cust-1', true]]);
+  assert.equal(gear.serviceJobUnits, 1);
+  // a failing lookup fails closed: no list whose service-job flags might be missing
   const broken = nativeApi({ ledger_customer_units: () => { throw new Error('LEDGER_DB: locked'); }, ledger_public_notes: () => [], maintenance_list: () => [], certificate_list: () => [] });
   await assert.rejects(broken.listGear(), /LEDGER_DB/);
+  // a backend without the command (UI smoke mock, older test doubles): nothing is flagged, nothing is dropped
+  const old = nativeApi({ ledger_customer_units: () => { throw 'unknown command ledger_customer_units'; }, ledger_public_notes: () => [], maintenance_list: () => [], certificate_list: () => [] });
+  assert.deepEqual((await old.listGear()).rows.map(r => [r.asset.id, r.usedInServiceJobs]), [['own-1', false], ['cust-1', false]]);
+});
+
+test('regression: an owned unit with a self-service job is still the owner\'s gear in the list (flagged, not removed)', async () => {
+  // FS-22 jobs always carry a customer, and a job may target a unit the owner already had: own-1 is serviced in-house
+  const api = nativeApi({
+    ledger_customer_units: () => ['own-1'], ledger_public_notes: () => [{ assetId: 'own-1', publicNotes: 'Mine since 2019' }],
+    maintenance_list: () => [{ assetId: 'own-1', eventType: 'clean', eventAt: '2026-01-01T00:00:00Z', description: '' }], certificate_list: () => [],
+  });
+  const gear = await api.listGear();
+  const own = gear.rows.find(r => r.asset.id === 'own-1');
+  assert.ok(own, 'the owned unit is listed');
+  assert.equal(own.usedInServiceJobs, true);
+  assert.equal(own.service, 1);
+  assert.equal(own.asset.publicNotes, 'Mine since 2019');
+  assert.equal(gear.rows.length, 2);
+  // the user can include it: loadState builds it like any other unit
+  const state = await api.loadState(gear, ['own-1']);
+  assert.deepEqual(state.assets.map(a => a.id), ['own-1']);
 });
 
 test('regression: service history is loaded per selected unit, not cut by the fleet-wide 1000-row list', async () => {

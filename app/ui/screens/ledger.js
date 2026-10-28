@@ -28,7 +28,34 @@ export function gearRowText(row) {
     row.service ? `${row.service} service entr${row.service === 1 ? 'y' : 'ies'}` : null,
     a.retiredDate ? 'retired' : null,
   ].filter(Boolean);
-  return { title: a.nickname || model || 'Unit', model, status };
+  return { title: a.nickname || model || 'Unit', model, status, ...(row.usedInServiceJobs ? { note: SERVICE_JOB_NOTE } : {}) };
+}
+
+/** Shown on every step-1 row whose unit is used in a service job (a customer's bench unit, or own gear serviced). */
+export const SERVICE_JOB_NOTE = 'Used in service jobs — check it is your own gear before including it';
+
+/**
+ * Pure: the step-1 selection restored from the last export. Units used in service jobs start unticked even when that
+ * export included them (`held`), so the owner checks each one again; ids no longer listed are dropped.
+ */
+export function initialSelection(rows, items) {
+  const byId = new Map(rows.map(r => [r.asset.id, r]));
+  const ids = [], held = [];
+  for (const id of Array.isArray(items) ? items : []) {
+    const r = byId.get(id);
+    if (!r) continue;
+    (r.usedInServiceJobs ? held : ids).push(id);
+  }
+  return { ids, held };
+}
+
+/** Pure: "Select all" ticks every unit except those used in service jobs (the owner ticks those one by one). */
+export const selectAllIds = rows => rows.filter(r => !r.usedInServiceJobs).map(r => r.asset.id);
+
+/** Pure: the announcement for units used in service jobs that were left unticked. */
+export function heldNote(n) {
+  const one = n === 1;
+  return `${n} unit${one ? '' : 's'} used in service jobs ${one ? 'was' : 'were'} left unticked: check ${one ? 'it is' : 'they are'} your own gear before including ${one ? 'it' : 'them'}.`;
 }
 
 export const SINGLE_FILE_NAME = 'deckchek-gear-ledger.html';
@@ -50,14 +77,27 @@ export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
 }
 export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
 export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
-/** After a folder export: the write replaces files with the same name but deletes nothing (FS-33 review). */
+/** After a folder export through a backend that does not prune (no `removed` count): nothing was deleted. */
 export const LEFTOVER_NOTE = 'Files with the same names are replaced, but photos and certificate files (.deckchek-cert.json) from earlier exports that are not in this one stay in that folder: delete them before you upload, or they are published too.';
+
+/**
+ * Pure: the line under the success message. ledger_write_folder removes photos and certificate files from earlier
+ * exports that this one no longer contains and reports how many (`removed`); without that count, LEFTOVER_NOTE.
+ */
+export function exportNote({ revision, mode, path, removed }) {
+  const base = `Revision ${revision} recorded.`;
+  if (!path || mode === 'single') return base;
+  if (typeof removed !== 'number') return `${base} ${LEFTOVER_NOTE}`;
+  if (!removed) return `${base} No stale files from earlier exports were left in the folder.`;
+  const one = removed === 1;
+  return `${base} ${removed} photo${one ? '' : 's'} or certificate file${one ? '' : 's'} from earlier exports that ${one ? 'is' : 'are'} not in this one ${one ? 'was' : 'were'} removed.`;
+}
 export const RETRACT_NOTE = 'Deleting the ledger from your computer does not remove copies you already published or shared.';
 
 export function createLedgerScreen(section, { api = createLedgerApi(), reencode = async bytes => (await preparePhoto(bytes)).bytes } = {}) {
   const native = isNative() && api.native;
   const st = { step: 'select', loading: true, loadError: null, gear: null, selected: new Set(), rules: makeRules('public'), result: null, resultKey: null,
-    theme: 'light', busy: false, history: [], done: null, exportError: null, mode: 'folder', progress: '' };
+    theme: 'light', busy: false, history: [], done: null, exportError: null, mode: 'folder', progress: '', nextRevision: null };
   section.innerHTML = '';
   const title = h('h1', { tabindex: '-1', text: 'Gear ledger' });
   section.append(
@@ -109,19 +149,26 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     const list = h('ul', { class: 'ledger-gear', id: 'ledger-gear' }, ...rows.map(r => {
       const t = gearRowText(r);
       const id = `lg-${r.asset.id}`.replace(/[^A-Za-z0-9_-]/g, '_');
-      const box = h('input', { type: 'checkbox', id, 'data-asset': r.asset.id, checked: st.selected.has(r.asset.id) });
+      const box = h('input', { type: 'checkbox', id, 'data-asset': r.asset.id, checked: st.selected.has(r.asset.id), 'aria-describedby': t.note ? `${id}-note` : null });
       box.addEventListener('change', () => { if (box.checked) st.selected.add(r.asset.id); else st.selected.delete(r.asset.id); st.result = null; count.textContent = countText(); });
-      return h('li', {}, box, h('label', { for: id }, h('span', { class: 'ledger-gear-title', text: t.title }), t.model && t.model !== t.title ? h('span', { class: 'muted', text: ` — ${t.model}` }) : null,
-        h('span', { class: 'ledger-gear-status small muted', text: t.status.join(' · ') })));
+      return h('li', { class: t.note ? 'ledger-gear-flagged' : null }, box, h('label', { for: id }, h('span', { class: 'ledger-gear-title', text: t.title }), t.model && t.model !== t.title ? h('span', { class: 'muted', text: ` — ${t.model}` }) : null,
+        h('span', { class: 'ledger-gear-status small muted', text: t.status.join(' · ') }),
+        t.note ? h('span', { class: 'ledger-gear-note small', id: `${id}-note`, 'data-service-note': r.asset.id, html: `${icon('warn', { size: 16 })} ` }, h('span', { text: t.note })) : null));
     }));
     const countText = () => `${st.selected.size} of ${rows.length} selected`;
     const count = h('p', { class: 'muted small', id: 'ledger-count', 'aria-live': 'polite', text: countText() });
-    const all = on => () => { for (const r of rows) on ? st.selected.add(r.asset.id) : st.selected.delete(r.asset.id); st.result = null; render(); };
+    const all = on => () => {
+      if (on) for (const id of selectAllIds(rows)) st.selected.add(id); else st.selected.clear();
+      st.result = null; render();
+      const left = rows.filter(r => r.usedInServiceJobs && !st.selected.has(r.asset.id)).length;
+      if (on && left) status(heldNote(left));
+    };
     const last = st.history[0];
+    const next = st.nextRevision ? `The next export becomes revision ${st.nextRevision}.` : '';
     const err = h('p', { class: 'form-error', id: 'ledger-select-error', role: 'alert' });
     return h('section', { class: 'card', 'aria-labelledby': 'ledger-h-select' },
       h('h2', { class: 'card-title', id: 'ledger-h-select', tabindex: '-1', text: '1. Select gear' }),
-      last ? h('p', { class: 'muted small', id: 'ledger-last', text: `Last export: revision ${last.revision} on ${String(last.createdAt).slice(0, 10)}. The next export becomes revision ${last.revision + 1}.` }) : null,
+      last || st.nextRevision > 1 ? h('p', { class: 'muted small', id: 'ledger-last', text: `${last ? `Last export: revision ${last.revision} on ${String(last.createdAt).slice(0, 10)}. ` : ''}${next}`.trim() }) : null,
       h('fieldset', { class: 'ledger-fieldset' }, h('legend', { text: 'Units in the ledger' }),
         h('div', { class: 'action-bar' }, h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Select all', onclick: all(true) }), h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Select none', onclick: all(false) })),
         list, count),
@@ -262,7 +309,9 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
   async function build(snap, { mode = 'folder', revision } = {}) {
     const state = await api.loadState(snap.gear, snap.ids, { onProgress: p => { st.progress = p.total ? `Processing photos and certificates: ${p.done} of ${p.total} units` : ''; const el = q('#ledger-progress'); if (el) el.textContent = st.progress; } });
-    const result = await buildLedger(state, { items: snap.ids }, snap.rules, { revision: revision ?? await api.nextRevision(), mode, reencode });
+    const rev = revision ?? await api.nextRevision();
+    st.nextRevision = rev;
+    const result = await buildLedger(state, { items: snap.ids }, snap.rules, { revision: rev, mode, reencode });
     for (const p of state.problems) result.skipped.push({ item: snap.gear.rows.find(r => r.asset.id === p.assetId)?.asset.nickname || 'Unit', what: p.what, reason: p.reason });
     return result;
   }
@@ -355,15 +404,16 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     const single = st.mode === 'single';
     const savedName = single && st.done?.mode === 'single' && st.done.path ? st.done.path.split(/[\\/]/).pop() : '';
     const singleName = /\.html?$/i.test(savedName) ? savedName : SINGLE_FILE_NAME;
-    const cmp = compareWithPrevious(st.history[0] || null, { ...st.result.ledger, revision: (st.history[0]?.revision ?? 0) + 1 }, [...st.selected]);
+    // The revision comes from api.nextRevision() (Rust: max(history, the floor kept outside the database) + 1).
+    const cmp = compareWithPrevious(st.history[0] || null, { ...st.result.ledger, revision: st.nextRevision ?? st.result.ledger.revision }, [...st.selected]);
     const outcome = h('div', { id: 'ledger-outcome', role: 'status', 'aria-live': 'polite' });
     if (st.done) {
       outcome.append(h('p', { class: 'ledger-ok', id: 'ledger-success', html: `${icon('pass', { size: 18 })} ` }, h('span', { text: st.done.path ? `Saved to ${st.done.path}. Open ${st.done.mode === 'single' ? 'it' : 'index.html'} in a browser to check it.` : `Downloaded ${SINGLE_FILE_NAME}. Open it in a browser to check it.` })),
-        h('p', { class: 'small muted', id: 'ledger-leftover', text: `Revision ${st.done.revision} recorded.${st.done.path && st.done.mode !== 'single' ? ` ${LEFTOVER_NOTE}` : ''}` }));
+        h('p', { class: 'small muted', id: 'ledger-leftover', text: exportNote(st.done) }));
     }
     if (st.exportError) outcome.append(h('p', { class: 'form-error', id: 'ledger-export-error', role: 'alert', text: st.exportError }));
     card.append(
-      h('p', { class: 'muted', id: 'ledger-revision', text: cmp.first ? 'This will be revision 1.' : `This will be revision ${cmp.revision} (last: ${cmp.previousRevision}). ${cmp.changed ? 'The content changed since then' : 'The content is the same as last time'}${cmp.added || cmp.removed ? `: ${cmp.added} unit(s) added, ${cmp.removed} removed` : ''}. ledger.json is written with sorted keys, so two exports compare line by line.` }),
+      h('p', { class: 'muted', id: 'ledger-revision', text: cmp.first ? `This will be revision ${cmp.revision}.` : `This will be revision ${cmp.revision} (last: ${cmp.previousRevision}). ${cmp.changed ? 'The content changed since then' : 'The content is the same as last time'}${cmp.added || cmp.removed ? `: ${cmp.added} unit(s) added, ${cmp.removed} removed` : ''}. ledger.json is written with sorted keys, so two exports compare line by line.` }),
       modes,
       h('div', { class: 'action-bar' },
         h('button', { type: 'button', class: 'btn btn-secondary', text: 'Back', onclick: () => setStep('preview') }),
@@ -390,15 +440,15 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
       const snap = snapshot();
       const revision = await api.nextRevision();
       const result = await build(snap, { mode, revision });
+      // Folder mode: ledger_write_folder also removes stale photos and certificate files of earlier exports (`removed`).
       const out = mode === 'single' ? await api.saveSingle(result.html) : await api.writeFolder(result.files);
       if (out.cancelled) { status('Export cancelled.'); return; }
-      // TODO(FS-33 ledger-core): once app/ledger/api.js offers a stale-file cleanup for the folder export, call it
-      // here (folder mode only) so leftover photos and certificate files are removed; until then LEFTOVER_NOTE says so.
       const row = await api.recordExport({ revision, selection: { items: [...snap.ids].sort(), mode }, privacy: snap.rules, ledgerSha256: result.ledger.ledgerSha256 });
       st.history = [row, ...st.history];
+      st.nextRevision = await api.nextRevision().catch(() => row.revision + 1);
       st.result = result; st.resultKey = snap.key;
       const path = out.path ? `${out.path.replace(/[\\/]+$/, '')}${out.path.includes('\\') && !out.path.includes('/') ? '\\' : '/'}${mode === 'single' ? '' : LEDGER_DIR}` : null;
-      st.done = { path: mode === 'single' ? out.path : path, revision: row.revision, mode };
+      st.done = { path: mode === 'single' ? out.path : path, revision: row.revision, mode, ...(typeof out.removed === 'number' ? { removed: out.removed } : {}) };
       toast(`Ledger revision ${row.revision} saved.`, { type: 'success' });
       status(`Ledger revision ${row.revision} saved.`);
     } catch (e) {
@@ -412,19 +462,24 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
 
   async function load() {
     st.loading = true; st.loadError = null; render();
+    let flaggedNote = '';
     try {
-      const [gear, history] = await Promise.all([api.listGear(), api.listExports(5).catch(() => [])]);
-      st.gear = gear; st.history = history;
+      const [gear, history, next] = await Promise.all([api.listGear(), api.listExports(5).catch(() => []), api.nextRevision().catch(() => null)]);
+      st.gear = gear; st.history = history; st.nextRevision = next;
       const last = history[0];
       if (last && !st.selected.size) {
-        const ids = new Set(gear.rows.map(r => r.asset.id));
-        for (const id of last.selection?.items || []) if (ids.has(id)) st.selected.add(id);
+        // Units used in service jobs start unticked even when the last export had them (see initialSelection).
+        for (const id of initialSelection(gear.rows, last.selection?.items).ids) st.selected.add(id);
         st.rules = normalizeRules(last.privacy);
       }
     } catch (e) { st.loadError = friendly(e); }
     st.loading = false;
     applyHandoff();
+    // Never silently: say how many units used in service jobs are listed unticked (each row also shows the note).
+    const left = (st.gear?.rows || []).filter(r => r.usedInServiceJobs && !st.selected.has(r.asset.id)).length;
+    if (left && !st.loadError) flaggedNote = heldNote(left);
     render();
+    if (flaggedNote) status(flaggedNote);
   }
   let handoff = null;
   function applyHandoff() {

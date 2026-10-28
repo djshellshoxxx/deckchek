@@ -1,7 +1,8 @@
 // Gear ledger I/O bridge (FS-33). Collects the state build.js needs and writes the export:
 //   desktop: catalog + photo store + maintenance log + FS-20 certificates over the Rust commands, ledger history,
-//            revisions, public notes and customer units via ledger_* (src-tauri/src/ledger.rs), folder export via
-//            ledger_write_folder (staged write, stale ledger files pruned, refuses to go back in revision);
+//            revisions, public notes and the units used in service jobs (flagged, never dropped) via ledger_*
+//            (src-tauri/src/ledger.rs), folder export via ledger_write_folder (staged write, stale ledger files pruned
+//            after the new files are in place, refuses to go back in revision);
 //   browser: the localStorage catalog and in-memory photo store; history and public notes in localStorage
 //            (`deckchek.ledger.v1`, per-viewer convenience only); single-file download, no folder export.
 // Invoke, storage and the stores are injectable for tests and smoke mocks.
@@ -43,24 +44,30 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
     return { ...readLocal(storage).notes };
   }
 
-  /** Asset ids that belong to service jobs (FS-21 customer bench units): never the owner's gear. Fails closed. */
-  async function customerUnitIds() {
+  /**
+   * Asset ids used in FS-21/FS-22 service jobs (ledger_customer_units). Such a unit may be a customer's bench unit or
+   * the owner's own gear serviced in-house (every job has a customer, and a job may target an owned unit), so it is
+   * only flagged, never dropped. Fails closed: a lookup error is passed on rather than listing units unflagged.
+   */
+  async function serviceJobUnitIds() {
     if (!native) return new Set();
     try { return new Set(await invoke('ledger_customer_units')); } catch (e) { if (isUnknownCommand(e)) return new Set(); throw e; }
   }
 
   const maintenanceFor = assetId => invoke('maintenance_list', { assetId, from: null, to: null, eventType: null });
 
-  /** Step 1 list: every owned (not deleted, not a customer's) asset with its product, photo/certificate/service counts. */
+  /**
+   * Step 1 list: every asset that is not deleted, with its product, photo/certificate/service counts and
+   * `usedInServiceJobs` (the wizard shows those unticked with a note, and the user decides).
+   */
   async function listGear() {
-    const [assets, products, manufacturers, notes, customer] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes().catch(() => ({})), customerUnitIds()]);
+    const [assets, products, manufacturers, notes, jobUnits] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes().catch(() => ({})), serviceJobUnitIds()]);
     const service = native ? await maintenanceFor(null).catch(() => []) : [];
     // The fleet-wide list stops at the newest 1000 events: count per unit when it is full.
     const truncated = service.length >= MAINTENANCE_LIST_CAP;
     const certs = native ? await invoke('certificate_list', { assetId: null }).catch(() => []) : [];
     const rows = [];
-    const owned = assets.filter(x => !x.isDeleted && !customer.has(x.id));
-    for (const a of owned) {
+    for (const a of assets.filter(x => !x.isDeleted)) {
       const product = products.find(p => p.id === a.productId);
       const maker = product && manufacturers.find(m => m.id === product.manufacturerId);
       const photoList = await pho.list('asset', a.id).catch(() => []);
@@ -68,9 +75,10 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
         asset: { ...a, publicNotes: notes[a.id] ?? null }, manufacturer: maker?.name || '', model: product?.model || '', category: product?.category || '',
         photos: photoList.length, certificates: certs.filter(c => c.assetId === a.id && c.verdict !== 'draft').length,
         service: truncated ? (await maintenanceFor(a.id).catch(() => [])).length : service.filter(e => e.assetId === a.id).length,
+        usedInServiceJobs: jobUnits.has(a.id),
       });
     }
-    return { rows, products, manufacturers, service, certs, customerUnits: assets.filter(x => !x.isDeleted && customer.has(x.id)).length };
+    return { rows, products, manufacturers, service, certs, serviceJobUnits: rows.filter(r => r.usedInServiceJobs).length };
   }
 
   /** Full state for build.js, for the chosen assets only (photo bytes and certificate files are loaded here). */
@@ -140,9 +148,9 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
 
   /**
    * Folder export (desktop): the user picks a folder; files land under ledger/. ledger_write_folder writes everything
-   * into a staging folder first, then removes ledger photos and certificate files from earlier exports that this
-   * export no longer contains, then moves the new files in (index.html last). It refuses a folder that already holds
-   * the same or a later revision.
+   * into a staging folder first, moves the new files in (index.html last), and only then removes ledger photos and
+   * certificate files from earlier exports that this export no longer contains (`removed`). It refuses a folder that
+   * already holds the same or a later revision.
    */
   async function writeFolder(files, { api = tauri() } = {}) {
     const list = Array.isArray(files) ? files : [];

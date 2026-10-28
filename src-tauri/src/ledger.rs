@@ -5,7 +5,8 @@
 //!   - one `ledger_export` row per successful export, with a revision counter that increases by one (AC-7), plus a
 //!     revision floor outside the database so a backup restore never rewinds it;
 //!   - `asset.public_notes`, the note the owner writes for the public ledger (the private `asset.notes` stays private).
-//! It also lists customers' bench units (FS-21 service jobs), which never belong in the owner's ledger.
+//! It also lists the units used in FS-21/FS-22 service jobs (customers' bench units or the owner's own gear serviced
+//! in-house), which the wizard flags and leaves unticked for the owner to decide.
 //! Every IPC argument is validated here; all SQL is parameterised.
 
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
@@ -177,7 +178,9 @@ pub fn get_export(conn: &Connection, id: &str) -> Result<Option<LedgerExportRow>
 
 // ---------------------------------------------------------------- customer units (FS-33 review)
 
-/// Assets that belong to FS-21 service jobs: customers' bench units, never the owner's gear (spec AC-1 "owned").
+/// Assets referenced by any FS-21/FS-22 service job. These may be customers' bench units, but also the owner's own gear
+/// serviced in-house (every job has a customer, and a job may target an existing owned unit), so the ledger wizard
+/// lists them flagged and unticked for the owner to decide; they are never dropped from the list.
 pub fn customer_unit_ids(conn: &Connection) -> Result<Vec<String>, String> {
     let mut stmt = conn
         .prepare("SELECT DISTINCT asset_id FROM service_job WHERE asset_id IS NOT NULL ORDER BY asset_id LIMIT 100000")
@@ -834,6 +837,37 @@ mod tests {
         assert!(req["assetId"].is_string() && req["text"].is_string());
     }
 
+    #[test]
+    fn contract_examples_for_folder_write_next_revision_and_service_job_units() {
+        let k = contract();
+        // ledger_write_folder: the request deserialises into the command's argument types and the result serialises
+        // exactly to the documented response
+        let req = &k["ledger_write_folder"]["request"];
+        assert!(req["dir"].is_string());
+        let files: Vec<FolderFile> = serde_json::from_value(req["files"].clone()).unwrap();
+        assert!(files.iter().any(|f| f.rel_path == "ledger/ledger.json") && files.iter().all(|f| f.rel_path.starts_with("ledger/")));
+        let resp = &k["ledger_write_folder"]["response"];
+        let out = LedgerWriteResult {
+            written: resp["written"].as_u64().unwrap() as usize,
+            removed: resp["removed"].as_u64().unwrap() as usize,
+            path: resp["path"].as_str().unwrap().into(),
+        };
+        assert_eq!(&serde_json::to_value(&out).unwrap(), resp);
+        // the documented request writes as described into a real folder
+        let d = tmp("contract");
+        let r = write_ledger_folder(&d.to_string_lossy(), files, None).unwrap();
+        assert_eq!(r.written, out.written);
+        // ledger_next_revision and ledger_customer_units take no arguments and answer a number / a list of ids
+        assert_eq!(k["ledger_next_revision"]["request"], json!({}));
+        let next: i64 = serde_json::from_value(k["ledger_next_revision"]["response"].clone()).unwrap();
+        assert!(next >= 1);
+        assert_eq!(k["ledger_customer_units"]["request"], json!({}));
+        let ids: Vec<String> = serde_json::from_value(k["ledger_customer_units"]["response"].clone()).unwrap();
+        for id in &ids {
+            check_asset_id(id).unwrap();
+        }
+    }
+
     // ---------------------------------------------------------------- folder writes (spec §8 "write_ledger_folder")
 
     fn tmp(name: &str) -> PathBuf {
@@ -1120,5 +1154,22 @@ mod tests {
         )
         .unwrap();
         assert_eq!(customer_unit_ids(&c).unwrap(), vec!["fs33-cust".to_string()]);
+    }
+
+    #[test]
+    fn regression_fs33_owned_unit_with_a_self_service_job_is_flagged_and_stays_an_asset() {
+        let mut c = mem();
+        // the owner's own deck (with history and a public note) gets an in-house service job
+        set_public_note(&c, "fs33-a", Some("Mine since 2019")).unwrap();
+        c.execute_batch(
+            "INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j-self','2026-0101',NULL,'fs33-a','repairing','pitch drift','2026-02-01T00:00:00Z','2026-02-01T00:00:00Z');",
+        )
+        .unwrap();
+        assert_eq!(customer_unit_ids(&c).unwrap(), vec!["fs33-a".to_string()], "flagged for the wizard");
+        // nothing about the unit changes: it is still listed with its note and can still be exported
+        assert_eq!(list_public_notes(&c).unwrap().len(), 1);
+        let deleted: i64 = c.query_row("SELECT is_deleted FROM asset WHERE id='fs33-a'", [], |r| r.get(0)).unwrap();
+        assert_eq!(deleted, 0);
+        assert_eq!(record_export(&mut c, &input(1)).unwrap().selection["items"], json!(["fs33-a"]));
     }
 }
