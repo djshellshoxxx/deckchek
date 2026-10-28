@@ -1,0 +1,52 @@
+/* FS-21 Compare screen. Tokens come from styles.css; nothing here hard-codes a colour. */
+.cmp-status { margin: 12px 0 0; }
+.cmp-status:empty { display: none; }
+.cmp-reasons { margin: 8px 0 0; padding-left: 20px; }
+.cmp-pickers { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+.cmp-pickers .field { min-width: 220px; max-width: 360px; flex: 1 1 220px; }
+.cmp-pickers[hidden], #cmp-tabs[hidden] { display: none; }
+.cmp-panel { margin-top: 16px; display: grid; gap: 16px; }
+.cmp-panel:focus { outline: none; }
+.cmp-card { display: grid; gap: 12px; align-content: start; }
+.cmp-card p { margin: 0; }
+.cmp-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cmp-share { margin-top: 16px; }
+.cmp-notes { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.cmp-details summary { cursor: pointer; min-height: 32px; }
+.cmp-table td, .cmp-table th { white-space: nowrap; }
+.cmp-self { font-weight: 700; background: var(--raised); }
+
+/* inline SVG: the numbers are always repeated in text, shapes carry the meaning, colour only reinforces it */
+.cmp-bar-wrap, .cmp-strip-wrap, .cmp-spark { max-width: 640px; }
+.cmp-bar, .cmp-strip, .cmp-spark svg { width: 100%; height: auto; display: block; }
+.cmp-bar-track { fill: var(--raised); }
+.cmp-bar-good { fill: var(--pass); opacity: .28; }
+.cmp-limit { stroke: var(--text); stroke-width: 2; stroke-dasharray: 4 3; }
+.cmp-marker { fill: var(--text); stroke: var(--surface, var(--bg, transparent)); stroke-width: 1.5; }
+.cmp-marker.cmp-in { fill: var(--pass); }
+.cmp-marker.cmp-out { fill: var(--fail); }
+.cmp-svg-label { fill: var(--text-muted); font: 600 11px var(--font-ui); font-variant-numeric: tabular-nums; }
+.cmp-you { fill: var(--text); }
+.cmp-band { fill: var(--raised); stroke: var(--divider); }
+.cmp-median { stroke: var(--text); stroke-width: 2; }
+.cmp-dot { fill: var(--accent, var(--text)); }
+.cmp-dot-out { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.cmp-spark-line { fill: none; stroke: var(--text-muted); stroke-width: 2; }
+
+/* dialogs */
+.cmp-dialog { max-width: min(720px, 94vw); }
+.cmp-cells { display: grid; gap: 4px; max-height: 220px; overflow: auto; padding: 4px 0; }
+.cmp-cell { display: flex; gap: 10px; align-items: center; min-height: 32px; cursor: pointer; }
+.cmp-json { margin: 0; max-height: 240px; overflow: auto; padding: 10px 12px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--sunken); font: 12px/1.45 var(--font-mono, monospace); white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 640px) {
+  .cmp-pickers .field { max-width: none; }
+}
+
+/* Narrow windows: the title block's text column must be allowed to shrink below its longest word
+   (flex items default to min-width:auto), and long tokens in status banners must wrap (CI ui-smoke at 390 px). */
+#screen-compare { grid-template-columns: minmax(0, 1fr); } /* grid track may not grow to its widest child's min-content */
+#screen-compare .screen-title > div { min-width: 0; }
+#screen-compare .screen-title, #screen-compare .cmp-status, #screen-compare .banner-text { overflow-wrap: anywhere; }
+#screen-compare .cmp-card, #screen-compare .cmp-panel { grid-template-columns: minmax(0, 1fr); }
+#screen-compare .cmp-actions .btn { white-space: normal; max-width: 100%; }
+#screen-compare #cmp-tabs { flex-wrap: wrap; }

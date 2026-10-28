@@ -1,0 +1,89 @@
+[package]
+name = "deckchek-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "=0.4.10"
+deckchek = { path = "..", features = ["fuzzing"] }
+
+# Standalone workspace so the app crate's Cargo.lock is not touched by fuzz-only deps.
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "backup_inspect"
+path = "fuzz_targets/backup_inspect.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "backup_restore"
+path = "fuzz_targets/backup_restore.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "workspace_import"
+path = "fuzz_targets/workspace_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "canonical"
+path = "fuzz_targets/canonical.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "jpeg"
+path = "fuzz_targets/jpeg.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "links"
+path = "fuzz_targets/links.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "userfiles"
+path = "fuzz_targets/userfiles.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dj_logs"
+path = "fuzz_targets/dj_logs.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "system_check"
+path = "fuzz_targets/system_check.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pack"
+path = "fuzz_targets/pack.rs"
+test = false
+doc = false
+bench = false

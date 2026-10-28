@@ -15,6 +15,7 @@ import { migrateLocalRuns } from './ui/persistence.js';
 import { toast } from './ui/live.js';
 import { isNative } from './ui/dom.js';
 import { bindSettings } from './features.js';
+import { runSelfTestIfRequested } from './self-test.js';
 // [FS-00] screens imports
 // [FS-01] screens imports
 // [FS-02] screens imports
@@ -39,13 +40,18 @@ import { scratchScreenDefs } from './ui/screens/scratch.js';
 // [FS-15] screens imports
 import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-20] screens imports
+import { certificateScreenDefs } from './ui/screens/certificate.js';
 // [FS-21] screens imports
+import { compareScreenDefs } from './ui/screens/compare.js';
 // [FS-22] screens imports
+import { serviceScreenDefs } from './ui/screens/service.js';
 // [FS-23] screens imports
+import { fleetScreenDefs } from './ui/screens/fleet.js';
 // [FS-30] screens imports
 import { phoneImportScreenDefs } from './ui/workflows/import-phone.js';
 // [FS-31] screens imports
 // [FS-32] screens imports
+import { mapperScreenDefs } from './ui/screens/mapper.js';
 // [FS-33] screens imports
 
 bindSettings(settings); // keeps feature-flag changes from being overwritten by the settings store (FS-00 §4.14)
@@ -79,13 +85,18 @@ const SCREENS = [
   // [FS-15] screens
   ...humScreenDefs(),
   // [FS-20] screens
+  ...certificateScreenDefs(),
   // [FS-21] screens
+  ...compareScreenDefs(),
   // [FS-22] screens
+  ...serviceScreenDefs(),
   // [FS-23] screens
+  ...fleetScreenDefs(),
   // [FS-30] screens
   ...phoneImportScreenDefs(),
   // [FS-31] screens
   // [FS-32] screens
+  ...mapperScreenDefs(),
   // [FS-33] screens
 ];
 
@@ -101,6 +112,8 @@ function start() {
   go(initial);
   // First run: sync every device profile into the catalog and create one asset per device ("My <model>").
   initNativePersistence().then(migrateLocalRuns).catch(() => {}).then(() => ensureLibrary()).catch(() => {});
+  // `deckchek --self-test=<report.json>` (release smoke): no-op unless Rust says it is active
+  if (isNative()) runSelfTestIfRequested(window.__TAURI__.core.invoke).catch(() => {});
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
