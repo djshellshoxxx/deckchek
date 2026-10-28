@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.localStorage = (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })();
-const { unitOptions, photoProblem } = await import('../app/ui/screens/certificate.js');
-const { classifyFile } = await import('../app/ui/screens/verify.js');
+const { unitOptions, photoProblem, buildPayloadAsMeasured } = await import('../app/ui/screens/certificate.js');
+const { classifyFile, findStoredOriginal } = await import('../app/ui/screens/verify.js');
 const { composePrintable } = await import('../app/report-pdf.js');
 const { registerCertificateKind, CERTIFICATE_KIND } = await import('../app/report-kinds/certificate.js');
 const fs = await import('node:fs');
@@ -38,6 +38,24 @@ test('AC-3 verify file classification: size checked before reading, PDFs never p
   assert.equal(classifyFile(undefined, 0).kind, 'reject');
 });
 
+test('regression: verify diff only matches a stored record by content hash, never by the unverified fingerprint', () => {
+  const H = n => String(n).repeat(64).slice(0, 64);
+  const rows = [
+    { id: 'c1', signingKeyId: 'fp-local', issuedAt: '2026-10-01T10:00:00Z', serialNumber: 'SN1', contentHash: H(1) },
+    { id: 'c2', signingKeyId: 'fp-local', issuedAt: '2026-10-02T10:00:00Z', serialNumber: 'SN2', contentHash: H(2) },
+  ];
+  // MODIFIED file: the payload was edited, the hash written in the file is still that of the signed original
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: H(2), contentHash: H(9), issuedAt: 'x', serial: 'edited' })?.id, 'c2');
+  // a forged file that copies this install's fingerprint plus a stored issue time / serial must not pick a record
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: H(7), contentHash: H(8), issuedAt: '2026-10-01T10:00:00Z', serial: 'SN1' }), null);
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: null, issuedAt: '2026-10-01T10:00:00Z', serial: 'SN1' }), null);
+  // VALID: matched on its verified hash
+  assert.equal(findStoredOriginal(rows, { status: 'valid', fingerprint: 'other', contentHash: H(1), declaredHash: H(1) })?.id, 'c1');
+  assert.equal(findStoredOriginal(rows, { status: 'unverifiable', declaredHash: H(1) }), null, 'an unreadable file matches nothing');
+  assert.equal(findStoredOriginal(null, { status: 'modified', declaredHash: H(1) }), null);
+  assert.equal(findStoredOriginal(rows, { status: 'modified', declaredHash: 'not-hex' }), null);
+});
+
 test('contract tests/contracts/certificate.json: the JS bridge sends exactly the documented request fields', async () => {
   const { createCertificateApi } = await import('../app/certificate-api.js');
   const contract = JSON.parse(fs.readFileSync(new URL('./contracts/certificate.json', import.meta.url), 'utf8'));
@@ -66,4 +84,18 @@ test('printable kind "certificate": PDF carries hash, fingerprint, QR, disclaime
   const draft = composePrintable(CERTIFICATE_KIND, { file: { payload: file.payload }, draft: true }, { css: '' });
   assert.match(draft.html, /DRAFT/);
   assert.ok(!draft.html.includes(file.integrity.contentHash));
+});
+
+test('regression: AC-6 a stored device result keeps the run\'s calibrated flag through to the certificate', async () => {
+  const { buildResultDetail } = await import('../app/devices/dispatch.js');
+  const profile = { id: 'p1', manufacturer: 'X', model: 'Deck', version: 1, tests: [{ id: 't-speed', title: 'Speed', method: 'audio:speed', pass: { metricId: 'measured_pitch_percent', op: 'abs<=', value: 0.1, unit: '%' } }] };
+  const current = { valid: true, createdAt: '2026-09-01T00:00:00Z', deviceName: 'Rig', sampleRate: 48000 };
+  const result = flag => ({ testId: 't-speed', profileId: 'p1', status: 'pass', createdAt: '2026-10-20T10:00:00Z',
+    detail: buildResultDetail({ test: profile.tests[0], outcome: { status: 'pass', detail: 'ok' }, measurements: [{ metricId: 'measured_pitch_percent', value: 0.01, unit: '%', calibrated: flag, uncertainty: { standard: 0.005, expanded: 0.01, k: 2 } }] }) });
+  const args = r => ({ profile, results: [r], tester: 'A', serial: 'S', now: new Date('2026-10-28T12:00:00Z') });
+  const cal = buildPayloadAsMeasured(args(result(true)), { current });
+  assert.equal(cal.measurements[0].calibration.state, 'calibrated', 'measured calibrated with the profile active since before the run');
+  assert.equal(cal.measurements[0].uncertainty, '0.01');
+  assert.equal(cal.verdict, 'pass');
+  assert.equal(buildPayloadAsMeasured(args(result(false)), { current }).measurements[0].calibration.state, 'uncalibrated');
 });
