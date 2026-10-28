@@ -33,6 +33,8 @@ const UNDO_LIMIT = 50;
 const LEARN_TIMEOUT_MS = 30000;
 const STATUS_WARNINGS = 5; // at most this many import notes go into the polite live status; the rest sit in a <details>
 const LISTED_WARNINGS = 1000;
+export const STATUS_MESSAGE_MAX = 300; // each import note or error in the live status is cut to this many characters
+const LISTED_MESSAGE_MAX = 2000; // each note in the collapsed "All import notes" list
 const KIND_LABEL = { button: 'Button', absolute: 'Fader / knob', relative: 'Encoder' };
 const ENCODING_LABEL = { 'relative-two-complement': "Two's complement (1 = right, 127 = left)", 'relative-offset64': 'Offset 64 (65 = right, 63 = left)', 'absolute-wrap': 'Absolute, wraps around' };
 // Where focus goes when the focused control disappears or turns disabled in a re-render ('@row' = selected row).
@@ -157,12 +159,19 @@ function importTextsUnchecked(texts, { profile = null } = {}) {
   return { ok: false, error: { message: 'DeckChek does not recognise this XML file as a Mixxx or VirtualDJ mapping.' } };
 }
 
-/** Short form of an import's notes for the live status: the first few plus "and N more". */
+/** One message for the polite live status, cut to STATUS_MESSAGE_MAX characters (ending in "…") when longer. */
+export function capMessage(message, max = STATUS_MESSAGE_MAX) {
+  const s = String(message ?? '');
+  return s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`;
+}
+
+/** Short form of an import's notes for the live status: the first few (each capped) plus "and N more". */
 export function summariseWarnings(warnings, max = STATUS_WARNINGS) {
   const list = Array.isArray(warnings) ? warnings : [];
-  if (list.length <= max) return list.join(' ');
+  const head = list.slice(0, max).map(w => capMessage(w)).join(' ');
+  if (list.length <= max) return head;
   const more = list.length - max;
-  return `${list.slice(0, max).join(' ')} …and ${more} more note${more === 1 ? '' : 's'} (listed under “All import notes”).`;
+  return `${head} …and ${more} more note${more === 1 ? '' : 's'} (listed under “All import notes”).`;
 }
 
 /** Success line after a save. */
@@ -232,7 +241,7 @@ export function createMapperScreen(section) {
     if (list.length <= STATUS_WARNINGS) { warningsBox.hidden = true; warningsBox.replaceChildren(); return; }
     const shown = list.slice(0, LISTED_WARNINGS);
     warningsBox.replaceChildren(h('summary', { text: `All import notes (${list.length})` }),
-      h('ul', { class: 'mp-warning-list' }, ...shown.map(w => h('li', { text: w })),
+      h('ul', { class: 'mp-warning-list' }, ...shown.map(w => h('li', { text: capMessage(w, LISTED_MESSAGE_MAX) })),
         ...(list.length > shown.length ? [h('li', { class: 'muted', text: `…and ${list.length - shown.length} more.` })] : [])));
     warningsBox.hidden = false;
   };
@@ -383,14 +392,14 @@ export function createMapperScreen(section) {
     const files = await pickFiles('.xml,.json,.js,application/xml,text/xml,application/json');
     if (!files.length) return;
     const c = classifyFiles(files);
-    if (c.rejected.length) { setStatus(c.rejected.join(' '), 'fail', { title: 'Not opened.' }); return; }
+    if (c.rejected.length) { setStatus(c.rejected.map(m => capMessage(m)).join(' '), 'fail', { title: 'Not opened.' }); return; }
     setStatus('Reading…');
     let texts;
-    try { texts = await Promise.all([...c.json, ...c.xml, ...c.js].map(async f => ({ name: f.name, text: await f.text() }))); } catch (e) { setStatus(`The file could not be read: ${e?.message || e}`, 'fail'); return; }
+    try { texts = await Promise.all([...c.json, ...c.xml, ...c.js].map(async f => ({ name: f.name, text: await f.text() }))); } catch (e) { setStatus(capMessage(`The file could not be read: ${e?.message || e}`), 'fail'); return; }
     const profile = st.profileId ? profileById(st.profileId) : null;
     const r = importTexts(texts, { profile }); // never throws
     if (!r.ok) {
-      setStatus(r.error.message, 'fail', { title: 'Could not open the mapping.' });
+      setStatus(capMessage(r.error.message), 'fail', { title: 'Could not open the mapping.' });
       announce('Could not open the mapping.', { assertive: true });
       return;
     }
@@ -424,7 +433,7 @@ export function createMapperScreen(section) {
       setModel(row.model);
       setStatus(row.warnings?.length ? summariseWarnings(row.warnings) : `Opened ${row.name}.`, row.readOnly ? 'warn' : 'pass');
       showWarnings(row.warnings || []);
-    } catch (e) { setStatus(`Could not open the mapping: ${e?.message || e}`, 'fail'); }
+    } catch (e) { setStatus(capMessage(`Could not open the mapping: ${e?.message || e}`), 'fail'); }
   }
 
   async function saveModel() {
