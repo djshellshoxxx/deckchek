@@ -49,6 +49,7 @@ Safety, applies to every script:
 | H-13 | FS-13 control-vinyl wear map | Full-side scans, repeatability, interruption, verdict, SNR class calibration | SL-1200MK4, Audio 8 DJ, CV02.5 and Traktor Scratch MK2 copies, screen recorder |
 | H-14 | FS-14 scratch stress test | Baseline gate, velocity check, 90 s protocol, abort timing, skip safety, skip and lock-loss calibration | SL-1200MK4, Audio 8 DJ, spare Traktor MK2 and CV02.5 vinyl, Rane Twelve MK2, monitors |
 | H-15 | FS-15 booth feedback and hum hunter | Hum isolation steps on three mixers, feedback step test, abort timing, stop on navigation and close | SL-1200MK4, Twelve MK2, DJM-A9, Xone:23C, Audio 8 DJ, Pioneer monitors, laptop charger, a loop recording cable |
+| H-23 | FS-23 venue fleet dashboard | Venue/booth/position set-up, placement, reminders, start-up banner and snooze, CSV in Excel, booth sheet print, delete safety | Owner's real database with PLX-CRSS12, SL-1200MK4, DJM-A9, Twelve MK2, Xone:23C, DDJ; Excel; a printer |
 
 IDs follow the feature spec number (`H-NN` = spec `NN`), as the plan and the spec §8 cross-references do. There is no H-04 or H-05, because the M5 index has no FS-04 or FS-05 (see section 9).
 
@@ -332,6 +333,26 @@ Run steps 1 to 7 once per mixer: Rane Twelve MK2, Pioneer DJM-A9 (phono input), 
 | 13 | Compare the deck on a flexible table with the deck on isolation feet or a heavier base. Repeat step 12 for each. | Onset step is later (or absent up to the cap) on the isolated deck. Guidance for onset below 120 Hz mentions decoupling and high-passing the booth monitor. | `H-15/13` onset step each, difference in steps |
 | 14 | Safety exits. While the tone is playing: (a) click another screen in the rail; (b) start again and switch to the Runs tab; (c) start again and close the DeckChek window; (d) start again and unplug the input cable; (e) start again, raise nothing and wait 60 s without touching anything. | In (a), (b) and (c) the tone stops immediately. In (d) the tone stops within about 1 s and the banner says input lost. In (e) it stops at 60 s with the inactivity message. Clipping the input hard (raise mixer gain) also stops it with a clipping message. | `H-15/14` PASS/FAIL for a to e, plus clipping |
 | 15 | Run the whole hum procedure once on an interface with no output device selected (or with the output unplugged) and open the Feedback tab. | Feedback test is disabled with an explanation. Hum hunter still works with the input only. | `H-15/15` PASS/FAIL |
+
+---
+
+## H-23 Venue fleet dashboard (FS-23)
+
+The fleet screen and the start-up banner are on by default (flag `fleet`). Model the owner's gear as two booths: **Home** (PLX-CRSS12, SL-1200MK4, DJM-A9) and **Second booth** (Rane Twelve MK2, Xone:23C, DDJ). Use the real DeckChek database copy, not a fixture. Restarting means closing and reopening the app.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Open Fleet > Venues & positions. Add the venue "Home", then the booth "Home booth", then positions "Left deck", "Mixer", "Right deck". Repeat for "Second booth" with its three positions. | Each save appears in the tree at once. With no venues the page first showed the three-step "Add your first venue" guide. | `H-23/1` PASS/FAIL |
+| 2 | Place PLX-CRSS12, SL-1200MK4 and DJM-A9 in the Home positions: one by drag and drop, one with the asset's "Move to…" menu, one from Equipment > asset > "Place in venue" (then the Overview side panel). Place the second-booth gear the same way. | Every asset shows Venue / Booth / Position on Overview. Moving an asset adds a "Moved from A to B" event (names, not ids) to Events log. | `H-23/2` PASS/FAIL, how many methods worked |
+| 3 | On Overview, check the four tiles and the grid. Run a device test on one asset that you know fails (or unplug its cable), then Refresh. | Never-tested assets read "Never tested", not "Healthy". The failing asset reads "Attention" with the real test name as a chip. A unit tested more than 90 days ago (change the "Review results after" setting to 1 day to check) reads "Review". | `H-23/3` tile counts, PASS/FAIL |
+| 4 | In an asset's side panel add the reminder "Check fader" every 7 days (warn 3). Log a maintenance event "clean" for it dated 10 days ago (Events log, date field, "Completes reminder" = Check fader). Then add the reminder "Stylus check" every 300 tracked hours. | The 7-day reminder is "Overdue". The log entry appears in Events log. The hours reminder shows tracked hours remaining and says the figure is an estimate. | `H-23/4` PASS/FAIL |
+| 5 | Close and reopen DeckChek. | Within a few seconds a banner appears at the top of the window without taking focus: "N maintenance items need attention: X overdue, Y due soon." with Review and "Dismiss for 1 day". The Fleet rail entry shows a count. A screen reader announces it politely. | `H-23/5` banner text, PASS/FAIL |
+| 6 | Press "Dismiss for 1 day", then restart. Open Reminders. | The banner and badge stay away after the restart. The reminders are still listed (with "snoozed") and nothing was deleted. | `H-23/6` PASS/FAIL |
+| 7 | Create seven overdue reminders (a 1-day interval on seven assets works). Restart. | The banner lists five and says "and 2 more". | `H-23/7` PASS/FAIL |
+| 8 | Overview: filter to one booth, press Export CSV, open the file in Excel on Windows. | Excel opens it with correct accents (UTF-8 BOM), one row per filtered asset, no other rows. Set an asset nickname to `=1+1`; the cell shows `'=1+1` as text and does not calculate. | `H-23/8` PASS/FAIL |
+| 9 | Venues & positions > "Print Home booth sheet". Preview, print to PDF, and also print on paper. | One page: each position with its asset, serial, last tested date, health and next due item, empty positions marked "Empty", and a blank notes box. No city or address. Readable in black and white. | `H-23/9` pages, PASS/FAIL |
+| 10 | Try to delete a position that holds an asset, first with no destination, then with "Move assets to Unplaced". Type the wrong name once. | Blocked until you choose a destination and type the exact name; the counts are shown first. The asset is kept and shows "Unplaced". | `H-23/10` PASS/FAIL |
+| 11 | Keyboard only: `/` filters, arrow keys move between grid rows, Enter opens the side panel, `E` exports, `N` jumps to the new-event form, arrow keys switch tabs. | Every step works without a mouse and focus is always visible. | `H-23/11` PASS/FAIL |
 
 ---
 

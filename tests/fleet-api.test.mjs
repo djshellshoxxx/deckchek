@@ -31,3 +31,21 @@ test('booth sheet escapes names and includes serial, health, due date and notes'
   assert.equal(html.includes('<script>'), false);
   for (const text of ['123', 'Never tested', 'never', '2026-10-23', 'Notes']) assert.ok(html.includes(text));
 });
+
+test('AC-9 booth sheet lists every position (empty ones too), never the venue city, and escapes every user string', () => {
+  const esc = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  const rows = [{ nickname: '<b>Deck</b>', productName: 'TT "1"', serialNumber: 'S&N', health: 'attention', lastTestedAt: '2026-10-01T10:00:00Z', deckPositionId: 'p1', position: 'Left', city: 'Paris', reminders: [{ title: '<i>Clean</i>', state: 'overdue', dueAt: '2026-10-22' }] }];
+  const html = renderBoothSheetHtml({ booth: { name: 'Booth & <co>' }, rows, positions: [{ id: 'p1', name: 'Left' }, { id: 'p2', name: 'Right' }] }, { esc });
+  assert.ok(html.includes('Left') && html.includes('Right') && html.includes('Empty'));
+  assert.ok(html.includes('2026-10-01') && html.includes('S&amp;N') && html.includes('Attention'));
+  assert.ok(html.includes('&lt;i&gt;Clean&lt;/i&gt;: Overdue 2026-10-22'));
+  assert.ok(html.includes('class="booth-notes"'));
+  assert.equal(/<b>|<i>|<co>|Paris/.test(html), false);
+});
+
+test('the bridge lists maintenance events fleet-wide when no asset is named', async () => {
+  const calls = [];
+  const api = createFleetApi(async (command, args) => { calls.push({ command, args }); return []; });
+  await api.events(null, { from: '2026-01-01', to: null, eventType: 'clean' });
+  assert.deepEqual(calls, [{ command: 'maintenance_list', args: { assetId: null, from: '2026-01-01', to: null, eventType: 'clean' } }]);
+});
