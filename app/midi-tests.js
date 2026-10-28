@@ -147,7 +147,8 @@ export function createCoverageSession(profileMidi) {
 export function analyzeFader(samples, { bits = 7, jitterLsb = 2 } = {}) {
   const v = (samples || []).map((s) => s.value).filter(Number.isFinite);
   if (v.length < 2) return { measurements: [], segments: 0, error: 'not enough samples' };
-  const min = Math.min(...v), max = Math.max(...v);
+  let min = Infinity, max = -Infinity;
+  for (const value of v) { min = Math.min(min, value); max = Math.max(max, value); }
   // zigzag segmentation: a segment ends when value retreats > jitterLsb from its extreme
   let dir = 0, ext = v[0];
   const segDir = new Array(v.length - 1).fill(0);
@@ -273,7 +274,7 @@ export function analyzeTiming(timestamps) {
   const span = (t[t.length - 1] - t[0]) / 1e6;
   const rate = span > 0 ? (t.length - 1) / span : null;
   return {
-    jitterMs: round(sd, 4), meanIntervalMs: round(mean, 4), maxIntervalMs: Math.max(...gaps), ratePerSec: round(rate, 2), count: t.length,
+    jitterMs: round(sd, 4), meanIntervalMs: round(mean, 4), maxIntervalMs: gaps.reduce((max, gap) => Math.max(max, gap), -Infinity), ratePerSec: round(rate, 2), count: t.length,
     measurements: [m('midi_jitter_ms', 'MIDI inter-message jitter', round(sd, 4), 'ms', { qualityFlags: t.length < 50 ? ['few-samples'] : [] })],
   };
 }

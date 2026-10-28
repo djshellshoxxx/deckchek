@@ -178,3 +178,16 @@ test('buildLedSequence', () => {
   assert.equal(buildLedSequence(profile, ['gain']).length, 2);
   assert.equal(buildLedSequence(profile, ['fader']).length, 0);
 });
+
+
+test('long MIDI sessions retain all fader and timing evidence without argument-limit failures', () => {
+  const count = 150000;
+  const fader = analyzeFader(Array.from({ length: count }, (_, i) => ({ value: i % 128 })));
+  assert.equal(fader.min, 0);
+  assert.equal(fader.max, 127);
+  assert.equal(fader.distinct, 128);
+  const timing = analyzeTiming(Array.from({ length: count }, (_, i) => i * 1000));
+  assert.equal(timing.count, count);
+  assert.equal(timing.maxIntervalMs, 1);
+  assert.equal(timing.jitterMs, 0);
+});
