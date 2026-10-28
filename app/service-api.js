@@ -19,7 +19,8 @@ export function createServiceApi(invoke = tauri()?.core?.invoke?.bind(tauri()?.c
     try { return await invoke(cmd, args); } catch (e) { throw new Error(message(e)); }
   };
   return {
-    create: input => call('job_create', { input }),
+    // The job number's year is the calendar year on the user's clock (the sheet shows local dates); Rust checks it.
+    create: (input, now = new Date()) => call('job_create', { input: { ...input, localYear: now.getFullYear() } }),
     get: id => call('job_get', { id }),
     list: (query = {}) => call('job_list', { query }),
     updateFields: (id, patch) => call('job_update_fields', { id, patch }),

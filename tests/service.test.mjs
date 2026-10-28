@@ -306,6 +306,17 @@ test('regression: per-test pass bands from the profile apply to their own test o
   assert.equal(c.rows.find(r => r.testId === 'xf').passChange, null, 'crossfader limit is 8: both pass');
 });
 
+test('regression: job_create sends the local calendar year so the job number matches the opened date the user sees', async () => {
+  const calls = [];
+  const api = createServiceApi(async (cmd, args) => { calls.push([cmd, args]); return {}; });
+  await api.create({ reportedFault: 'x' }, new Date(2026, 11, 31, 20, 0)); // 20:00 local on New Year's Eve
+  assert.deepEqual(calls[0], ['job_create', { input: { reportedFault: 'x', localYear: 2026 } }]);
+  await api.create({ reportedFault: 'y' }, new Date(2027, 0, 1, 8, 0));
+  assert.equal(calls[1][1].input.localYear, 2027);
+  await api.create({ reportedFault: 'z' });
+  assert.equal(calls[2][1].input.localYear, new Date().getFullYear(), 'defaults to now on the local clock');
+});
+
 test('regression: fractional part quantities show their real value on the job sheet', () => {
   const d = detail({ rest: { log: [L('p1', 'part', { description: 'Hook-up wire (m)', quantity: 0.25, unitCost: 4 }), L('p22', 'part', { description: 'Solder wick', quantity: 0.5, unitCost: 4 }), L('p333', 'part', { description: 'Screw', quantity: 3, unitCost: 0.1 })] } });
   const html = renderJobSheetHtml(d, cmp, { includeCosts: true, currency: '£' });
