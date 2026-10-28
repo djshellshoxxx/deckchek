@@ -199,34 +199,46 @@ pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn mapper_model_save(app: AppHandle, input: MapperModelInput) -> Result<MapperModelRow, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save(&conn, &input)
+pub async fn mapper_model_save(app: AppHandle, input: MapperModelInput) -> Result<MapperModelRow, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub fn mapper_model_list(app: AppHandle, assetId: Option<String>) -> Result<Vec<MapperModelSummary>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, assetId.as_deref())
+pub async fn mapper_model_list(app: AppHandle, assetId: Option<String>) -> Result<Vec<MapperModelSummary>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, assetId.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn mapper_model_get(app: AppHandle, id: String) -> Result<Option<MapperModelRow>, String> {
-    if !valid_row_id(&id) {
-        return Err(invalid("id must be 1-64 letters, digits or '-'"));
-    }
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn mapper_model_get(app: AppHandle, id: String) -> Result<Option<MapperModelRow>, String> {
+    crate::db::off_main(move || {
+        if !valid_row_id(&id) {
+            return Err(invalid("id must be 1-64 letters, digits or '-'"));
+        }
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn mapper_model_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    if !valid_row_id(&id) {
-        return Err(invalid("id must be 1-64 letters, digits or '-'"));
-    }
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn mapper_model_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        if !valid_row_id(&id) {
+            return Err(invalid("id must be 1-64 letters, digits or '-'"));
+        }
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]

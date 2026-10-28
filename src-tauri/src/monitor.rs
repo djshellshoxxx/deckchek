@@ -494,50 +494,71 @@ pub fn setup(app: &AppHandle) {
 // ---------------------------------------------------------------- commands
 
 #[tauri::command]
-pub fn monitor_session_start(app: AppHandle, input: SessionStartInput) -> Result<SessionStarted, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    session_start(&conn, &input)
+pub async fn monitor_session_start(app: AppHandle, input: SessionStartInput) -> Result<SessionStarted, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        session_start(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn monitor_log_append(app: AppHandle, session_id: String, events: Vec<EventInput>, minutes: Vec<MinuteInput>) -> Result<AppendResult, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    log_append(&mut conn, &session_id, &events, &minutes)
+pub async fn monitor_log_append(app: AppHandle, session_id: String, events: Vec<EventInput>, minutes: Vec<MinuteInput>) -> Result<AppendResult, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        log_append(&mut conn, &session_id, &events, &minutes)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn monitor_session_end(app: AppHandle, session_id: String, summary: Value) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    session_end(&conn, &session_id, &summary)
+pub async fn monitor_session_end(app: AppHandle, session_id: String, summary: Value) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        session_end(&conn, &session_id, &summary)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn monitor_session_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<SessionRow>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    session_list(&conn, limit)
+pub async fn monitor_session_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<SessionRow>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        session_list(&conn, limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn monitor_session_get(app: AppHandle, id: String) -> Result<Option<SessionLog>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    session_get(&conn, &id)
+pub async fn monitor_session_get(app: AppHandle, id: String) -> Result<Option<SessionLog>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        session_get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn monitor_session_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    session_delete(&conn, &id)
+pub async fn monitor_session_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        session_delete(&conn, &id)
+    })
+    .await?
 }
 
 /// Prune now with `retentionDays` (or the stored setting). Open sessions are never touched here.
 #[tauri::command]
-pub fn monitor_prune(app: AppHandle, retention_days: Option<i64>) -> Result<PruneResult, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    let days = match retention_days {
-        Some(d) => d,
-        None => stored_retention_days(&conn),
-    };
-    prune(&mut conn, days, None)
+pub async fn monitor_prune(app: AppHandle, retention_days: Option<i64>) -> Result<PruneResult, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        let days = match retention_days {
+            Some(d) => d,
+            None => stored_retention_days(&conn),
+        };
+        prune(&mut conn, days, None)
+    })
+    .await?
 }
 
 #[cfg(test)]

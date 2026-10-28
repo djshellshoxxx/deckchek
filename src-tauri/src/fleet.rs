@@ -505,79 +505,112 @@ pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Opt
 }
 
 #[tauri::command]
-pub fn fleet_snapshot(app: AppHandle) -> Result<Value, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    snapshot(&conn)
+pub async fn fleet_snapshot(app: AppHandle) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        snapshot(&conn)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn fleet_place_asset(
+pub async fn fleet_place_asset(
     app: AppHandle,
     asset_id: String,
     deck_position_id: Option<String>,
 ) -> Result<(), String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    place(&mut conn, &asset_id, deck_position_id.as_deref())
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        place(&mut conn, &asset_id, deck_position_id.as_deref())
+    })
+    .await?
 }
 #[tauri::command]
-pub fn reminder_upsert(app: AppHandle, input: ReminderInput) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_reminder(&conn, &input)
+pub async fn reminder_upsert(app: AppHandle, input: ReminderInput) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_reminder(&conn, &input)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn reminder_template_upsert(app: AppHandle, input: TemplateInput) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_template(&conn, &input)
+pub async fn reminder_template_upsert(app: AppHandle, input: TemplateInput) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_template(&conn, &input)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn reminder_apply_template(
+pub async fn reminder_apply_template(
     app: AppHandle,
     template_id: String,
     asset_id: String,
 ) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    apply_template(&conn, &template_id, &asset_id)
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        apply_template(&conn, &template_id, &asset_id)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn reminder_snooze(app: AppHandle, id: String, until_iso: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    snooze(&conn, &id, &until_iso)
+pub async fn reminder_snooze(app: AppHandle, id: String, until_iso: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        snooze(&conn, &id, &until_iso)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn maintenance_log(app: AppHandle, input: MaintenanceInput) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    log_maintenance(&conn, &input)
+pub async fn maintenance_log(app: AppHandle, input: MaintenanceInput) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        log_maintenance(&conn, &input)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn maintenance_list(
+pub async fn maintenance_list(
     app: AppHandle,
     asset_id: Option<String>,
     from: Option<String>,
     to: Option<String>,
     event_type: Option<String>,
 ) -> Result<Vec<Value>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    maintenance_filtered(
-        &conn,
-        asset_id.as_deref(),
-        from.as_deref(),
-        to.as_deref(),
-        event_type.as_deref(),
-    )
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        maintenance_filtered(
+            &conn,
+            asset_id.as_deref(),
+            from.as_deref(),
+            to.as_deref(),
+            event_type.as_deref(),
+        )
+    })
+    .await?
 }
 #[tauri::command]
-pub fn booth_upsert(app: AppHandle, input: LocationInput) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_location(&conn, "booth", &input)
+pub async fn booth_upsert(app: AppHandle, input: LocationInput) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_location(&conn, "booth", &input)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn position_upsert(app: AppHandle, input: LocationInput) -> Result<String, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_location(&conn, "position", &input)
+pub async fn position_upsert(app: AppHandle, input: LocationInput) -> Result<String, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_location(&conn, "position", &input)
+    })
+    .await?
 }
 #[tauri::command]
-pub fn fleet_location_delete(app: AppHandle, kind: String, id: String, move_to: Option<LocationMove>) -> Result<(), String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    delete_location(&mut conn, &kind, &id, move_to.as_ref())
+pub async fn fleet_location_delete(app: AppHandle, kind: String, id: String, move_to: Option<LocationMove>) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        delete_location(&mut conn, &kind, &id, move_to.as_ref())
+    })
+    .await?
 }
 
 #[cfg(test)]

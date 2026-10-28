@@ -1083,85 +1083,124 @@ fn emit_status(app: &AppHandle, job: &Job, from: Option<&str>) {
 }
 
 #[tauri::command]
-pub fn job_create(app: AppHandle, input: JobCreateInput) -> Result<Job, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    let job = create(&mut conn, &input)?;
-    emit_status(&app, &job, None);
-    Ok(job)
+pub async fn job_create(app: AppHandle, input: JobCreateInput) -> Result<Job, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        let job = create(&mut conn, &input)?;
+        emit_status(&app, &job, None);
+        Ok(job)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_get(app: AppHandle, id: String) -> Result<JobDetail, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn job_get(app: AppHandle, id: String) -> Result<JobDetail, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_list(app: AppHandle, query: Option<JobListQuery>) -> Result<JobList, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &query.unwrap_or_default())
+pub async fn job_list(app: AppHandle, query: Option<JobListQuery>) -> Result<JobList, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &query.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_update_fields(app: AppHandle, id: String, patch: JobPatch) -> Result<Job, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    update_fields(&conn, &id, &patch)
+pub async fn job_update_fields(app: AppHandle, id: String, patch: JobPatch) -> Result<Job, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        update_fields(&conn, &id, &patch)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_set_status(app: AppHandle, id: String, to: String, expected: Option<String>, note: Option<String>, reopen: Option<bool>) -> Result<Job, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    let (job, from) = set_status(&mut conn, &id, expected.as_deref(), &to, note.as_deref(), reopen.unwrap_or(false))?;
-    emit_status(&app, &job, Some(&from));
-    Ok(job)
+pub async fn job_set_status(app: AppHandle, id: String, to: String, expected: Option<String>, note: Option<String>, reopen: Option<bool>) -> Result<Job, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        let (job, from) = set_status(&mut conn, &id, expected.as_deref(), &to, note.as_deref(), reopen.unwrap_or(false))?;
+        emit_status(&app, &job, Some(&from));
+        Ok(job)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_add_log(app: AppHandle, id: String, kind: String, payload: LogPayload) -> Result<LogEntry, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    add_log(&mut conn, &id, &kind, &payload)
+pub async fn job_add_log(app: AppHandle, id: String, kind: String, payload: LogPayload) -> Result<LogEntry, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        add_log(&mut conn, &id, &kind, &payload)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_attach_photo(app: AppHandle, id: String, input: JobPhotoInput) -> Result<PhotoAttached, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    attach_photo(&mut conn, &photo::photos_dir(&app)?, &id, &input)
+pub async fn job_attach_photo(app: AppHandle, id: String, input: JobPhotoInput) -> Result<PhotoAttached, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        attach_photo(&mut conn, &photo::photos_dir(&app)?, &id, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_link_results(app: AppHandle, id: String, phase: String, links: ResultLinks) -> Result<LinkOutcome, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    link_results(&mut conn, &id, &phase, &links)
+pub async fn job_link_results(app: AppHandle, id: String, phase: String, links: ResultLinks) -> Result<LinkOutcome, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        link_results(&mut conn, &id, &phase, &links)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_comparison(app: AppHandle, id: String) -> Result<ComparisonData, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    comparison(&conn, &id)
+pub async fn job_comparison(app: AppHandle, id: String) -> Result<ComparisonData, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        comparison(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn job_delete(app: AppHandle, id: String, confirm: String) -> Result<(), String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    delete(&mut conn, &photo::photos_dir(&app)?, &id, &confirm)
+pub async fn job_delete(app: AppHandle, id: String, confirm: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        delete(&mut conn, &photo::photos_dir(&app)?, &id, &confirm)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn customer_list(app: AppHandle, q: Option<String>, limit: Option<u32>) -> Result<Vec<Customer>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    customers(&conn, q.as_deref(), limit)
+pub async fn customer_list(app: AppHandle, q: Option<String>, limit: Option<u32>) -> Result<Vec<Customer>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        customers(&conn, q.as_deref(), limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn customer_update(app: AppHandle, id: String, patch: CustomerPatch) -> Result<Customer, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    update_customer(&conn, &id, &patch)
+pub async fn customer_update(app: AppHandle, id: String, patch: CustomerPatch) -> Result<Customer, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        update_customer(&conn, &id, &patch)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn customer_delete(app: AppHandle, id: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete_customer(&conn, &id)
+pub async fn customer_delete(app: AppHandle, id: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete_customer(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
