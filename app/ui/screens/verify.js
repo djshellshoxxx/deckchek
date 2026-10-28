@@ -43,15 +43,17 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
   const drop = q('#verify-drop'), input = q('#verify-file'), status = q('#verify-status'), result = q('#verify-result');
   let token = 0, unlisten = null, listening = false;
 
-  const showMessage = (title, text, kind) => {
+  // Each pick takes a token when it starts; only the latest pick may change the result (an earlier, slower file is dropped).
+  const showMessage = (title, text, kind, my = ++token) => {
+    if (my !== token) return;
     result.hidden = false;
     result.replaceChildren(h('h2', { id: 'verify-result-h', tabindex: '-1', text: title }), h('p', { class: `cert-msg cert-msg-${kind}`, id: 'verify-message', text }));
     status.textContent = `${title}. ${text}`;
     result.querySelector('h2').focus();
   };
 
-  async function verifyJson(json, sourceName) {
-    const my = ++token;
+  async function verifyJson(json, sourceName, my = ++token) {
+    if (my !== token) return;
     status.textContent = 'Checking…';
     let rep;
     if (native) {
@@ -107,25 +109,29 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
   }
 
   async function handleFile(file) {
+    const my = ++token;
     const c = classifyFile(file?.name, file?.size ?? 0);
-    if (c.kind === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported');
-    if (c.kind === 'reject') return showMessage('Could not read file', c.reason, 'error');
+    if (c.kind === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported', my);
+    if (c.kind === 'reject') return showMessage('Could not read file', c.reason, 'error', my);
     let text;
-    try { text = await file.text(); } catch { return showMessage('Could not read file', 'The file could not be read.', 'error'); }
+    try { text = await file.text(); } catch { return showMessage('Could not read file', 'The file could not be read.', 'error', my); }
     if (c.kind === 'html') {
-      try { text = extractJsonFromHtml(text); } catch (e) { return showMessage('Could not read file', e instanceof CertificateError ? `This HTML file has no DeckChek certificate data (${e.message}).` : friendly(e), 'error'); }
+      try { text = extractJsonFromHtml(text); } catch (e) { return showMessage('Could not read file', e instanceof CertificateError ? `This HTML file has no DeckChek certificate data (${e.message}).` : friendly(e), 'error', my); }
     }
-    return verifyJson(text, file.name);
+    return verifyJson(text, file.name, my);
   }
 
   async function handlePath(path) {
+    const my = ++token;
     const name = String(path).split(/[\\/]/).pop();
-    if (extOf(name) === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported');
-    try { return await verifyJson(await api.extract(path), name); }
+    if (extOf(name) === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported', my);
+    let json;
+    try { json = await api.extract(path); }
     catch (e) {
-      if (e?.code === 'pdf_has_no_attachment') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported');
-      return showMessage('Could not read file', friendly(e), 'error');
+      if (e?.code === 'pdf_has_no_attachment') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported', my);
+      return showMessage('Could not read file', friendly(e), 'error', my);
     }
+    return verifyJson(json, name, my);
   }
 
   async function pick() {
