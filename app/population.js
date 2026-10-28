@@ -106,7 +106,8 @@ export function populationComparison(rows, measurement, { higherIsBetter, regist
     groups.get(row.contributor).push(row.value);
     units++;
   }
-  const values = [...groups.values()].map(group => robustSummary(group).median);
+  // Sorted by contributor token so the output never depends on the order the rows arrived in.
+  const values = [...groups.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, group]) => robustSummary(group).median);
   const [lo, hi] = outlierBounds(values, 3.5);
   const dots = values.map(value => ({ value, outlier: value < lo || value > hi }));
   const summaryValues = dots.filter(dot => !dot.outlier).map(dot => dot.value);

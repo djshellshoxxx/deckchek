@@ -193,5 +193,6 @@ export function exportRowsFromUnitValues(unitValues, table) {
   const rows = [...cells.values()]
     .map(({ values, ...cell }) => ({ ...cell, value: robustSummary(values).median, units: values.length }))
     .sort((a, b) => cellKey(a).localeCompare(cellKey(b)));
+  skipped.sort((a, b) => String(a.metric).localeCompare(String(b.metric)) || a.reason.localeCompare(b.reason));
   return { rows, skipped };
 }

@@ -19,6 +19,7 @@ export function createPackApi({ api = tauri(), appState = createAppState(), fetc
     if (!invoke) throw new Error('Population packs need the desktop app.');
     return invoke;
   };
+  const call = async (cmd, args) => need()(cmd, args); // always a promise: browser mode rejects, never throws synchronously
   let tablePromise = null;
   const loadTable = async () => {
     const get = fetchJson ?? (async url => { const r = await fetch(url); if (!r.ok) throw new Error(`Could not load ${url}`); return r.json(); });
@@ -41,12 +42,12 @@ export function createPackApi({ api = tauri(), appState = createAppState(), fetc
       await appState.set(CONTRIBUTOR_KEY, token);
       return token;
     },
-    unitValues: () => need()('population_unit_values'),
-    list: () => need()('pack_list'),
-    remove: packId => need()('pack_remove', { packId }),
-    preview: path => need()('pack_preview', { path }),
-    import: (path, sourceLabel = null) => need()('pack_import', { path, sourceLabel }),
-    query: (productId, metricId, methodKey) => need()('population_query', { productId, metricId, methodKey }),
+    unitValues: () => call('population_unit_values'),
+    list: () => call('pack_list'),
+    remove: packId => call('pack_remove', { packId }),
+    preview: path => call('pack_preview', { path }),
+    import: (path, sourceLabel = null) => call('pack_import', { path, sourceLabel }),
+    query: (productId, metricId, methodKey) => call('population_query', { productId, metricId, methodKey }),
     /** Native open dialog -> path | null. */
     async pickPack() {
       const open = api?.dialog?.open;
@@ -66,7 +67,6 @@ export function createPackApi({ api = tauri(), appState = createAppState(), fetc
     async savePack(rows, { packId, createdMonth, contributor } = {}) {
       const save = api?.dialog?.save;
       if (!save) throw new Error('The save dialog is not available.');
-      const call = need();
       const path = await save({ defaultPath: `DeckChek-population.${PACK_EXT}`, filters: [{ name: 'DeckChek pack', extensions: [PACK_EXT] }] });
       if (!path) return { cancelled: true };
       const selection = { packId, createdMonth, contributor: contributor ?? await api2.contributor(), rows: rows.map(exportRow) };

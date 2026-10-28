@@ -335,6 +335,29 @@ Run steps 1 to 7 once per mixer: Rane Twelve MK2, Pioneer DJM-A9 (phono input), 
 
 ---
 
+## H-21 Unit vs population comparison (FS-21)
+
+Enable `population` and `packs` under Options > Advanced > Experimental features first. Nothing here touches the network; every step is local. Use the owner's units: Pioneer DJM-A9, Allen & Heath Xone:23C, Rane Twelve MK2, SL-1200MK4 or PLX-CRSS12. Run the tests that produce the metrics in step 1 on at least one unit before starting. Steps 7 to 10 need a second machine with DeckChek installed.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | On the first machine, run the speed test (wow and flutter), the channel separation test and a hum check on one unit, twice on different days if you can. Open Compare, pick the unit and the metric. | Only measured results with no quality warning appear. The Spec tab names the published limit and the margin in words ("Inside the limit with ... to spare" or "Outside the limit by ...") next to the bar, and shows an INSIDE SPEC or OUTSIDE SPEC chip as well as colour. | `H-21/1` unit, metric, value, spec limit shown, margin text |
+| 2 | Pick a metric the profile has no spec for (for example Left hum). | The Spec tab says "No published spec for this metric." and shows no bar. | `H-21/2` PASS/FAIL |
+| 3 | If you own two units of one model, run the same test on both. Open My units. | The units are listed best first with the open unit marked "(this unit)". The sentence gives its rank ("ranks 1st of 2 of your units"). With one unit it says it is your only unit of that model. | `H-21/3` ranks shown vs values |
+| 4 | With two or more runs on the open unit, read "This unit over time". | The sentence compares the latest run with the median of the earlier runs and says better, worse or the same, with the sparkline described in text. | `H-21/4` delta text, matches the runs by eye Y/N |
+| 5 | Open Data sharing > "Share results anonymously". Do not tick anything yet. | First-time export has nothing ticked and Save is disabled. The file contents preview is "Nothing selected." | `H-21/5` PASS/FAIL |
+| 6 | Tick one result. Read the JSON preview line by line. Save the pack and open the saved `.deckchek-pack` in a text editor. | The preview and the file contain only: format, version, packId, createdMonth (year and month only), appVersion, contributor (a random token) and rows with product, metric, method key and version, value (three significant figures) and unit. No serial number, nickname, date, venue, path, host name or session id anywhere. Search the file for your serial number, your name and your venue: no hits. | `H-21/6` PASS/FAIL, any field you did not expect |
+| 7 | On the second machine, Import a pack > choose the file from step 6. | The preview lists the model and metric with a row count and says nothing is added until you confirm. Confirm. The pack appears in the list with its row count. | `H-21/7` PASS/FAIL |
+| 8 | Import the same file again. | The preview says it is already imported and confirming changes nothing (still one pack, same row count). | `H-21/8` PASS/FAIL |
+| 9 | Open Compare > Population for a unit of the same model on the second machine. | With fewer than 20 contributors the text reads "Not enough data (N of 20)" and no percentile is shown; with fewer than 8 only individual dots are drawn. The self-selection caveat is shown. | `H-21/9` N shown, no percentile Y/N |
+| 10 | Remove the imported pack. | The pack and its rows disappear, the Population tab returns to "Import a pack to see how your unit compares", and the status line says percentiles were recomputed. | `H-21/10` PASS/FAIL |
+| 11 | Import a file that is not a pack (rename any .json to .deckchek-pack) and a pack you edited by hand to add a field `"serial": "x"`, then one with a value of 9999 for wow and flutter. | Each import is refused with a plain message ("This is not a DeckChek pack", missing or unknown fields, "value is outside the plausible range" with the row number). Nothing is added. | `H-21/11` message per file |
+| 12 | In Options > Experimental features turn `packs` off, then `population` off. | With `packs` off the Population tab and Data sharing disappear and Compare keeps Spec and My units. With `population` off the Compare entry disappears from the rail. | `H-21/12` PASS/FAIL |
+| 13 | Keyboard and screen reader: reach every control in Compare with Tab and the arrow keys on the tabs; open the import dialog and press Esc. | Focus is always visible, Esc closes the dialog and focus returns to the button that opened it, and the screen reader reads the percentile sentence from the strip plot. | `H-21/13` PASS/FAIL |
+| 14 | Windows only: save and import a pack to a folder whose path contains non-ASCII characters (for example `C:\Users\Zoë\Müsik`). | Both work; the status line shows only the byte count and a short checksum, never the full path. | `H-21/14` PASS/FAIL |
+
+---
+
 ## 9. Open items and defaults for the owner
 
 These need an owner decision. Until they are decided, the defaults below apply and are recorded in H-00 step 9.
