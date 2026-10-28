@@ -554,7 +554,7 @@ pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Opt
         return Err(format!("move or unplace {} assets before deleting this location", assets.len()));
     }
     let deleted = tx.execute(delete_sql, [id])
-        .map_err(|_| "location is still referenced by a setup or diagnostic record; no assets were moved".to_string())?;
+        .map_err(|_| "location is still used by a saved setup or support configuration; no assets were moved".to_string())?;
     if deleted != 1 { return Err("location not found".into()); }
     tx.commit().map_err(err)
 }
@@ -607,8 +607,6 @@ pub async fn reminder_apply_template(
     })
     .await?
 }
-// Registration belongs in lib.rs's [FS-23] handlers block (`fleet::reminder_delete`); until then it is unused.
-#[allow(dead_code)]
 #[tauri::command]
 pub async fn reminder_delete(app: AppHandle, id: String) -> Result<(), String> {
     crate::db::off_main(move || {
@@ -1344,5 +1342,26 @@ mod tests {
         assert_eq!((exists, deleted), (1, 1), "the asset is retired, not hard-deleted");
         let kept: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
         assert_eq!(kept, 1, "the reminder is not cascade-deleted");
+    }
+
+    /// The reminder/template delete command is registered in lib.rs and runs off the main thread (AUD-03).
+    #[test]
+    fn regression_reminder_delete_is_registered_and_async() {
+        let lib = include_str!("lib.rs");
+        let start = lib.find("// [FS-23] handlers").unwrap();
+        let end = start + lib[start..].find("// [FS-30] handlers").unwrap();
+        assert!(lib[start..end].contains("fleet::reminder_delete"), "fleet::reminder_delete is not in the [FS-23] handlers block");
+        let src = include_str!("fleet.rs");
+        assert!(src.contains(concat!("pub async fn ", "reminder_delete(")), "reminder_delete must be async via db::off_main");
+    }
+
+    /// The location-delete FK error names what can actually hold a location: a saved setup or a support configuration.
+    #[test]
+    fn regression_location_delete_error_names_setup_or_support_configuration() {
+        let mut conn = database();
+        conn.execute_batch("INSERT INTO support_configuration(id,deck_position_id,name) VALUES('support','position','Stand');").unwrap();
+        let error = delete_location(&mut conn, "position", "position", None).unwrap_err();
+        assert!(error.contains("saved setup or support configuration"), "{error}");
+        assert!(!error.contains("diagnostic"), "{error}");
     }
 }
