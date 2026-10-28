@@ -22,7 +22,7 @@ export const FEATURES = Object.freeze({
   scratchTest: flag('FS-14', 'M6', false, 'Scratch stress test', 'Timecode stress test under scratching.'),
   humHunter: flag('FS-15', 'M6', false, 'Hum hunter', 'Locate mains hum and ground-loop sources.'),
   feedbackStep: flag('FS-15', 'M6', false, 'Booth feedback step', 'Booth feedback detection step in the hum hunter.'),
-  certificates: flag('FS-20', 'M7', false, 'Used-gear certificate', 'Test certificates for used gear.', false),
+  certificates: flag('FS-20', 'M7', false, 'Used-gear certificate', 'Signed test certificates for used gear, and a screen to verify them.'),
   population: flag('FS-21', 'M7', false, 'Unit vs population', 'Compare a unit against its spec, your other units and history.'),
   packs: flag('FS-21', 'M7', false, 'Population packs', 'Import and export anonymous population packs (adds the Population tab).'),
   service: flag('FS-22', 'M7', false, 'Service worksheets', 'Repair jobs with before/after measurements, a work log and a job sheet.'),

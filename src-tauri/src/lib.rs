@@ -50,6 +50,8 @@ mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_te
 #[cfg(test)]
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
+pub mod signing; // per-install Ed25519 identity (DPAPI on Windows)
+pub mod certificate; // used-gear certificates: sign, verify, extract, store
 // [FS-21] mods
 mod pack;
 // [FS-22] mods
@@ -123,6 +125,9 @@ pub fn run() {
             humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
             selftest::self_test_mode, selftest::self_test_report,
             // [FS-20] handlers
+            signing::signing_get_identity, signing::signing_create_identity,
+            certificate::certificate_sign, certificate::certificate_verify, certificate::certificate_extract_json,
+            certificate::certificate_store, certificate::certificate_list, certificate::certificate_get,
             // [FS-21] handlers
             pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
             pack::population_query, pack::population_unit_values,
