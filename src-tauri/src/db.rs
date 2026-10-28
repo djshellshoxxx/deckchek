@@ -1469,6 +1469,83 @@ mod tests {
     /// restore, on migrations, or up to 5 s on `SQLITE_BUSY`).
     const DB_OPENERS: &[&str] = &["open_database(", "with_db(", "open_live(", "open_db_readonly(", "run_parts("];
 
+    /// Index just past the `}` matching the `{` at `open` (counts braces outside string and char
+    /// literals and line comments; good enough for this crate's own sources).
+    fn matching_brace(src: &str, open: usize) -> usize {
+        let b = src.as_bytes();
+        let (mut depth, mut i) = (0i32, open);
+        while i < b.len() {
+            match b[i] {
+                b'"' => {
+                    i += 1;
+                    while i < b.len() && b[i] != b'"' {
+                        if b[i] == b'\\' {
+                            i += 1;
+                        }
+                        i += 1;
+                    }
+                }
+                b'/' if b.get(i + 1) == Some(&b'/') => {
+                    while i < b.len() && b[i] != b'\n' {
+                        i += 1;
+                    }
+                }
+                b'\'' if b.get(i + 2) == Some(&b'\'') || (b.get(i + 1) == Some(&b'\\') && b.get(i + 3) == Some(&b'\'')) => {
+                    i += if b[i + 1] == b'\\' { 3 } else { 2 };
+                }
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return i + 1;
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        b.len()
+    }
+
+    /// `DB_OPENERS` plus every same-file helper `fn` whose body (transitively) opens the DB, so a
+    /// command that reaches the DB through a local wrapper such as `open(&app)` is caught too
+    /// (the FS-21 pack commands slipped past the direct-call scan that way).
+    fn file_db_openers(src: &str) -> Vec<String> {
+        let mut fns: Vec<(String, String)> = Vec::new();
+        let mut at = 0;
+        while let Some(i) = src[at..].find("fn ") {
+            let fn_at = at + i;
+            at = fn_at + 3;
+            let prev = src[..fn_at].chars().last();
+            if prev.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue; // part of another identifier
+            }
+            let name: String = src[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let Some(open) = src[fn_at..].find(['{', ';']) else { break };
+            if src[fn_at + open..].starts_with(';') {
+                continue; // declaration without a body (trait item)
+            }
+            let body_start = fn_at + open;
+            let body_end = matching_brace(src, body_start);
+            if !name.is_empty() {
+                fns.push((name, src[body_start..body_end].to_string()));
+            }
+        }
+        let mut openers: Vec<String> = DB_OPENERS.iter().map(|s| s.to_string()).collect();
+        loop {
+            let before = openers.len();
+            for (name, body) in &fns {
+                let call = format!("{name}(");
+                if !openers.contains(&call) && openers.iter().any(|m| body.contains(m.as_str())) {
+                    openers.push(call);
+                }
+            }
+            if openers.len() == before {
+                return openers;
+            }
+        }
+    }
+
     /// Every `#[tauri::command]` in `src/*.rs` that is synchronous (no `async fn` and no
     /// `#[tauri::command(async)]`) and whose body opens the database.
     fn sync_db_commands() -> Vec<String> {
@@ -1478,19 +1555,26 @@ mod tests {
         let mut found = Vec::new();
         for file in files {
             let src = fs::read_to_string(&file).unwrap();
+            let openers = file_db_openers(&src);
             let mut at = 0;
             while let Some(i) = src[at..].find("#[tauri::command") {
                 let start = at + i;
+                // only a real attribute at the start of a line (not text inside a string or comment)
+                let line_start = src[..start].rfind('\n').map_or(0, |n| n + 1);
+                if !src[line_start..start].trim().is_empty() {
+                    at = start + 1;
+                    continue;
+                }
                 let attr_end = start + src[start..].find(']').unwrap();
                 let attr = &src[start..=attr_end];
                 let fn_at = attr_end + src[attr_end..].find("fn ").unwrap();
                 let head = &src[attr_end..fn_at];
                 let name: String = src[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
                 let body_start = fn_at + src[fn_at..].find('{').unwrap();
-                let body_end = body_start + src[body_start..].find("\n}").unwrap_or(src.len() - body_start);
+                let body_end = matching_brace(&src, body_start);
                 let body = &src[body_start..body_end];
                 let is_async = attr.contains("async") || head.contains("async");
-                if !is_async && DB_OPENERS.iter().any(|m| body.contains(m)) {
+                if !is_async && openers.iter().any(|m| body.contains(m.as_str())) {
                     found.push(format!("{}::{name}", file.file_stem().unwrap().to_string_lossy()));
                 }
                 at = body_end;

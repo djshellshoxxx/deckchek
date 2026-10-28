@@ -94,14 +94,15 @@ fn native_checks(app: &AppHandle) -> Vec<Value> {
 
 /// The front end's result; Rust adds native checks, writes the report and exits.
 #[tauri::command]
-pub fn self_test_report(app: AppHandle, report: Value) -> Result<(), String> {
+pub async fn self_test_report(app: AppHandle, report: Value) -> Result<(), String> {
     if OUT.get().is_none() {
         return Err("self-test is not active".into());
     }
     if serde_json::to_vec(&report).map(|v| v.len()).unwrap_or(usize::MAX) > MAX_REPORT_BYTES {
         return Err("report too large".into());
     }
-    let native = native_checks(&app);
+    let probe = app.clone();
+    let native = crate::db::off_main(move || native_checks(&probe)).await?;
     let ui_ok = report.get("ok").and_then(Value::as_bool) == Some(true);
     let ok = ui_ok && native.iter().all(|c| c.get("ok").and_then(Value::as_bool) == Some(true));
     write_and_exit(Some(&app), ok, native, report);

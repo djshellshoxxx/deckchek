@@ -434,17 +434,17 @@ fn with_conn<T>(app: &tauri::AppHandle, f: impl FnOnce(&Connection, &Path) -> Re
 }
 
 #[tauri::command]
-pub fn signing_get_identity(app: tauri::AppHandle) -> Result<Identity, SigningError> {
-    with_conn(&app, get_or_create_identity)
+pub async fn signing_get_identity(app: tauri::AppHandle) -> Result<Identity, SigningError> {
+    crate::db::off_main(move || with_conn(&app, get_or_create_identity)).await.map_err(SigningError::Db)?
 }
 
 /// "Create new identity" (missing or corrupt key). `confirm` must be true: the UI shows the warning first.
 #[tauri::command]
-pub fn signing_create_identity(app: tauri::AppHandle, confirm: bool) -> Result<Identity, SigningError> {
+pub async fn signing_create_identity(app: tauri::AppHandle, confirm: bool) -> Result<Identity, SigningError> {
     if !confirm {
         return Err(SigningError::ConfirmationRequired);
     }
-    with_conn(&app, create_new_identity)
+    crate::db::off_main(move || with_conn(&app, create_new_identity)).await.map_err(SigningError::Db)?
 }
 
 #[cfg(test)]
