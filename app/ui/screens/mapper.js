@@ -195,7 +195,7 @@ export function createMapperScreen(section) {
   const undo = createUndo();
   const st = {
     model: null, readOnly: false, savedId: null, assetId: null, profileId: null, selectedId: null, target: 'mixxx', force: false,
-    scripts: [], saved: [], learning: null, learnStarting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
+    scripts: [], saved: [], learning: null, learnStarting: false, savingModel: false, deleting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
   const status = h('div', { id: 'mp-status', class: 'mp-status', role: 'status', 'aria-live': 'polite' });
   const warningsBox = h('details', { id: 'mp-warnings', class: 'mp-warnings', hidden: true });
@@ -380,6 +380,9 @@ export function createMapperScreen(section) {
       setStatus('This mapping was made by a newer DeckChek and is read-only here, so it is not saved over.', 'warn', { title: 'Not saved.' });
       return;
     }
+    // One save at a time: savedId is only known once the first save returns, so a second click would insert a copy.
+    if (st.savingModel) return;
+    st.savingModel = true; saveModelBtn.setAttribute('aria-disabled', 'true');
     try {
       const row = await mstore.save({ id: st.savedId, assetId: st.assetId, profileId: st.profileId, name: st.model.name, model: st.model });
       st.savedId = row.id;
@@ -389,16 +392,20 @@ export function createMapperScreen(section) {
     } catch (e) {
       const msg = typeof e === 'string' ? e : e?.message || 'The mapping could not be saved.';
       setStatus(msg.replace(/^MAPPER_[A-Z_]+: /, ''), 'fail', { title: 'Not saved.' });
-    }
+    } finally { st.savingModel = false; saveModelBtn.removeAttribute('aria-disabled'); }
   }
 
   async function deleteSaved() {
     const id = savedSelect.value;
     if (!id) return;
     const row = st.saved.find(r => r.id === id);
-    const ok = await confirmDialog({ title: 'Delete saved mapping?', body: `“${row?.name || 'This mapping'}” is removed from DeckChek. Exported files are not touched.` });
-    if (!ok) return;
-    try { await mstore.remove(id); if (st.savedId === id) st.savedId = null; await refreshSaved(); setStatus('Saved mapping deleted.', 'info'); } catch (e) { setStatus(`Could not delete: ${e?.message || e}`, 'fail'); }
+    if (st.deleting) return;
+    st.deleting = true;
+    try {
+      const ok = await confirmDialog({ title: 'Delete saved mapping?', body: `“${row?.name || 'This mapping'}” is removed from DeckChek. Exported files are not touched.` });
+      if (!ok) return;
+      await mstore.remove(id); if (st.savedId === id) st.savedId = null; await refreshSaved(); setStatus('Saved mapping deleted.', 'info');
+    } catch (e) { setStatus(`Could not delete: ${e?.message || e}`, 'fail'); } finally { st.deleting = false; }
   }
 
   // ---------------------------------------------------------------- MIDI learn
