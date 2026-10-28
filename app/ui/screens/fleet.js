@@ -1,192 +1,283 @@
-// FS-23 fleet UI. Persistence stays in fleet-api; health/reminders/CSV are pure.
-import { h } from '../dom.js';
-import { store, settings, setSetting } from '../state.js';
-import { navigateTo, takeHandoff } from '../crosslinks.js';
-import { go } from '../shell.js';
-import { toast } from '../live.js';
-import { createFleetApi } from '../../fleet-api.js';
-import { filterFleet, fleetToCsv, summarizeFleet } from '../../fleet.js';
-import { saveTextFile } from '../../userfiles.js';
-import { isEnabled, onFeatureChange } from '../../features.js';
-import { registerBoothSheet } from '../booth-sheet.js';
-import { exportPdfWithFeedback } from '../persistence.js';
-import { fleetTemplatePanel } from '../fleet-templates.js';
+// FS-23 fleet dashboard screen: overview grid with summary tiles, filters and an asset side panel, plus the
+// venues editor (fleet-venues.js), reminders manager and events log as tabs. Persistence stays in fleet-api;
+// health, reminder state and CSV are the pure functions in app/fleet.js. Desktop only: the browser preview
+// has no database, so it shows an explicit unsupported state. Flag: features.fleet (default on).
+// The start-up banner lives in ui/fleet-banner.js (installed from the [FS-23] anchor in ui/shell.js).
 
-const HEALTH = { never: 'Never tested', healthy: 'Healthy', review: 'Review', attention: 'Attention' };
+import { h } from '../dom.js';
+import { chip } from '../icons.js';
+import { settings, setSetting } from '../state.js';
+import { navigateTo, takeHandoff } from '../crosslinks.js';
+import { announce } from '../live.js';
+import { createFleetApi } from '../../fleet-api.js';
+import { filterFleet, fleetToCsv, summarizeFleet, reminderWhen, nextDueReminder, HEALTH_META, REMINDER_META } from '../../fleet.js';
+import { saveTextFile } from '../../userfiles.js';
+import { fleetTemplatePanel } from '../fleet-templates.js';
+import { venuesPanel, positionOptions } from './fleet-venues.js';
+import { eventsPanel, maintenanceForm, EVENT_TYPES } from '../fleet-events.js';
+
+const TABS = [['overview', 'Overview'], ['venues', 'Venues & positions'], ['reminders', 'Reminders'], ['events', 'Events log']];
+const HEALTH_RANK = { attention: 0, review: 1, never: 2, healthy: 3 };
 const label = (text, input) => h('label', { class: 'field' }, h('span', { class: 'field-label', text }), input);
 const button = (text, onclick, attrs = {}) => h('button', { type: 'button', class: 'btn btn-secondary', text, onclick, ...attrs });
 const option = (value, text) => h('option', { value, text });
 const friendly = error => typeof error === 'string' ? error : error?.message || 'Fleet operation failed.';
-const dueText = reminder => `${reminder.title}: ${reminder.state === 'dueSoon' ? 'Due soon' : reminder.state}${reminder.dueAt ? ` ${reminder.dueAt}` : Number.isFinite(reminder.dueInHours) ? ` (${reminder.dueInHours.toFixed(1)} tracked h remaining)` : reminder.basis === 'hours' && reminder.state === 'unknown' ? ' (review usage history at the maintenance boundary)' : ''}${reminder.snoozed ? ' (snoozed)' : ''}`;
+const healthChip = row => {
+  // A unit with a session date but no device tests is "never tested" by AC-2; say so rather than hiding the date.
+  const meta = HEALTH_META[row.health] ?? HEALTH_META.never;
+  return h('span', { class: `fleet-health fleet-health-${row.health}`, html: chip(meta.status, meta.label, { size: 14 }) });
+};
+const reminderChip = reminder => {
+  const meta = REMINDER_META[reminder.state] ?? REMINDER_META.unknown; // fixed vocabulary only: no user text goes into chip() markup
+  return h('span', { class: `fleet-reminder fleet-reminder-${reminder.state}`, html: chip(meta.status, meta.label, { size: 14 }) });
+};
+const reminderLine = reminder => `${reminder.title}${reminderWhen(reminder) ? ` · ${reminderWhen(reminder)}` : ''}${reminder.snoozed ? ' (snoozed)' : ''}`;
+
+const SORTS = {
+  nickname: row => String(row.nickname ?? '').toLowerCase(),
+  venue: row => [row.venue, row.booth, row.position].filter(Boolean).join(' / ').toLowerCase() || '￿',
+  lastTestedAt: row => row.lastTestedAt ?? '',
+  health: row => HEALTH_RANK[row.health] ?? 9,
+};
+
+export function sortRows(rows, key, descending) {
+  const value = SORTS[key] ?? SORTS.nickname, sign = descending ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const x = value(a), y = value(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * sign || String(a.nickname).localeCompare(String(b.nickname));
+  });
+}
 
 export function createFleetScreen(section, { api = createFleetApi() } = {}) {
-  const state = { view: null, selected: null, filters: {}, sort: 'nickname', descending: false };
-  section.innerHTML = '<header class="screen-head"><div class="screen-title"><div><h1 tabindex="-1">Fleet</h1><p class="lede">Recorded checks and maintenance across your venues. Tracked hours are estimates, not true runtime.</p></div></div></header><div id="fleet-status" role="status" aria-live="polite"></div><div id="fleet-content"></div>';
-  const status = section.querySelector('#fleet-status'), content = section.querySelector('#fleet-content');
-  const act = async action => { try { await action(); await load(); window.dispatchEvent(new Event('deckchek:fleet-changed')); } catch (error) { status.textContent = friendly(error); } };
-  const filtered = () => filterFleet(state.view?.rows ?? [], state.filters).sort((a, b) => String(a[state.sort] ?? '').localeCompare(String(b[state.sort] ?? '')) * (state.descending ? -1 : 1));
+  const state = { view: null, selected: null, filters: {}, sort: 'nickname', descending: false, tab: 'overview', loading: false };
+  section.innerHTML = `<header class="screen-head"><div class="screen-title"><div><h1 tabindex="-1">Fleet</h1><p class="lede">Recorded checks and maintenance across your venues. Tracked hours are estimates, not true runtime.</p></div></div></header>
+    <div id="fleet-status" role="status" aria-live="polite"></div><div class="tabs" role="tablist" aria-label="Fleet sections" id="fleet-tabs"></div><div id="fleet-content" role="tabpanel" tabindex="-1"></div>`;
+  const status = section.querySelector('#fleet-status'), content = section.querySelector('#fleet-content'), tabs = section.querySelector('#fleet-tabs');
+
+  const act = async action => {
+    try { await action(); await load(); globalThis.dispatchEvent(new Event('deckchek:fleet-changed')); }
+    catch (error) { status.replaceChildren(h('span', { role: 'alert', text: friendly(error) })); announce(friendly(error), { assertive: true }); }
+  };
+  const filtered = () => sortRows(filterFleet(state.view?.rows ?? [], state.filters), state.sort, state.descending);
+
   async function load() {
-    if (!api.native) { content.replaceChildren(h('div', { class: 'empty', text: 'Fleet persistence requires the desktop app. Equipment and recorded-file diagnostics remain available in this browser.' })); return; }
-    status.textContent = 'Loading fleet…';
-    try { state.view = await api.overview({ staleDays: settings.fleet?.staleDays ?? 90 }); status.textContent = ''; render(); }
-    catch (error) { status.replaceChildren(h('p', { text: friendly(error) }), button('Retry', load)); }
+    if (!api.native) { tabs.hidden = true; content.replaceChildren(h('div', { class: 'empty', id: 'fleet-unsupported', text: 'Fleet persistence requires the desktop app. Equipment and recorded-file diagnostics remain available in this browser.' })); return; }
+    tabs.hidden = false;
+    state.loading = true;
+    if (!state.view) renderSkeleton();
+    status.replaceChildren(h('span', { text: state.view ? 'Refreshing fleet…' : 'Loading fleet…' }));
+    try { state.view = await api.overview({ staleDays: settings.fleet?.staleDays ?? 90 }); status.replaceChildren(); state.loading = false; render(); }
+    catch (error) { state.loading = false; status.replaceChildren(h('span', { role: 'alert', text: `Could not load the fleet: ${friendly(error)} ` }), button('Retry', load, { id: 'fleet-retry' })); }
   }
-  async function exportCsv() { try { await saveTextFile({ suggestedName: 'DeckChek-fleet.csv', ext: 'csv', content: fleetToCsv(filtered()) }); } catch (error) { status.textContent = friendly(error); } }
+
+  function renderSkeleton() {
+    content.replaceChildren(h('div', { class: 'fleet-skeleton', 'aria-hidden': 'true' }, ...Array.from({ length: 5 }, () => h('div', { class: 'fleet-skeleton-row' }))));
+  }
+
+  function renderTabs() {
+    tabs.replaceChildren(...TABS.map(([id, text]) => h('button', {
+      type: 'button', class: 'tab', role: 'tab', id: `fleet-tab-${id}`, 'aria-selected': String(state.tab === id), 'aria-controls': 'fleet-content', tabindex: state.tab === id ? '0' : '-1', text,
+      onclick: () => selectTab(id),
+      onkeydown: e => {
+        const i = TABS.findIndex(([t]) => t === state.tab);
+        const next = e.key === 'ArrowRight' ? (i + 1) % TABS.length : e.key === 'ArrowLeft' ? (i - 1 + TABS.length) % TABS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : -1;
+        if (next < 0) return;
+        e.preventDefault(); selectTab(TABS[next][0], { focusTab: true });
+      },
+    })));
+    content.setAttribute('aria-labelledby', `fleet-tab-${state.tab}`);
+  }
+  function selectTab(id, { focusTab = false } = {}) {
+    state.tab = id; render();
+    if (focusTab) section.querySelector(`#fleet-tab-${id}`)?.focus();
+  }
+
+  function render() {
+    if (!state.view) return;
+    renderTabs();
+    const selected = state.view.rows.find(r => r.assetId === state.selected);
+    if (state.tab === 'venues') content.replaceChildren(venuesPanel({ view: state.view, api, act }));
+    else if (state.tab === 'reminders') content.replaceChildren(remindersManager(selected));
+    else if (state.tab === 'events') content.replaceChildren(eventsPanel({ view: state.view, api, act }));
+    else renderOverview();
+  }
+
+  // ----- overview -----
+  async function exportCsv() {
+    try {
+      const rows = filtered();
+      const result = await saveTextFile({ suggestedName: 'DeckChek-fleet.csv', ext: 'csv', content: fleetToCsv(rows) });
+      if (!result.cancelled) announce(`Exported ${rows.length} assets to CSV.`);
+    } catch (error) { status.replaceChildren(h('span', { role: 'alert', text: friendly(error) })); }
+  }
+
+  function tile(key, title, count, filter) {
+    const pressed = filter && Object.entries(filter).every(([k, v]) => state.filters[k] === v);
+    return h('button', { type: 'button', class: `fleet-tile fleet-tile-${key}`, 'data-tile': key, 'aria-pressed': filter ? String(Boolean(pressed)) : null,
+      onclick: () => { if (!filter) return; for (const k of ['status', 'reminder']) delete state.filters[k]; if (!pressed) Object.assign(state.filters, filter); render(); } },
+    h('span', { class: 'fleet-tile-count', text: String(count) }), h('span', { class: 'fleet-tile-label', text: title }));
+  }
+
   function filterSelect(name, title, values) {
     const select = h('select', { 'data-fleet-filter': name }, option('', `All ${title.toLowerCase()}`), ...values.map(([id, text]) => option(id, text)));
     select.value = state.filters[name] ?? '';
-    select.addEventListener('change', () => { state.filters[name] = select.value; render(); });
+    select.addEventListener('change', () => { state.filters[name] = select.value; if (name === 'venueId') delete state.filters.boothId; render(); });
     return label(title, select);
   }
-  function render() {
-    const view = state.view, rows = filtered(), tiles = summarizeFleet(rows);
-    const search = h('input', { type: 'search', id: 'fleet-search', value: state.filters.search || '', placeholder: 'Asset, model or location' });
+
+  function renderOverview() {
+    const view = state.view, all = summarizeFleet(view.rows);
+    const search = h('input', { type: 'search', id: 'fleet-search', value: state.filters.search || '', placeholder: 'Asset, model, serial or location' });
     search.addEventListener('input', () => { state.filters.search = search.value; renderRows(); });
-    const filters = h('div', { class: 'field-grid' }, label('Search fleet', search),
+    const booths = view.booths.filter(b => !state.filters.venueId || b.venueId === state.filters.venueId);
+    const filters = h('div', { class: 'field-grid fleet-filters' }, label('Search fleet', search),
       filterSelect('venueId', 'Venues', view.venues.map(v => [v.id, v.name])),
-      filterSelect('boothId', 'Booths', view.booths.map(b => [b.id, b.name])),
+      filterSelect('boothId', 'Booths', booths.map(b => [b.id, b.name])),
       filterSelect('category', 'Categories', [...new Set(view.rows.map(r => r.category).filter(Boolean))].sort().map(v => [v, v])),
-      filterSelect('status', 'Statuses', Object.entries(HEALTH)));
-    const summary = h('p', { id: 'fleet-summary', role: 'status', text: `Attention ${tiles.attention} · Overdue ${tiles.overdue} · Due soon ${tiles.dueSoon} · Never tested ${tiles.never}` });
-    const gridHost = h('div', { id: 'fleet-grid-host' });
-    content.replaceChildren(h('section', { class: 'card' }, summary, filters,
-      h('div', { class: 'action-bar' }, button('Export CSV', exportCsv, { id: 'fleet-export' }), button('Refresh', load)), gridHost),
-      h('section', { class: 'card', id: 'fleet-detail' }), locationEditor(), fleetTemplatePanel({ view, selectedAsset: view.rows.find(r => r.assetId === state.selected), api, act }), settingsEditor());
+      filterSelect('status', 'Statuses', Object.entries(HEALTH_META).map(([id, m]) => [id, m.label])));
+    const tiles = h('div', { class: 'fleet-tiles', id: 'fleet-tiles', role: 'group', 'aria-label': 'Fleet summary; select a tile to filter' },
+      tile('attention', 'Attention', all.attention, { status: 'attention' }), tile('overdue', 'Overdue', all.overdue, { reminder: 'overdue' }),
+      tile('dueSoon', 'Due soon', all.dueSoon, { reminder: 'dueSoon' }), tile('never', 'Never tested', all.never, { status: 'never' }));
+    content.replaceChildren(h('section', { class: 'card' }, h('p', { id: 'fleet-summary', class: 'sr-only', role: 'status' }), tiles, filters,
+      h('div', { class: 'action-bar' }, button('Export CSV', exportCsv, { id: 'fleet-export' }), button('Refresh', load, { id: 'fleet-refresh' }),
+        h('span', { class: 'muted small', text: 'Shortcuts: / filter · E export · N new event' })),
+    h('div', { id: 'fleet-grid-host' })),
+    h('section', { class: 'card', id: 'fleet-detail', 'aria-label': 'Asset details' }), settingsEditor());
     renderRows(); renderDetail();
   }
+
   function renderRows() {
-    const rows = filtered(), grid = h('table', { role: 'grid', 'aria-label': 'Fleet assets', id: 'fleet-grid' });
+    const rows = filtered(), host = content.querySelector('#fleet-grid-host');
+    if (!host) return;
+    if (!rows.length) {
+      host.replaceChildren(view0().rows.length
+        ? h('p', { class: 'empty', text: 'No assets match these filters.' })
+        : h('div', { class: 'empty', id: 'fleet-no-assets' }, h('p', { text: 'No assets yet. Add decks and mixers in Equipment, then place them in a venue.' }), button('Open Venues & positions', () => selectTab('venues'))));
+      announceSummary(rows); return;
+    }
+    const grid = h('table', { role: 'grid', 'aria-label': 'Fleet assets', id: 'fleet-grid', class: 'fleet-grid' });
     const columns = [['nickname', 'Asset'], ['venue', 'Location'], ['lastTestedAt', 'Last tested'], ['health', 'Health'], ['failing', 'Failing items'], ['reminders', 'Next due']];
     const header = h('tr');
     for (const [key, title] of columns) {
-      const sortable = !['failing', 'reminders'].includes(key);
-      header.append(h('th', { scope: 'col', 'aria-sort': state.sort === key ? state.descending ? 'descending' : 'ascending' : 'none' }, sortable ? button(title, () => { state.descending = state.sort === key && !state.descending; state.sort = key; renderRows(); }) : title));
+      const sortable = key in SORTS;
+      header.append(h('th', { scope: 'col', 'aria-sort': sortable ? (state.sort === key ? (state.descending ? 'descending' : 'ascending') : 'none') : null },
+        sortable ? button(title, () => { state.descending = state.sort === key && !state.descending; state.sort = key; renderRows(); }, { class: 'btn btn-ghost fleet-sort', 'data-sort': key }) : title));
     }
     grid.append(h('thead', {}, header));
     const body = h('tbody');
-    for (const [index, row] of rows.entries()) {
+    for (const [index, row] of rows.slice(0, 500).entries()) {
+      const failing = row.failing ?? [];
+      const next = nextDueReminder(row.reminders);
       const tr = h('tr', { tabindex: index === 0 ? '0' : '-1', 'data-fleet-asset': row.assetId, 'aria-selected': state.selected === row.assetId ? 'true' : 'false' },
-        h('td', {}, button(`${row.nickname}${row.productName ? ` · ${row.productName}` : ''}`, () => { state.selected = row.assetId; renderDetail(); })),
-        h('td', { text: [row.venue, row.booth, row.position].filter(Boolean).join(' / ') || 'Unplaced' }), h('td', { text: row.lastTestedAt?.slice(0, 10) || 'Never tested' }),
-        h('td', { text: HEALTH[row.health] }), h('td', { text: row.failing.slice(0, 3).map(f => f.name).join(', ') + (row.failing.length > 3 ? ` +${row.failing.length - 3}` : '') || 'None recorded' }),
-        h('td', { text: row.reminders.map(dueText).join('; ') || 'No reminders' }));
+        h('td', {}, button(`${row.nickname}${row.productName ? ` · ${row.productName}` : ''}`, () => select(row.assetId), { class: 'btn btn-ghost fleet-asset-name', tabindex: '-1' })),
+        h('td', { text: [row.venue, row.booth, row.position].filter(Boolean).join(' / ') || 'Unplaced' }),
+        h('td', { text: row.lastTestedAt?.slice(0, 10) || 'Never tested' }),
+        h('td', {}, healthChip(row)),
+        h('td', {}, failing.length ? [...failing.slice(0, 3).map(f => h('span', { class: 'fleet-failing', text: f.name })), failing.length > 3 ? h('span', { class: 'fleet-failing-more', text: `+${failing.length - 3}` }) : null] : h('span', { class: 'muted', text: 'None recorded' })),
+        h('td', {}, next ? [reminderChip(next), ` ${reminderLine(next)}`] : h('span', { class: 'muted', text: 'No reminders' })));
       tr.addEventListener('keydown', event => {
-        const next = event.key === 'ArrowDown' ? tr.nextElementSibling : event.key === 'ArrowUp' ? tr.previousElementSibling : null;
-        if (next) { event.preventDefault(); tr.tabIndex = -1; next.tabIndex = 0; next.focus(); }
-        if (event.key === 'Enter' && event.target === tr) { state.selected = row.assetId; renderDetail(); }
-      }); body.append(tr);
+        if (event.target !== tr) return;
+        const move = event.key === 'ArrowDown' ? tr.nextElementSibling : event.key === 'ArrowUp' ? tr.previousElementSibling : event.key === 'Home' ? body.firstElementChild : event.key === 'End' ? body.lastElementChild : null;
+        if (move) { event.preventDefault(); tr.tabIndex = -1; move.tabIndex = 0; move.focus(); }
+        if (event.key === 'Enter') { event.preventDefault(); select(row.assetId); }
+      });
+      body.append(tr);
     }
     grid.append(body);
-    content.querySelector('#fleet-grid-host').replaceChildren(rows.length ? grid : h('p', { class: 'empty', text: 'No assets match. Add assets in Equipment, then place them in a venue below.' }));
-    const tiles = summarizeFleet(rows);
-    content.querySelector('#fleet-summary').textContent = `Attention ${tiles.attention} · Overdue ${tiles.overdue} · Due soon ${tiles.dueSoon} · Never tested ${tiles.never}`;
+    host.replaceChildren(...[grid, rows.length > 500 ? h('p', { class: 'muted', text: `Showing the first 500 of ${rows.length} matching assets. Narrow the filters or export CSV for all of them.` }) : null].filter(Boolean));
+    announceSummary(rows);
   }
+  const view0 = () => state.view ?? { rows: [] };
+  function announceSummary(rows) {
+    const t = summarizeFleet(rows), el = content.querySelector('#fleet-summary');
+    if (el) el.textContent = `${rows.length} assets. Attention ${t.attention}, overdue ${t.overdue}, due soon ${t.dueSoon}, never tested ${t.never}.`;
+  }
+  function select(assetId) { state.selected = assetId; content.querySelectorAll('[data-fleet-asset]').forEach(tr => tr.setAttribute('aria-selected', String(tr.dataset.fleetAsset === assetId))); renderDetail(); content.querySelector('#fleet-detail h2')?.focus(); }
+
   function renderDetail() {
     const host = content.querySelector('#fleet-detail'), row = state.view.rows.find(r => r.assetId === state.selected);
-    content.querySelector('#fleet-templates')?.replaceWith(fleetTemplatePanel({ view: state.view, selectedAsset: row, api, act }));
-    if (!row) { host.replaceChildren(h('p', { text: 'Choose an asset to place it, review reminders or log maintenance.' })); return; }
-    const placement = h('select', { id: 'fleet-placement' }, option('', 'Unplaced'), ...state.view.positions.map(p => option(p.id, `${state.view.booths.find(b => b.id === p.boothId)?.name || ''} / ${p.name}`)));
+    if (!host) return;
+    if (!row) { host.replaceChildren(h('p', { class: 'muted', text: 'Choose an asset to see its recent results, reminders and events, move it, or log maintenance.' })); return; }
+    const placement = h('select', { id: 'fleet-placement' }, option('', 'Unplaced'), ...positionOptions(state.view).map(([id, text]) => option(id, text)));
     placement.value = row.deckPositionId ?? '';
-    const reminderForm = h('form', { id: 'fleet-reminder-form' });
+    const reminderForm = h('form', { id: 'fleet-reminder-form', class: 'fleet-form' });
     const title = h('input', { name: 'title', required: true, maxlength: 200 }), basis = h('select', { name: 'basis' }, option('days', 'Calendar days'), option('hours', 'Tracked hours')),
       interval = h('input', { name: 'interval', type: 'number', min: 1, max: 1000000, value: 90, required: true }), warning = h('input', { name: 'warning', type: 'number', min: 0, max: 1000000, value: 14, required: true });
-    reminderForm.append(h('h3', { text: 'Add reminder' }), h('div', { class: 'field-grid' }, label('Title', title), label('Basis', basis), label('Every', interval), label('Warn before', warning)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save reminder' }));
+    reminderForm.append(h('h3', { text: 'Add reminder' }), h('div', { class: 'field-grid' }, label('Title', title), label('Basis', basis), label('Every (days or tracked hours)', interval), label('Warn before', warning)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save reminder' }));
     reminderForm.addEventListener('submit', event => { event.preventDefault(); act(() => api.saveReminder({ assetId: row.assetId, title: title.value, basis: basis.value, intervalValue: Number(interval.value), warnBefore: Number(warning.value) })); });
-    const eventForm = h('form', { id: 'fleet-event-form' }), kind = h('select', {}, ...['clean', 'lubricate', 'calibrate', 'repair', 'replace_part', 'inspect', 'other'].map(v => option(v, v.replaceAll('_', ' ')))),
-      description = h('textarea', { maxlength: 2000 }), completes = h('select', {}, option('', 'No reminder completed'), ...row.reminders.map(r => option(r.id, r.title)));
-    eventForm.append(h('h3', { text: 'Log maintenance' }), h('div', { class: 'field-grid' }, label('Event type', kind), label('Description', description), label('Completes reminder', completes)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Log event' }));
-    eventForm.addEventListener('submit', event => { event.preventDefault(); act(() => api.log({ assetId: row.assetId, eventType: kind.value, eventAt: new Date().toISOString(), description: description.value, reminderId: completes.value || null })); });
-    const reminders = h('ul', {}, ...row.reminders.map(reminder => h('li', {}, h('span', { text: dueText(reminder) }), button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString()))))));
-    const events = h('div', { id: 'fleet-events', 'aria-live': 'polite', text: 'Loading maintenance history…' }), eventFilters = h('div', { class: 'field-grid', id: 'fleet-event-filters' }),
-      from = h('input', { type: 'date', name: 'from' }), to = h('input', { type: 'date', name: 'to' }), eventType = h('select', { name: 'eventType' }, option('', 'All events'), ...['clean', 'lubricate', 'calibrate', 'repair', 'replace_part', 'inspect', 'other'].map(v => option(v, v.replaceAll('_', ' '))));
+    const reminders = h('ul', { class: 'fleet-reminders' }, ...row.reminders.map(reminder => h('li', {}, reminderChip(reminder), ` ${reminderLine(reminder)} `,
+      button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString())), { 'aria-label': `Snooze ${reminder.title} for 1 day` }))));
+    const results = (row.lastResults ?? []).filter(r => r.status !== 'pass').slice(0, 10);
+    const events = h('div', { id: 'fleet-events', 'aria-live': 'polite', text: 'Loading maintenance history…' }), eventFilters = h('div', { class: 'field-grid', id: 'fleet-event-filters' });
+    const from = h('input', { type: 'date', name: 'from' }), to = h('input', { type: 'date', name: 'to' }), eventType = h('select', { name: 'eventType' }, option('', 'All events'), ...EVENT_TYPES.map(v => option(v, v.replaceAll('_', ' '))));
     eventFilters.append(label('From (UTC date)', from), label('To (UTC date)', to), label('Event type', eventType));
-    host.replaceChildren(h('h2', { tabindex: '-1', text: row.nickname }), h('p', { text: `${HEALTH[row.health]} · ${row.hoursTotal.toFixed(1)} tracked hours (estimate)` }),
-      h('div', { class: 'action-bar' }, button('Run tests', () => navigateTo('devices', { assetId: row.assetId })), label('Move to position', placement), button('Move asset', () => act(() => api.place(row.assetId, placement.value || null)))),
-      h('h3', { text: 'Reminders' }), reminders, reminderForm, eventForm, h('h3', { text: 'Maintenance history (latest 1,000 matching events)' }), eventFilters, events);
-    let eventRequest = 0;
+    host.replaceChildren(...[h('h2', { tabindex: '-1', text: row.nickname }),
+      h('p', {}, healthChip(row), ` ${row.hoursTotal.toFixed(1)} tracked hours (estimate)`),
+      results.length ? h('p', { class: 'muted', text: `Needs a look: ${results.map(r => `${r.name ?? r.testId} (${r.status})`).join(', ')}` }) : null,
+      h('div', { class: 'action-bar' }, button('Run tests', () => navigateTo('devices', { assetId: row.assetId }), { id: 'fleet-run-tests' }), label('Move to position', placement), button('Move asset', () => act(() => api.place(row.assetId, placement.value || null)), { id: 'fleet-move' })),
+      h('h3', { text: 'Reminders' }), row.reminders.length ? reminders : h('p', { class: 'muted', text: 'No reminders for this asset.' }), reminderForm,
+      maintenanceForm({ assets: state.view.rows, fixedAsset: row, api, act }),
+      h('h3', { text: 'Maintenance history (latest 1,000 matching events)' }), eventFilters, events].filter(Boolean));
+    let request = 0;
     const loadEvents = async () => {
-      const request = ++eventRequest;
-      try { const rows = await api.events(row.assetId, { from: from.value || null, to: to.value || null, eventType: eventType.value || null });
-        if (request !== eventRequest || state.selected !== row.assetId || !events.isConnected) return;
+      const mine = ++request;
+      try {
+        const rows = await api.events(row.assetId, { from: from.value || null, to: to.value || null, eventType: eventType.value || null });
+        if (mine !== request || state.selected !== row.assetId || !events.isConnected) return;
         events.replaceChildren(rows.length ? h('ul', {}, ...rows.map(e => h('li', { text: `${e.eventAt.slice(0, 10)} · ${e.eventType.replaceAll('_', ' ')} · ${e.description || ''}` }))) : h('p', { text: 'No maintenance matches these filters.' }));
-      } catch (error) { if (request === eventRequest && events.isConnected) events.textContent = friendly(error); }
+      } catch (error) { if (mine === request && events.isConnected) events.textContent = friendly(error); }
     };
     for (const filter of [from, to, eventType]) filter.addEventListener('change', loadEvents);
     loadEvents();
   }
-  function locationEditor() {
-    const form = h('form', { id: 'fleet-location-form' }), kind = h('select', { name: 'kind' }, option('booth', 'Booth'), option('position', 'Position'), option('venue', 'Venue')),
-      existing = h('select', { name: 'existing' }), parent = h('select', { name: 'parent' }), name = h('input', { name: 'name', required: true, maxlength: 200 }),
-      confirmation = h('input', { name: 'confirmation', autocomplete: 'off' }), destination = h('select', { name: 'deleteDestination' }), impact = h('p', { id: 'fleet-delete-impact' }),
-      remove = button('Delete empty location', () => act(() => api.deleteLocation(kind.value, existing.value, destination.value ? { deckPositionId: destination.value === 'unplaced' ? null : destination.value.slice(9) } : null)), { disabled: true });
-    const records = () => kind.value === 'venue' ? state.view.venues : kind.value === 'booth' ? state.view.booths : state.view.positions;
-    const choose = () => {
-      const row = records().find(row => row.id === existing.value);
-      name.value = row?.name || ''; confirmation.value = ''; remove.disabled = true;
-      const booths = state.view.booths.filter(b => kind.value === 'venue' ? b.venueId === existing.value : kind.value === 'booth' && b.id === existing.value);
-      const positions = state.view.positions.filter(p => kind.value === 'position' ? p.id === existing.value : booths.some(b => b.id === p.boothId));
-      const affected = state.view.rows.filter(a => positions.some(p => p.id === a.deckPositionId));
-      impact.textContent = row ? `Deletion affects ${affected.length} assets, ${booths.length} booths and ${positions.length} positions. Saved setup or diagnostic references block deletion; failed deletion rolls back all moves.` : 'Choose an existing location to delete.';
-      destination.replaceChildren(option('', 'Keep occupied locations blocked'), option('unplaced', 'Move assets to Unplaced'), ...state.view.positions.filter(p => !positions.some(inside => inside.id === p.id)).map(p => option(`position:${p.id}`, `Move assets to ${p.name}`)));
-      destination.disabled = !row; remove.textContent = 'Delete empty location';
-      if (row && kind.value !== 'venue') parent.value = row.venueId ?? row.boothId;
-    };
-    const update = () => {
-      existing.replaceChildren(option('', 'New location'), ...records().map(row => option(row.id, row.name)));
-      parent.replaceChildren(...(kind.value === 'booth' ? state.view.venues : state.view.booths).map(row => option(row.id, row.name)));
-      parent.disabled = kind.value === 'venue'; choose();
-    };
-    kind.addEventListener('change', update); existing.addEventListener('change', choose);
-    destination.addEventListener('change', () => { remove.textContent = destination.value ? 'Move assets and delete location' : 'Delete empty location'; });
-    confirmation.addEventListener('input', () => { remove.disabled = !existing.value || confirmation.value !== records().find(row => row.id === existing.value)?.name; });
-    update();
-    form.append(h('h2', { text: 'Venues and positions' }), h('p', { text: 'Add a venue, a booth and a position, then place an asset above. Existing locations can be renamed or moved. Choose a destination to move or unplace affected assets atomically with deletion; clear saved setup references first.' }),
-      h('div', { class: 'field-grid' }, label('Location type', kind), label('Edit', existing), label('Parent', parent), label('Name', name)), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save location' }),
-      impact, label('Assets when deleting', destination), label('Type the existing name to enable deletion', confirmation), remove);
-    form.addEventListener('submit', event => { event.preventDefault(); act(() => kind.value === 'venue'
-      ? store.upsert('venue', { id: existing.value || undefined, name: name.value })
-      : (kind.value === 'booth' ? api.saveBooth : api.savePosition)({ id: existing.value || null, parentId: parent.value, name: name.value })); });
-    const sheets = state.view.booths.map(booth => button(`Print ${booth.name} sheet`, async () => { registerBoothSheet(); await exportPdfWithFeedback('boothSheet', { booth, rows: state.view.rows.filter(r => r.boothId === booth.id) }); }));
-    return h('section', { class: 'card' }, form, h('div', { class: 'action-bar' }, ...sheets), button('Manage venues in Equipment', () => go('equipment')));
+
+  // ----- reminders manager -----
+  function remindersManager(selected) {
+    const all = state.view.rows.flatMap(r => r.reminders.map(reminder => ({ reminder, row: r })));
+    const rank = { overdue: 0, dueSoon: 1, unknown: 2, ok: 3, disabled: 4 };
+    all.sort((a, b) => (rank[a.reminder.state] ?? 5) - (rank[b.reminder.state] ?? 5) || a.row.nickname.localeCompare(b.row.nickname));
+    const list = all.length
+      ? h('table', { class: 'fleet-grid', id: 'fleet-reminder-table', 'aria-label': 'All reminders' }, h('thead', {}, h('tr', {}, ...['Asset', 'Reminder', 'State', ''].map(t => h('th', { scope: 'col', text: t })))),
+        h('tbody', {}, ...all.slice(0, 500).map(({ reminder, row }) => h('tr', {}, h('td', { text: row.nickname }), h('td', { text: reminder.title }), h('td', {}, reminderChip(reminder), reminder.snoozed ? ' (snoozed)' : ''),
+          h('td', {}, button('Snooze 1 day', () => act(() => api.snooze(reminder.id, new Date(Date.now() + 86400000).toISOString())), { 'aria-label': `Snooze ${reminder.title} on ${row.nickname} for 1 day` }))))))
+      : h('p', { class: 'muted', text: 'No reminders yet. Add one from an asset’s panel on Overview, or create a product template below.' });
+    return h('div', { class: 'fleet-stack' }, h('section', { class: 'card' }, h('h2', { text: 'Reminders' }),
+      selected ? h('p', { class: 'muted', text: `Selected asset for templates: ${selected.nickname}` }) : h('p', { class: 'muted', text: 'Select an asset on Overview to apply a template to it.' }), list),
+    fleetTemplatePanel({ view: state.view, selectedAsset: selected, api, act }));
   }
+
   function settingsEditor() {
-    const form = h('form', { class: 'card', id: 'fleet-settings' }), stale = h('input', { type: 'number', min: 1, max: 3650, required: true, value: settings.fleet?.staleDays ?? 90 }), banner = h('input', { type: 'checkbox', checked: settings.fleet?.startupBanner !== false });
+    const form = h('form', { class: 'card fleet-form', id: 'fleet-settings' }), stale = h('input', { type: 'number', min: 1, max: 3650, required: true, value: settings.fleet?.staleDays ?? 90 }), banner = h('input', { type: 'checkbox', checked: settings.fleet?.startupBanner !== false });
     form.append(h('h2', { text: 'Fleet settings' }), label('Review results after this many calendar days', stale), label('Show startup maintenance summary', banner), h('button', { type: 'submit', class: 'btn btn-primary', text: 'Save fleet settings' }));
-    form.addEventListener('submit', event => { event.preventDefault(); setSetting('fleet', { ...settings.fleet, staleDays: Number(stale.value), startupBanner: banner.checked }); load(); window.dispatchEvent(new Event('deckchek:fleet-changed')); });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const days = Math.round(Number(stale.value));
+      if (!(days >= 1 && days <= 3650)) { announce('Stale days must be between 1 and 3650.', { assertive: true }); return; }
+      setSetting('fleet', { ...settings.fleet, staleDays: days, startupBanner: banner.checked });
+      load(); globalThis.dispatchEvent(new Event('deckchek:fleet-changed'));
+    });
     return form;
   }
+
   section.addEventListener('keydown', event => {
-    if (/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
-    if (event.key === '/') { event.preventDefault(); section.querySelector('#fleet-search')?.focus(); }
-    if (event.key.toLowerCase() === 'e') exportCsv();
-    if (event.key.toLowerCase() === 'n') section.querySelector('#fleet-event-form select')?.focus();
+    if (event.ctrlKey || event.metaKey || event.altKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || document.querySelector('dialog[open]')) return;
+    const key = event.key.toLowerCase();
+    if (event.key === '/') { event.preventDefault(); if (state.tab !== 'overview') selectTab('overview'); section.querySelector('#fleet-search')?.focus(); }
+    else if (key === 'e' && state.tab === 'overview') { event.preventDefault(); exportCsv(); }
+    else if (key === 'n') {
+      event.preventDefault();
+      if (state.tab === 'overview' && state.selected) section.querySelector('#fleet-event-form select')?.focus();
+      else { selectTab('events'); section.querySelector('#fleet-log-form select')?.focus(); }
+    }
   });
-  return { onShow: () => { const handoff = takeHandoff('fleet'); if (handoff?.assetId) state.selected = handoff.assetId; return load(); } };
+  return {
+    onShow: () => { const handoff = takeHandoff('fleet'); if (handoff?.assetId) { state.selected = handoff.assetId; state.tab = 'overview'; } return load(); },
+    onExport: () => exportCsv(),
+  };
 }
 
 export function fleetScreenDefs() {
   const main = document.getElementById('main');
   if (main && !document.getElementById('screen-fleet')) main.append(h('section', { class: 'screen', id: 'screen-fleet', hidden: true }));
   return [{ id: 'fleet', title: 'Fleet', short: 'Fleet', icon: 'equipment', feature: 'fleet', create: createFleetScreen }];
-}
-
-/** Non-blocking startup reminder summary; dismissing snoozes, never deletes. */
-export async function initFleetReminders({ api = createFleetApi() } = {}) {
-  async function refresh() {
-    document.getElementById('fleet-reminder-banner')?.remove();
-    document.querySelector('.rail-item[data-screen="fleet"] [data-fleet-badge]')?.remove();
-    if (!api.native || !isEnabled('fleet') || settings.fleet?.startupBanner === false) return;
-    try {
-      const view = await api.overview({ staleDays: settings.fleet?.staleDays ?? 90 }), due = view.rows.flatMap(row => row.reminders).filter(r => !r.snoozed && ['overdue', 'dueSoon'].includes(r.state));
-      if (!due.length) return;
-      const banner = h('section', { id: 'fleet-reminder-banner', role: 'status', class: 'card' }, h('p', { text: `${due.length} maintenance items need attention: ${view.tiles.overdue} overdue, ${view.tiles.dueSoon} due soon.` }),
-        h('ul', {}, ...due.slice(0, 5).map(r => h('li', { text: dueText(r) }))), due.length > 5 ? h('p', { text: `and ${due.length - 5} more` }) : null,
-        button('Review fleet', () => go('fleet')), button('Dismiss for 1 day', async () => { try { const until = new Date(Date.now() + 86400000).toISOString(); await Promise.all(due.map(r => api.snooze(r.id, until))); await refresh(); } catch (error) { toast(friendly(error), { type: 'error' }); } }));
-      document.getElementById('main')?.prepend(banner);
-      document.querySelector('.rail-item[data-screen="fleet"]')?.append(h('span', { class: 'badge', 'data-fleet-badge': true, text: String(due.length) }));
-    } catch (error) { toast(`Maintenance reminders unavailable: ${friendly(error)}`, { type: 'warn' }); }
-  }
-  onFeatureChange(({ name }) => { if (name === 'fleet') refresh(); });
-  window.addEventListener('deckchek:fleet-changed', refresh);
-  await refresh();
 }

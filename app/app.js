@@ -42,7 +42,7 @@ import { humScreenDefs } from './ui/workflows/hum.js';
 // [FS-21] screens imports
 // [FS-22] screens imports
 // [FS-23] screens imports
-import { fleetScreenDefs, initFleetReminders } from './ui/screens/fleet.js';
+import { fleetScreenDefs } from './ui/screens/fleet.js';
 // [FS-30] screens imports
 import { phoneImportScreenDefs } from './ui/workflows/import-phone.js';
 // [FS-31] screens imports
@@ -102,7 +102,7 @@ function start() {
   const initial = SCREENS.some(s => s.id === settings.screen) ? settings.screen : 'quick';
   go(initial);
   // First run: sync every device profile into the catalog and create one asset per device ("My <model>").
-  initNativePersistence().then(migrateLocalRuns).catch(() => {}).then(() => ensureLibrary()).catch(() => {}).then(() => initFleetReminders());
+  initNativePersistence().then(migrateLocalRuns).catch(() => {}).then(() => ensureLibrary()).catch(() => {});
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
