@@ -440,21 +440,30 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>) -> Result<Vec<Value>, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| list(c, e, filter.as_ref()))
+pub async fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| list(c, e, filter.as_ref()))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn catalog_upsert(app: AppHandle, entity: String, record: Value) -> Result<Value, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| upsert(c, e, &record))
+pub async fn catalog_upsert(app: AppHandle, entity: String, record: Value) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| upsert(c, e, &record))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn catalog_delete(app: AppHandle, entity: String, id: String) -> Result<bool, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| delete(c, e, &id))
+pub async fn catalog_delete(app: AppHandle, entity: String, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| delete(c, e, &id))
+    })
+    .await?
 }
 
 #[cfg(test)]

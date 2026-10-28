@@ -36,6 +36,11 @@ not part of CI (the Linux CI runners have no browsers configured):
 
     NODE_PATH=$(npm root -g) node tools/ui-smoke.mjs
 
+On a cloud or offline machine with Chromium already installed, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the actual Chromium executable. For
+example, `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/lib/chromium/chromium`
+reuses the system browser; CI continues to use Playwright's pinned browser.
+
 ## Run the Tauri desktop shell
 
 Install Rust and the Tauri 2 platform prerequisites, then from the repository root run:
