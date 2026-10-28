@@ -26,7 +26,7 @@ export const FEATURES = Object.freeze({
   population: flag('FS-21', 'M7', false, 'Unit vs population', 'Compare a unit against its spec, your other units and history.'),
   packs: flag('FS-21', 'M7', false, 'Population packs', 'Import and export anonymous population packs (adds the Population tab).'),
   service: flag('FS-22', 'M7', false, 'Service worksheets', 'Repair jobs with before/after measurements, a work log and a job sheet.'),
-  fleet: flag('FS-23', 'M7', true, 'Venue fleet dashboard', 'Fleet overview, placement and maintenance reminders across venues.'),
+  fleet: flag('FS-23', 'M7', false, 'Venue fleet dashboard', 'Fleet overview, placement and maintenance reminders across venues.'),
   phoneImport: flag('FS-30', 'M8', false, 'Phone import', 'Import results from the mobile companion.'),
   liveMonitor: flag('FS-31', 'M8', false, 'Live timecode monitor', 'Live timecode doctor beside DJ software.'),
   mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.'),

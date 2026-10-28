@@ -51,7 +51,7 @@ DeckChek measures real hardware and its users trust the numbers, so the bar is "
 
 ### 1.6 Feature flags
 - Single registry `app/features.js` (FS-00 §4.14); flags hide UI only, commands always exist. Options > Advanced > Experimental features toggles them.
-- New features default **off** for the pre-release they first ship in, unless the spec says otherwise (FS-01 wizard, FS-03 PDF, FS-07 links, FS-08 backup UI, FS-23 fleet default on); flipped to on in the next milestone after the owner's manual hardware run passes.
+- New features default **off** for the pre-release they first ship in, unless the spec says otherwise (FS-01 wizard, FS-03 PDF, FS-07 links, FS-08 backup UI; FS-23 fleet remains opt-in until its real-database/H-23 qualification passes); flipped to on in the next milestone after the owner's manual hardware run passes.
 - Flags are removed (code path made unconditional) in M9 for everything that is on by default and stable.
 
 ### 1.7 Versioning and release cadence
