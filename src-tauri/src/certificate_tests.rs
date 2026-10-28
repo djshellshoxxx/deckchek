@@ -505,6 +505,26 @@ fn regression_fs20_hostile_payload_is_rejected_by_cheap_bounds_before_canonicali
     assert_eq!(verify(&valid_file()).status, "valid");
 }
 
+/// FS-20 review (parity with the JS verifier): base64 with non-zero trailing bits decodes to the same
+/// bytes in a lenient decoder; Rust rejects it, and app/certificate.js now does too.
+#[test]
+fn regression_fs20_non_canonical_base64_signature_or_key_never_verifies() {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let malleate = |s: &str| {
+        let at = s.trim_end_matches('=').len() - 1;
+        let idx = ALPHABET.iter().position(|&c| c == s.as_bytes()[at]).unwrap();
+        format!("{}{}{}", &s[..at], ALPHABET[idx ^ 1] as char, &s[at + 1..])
+    };
+    let fixture: Value = serde_json::from_str(&fs::read_to_string(repo("tests/fixtures/certificate/valid-v1.deckchek-cert.json")).unwrap()).unwrap();
+    assert_eq!(verify(&fixture).status, "valid");
+    for field in ["signature", "publicKey"] {
+        let mut v = fixture.clone();
+        v["integrity"][field] = json!(malleate(v["integrity"][field].as_str().unwrap()));
+        let r = verify(&v);
+        assert_eq!(r.status, "modified", "{field}: {:?}", r.reasons);
+    }
+}
+
 /// FS-20 review (DoS): the certificate commands were sync, so Tauri ran them on the main thread and
 /// a slow file froze the window. Every certificate command must be `async` (off the UI thread).
 #[test]
