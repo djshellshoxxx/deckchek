@@ -472,6 +472,36 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Longest object key and most keys per object any schema v1 payload has (with headroom).
+const MAX_KEY_BYTES: usize = 64;
+const MAX_OBJECT_KEYS: usize = 32;
+
+/// Cheap, linear bounds every schema v1 payload is inside: the payload key set, and caps on key
+/// length, keys per object, array length (MAX_MEASUREMENTS) and string length (MAX_PHOTO_B64).
+/// Runs on untrusted input BEFORE canonicalisation so a hostile file cannot make hashing slow
+/// (FS-20 review); the full `validate_payload` still runs after the signature check.
+fn check_payload_bounds(payload: &Value) -> Result<(), String> {
+    let p = obj(payload, "payload")?;
+    exact_keys(p, "payload", &["unit", "plan", "results", "measurements", "tester", "deckchekVersion", "schemaVersion", "issuedAt", "validUntil", "verdict", "disclaimer"], &[])?;
+    let mut stack = vec![payload];
+    while let Some(v) = stack.pop() {
+        match v {
+            Value::String(s) if s.len() > MAX_PHOTO_B64 => return Err(format!("a string is longer than {MAX_PHOTO_B64} bytes")),
+            Value::Array(items) if items.len() > MAX_MEASUREMENTS => return Err(format!("an array has more than {MAX_MEASUREMENTS} entries")),
+            Value::Array(items) => stack.extend(items),
+            Value::Object(map) if map.len() > MAX_OBJECT_KEYS => return Err(format!("an object has more than {MAX_OBJECT_KEYS} fields")),
+            Value::Object(map) => {
+                if map.keys().any(|k| k.len() > MAX_KEY_BYTES) {
+                    return Err(format!("a field name is longer than {MAX_KEY_BYTES} bytes"));
+                }
+                stack.extend(map.values());
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 // ------------------------------------------------------------------ sign
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -581,9 +611,16 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
         verdict: pick("verdict"),
         model: unit("model"),
         serial: unit("serial"),
-        issued_by_this_install: is_local(&fp),
+        // set below, only once the signature by the key behind `fp` has verified (FS-20 review)
+        issued_by_this_install: false,
         ..Default::default()
     };
+    if let Err(e) = check_payload_bounds(payload) {
+        // no signed v1 payload is outside these bounds, so the hash cannot match one
+        r.reasons.push("content hash mismatch".into());
+        r.reasons.push(format!("the payload is outside the schema v1 bounds: {e}"));
+        return r;
+    }
     let digest = match content_hash(payload) {
         Ok((hash, digest)) => {
             r.content_hash = Some(hash.clone());
@@ -620,6 +657,7 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
         return r;
     }
     r.status = "valid".into();
+    r.issued_by_this_install = is_local(&fp);
     if let Some(until) = &r.valid_until {
         r.expired = iso_key(now_iso) > iso_key(until);
         if r.expired {
@@ -834,51 +872,73 @@ fn open(app: &tauri::AppHandle) -> Result<crate::db::DbConn, CertError> {
 /// Cap on the IPC payload argument before it is re-serialised (photos included).
 const MAX_SIGN_ARG_BYTES: usize = MAX_PAYLOAD_BYTES + 1024 * 1024;
 
+// Every command below runs off the main (UI) thread (FS-20 review, AUD-03): Tauri 2 runs a
+// non-async command on the main thread, so a large or hostile file froze the window. DB work goes
+// through `db::off_main`; CPU or file work that needs no DB runs on the blocking pool directly so
+// it never holds the DB lane.
+
+fn background_err(e: impl std::fmt::Display) -> CertError {
+    CertError::Io(format!("background task failed: {e}"))
+}
+
 #[tauri::command]
-pub fn certificate_sign(app: tauri::AppHandle, payload: Value) -> Result<SignResult, CertError> {
-    // serde_json already bounded recursion; re-check size and depth like untrusted file input.
-    let text = serde_json::to_string(&payload).map_err(|e| CertError::Json(e.to_string()))?;
-    if text.len() > MAX_SIGN_ARG_BYTES {
-        return Err(CertError::TooLarge);
+pub async fn certificate_sign(app: tauri::AppHandle, payload: Value) -> Result<SignResult, CertError> {
+    crate::db::off_main(move || {
+        // serde_json already bounded recursion; re-check size and depth like untrusted file input.
+        let text = serde_json::to_string(&payload).map_err(|e| CertError::Json(e.to_string()))?;
+        if text.len() > MAX_SIGN_ARG_BYTES {
+            return Err(CertError::TooLarge);
+        }
+        check_depth(&text)?;
+        let conn = open(&app)?;
+        let dir = signing::key_dir(&app).map_err(|_| CertError::Io("app data folder unavailable".into()))?;
+        sign_payload(&conn, &dir, &payload)
+    })
+    .await
+    .map_err(background_err)?
+}
+
+#[tauri::command]
+pub async fn certificate_verify(app: tauri::AppHandle, json: String) -> VerifyReport {
+    // `verify_text` asks `is_local` only once the signature has verified, so answering true here
+    // just marks "ask the database"; the real lookup follows with the verified fingerprint.
+    let checked = tauri::async_runtime::spawn_blocking(move || {
+        let now = Connection::open_in_memory().ok().and_then(|c| crate::db::now_iso(&c).ok()).unwrap_or_default();
+        verify_text(&json, &now, |_| true)
+    })
+    .await;
+    let mut rep = match checked {
+        Ok(rep) => rep,
+        Err(e) => return report("unverifiable", vec![format!("could not check the file ({e})")]),
+    };
+    if rep.issued_by_this_install {
+        let fp = rep.fingerprint.clone().unwrap_or_default();
+        rep.issued_by_this_install = crate::db::off_main(move || open(&app).is_ok_and(|c| signing::is_local_key(&c, &fp))).await.unwrap_or(false);
     }
-    check_depth(&text)?;
-    let conn = open(&app)?;
-    let dir = signing::key_dir(&app).map_err(|_| CertError::Io("app data folder unavailable".into()))?;
-    sign_payload(&conn, &dir, &payload)
+    rep
 }
 
 #[tauri::command]
-pub fn certificate_verify(app: tauri::AppHandle, json: String) -> VerifyReport {
-    let conn = open(&app).ok();
-    let now = conn
-        .as_ref()
-        .and_then(|c| crate::db::now_iso(c).ok())
-        .or_else(|| Connection::open_in_memory().ok().and_then(|c| crate::db::now_iso(&c).ok()))
-        .unwrap_or_default();
-    verify_text(&json, &now, |fp| conn.as_ref().is_some_and(|c| signing::is_local_key(c, fp)))
+pub async fn certificate_extract_json(path: String) -> Result<String, CertError> {
+    tauri::async_runtime::spawn_blocking(move || extract_json(&path)).await.map_err(background_err)?
 }
 
 #[tauri::command]
-pub fn certificate_extract_json(path: String) -> Result<String, CertError> {
-    extract_json(&path)
-}
-
-#[tauri::command]
-pub fn certificate_store(app: tauri::AppHandle, record: StoreInput) -> Result<CertificateSummary, CertError> {
+pub async fn certificate_store(app: tauri::AppHandle, record: StoreInput) -> Result<CertificateSummary, CertError> {
     if record.file_json.len() as u64 > MAX_JSON_BYTES {
         return Err(CertError::TooLarge);
     }
-    store(&*open(&app)?, &record)
+    crate::db::off_main(move || store(&*open(&app)?, &record)).await.map_err(background_err)?
 }
 
 #[tauri::command]
-pub fn certificate_list(app: tauri::AppHandle, asset_id: Option<String>) -> Result<Vec<CertificateSummary>, CertError> {
-    list(&*open(&app)?, asset_id.as_deref())
+pub async fn certificate_list(app: tauri::AppHandle, asset_id: Option<String>) -> Result<Vec<CertificateSummary>, CertError> {
+    crate::db::off_main(move || list(&*open(&app)?, asset_id.as_deref())).await.map_err(background_err)?
 }
 
 #[tauri::command]
-pub fn certificate_get(app: tauri::AppHandle, id: String) -> Result<Option<CertificateRecord>, CertError> {
-    get(&*open(&app)?, &id)
+pub async fn certificate_get(app: tauri::AppHandle, id: String) -> Result<Option<CertificateRecord>, CertError> {
+    crate::db::off_main(move || get(&*open(&app)?, &id)).await.map_err(background_err)?
 }
 
 #[cfg(test)]
