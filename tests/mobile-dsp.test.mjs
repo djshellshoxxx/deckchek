@@ -184,3 +184,14 @@ test('spl: level of a known sine, weighting changes low tones, calibration offse
   assert.ok(raw[0].qualityFlags.includes('uncalibrated'));
   assert.equal(raw[0].unit, 'dBA');
 });
+
+
+test('vibration: stationary samples preserve zero RMS without inventing a frequency', () => {
+  const m = vibrationMetrics(Array.from({ length: 1200 }, (_, i) => ({ t: i / 60, x: 0, y: 0, z: 0 })));
+  assert.equal(m.status, 'ok');
+  assert.equal(m.dominantHz, null);
+  const rows = vibrationMeasurements(m);
+  assert.equal(rows.find(row => row.metricId === 'vibration.rmsMs2').value, 0);
+  assert.equal(rows.some(row => row.metricId === 'vibration.dominantHz'), false);
+  assert.ok(rows.every(row => Number.isFinite(row.value)));
+});
