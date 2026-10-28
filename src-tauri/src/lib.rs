@@ -65,6 +65,7 @@ mod tray;
 // [FS-32] mods
 mod mapper;
 // [FS-33] mods
+mod ledger;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -149,6 +150,7 @@ pub fn run() {
             // [FS-32] handlers
             mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
             // [FS-33] handlers
+            ledger::ledger_public_notes, ledger::ledger_public_note_set, ledger::ledger_export_list, ledger::ledger_export_record,
         ])
         .setup(|_app| {
             // [FS-00] setup

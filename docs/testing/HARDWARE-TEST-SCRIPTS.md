@@ -55,6 +55,7 @@ Safety, applies to every script:
 | H-23 | FS-23 venue fleet dashboard | Venue/booth/position set-up, placement, reminders, start-up banner and snooze, CSV in Excel, booth sheet print, delete safety | Owner's real database with PLX-CRSS12, SL-1200MK4, DJM-A9, Twelve MK2, Xone:23C, DDJ; Excel; a printer |
 | H-31 | FS-31 timecode doctor live monitor | WASAPI-shared spike beside DJ software, alarms on real wear and dropouts, cueing/backspin false-alarm check, tray, 2 h CPU budget, session logs | Owner's Audio 8 DJ and DJM-A9 with Traktor/Serato; split cable; control vinyl |
 | H-32 | FS-32 MIDI mapper studio | Learn, assign, conflicts, Mixxx and VirtualDJ export and re-import, Serato/Traktor reports | Owner's DDJ controller and Xone:23C; Mixxx 2.4+; VirtualDJ |
+| H-33 | FS-33 gear ledger | Privacy presets, offline page, EXIF stripping, certificate verify and tamper, leak search, GitHub Pages publish, single file, revisions | Owner's seven units with serials and phone photos, two signed certificates (H-20), a phone, a test GitHub repository |
 
 IDs follow the feature spec number (`H-NN` = spec `NN`), as the plan and the spec §8 cross-references do. There is no H-04 or H-05, because the M5 index has no FS-04 or FS-05 (see section 9).
 
@@ -470,6 +471,27 @@ Enable `mapperStudio` under Options > Advanced > Experimental features first. Yo
 | 11 | Repeat steps 1, 5 and 6 with the Xone:23C (learn its MIDI controls; it has no jog wheel). | The mapper works with no official MIDI list (learn only); the exported Mixxx mapping fires the learned controls. | `H-32/11` PASS/FAIL |
 | 12 | Check whether the Pioneer PLX-CRSS12 and the DJM-A9 send MIDI over USB (Devices > MIDI coverage). If they do, learn three controls and export to Mixxx. | Record whether each sends MIDI and whether the exported controls fire in Mixxx (FS-32 §8 open question). | `H-32/12` CRSS12 MIDI Y/N, DJM-A9 MIDI Y/N, works Y/N |
 
+## H-33 Gear ledger (FS-33)
+
+Enable `gearLedger` under Options > Advanced > Experimental features first (and `certificates` for step 6). Use the owner's real database with the SL-1200MK4, PLX-CRSS12, Rane Twelve MK2, DJM-A9, Xone:23C, Traktor Audio 8 DJ and the DDJ (model as recorded in H-00 step 4). Before step 1, type each unit's real serial number in Equipment, add one private note per unit with a made-up price (for example "Paid 1234 EUR"), attach two phone photos per unit (straight from the phone, so they carry EXIF and GPS), and sign one speed-test certificate (H-20) for the SL-1200MK4 and the PLX-CRSS12. Write down every serial, the made-up prices, your Windows user name and the phone's GPS position (from the photo's properties) before you start: steps 4, 9 and 11 search for them. Use a new, empty folder for every export.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Open Gear ledger (rail, or Equipment > a unit > Gear ledger…). | Step 1 lists every unit with words for its state ("2 photos · 1 certificate · …"). The unit opened from Equipment is already ticked. | `H-33/1` units listed, PASS/FAIL |
+| 2 | Tick all seven units, Next. Look at the privacy step with the Public preset. | Serial numbers "Hidden", nickname, purchase month, service descriptions, certificates and private notes unticked. Every checkbox in the matrix can be reached with Tab and toggled with Space. | `H-33/2` PASS/FAIL |
+| 3 | Next: preview. Switch Light and Dark. | The preview shows each unit with manufacturer and model only, the photos, service dates; no serial, no price, no note. "What will be public" lists the counts and "Never included: purchase price, location and venue, file paths and user names, photo metadata". | `H-33/3` PASS/FAIL, screenshot |
+| 4 | Next: export, Folder, Export…, pick the empty folder. Open `ledger/index.html` by double-click with Wi-Fi off. | "Saved to <folder>\ledger" and "Revision 1 recorded". The page opens fully offline in Edge: all photos, no broken images, "✓ The ledger data on this page matches this hash." | `H-33/4` PASS/FAIL, time to open |
+| 5 | Right-click one exported photo in `ledger/assets/…` > Properties > Details (or open it in an EXIF viewer). Check its size. | No camera, date or GPS fields; the long edge is 1600 px or less. | `H-33/5` EXIF present Y/N, size px |
+| 6 | Back in DeckChek, Privacy > Insurance, tick "Signed test certificates" for the SL-1200MK4 only (its row in the matrix). Preview, then export to a second empty folder. | Serials show as `****` plus the last 4 characters; the summary warns that included certificates show the full serial and tester name. The export step says "revision 2 (last: 1)". | `H-33/6` PASS/FAIL |
+| 7 | Open the second export's `index.html` offline and press Verify certificate under the SL-1200MK4. | "✓ Match: the recomputed SHA-256 equals the certificate's content hash…", then either "The Ed25519 signature checks out" or "Hash checked, signature not checked by this browser". | `H-33/7` wording shown, browser and version |
+| 8 | Open the certificate JSON file from `ledger/certificates/` in Notepad, change one digit of a measured value, copy all, paste into "Check a certificate" and press the button. Then do the same with the untouched file. | Edited: "✗ Mismatch …". Untouched: "✓ Match … This certificate is listed in this ledger." The untouched file also verifies VALID in DeckChek's Verify certificate screen. | `H-33/8` PASS/FAIL |
+| 9 | In a terminal in each export folder run `findstr /s /i /m "<serial> 1234 <windows user name> GPS Exif" *` (one search per value, every serial from your list). | Export 1: no match for any value. Export 2: only the SL-1200MK4's full serial, and only inside `certificates/` and the certificate block of `index.html`/`ledger.json`. | `H-33/9` matches per value |
+| 10 | Open the second export on a phone (copy the folder, or after step 11) and print `index.html` to PDF from Edge. | The phone layout has no sideways scrolling; print hides the buttons and the paste box and keeps each unit together. | `H-33/10` PASS/FAIL, PDF attached |
+| 11 | Publish the first export: new test repository, upload the contents of `ledger`, Settings > Pages > Deploy from a branch (main, root). Open the Pages address. Note the exact wording GitHub uses today. | The page looks like step 4; DeckChek never asked for a GitHub login. Re-run the step 9 search on the published page source (View source, Ctrl+F). | `H-33/11` URL, GitHub wording, leaks Y/N |
+| 12 | Single file: Privacy > Public, Export > "Single HTML file", save, open it offline. Then add photos until the photos exceed 5 MB and look at the Format choice again. | The single file opens with photos inside. Over 5 MB the single-file choice is disabled with the reason. | `H-33/12` PASS/FAIL, file size |
+| 13 | Unplug the export drive (or pick a read-only folder) and export again. | "Export failed: …" in words; no revision is recorded (the next export still says revision 3). | `H-33/13` PASS/FAIL |
+| 14 | Esc on the privacy step; Ctrl+E on step 1. | Esc returns to step 1 and says "Ledger export cancelled"; Ctrl+E jumps to the export step. | `H-33/14` PASS/FAIL |
+
 ---
 
 ## 9. Open items and defaults for the owner
@@ -505,4 +527,3 @@ These specs also have manual hardware steps in their §8. They keep their spec-n
 | H-11 | DVS latency and buffer tuner | M6 |
 | H-20 to H-23 | Used-gear certificate, unit comparison, service worksheets, fleet dashboard | M7 |
 | H-30 | Mobile companion | M8 (blocked) |
-| H-33 | Gear ledger static export | M8 |
