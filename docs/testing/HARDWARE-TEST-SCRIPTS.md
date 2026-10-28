@@ -333,6 +333,24 @@ Run steps 1 to 7 once per mixer: Rane Twelve MK2, Pioneer DJM-A9 (phono input), 
 | 14 | Safety exits. While the tone is playing: (a) click another screen in the rail; (b) start again and switch to the Runs tab; (c) start again and close the DeckChek window; (d) start again and unplug the input cable; (e) start again, raise nothing and wait 60 s without touching anything. | In (a), (b) and (c) the tone stops immediately. In (d) the tone stops within about 1 s and the banner says input lost. In (e) it stops at 60 s with the inactivity message. Clipping the input hard (raise mixer gain) also stops it with a clipping message. | `H-15/14` PASS/FAIL for a to e, plus clipping |
 | 15 | Run the whole hum procedure once on an interface with no output device selected (or with the output unplugged) and open the Feedback tab. | Feedback test is disabled with an explanation. Hum hunter still works with the input only. | `H-15/15` PASS/FAIL |
 
+## H-20 Used-gear certificate (FS-20)
+
+Enable `certificates` under Options > Advanced > Experimental features first. Run steps 1 to 4 once per unit: PLX-CRSS12, SL-1200MK4, Rane Twelve MK2, DJM-A9, Xone:23C. Use a certificate folder whose path contains a space (for example `Documents\DeckChek certificates`). Do not put real customer names in the tester or notes fields of results you publish.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Devices > the unit > run every test in its plan (record skipped/unknown honestly). Open Certificates and pick the unit. | The readiness card reads "Y of Y required tests done"; Sign and export is enabled. Before the last test, it lists the missing tests and Sign and export is disabled (Export draft shown). | `H-20/1` unit, Y, blocked-before-last Y/N |
+| 2 | Enter serial (as printed on the unit), tester, notes; add 2 photos (one PNG, one JPEG phone photo with GPS). Validity 90 days. Preview. | Preview shows model, serial, every test with its status, measured values with ± U, calibration state beside each audio value, both photos. | `H-20/2` PASS/FAIL |
+| 3 | Sign and export into the folder with a space in its path. Time it from the click to the toast. | Within 5 s: `<model>-<serial>-<date>.pdf` and `.deckchek-cert.json` exist; the toast offers Show in folder; History lists the certificate. Verdict matches the results (no "Certified pass" if the calibration profile is missing or older than 12 months). | `H-20/3` seconds, verdict, file names |
+| 4 | Open the PDF. Check page breaks, the full content hash, the fingerprint in large type, the QR code, photo alt text (PDF reader accessibility panel) and the disclaimer. | All present and legible on A4; nothing cut at page edges. | `H-20/4` pages, PASS/FAIL |
+| 5 | Scan the PDF's QR code with a phone camera app (screen and a paper print). | The phone shows exactly `deckchek:cert:v1:` followed by 64 hex characters equal to the printed content hash. No name, serial or model. | `H-20/5` screen PASS/FAIL, paper PASS/FAIL |
+| 6 | Copy the `.deckchek-cert.json` to a second PC with DeckChek. Verify certificate > choose the file (also try drag and drop onto the window). | VALID, fingerprint equal to the one on the PDF, "issued by this install" NOT shown on the second PC. | `H-20/6` PASS/FAIL, drop works Y/N |
+| 7 | On the second PC, open the JSON in Notepad, change one digit of one measured value, save, verify again. | MODIFIED with "content hash mismatch". On the first PC the same file also lists the changed field under "Changed since this install signed it". | `H-20/7` PASS/FAIL, diff field shown |
+| 8 | Verify the PDF itself. | The screen explains the PDF carries only the printed hash and QR and asks for the JSON. | `H-20/8` PASS/FAIL |
+| 9 | Change the PC clock to after the validity date (or use a 30-day certificate and wait), verify the untouched JSON. Restore the clock. | VALID plus a separate EXPIRED badge. | `H-20/9` PASS/FAIL |
+| 10 | Windows only: in `%APPDATA%\com.circuitdriftlabs.deckchek\` open `signing-key.bin` in a hex viewer. Copy it to another Windows user account's app data and try to sign there. | The byte at offset 0x05 is 0x01 (DPAPI; 0x02 means the unprotected fallback). The other user gets "the signing key cannot be read" with "Create new identity"; creating one shows a new fingerprint, and step 6's JSON still verifies VALID. | `H-20/10` byte at 0x05, other-user result, old cert still VALID Y/N |
+| 11 | Simulate a PDF failure (run on a PC with the WebView2 runtime repaired/removed, or note any natural failure) and sign again. | An `.html` certificate is written instead of the PDF; verifying it shows the same content hash as its `.json`. | `H-20/11` PASS/FAIL or SKIP with reason |
+
 ---
 
 ## 9. Open items and defaults for the owner
