@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.localStorage = (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })();
-const { unitOptions, photoProblem } = await import('../app/ui/screens/certificate.js');
+const { unitOptions, photoProblem, buildPayloadAsMeasured } = await import('../app/ui/screens/certificate.js');
 const { classifyFile, findStoredOriginal } = await import('../app/ui/screens/verify.js');
 const { composePrintable } = await import('../app/report-pdf.js');
 const { registerCertificateKind, CERTIFICATE_KIND } = await import('../app/report-kinds/certificate.js');
@@ -84,4 +84,18 @@ test('printable kind "certificate": PDF carries hash, fingerprint, QR, disclaime
   const draft = composePrintable(CERTIFICATE_KIND, { file: { payload: file.payload }, draft: true }, { css: '' });
   assert.match(draft.html, /DRAFT/);
   assert.ok(!draft.html.includes(file.integrity.contentHash));
+});
+
+test('regression: AC-6 a stored device result keeps the run\'s calibrated flag through to the certificate', async () => {
+  const { buildResultDetail } = await import('../app/devices/dispatch.js');
+  const profile = { id: 'p1', manufacturer: 'X', model: 'Deck', version: 1, tests: [{ id: 't-speed', title: 'Speed', method: 'audio:speed', pass: { metricId: 'measured_pitch_percent', op: 'abs<=', value: 0.1, unit: '%' } }] };
+  const current = { valid: true, createdAt: '2026-09-01T00:00:00Z', deviceName: 'Rig', sampleRate: 48000 };
+  const result = flag => ({ testId: 't-speed', profileId: 'p1', status: 'pass', createdAt: '2026-10-20T10:00:00Z',
+    detail: buildResultDetail({ test: profile.tests[0], outcome: { status: 'pass', detail: 'ok' }, measurements: [{ metricId: 'measured_pitch_percent', value: 0.01, unit: '%', calibrated: flag, uncertainty: { standard: 0.005, expanded: 0.01, k: 2 } }] }) });
+  const args = r => ({ profile, results: [r], tester: 'A', serial: 'S', now: new Date('2026-10-28T12:00:00Z') });
+  const cal = buildPayloadAsMeasured(args(result(true)), { current });
+  assert.equal(cal.measurements[0].calibration.state, 'calibrated', 'measured calibrated with the profile active since before the run');
+  assert.equal(cal.measurements[0].uncertainty, '0.01');
+  assert.equal(cal.verdict, 'pass');
+  assert.equal(buildPayloadAsMeasured(args(result(false)), { current }).measurements[0].calibration.state, 'uncalibrated');
 });

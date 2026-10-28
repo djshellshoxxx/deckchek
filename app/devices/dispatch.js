@@ -93,10 +93,33 @@ export function evaluateOutcome(test, { measurements = [], findings = [], verdic
 }
 
 /** Compact, JSON-safe record of a completed test for device_test_result.detail. */
+/**
+ * The run's uncertainty as stored with a device result: a plain expanded U, or {standard, expanded, k} (the engine's
+ * object without its components); only finite numbers are kept, and nothing when there is no finite U.
+ */
+function storedUncertainty(u) {
+  if (Number.isFinite(u)) return u;
+  if (!u || typeof u !== 'object') return undefined;
+  const out = {};
+  for (const k of ['standard', 'expanded', 'k']) if (Number.isFinite(u[k])) out[k] = u[k];
+  return 'standard' in out || 'expanded' in out ? out : undefined;
+}
+
+/**
+ * Stored detail of a device test result. Each measurement keeps the run's uncertainty and its boolean calibrated flag so
+ * a certificate built later prints the run's exact U and calibration state (FS-20 review), not a model fallback.
+ */
 export function buildResultDetail({ test, outcome, measurements = [], findings = [], extra = {} }) {
+  const measurement = m => {
+    const out = { metricId: m.metricId, label: m.label || m.metricId, value: Number.isFinite(m.value) ? m.value : m.value ?? null, unit: m.unit || '' };
+    const u = storedUncertainty(m.uncertainty);
+    if (u !== undefined) out.uncertainty = u;
+    if (typeof m.calibrated === 'boolean') out.calibrated = m.calibrated;
+    return out;
+  };
   return {
     method: test?.method, title: test?.title, summary: outcome?.detail || '', criterion: outcome?.criterion || null, pass: test?.pass || null,
-    measurements: measurements.filter(m => m && m.metricId).map(m => ({ metricId: m.metricId, label: m.label || m.metricId, value: Number.isFinite(m.value) ? m.value : m.value ?? null, unit: m.unit || '' })),
+    measurements: measurements.filter(m => m && m.metricId).map(measurement),
     findings: findings.map(f => ({ id: f.id || f.code || null, severity: f.severity || 'info', title: f.title, meaning: f.meaning || f.detail || '', action: f.action || (f.isolationTests || []).join('; ') || '' })),
     ...extra,
   };

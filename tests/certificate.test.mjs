@@ -517,9 +517,34 @@ test('regression: stored device results (buildResultDetail shape) carry uncertai
   assert.ok(renderCertificateBody(assembleCertificateFile(p, null)).includes(`0.095 ± ${speed.uncertainty} %`), 'the certificate prints value ± U');
   assert.equal(p.measurements.find(m => m.metricId === 'driver_present').uncertainty, null, 'metrics without an uncertainty model carry none');
   const inside = buildCertificatePayload({
-    profile, results: results.map(r => (r.testId === 't-speed' ? stored('t-speed', 'pass', [{ ...runM, value: 0.01 }]) : r)),
+    // the run must have been calibrated for a plain 'pass' (stored results now keep the run's calibrated flag)
+    profile, results: results.map(r => (r.testId === 't-speed' ? stored('t-speed', 'pass', [{ ...runM, value: 0.01, calibrated: true }]) : r)),
     calibration: calProfile, tester: 'Alex', serial: 'SN1', now: new Date(NOW),
   });
   assert.equal(inside.verdict, 'pass', 'a value well inside the limits still passes');
   assert.equal(validatePayload(p).ok, true);
+});
+
+test('regression: a certificate built from a stored device result uses the run\'s exact uncertainty and calibration flag', async () => {
+  const { buildResultDetail } = await import('../app/devices/dispatch.js');
+  // as the run recorded it: its own U (not the default model's) and taken without a valid calibration
+  const runM = { metricId: 'measured_pitch_percent', label: 'Speed error', value: 0.02, unit: '%', calibrated: false, qualityFlags: ['uncalibrated'],
+    uncertainty: { standard: 0.02, expanded: 0.04, k: 2, unit: '%', components: { clock: 0.02 } } };
+  const detail = buildResultDetail({ test: profile.tests[1], outcome: { status: 'pass', detail: 'ok' }, measurements: [runM] });
+  assert.deepEqual(detail.measurements[0].uncertainty, { standard: 0.02, expanded: 0.04, k: 2 }, 'only the numbers needed for U are stored');
+  assert.equal(detail.measurements[0].calibrated, false);
+  const stored = r => ({ testId: r, profileId: profile.id, status: 'pass', createdAt: '2026-10-28T11:00:00Z', detail: r === 't-speed' ? detail : buildResultDetail({ test: profile.tests.find(t => t.id === r), outcome: { status: 'pass', detail: 'ok' }, measurements: r === 't-driver' ? [{ metricId: 'driver_present', value: 1, unit: 'bool' }] : [] }) });
+  const p = buildCertificatePayload({ profile, results: ['t-driver', 't-speed', 't-midi'].map(stored), calibration: calProfile, tester: 'Alex', serial: 'SN1', now: new Date(NOW) });
+  const speed = p.measurements.find(m => m.metricId === 'measured_pitch_percent');
+  assert.equal(speed.uncertainty, '0.04', 'U is the run\'s, not the model fallback');
+  assert.equal(speed.calibration.state, 'uncalibrated', 'a profile active at certificate time does not calibrate a measurement the run took uncalibrated');
+  assert.equal(p.verdict, 'pass_uncalibrated');
+  // a calibrated run keeps its flag (true), and junk uncertainty fields are dropped rather than stored
+  const cal = buildResultDetail({ test: profile.tests[1], outcome: { status: 'pass' }, measurements: [{ ...runM, calibrated: true, uncertainty: { standard: 'x', expanded: Infinity, k: 2 } }] });
+  assert.equal(cal.measurements[0].calibrated, true);
+  assert.equal('uncertainty' in cal.measurements[0], false, 'an uncertainty without a finite U is not stored');
+  assert.deepEqual(buildResultDetail({ measurements: [{ ...runM, uncertainty: { standard: 'x', expanded: 0.03, k: 2 } }] }).measurements[0].uncertainty, { expanded: 0.03, k: 2 });
+  const plain = buildResultDetail({ test: profile.tests[1], outcome: { status: 'pass' }, measurements: [{ metricId: 'rpm', value: 33.3, unit: 'rpm', uncertainty: 0.05, calibrated: 'yes' }] });
+  assert.equal(plain.measurements[0].uncertainty, 0.05, 'a plain expanded U number is kept');
+  assert.equal('calibrated' in plain.measurements[0], false, 'only a boolean calibrated flag is stored');
 });
