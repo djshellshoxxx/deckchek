@@ -30,16 +30,44 @@ impl fmt::Display for CanonicalError {
 
 impl std::error::Error for CanonicalError {}
 
-fn err<T>(message: impl Into<String>, path: &str) -> Result<T, CanonicalError> {
-    Err(CanonicalError { message: message.into(), path: path.to_string() })
+/// Location of the value being written, kept as borrowed links to its parent so walking a node
+/// costs O(1). The `$.a[1].b` text is only built when an error is reported: formatting it for
+/// every node made the cost grow with key length times the number of children (FS-20 review).
+enum Path<'a> {
+    Root,
+    Index(&'a Path<'a>, usize),
+    Key(&'a Path<'a>, &'a str),
+}
+
+impl Path<'_> {
+    fn render(&self, out: &mut String) {
+        match self {
+            Path::Root => out.push('$'),
+            Path::Index(parent, i) => {
+                parent.render(out);
+                out.push_str(&format!("[{i}]"));
+            }
+            Path::Key(parent, k) => {
+                parent.render(out);
+                out.push('.');
+                out.push_str(k);
+            }
+        }
+    }
+}
+
+fn err<T>(message: impl Into<String>, path: &Path) -> Result<T, CanonicalError> {
+    let mut text = String::new();
+    path.render(&mut text);
+    Err(CanonicalError { message: message.into(), path: text })
 }
 
 /// The canonical text of an `f64` that must be a safe integer (`-0` -> `0`).
 pub fn canonical_f64(n: f64) -> Result<String, CanonicalError> {
-    number_text_f64(n, "$")
+    number_text_f64(n, &Path::Root)
 }
 
-fn number_text_f64(n: f64, path: &str) -> Result<String, CanonicalError> {
+fn number_text_f64(n: f64, path: &Path) -> Result<String, CanonicalError> {
     if !n.is_finite() {
         return err(format!("{n} is not allowed"), path);
     }
@@ -52,7 +80,7 @@ fn number_text_f64(n: f64, path: &str) -> Result<String, CanonicalError> {
     Ok((n as i64).to_string())
 }
 
-fn number_text(n: &serde_json::Number, path: &str) -> Result<String, CanonicalError> {
+fn number_text(n: &serde_json::Number, path: &Path) -> Result<String, CanonicalError> {
     if let Some(i) = n.as_i64() {
         return if i.abs() <= MAX_SAFE { Ok(i.to_string()) } else { err(format!("integer {i} outside the safe range"), path) };
     }
@@ -83,7 +111,7 @@ fn write_string(out: &mut String, s: &str) {
     out.push('"');
 }
 
-fn write_value(out: &mut String, v: &Value, path: &str, depth: usize) -> Result<(), CanonicalError> {
+fn write_value(out: &mut String, v: &Value, path: &Path, depth: usize) -> Result<(), CanonicalError> {
     if depth > MAX_DEPTH {
         return err(format!("nesting deeper than {MAX_DEPTH}"), path);
     }
@@ -98,7 +126,7 @@ fn write_value(out: &mut String, v: &Value, path: &str, depth: usize) -> Result<
                 if i > 0 {
                     out.push(',');
                 }
-                write_value(out, item, &format!("{path}[{i}]"), depth + 1)?;
+                write_value(out, item, &Path::Index(path, i), depth + 1)?;
             }
             out.push(']');
         }
@@ -113,7 +141,7 @@ fn write_value(out: &mut String, v: &Value, path: &str, depth: usize) -> Result<
                 }
                 write_string(out, k);
                 out.push(':');
-                write_value(out, val, &format!("{path}.{k}"), depth + 1)?;
+                write_value(out, val, &Path::Key(path, k), depth + 1)?;
             }
             out.push('}');
         }
@@ -124,7 +152,7 @@ fn write_value(out: &mut String, v: &Value, path: &str, depth: usize) -> Result<
 /// Canonical JSON text of `value`, or the first rule it breaks.
 pub fn canonical_json(value: &Value) -> Result<String, CanonicalError> {
     let mut out = String::new();
-    write_value(&mut out, value, "$", 0)?;
+    write_value(&mut out, value, &Path::Root, 0)?;
     Ok(out)
 }
 
@@ -140,7 +168,78 @@ pub fn canonical_sha256(value: &Value) -> Result<String, CanonicalError> {
 
 /// True when `text` parses as JSON and is already byte-for-byte its own canonical form.
 pub fn is_canonical(text: &str) -> bool {
-    serde_json::from_str::<Value>(text).ok().and_then(|v| canonical_json(&v).ok()).is_some_and(|c| c == text)
+    parse_json(text).ok().and_then(|v| canonical_json(&v).ok()).is_some_and(|c| c == text)
+}
+
+/// Parses untrusted JSON the way JavaScript's `JSON.parse` sees it: every object key is kept as
+/// written (a repeated key keeps its last value). serde_json's own `Value` parser, with the
+/// `raw_value` feature Tauri enables, replaces an object whose first key is its private token
+/// `$serde_json::private::RawValue` with the inner value, so the two languages would disagree
+/// about the same file (FUZZ-04). serde_json's nesting limit (128) still applies.
+pub fn parse_json(text: &str) -> serde_json::Result<Value> {
+    parse_json_bytes(text.as_bytes())
+}
+
+/// [`parse_json`] for bytes (invalid UTF-8 is a parse error).
+pub fn parse_json_bytes(bytes: &[u8]) -> serde_json::Result<Value> {
+    use serde::Deserialize;
+    let mut de = serde_json::Deserializer::from_slice(bytes);
+    let v = Literal::deserialize(&mut de)?;
+    de.end()?;
+    Ok(v.0)
+}
+
+struct Literal(Value);
+
+impl<'de> serde::Deserialize<'de> for Literal {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_any(LiteralVisitor).map(Literal)
+    }
+}
+
+struct LiteralVisitor;
+
+impl<'de> serde::de::Visitor<'de> for LiteralVisitor {
+    type Value = Value;
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("JSON")
+    }
+    fn visit_bool<E>(self, v: bool) -> Result<Value, E> {
+        Ok(Value::Bool(v))
+    }
+    fn visit_i64<E>(self, v: i64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_u64<E>(self, v: u64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_f64<E>(self, v: f64) -> Result<Value, E> {
+        Ok(serde_json::Number::from_f64(v).map_or(Value::Null, Value::Number))
+    }
+    fn visit_str<E>(self, v: &str) -> Result<Value, E> {
+        Ok(Value::String(v.to_owned()))
+    }
+    fn visit_string<E>(self, v: String) -> Result<Value, E> {
+        Ok(Value::String(v))
+    }
+    fn visit_unit<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
+    }
+    fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Value, A::Error> {
+        let mut out = Vec::new();
+        while let Some(Literal(v)) = seq.next_element()? {
+            out.push(v);
+        }
+        Ok(Value::Array(out))
+    }
+    fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Value, A::Error> {
+        let mut out = serde_json::Map::new();
+        while let Some(k) = map.next_key::<String>()? {
+            let Literal(v) = map.next_value()?;
+            out.insert(k, v);
+        }
+        Ok(Value::Object(out))
+    }
 }
 
 #[cfg(test)]
@@ -155,6 +254,21 @@ mod tests {
 
     fn list<'a>(v: &'a Value, key: &str) -> &'a Vec<Value> {
         v[key].as_array().unwrap_or_else(|| panic!("{key} missing"))
+    }
+
+    #[test]
+    fn regression_serde_raw_value_key_is_an_ordinary_key() {
+        // Found by the canonical fuzz target (FUZZ-04): serde_json's Value parser replaces an object
+        // whose first key is its private raw-value token with the inner value.
+        let key = "$serde_json::private::RawValue";
+        let v = parse_json(&format!("{{\"{key}\":{{\"a\":1}}}}")).unwrap();
+        assert_eq!(v.as_object().unwrap().len(), 1);
+        assert_eq!(v[key]["a"], 1);
+        let canon = canonical_json(&parse_json(&format!("{{\"b\":[1],\"{key}\":3}}")).unwrap()).unwrap();
+        assert_eq!(canon, format!("{{\"{key}\":3,\"b\":[1]}}"));
+        assert!(is_canonical(&canon));
+        assert!(parse_json("[1,").is_err());
+        assert!(parse_json("1 2").is_err());
     }
 
     #[test]
@@ -223,6 +337,25 @@ mod tests {
         let e = canonical_json(&serde_json::json!({"a": [1, {"b": 1.5}]})).unwrap_err();
         assert_eq!(e.path, "$.a[1].b");
         assert!(e.to_string().contains("decimal strings"));
+    }
+
+    /// FS-20 review: the error path used to be formatted for every node, so a long key was copied
+    /// once per child (1 MB key x 100k items took seconds). The cost must now be linear.
+    #[test]
+    fn regression_fs20_long_key_over_many_items_canonicalises_in_linear_time() {
+        let key = "k".repeat(1_000_000);
+        let mut map = serde_json::Map::new();
+        map.insert(key.clone(), Value::Array(vec![Value::from(0); 100_000]));
+        let value = Value::Object(map);
+        let started = std::time::Instant::now();
+        let out = canonical_json(&value).unwrap();
+        assert!(started.elapsed() < std::time::Duration::from_secs(1), "took {:?}", started.elapsed());
+        assert_eq!(out.len(), "{\"\":[]}".len() + key.len() + 100_000 * 2 - 1);
+        // the path is still reported in full when there is an error
+        let mut bad = serde_json::Map::new();
+        bad.insert(key.clone(), serde_json::json!([0, 0.5]));
+        let e = canonical_json(&Value::Object(bad)).unwrap_err();
+        assert_eq!(e.path, format!("$.{key}[1]"));
     }
 
     #[test]

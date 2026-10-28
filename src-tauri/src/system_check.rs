@@ -217,11 +217,35 @@ pub fn run_with_timeout(mut cmd: Command, timeout: Duration) -> Result<String, S
     }
 }
 
+/// Absolute path of a Windows system tool (AUD-13), so a same-named binary in the working
+/// directory or an earlier PATH entry is never launched instead. `system_root` is `%SystemRoot%`;
+/// anything but an absolute drive path (`X:\...`) falls back to `C:\Windows`. Built as a string
+/// with `\` separators so it is testable on every OS.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn windows_system_exe(system_root: Option<&std::ffi::OsStr>, exe: &str) -> std::ffi::OsString {
+    let root = system_root
+        .and_then(|r| r.to_str())
+        .map(|r| r.trim_end_matches('\\'))
+        .filter(|r| {
+            let b = r.as_bytes();
+            b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && b[2] == b'\\'
+        })
+        .unwrap_or(r"C:\Windows");
+    let dir = if exe.eq_ignore_ascii_case("powershell.exe") { r"System32\WindowsPowerShell\v1.0" } else { "System32" };
+    format!(r"{root}\{dir}\{exe}").into()
+}
+
+/// [`windows_system_exe`] for this machine's `%SystemRoot%`.
+#[cfg(windows)]
+pub(crate) fn system_exe(exe: &str) -> std::ffi::OsString {
+    windows_system_exe(std::env::var_os("SystemRoot").as_deref(), exe)
+}
+
 #[cfg(windows)]
 fn run_ps(script: &str, timeout: Duration) -> Result<String, String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let mut cmd = Command::new("powershell.exe");
+    let mut cmd = Command::new(system_exe("powershell.exe"));
     cmd.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     run_with_timeout(cmd, timeout)
@@ -868,17 +892,30 @@ pub fn template_variants(t: &str) -> Vec<String> {
     v
 }
 
+/// Case-insensitive `*` wildcard match. Iterative with single-star backtracking, so the cost is
+/// O(pattern x text) at worst; the earlier recursive form was exponential in the number of `*`
+/// (found by fuzzing: `regression_glob_match_many_stars_is_fast`).
 pub fn glob_match(pattern: &str, text: &str) -> bool {
-    fn go(p: &[char], t: &[char]) -> bool {
-        match p.split_first() {
-            None => t.is_empty(),
-            Some(('*', rest)) => (0..=t.len()).any(|i| go(rest, &t[i..])),
-            Some((c, rest)) => t.first().map_or(false, |x| x == c) && go(rest, &t[1..]),
-        }
-    }
     let p: Vec<char> = pattern.to_lowercase().chars().collect();
     let t: Vec<char> = text.to_lowercase().chars().collect();
-    go(&p, &t)
+    let (mut pi, mut ti) = (0usize, 0usize);
+    let mut star: Option<(usize, usize)> = None; // (pattern index after '*', text index it matched up to)
+    while ti < t.len() {
+        if pi < p.len() && p[pi] == '*' {
+            star = Some((pi + 1, ti));
+            pi += 1;
+        } else if pi < p.len() && p[pi] == t[ti] {
+            pi += 1;
+            ti += 1;
+        } else if let Some((sp, st)) = star {
+            pi = sp;
+            ti = st + 1;
+            star = Some((sp, st + 1));
+        } else {
+            return false;
+        }
+    }
+    p[pi..].iter().all(|&c| c == '*')
 }
 
 /// Resolve `*` wildcards in path segments against the file system.
@@ -1179,6 +1216,50 @@ mod tests {
         p
     }
 
+    /// AUD-13: Windows tools are launched by absolute path under %SystemRoot%, so a same-named
+    /// binary in the working directory or an earlier PATH entry is never picked up.
+    #[test]
+    fn regression_aud_13_windows_tools_resolve_to_absolute_system32_paths() {
+        use std::ffi::{OsStr, OsString};
+        let at = |root: Option<&str>, exe| windows_system_exe(root.map(OsStr::new), exe);
+        let root = Some(r"C:\Windows");
+        assert_eq!(at(root, "tasklist.exe"), OsString::from(r"C:\Windows\System32\tasklist.exe"));
+        assert_eq!(at(root, "powercfg.exe"), OsString::from(r"C:\Windows\System32\powercfg.exe"));
+        assert_eq!(at(root, "powershell.exe"), OsString::from(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"));
+        assert_eq!(at(Some(r"D:\WINNT\"), "tasklist.exe"), OsString::from(r"D:\WINNT\System32\tasklist.exe"), "trailing separator");
+        // Missing, empty, relative or UNC SystemRoot: fall back to the default install folder.
+        for bad in [None, Some(""), Some("Windows"), Some(r".\evil"), Some(r"\\host\share"), Some("C:"), Some("C:evil")] {
+            assert_eq!(at(bad, "tasklist.exe"), OsString::from(r"C:\Windows\System32\tasklist.exe"), "{bad:?}");
+        }
+    }
+
+    /// AUD-13: every production launch goes through `system_exe`, never a bare program name.
+    #[test]
+    fn regression_aud_13_no_windows_tool_is_spawned_by_bare_name() {
+        for (file, src) in [
+            ("system_check.rs", include_str!("system_check.rs")),
+            ("processes.rs", include_str!("processes.rs")),
+            ("latency.rs", include_str!("latency.rs")),
+        ] {
+            let prod = src.split("#[cfg(test)]\nmod tests").next().unwrap();
+            let spawns: Vec<&str> = prod.lines().filter(|l| l.contains("Command::new(")).collect();
+            assert!(!spawns.is_empty(), "{file}: expected at least one launch to check");
+            for line in spawns {
+                assert!(line.contains("system_exe("), "{file}: bare program name in `{}`", line.trim());
+            }
+        }
+    }
+
+    #[test]
+    fn regression_glob_match_many_stars_is_fast() {
+        // Fuzz timeout (cargo-fuzz system_check): 30 stars against 3000 non-matching chars took >15 s.
+        let pattern = format!("{}b", "a*".repeat(30));
+        let text = "a".repeat(3000);
+        let t0 = std::time::Instant::now();
+        assert!(!glob_match(&pattern, &text));
+        assert!(t0.elapsed() < std::time::Duration::from_millis(500), "{:?}", t0.elapsed());
+    }
+
     #[test]
     fn iso_and_clamp() {
         assert_eq!(iso_from_unix(0), "1970-01-01T00:00:00Z");
@@ -1379,6 +1460,8 @@ mod tests {
         assert!(glob_match("Traktor *", "traktor 3.11.0"));
         assert!(!glob_match("Traktor *", "Traktor"));
         assert!(glob_match("rekordbox*", "rekordbox6"));
+        assert!(glob_match("*", "") && glob_match("**", "x") && glob_match("a*b*c", "aXXbYYc") && !glob_match("a*b*c", "aXXbYY"));
+        assert!(glob_match("*.log", "Serato.LOG") && !glob_match("*.log", "serato.log.bak") && glob_match("?", "?") && !glob_match("", "x"));
         let root = tmp("glob");
         std::fs::create_dir_all(root.join("NI/Traktor 3.11.0")).unwrap();
         std::fs::create_dir_all(root.join("NI/Traktor 4.0.1")).unwrap();

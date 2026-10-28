@@ -1725,7 +1725,7 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
     use std::process::Command;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let run = |exe: &str, args: &[&str], secs: u64| {
-        let mut cmd = Command::new(exe);
+        let mut cmd = Command::new(crate::system_check::system_exe(exe)); // AUD-13: absolute System32 path
         cmd.args(args);
         cmd.creation_flags(CREATE_NO_WINDOW);
         crate::system_check::run_with_timeout(cmd, Duration::from_secs(secs))
@@ -2158,33 +2158,48 @@ pub async fn windows_tuning_scan(dpc_seconds: Option<u32>) -> Result<TuningScan,
 }
 
 #[tauri::command]
-pub fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<LatencyRun, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_run(&conn, &input)
+pub async fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<LatencyRun, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_run(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn latency_run_list(app: AppHandle, filter: Option<LatencyRunFilter>) -> Result<Vec<LatencyRun>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_runs(&conn, &filter.unwrap_or_default())
+pub async fn latency_run_list(app: AppHandle, filter: Option<LatencyRunFilter>) -> Result<Vec<LatencyRun>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_runs(&conn, &filter.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn latency_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete_run(&conn, &id)
+pub async fn latency_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete_run(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn buffer_recommendation_save(app: AppHandle, input: RecommendationInput) -> Result<Recommendation, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_recommendation(&conn, &input)
+pub async fn buffer_recommendation_save(app: AppHandle, input: RecommendationInput) -> Result<Recommendation, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_recommendation(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn buffer_recommendation_latest(app: AppHandle, device_name: String) -> Result<Vec<Recommendation>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    latest_recommendations(&conn, &device_name)
+pub async fn buffer_recommendation_latest(app: AppHandle, device_name: String) -> Result<Vec<Recommendation>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        latest_recommendations(&conn, &device_name)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -2708,16 +2723,31 @@ mod tests {
 
     #[test]
     fn a_stall_counts_as_a_gap_xrun_unless_below_the_idle_floor() {
-        let f = Fake::with(Policy::Honour, Policy::Honour, 0, 1.0, 1.0);
-        f.stall_at(9_600, Duration::from_millis(60));
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(480), 0.6, 0), &no_progress).unwrap();
+        // Warm up both directions, then inject well before the old twentieth-
+        // callback boundary. End on observed driver progress, not the assumption
+        // that 0.6 wall-clock seconds always permits enough callbacks on CI.
+        const STALL_FRAME: u64 = 480 * 8;
+        let run = |duration, floor| {
+            let f = Fake::with(Policy::Honour, Policy::Honour, 0, 1.0, 1.0);
+            f.stall_at(STALL_FRAME, duration);
+            let t = tuner(&f);
+            let mut req = stress_req(Some(480), 5.0, 0);
+            req.gap_floor_ms = floor;
+            let r = t.stress(&CaptureLease::default(), &req, &|_| {
+                if lock(&f.dev).t > STALL_FRAME {
+                    t.abort();
+                }
+            }).unwrap();
+            let d = lock(&f.dev);
+            assert!(d.stall.is_none(), "the fake driver must inject its stall");
+            assert!(d.t > STALL_FRAME, "a post-stall callback must be observed before the bounded deadline");
+            assert!(r.input.stats.callbacks >= 8 && r.output.stats.callbacks >= 8, "both directions must pass warm-up: {r:?}");
+            r
+        };
+        let r = run(Duration::from_millis(60), None);
         assert!(r.xruns >= 1, "{r:?}");
         assert!(r.max_gap_ms.unwrap() >= 50.0, "expected a substantial injected gap: {r:?}");
-        let g = Fake::with(Policy::Honour, Policy::Honour, 0, 1.0, 1.0);
-        g.stall_at(9_600, Duration::from_millis(30));
-        let mut req = stress_req(Some(480), 0.6, 0);
-        req.gap_floor_ms = Some(500.0);
-        let q = tuner(&g).stress(&CaptureLease::default(), &req, &no_progress).unwrap();
+        let q = run(Duration::from_millis(30), Some(500.0));
         assert_eq!(q.xruns, 0);
         assert_eq!(q.input.stats.xrun_threshold_ms, Some(500.0));
     }

@@ -354,6 +354,8 @@ mod host {
         if mode == HostMode::Offscreen {
             builder = builder.position(-32000.0, -32000.0);
         }
+        // A popup from this window's page follows the same link policy as the main window (AUD-08).
+        let builder = crate::guard_new_windows(builder, app);
         let win = builder.build().map_err(|e| PdfError::Webview(format!("create window: {e}")))?;
 
         let tmp = temp_path_for(dest);

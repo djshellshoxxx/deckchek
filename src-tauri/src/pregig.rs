@@ -428,39 +428,57 @@ pub fn preset_delete(conn: &Connection, id: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn pregig_save_run(app: AppHandle, run: RunInput) -> Result<IdResult, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save_run(&mut conn, &run)
+pub async fn pregig_save_run(app: AppHandle, run: RunInput) -> Result<IdResult, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save_run(&mut conn, &run)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_list_runs(app: AppHandle, preset_id: Option<String>, limit: Option<u32>) -> Result<Vec<RunSummary>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_runs(&conn, preset_id.as_deref(), limit)
+pub async fn pregig_list_runs(app: AppHandle, preset_id: Option<String>, limit: Option<u32>) -> Result<Vec<RunSummary>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_runs(&conn, preset_id.as_deref(), limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_get_run(app: AppHandle, id: String) -> Result<Option<RunDetail>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get_run(&conn, &id)
+pub async fn pregig_get_run(app: AppHandle, id: String) -> Result<Option<RunDetail>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get_run(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_upsert(app: AppHandle, preset: PresetInput) -> Result<Preset, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_upsert(&conn, &preset)
+pub async fn pregig_preset_upsert(app: AppHandle, preset: PresetInput) -> Result<Preset, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_upsert(&conn, &preset)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_list(app: AppHandle) -> Result<Vec<Preset>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_list(&conn)
+pub async fn pregig_preset_list(app: AppHandle) -> Result<Vec<Preset>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_list(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_delete(&conn, &id)
+pub async fn pregig_preset_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]

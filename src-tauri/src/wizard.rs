@@ -248,23 +248,35 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn wizard_state_get(app: AppHandle) -> Result<WizardState, String> {
-    with_db(&app, |c| state_get(c))
+pub async fn wizard_state_get(app: AppHandle) -> Result<WizardState, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| state_get(c))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wizard_state_save(app: AppHandle, state: WizardStateInput) -> Result<(), String> {
-    with_db(&app, |c| state_save(c, &state))
+pub async fn wizard_state_save(app: AppHandle, state: WizardStateInput) -> Result<(), String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| state_save(c, &state))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wizard_create_assets(app: AppHandle, product_ids: Vec<String>) -> Result<GearResult, String> {
-    with_db(&app, |c| create_assets(c, &product_ids))
+pub async fn wizard_create_assets(app: AppHandle, product_ids: Vec<String>) -> Result<GearResult, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| create_assets(c, &product_ids))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wizard_apply_gear(app: AppHandle, product_ids: Vec<String>) -> Result<GearResult, String> {
-    with_db(&app, |c| apply_gear(c, &product_ids))
+pub async fn wizard_apply_gear(app: AppHandle, product_ids: Vec<String>) -> Result<GearResult, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| apply_gear(c, &product_ids))
+    })
+    .await?
 }
 
 /// True when the database already holds a run or an asset: upgrade installs skip the wizard (FS-01 AC-10).
@@ -276,8 +288,11 @@ pub fn has_user_data(conn: &Connection) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn wizard_has_user_data(app: AppHandle) -> Result<bool, String> {
-    with_db(&app, |c| has_user_data(c))
+pub async fn wizard_has_user_data(app: AppHandle) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| has_user_data(c))
+    })
+    .await?
 }
 
 #[cfg(test)]

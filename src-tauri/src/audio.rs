@@ -157,8 +157,23 @@ pub fn resolve_pairs(firsts: Option<&[u16]>, channels: u16, device_name: &str) -
         .collect()
 }
 
+/// Frame offsets of each pair on a `channels`-wide frame; offsets past the
+/// last channel clamp to it (`channels` must be > 0).
+fn clamped_offsets(pairs: &[ChannelPair], channels: usize) -> Vec<(usize, usize)> {
+    pairs
+        .iter()
+        .map(|p| {
+            let (l, r) = p.offsets();
+            (l.min(channels - 1), r.min(channels - 1))
+        })
+        .collect()
+}
+
 /// Splits interleaved samples into one (left, right) per pair. Trailing
 /// partial frames are ignored; offsets past the last channel clamp to it.
+/// The capture itself de-interleaves in its callback ([`BoundedTracks`]);
+/// this is the reference the tests compare it against.
+#[cfg(test)]
 pub fn deinterleave_pairs(data: &[f32], channels: usize, pairs: &[ChannelPair]) -> Vec<(Vec<f32>, Vec<f32>)> {
     if channels == 0 {
         return pairs.iter().map(|_| (Vec::new(), Vec::new())).collect();
@@ -166,13 +181,7 @@ pub fn deinterleave_pairs(data: &[f32], channels: usize, pairs: &[ChannelPair]) 
     let frames = data.len() / channels;
     let mut out: Vec<(Vec<f32>, Vec<f32>)> =
         pairs.iter().map(|_| (Vec::with_capacity(frames), Vec::with_capacity(frames))).collect();
-    let offs: Vec<(usize, usize)> = pairs
-        .iter()
-        .map(|p| {
-            let (l, r) = p.offsets();
-            (l.min(channels - 1), r.min(channels - 1))
-        })
-        .collect();
+    let offs = clamped_offsets(pairs, channels);
     for frame in data.chunks_exact(channels) {
         for (track, &(l, r)) in out.iter_mut().zip(&offs) {
             track.0.push(frame[l]);
@@ -264,8 +273,16 @@ pub(crate) fn device_max_channels(device: &cpal::Device) -> u16 {
     ranged.max(default)
 }
 
+/// AUD-03: enumeration asks every audio driver for its configs (ASIO/WASAPI can block for
+/// seconds), so it runs on tokio's blocking pool, never on the main (UI) thread.
 #[tauri::command]
-pub fn list_native_audio_inputs() -> Result<Vec<AudioInputInfo>, String> {
+pub async fn list_native_audio_inputs() -> Result<Vec<AudioInputInfo>, String> {
+    tauri::async_runtime::spawn_blocking(list_inputs_blocking)
+        .await
+        .map_err(|e| format!("background task failed: {e}"))?
+}
+
+fn list_inputs_blocking() -> Result<Vec<AudioInputInfo>, String> {
     let host = cpal::default_host();
     let default_name = host.default_input_device().and_then(|d| d.name().ok());
 
@@ -366,8 +383,7 @@ fn build_capture_stream(
     device: &cpal::Device,
     sample_format: SampleFormat,
     config: &cpal::StreamConfig,
-    target_samples: usize,
-    collected: Arc<Mutex<Vec<f32>>>,
+    collected: Arc<Mutex<BoundedTracks>>,
     done_tx: mpsc::Sender<()>,
     errors: Arc<Mutex<Vec<String>>>,
     lost: Arc<AtomicBool>,
@@ -382,13 +398,11 @@ fn build_capture_stream(
                 .build_input_stream(
                     config,
                     move |input: &[$sample_ty], _| {
-                        if let Ok(mut buffer) = data.lock() {
-                            if buffer.len() >= target_samples {
+                        if let Ok(mut store) = data.lock() {
+                            if store.is_full() {
                                 return;
                             }
-                            let remaining = target_samples - buffer.len();
-                            buffer.extend(input.iter().take(remaining).map($convert));
-                            if buffer.len() >= target_samples {
+                            if store.push(input, $convert) {
                                 let _ = tx.send(());
                             }
                         }
@@ -467,6 +481,89 @@ pub(crate) fn validate_duration(duration_sec: f32) -> Result<(), String> {
     Ok(())
 }
 
+/// A bounded capture whose sample buffers would exceed the memory budget.
+pub const CAPTURE_TOO_LARGE: &str = "This capture needs more memory than DeckChek allows for audio: select fewer input pairs, a shorter duration or a lower sample rate.";
+/// The bounded capture's sample buffers could not be allocated.
+pub const CAPTURE_OUT_OF_MEMORY: &str =
+    "There is not enough memory for this capture: select fewer input pairs or a shorter duration.";
+
+/// Samples (left + right of every selected pair, f32) a bounded capture of
+/// `secs` at `rate` stores. Only the selected pairs are kept, never every
+/// device channel, and the total must fit
+/// [`crate::capture::LIVE_BUFFER_BUDGET_BYTES`] (AUD-06).
+pub fn bounded_buffer_len(rate: u32, channels: usize, secs: f32, pairs: usize) -> Result<usize, String> {
+    validate_duration(secs)?;
+    if channels == 0 {
+        return Err("Input device reported zero channels.".to_string());
+    }
+    if pairs == 0 || pairs > MAX_PAIRS {
+        return Err(format!("A capture needs 1-{MAX_PAIRS} input pairs."));
+    }
+    // rate <= u32::MAX and secs <= 30, so the frame count fits a u64 exactly.
+    let frames = (rate as f64 * secs as f64).ceil() as u64;
+    let samples = frames.checked_mul(pairs as u64 * 2).ok_or(CAPTURE_TOO_LARGE)?;
+    let bytes = samples.checked_mul(std::mem::size_of::<f32>() as u64).ok_or(CAPTURE_TOO_LARGE)?;
+    if bytes > crate::capture::LIVE_BUFFER_BUDGET_BYTES {
+        return Err(CAPTURE_TOO_LARGE.to_string());
+    }
+    usize::try_from(samples).map_err(|_| CAPTURE_TOO_LARGE.to_string())
+}
+
+/// Sample store of a bounded capture: the stream callback de-interleaves
+/// into it, so only the selected pairs are held. Every buffer is reserved
+/// fallibly up front for exactly the target, so the callback never
+/// reallocates and a refused reservation is an error, not an abort (AUD-06).
+#[derive(Debug)]
+pub(crate) struct BoundedTracks {
+    channels: usize,
+    offs: Vec<(usize, usize)>,
+    target_frames: usize,
+    /// (left, right) per selected pair, in selection order.
+    pub tracks: Vec<(Vec<f32>, Vec<f32>)>,
+}
+
+impl BoundedTracks {
+    /// Store for `secs` at `rate`, sized and budgeted by [`bounded_buffer_len`].
+    pub fn new(pairs: &[ChannelPair], channels: usize, rate: u32, secs: f32) -> Result<Self, String> {
+        let samples = bounded_buffer_len(rate, channels, secs, pairs.len())?;
+        Self::with_frames(pairs, channels, samples / (2 * pairs.len()))
+    }
+
+    fn with_frames(pairs: &[ChannelPair], channels: usize, target_frames: usize) -> Result<Self, String> {
+        if channels == 0 {
+            return Err("Input device reported zero channels.".to_string());
+        }
+        let oom = |_| CAPTURE_OUT_OF_MEMORY.to_string();
+        let mut tracks = Vec::new();
+        tracks.try_reserve_exact(pairs.len()).map_err(oom)?;
+        for _ in pairs {
+            let (mut left, mut right) = (Vec::new(), Vec::new());
+            left.try_reserve_exact(target_frames).map_err(oom)?;
+            right.try_reserve_exact(target_frames).map_err(oom)?;
+            tracks.push((left, right));
+        }
+        Ok(Self { channels, offs: clamped_offsets(pairs, channels), target_frames, tracks })
+    }
+
+    fn is_full(&self) -> bool {
+        self.tracks.first().map_or(0, |t| t.0.len()) >= self.target_frames
+    }
+
+    /// Appends the whole frames of interleaved `input` up to the target
+    /// (a trailing partial frame is dropped). True once the target is reached.
+    pub fn push<T>(&mut self, input: &[T], convert: impl Fn(&T) -> f32) -> bool {
+        let held = self.tracks.first().map_or(0, |t| t.0.len());
+        let room = self.target_frames.saturating_sub(held);
+        for frame in input.chunks_exact(self.channels).take(room) {
+            for (track, &(l, r)) in self.tracks.iter_mut().zip(&self.offs) {
+                track.0.push(convert(&frame[l]));
+                track.1.push(convert(&frame[r]));
+            }
+        }
+        self.is_full()
+    }
+}
+
 fn capture_blocking(
     device_name: Option<String>,
     duration_sec: f32,
@@ -490,9 +587,8 @@ fn capture_blocking(
     }
     let pairs = resolve_pairs(firsts.as_deref(), config.channels, &resolved_name)?;
 
-    let target_frames = (config.sample_rate.0 as f64 * duration_sec as f64).ceil() as usize;
-    let target_samples = target_frames.saturating_mul(channels);
-    let collected = Arc::new(Mutex::new(Vec::<f32>::with_capacity(target_samples)));
+    // Sized for the selected pairs, budgeted and reserved fallibly (AUD-06).
+    let collected = Arc::new(Mutex::new(BoundedTracks::new(&pairs, channels, config.sample_rate.0, duration_sec)?));
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let (done_tx, done_rx) = mpsc::channel();
     let lost = Arc::new(AtomicBool::new(false));
@@ -501,7 +597,6 @@ fn capture_blocking(
         &device,
         sample_format,
         &config,
-        target_samples,
         Arc::clone(&collected),
         done_tx,
         Arc::clone(&errors),
@@ -520,15 +615,18 @@ fn capture_blocking(
         return Err(with_stream_errors(e, &reported));
     }
 
-    let data = collected
-        .lock()
-        .map_err(|_| "Audio capture buffer lock was poisoned.".to_string())?
-        .clone();
+    // Moved out, not cloned: the stream (the only other holder) is dropped.
+    let data = std::mem::take(
+        &mut collected
+            .lock()
+            .map_err(|_| "Audio capture buffer lock was poisoned.".to_string())?
+            .tracks,
+    );
     let stream_errors = errors
         .lock()
         .map_err(|_| "Audio error buffer lock was poisoned.".to_string())?
         .clone();
-    let tracks = deinterleave_pairs(&data, channels, &pairs)
+    let tracks = data
         .into_iter()
         .zip(pairs)
         .map(|((l, r), p)| (p, l, r))
@@ -739,11 +837,72 @@ mod tests {
         assert!(with_stream_errors("Timed out".into(), &["glitch".into()]).ends_with("Stream errors: glitch"));
     }
 
+    /// AUD-06: the bounded capture sizes its buffers for the selected pairs
+    /// only (not every device channel), with checked arithmetic, and refuses
+    /// a request above the shared sample-memory budget.
+    #[test]
+    fn regression_aud_06_bounded_buffer_counts_selected_pairs_and_respects_budget() {
+        // 64-channel 192 kHz device, one pair for 30 s: 192000 * 30 frames * 2 samples.
+        assert_eq!(bounded_buffer_len(192_000, 64, 30.0, 1), Ok(11_520_000));
+        assert_eq!(bounded_buffer_len(48_000, 2, 0.5, 1), Ok(48_000));
+        assert_eq!(bounded_buffer_len(48_000, 64, 30.0, 32), Ok(48_000 * 30 * 64));
+        // 32 pairs at 192 kHz for 30 s is ~1.47 GB: refused, not allocated.
+        assert_eq!(bounded_buffer_len(192_000, 64, 30.0, 32).unwrap_err(), CAPTURE_TOO_LARGE);
+        assert_eq!(bounded_buffer_len(u32::MAX, 64, 30.0, MAX_PAIRS).unwrap_err(), CAPTURE_TOO_LARGE);
+        assert!(bounded_buffer_len(48_000, 0, 1.0, 1).is_err(), "zero channels");
+        assert!(bounded_buffer_len(48_000, 2, 1.0, 0).is_err(), "no pairs");
+        assert!(bounded_buffer_len(48_000, 2, 31.0, 1).is_err(), "duration re-validated");
+        for pairs in 1..=MAX_PAIRS {
+            if let Ok(n) = bounded_buffer_len(192_000, 64, 30.0, pairs) {
+                assert!(n as u64 * 4 <= crate::capture::LIVE_BUFFER_BUDGET_BYTES, "{pairs} pairs");
+            }
+        }
+    }
+
+    /// AUD-06: the store is reserved fallibly (a refused reservation is an
+    /// error, not an abort), holds only the selected pairs and never grows
+    /// past the target.
+    #[test]
+    fn regression_aud_06_bounded_tracks_reserve_fallibly_and_keep_only_selected_pairs() {
+        let pairs = resolve_pairs(Some(&[7, 3]), 8, "Audio 8").unwrap();
+        assert_eq!(BoundedTracks::with_frames(&pairs, 8, usize::MAX / 2).unwrap_err(), CAPTURE_OUT_OF_MEMORY);
+
+        let data = interleaved(8, 10);
+        let mut store = BoundedTracks::with_frames(&pairs, 8, 6).unwrap();
+        assert!(!store.push(&data[..8 * 4], |v: &f32| *v), "4 of 6 frames");
+        assert!(store.push(&data[8 * 4..], |v: &f32| *v), "complete at 6 frames");
+        assert!(store.push(&data, |v: &f32| *v), "further input is ignored");
+        let expected: Vec<_> = deinterleave_pairs(&data[..8 * 6], 8, &pairs);
+        assert_eq!(store.tracks, expected);
+        assert!(store.tracks.iter().all(|(l, r)| l.capacity() == 6 && r.capacity() == 6), "no growth");
+
+        // From the real sizing: a mono last pair on an odd device, i16 input.
+        let pairs = resolve_pairs(Some(&[5]), 5, "Odd").unwrap();
+        let mut store = BoundedTracks::new(&pairs, 5, 4, 1.0).unwrap();
+        let pcm: Vec<i16> = (0..5 * 4).map(|i| i as i16 * 1000).collect();
+        assert!(store.push(&pcm, |v: &i16| sample_i16(*v)));
+        assert_eq!(store.tracks[0].0, store.tracks[0].1, "mono duplicated");
+        assert_eq!(store.tracks[0].0[1], sample_i16(9000));
+    }
+
     #[test]
     fn duration_is_validated_before_any_device_work() {
         assert!(validate_duration(0.0).is_err());
         assert!(validate_duration(30.5).is_err());
         assert!(validate_duration(f32::NAN).is_err());
         assert!(validate_duration(30.0).is_ok());
+    }
+
+    /// AUD-03: input enumeration queries every audio driver (ASIO/WASAPI can block for seconds),
+    /// so the command must be `async` and enumerate on the blocking pool. Scans this file's source.
+    #[test]
+    fn regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread() {
+        let src = include_str!("audio.rs");
+        let name = "list_native_audio_inputs";
+        assert!(!src.contains(&format!("pub fn {name}(")), "{name} is still a sync command on the main thread");
+        let head = format!("pub async fn {name}(");
+        let at = src.find(&head).unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
+        let body = &src[at..at + src[at..].find("\n}\n").expect("command body")];
+        assert!(body.contains("spawn_blocking"), "{name} must enumerate via spawn_blocking");
     }
 }
