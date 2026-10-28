@@ -206,6 +206,7 @@ export function createMapperScreen(section) {
   const deviceSelect = h('select', { id: 'mp-device', 'aria-label': 'Unit (device) to map' });
   const savedSelect = h('select', { id: 'mp-saved', 'aria-label': 'Saved mappings' });
   const nameInput = h('input', { id: 'mp-name', type: 'text', maxlength: String(LIMITS.maxText), autocomplete: 'off', 'aria-label': 'Mapping name' });
+  const saveModelBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: () => saveModel() });
   const decksSelect = h('select', { id: 'mp-decks', 'aria-label': 'Number of decks' }, ...[1, 2, 3, 4].map(n => h('option', { value: String(n), text: `${n} deck${n === 1 ? '' : 's'}` })));
 
   const setStatus = (message, tone = 'info', { title = null } = {}) => {
@@ -374,6 +375,11 @@ export function createMapperScreen(section) {
 
   async function saveModel() {
     if (!st.model) return;
+    if (st.readOnly) {
+      // sanitizeModel rebuilt a newer-version model as a lossy v1 copy; saving it would overwrite the newer row.
+      setStatus('This mapping was made by a newer DeckChek and is read-only here, so it is not saved over.', 'warn', { title: 'Not saved.' });
+      return;
+    }
     try {
       const row = await mstore.save({ id: st.savedId, assetId: st.assetId, profileId: st.profileId, name: st.model.name, model: st.model });
       st.savedId = row.id;
@@ -672,6 +678,8 @@ export function createMapperScreen(section) {
   function renderAll() {
     keepFocus(() => {
       section.classList.toggle('mp-readonly', st.readOnly);
+      // A read-only (newer-version) mapping cannot be renamed, re-decked or saved over.
+      nameInput.disabled = st.readOnly; decksSelect.disabled = st.readOnly; saveModelBtn.disabled = st.readOnly;
       renderLeft(); renderCentre(); renderRight();
     });
   }
@@ -696,7 +704,7 @@ export function createMapperScreen(section) {
       h('div', { class: 'mp-row' },
         h('label', { class: 'mp-field mp-grow', for: 'mp-name' }, h('span', { class: 'field-label', text: 'Mapping name' }), nameInput),
         h('label', { class: 'mp-field', for: 'mp-decks' }, h('span', { class: 'field-label', text: 'Decks' }), decksSelect),
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: saveModel })),
+        saveModelBtn),
       h('p', { class: 'muted small', text: 'Opens Mixxx .midi.xml (add its .js script files to keep them), VirtualDJ device + mapper .xml (pick both), or a DeckChek .json mapping or learned map. Up to 5 MB each; scripts are kept as text and never run.' }),
       status, warningsBox),
     h('div', { class: 'mp-panes' }, left, centre, right));
