@@ -7,7 +7,7 @@ const option = (value, text) => h('option', { value, text });
 
 export function fleetTemplatePanel({ view, selectedAsset, api, act }) {
   const templates = view.templates ?? [], products = view.products ?? [];
-  const panel = h('section', { class: 'card', id: 'fleet-templates' }), form = h('form');
+  const panel = h('section', { class: 'card', id: 'fleet-templates' }), form = h('form', { id: 'fleet-template-form' });
   const existing = h('select', { name: 'existing' }, option('', 'New template'), ...templates.map(t => option(t.id, t.title))),
     product = h('select', { name: 'product', required: true }, ...products.map(p => option(p.id, p.model))),
     title = h('input', { name: 'title', required: true, maxlength: 200 }),
@@ -22,14 +22,19 @@ export function fleetTemplatePanel({ view, selectedAsset, api, act }) {
     basis.value = template?.basis ?? 'days'; interval.value = template?.intervalValue ?? 90; warning.value = template?.warnBefore ?? 14;
   });
   form.append(h('div', { class: 'field-grid' }, field('Edit template', existing), field('Product', product), field('Title', title), field('Basis', basis), field('Every', interval), field('Warn before', warning)), save);
-  form.addEventListener('submit', async event => {
-    event.preventDefault(); save.disabled = true;
-    try { await act(() => api.saveTemplate({ id: existing.value || null, productId: product.value, title: title.value, basis: basis.value, intervalValue: Number(interval.value), warnBefore: Number(warning.value) })); }
-    finally { save.disabled = false; }
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    // `act` disables the button while saving and ignores re-entry, so a double submit saves once.
+    act(() => api.saveTemplate({ id: existing.value || null, productId: product.value, title: title.value, basis: basis.value, intervalValue: Number(interval.value), warnBefore: Number(warning.value) }),
+      { done: `Reminder template “${title.value}” saved.`, control: save });
   });
+  const applyButton = template => {
+    const apply = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Apply to selected asset', 'data-apply-template': template.id, disabled: !selectedAsset || selectedAsset.productId !== template.productId,
+      onclick: () => act(() => api.applyTemplate(template.id, selectedAsset.assetId), { done: `${template.title} applied to ${selectedAsset.nickname}.`, control: apply }) });
+    return apply;
+  };
   panel.append(h('h2', { text: 'Reminder templates' }), h('p', { text: 'Create your own intervals for a product, then apply them to a matching selected asset. These are maintenance choices, not manufacturer-certified intervals. Reapplying a template updates its reminder without adding a duplicate.' }), form,
     h('ul', {}, ...templates.map(template => h('li', {}, h('span', { text: `${products.find(p => p.id === template.productId)?.model ?? template.productId}: ${template.title} · ${template.intervalValue} ${template.basis}` }),
-      h('button', { type: 'button', class: 'btn btn-secondary', text: 'Apply to selected asset', disabled: !selectedAsset || selectedAsset.productId !== template.productId,
-        onclick: () => act(() => api.applyTemplate(template.id, selectedAsset.assetId)) })))));
+      applyButton(template)))));
   return panel;
 }
