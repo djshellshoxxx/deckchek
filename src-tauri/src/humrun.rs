@@ -379,27 +379,39 @@ pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn hum_run_save(app: AppHandle, input: HumRunInput) -> Result<HumRun, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save(&conn, &input)
+pub async fn hum_run_save(app: AppHandle, input: HumRunInput) -> Result<HumRun, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_list(app: AppHandle, filter: Option<HumRunFilter>) -> Result<Vec<HumRunSummary>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &filter.unwrap_or_default())
+pub async fn hum_run_list(app: AppHandle, filter: Option<HumRunFilter>) -> Result<Vec<HumRunSummary>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &filter.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_get(app: AppHandle, id: String) -> Result<Option<HumRun>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn hum_run_get(app: AppHandle, id: String) -> Result<Option<HumRun>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn hum_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]

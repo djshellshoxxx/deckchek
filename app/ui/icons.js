@@ -1,5 +1,7 @@
 // Inline SVG icon set (CSP: no remote assets). 24px grid, stroke = currentColor.
 
+import { esc } from './dom.js';
+
 const P = {
   quick: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
   speed: '<path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="M12 13l4-5"/><circle cx="12" cy="13" r="1.4"/>',
@@ -67,5 +69,5 @@ export const STATUS = {
 /** Status chip: icon + uppercase word + colour (never colour alone). */
 export function chip(status, text = null, { size = 16 } = {}) {
   const s = STATUS[status] || STATUS.info;
-  return `<span class="chip chip-${status in STATUS ? status : 'info'}">${icon(s.icon, { size })}<span>${text ?? s.label}</span></span>`;
+  return `<span class="chip chip-${status in STATUS ? status : 'info'}">${icon(s.icon, { size })}<span>${esc(text ?? s.label)}</span></span>`;
 }

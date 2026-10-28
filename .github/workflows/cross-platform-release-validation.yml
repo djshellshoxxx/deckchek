@@ -1,47 +1,54 @@
 name: Cross-platform desktop release
 
+# Slow platform builds: main, tags and manual dispatch only (the per-push gate is test.yml).
+# Each platform is built once and uploaded; the smoke jobs download those exact files and run
+# the packaged app's `--self-test` (real WebView, bundled UI, known-tone analysis, clean exit).
+# A tag publishes a prerelease only after the full test gate, every build and every smoke pass.
+# First-party actions only; the release is created with the preinstalled `gh` CLI.
+
 on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/cross-platform-release-validation.yml'
-      - 'src-tauri/**'
-      - 'app/**'
-      - 'tests/**'
-      - 'tools/**'
-      - 'database/**'
-      - 'package.json'
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: platform-release-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a tag (release) run; superseded main pushes are cancelled.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+  TAURI_CLI_VERSION: 2.12.1
 
 jobs:
-  verification:
+  tests:
+    uses: ./.github/workflows/test.yml
+
+  release-checks:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test
-      - run: node tools/build-device-index.mjs --check
-      - run: node tools/check-timecode-facts.mjs
-      - run: node tools/check-migrations.mjs
-      - name: Syntax check
-        shell: bash
-        run: |
-          set -euo pipefail
-          while IFS= read -r -d '' f; do node --check "$f"; done < <(find app -type f -name '*.js' -print0)
+      - name: Release tags need gap-free migrations
+        run: node tools/check-migrations.mjs --contiguous
+      - name: Tag matches the app version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node tools/check-release-version.mjs "$TAG"
 
   build:
-    needs: verification
+    needs: tests
     strategy:
       fail-fast: false
       matrix:
@@ -71,69 +78,77 @@ jobs:
             target: i686-unknown-linux-gnu
             bundles: deb
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     env:
       TARGET: ${{ matrix.target }}
-      CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER: i686-linux-gnu-gcc
+      BUILD_NAME: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install Rust cross target
-        if: matrix.target != '' && matrix.name != 'linux-x86'
-        run: rustup target add "${{ matrix.target }}"
-      - uses: Swatinem/rust-cache@v2
+      - name: Rust toolchain (rustup is preinstalled on the runner)
+        if: matrix.name != 'linux-x86'
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal && rustup default stable
+          if [[ -n "$TARGET" ]]; then rustup target add "$TARGET"; fi
+      - name: Cache fetched crates (not build output)
+        if: matrix.name != 'linux-x86'
+        uses: actions/cache@v4
         with:
-          workspaces: src-tauri
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-
       - name: Install Linux x64 Tauri prerequisites
-        if: runner.os == 'Linux' && matrix.name == 'linux-x64'
+        if: matrix.name == 'linux-x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
-      - name: Install Tauri CLI
-        if: matrix.name != 'linux-x86'
-        uses: taiki-e/install-action@v2
-        with:
-          tool: tauri-cli
-      - name: Rust tests
-        if: matrix.name != 'linux-x86'
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-      - name: Compile target
-        if: matrix.name != 'linux-x86'
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
+      - name: Rust tests on this OS (release tags; JUnit-free log kept as evidence)
+        if: startsWith(github.ref, 'refs/tags/v') && (matrix.name == 'windows-x64' || matrix.name == 'macos-arm64')
         shell: bash
-        env:
-          BUILD_NAME: ${{ matrix.name }}
         run: |
-          set -euo pipefail
-          if [[ "$BUILD_NAME" == linux-x86 ]]; then export PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig:/usr/share/pkgconfig; fi
-          if [[ -n "$TARGET" ]]; then cargo check --manifest-path src-tauri/Cargo.toml --target "$TARGET"; else cargo check --manifest-path src-tauri/Cargo.toml; fi
-      - name: Build platform bundles
+          set -o pipefail
+          mkdir -p release-staging/test-logs
+          cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4 2>&1 | tee "release-staging/test-logs/${BUILD_NAME}-cargo-test.log"
+      - name: Build platform bundles (Tauri CLI ${{ env.TAURI_CLI_VERSION }} from npm)
         shell: bash
-        env:
-          BUILD_NAME: ${{ matrix.name }}
         run: |
           set -euo pipefail
           if [[ "$BUILD_NAME" == linux-x86 ]]; then
             docker run --platform linux/386 --rm \
-              -v "$GITHUB_WORKSPACE:/work" -w /work debian:bookworm \
+              -e TAURI_CLI_VERSION -v "$GITHUB_WORKSPACE:/work" -w /work debian:bookworm \
               bash -euc '
                 apt-get update
-                DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential pkg-config patchelf libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev librsvg2-bin libasound2-dev libssl-dev
+                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl build-essential pkg-config patchelf file libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev librsvg2-bin libasound2-dev libssl-dev
                 curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-host i686-unknown-linux-gnu --default-toolchain stable
                 export PATH="/root/.cargo/bin:$PATH" CARGO_TARGET_DIR=/work/src-tauri/target
-                rustup target add i686-unknown-linux-gnu
-                cargo install tauri-cli --locked
-                cargo test --manifest-path src-tauri/Cargo.toml
-                cargo tauri build --target i686-unknown-linux-gnu --bundles deb
+                cargo install tauri-cli --version "$TAURI_CLI_VERSION" --locked
+                cargo test --locked --manifest-path src-tauri/Cargo.toml -j 2
+                cargo tauri build --ci --target i686-unknown-linux-gnu --bundles deb
               '
             exit 0
           fi
-          if [[ -n "$TARGET" ]]; then cargo tauri build --target "$TARGET" --bundles "${{ matrix.bundles }}"; else cargo tauri build --bundles "${{ matrix.bundles }}"; fi
+          args=(--ci --bundles "${{ matrix.bundles }}")
+          [[ -z "$TARGET" ]] || args+=(--target "$TARGET")
+          npx --yes "@tauri-apps/cli@${TAURI_CLI_VERSION}" build "${args[@]}"
+      - name: Verify macOS audio-input privacy metadata
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$app"
+          usage="$(/usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' "$app/Contents/Info.plist")"
+          test -n "$usage"
       - name: Stage uniquely named packages
         shell: bash
-        env:
-          BUILD_NAME: ${{ matrix.name }}
         run: |
           set -euo pipefail
           release_dir="src-tauri/target/release"
@@ -141,14 +156,15 @@ jobs:
           mkdir -p "release-staging/$BUILD_NAME"
           if [[ -d "$release_dir/bundle" ]]; then
             while IFS= read -r -d '' file; do
-              base="$(basename "$file")"
-              cp "$file" "release-staging/$BUILD_NAME/${BUILD_NAME}-${base}"
+              cp "$file" "release-staging/$BUILD_NAME/${BUILD_NAME}-$(basename "$file")"
             done < <(find "$release_dir/bundle" -type f \( -iname '*.exe' -o -iname '*.msi' -o -iname '*.deb' -o -iname '*.appimage' -o -iname '*.dmg' \) -print0)
           fi
           for binary in "$release_dir/deckchek.exe" "$release_dir/deckchek"; do
             if [[ -f "$binary" ]]; then cp "$binary" "release-staging/$BUILD_NAME/${BUILD_NAME}-$(basename "$binary")"; fi
           done
-          test -n "$(find "release-staging/$BUILD_NAME" -type f -print -quit)"
+          if [[ -d release-staging/test-logs ]]; then cp release-staging/test-logs/* "release-staging/$BUILD_NAME/"; fi
+          printf '%s\n' "$GITHUB_SHA" > "release-staging/$BUILD_NAME/${BUILD_NAME}-COMMIT.txt"
+          test -n "$(find "release-staging/$BUILD_NAME" -type f -name "${BUILD_NAME}-*" ! -name '*.txt' ! -name '*.log' -print -quit)"
       - uses: actions/upload-artifact@v4
         with:
           name: deckchek-${{ matrix.name }}
@@ -156,31 +172,113 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  smoke:
+    # Downloads the exact files the build job produced and runs the packaged app's self-test.
+    # linux-x86 is cross-built in a container and cannot run on an x64 runner without an i386
+    # WebKitGTK stack; its smoke is recorded as not run (see docs/qa.md).
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, name: windows-x64 }
+          - { os: windows-latest, name: windows-x86 }
+          - { os: macos-15, name: macos-arm64 }
+          - { os: macos-15-intel, name: macos-x64 }
+          - { os: ubuntu-22.04, name: linux-x64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      BUILD_NAME: ${{ matrix.name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: deckchek-${{ matrix.name }}
+          path: pkg
+      - name: Linux runtime for the WebView
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libwebkit2gtk-4.1-0 libayatana-appindicator3-1 librsvg2-2 libasound2
+      - name: Run the packaged app's self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/self-test-${BUILD_NAME}.json"
+          case "$RUNNER_OS" in
+            Windows)
+              exe="pkg/${BUILD_NAME}-deckchek.exe"
+              "$exe" "--self-test=$(cygpath -w "$report")" & pid=$!
+              wait "$pid" || true
+              ;;
+            macOS)
+              dmg="$(ls pkg/*.dmg | head -1)"
+              mnt="$(mktemp -d)"
+              hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg" >/dev/null
+              app="$(find "$mnt" -maxdepth 1 -name '*.app' -print -quit)"
+              "$app/Contents/MacOS/deckchek" "--self-test=$report" || true
+              hdiutil detach "$mnt" >/dev/null
+              ;;
+            Linux)
+              chmod +x "pkg/${BUILD_NAME}-deckchek"
+              xvfb-run -a "pkg/${BUILD_NAME}-deckchek" "--self-test=$report" || true
+              ;;
+          esac
+          test -f "$report" || { echo '::error::no self-test report was written'; exit 1; }
+          cat "$report"
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); if(r.ok!==true){console.error("self-test failed");process.exit(1)}' "$report"
+          sha256sum pkg/* > "$RUNNER_TEMP/smoke-sha256-${BUILD_NAME}.txt" || shasum -a 256 pkg/* > "$RUNNER_TEMP/smoke-sha256-${BUILD_NAME}.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/self-test-${{ matrix.name }}.json
+            ${{ runner.temp }}/smoke-sha256-${{ matrix.name }}.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [tests, release-checks, build, smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/download-artifact@v4
         with:
+          pattern: deckchek-*
           path: release-artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: smoke-*
+          path: smoke-reports
+          merge-multiple: true
       - name: Create package checksums
         run: |
           set -euo pipefail
-          find release-artifacts -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > release-artifacts/SHA256SUMS
-      - name: Publish cross-platform beta release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: DeckChek Beta ${{ github.ref_name }}
-          prerelease: true
-          body: |
-            Cross-platform DeckChek beta packages for Windows x64 and x86, macOS Intel and Apple silicon, and Linux x64 and x86.
+          find release-artifacts -type f \( -name '*.log' -o -name '*-COMMIT.txt' \) -delete
+          node tools/release-checksums.mjs release-artifacts
+          cat release-artifacts/SHA256SUMS
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cat > notes.md <<'NOTES'
+          Cross-platform DeckChek beta packages for Windows x64 and x86, macOS Apple silicon and Intel, and Linux x64 and x86.
 
-            These packages have passed the repository's automated checks on this tag. Physical device, driver, measurement-accuracy, and venue PA validation remain separate; see the repository's implementation status and release acceptance documents.
+          Every package was built once from this tag, passed the full automated test gate (JavaScript, Rust, UI smoke, fuzz smoke), and all but linux-x86 passed the packaged-app self-test (launch, analyse a known tone in the real WebView, clean exit). Physical device, driver, measurement-accuracy and venue validation remain separate owner gates; see docs/qa.md and SPEC_STATUS.md.
 
-            macOS packages are unsigned and not notarized. Windows installers are unsigned. Review SHA256SUMS after download.
-          files: |
-            release-artifacts/**/*
-            release-artifacts/SHA256SUMS
+          Packages are unsigned: Windows installers carry no Authenticode signature and macOS packages are not signed or notarized. There is no auto-update. Verify downloads against SHA256SUMS.
+          NOTES
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease --verify-tag \
+            --title "DeckChek Beta $TAG" --notes-file notes.md \
+            $(find release-artifacts -type f | sort)
