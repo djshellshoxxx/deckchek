@@ -32,3 +32,7 @@ tauri-plugin-notification = "2"
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39"
 windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+
+[features]
+# Exposes `deckchek_lib::fuzz_api` for the cargo-fuzz targets in `fuzz/`. Never enabled in release builds.
+fuzzing = []
