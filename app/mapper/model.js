@@ -187,6 +187,50 @@ export function normalizeModel(model) {
 }
 
 /**
+ * Offset of the first JSON syntax error (for "line X, column Y" messages; engines differ in what they report), or
+ * null. A validating scan only: nothing is built, nesting is capped.
+ */
+export function jsonErrorPosition(text) {
+  let i = 0;
+  const n = text.length;
+  const fail = () => { throw i; };
+  const ws = () => { while (i < n && ' \t\n\r'.includes(text[i])) i++; };
+  const lit = w => { if (text.startsWith(w, i)) i += w.length; else fail(); };
+  const str = () => {
+    i++;
+    while (i < n && text[i] !== '"') {
+      if (text.charCodeAt(i) < 0x20) fail();
+      if (text[i] === '\\') { i++; if (text[i] === 'u') { if (!/^[0-9a-fA-F]{4}$/.test(text.slice(i + 1, i + 5))) fail(); i += 4; } else if (!'"\\/bfnrt'.includes(text[i] ?? 'x')) fail(); }
+      i++;
+    }
+    if (i >= n) fail();
+    i++;
+  };
+  const num = () => { const m = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/.exec(text.slice(i, i + 400)); if (!m) fail(); i += m[0].length; };
+  const val = depth => {
+    if (depth > 512) fail();
+    ws();
+    const c = text[i];
+    if (c === '{') {
+      i++; ws();
+      if (text[i] === '}') { i++; return; }
+      for (;;) { ws(); if (text[i] !== '"') fail(); str(); ws(); if (text[i] !== ':') fail(); i++; val(depth + 1); ws(); if (text[i] === ',') { i++; continue; } if (text[i] === '}') { i++; return; } fail(); }
+    }
+    if (c === '[') {
+      i++; ws();
+      if (text[i] === ']') { i++; return; }
+      for (;;) { val(depth + 1); ws(); if (text[i] === ',') { i++; continue; } if (text[i] === ']') { i++; return; } fail(); }
+    }
+    if (c === '"') return str();
+    if (c === 't') return lit('true');
+    if (c === 'f') return lit('false');
+    if (c === 'n') return lit('null');
+    return num();
+  };
+  try { val(0); ws(); if (i < n) fail(); return null; } catch (pos) { return typeof pos === 'number' ? Math.min(pos, n) : null; }
+}
+
+/**
  * Parse an untrusted JSON file (a saved model or a learned map export). Never throws.
  * Returns {ok:true, kind:'model'|'learned', value} or {ok:false, error:{code, message, line, column}}.
  */
@@ -194,17 +238,19 @@ export function parseJsonFile(text) {
   if (typeof text !== 'string') return { ok: false, error: { code: 'JSON_SYNTAX', message: 'The file is not text.' } };
   if (text.length > LIMITS.maxImportBytes) return { ok: false, error: { code: 'TOO_LARGE', message: 'The file is larger than 5 MB.' } };
   let value;
-  try { value = JSON.parse(text.replace(/^\uFEFF/, '')); } catch (e) {
-    const pos = Number(/position (\d+)/.exec(e?.message || '')?.[1]);
+  const body = text.replace(/^\uFEFF/, '');
+  try { value = JSON.parse(body); } catch {
+    const pos = jsonErrorPosition(body);
     let line = null, column = null;
-    if (Number.isFinite(pos)) { const before = text.slice(0, pos).split('\n'); line = before.length; column = before[before.length - 1].length + 1; }
+    if (pos != null) { const before = body.slice(0, pos).split('\n'); line = before.length; column = before[before.length - 1].length + 1; }
     return { ok: false, error: { code: 'JSON_SYNTAX', message: `The file is not valid JSON${line ? ` (line ${line}, column ${column})` : ''}.`, line, column } };
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return { ok: false, error: { code: 'JSON_SHAPE', message: 'The JSON file does not hold a mapping or a learned MIDI map.' } };
-  if (Number.isInteger(value.version) && Array.isArray(value.controls) && value.controls.some(c => c && typeof c === 'object' && 'midi' in c)) return { ok: true, kind: 'model', value };
+  // A learned map (stored row {map:{controls}} or the map itself) has profile-schema `message` entries and no model version.
   const map = value.map && typeof value.map === 'object' ? value.map : value;
-  if (Array.isArray(map.controls)) return { ok: true, kind: 'learned', value };
-  if (Number.isInteger(value.version) && Array.isArray(value.controls)) return { ok: true, kind: 'model', value };
+  const learnedShape = Array.isArray(map.controls) && (value.map || map.mapSource || map.controls.some(c => c && typeof c === 'object' && 'message' in c));
+  if (Number.isInteger(value.version) && Array.isArray(value.controls) && !value.controls.some(c => c && typeof c === 'object' && 'message' in c && !('midi' in c))) return { ok: true, kind: 'model', value };
+  if (learnedShape) return { ok: true, kind: 'learned', value };
   return { ok: false, error: { code: 'JSON_SHAPE', message: 'The JSON file does not hold a mapping or a learned MIDI map.' } };
 }
 

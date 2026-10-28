@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   createModel, sanitizeModel, normalizeModel, parseJsonFile, midiFromBytes, addLearnedControl, updateControl, removeControl,
-  modelStats, controlIdFor, statusByte, cleanText, LIMITS, MODEL_VERSION,
+  modelStats, controlIdFor, statusByte, cleanText, LIMITS, MODEL_VERSION, jsonErrorPosition,
 } from '../app/mapper/model.js';
 import { validateModel, checkExportSize, MAX_EXPORT_BYTES } from '../app/mapper/validate.js';
 import { learnedToModel, midiFromMessage } from '../app/mapper/from-learned.js';
@@ -69,6 +69,11 @@ test('parseJsonFile tells models from learned maps and reports bad JSON with a p
   const bad = parseJsonFile('{\n  "a": 1,\n  oops\n}');
   assert.equal(bad.ok, false);
   assert.equal(bad.error.code, 'JSON_SYNTAX');
+  assert.deepEqual([bad.error.line, bad.error.column], [3, 3]);
+  assert.equal(jsonErrorPosition('{"a":[1,2,]}'), 10);
+  assert.equal(jsonErrorPosition('{"a":"\\q"}'), 7);
+  assert.equal(jsonErrorPosition('[' .repeat(600) + ']'.repeat(600)) !== null, true, 'nesting cap');
+  assert.equal(jsonErrorPosition('{"ok": [true, false, null, -1.5e3, "\\u00e9"]}'), null);
   assert.equal(parseJsonFile('[1,2]').error.code, 'JSON_SHAPE');
   assert.equal(parseJsonFile('x'.repeat(LIMITS.maxImportBytes + 1)).error.code, 'TOO_LARGE');
   assert.equal(parseJsonFile(42).ok, false);
