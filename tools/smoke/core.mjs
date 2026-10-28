@@ -85,7 +85,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   const errors = watchConsole(page, 'browser');
   await page.goto(base);
   await page.waitForSelector('.rail-item');
-  check('rail has 12 nav items (default flags: 11 shipped screens plus Test media)', (await page.locator('.rail-item').count()) === 12);
+  check('rail has 13 nav items (default flags: 11 shipped screens plus Test media and Fleet)', (await page.locator('.rail-item').count()) === 13);
   check('dark theme by default', (await page.getAttribute('html', 'data-theme')) === 'dark');
   check('help button wired by ui-assistance', (await page.locator('#cdlOptionsBtn').count()) === 1);
 
@@ -493,6 +493,7 @@ export function tauriMock() {
       return { payload: { deviceName: 'Focusrite USB (In 1/2)', sampleRate: sr, channels: 2, left: s, right: s, streamErrors: [] }, quality: { framesCaptured: n, overrunSamples: 0, clippedSamplesL: 0, clippedSamplesR: 3, streamErrors: 0, streamErrorMessages: [], truncated: false, callbackCount: Math.round(n / 480), maxCallbackGapMs: 11.2 } };
     },
     live_capture_status: () => ({ running, elapsedSec: (Date.now() - started) / 1000, quality: {} }),
+    fleet_snapshot: () => ({ rows: [], venues: [], booths: [], positions: [], products: [], templates: [] }),
     catalog_list: ({ entity }) => db.catalog[entity].slice(),
     catalog_upsert: ({ entity, record }) => { const r = { ...record, id: record.id || `id-${Math.random().toString(36).slice(2)}` }; db.catalog[entity] = [...db.catalog[entity].filter(x => x.id !== r.id), r]; return r; },
     catalog_delete: ({ entity, id }) => { db.catalog[entity] = db.catalog[entity].filter(x => x.id !== id); return true; },

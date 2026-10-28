@@ -4,6 +4,7 @@ use crate::db::{database_path, new_id, now_iso, open_database};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use tauri::AppHandle;
 
 fn err(error: rusqlite::Error) -> String {
@@ -15,7 +16,19 @@ fn text(value: &str, field: &str, max: usize) -> Result<(), String> {
     }
     Ok(())
 }
+/// Ids are opaque tokens: 1..=128 printable ASCII characters without whitespace. Checked before any SQL
+/// so an oversized or control-character id never reaches the database or an error message.
+pub fn valid_id(value: &str, field: &str) -> Result<(), String> {
+    if value.is_empty() || value.len() > 128 || !value.bytes().all(|b| b.is_ascii_graphic()) {
+        return Err(format!("invalid {field}"));
+    }
+    Ok(())
+}
+fn valid_opt_id(value: Option<&str>, field: &str) -> Result<(), String> {
+    value.map_or(Ok(()), |v| valid_id(v, field))
+}
 fn asset_exists(conn: &Connection, id: &str) -> Result<(), String> {
+    valid_id(id, "asset id")?;
     let exists: bool = conn
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM asset WHERE id=?1 AND is_deleted=0)",
@@ -69,23 +82,75 @@ fn hours_since_completion(
     Ok(Some(total))
 }
 
+/// Titles of a device profile's tests, read from the synced profile JSON. Unknown profile or test -> no entry.
+fn profile_test_titles(conn: &Connection, profile_id: &str) -> HashMap<String, String> {
+    let json: Option<String> = conn.query_row("SELECT json FROM device_profile WHERE id=?1", [profile_id], |r| r.get(0)).optional().ok().flatten();
+    let Some(value) = json.and_then(|j| serde_json::from_str::<Value>(&j).ok()) else { return HashMap::new() };
+    value["tests"].as_array().map(|tests| {
+        tests.iter().filter_map(|t| Some((t["id"].as_str()?.to_string(), t["title"].as_str()?.chars().take(200).collect::<String>()))).collect()
+    }).unwrap_or_default()
+}
+
+/// One pass over each table (never a query per asset), so a fleet of thousands stays interactive.
 pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     let mut query = conn.prepare("SELECT a.id,a.nickname,a.serial_number,a.installed_date,a.created_at,p.model,p.category,a.deck_position_id,d.name,d.booth_id,b.name,b.venue_id,v.name,a.product_id FROM asset a LEFT JOIN product p ON p.id=a.product_id LEFT JOIN deck_position d ON d.id=a.deck_position_id LEFT JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE a.is_deleted=0 ORDER BY a.nickname COLLATE NOCASE,a.id").map_err(err)?;
-    let assets = query.query_map([], |r| Ok(json!({"assetId":r.get::<_,String>(0)?,"nickname":r.get::<_,String>(1)?,"serialNumber":r.get::<_,Option<String>>(2)?,"installedDate":r.get::<_,Option<String>>(3)?,"createdAt":r.get::<_,String>(4)?,"productName":r.get::<_,Option<String>>(5)?,"category":r.get::<_,Option<String>>(6)?,"deckPositionId":r.get::<_,Option<String>>(7)?,"position":r.get::<_,Option<String>>(8)?,"boothId":r.get::<_,Option<String>>(9)?,"booth":r.get::<_,Option<String>>(10)?,"venueId":r.get::<_,Option<String>>(11)?,"venue":r.get::<_,Option<String>>(12)?,"productId":r.get::<_,Option<String>>(13)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
-    let mut rows = Vec::with_capacity(assets.len());
-    for mut asset in assets {
-        let id = asset["assetId"].as_str().unwrap().to_string();
-        let mut tests = conn.prepare("SELECT test_id,status,created_at,id FROM (SELECT test_id,status,created_at,id,ROW_NUMBER() OVER(PARTITION BY test_id ORDER BY julianday(created_at) DESC,id DESC) AS rank FROM device_test_result WHERE asset_id=?1) WHERE rank=1 ORDER BY test_id").map_err(err)?;
-        let results = tests.query_map([&id], |r| Ok(json!({"testId":r.get::<_,String>(0)?,"status":r.get::<_,String>(1)?,"createdAt":r.get::<_,String>(2)?,"id":r.get::<_,String>(3)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
-        asset["lastResults"] = json!(results);
-        let last_session: Option<String> = conn.query_row(
-            "SELECT MAX(COALESCE(ended_at,started_at)) FROM session WHERE status='completed' AND (CASE WHEN json_valid(config_snapshot_json) THEN COALESCE(json_extract(config_snapshot_json,'$.assetId'),json_extract(config_snapshot_json,'$.deviceId')) ELSE NULL END=?1 OR setup_id IN (SELECT setup_id FROM setup_component WHERE asset_id=?1))",
-            [&id], |row| row.get(0)).map_err(err)?;
-        asset["lastSessionAt"] = json!(last_session);
-        asset["hoursTotal"] = json!(hours(conn, &id, None)?);
-        asset["reminders"] = json!(reminders(conn, Some(&id))?);
-        rows.push(asset);
+    let mut assets = query.query_map([], |r| Ok(json!({"assetId":r.get::<_,String>(0)?,"nickname":r.get::<_,String>(1)?,"serialNumber":r.get::<_,Option<String>>(2)?,"installedDate":r.get::<_,Option<String>>(3)?,"createdAt":r.get::<_,String>(4)?,"productName":r.get::<_,Option<String>>(5)?,"category":r.get::<_,Option<String>>(6)?,"deckPositionId":r.get::<_,Option<String>>(7)?,"position":r.get::<_,Option<String>>(8)?,"boothId":r.get::<_,Option<String>>(9)?,"booth":r.get::<_,Option<String>>(10)?,"venueId":r.get::<_,Option<String>>(11)?,"venue":r.get::<_,Option<String>>(12)?,"productId":r.get::<_,Option<String>>(13)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+
+    // Latest result per (asset, test), whichever profile recorded it.
+    let mut results: HashMap<String, Vec<Value>> = HashMap::new();
+    {
+        let mut titles: HashMap<String, HashMap<String, String>> = HashMap::new();
+        let mut tests = conn.prepare("SELECT asset_id,test_id,status,created_at,id,profile_id FROM (SELECT asset_id,test_id,status,created_at,id,profile_id,ROW_NUMBER() OVER(PARTITION BY asset_id,test_id ORDER BY julianday(created_at) DESC,id DESC) AS rank FROM device_test_result) WHERE rank=1 ORDER BY asset_id,test_id").map_err(err)?;
+        let rows = tests.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,String>(2)?, r.get::<_,String>(3)?, r.get::<_,String>(4)?, r.get::<_,String>(5)?))).map_err(err)?;
+        for row in rows {
+            let (asset, test, status, created, id, profile) = row.map_err(err)?;
+            let mut item = json!({"testId":test,"status":status,"createdAt":created,"id":id});
+            if status == "fail" {
+                let name = titles.entry(profile.clone()).or_insert_with(|| profile_test_titles(conn, &profile)).get(&test).cloned();
+                if let Some(name) = name { item["name"] = json!(name); }
+            }
+            results.entry(asset).or_default().push(item);
+        }
     }
+    // Newest completed session per asset: sessions that name the asset in their snapshot, or ran on a setup that uses it.
+    let mut sessions: HashMap<String, String> = HashMap::new();
+    {
+        let mut keep = |asset: String, at: Option<String>| { if let Some(at) = at { let e = sessions.entry(asset).or_default(); if *e < at { *e = at; } } };
+        let mut direct = conn.prepare("SELECT COALESCE(json_extract(config_snapshot_json,'$.assetId'),json_extract(config_snapshot_json,'$.deviceId')) AS asset,MAX(COALESCE(ended_at,started_at)) FROM session WHERE status='completed' AND json_valid(config_snapshot_json) GROUP BY asset").map_err(err)?;
+        for row in direct.query_map([], |r| Ok((r.get::<_,Option<String>>(0)?, r.get::<_,Option<String>>(1)?))).map_err(err)? {
+            let (asset, at) = row.map_err(err)?;
+            if let Some(asset) = asset { keep(asset, at); }
+        }
+        let mut via_setup = conn.prepare("SELECT sc.asset_id,MAX(COALESCE(s.ended_at,s.started_at)) FROM setup_component sc JOIN session s ON s.setup_id=sc.setup_id WHERE s.status='completed' GROUP BY sc.asset_id").map_err(err)?;
+        for row in via_setup.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,Option<String>>(1)?))).map_err(err)? {
+            let (asset, at) = row.map_err(err)?;
+            keep(asset, at);
+        }
+    }
+    let mut hours_by_asset: HashMap<String, f64> = HashMap::new();
+    {
+        let mut q = conn.prepare("SELECT asset_id,COALESCE(SUM(hours),0) FROM asset_usage WHERE confirmed=1 GROUP BY asset_id").map_err(err)?;
+        for row in q.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,f64>(1)?))).map_err(err)? {
+            let (asset, total) = row.map_err(err)?;
+            hours_by_asset.insert(asset, total);
+        }
+    }
+    let mut reminders_by_asset: HashMap<String, Vec<Value>> = HashMap::new();
+    let mut templates: Vec<Value> = Vec::new();
+    for reminder in reminders(conn, None)? {
+        match reminder["assetId"].as_str().map(str::to_string) {
+            Some(asset) => reminders_by_asset.entry(asset).or_default().push(reminder),
+            None => templates.push(reminder),
+        }
+    }
+    for asset in &mut assets {
+        let id = asset["assetId"].as_str().unwrap_or_default().to_string();
+        asset["lastResults"] = json!(results.remove(&id).unwrap_or_default());
+        asset["lastSessionAt"] = json!(sessions.get(&id));
+        asset["hoursTotal"] = json!(hours_by_asset.get(&id).copied().unwrap_or(0.0));
+        asset["reminders"] = json!(reminders_by_asset.remove(&id).unwrap_or_default());
+    }
+    let rows = assets;
     let mut booths = conn
         .prepare("SELECT id,venue_id,name FROM booth ORDER BY name COLLATE NOCASE,id")
         .map_err(err)?;
@@ -96,10 +161,6 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     let positions = positions.query_map([],|r| Ok(json!({"id":r.get::<_,String>(0)?,"boothId":r.get::<_,String>(1)?,"name":r.get::<_,String>(2)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     let venues = crate::catalog::list(conn, crate::catalog::Entity::Venue, None)?;
     let products = crate::catalog::list(conn, crate::catalog::Entity::Product, None)?;
-    let templates: Vec<_> = reminders(conn, None)?
-        .into_iter()
-        .filter(|row| row["assetId"].is_null())
-        .collect();
     Ok(
         json!({"rows":rows,"venues":venues,"booths":booths,"positions":positions,"products":products,"templates":templates}),
     )
@@ -146,6 +207,7 @@ fn validate_policy(title: &str, basis: &str, interval: f64, warning: f64) -> Res
     Ok(())
 }
 pub fn save_reminder(conn: &Connection, input: &ReminderInput) -> Result<String, String> {
+    valid_opt_id(input.id.as_deref(), "reminder id")?;
     asset_exists(conn, &input.asset_id)?;
     let warning = input.warn_before.unwrap_or(14.0);
     validate_policy(&input.title, &input.basis, input.interval_value, warning)?;
@@ -182,6 +244,8 @@ pub struct TemplateInput {
     pub warn_before: Option<f64>,
 }
 pub fn save_template(conn: &Connection, input: &TemplateInput) -> Result<String, String> {
+    valid_opt_id(input.id.as_deref(), "template id")?;
+    valid_id(&input.product_id, "product id")?;
     let warning = input.warn_before.unwrap_or(14.0);
     validate_policy(&input.title, &input.basis, input.interval_value, warning)?;
     let id = input.id.clone().unwrap_or_else(new_id);
@@ -205,6 +269,7 @@ pub fn save_template(conn: &Connection, input: &TemplateInput) -> Result<String,
     Ok(id)
 }
 pub fn apply_template(conn: &Connection, template: &str, asset: &str) -> Result<String, String> {
+    valid_id(template, "template id")?;
     asset_exists(conn, asset)?;
     let row:(String,String,f64,f64)=conn.query_row("SELECT r.title,r.basis,r.interval_value,r.warn_before FROM maintenance_reminder r JOIN asset a ON a.product_id=r.product_id WHERE r.id=?1 AND r.asset_id IS NULL AND r.enabled=1 AND a.id=?2",params![template,asset],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).map_err(|_|"template is unavailable or belongs to a different product".to_string())?;
     let identity = serde_json::to_vec(&[template, asset]).map_err(|error| error.to_string())?;
@@ -225,6 +290,7 @@ pub fn apply_template(conn: &Connection, template: &str, asset: &str) -> Result<
 }
 
 pub fn snooze(conn: &Connection, id: &str, until: &str) -> Result<(), String> {
+    valid_id(id, "reminder id")?;
     if !timestamp_valid(conn, until)? {
         return Err("snooze requires a UTC timestamp".into());
     }
@@ -251,6 +317,7 @@ pub struct MaintenanceInput {
     pub reminder_id: Option<String>,
 }
 pub fn log_maintenance(conn: &Connection, input: &MaintenanceInput) -> Result<String, String> {
+    valid_opt_id(input.reminder_id.as_deref(), "reminder id")?;
     asset_exists(conn, &input.asset_id)?;
     if !matches!(
         input.event_type.as_str(),
@@ -286,16 +353,18 @@ pub fn log_maintenance(conn: &Connection, input: &MaintenanceInput) -> Result<St
 
 #[cfg(test)]
 pub fn maintenance_events(conn: &Connection, asset: &str) -> Result<Vec<Value>, String> {
-    maintenance_filtered(conn, asset, None, None, None)
+    maintenance_filtered(conn, Some(asset), None, None, None)
 }
 pub fn maintenance_filtered(
     conn: &Connection,
-    asset: &str,
+    asset: Option<&str>,
     from: Option<&str>,
     to: Option<&str>,
     event_type: Option<&str>,
 ) -> Result<Vec<Value>, String> {
-    asset_exists(conn, asset)?;
+    if let Some(asset) = asset {
+        asset_exists(conn, asset)?;
+    }
     for value in [from, to].into_iter().flatten() {
         if value.len() != 10 || !timestamp_valid(conn, &format!("{value}T00:00:00Z"))? {
             return Err("maintenance filters require UTC calendar dates".into());
@@ -312,13 +381,14 @@ pub fn maintenance_filtered(
     }) {
         return Err("unknown maintenance event type".into());
     }
-    let mut query=conn.prepare("SELECT id,event_type,event_at,description,reminder_id,hours_at_event FROM maintenance_event WHERE asset_id=?1 AND (?2 IS NULL OR julianday(event_at)>=julianday(?2)) AND (?3 IS NULL OR julianday(event_at)<julianday(?3)+1) AND (?4 IS NULL OR event_type=?4) ORDER BY julianday(event_at) DESC,id DESC LIMIT 1000").map_err(err)?;
-    let rows = query.query_map(params![asset,from,to,event_type],|r|Ok(json!({"id":r.get::<_,String>(0)?,"eventType":r.get::<_,String>(1)?,"eventAt":r.get::<_,String>(2)?,"description":r.get::<_,Option<String>>(3)?,"reminderId":r.get::<_,Option<String>>(4)?,"hoursAtEvent":r.get::<_,Option<f64>>(5)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    let mut query=conn.prepare("SELECT e.id,e.event_type,e.event_at,e.description,e.reminder_id,e.hours_at_event,e.asset_id,a.nickname FROM maintenance_event e JOIN asset a ON a.id=e.asset_id WHERE (?1 IS NULL OR e.asset_id=?1) AND (?2 IS NULL OR julianday(e.event_at)>=julianday(?2)) AND (?3 IS NULL OR julianday(e.event_at)<julianday(?3)+1) AND (?4 IS NULL OR e.event_type=?4) ORDER BY julianday(e.event_at) DESC,e.id DESC LIMIT 1000").map_err(err)?;
+    let rows = query.query_map(params![asset,from,to,event_type],|r|Ok(json!({"id":r.get::<_,String>(0)?,"eventType":r.get::<_,String>(1)?,"eventAt":r.get::<_,String>(2)?,"description":r.get::<_,Option<String>>(3)?,"reminderId":r.get::<_,Option<String>>(4)?,"hoursAtEvent":r.get::<_,Option<f64>>(5)?,"assetId":r.get::<_,String>(6)?,"assetName":r.get::<_,String>(7)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     Ok(rows)
 }
 
 pub fn place(conn: &mut Connection, asset: &str, position: Option<&str>) -> Result<(), String> {
     asset_exists(conn, asset)?;
+    valid_opt_id(position, "position id")?;
     if let Some(id) = position {
         let exists: bool = conn
             .query_row(
@@ -336,6 +406,16 @@ pub fn place(conn: &mut Connection, asset: &str, position: Option<&str>) -> Resu
     tx.commit().map_err(err)
 }
 
+/// "Venue / Booth / Position" for a position id; "Unplaced" for none or a position that no longer exists.
+fn location_label(conn: &Connection, position: Option<&str>) -> Result<String, String> {
+    let Some(id) = position else { return Ok("Unplaced".into()) };
+    let label: Option<String> = conn
+        .query_row("SELECT COALESCE(v.name,'?') || ' / ' || b.name || ' / ' || d.name FROM deck_position d JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE d.id=?1", [id], |r| r.get(0))
+        .optional()
+        .map_err(err)?;
+    Ok(label.unwrap_or_else(|| "Unplaced".into()))
+}
+
 fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) -> Result<(), String> {
     let previous: Option<String> = tx.query_row("SELECT deck_position_id FROM asset WHERE id=?1", [asset], |r| r.get(0)).map_err(err)?;
     tx.execute(
@@ -343,7 +423,7 @@ fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) ->
         params![asset, position, now_iso(&tx)?],
     )
     .map_err(err)?;
-    let description = format!("Moved from {} to {}", previous.as_deref().unwrap_or("Unplaced"), position.unwrap_or("Unplaced"));
+    let description = format!("Moved from {} to {}", location_label(tx, previous.as_deref())?, location_label(tx, position)?);
     log_maintenance(
         &tx,
         &MaintenanceInput {
@@ -370,6 +450,8 @@ pub fn save_location(
     input: &LocationInput,
 ) -> Result<String, String> {
     text(&input.name, "location name", 200)?;
+    valid_opt_id(input.id.as_deref(), "location id")?;
+    valid_id(&input.parent_id, "parent id")?;
     let id = input.id.clone().unwrap_or_else(new_id);
     let sql=match kind{
         "booth"=>"INSERT INTO booth(id,venue_id,name) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET venue_id=excluded.venue_id,name=excluded.name",
@@ -389,6 +471,8 @@ pub struct LocationMove {
 }
 
 pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Option<&LocationMove>) -> Result<(), String> {
+    valid_id(id, "location id")?;
+    valid_opt_id(move_to.and_then(|m| m.deck_position_id.as_deref()), "destination id")?;
     let (scope, delete_sql) = match kind {
         "venue" => ("b.venue_id=?1", "DELETE FROM venue WHERE id=?1"),
         "booth" => ("d.booth_id=?1", "DELETE FROM booth WHERE id=?1"),
@@ -466,7 +550,7 @@ pub fn maintenance_log(app: AppHandle, input: MaintenanceInput) -> Result<String
 #[tauri::command]
 pub fn maintenance_list(
     app: AppHandle,
-    asset_id: String,
+    asset_id: Option<String>,
     from: Option<String>,
     to: Option<String>,
     event_type: Option<String>,
@@ -474,7 +558,7 @@ pub fn maintenance_list(
     let conn = open_database(&database_path(&app)?)?;
     maintenance_filtered(
         &conn,
-        &asset_id,
+        asset_id.as_deref(),
         from.as_deref(),
         to.as_deref(),
         event_type.as_deref(),
@@ -866,7 +950,7 @@ mod tests {
         }
         let rows = maintenance_filtered(
             &conn,
-            "unit",
+            Some("unit"),
             Some("2026-01-02"),
             Some("2026-01-03"),
             Some("clean"),
@@ -874,18 +958,154 @@ mod tests {
         .unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["eventAt"], "2026-01-03T23:00:00Z");
-        assert!(maintenance_filtered(&conn, "unit", Some("2026-02-31"), None, None).is_err());
+        assert!(maintenance_filtered(&conn, Some("unit"), Some("2026-02-31"), None, None).is_err());
         assert!(
-            maintenance_filtered(&conn, "unit", Some("2026-01-03"), Some("2026-01-01"), None)
+            maintenance_filtered(&conn, Some("unit"), Some("2026-01-03"), Some("2026-01-01"), None)
                 .is_err()
         );
-        assert!(maintenance_filtered(&conn, "unit", None, None, Some("injected")).is_err());
+        assert!(maintenance_filtered(&conn, Some("unit"), None, None, Some("injected")).is_err());
         log_maintenance(&conn, &MaintenanceInput {
             asset_id: "unit".into(), event_type: "inspect".into(),
             event_at: "9999-12-31T23:59:59.999Z".into(), description: None, reminder_id: None,
         }).unwrap();
-        let maximum_day = maintenance_filtered(&conn, "unit", Some("9999-12-31"), Some("9999-12-31"), None).unwrap();
+        let maximum_day = maintenance_filtered(&conn, Some("unit"), Some("9999-12-31"), Some("9999-12-31"), None).unwrap();
         assert_eq!(maximum_day.len(), 1, "maximum accepted date must remain inclusive without calendar overflow");
         assert_eq!(maximum_day[0]["eventAt"], "9999-12-31T23:59:59.999Z");
+    }
+
+    #[test]
+    fn migration_0017_upgrades_a_database_that_already_has_0018_and_is_a_no_op_on_rerun() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=ON; CREATE TABLE schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL, app_version TEXT);").unwrap();
+        for (version, sql) in crate::db::MIGRATIONS.iter().filter(|(v, _)| *v != 17) {
+            conn.execute_batch(sql).unwrap();
+            conn.execute("INSERT OR IGNORE INTO schema_migration(version,applied_at) VALUES(?1,'t')", [version]).unwrap();
+        }
+        conn.execute_batch("INSERT INTO asset(id,nickname,created_at,updated_at) VALUES('old','Old deck','t','t');
+            INSERT INTO maintenance_event(id,asset_id,event_type,event_at,created_at) VALUES('e','old','clean','2026-01-01T00:00:00Z','t');").unwrap();
+        crate::db::apply_migrations(&conn).unwrap();
+        let (position, events): (Option<String>, i64) = conn.query_row("SELECT (SELECT deck_position_id FROM asset WHERE id='old'),(SELECT COUNT(*) FROM maintenance_event)", [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        assert_eq!((position, events), (None, 1), "existing assets start unplaced and keep their history");
+        let reminder_link: Option<String> = conn.query_row("SELECT reminder_id FROM maintenance_event WHERE id='e'", [], |r| r.get(0)).unwrap();
+        assert_eq!(reminder_link, None);
+        let before: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0)).unwrap();
+        crate::db::apply_migrations(&conn).unwrap();
+        let after: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0)).unwrap();
+        assert_eq!(before, after);
+        let violations: i64 = conn.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
+        assert_eq!(violations, 0);
+    }
+
+    #[test]
+    fn every_command_input_id_is_validated_before_it_reaches_sql() {
+        let mut conn = database();
+        let bad = ["", " ", "a b", "tab\there", "nul\0id", "line\nbreak", "\u{e9}clair"];
+        let too_long = "x".repeat(129);
+        for id in bad.iter().copied().chain([too_long.as_str()]) {
+            assert!(valid_id(id, "id").is_err(), "{id:?}");
+            assert!(place(&mut conn, id, None).is_err(), "asset {id:?}");
+            assert!(place(&mut conn, "unit", Some(id)).is_err(), "position {id:?}");
+            assert!(snooze(&conn, id, "2026-10-23T00:00:00Z").is_err(), "snooze {id:?}");
+            assert!(apply_template(&conn, id, "unit").is_err());
+            assert!(delete_location(&mut conn, "booth", id, None).is_err());
+            assert!(save_location(&conn, "booth", &LocationInput { id: Some(id.into()), parent_id: "venue".into(), name: "x".into() }).is_err());
+            assert!(save_location(&conn, "booth", &LocationInput { id: None, parent_id: id.into(), name: "x".into() }).is_err());
+            assert!(save_reminder(&conn, &ReminderInput { id: Some(id.into()), ..reminder("unit") }).is_err());
+            assert!(save_template(&conn, &TemplateInput { id: None, product_id: id.into(), title: "t".into(), basis: "days".into(), interval_value: 30.0, warn_before: None }).is_err());
+            assert!(log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at: "2026-01-01T00:00:00Z".into(), description: None, reminder_id: Some(id.into()) }).is_err());
+            assert!(maintenance_filtered(&conn, Some(id), None, None, None).is_err());
+        }
+        for field in ["", "  ", "x\0y"] {
+            assert!(save_location(&conn, "booth", &LocationInput { id: None, parent_id: "venue".into(), name: field.into() }).is_err(), "{field:?}");
+        }
+        let long_title = ReminderInput { title: "t".repeat(201), ..reminder("unit") };
+        assert!(save_reminder(&conn, &long_title).is_err());
+        assert!(save_location(&conn, "shelf", &LocationInput { id: None, parent_id: "venue".into(), name: "x".into() }).is_err());
+        assert!(delete_location(&mut conn, "asset", "unit", None).is_err());
+        let ok = "template:".to_string() + &"a".repeat(64);
+        assert!(valid_id(&ok, "id").is_ok());
+    }
+
+    #[test]
+    fn snooze_persists_and_rejects_bad_targets_and_times() {
+        let conn = database();
+        let id = save_reminder(&conn, &reminder("unit")).unwrap();
+        snooze(&conn, &id, "2026-10-23T00:00:00.000Z").unwrap();
+        let until: Option<String> = conn.query_row("SELECT snoozed_until FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        assert_eq!(until.as_deref(), Some("2026-10-23T00:00:00.000Z"));
+        assert!(snooze(&conn, &id, "tomorrow").is_err());
+        assert!(snooze(&conn, &id, "2026-02-30T00:00:00Z").is_err());
+        assert!(snooze(&conn, "missing", "2026-10-23T00:00:00Z").is_err());
+        let still: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        assert_eq!(still, 1, "snoozing never deletes the reminder");
+    }
+
+    #[test]
+    fn moves_are_logged_with_location_names_and_failing_tests_carry_profile_titles() {
+        let mut conn = database();
+        place(&mut conn, "unit", Some("position")).unwrap();
+        place(&mut conn, "unit", None).unwrap();
+        let events = maintenance_events(&conn, "unit").unwrap();
+        let descriptions: Vec<&str> = events.iter().filter_map(|e| e["description"].as_str()).collect();
+        assert!(descriptions.contains(&"Moved from Unplaced to Club / Booth / Left"), "{descriptions:?}");
+        assert!(descriptions.contains(&"Moved from Club / Booth / Left to Unplaced"), "{descriptions:?}");
+        conn.execute("UPDATE device_profile SET json=?1 WHERE id='profile'", [r#"{"tests":[{"id":"t-fail","title":"Pitch is accurate"},{"id":"t-pass","title":"Output is clean"}]}"#]).unwrap();
+        conn.execute_batch("INSERT INTO device_test_result(id,asset_id,profile_id,test_id,status,created_at) VALUES('r1','unit','profile','t-fail','fail','2026-10-01T00:00:00Z'),('r2','unit','profile','t-pass','pass','2026-10-01T00:00:00Z'),('r3','unit','profile','unlisted','fail','2026-10-01T00:00:00Z');").unwrap();
+        let snap = snapshot(&conn).unwrap();
+        let unit = snap["rows"].as_array().unwrap().iter().find(|r| r["assetId"] == "unit").unwrap();
+        let named: Vec<(String, Option<String>)> = unit["lastResults"].as_array().unwrap().iter()
+            .map(|r| (r["testId"].as_str().unwrap().to_string(), r["name"].as_str().map(str::to_string))).collect();
+        assert!(named.contains(&("t-fail".into(), Some("Pitch is accurate".into()))));
+        assert!(named.contains(&("t-pass".into(), None)), "only failing tests are named");
+        assert!(named.contains(&("unlisted".into(), None)), "an unknown test falls back to its id in the UI");
+    }
+
+    #[test]
+    fn maintenance_list_without_an_asset_spans_the_fleet_newest_first() {
+        let conn = database();
+        for (asset, at) in [("unit", "2026-01-01T00:00:00Z"), ("other", "2026-02-01T00:00:00Z")] {
+            log_maintenance(&conn, &MaintenanceInput { asset_id: asset.into(), event_type: "inspect".into(), event_at: at.into(), description: None, reminder_id: None }).unwrap();
+        }
+        let all = maintenance_filtered(&conn, None, None, None, None).unwrap();
+        assert_eq!(all.iter().map(|e| e["assetName"].as_str().unwrap()).collect::<Vec<_>>(), ["Other", "Deck"]);
+        let one = maintenance_filtered(&conn, Some("unit"), None, None, None).unwrap();
+        assert_eq!(one.len(), 1);
+        assert!(maintenance_filtered(&conn, Some("missing"), None, None, None).is_err());
+    }
+
+    /// A rental shop or school: 2000 assets with results, placement, ledger hours, events and reminders.
+    /// The budget is deliberately lenient (debug build, shared CI machine); it guards against per-asset query regressions.
+    #[test]
+    fn a_fleet_of_two_thousand_assets_produces_its_overview_within_budget() {
+        let conn = database();
+        conn.execute_batch("INSERT INTO manufacturer(id,name,created_at,updated_at) VALUES('m','Maker','t','t');
+            INSERT INTO product(id,manufacturer_id,category,model,created_at,updated_at) VALUES('p','m','turntable','TT-1','t','t');
+            INSERT INTO setup(id,name,created_at) VALUES('setup','Rig','t');").unwrap();
+        conn.execute_batch("BEGIN").unwrap();
+        for i in 0..2000 {
+            conn.execute("INSERT INTO asset(id,product_id,nickname,serial_number,deck_position_id,created_at,updated_at) VALUES(?1,'p',?2,?3,?4,'2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
+                params![format!("fleet-{i}"), format!("Deck {i}"), format!("SN{i}"), if i % 2 == 0 { Some("position") } else { None }]).unwrap();
+            conn.execute("INSERT INTO setup_component(id,setup_id,role,asset_id) VALUES(?1,'setup','turntable',?2)", params![format!("sc-{i}"), format!("fleet-{i}")]).unwrap();
+            for t in 0..8 {
+                for run in 0..2 {
+                    let status = if t == 0 && run == 1 && i % 10 == 0 { "fail" } else { "pass" };
+                    conn.execute("INSERT INTO device_test_result(id,asset_id,profile_id,test_id,status,created_at) VALUES(?1,?2,'profile',?3,?4,?5)",
+                        params![format!("res-{i}-{t}-{run}"), format!("fleet-{i}"), format!("t{t}"), status, format!("2026-10-{:02}T00:00:00Z", 10 + run)]).unwrap();
+                }
+            }
+            conn.execute("INSERT INTO asset_usage(id,asset_id,started_at,hours,source,created_at) VALUES(?1,?2,'2026-09-01T20:00:00.000Z',3,'manual','t')", params![format!("use-{i}"), format!("fleet-{i}")]).unwrap();
+            conn.execute("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,'Clean','days',90,14,'2026-01-01T00:00:00Z')", params![format!("rem-{i}"), format!("fleet-{i}")]).unwrap();
+        }
+        conn.execute_batch("COMMIT").unwrap();
+        let started = std::time::Instant::now();
+        let snap = snapshot(&conn).unwrap();
+        let elapsed = started.elapsed();
+        let rows = snap["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 2002, "2000 fleet assets plus the two fixture assets");
+        let failing = rows.iter().filter(|r| r["lastResults"].as_array().unwrap().iter().any(|x| x["status"] == "fail")).count();
+        assert_eq!(failing, 200);
+        let sample = rows.iter().find(|r| r["assetId"] == "fleet-7").unwrap();
+        assert_eq!((sample["hoursTotal"].as_f64(), sample["reminders"].as_array().unwrap().len(), sample["lastResults"].as_array().unwrap().len()), (Some(3.0), 1, 8));
+        assert!(elapsed < std::time::Duration::from_secs(10), "2000-asset overview took {elapsed:?}");
     }
 }

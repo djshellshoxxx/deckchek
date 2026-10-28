@@ -306,6 +306,7 @@ export function initShell(defs) {
   // [FS-07] init
   import('../external-links.js').then(m => m.installLinkInterceptor(document, { toast, confirm: m.linkConfirmDialog })).catch(() => { /* links fall back to inert anchors */ });
   // [FS-23] init
+  import('./fleet-banner.js').then(m => m.installFleetBanner()).catch(error => console.warn('Fleet reminders unavailable:', error));
   // [FS-31] init
   emit('shell-ready');
 }

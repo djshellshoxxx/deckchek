@@ -144,7 +144,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#eq-rows .record-main');
   await page.locator('#eq-rows .record-main', { hasText: 'Nagaoka' }).click();
   await page.waitForSelector('[data-xlink-card="equipment"]');
-  check('crosslinks: Equipment cartridge offers stylus wear and wear map', (await page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink))).join() === 'stylus,vinylscan');
+  check('crosslinks: Equipment cartridge offers stylus wear, wear map and (fleet on by default) Place in venue', (await page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink))).join() === 'stylus,vinylscan,fleet');
   await page.click('[data-xlink-card="equipment"] [data-xlink="stylus"]');
   await page.waitForSelector('#sty-asset');
   await page.waitForFunction(() => document.querySelector('#sty-asset')?.value === 'a-nag');
