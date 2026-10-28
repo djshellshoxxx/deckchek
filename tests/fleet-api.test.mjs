@@ -49,3 +49,18 @@ test('the bridge lists maintenance events fleet-wide when no asset is named', as
   await api.events(null, { from: '2026-01-01', to: null, eventType: 'clean' });
   assert.deepEqual(calls, [{ command: 'maintenance_list', args: { assetId: null, from: '2026-01-01', to: null, eventType: 'clean' } }]);
 });
+
+test('regression: reminders and templates can be deleted through the reminder_delete command', async () => {
+  const calls = [];
+  const api = createFleetApi(async (command, args) => { calls.push({ command, args }); return null; });
+  await api.deleteReminder('template-1');
+  assert.deepEqual(calls, [{ command: 'reminder_delete', args: { id: 'template-1' } }]);
+  await assert.rejects(createFleetApi(null).deleteReminder('x'), /desktop app/);
+});
+
+test('regression: decorateFleet passes a future completion through as a flagged reminder', () => {
+  const view = decorateFleet({ rows: [{ assetId: 'a', createdAt: '2026-01-01', hoursTotal: 0, lastResults: [], reminders: [{ id: 'r', enabled: true, basis: 'days', intervalValue: 90, warnBefore: 14, lastDoneAt: '2027-10-28T12:00:00.000Z' }] }] }, { now: '2026-10-28T10:00:00Z' });
+  assert.equal(view.rows[0].reminders[0].state, 'unknown');
+  assert.equal(view.rows[0].reminders[0].future, true);
+  assert.equal(view.tiles.overdue + view.tiles.dueSoon, 0);
+});

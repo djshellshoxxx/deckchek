@@ -49,6 +49,10 @@ export function reminderStatus(reminder, lastDoneAt, hoursSince, now = new Date(
   const today = day(now);
   if (!Number.isFinite(interval) || interval <= 0 || interval > 1000000 || !Number.isFinite(warning) || warning < 0 || warning > 1000000 || !Number.isFinite(today)) return unknown;
   const snoozed = Number.isFinite(Date.parse(reminder.snoozedUntil)) && Date.parse(reminder.snoozedUntil) > Date.parse(now.length === 10 ? `${now}T00:00:00Z` : now);
+  // Spec §7 (clock set backwards): a start date after today would make the interval negative. Flag it for
+  // review instead of reporting OK. One calendar day of slack: a date picked in a time zone east of UTC.
+  const future = start => Number.isFinite(start) && start > today + DAY;
+  if (future(day(lastDoneAt))) return { ...unknown, snoozed, future: true };
   if (reminder.basis === 'hours') {
     if (!Number.isFinite(hoursSince) || hoursSince < 0) return unknown;
     const remaining = interval - hoursSince;
@@ -58,6 +62,7 @@ export function reminderStatus(reminder, lastDoneAt, hoursSince, now = new Date(
   if (!Number.isInteger(interval)) return unknown;
   const start = day(lastDoneAt ?? reminder.installedDate ?? reminder.createdAt);
   if (!Number.isFinite(start)) return unknown;
+  if (future(start)) return { ...unknown, snoozed, future: true };
   const due = start + interval * DAY;
   // The persisted date contract uses four-digit years. Stay inside that range
   // rather than throwing on TimeClip overflow or emitting a truncated year.
@@ -81,6 +86,7 @@ export const REMINDER_META = Object.freeze({
 
 /** Date or hours part of a reminder line: "2026-10-22", "12.0 tracked h remaining", or "" when unknown. */
 export function reminderWhen(reminder) {
+  if (reminder.future) return reminder.lastDoneAt ? 'completion date is in the future' : 'start date is in the future';
   if (reminder.dueAt) return reminder.dueAt;
   if (Number.isFinite(reminder.dueInHours)) return reminder.dueInHours <= 0 ? `${Math.abs(reminder.dueInHours).toFixed(1)} tracked h over` : `${reminder.dueInHours.toFixed(1)} tracked h remaining`;
   return reminder.basis === 'hours' && reminder.state === 'unknown' ? 'review usage history at the maintenance boundary' : '';
