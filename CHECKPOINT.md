@@ -38,8 +38,10 @@ Native source fixes cover restore/capture exclusion, photo snapshot consistency,
 same-length photo repair and tuner cancellation ownership, with unexecuted Rust
 regressions. Manual backups now show missing/damaged-photo warnings.
 
-Unmerged gates: Cargo/native compilation and execution are unavailable. Native
-fixes are source-reviewed, not runtime-qualified. File-selection authorization,
+Unmerged gates: Cargo is now installed locally (see the validation follow-up in
+the detailed handoff). The locked native build failed before app compilation
+because GLib development files are missing; OS package setup hit filesystem
+permission denial. Native fixes remain source-reviewed, not runtime-qualified. File-selection authorization,
 URL-confirmation policy and historical-key/local-affiliation semantics remain
 excluded pending scoped owner decisions. Hardware, drivers, loopback, platform
 and 32-bit qualification remain unexecuted. Fleet stays off by default.

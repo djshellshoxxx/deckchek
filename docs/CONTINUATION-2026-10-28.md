@@ -278,3 +278,45 @@ the publishing response, recheck external ownership, then run Cargo tests for
 `backup::tests`, `capture::tests`, `latency::tests`, `photo::tests`, `service::tests`
 and `certificate::tests` plus normal build/native gates in an approved environment.
 No physical-device, driver, hardware loopback or platform acceptance is claimed.
+
+
+## Native validation follow-up
+
+Validation targeted checkpoint `ddb1444f1505c3592ae5f70cbf2224f05cbdd674`
+(source `72ff3d4daded10b204fbacfa76d8c0889a43e532`). No source changes.
+This supersedes the earlier current-state claim that Cargo is unavailable;
+earlier command-not-found results remain historical evidence.
+
+- No prior Rust installation denial was found. Official `https://sh.rustup.rs`
+  setup succeeded with the minimal stable toolchain in
+  `/workspace/deckchek-toolchain/{cargo,rustup}`, without shell-profile edits.
+  Actual versions: rustc 1.99.1, Cargo 1.99.1. Log:
+  `/tmp/deckchek-rustup-setup.log`.
+- Ran `cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4` with
+  `CARGO_HOME=/workspace/deckchek-toolchain/cargo`,
+  `RUSTUP_HOME=/workspace/deckchek-toolchain/rustup`, and its cargo/bin prepended
+  to PATH. Dependencies downloaded and compilation began. Exit 101 at
+  `glib-sys v0.18.1`: pkg-config could not find `glib-2.0 >= 2.70` / `glib-2.0.pc`.
+  DeckChek compilation and native tests did not execute. Log:
+  `/tmp/deckchek-native-test.log`.
+- WebKitGTK 4.1 and ALSA development pkg-config entries are also absent. Attempted
+  `apt-get update` through the available escalation mechanism, using configured
+  package sources. Exit 100: permission denied reading an apt configuration file
+  and acquiring `/var/lib/apt/lists/partial`. This was an OS/filesystem failure,
+  not an automatic approval-review rejection. No alternate package route,
+  privilege workaround, source rewrite or environment replacement was attempted.
+- Existing `.github/workflows/test.yml` has workflow_dispatch and a nonpublishing
+  Ubuntu Rust job with the native prerequisites and full locked tests. `gh api`
+  repository inspection and `gh run list` for this branch returned `Forbidden`.
+  No workflow was dispatched, no API route was retried, and no workflow or PR was
+  created/changed to bypass access. Existing CI results for this exact SHA remain
+  unknown. Draft PR denial is unchanged and distinct from this API access failure.
+- With Cargo available, `node tools/third-party-notices.mjs --check` now passed
+  (exit 0); `/tmp/deckchek-native-notices.log`. Lockfile and notice source unchanged.
+
+Next prerequisite is a permitted installation of the repository's standard Linux
+native development packages in this same executor, or restored authorized access
+to its existing nonpublishing CI. This is an actual package-write/API-access
+limitation, not a request for extra owner permission merely to install Rust.
+Do not retry these denied operations without materially relevant new authority
+or environment/access evidence. Native and hardware qualification remain pending.
