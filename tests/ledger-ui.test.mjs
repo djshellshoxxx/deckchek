@@ -69,8 +69,16 @@ test('desktop bridge sends exactly the contract field names (camelCase) and the 
   assert.deepEqual(calls.find(c => c[0] === 'ledger_export_record')[1], CONTRACT.ledger_export_record.request);
   assert.deepEqual(calls.find(c => c[0] === 'ledger_public_note_set')[1], CONTRACT.ledger_public_note_set.request);
   assert.deepEqual(calls.find(c => c[0] === 'ledger_export_list')[1], CONTRACT.ledger_export_list.request);
-  const fake = { dialog: { open: async () => '/home/dj/Ledger' }, core: { invoke } };
-  const r = await api.writeFolder([{ relPath: 'ledger/index.html', text: '<p>x</p>' }], { api: fake });
+  // the folder write goes through ledger_write_folder (Rust applies LEDGER_EXTS itself) ...
+  const files = [{ relPath: 'ledger/index.html', text: '<p>x</p>' }];
+  const ledgerInvoke = async (cmd, args) => { calls.push([cmd, args]); if (cmd === 'ledger_write_folder') return { written: args.files.length, removed: 0, path: args.dir }; return invoke(cmd, args); };
+  const r0 = await api.writeFolder(files, { api: { dialog: { open: async () => '/home/dj/Ledger' }, core: { invoke: ledgerInvoke } } });
+  assert.deepEqual(r0, { cancelled: false, path: '/home/dj/Ledger', written: 1, removed: 0 });
+  assert.deepEqual(calls.at(-1), ['ledger_write_folder', { dir: '/home/dj/Ledger', files }]);
+  // ... and only a backend without that command (the UI smoke mock) falls back to userfiles_write_folder
+  const oldInvoke = async (cmd, args) => { if (cmd === 'ledger_write_folder') throw `unknown command ${cmd}`; return invoke(cmd, args); };
+  const fake = { dialog: { open: async () => '/home/dj/Ledger' }, core: { invoke: oldInvoke } };
+  const r = await api.writeFolder(files, { api: fake });
   assert.deepEqual(r, { cancelled: false, path: '/home/dj/Ledger', written: 1 });
   assert.deepEqual(calls.at(-1)[1].allowedExts, [...LEDGER_EXTS]);
 });

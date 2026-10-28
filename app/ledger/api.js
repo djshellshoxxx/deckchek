@@ -1,19 +1,26 @@
 // Gear ledger I/O bridge (FS-33). Collects the state build.js needs and writes the export:
-//   desktop: catalog + photo store + maintenance log + FS-20 certificates over the Rust commands, ledger history and
-//            public notes via ledger_* (src-tauri/src/ledger.rs), folder export via userfiles_write_folder;
+//   desktop: catalog + photo store + maintenance log + FS-20 certificates over the Rust commands, ledger history,
+//            revisions, public notes and customer units via ledger_* (src-tauri/src/ledger.rs), folder export via
+//            ledger_write_folder (staged write, stale ledger files pruned, refuses to go back in revision);
 //   browser: the localStorage catalog and in-memory photo store; history and public notes in localStorage
 //            (`deckchek.ledger.v1`, per-viewer convenience only); single-file download, no folder export.
 // Invoke, storage and the stores are injectable for tests and smoke mocks.
 
 import { createCatalogStore } from '../catalog-store.js';
 import { createPhotoStore, base64ToBytes } from '../photo-store.js';
-import { saveFolder, saveTextFile } from '../userfiles.js';
+import { saveTextFile } from '../userfiles.js';
 import { LEDGER_EXTS } from './build.js';
 
 export const LOCAL_KEY = 'deckchek.ledger.v1';
 const MAX_LOCAL_EXPORTS = 50;
+/** maintenance_list returns at most this many rows (src-tauri/src/fleet.rs maintenance_filtered). */
+const MAINTENANCE_LIST_CAP = 1000;
 const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? null;
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+// The UI smoke mock (and test doubles) answer commands they do not know with "unknown command <name>". Only that answer
+// selects the older code path; every other error (a real database or file error) is passed on.
+const isUnknownCommand = e => /^unknown command\b/.test(String(e?.message ?? e));
+const tauri = () => globalThis.window?.__TAURI__ ?? null;
 
 function readLocal(storage) {
   try {
@@ -36,32 +43,50 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
     return { ...readLocal(storage).notes };
   }
 
-  /** Step 1 list: every owned (not deleted) asset with its product, photo/certificate/service counts. */
+  /** Asset ids that belong to service jobs (FS-21 customer bench units): never the owner's gear. Fails closed. */
+  async function customerUnitIds() {
+    if (!native) return new Set();
+    try { return new Set(await invoke('ledger_customer_units')); } catch (e) { if (isUnknownCommand(e)) return new Set(); throw e; }
+  }
+
+  const maintenanceFor = assetId => invoke('maintenance_list', { assetId, from: null, to: null, eventType: null });
+
+  /** Step 1 list: every owned (not deleted, not a customer's) asset with its product, photo/certificate/service counts. */
   async function listGear() {
-    const [assets, products, manufacturers, notes] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes().catch(() => ({}))]);
-    const service = native ? await invoke('maintenance_list', { assetId: null, from: null, to: null, eventType: null }).catch(() => []) : [];
+    const [assets, products, manufacturers, notes, customer] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes().catch(() => ({})), customerUnitIds()]);
+    const service = native ? await maintenanceFor(null).catch(() => []) : [];
+    // The fleet-wide list stops at the newest 1000 events: count per unit when it is full.
+    const truncated = service.length >= MAINTENANCE_LIST_CAP;
     const certs = native ? await invoke('certificate_list', { assetId: null }).catch(() => []) : [];
     const rows = [];
-    for (const a of assets.filter(x => !x.isDeleted)) {
+    const owned = assets.filter(x => !x.isDeleted && !customer.has(x.id));
+    for (const a of owned) {
       const product = products.find(p => p.id === a.productId);
       const maker = product && manufacturers.find(m => m.id === product.manufacturerId);
       const photoList = await pho.list('asset', a.id).catch(() => []);
       rows.push({
         asset: { ...a, publicNotes: notes[a.id] ?? null }, manufacturer: maker?.name || '', model: product?.model || '', category: product?.category || '',
-        photos: photoList.length, certificates: certs.filter(c => c.assetId === a.id && c.verdict !== 'draft').length, service: service.filter(e => e.assetId === a.id).length,
+        photos: photoList.length, certificates: certs.filter(c => c.assetId === a.id && c.verdict !== 'draft').length,
+        service: truncated ? (await maintenanceFor(a.id).catch(() => [])).length : service.filter(e => e.assetId === a.id).length,
       });
     }
-    return { rows, products, manufacturers, service, certs };
+    return { rows, products, manufacturers, service, certs, customerUnits: assets.filter(x => !x.isDeleted && customer.has(x.id)).length };
   }
 
   /** Full state for build.js, for the chosen assets only (photo bytes and certificate files are loaded here). */
   async function loadState(gear, assetIds, { onProgress } = {}) {
     const ids = new Set(assetIds);
     const state = { assets: gear.rows.filter(r => ids.has(r.asset.id)).map(r => r.asset), products: gear.products, manufacturers: gear.manufacturers, service: {}, photos: {}, certificates: {}, problems: [] };
-    for (const e of gear.service) if (ids.has(e.assetId)) (state.service[e.assetId] ??= []).push({ eventType: e.eventType, eventAt: e.eventAt, description: e.description });
+    const pushService = e => (state.service[e.assetId] ??= []).push({ eventType: e.eventType, eventAt: e.eventAt, description: e.description });
+    if (!native) for (const e of gear.service) if (ids.has(e.assetId)) pushService(e);
     let done = 0;
     for (const a of state.assets) {
       onProgress?.({ done: done++, total: state.assets.length, title: a.nickname });
+      // Per unit: the fleet-wide list in `gear` is cut at the newest 1000 events across every unit.
+      if (native) {
+        try { for (const e of await maintenanceFor(a.id)) if (e?.assetId === a.id) pushService(e); }
+        catch { state.problems.push({ assetId: a.id, what: 'service', reason: 'service history unreadable' }); }
+      }
       const list = await pho.list('asset', a.id).catch(() => []);
       state.photos[a.id] = [];
       for (const p of list) {
@@ -102,11 +127,41 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
     return row;
   }
 
+  /**
+   * The next revision. Desktop: Rust takes the larger of the export history and a counter kept outside the database,
+   * so restoring an older backup never hands out a revision that was already published.
+   */
+  async function nextRevision() {
+    if (native) {
+      try { return await invoke('ledger_next_revision'); } catch (e) { if (!isUnknownCommand(e)) throw e; }
+    }
+    return ((await listExports(1))[0]?.revision ?? 0) + 1;
+  }
+
+  /**
+   * Folder export (desktop): the user picks a folder; files land under ledger/. ledger_write_folder writes everything
+   * into a staging folder first, then removes ledger photos and certificate files from earlier exports that this
+   * export no longer contains, then moves the new files in (index.html last). It refuses a folder that already holds
+   * the same or a later revision.
+   */
+  async function writeFolder(files, { api = tauri() } = {}) {
+    const list = Array.isArray(files) ? files : [];
+    if (!list.length) throw new Error('There are no files to write.');
+    const open = api?.dialog?.open, call = api?.core?.invoke;
+    if (!open || !call) throw new Error('Saving a folder is only available in the DeckChek desktop app.');
+    const dir = await open({ directory: true, multiple: false, title: 'Choose where to save the ledger folder' });
+    const chosen = Array.isArray(dir) ? dir[0] : dir;
+    if (!chosen) return { cancelled: true };
+    let r;
+    try { r = await call('ledger_write_folder', { dir: chosen, files: list }); } catch (e) {
+      if (!isUnknownCommand(e)) throw e;
+      r = await call('userfiles_write_folder', { dir: chosen, files: list, allowedExts: [...LEDGER_EXTS] });
+    }
+    return { cancelled: false, path: r.path, written: r.written, ...(r.removed !== undefined ? { removed: r.removed } : {}) };
+  }
+
   return {
-    native, listGear, loadState, publicNotes, setPublicNote, listExports, recordExport,
-    nextRevision: async () => ((await listExports(1))[0]?.revision ?? 0) + 1,
-    /** Folder export (desktop): the user picks a folder; files land under ledger/. */
-    writeFolder: (files, { api } = {}) => saveFolder({ files, allowedExts: [...LEDGER_EXTS], title: 'Choose where to save the ledger folder', ...(api ? { api } : {}) }),
+    native, listGear, loadState, publicNotes, setPublicNote, listExports, recordExport, nextRevision, writeFolder,
     /** Single-file export: save dialog on desktop, a download in the browser. */
     saveSingle: (html, { api } = {}) => saveTextFile({ suggestedName: 'deckchek-gear-ledger', content: html, ext: 'html', ...(api ? { api } : {}) }),
   };
