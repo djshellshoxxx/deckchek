@@ -165,6 +165,8 @@ test('import errors are typed, located and never thrown', () => {
   const scripts = importMixxx(fx('third-party.midi.xml'), [{ name: '../../evil.js', content: 'x' }, { name: 'big.js', content: 'x'.repeat(1024 * 1024 + 1) }, null, 5]);
   assert.deepEqual(scripts.preservedRaw.map(p => p.name), ['_.._evil.js']);
   assert.ok(scripts.warnings.some(w => /larger than 1 MB/.test(w)));
+  const longKey = importMixxx(`<MixxxControllerPreset><controller><controls><control><group>[Channel1]</group><key>${'k'.repeat(300)}</key><status>0x90</status><midino>0x01</midino><options><normal/></options></control></controls></controller></MixxxControllerPreset>`);
+  assert.ok(longKey.ok && longKey.model.controls.length === 0 && longKey.warnings.some(w => /longer than 256/.test(w)), 'over-long keys are reported, never truncated into a broken binding');
 });
 
 test('AC-4: export is blocked while bindings conflict', () => {

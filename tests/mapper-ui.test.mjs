@@ -54,6 +54,7 @@ test('classifyFiles checks size and type before anything is read', () => {
   assert.ok(c.rejected.some(r => /larger than 5 MB/.test(r)));
   assert.ok(/at most 18/.test(classifyFiles(Array.from({ length: 19 }, (_, i) => f(`${i}.xml`, 1))).rejected[0]));
   assert.equal(classifyFiles([{ name: 'x.xml' }]).rejected.length, 1, 'unknown size is refused');
+  assert.ok(/larger than 20 MB/.test(classifyFiles(Array.from({ length: 5 }, (_, i) => f(`${i}.xml`, 4.5 * 1024 * 1024))).rejected[0]));
 });
 
 test('sniffXml and importTexts route each file to the right importer', () => {

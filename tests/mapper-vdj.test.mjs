@@ -110,6 +110,8 @@ test('import errors are typed and never thrown', () => {
   assert.ok(/^Mapper: /.test(importVdj(fx('vdj-definition.xml'), '<mapper>').error.message));
   const junk = importVdj('<device><button note="zz" channel="99" name="X"/><button cc="0x10" channel="-1"/></device>', '<mapper/>');
   assert.ok(junk.ok && junk.model.controls.length === 0 && junk.warnings.filter(w => /skipped/.test(w)).length === 2);
+  const long = importVdj('<device><button note="1" channel="0" name="X"/></device>', `<mapper><map value="X" action="${'a'.repeat(300)}"/></mapper>`);
+  assert.ok(long.ok && long.warnings.some(w => /longer than 256 characters and was not kept/.test(w)));
 });
 
 test('definition names are reduced to letters, digits and underscores', () => {

@@ -300,6 +300,7 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
       const status = parseByte(childText(n, 'status')), midino = parseByte(childText(n, 'midino'));
       const group = childText(n, 'group') ?? '', key = childText(n, 'key') ?? '';
       if (status == null || midino == null || midino > 127 || status < 0x80 || status > 0xef) { warnings.push(`Line ${n.line}: a control with an invalid status or midino was skipped.`); continue; }
+      if (group.length > LIMITS.maxCustomText || key.length > LIMITS.maxCustomText) { warnings.push(`Line ${n.line}: a control with a group or key longer than ${LIMITS.maxCustomText} characters was skipped.`); continue; }
       const options = (kid(n, 'options')?.children || []).map(o => o.name.toLowerCase()).filter(o => OPTION_NAME.test(o));
       entries.push({ line: n.line, status, midino, group: cleanText(group, LIMITS.maxCustomText), key: cleanText(key, LIMITS.maxCustomText), options, description: cleanText(childText(n, 'description'), LIMITS.maxText) });
     }

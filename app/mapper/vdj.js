@@ -169,7 +169,13 @@ export function importVdj(definitionXml, mapperXml = null) {
     const declaredDecks = Number(root.attrs.decks);
     const model = createModel({ name: root.attrs.name || 'Imported VirtualDJ mapping', manufacturer: '', decks: Number.isInteger(declaredDecks) ? Math.min(MAX_DECKS, Math.max(1, declaredDecks)) : 2, source: 'import-vdj', sourceId: cleanText(root.attrs.name, 80) || null });
     const actions = new Map();
-    for (const mp of kids(mapRoot, 'map').slice(0, LIMITS.maxControls * 2)) if (mp.attrs.value) actions.set(String(mp.attrs.value).toLowerCase(), String(mp.attrs.action ?? ''));
+    for (const mp of kids(mapRoot, 'map').slice(0, LIMITS.maxControls * 2)) {
+      if (!mp.attrs.value) continue;
+      const action = String(mp.attrs.action ?? '');
+      // Longer actions could not be preserved intact (custom text is capped), so they are reported, not cut.
+      if (action.length > LIMITS.maxCustomText) { warnings.push(`Line ${mp.line}: the action for ${cleanText(mp.attrs.value, 40)} is longer than ${LIMITS.maxCustomText} characters and was not kept.`); continue; }
+      actions.set(String(mp.attrs.value).toLowerCase(), action);
+    }
     const entries = legacy.length
       ? legacy.slice(0, LIMITS.maxControls).map(n => ({ line: n.line, element: 'button', name: null, type: 'note', number: parseHexOrDec(n.attrs.note), channel: Number(n.attrs.chan ?? 0), deck: null, action: [n.attrs.action, n.attrs.value].filter(Boolean).join(' ') }))
       : root.children.slice(0, LIMITS.maxControls * 2).map(n => ({ line: n.line, element: n.name.toLowerCase(), name: n.attrs.name ?? null, type: n.attrs.note != null ? 'note' : n.attrs.cc != null ? 'cc' : null,

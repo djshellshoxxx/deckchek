@@ -28,6 +28,7 @@ import { createMapperStore } from '../../mapper/store.js';
 
 export const EMPTY_TEXT = 'No MIDI map for this device. Learn controls or pick an official profile';
 const MAX_FILES = 18;
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
 const UNDO_LIMIT = 50;
 const LEARN_TIMEOUT_MS = 30000;
 const KIND_LABEL = { button: 'Button', absolute: 'Fader / knob', relative: 'Encoder' };
@@ -71,6 +72,8 @@ export function classifyFiles(files) {
   const out = { json: [], xml: [], js: [], rejected: [] };
   const list = [...(files || [])];
   if (list.length > MAX_FILES) { out.rejected.push(`Pick at most ${MAX_FILES} files at a time.`); return out; }
+  const total = list.reduce((a, f) => a + (Number(f?.size) || 0), 0);
+  if (total > MAX_TOTAL_BYTES) { out.rejected.push('Together these files are larger than 20 MB, so DeckChek will not read them.'); return out; }
   for (const f of list) {
     const name = String(f?.name || '');
     if (!(f?.size >= 0) || f.size > LIMITS.maxImportBytes) { out.rejected.push(`${cleanText(name, 80)} is larger than 5 MB, so DeckChek will not read it.`); continue; }
