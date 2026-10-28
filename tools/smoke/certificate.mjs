@@ -202,11 +202,12 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   const files = await page.evaluate(() => Object.keys(window.__cert.files));
   const jsonPath = files.find(f => f.endsWith('.deckchek-cert.json'));
   check('cert AC-2: PDF, .deckchek-cert.json and a stored record within 5 s', !!jsonPath && files.some(f => f.endsWith('.pdf')) && ms < 5000, `${ms} ms; ${files.join(', ')}`);
-  check('cert: file names are <model>-<serial>-<date> with unsafe characters replaced', /\/Pioneer_DJ_PLX-CRSS12-CRSS12__0042-\d{4}-\d{2}-\d{2}\.deckchek-cert\.json$/.test(jsonPath), jsonPath);
   const pdfHtml = await page.evaluate(() => Object.entries(window.__cert.files).find(([k]) => k.endsWith('.pdf'))[1]);
   const stored = await page.evaluate(() => window.__cert.stored[0]);
+  const nameHash = /-([0-9a-f]{8})\.deckchek-cert\.json$/.exec(jsonPath || '')?.[1];
+  check('cert: file names are <model>-<serial>-<date>-<first 8 hex of the content hash> with unsafe characters replaced', /\/Pioneer_DJ_PLX-CRSS12-CRSS12__0042-\d{4}-\d{2}-\d{2}-[0-9a-f]{8}\.deckchek-cert\.json$/.test(jsonPath) && nameHash === stored.contentHash.slice(0, 8), jsonPath);
   check('cert: PDF carries content hash, QR and disclaimer; tester name escaped', pdfHtml.includes(stored.contentHash) && /role="img" aria-label="QR code/.test(pdfHtml) && /does not prove the tester measured honestly/.test(pdfHtml) && pdfHtml.includes('Alex &lt;Tester&gt;'));
-  check('cert AC-6: no calibration profile -> "Pass (uncalibrated)", printed beside the value', stored.verdict === 'pass_uncalibrated' && /Uncalibrated/.test(pdfHtml));
+  check('cert AC-6: a measurement taken without a recorded calibration -> "Pass (uncalibrated)", printed beside the value (even with a profile active now)', stored.verdict === 'pass_uncalibrated' && /Uncalibrated/.test(pdfHtml));
   const calOf = await page.evaluate(() => Object.fromEntries(JSON.parse(window.__cert.stored[0].fileJson).payload.measurements.map(m => [m.metricId, m.calibration])));
   const recordedAt = await page.evaluate(() => localStorage.getItem('deckchek.cal-recorded-at'));
   const activeNow = await page.evaluate(async () => (await import('/ui/state.js')).calibrationStatus().state);
@@ -235,6 +236,20 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   check('cert AC-4: one-byte edit -> MODIFIED naming "content hash mismatch"', /content hash mismatch/.test(await page.locator('#verify-reasons').innerText()));
   check('cert: MODIFIED shows the changed section against the stored original', /payload\.unit\.serial/.test(await page.locator('#verify-diff').innerText()));
   check('regression: a MODIFIED file does not claim it was issued by this install', !/issued by this DeckChek install/.test(await page.locator('#verify-result').innerText()));
+  // a forged file copying this install's fingerprint and issue time (but not a stored hash) is not diffed
+  // against a stored record: the unverified fingerprint is never used to pick one
+  const forgedPath = '/home/dj/Certificates/forged.deckchek-cert.json';
+  await page.evaluate(({ p, f }) => {
+    const j = JSON.parse(window.__cert.files[p]);
+    j.integrity.contentHash = 'f'.repeat(64);
+    window.__cert.files[f] = JSON.stringify(j);
+    window.__cert.nextOpen = f;
+  }, { p: jsonPath, f: forgedPath });
+  await page.keyboard.press('Escape');
+  await page.click('#verify-drop');
+  await page.waitForSelector('#verify-result:not([hidden]) #verify-badge');
+  check('regression: a MODIFIED file with this install\'s fingerprint but no stored content hash shows no stored-record diff', (await page.locator('#verify-diff').count()) === 0 && (await page.locator('#verify-fp').count()) === 1);
+  await page.evaluate(p => { window.__cert.nextOpen = p; }, jsonPath);
   await shot(page, 'certificate-modified');
 
   // PDF without data
