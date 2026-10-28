@@ -938,30 +938,45 @@ fn open(app: &AppHandle) -> Result<crate::db::DbConn, PackError> {
     Ok(open_database(&database_path(app)?)?)
 }
 
+// Every command that opens the database is `async` and runs its body through `db::off_main` (AUD-03): a sync command
+// runs on the main thread, and opening the database can wait on the DB gate, migrations or a busy lock.
+
 #[tauri::command]
-pub fn pack_preview(app: AppHandle, path: String) -> Result<PackPreview, PackError> {
-    let bytes = read_pack_file(&path)?;
-    let conn = open(&app)?;
-    preview(&conn, &bytes)
+pub async fn pack_preview(app: AppHandle, path: String) -> Result<PackPreview, PackError> {
+    crate::db::off_main(move || {
+        let bytes = read_pack_file(&path)?;
+        let conn = open(&app)?;
+        preview(&conn, &bytes)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_import(app: AppHandle, path: String, source_label: Option<String>) -> Result<ImportResult, PackError> {
-    let bytes = read_pack_file(&path)?;
-    let conn = open(&app)?;
-    import(&conn, &bytes, source_label.as_deref())
+pub async fn pack_import(app: AppHandle, path: String, source_label: Option<String>) -> Result<ImportResult, PackError> {
+    crate::db::off_main(move || {
+        let bytes = read_pack_file(&path)?;
+        let conn = open(&app)?;
+        import(&conn, &bytes, source_label.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_list(app: AppHandle) -> Result<Vec<PackInfo>, PackError> {
-    let conn = open(&app)?;
-    list(&conn)
+pub async fn pack_list(app: AppHandle) -> Result<Vec<PackInfo>, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        list(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_remove(app: AppHandle, pack_id: String) -> Result<RemoveResult, PackError> {
-    let conn = open(&app)?;
-    remove(&conn, &pack_id)
+pub async fn pack_remove(app: AppHandle, pack_id: String) -> Result<RemoveResult, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        remove(&conn, &pack_id)
+    })
+    .await?
 }
 
 #[tauri::command]
@@ -970,15 +985,21 @@ pub fn pack_export(selection: ExportSelection, path: String) -> Result<ExportRes
 }
 
 #[tauri::command]
-pub fn population_query(app: AppHandle, product_id: String, metric_id: String, method_key: String) -> Result<PopulationQuery, PackError> {
-    let conn = open(&app)?;
-    query_population(&conn, &product_id, &metric_id, &method_key)
+pub async fn population_query(app: AppHandle, product_id: String, metric_id: String, method_key: String) -> Result<PopulationQuery, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        query_population(&conn, &product_id, &metric_id, &method_key)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn population_unit_values(app: AppHandle) -> Result<UnitValues, PackError> {
-    let conn = open(&app)?;
-    unit_values(&conn)
+pub async fn population_unit_values(app: AppHandle) -> Result<UnitValues, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        unit_values(&conn)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -1593,6 +1614,24 @@ mod tests {
         insert_samples(&small, "p", (0..5).map(|i| (format!("t{i}"), 1, i as f64)));
         let s = query_population(&small, "plx", "dropout_count", "dropout_count").unwrap();
         assert_eq!((s.rows.len(), s.contributors, s.truncated), (5, 5, false));
+    }
+
+    /// AUD-03: the pack commands open the database through `open(&app)`, which the db.rs source scan does not list, so
+    /// check them here: every command that opens the database is `async` and runs its body through `db::off_main`.
+    #[test]
+    fn regression_aud_03_pack_db_commands_run_off_the_main_thread() {
+        let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/pack.rs")).unwrap();
+        let src = &src[..src.find("#[cfg(test)]").unwrap()];
+        let mut checked = Vec::new();
+        for chunk in src.split("#[tauri::command]").skip(1) {
+            let body = &chunk[..chunk.find("\n}").unwrap()];
+            let name: String = body[body.find("fn ").unwrap() + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            if body.contains("open(&app)") || body.contains("open_database(") {
+                assert!(body.contains("pub async fn") && body.contains("crate::db::off_main("), "{name} opens the database on the main thread");
+                checked.push(name);
+            }
+        }
+        assert_eq!(checked, ["pack_preview", "pack_import", "pack_list", "pack_remove", "population_query", "population_unit_values"]);
     }
 
     #[test]
