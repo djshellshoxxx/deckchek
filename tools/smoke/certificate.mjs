@@ -202,7 +202,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   const files = await page.evaluate(() => Object.keys(window.__cert.files));
   const jsonPath = files.find(f => f.endsWith('.deckchek-cert.json'));
   check('cert AC-2: PDF, .deckchek-cert.json and a stored record within 5 s', !!jsonPath && files.some(f => f.endsWith('.pdf')) && ms < 5000, `${ms} ms; ${files.join(', ')}`);
-  check('cert: file names are <model>-<serial>-<date> with unsafe characters replaced', /\/Pioneer_DJ_PLX-CRSS12-CRSS12__0042-\d{4}-\d{2}-\d{2}\.deckchek-cert\.json$/.test(jsonPath), jsonPath);
+  check('cert: file names are <model>-<serial>-<date>-<hash8> with unsafe characters replaced', /\/Pioneer_DJ_PLX-CRSS12-CRSS12__0042-\d{4}-\d{2}-\d{2}-[0-9a-f]{8}\.deckchek-cert\.json$/.test(jsonPath), jsonPath);
   const pdfHtml = await page.evaluate(() => Object.entries(window.__cert.files).find(([k]) => k.endsWith('.pdf'))[1]);
   const stored = await page.evaluate(() => window.__cert.stored[0]);
   check('cert: PDF carries content hash, QR and disclaimer; tester name escaped', pdfHtml.includes(stored.contentHash) && /role="img" aria-label="QR code/.test(pdfHtml) && /does not prove the tester measured honestly/.test(pdfHtml) && pdfHtml.includes('Alex &lt;Tester&gt;'));
