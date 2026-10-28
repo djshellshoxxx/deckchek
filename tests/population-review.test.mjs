@@ -135,3 +135,18 @@ test('regression: unit_values truncated gets a visible notice for My units and t
   assert.equal(unitsTruncationNotice({ rows: [] }), null, 'an older backend without the flag shows nothing');
   assert.equal(unitsTruncationNotice(null), null);
 });
+
+test('regression: specFor picks the profile spec that population-metrics.json marks comparable, not the first related one', () => {
+  const { specFor } = compareScreen;
+  const thd = table.metrics.left_thd_percent; // specKeys thd, thd_n; comparable: thd in %
+  const thdN = { key: 'thd_n', value: 0.1, unit: '%' }, thdPct = { key: 'thd', value: 0.05, unit: '%' }, thdDb = { key: 'thd', value: -60, unit: 'dB' };
+  assert.equal(specFor({ specs: [thdN, thdPct] }, thd), thdPct, 'THD in % wins over an earlier THD+N');
+  assert.equal(specFor({ specs: [thdDb, thdN, thdPct] }, thd), thdPct, 'a related key in a non-comparable unit is skipped too');
+  assert.equal(compareMetricToSpec({ value: 0.03, unit: '%' }, specFor({ specs: [thdN, thdPct] }, thd), thd).status, 'ok', 'so the Spec tab gives a verdict');
+  assert.equal(specFor({ specs: [thdN, thdDb] }, thd), thdN, 'none comparable: the first related spec, so its note is shown');
+  const sep = table.metrics.channel_separation_db;
+  const a = { key: 'separation', value: 30, unit: 'dB' }, b = { key: 'channel_separation', value: 35, unit: 'dB' };
+  assert.equal(specFor({ specs: [a, b] }, sep), a, 'several comparable: profile order decides');
+  assert.equal(specFor({ specs: [thdPct] }, table.metrics.dropout_count), null);
+  assert.equal(specFor(null, thd), null);
+});

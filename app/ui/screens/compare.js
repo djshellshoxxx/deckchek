@@ -13,7 +13,7 @@ import { createPackApi } from '../../pack-api.js';
 import { exportRowsFromUnitValues } from '../../pack.js';
 import { metricLabel } from '../metrics.js';
 import {
-  compareMetricToSpec, latestPerAsset, compareToSiblings, historyDelta, populationComparison, describeComparison, stripPlot,
+  compareMetricToSpec, specIsComparable, latestPerAsset, compareToSiblings, historyDelta, populationComparison, describeComparison, stripPlot,
   ordinal, N_MIN_PERCENTILE, N_MIN_MEDIAN,
 } from '../../population.js';
 
@@ -90,10 +90,14 @@ export function indexUnits(rows) {
   return assets;
 }
 
-/** The profile spec entry that belongs to a metric, if any. */
+/**
+ * The profile spec entry that belongs to a metric, if any: the first one (profile order) that population-metrics.json
+ * marks as the same quantity (`specComparable`), else the first related one (`specKeys`) so its `specNote` is shown.
+ */
 export function specFor(profile, def) {
   const keys = def?.specKeys ?? [];
-  return (profile?.specs ?? []).find(s => keys.includes(s.key)) ?? null;
+  const related = (profile?.specs ?? []).filter(s => s && keys.includes(s.key));
+  return related.find(s => specIsComparable(s, def)) ?? related[0] ?? null;
 }
 
 /** Plain-language result of compareToSpec for the Spec tab. */
