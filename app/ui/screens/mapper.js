@@ -31,8 +31,12 @@ const MAX_FILES = 18;
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
 const UNDO_LIMIT = 50;
 const LEARN_TIMEOUT_MS = 30000;
+const STATUS_WARNINGS = 5; // at most this many import notes go into the polite live status; the rest sit in a <details>
+const LISTED_WARNINGS = 1000;
 const KIND_LABEL = { button: 'Button', absolute: 'Fader / knob', relative: 'Encoder' };
 const ENCODING_LABEL = { 'relative-two-complement': "Two's complement (1 = right, 127 = left)", 'relative-offset64': 'Offset 64 (65 = right, 63 = left)', 'absolute-wrap': 'Absolute, wraps around' };
+// Where focus goes when the focused control disappears or turns disabled in a re-render ('@row' = selected row).
+const FOCUS_FALLBACK = { 'mp-clear': ['mp-fn-search', '@row'], 'mp-remove': ['@row', 'mp-learn', 'mp-new'] };
 const ARG_LABEL = { action: 'Action', n: 'Number', unit: 'FX unit', param: 'Parameter', band: 'Band' };
 
 export const COPY_HINTS = {
@@ -57,6 +61,18 @@ export function buildExport(model, target, { name, author = 'DeckChek', scripts 
   } catch (e) {
     return { files: [], errors: [{ code: 'EXPORT_FAILED', controlIds: [], message: `The export could not be built: ${e?.message || e}` }], warnings: [], report: false };
   }
+}
+
+// Downloads and the save dialog cut a file stem at 80 characters (userfiles sanitizeFileStem). The longest names
+// built from the mapping name are 'force-<stem> - Devices' (VirtualDJ, flattened for download), '<stem>-scripts'
+// (Mixxx) and '<stem> Traktor report', so a stem of at most 64 characters survives intact and the .midi.xml
+// extension and the script file named inside the XML still match.
+export const DOWNLOAD_NAME_MAX = 64;
+
+/** Mapping name used for exported file names that pass through a download or save dialog. */
+export function downloadSafeName(name) {
+  const n = String(name ?? '');
+  return n.length > DOWNLOAD_NAME_MAX ? n.slice(0, DOWNLOAD_NAME_MAX).trimEnd() : n;
 }
 
 /** Per-control problem words for the list (never colour alone): {id: 'Conflict' | 'Error' | 'Check'}. */
@@ -95,11 +111,25 @@ export function sniffXml(text) {
   return { kind: 'unknown' };
 }
 
+/** Keep at most LIMITS.maxControls controls (the XML importers read up to twice that), with one summary note. */
+export function capControls(model, warnings = []) {
+  const n = model?.controls?.length || 0;
+  if (n <= LIMITS.maxControls) return { model, warnings };
+  return { model: { ...model, controls: model.controls.slice(0, LIMITS.maxControls) }, warnings: [`The file has ${n} controls; only the first ${LIMITS.maxControls} were kept.`, ...warnings] };
+}
+
 /**
  * Turn read file texts into a model. `texts` = [{name, text}]. Returns {ok, model, scripts, warnings, source} or
- * {ok:false, error:{message, line, column}}.
+ * {ok:false, error:{message, line, column}}. Never throws: a hostile file (for example a JSON value whose toString is
+ * not callable) becomes a typed error instead of an unhandled rejection.
  */
-export function importTexts(texts, { profile = null } = {}) {
+export function importTexts(texts, opts = {}) {
+  try { return importTextsUnchecked(texts, opts); } catch (e) {
+    return { ok: false, error: { message: `The file is not a usable mapping (${cleanText(e?.name || 'error', 40)}).` } };
+  }
+}
+
+function importTextsUnchecked(texts, { profile = null } = {}) {
   const json = texts.filter(t => /\.json$/i.test(t.name)), xml = texts.filter(t => /\.xml$/i.test(t.name)), js = texts.filter(t => /\.js$/i.test(t.name));
   if (json.length) {
     const p = parseJsonFile(json[0].text);
@@ -116,15 +146,23 @@ export function importTexts(texts, { profile = null } = {}) {
   const mixxx = kinds.find(k => k.kind === 'mixxx');
   if (mixxx) {
     const r = importMixxx(mixxx.text, js.map(j => ({ name: j.name, content: j.text })));
-    return r.ok ? { ok: true, model: r.model, scripts: r.preservedRaw, warnings: r.warnings, source: 'Mixxx mapping' } : { ok: false, error: r.error };
+    return r.ok ? { ok: true, ...capControls(r.model, r.warnings), scripts: r.preservedRaw, source: 'Mixxx mapping' } : { ok: false, error: r.error };
   }
   const def = kinds.find(k => k.kind === 'vdj-definition'), map = kinds.find(k => k.kind === 'vdj-mapper'), legacy = kinds.find(k => k.kind === 'vdj-legacy');
   if (def || legacy) {
     const r = def ? importVdj(def.text, map?.text ?? null) : importVdj(legacy.text);
-    return r.ok ? { ok: true, model: r.model, scripts: [], warnings: r.warnings, source: 'VirtualDJ mapping' } : { ok: false, error: r.error };
+    return r.ok ? { ok: true, ...capControls(r.model, r.warnings), scripts: [], source: 'VirtualDJ mapping' } : { ok: false, error: r.error };
   }
   if (map) return { ok: false, error: { message: 'That is a VirtualDJ mapper file. Open it together with its device definition (Documents/VirtualDJ/Devices).' } };
   return { ok: false, error: { message: 'DeckChek does not recognise this XML file as a Mixxx or VirtualDJ mapping.' } };
+}
+
+/** Short form of an import's notes for the live status: the first few plus "and N more". */
+export function summariseWarnings(warnings, max = STATUS_WARNINGS) {
+  const list = Array.isArray(warnings) ? warnings : [];
+  if (list.length <= max) return list.join(' ');
+  const more = list.length - max;
+  return `${list.slice(0, max).join(' ')} …and ${more} more note${more === 1 ? '' : 's'} (listed under “All import notes”).`;
 }
 
 /** Success line after a save. */
@@ -169,9 +207,10 @@ export function createMapperScreen(section) {
   const undo = createUndo();
   const st = {
     model: null, readOnly: false, savedId: null, assetId: null, profileId: null, selectedId: null, target: 'mixxx', force: false,
-    scripts: [], saved: [], learning: null, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
+    scripts: [], saved: [], learning: null, learnStarting: false, savingModel: false, deleting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
   const status = h('div', { id: 'mp-status', class: 'mp-status', role: 'status', 'aria-live': 'polite' });
+  const warningsBox = h('details', { id: 'mp-warnings', class: 'mp-warnings', hidden: true });
   const validationBox = h('div', { id: 'mp-validation', class: 'mp-validation', 'aria-live': 'polite' });
   const left = h('section', { class: 'card mp-pane mp-left', 'aria-labelledby': 'mp-controls-title' });
   const centre = h('section', { class: 'card mp-pane mp-centre', 'aria-labelledby': 'mp-assign-title' });
@@ -179,6 +218,7 @@ export function createMapperScreen(section) {
   const deviceSelect = h('select', { id: 'mp-device', 'aria-label': 'Unit (device) to map' });
   const savedSelect = h('select', { id: 'mp-saved', 'aria-label': 'Saved mappings' });
   const nameInput = h('input', { id: 'mp-name', type: 'text', maxlength: String(LIMITS.maxText), autocomplete: 'off', 'aria-label': 'Mapping name' });
+  const saveModelBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: () => saveModel() });
   const decksSelect = h('select', { id: 'mp-decks', 'aria-label': 'Number of decks' }, ...[1, 2, 3, 4].map(n => h('option', { value: String(n), text: `${n} deck${n === 1 ? '' : 's'}` })));
 
   const setStatus = (message, tone = 'info', { title = null } = {}) => {
@@ -186,10 +226,46 @@ export function createMapperScreen(section) {
     if (!message) return;
     status.append(h('p', { class: `hint hint-${tone}`, 'data-tone': tone }, title ? h('strong', { text: `${title} ` }) : null, message));
   };
+  // Full list of import notes, outside the live region, collapsed; only shown when the status had to shorten it.
+  const showWarnings = (list = []) => {
+    warningsBox.open = false;
+    if (list.length <= STATUS_WARNINGS) { warningsBox.hidden = true; warningsBox.replaceChildren(); return; }
+    const shown = list.slice(0, LISTED_WARNINGS);
+    warningsBox.replaceChildren(h('summary', { text: `All import notes (${list.length})` }),
+      h('ul', { class: 'mp-warning-list' }, ...shown.map(w => h('li', { text: w })),
+        ...(list.length > shown.length ? [h('li', { class: 'muted', text: `…and ${list.length - shown.length} more.` })] : [])));
+    warningsBox.hidden = false;
+  };
   const selected = () => st.model?.controls.find(c => c.id === st.selectedId) || null;
+
+  // Validation and export depend only on the model object (edits replace it), the target and the export options, so
+  // they are computed once per change instead of on every selection move.
+  const memo = { v: null, vKey: [], ex: null, exKey: [] };
+  const sameKey = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+  function currentValidation() {
+    const key = [st.model, st.target];
+    if (!sameKey(key, memo.vKey)) { memo.v = st.model ? validateModel(st.model, { target: st.target }) : null; memo.vKey = key; }
+    return memo.v;
+  }
+
+  /** Move the selection without rebuilding the list or the export: patch the rows in place, redraw the inspector. */
+  function selectControl(id, { focus = false } = {}) {
+    commitLabel();
+    if (!st.model?.controls.some(c => c.id === id)) return;
+    st.selectedId = id;
+    for (const tr of left.querySelectorAll('#mp-rows tr')) {
+      const sel = tr.dataset.id === id;
+      tr.setAttribute('aria-selected', String(sel));
+      tr.tabIndex = sel ? 0 : -1;
+      tr.classList.toggle('is-selected', sel);
+    }
+    keepFocus(renderCentre);
+    if (focus) focusRow();
+  }
 
   function setModel(model, { keepUndo = false, select = null } = {}) {
     if (!keepUndo) undo.clear();
+    showWarnings();
     st.model = model;
     nameInput.value = model?.name || '';
     decksSelect.value = String(model?.decks || 2);
@@ -197,8 +273,48 @@ export function createMapperScreen(section) {
     renderAll();
   }
 
+  // ---- text fields commit without rebuilding what is under the pointer
+  // A text field commits on 'change', which fires on the mousedown that blurs it. Rebuilding the button under the
+  // pointer at that moment swallows the click, so commits patch the list in place and redraw the export pane only
+  // once the pointer is released (after the click has been delivered).
+  let pointerHeld = false;
+  const afterPointer = [];
+  const whenPointerFree = fn => { if (pointerHeld) afterPointer.push(fn); else fn(); };
+  document.addEventListener('pointerdown', () => { pointerHeld = true; }, true);
+  for (const type of ['pointerup', 'pointercancel']) document.addEventListener(type, () => {
+    pointerHeld = false;
+    const fns = afterPointer.splice(0);
+    if (fns.length) setTimeout(() => { for (const fn of fns) fn(); });
+  }, true);
+  let refreshQueued = false;
+  const refreshExportPane = () => {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    whenPointerFree(() => { refreshQueued = false; keepFocus(renderRight); });
+  };
+
+  // The control-name field in the inspector: {id, input, timer, pushed}. Typing commits after a short pause, 'change'
+  // commits at once, and any other edit or selection change flushes it first so a typed name is never lost.
+  let labelEdit = null;
+  function commitLabel() {
+    const le = labelEdit;
+    if (!le) return;
+    clearTimeout(le.timer); le.timer = null;
+    const c = st.model?.controls.find(x => x.id === le.id);
+    if (!c || st.readOnly || cleanText(le.input.value) === c.label) return;
+    if (!le.pushed) { undo.push(st.model); le.pushed = true; }
+    st.model = updateControl(st.model, le.id, { label: le.input.value }).model;
+    const next = st.model.controls.find(x => x.id === le.id);
+    const cell = left.querySelector(`#mp-rows tr[data-id="${CSS.escape(le.id)}"] .mp-label > span`);
+    if (!next || !cell) { whenPointerFree(renderAll); return; }
+    cell.textContent = next.label;
+    refreshExportPane();
+  }
+  const dropLabelEdit = () => { if (labelEdit) clearTimeout(labelEdit.timer); labelEdit = null; };
+
   function edit(mutator, { announceText = null } = {}) {
     if (!st.model || st.readOnly) return;
+    commitLabel();
     undo.push(st.model);
     const res = mutator(st.model);
     st.model = res.model || res;
@@ -208,6 +324,7 @@ export function createMapperScreen(section) {
   }
 
   function doUndo() {
+    dropLabelEdit();
     const prev = undo.pop();
     if (!prev) { announce('Nothing to undo.'); return; }
     st.model = prev;
@@ -241,14 +358,21 @@ export function createMapperScreen(section) {
     const learnedControls = Array.isArray(row?.map?.controls) ? row.map.controls.length : 0;
     const published = (profile?.midi?.controls || []).filter(c => c?.message).length;
     const name = asset.nickname || [profile?.manufacturer, profile?.model].filter(Boolean).join(' ') || 'My controller';
-    st.assetId = assetId; st.profileId = profile?.id || null; st.savedId = null; st.readOnly = false; st.scripts = [];
+    const reset = () => { st.assetId = assetId; st.profileId = profile?.id || null; st.savedId = null; st.readOnly = false; st.scripts = []; };
     if (!learnedControls && !published) {
+      reset();
       setModel(createModel({ name, manufacturer: profile?.manufacturer || '', source: 'learned', sourceId: profile?.id || assetId }));
       setStatus(EMPTY_TEXT, 'info');
       announce(EMPTY_TEXT);
       return;
     }
-    const model = learnedToModel(learnedControls ? row : null, profile, { name });
+    let model;
+    try { model = learnedToModel(learnedControls ? row : null, profile, { name }); } catch {
+      setStatus('The MIDI map stored for this unit could not be read.', 'fail', { title: 'Could not open the mapping.' });
+      announce('Could not open the mapping.', { assertive: true });
+      return;
+    }
+    reset();
     setModel(model);
     const s = modelStats(model);
     setStatus(`${s.total} control${s.total === 1 ? '' : 's'} loaded from the ${learnedControls ? 'map learned on this unit' : 'official profile'}; ${s.assigned} got a suggested function.${s.unassigned ? ` ${s.unassigned} unmapped control${s.unassigned === 1 ? '' : 's'} to assign.` : ''}`, s.unassigned ? 'warn' : 'pass');
@@ -264,7 +388,7 @@ export function createMapperScreen(section) {
     let texts;
     try { texts = await Promise.all([...c.json, ...c.xml, ...c.js].map(async f => ({ name: f.name, text: await f.text() }))); } catch (e) { setStatus(`The file could not be read: ${e?.message || e}`, 'fail'); return; }
     const profile = st.profileId ? profileById(st.profileId) : null;
-    const r = importTexts(texts, { profile });
+    const r = importTexts(texts, { profile }); // never throws
     if (!r.ok) {
       setStatus(r.error.message, 'fail', { title: 'Could not open the mapping.' });
       announce('Could not open the mapping.', { assertive: true });
@@ -273,7 +397,8 @@ export function createMapperScreen(section) {
     st.savedId = null; st.readOnly = Boolean(r.readOnly); st.scripts = r.scripts || [];
     setModel(r.model);
     const s = modelStats(r.model);
-    setStatus(`${r.source} opened: ${s.assigned} recognised, ${s.custom} unmapped/custom (preserved), ${s.unassigned} without a function.${r.warnings.length ? ` ${r.warnings.join(' ')}` : ''}`, r.warnings.length || s.custom ? 'warn' : 'pass');
+    setStatus(`${r.source} opened: ${s.assigned} recognised, ${s.custom} unmapped/custom (preserved), ${s.unassigned} without a function.${r.warnings.length ? ` ${summariseWarnings(r.warnings)}` : ''}`, r.warnings.length || s.custom ? 'warn' : 'pass');
+    showWarnings(r.warnings);
     announce('Mapping opened.');
   }
 
@@ -297,12 +422,22 @@ export function createMapperScreen(section) {
       if (!row?.model) { setStatus('That mapping could not be read.', 'fail'); return; }
       st.savedId = row.id; st.assetId = row.assetId; st.profileId = row.profileId; st.readOnly = row.readOnly; st.scripts = [];
       setModel(row.model);
-      setStatus(row.warnings?.length ? row.warnings.join(' ') : `Opened ${row.name}.`, row.readOnly ? 'warn' : 'pass');
+      setStatus(row.warnings?.length ? summariseWarnings(row.warnings) : `Opened ${row.name}.`, row.readOnly ? 'warn' : 'pass');
+      showWarnings(row.warnings || []);
     } catch (e) { setStatus(`Could not open the mapping: ${e?.message || e}`, 'fail'); }
   }
 
   async function saveModel() {
+    commitLabel();
     if (!st.model) return;
+    if (st.readOnly) {
+      // sanitizeModel rebuilt a newer-version model as a lossy v1 copy; saving it would overwrite the newer row.
+      setStatus('This mapping was made by a newer DeckChek and is read-only here, so it is not saved over.', 'warn', { title: 'Not saved.' });
+      return;
+    }
+    // One save at a time: savedId is only known once the first save returns, so a second click would insert a copy.
+    if (st.savingModel) return;
+    st.savingModel = true; saveModelBtn.setAttribute('aria-disabled', 'true');
     try {
       const row = await mstore.save({ id: st.savedId, assetId: st.assetId, profileId: st.profileId, name: st.model.name, model: st.model });
       st.savedId = row.id;
@@ -312,16 +447,20 @@ export function createMapperScreen(section) {
     } catch (e) {
       const msg = typeof e === 'string' ? e : e?.message || 'The mapping could not be saved.';
       setStatus(msg.replace(/^MAPPER_[A-Z_]+: /, ''), 'fail', { title: 'Not saved.' });
-    }
+    } finally { st.savingModel = false; saveModelBtn.removeAttribute('aria-disabled'); }
   }
 
   async function deleteSaved() {
     const id = savedSelect.value;
     if (!id) return;
     const row = st.saved.find(r => r.id === id);
-    const ok = await confirmDialog({ title: 'Delete saved mapping?', body: `“${row?.name || 'This mapping'}” is removed from DeckChek. Exported files are not touched.` });
-    if (!ok) return;
-    try { await mstore.remove(id); if (st.savedId === id) st.savedId = null; await refreshSaved(); setStatus('Saved mapping deleted.', 'info'); } catch (e) { setStatus(`Could not delete: ${e?.message || e}`, 'fail'); }
+    if (st.deleting) return;
+    st.deleting = true;
+    try {
+      const ok = await confirmDialog({ title: 'Delete saved mapping?', body: `“${row?.name || 'This mapping'}” is removed from DeckChek. Exported files are not touched.` });
+      if (!ok) return;
+      await mstore.remove(id); if (st.savedId === id) st.savedId = null; await refreshSaved(); setStatus('Saved mapping deleted.', 'info');
+    } catch (e) { setStatus(`Could not delete: ${e?.message || e}`, 'fail'); } finally { st.deleting = false; }
   }
 
   // ---------------------------------------------------------------- MIDI learn
@@ -331,12 +470,17 @@ export function createMapperScreen(section) {
     if (!st.ports.includes(st.port)) st.port = st.ports[0] || '';
   }
 
+  // Learn opens the chosen MIDI input and closes it again when learning ends (message learned, cancel, timeout,
+  // screen hidden), unless the input was already open before Learn (another screen owns it then).
+  const releasePort = port => { if (port) midi.close(port).catch(() => { /* already closed */ }); };
+
   function stopLearn(message = null) {
     if (!st.learning) return false;
     st.learning.unsub?.();
     clearTimeout(st.learning.timer);
+    releasePort(st.learning.ownedPort);
     st.learning = null;
-    renderLeft();
+    keepFocus(renderLeft);
     if (message) { setStatus(message, 'info'); announce(message); }
     return true;
   }
@@ -345,36 +489,66 @@ export function createMapperScreen(section) {
     if (st.learning) { stopLearn('Learning cancelled.'); return; }
     if (st.readOnly) return;
     if (!midi.isAvailable()) { setStatus(`MIDI is not available here (backend: ${midi.backend()}). Use the DeckChek desktop app or a browser with Web MIDI.`, 'warn'); return; }
+    if (st.learnStarting) return;
     if (!st.model) newModel();
-    await refreshPorts();
-    if (!st.port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); renderLeft(); return; }
-    try { await midi.open(st.port); } catch (e) { setStatus(`Could not open ${st.port}: ${e?.message || e}`, 'fail'); return; }
+    st.learnStarting = true;
+    let port, owned;
+    try {
+      await refreshPorts();
+      port = st.port;
+      if (!port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); keepFocus(renderLeft); return; }
+      const before = await midi.status().catch(() => null);
+      owned = !(before?.openInputs || []).includes(port);
+      try { await midi.open(port); } catch (e) { setStatus(`Could not open ${port}: ${e?.message || e}`, 'fail'); return; }
+    } finally { st.learnStarting = false; }
+    if (section.hidden) { if (owned) releasePort(port); return; } // the screen was left while the port was opening
     const unsub = midi.onMessage(msg => {
-      if (!st.learning || (msg?.port && msg.port !== st.port)) return;
+      if (!st.learning || (msg?.port && msg.port !== port)) return;
       const m = midiFromBytes(msg?.bytes || []);
       if (!m) return;
       stopLearn();
       const res = addLearnedControl(st.model, m, { layer: selected()?.layer === 'shift' ? 'shift' : 'base' });
       if (!res.control) { setStatus(`The mapping already has ${LIMITS.maxControls} controls.`, 'warn'); return; }
       if (res.added) edit(() => ({ model: res.model, id: res.control.id }));
-      else { st.selectedId = res.control.id; renderAll(); }
+      else selectControl(res.control.id);
       const text = `${res.added ? 'Learned' : 'Selected'} ${midiText(res.control.midi)}.`;
       setStatus(`${text} Now pick its function.`, 'pass');
       announce(text);
       focusRow();
     });
-    st.learning = { unsub, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
-    renderLeft();
-    setStatus(`Listening on ${st.port}: move or press one control. Esc cancels.`, 'info');
+    st.learning = { unsub, ownedPort: owned ? port : null, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
+    keepFocus(renderLeft);
+    setStatus(`Listening on ${port}: move or press one control. Esc cancels.`, 'info');
     announce('Listening for a MIDI message.');
   }
 
   // ---------------------------------------------------------------- render
-  function focusRow() { section.querySelector(`#mp-rows tr[data-id="${CSS.escape(st.selectedId || '')}"]`)?.focus(); }
+  const selectedRow = () => section.querySelector(`#mp-rows tr[data-id="${CSS.escape(st.selectedId || '')}"]`);
+  function focusRow() { selectedRow()?.focus(); }
+
+  /**
+   * Run a re-render and keep keyboard focus in place: the same field by id (fields have stable ids), the selected
+   * row, or a sensible neighbour when the focused control is gone or now disabled. Never pulls focus from outside.
+   */
+  function keepFocus(render) {
+    const active = document.activeElement;
+    const inside = Boolean(active && active !== document.body && section.contains(active));
+    const fid = inside && active.id ? active.id : null;
+    const onRow = inside && Boolean(active.matches?.('#mp-rows tr'));
+    render();
+    if (!inside || (section.contains(active) && !active.disabled)) return;
+    const tryFocus = el => { if (!el || el.disabled) return false; el.focus(); return document.activeElement === el; };
+    const byId = id => (id === '@row' ? selectedRow() : section.querySelector(`#${CSS.escape(id)}`));
+    if (onRow && tryFocus(selectedRow())) return;
+    if (fid && tryFocus(byId(fid))) return;
+    for (const id of FOCUS_FALLBACK[fid] || []) if (tryFocus(byId(id))) return;
+    if (tryFocus(selectedRow())) return;
+    section.querySelector('h1')?.focus();
+  }
 
   function renderLeft() {
     left.replaceChildren();
-    const v = st.model ? validateModel(st.model, { target: st.target }) : null;
+    const v = currentValidation();
     const flags = rowFlags(v);
     const s = st.model ? modelStats(st.model) : null;
     const portSel = h('select', { id: 'mp-port', 'aria-label': 'MIDI input for Learn', disabled: !st.ports.length }, ...(st.ports.length ? st.ports.map(p => h('option', { value: p, text: p })) : [h('option', { value: '', text: midi.isAvailable() ? 'No MIDI input' : 'MIDI not available' })]));
@@ -392,7 +566,7 @@ export function createMapperScreen(section) {
     const rows = st.model.controls.map(c => {
       const sel = c.id === st.selectedId;
       const flag = flags[c.id];
-      const tr = h('tr', { 'data-id': c.id, tabindex: sel ? '0' : '-1', 'aria-selected': String(sel), class: `${sel ? 'is-selected' : ''} ${flag ? `has-${flag.toLowerCase()}` : ''}`.trim(), onclick: () => { st.selectedId = c.id; renderAll(); focusRow(); } },
+      const tr = h('tr', { 'data-id': c.id, tabindex: sel ? '0' : '-1', 'aria-selected': String(sel), class: `${sel ? 'is-selected' : ''} ${flag ? `has-${flag.toLowerCase()}` : ''}`.trim(), onclick: () => selectControl(c.id, { focus: true }) },
         h('th', { scope: 'row', class: 'mp-label' }, h('span', { text: c.label }), flag ? h('span', { class: `mp-flag mp-flag-${flag.toLowerCase()}`, html: icon(flag === 'Check' ? 'info' : 'warn', { size: 14 }) }, h('span', { text: flag })) : null),
         h('td', { class: 'mp-midi', text: midiText(c.midi) }),
         h('td', { text: c.layer === 'shift' ? 'Shift' : 'Base' }),
@@ -410,9 +584,7 @@ export function createMapperScreen(section) {
       if (ev.key === 'Enter') { ev.preventDefault(); section.querySelector('#mp-fn-search')?.focus(); return; }
       ev.preventDefault();
       i = ev.key === 'ArrowDown' ? Math.min(ids.length - 1, i + 1) : ev.key === 'ArrowUp' ? Math.max(0, i - 1) : ev.key === 'Home' ? 0 : ids.length - 1;
-      st.selectedId = ids[i];
-      renderAll();
-      focusRow();
+      selectControl(ids[i], { focus: true });
     });
     left.append(h('div', { class: 'mp-table-wrap' }, table));
   }
@@ -425,12 +597,15 @@ export function createMapperScreen(section) {
   }
 
   function renderCentre() {
+    dropLabelEdit();
     centre.replaceChildren(h('div', { class: 'card-head' }, h('h2', { class: 'card-title', id: 'mp-assign-title', text: 'Function' })));
     const c = selected();
     if (!c) { centre.append(h('p', { class: 'muted', text: 'Select a control in the list, or press Learn and move one.' })); return; }
     const ro = st.readOnly;
     const label = h('input', { id: 'mp-label', type: 'text', value: c.label, maxlength: String(LIMITS.maxText), disabled: ro, autocomplete: 'off' });
-    label.addEventListener('change', () => edit(m => updateControl(m, c.id, { label: label.value })));
+    const le = labelEdit = { id: c.id, input: label, timer: null, pushed: false };
+    label.addEventListener('input', () => { clearTimeout(le.timer); le.timer = setTimeout(() => { if (labelEdit === le) commitLabel(); }, 300); });
+    label.addEventListener('change', () => { if (labelEdit === le) commitLabel(); });
     const kind = h('select', { id: 'mp-kind', disabled: ro }, ...Object.entries(KIND_LABEL).map(([k, t]) => h('option', { value: k, text: t })));
     kind.value = c.kind;
     kind.addEventListener('change', () => edit(m => updateControl(m, c.id, { kind: kind.value, midi: { ...c.midi, encoding: kind.value === 'relative' ? c.midi.encoding || 'relative-two-complement' : undefined } })));
@@ -471,11 +646,13 @@ export function createMapperScreen(section) {
     const list = h('div', { id: 'mp-fn-list', class: 'mp-fn-list', role: 'group', 'aria-label': 'Functions' });
     const fill = () => {
       const fs = filterFunctions(search.value);
-      list.replaceChildren(...fs.map(f => h('button', { type: 'button', class: `btn btn-sm ${fn?.id === f.id ? 'btn-primary' : 'btn-secondary'}`, 'data-fn': f.id, 'aria-pressed': String(fn?.id === f.id), disabled: ro,
+      list.replaceChildren(...fs.map(f => h('button', { type: 'button', id: `mp-fn-${f.id}`, class: `btn btn-sm ${fn?.id === f.id ? 'btn-primary' : 'btn-secondary'}`, 'data-fn': f.id, 'aria-pressed': String(fn?.id === f.id), disabled: ro,
         onclick: () => {
           const deckSel = section.querySelector('#mp-deck');
           const next = normalizeFunction({ id: f.id, deck: Number(deckSel?.value) || fn?.deck || 1, args: {} }, st.model.decks);
-          edit(m => updateControl(m, c.id, { function: next }), { announceText: `${c.label}: ${describeFunction(next)}` });
+          commitLabel();
+          const name = st.model.controls.find(x => x.id === c.id)?.label || c.label;
+          edit(m => updateControl(m, c.id, { function: next }), { announceText: `${name}: ${describeFunction(next)}` });
           section.querySelector(`#mp-fn-list [data-fn="${f.id}"]`)?.focus();
         } }, f.label)));
       if (!fs.length) list.append(h('p', { class: 'muted small', text: 'No function matches.' }));
@@ -492,7 +669,12 @@ export function createMapperScreen(section) {
 
   function currentExport() {
     if (!st.model) return null;
-    return buildExport({ ...st.model, name: nameInput.value || st.model.name }, st.target, { name: nameInput.value || st.model.name, scripts: st.scripts, force: st.force });
+    const full = nameInput.value || st.model.name;
+    // Browser downloads (and the report's save dialog) shorten long names; the desktop folder save keeps them whole.
+    const name = !isNative() || st.target === 'serato' || st.target === 'traktor' ? downloadSafeName(full) : full;
+    const key = [st.model, st.target, name, st.scripts, st.force];
+    if (!sameKey(key, memo.exKey)) { memo.ex = buildExport({ ...st.model, name }, st.target, { name, scripts: st.scripts, force: st.force }); memo.exKey = key; }
+    return memo.ex;
   }
 
   function renderRight() {
@@ -505,7 +687,7 @@ export function createMapperScreen(section) {
       h('label', { class: 'mp-field', for: 'mp-target' }, h('span', { class: 'field-label', text: 'DJ software' }), target));
     if (st.target === 'vdj') {
       const force = h('input', { type: 'checkbox', id: 'mp-force', checked: st.force });
-      force.addEventListener('change', () => { st.force = force.checked; renderRight(); });
+      force.addEventListener('change', () => { st.force = force.checked; keepFocus(renderRight); });
       right.append(h('label', { class: 'mp-check', for: 'mp-force' }, force, h('span', { text: 'VirtualDJ already supports this controller (name the definition force-…)' })));
     }
     if (st.target === 'serato' || st.target === 'traktor') right.append(h('p', { class: 'hint hint-warn', id: 'mp-report-note', text: st.target === 'serato' ? 'Experimental/Report: Serato has no published mapping format, so DeckChek writes a report to follow by hand.' : 'Report only: Traktor .tsi files are not written. Follow the report in Traktor\'s Controller Manager.' }));
@@ -518,26 +700,28 @@ export function createMapperScreen(section) {
       validationBox.append(h('ul', { class: 'mp-issues' }, ...items.map(it => h('li', { class: `mp-issue mp-${it.sev}`, 'data-code': it.code },
         h('span', { class: 'mp-sev', html: icon(it.sev === 'error' ? 'fail' : 'warn', { size: 14 }) }, h('span', { text: it.sev === 'error' ? 'Error: ' : 'Note: ' })),
         h('span', { text: it.message }),
-        it.controlIds?.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm mp-show', text: it.controlIds.length > 1 ? `Show (${it.controlIds.length})` : 'Show', onclick: () => { st.selectedId = it.controlIds[0]; renderAll(); focusRow(); } }) : null))));
+        it.controlIds?.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm mp-show', text: it.controlIds.length > 1 ? `Show (${it.controlIds.length})` : 'Show', onclick: () => selectControl(it.controlIds[0], { focus: true }) }) : null))));
     }
     right.append(validationBox);
     if (ex.files.length) {
       st.exportView = Math.min(st.exportView, ex.files.length - 1);
-      if (ex.files.length > 1) right.append(h('div', { class: 'mp-tabs', role: 'group', 'aria-label': 'Files in the export' }, ...ex.files.map((f, i) => h('button', { type: 'button', class: `btn btn-sm ${i === st.exportView ? 'btn-primary' : 'btn-secondary'}`, 'aria-pressed': String(i === st.exportView), text: f.name, onclick: () => { st.exportView = i; renderRight(); } }))));
+      if (ex.files.length > 1) right.append(h('div', { class: 'mp-tabs', role: 'group', 'aria-label': 'Files in the export' }, ...ex.files.map((f, i) => h('button', { type: 'button', id: `mp-tab-${i}`, class: `btn btn-sm ${i === st.exportView ? 'btn-primary' : 'btn-secondary'}`, 'aria-pressed': String(i === st.exportView), text: f.name, onclick: () => { st.exportView = i; keepFocus(renderRight); } }))));
       right.append(h('pre', { id: 'mp-preview', class: 'mp-preview', tabindex: '0', 'aria-label': `Preview of ${ex.files[st.exportView].name}` }, ex.files[st.exportView].content));
     }
     right.append(h('div', { class: 'mp-actions' },
-      h('button', { type: 'button', class: 'btn btn-primary', id: 'mp-export-save', disabled: Boolean(ex.errors.length) || !ex.files.length || st.busy, title: 'Save (Ctrl+S)', onclick: saveExport },
+      // While saving the button stays focusable (aria-disabled, guarded in saveExport) so focus does not drop to <body>.
+      h('button', { type: 'button', class: 'btn btn-primary', id: 'mp-export-save', disabled: Boolean(ex.errors.length) || !ex.files.length, 'aria-disabled': st.busy ? 'true' : null, title: 'Save (Ctrl+S)', onclick: saveExport },
         h('span', { html: icon('download', { size: 18 }) }), h('span', { text: ex.report ? 'Save report…' : 'Save…' }))),
       h('p', { class: 'muted small', text: COPY_HINTS[st.target] }));
   }
 
   async function saveExport() {
+    commitLabel();
     const ex = currentExport();
     if (!ex) return;
     if (ex.errors.length) { setStatus('Fix the problems listed under Export first.', 'fail', { title: 'Not saved.' }); section.querySelector('#mp-validation')?.scrollIntoView?.({ block: 'nearest' }); return; }
     if (st.busy) return;
-    st.busy = true; renderRight();
+    st.busy = true; keepFocus(renderRight);
     try {
       let result;
       if (ex.report) {
@@ -558,22 +742,29 @@ export function createMapperScreen(section) {
     } catch (e) {
       const msg = typeof e === 'string' ? e : e?.message || 'The files could not be written.';
       setStatus(msg, 'fail', { title: 'Not saved.' });
-    } finally { st.busy = false; renderRight(); }
+    } finally { st.busy = false; keepFocus(renderRight); }
   }
 
   function renderAll() {
-    // Keep keyboard focus on the same field across a re-render (fields have stable ids).
-    const active = document.activeElement;
-    const fid = active && section.contains(active) && active.id ? active.id : null;
-    const onRow = Boolean(active?.matches?.('#mp-rows tr'));
-    if (st.readOnly) section.classList.add('mp-readonly'); else section.classList.remove('mp-readonly');
-    renderLeft(); renderCentre(); renderRight();
-    if (fid && !section.contains(active)) section.querySelector(`#${CSS.escape(fid)}`)?.focus();
-    else if (onRow && !section.contains(active)) focusRow();
+    keepFocus(() => {
+      section.classList.toggle('mp-readonly', st.readOnly);
+      // A read-only (newer-version) mapping cannot be renamed, re-decked or saved over.
+      nameInput.disabled = st.readOnly; decksSelect.disabled = st.readOnly; saveModelBtn.disabled = st.readOnly;
+      renderLeft(); renderCentre(); renderRight();
+    });
   }
 
   // ---------------------------------------------------------------- layout
-  nameInput.addEventListener('change', () => edit(m => ({ ...m, name: cleanText(nameInput.value) || m.name })));
+  // The mapping name only changes the export, so it redraws just the export pane (after any click is delivered).
+  nameInput.addEventListener('change', () => {
+    if (!st.model || st.readOnly) return;
+    const name = cleanText(nameInput.value) || st.model.name;
+    if (name === st.model.name) return;
+    commitLabel();
+    undo.push(st.model);
+    st.model = { ...st.model, name };
+    refreshExportPane();
+  });
   decksSelect.addEventListener('change', () => edit(m => ({ ...m, decks: Math.min(MAX_DECKS, Math.max(1, Number(decksSelect.value) || 2)) })));
   section.replaceChildren(
     h('header', { class: 'screen-head' }, h('div', { class: 'screen-title' }, h('span', { class: 'screen-icon', html: icon('keyboard', { size: 24 }) }),
@@ -592,9 +783,9 @@ export function createMapperScreen(section) {
       h('div', { class: 'mp-row' },
         h('label', { class: 'mp-field mp-grow', for: 'mp-name' }, h('span', { class: 'field-label', text: 'Mapping name' }), nameInput),
         h('label', { class: 'mp-field', for: 'mp-decks' }, h('span', { class: 'field-label', text: 'Decks' }), decksSelect),
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: saveModel })),
+        saveModelBtn),
       h('p', { class: 'muted small', text: 'Opens Mixxx .midi.xml (add its .js script files to keep them), VirtualDJ device + mapper .xml (pick both), or a DeckChek .json mapping or learned map. Up to 5 MB each; scripts are kept as text and never run.' }),
-      status),
+      status, warningsBox),
     h('div', { class: 'mp-panes' }, left, centre, right));
 
   // Screen keys work wherever focus is while this screen is shown (re-renders can drop focus to <body>).
@@ -606,7 +797,7 @@ export function createMapperScreen(section) {
   });
 
   renderAll();
-  refreshPorts().then(() => renderLeft());
+  refreshPorts().then(() => keepFocus(renderLeft));
   refreshSaved();
   loadLibrary();
   return {

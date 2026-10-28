@@ -7,6 +7,8 @@
 .mp-grow input { width: 100%; box-sizing: border-box; }
 .mp-status:empty { display: none; }
 .mp-status p { margin: 0; overflow-wrap: anywhere; }
+.mp-warnings summary { cursor: pointer; min-height: 24px; display: list-item; font-size: 13px; color: var(--text-muted); }
+.mp-warning-list { margin: 6px 0 0; padding-left: 20px; max-height: 220px; overflow: auto; font-size: 13px; display: grid; gap: 2px; overflow-wrap: anywhere; }
 
 .mp-panes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 16px; align-items: start; }
 .mp-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
