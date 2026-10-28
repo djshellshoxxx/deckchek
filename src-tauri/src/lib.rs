@@ -45,6 +45,8 @@ mod humrun;
 #[cfg(test)]
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
+pub mod signing; // per-install Ed25519 identity (DPAPI on Windows)
+pub mod certificate; // used-gear certificates: sign, verify, extract, store
 // [FS-21] mods
 // [FS-22] mods
 // [FS-23] mods
@@ -114,6 +116,9 @@ pub fn run() {
             // [FS-15] handlers
             humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
             // [FS-20] handlers
+            signing::signing_get_identity, signing::signing_create_identity,
+            certificate::certificate_sign, certificate::certificate_verify, certificate::certificate_extract_json,
+            certificate::certificate_store, certificate::certificate_list, certificate::certificate_get,
             // [FS-21] handlers
             // [FS-22] handlers
             // [FS-23] handlers
