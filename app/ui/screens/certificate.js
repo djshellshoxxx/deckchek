@@ -140,7 +140,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     if (!opts.some(o => o.value === st.key)) st.key = opts[0].value;
     const picker = h('select', { id: 'cert-unit' }, ...opts.map(o => h('option', { value: o.value, text: o.label })));
     picker.value = st.key;
-    picker.addEventListener('change', () => { st.key = picker.value; st.photos = []; render(); loadHistory(); });
+    picker.addEventListener('change', () => { st.key = picker.value; st.photos = []; render(); q('#cert-unit')?.focus(); loadHistory(); });
     const sel = selection();
     const ready = readiness(sel.profile, resultsFor(sel.asset.id), { now: Date.now() });
     body.replaceChildren(
