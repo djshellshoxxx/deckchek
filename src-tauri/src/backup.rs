@@ -389,6 +389,54 @@ fn reject_schema_code(conn: &Connection) -> Result<(), BackupError> {
     Ok(())
 }
 
+/// Structural fingerprint of every schema object except SQLite's own (`sqlite_*`): each object's
+/// type, name and table, every table's columns (`table_xinfo` shows generated columns and default
+/// expressions) and indexes (`index_list` + `index_xinfo` show expression and partial indexes).
+/// CHECK constraint bodies are not part of it.
+fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
+    use rusqlite::types::Value as Sql;
+    let rows = |sql: &str, arg: &str| -> rusqlite::Result<Vec<Vec<Sql>>> {
+        let mut st = conn.prepare(sql)?;
+        let n = st.column_count();
+        let it = st.query_map([arg], |r| (0..n).map(|i| r.get(i)).collect::<rusqlite::Result<Vec<_>>>())?;
+        it.collect()
+    };
+    let objects = rows("SELECT type, name, tbl_name FROM sqlite_master WHERE substr(name, 1, 7) <> ?1 ORDER BY type, name", "sqlite_")?;
+    let mut out = Vec::new();
+    for o in objects {
+        out.push(format!("{o:?}"));
+        let (Sql::Text(ty), Sql::Text(name)) = (&o[0], &o[1]) else { continue };
+        if ty != "table" {
+            continue;
+        }
+        for c in rows("SELECT * FROM pragma_table_xinfo(?1)", name)? {
+            out.push(format!("  column {c:?}"));
+        }
+        for i in rows("SELECT name, \"unique\", origin, partial FROM pragma_index_list(?1) ORDER BY name", name)? {
+            out.push(format!("  index {i:?}"));
+            if let Sql::Text(idx) = &i[0] {
+                for k in rows("SELECT * FROM pragma_index_xinfo(?1)", idx)? {
+                    out.push(format!("    key {k:?}"));
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// After migration the restored copy must have exactly the schema objects, columns and indexes a
+/// freshly migrated database has: anything else (generated columns, expression or partial indexes,
+/// extra tables) was not made by DeckChek and could run expressions on every later write (AUD-04).
+fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
+    let unreadable = |_| BackupError::new("corrupt_db", "The backup's database cannot be read.");
+    let template = Connection::open_in_memory().map_err(unreadable)?;
+    db::apply_migrations(&template).map_err(|e| BackupError::new("migration_failed", format!("Preparing the schema check failed: {e}. Your current data was not changed.")))?;
+    if schema_shape(conn).map_err(unreadable)? != schema_shape(&template).map_err(unreadable)? {
+        return Err(BackupError::new("unsafe_db", "The backup's database has tables, columns or indexes that DeckChek never creates, so it was refused. Your current data was not changed."));
+    }
+    Ok(())
+}
+
 fn integrity_ok(conn: &Connection) -> bool {
     conn.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0)).map(|s| s == "ok").unwrap_or(false)
 }
@@ -985,6 +1033,10 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
         if !integrity_ok(&conn) || schema_version(&conn)? != current_v {
             return Err(BackupError::new("migration_failed", "The upgraded backup failed its checks. Your current data was not changed."));
         }
+        reject_unexpected_schema(&conn)?;
+        // backup_log paths name files of the machine and time the backup came from; they are
+        // never probed or offered here (AUD-02).
+        conn.execute("DELETE FROM backup_log", []).map_err(|e| sql_err("clear the restored backup log", e))?;
         conn.close().map_err(|(_, e)| sql_err("close the restored copy", e))?;
         from
     };
@@ -1009,7 +1061,7 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 
     swap_in(live, &tmp, fail)?;
     temps.disarm();
-    restore_photos(path, &manifest, &live.parent().unwrap_or(Path::new(".")).join("photos"), &mut warnings);
+    restore_photos(path, &manifest, live, &live.parent().unwrap_or(Path::new(".")).join("photos"), &mut warnings);
     Ok(RestoreResult {
         restored_from: path.to_string_lossy().into_owned(),
         upgraded_from: (from < current_v).then_some(from),
@@ -1022,15 +1074,23 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 }
 
 /// Copies the archive's `photos/<sha256>.jpg` entries into `photos_dir` (content-addressed, so an
-/// identical file already there is kept). Best effort after the database swap: each failure is a
-/// warning, never an error, because the restored database is already in place.
-fn restore_photos(path: &Path, manifest: &Manifest, photos_dir: &Path, warnings: &mut Vec<String>) {
-    let wanted: Vec<(&ManifestFile, &str)> = manifest.files.iter().filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha))).collect();
-    if wanted.is_empty() {
+/// identical file already there is kept). Only photos the restored database's `photo` table
+/// references are written, and each must match its hash and pass the photo store's
+/// [`crate::photo::validate_jpeg`] (no metadata, size and edge limits), as an attached photo would
+/// (AUD-05). Best effort after the database swap: skipped photos are counted in one warning,
+/// never an error, because the restored database is already in place.
+fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_dir: &Path, warnings: &mut Vec<String>) {
+    let all: Vec<(&ManifestFile, &str)> = manifest.files.iter().filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha))).collect();
+    if all.is_empty() {
         return;
     }
-    let mut failed = 0usize;
+    let referenced = referenced_photo_shas(restored_db);
+    let (wanted, unreferenced): (Vec<_>, Vec<_>) = all.into_iter().partition(|(_, sha)| referenced.contains(*sha));
+    let mut failed = unreferenced.len();
     let result = (|| -> Result<(), BackupError> {
+        if wanted.is_empty() {
+            return Ok(());
+        }
         fs::create_dir_all(photos_dir).map_err(|e| io_err("create the photos folder", e))?;
         let mut archive = open_archive(path, &LIMITS)?;
         for (f, sha) in wanted {
@@ -1040,12 +1100,16 @@ fn restore_photos(path: &Path, manifest: &Manifest, photos_dir: &Path, warnings:
             }
             let tmp = sidecar(&target, ".restore-tmp");
             let one = (|| -> Result<(), BackupError> {
-                let mut out = BufWriter::new(File::create(&tmp).map_err(|e| io_err("restore a photo", e))?);
-                let (bytes, hash) = read_entry(&mut archive, &f.name, crate::photo::MAX_PHOTO_BYTES as u64, &LIMITS, &mut out)?;
-                out.into_inner().map_err(|e| io_err("restore a photo", e.into_error()))?.sync_all().map_err(|e| io_err("restore a photo", e))?;
-                if bytes != f.bytes || !hash.eq_ignore_ascii_case(&f.sha256) || hash != sha {
+                // read_entry caps the entry at MAX_PHOTO_BYTES before anything is buffered
+                let mut bytes = Vec::new();
+                let (n, hash) = read_entry(&mut archive, &f.name, crate::photo::MAX_PHOTO_BYTES as u64, &LIMITS, &mut bytes)?;
+                if n != f.bytes || !hash.eq_ignore_ascii_case(&f.sha256) || hash != sha {
                     return Err(BackupError::new("checksum", "a photo does not match its checksum"));
                 }
+                crate::photo::validate_jpeg(&bytes).map_err(|_| BackupError::new("bad_photo", "a photo is not a JPEG the photo store accepts"))?;
+                let mut out = File::create(&tmp).map_err(|e| io_err("restore a photo", e))?;
+                out.write_all(&bytes).and_then(|()| out.sync_all()).map_err(|e| io_err("restore a photo", e))?;
+                drop(out);
                 fs::rename(&tmp, &target).map_err(|e| io_err("restore a photo", e))
             })();
             if one.is_err() {
@@ -1060,6 +1124,13 @@ fn restore_photos(path: &Path, manifest: &Manifest, photos_dir: &Path, warnings:
     } else if failed > 0 {
         warnings.push(format!("{failed} photo(s) could not be restored; the rest of the backup was restored."));
     }
+}
+
+/// The `photo.sha256` values of the database at `db_path` (empty when it cannot be read).
+fn referenced_photo_shas(db_path: &Path) -> std::collections::HashSet<String> {
+    let Ok(c) = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY) else { return Default::default() };
+    let Ok(mut st) = c.prepare("SELECT sha256 FROM photo") else { return Default::default() };
+    st.query_map([], |r| r.get::<_, String>(0)).map(|rows| rows.flatten().collect()).unwrap_or_default()
 }
 
 /// live (+ journal/wal/shm) → `.restore-bak`, tmp → live, verify; any error rolls back.
@@ -1188,20 +1259,53 @@ fn entry_for(path: &Path) -> Option<BackupEntry> {
 /// Backups in the backups folder plus logged backups saved elsewhere that still exist,
 /// newest first.
 pub fn list_backups(ctx: &Ctx, conn: Option<&Connection>) -> Vec<BackupEntry> {
+    list_backups_with(ctx, conn, &mut entry_for)
+}
+
+/// A `backup_log` path is looked at on disk only when it is a plain local absolute path to a
+/// `.deckchek-backup` file. UNC, `\\?\`/`\\.\` device or verbatim forms (which would make Windows
+/// authenticate to a remote host), drive-relative or relative paths, `.`/`..` segments, extra
+/// colons (alternate data streams) and NULs are refused (AUD-02).
+fn logged_path_ok(path: &str) -> bool {
+    let b = path.as_bytes();
+    let sep = |c: u8| c == b'/' || c == b'\\';
+    if b.is_empty() || b.len() > 4096 || b.contains(&0) || (b.len() >= 2 && sep(b[0]) && sep(b[1])) {
+        return false;
+    }
+    let drive = b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && sep(b[2]);
+    if !(drive || b[0] == b'/') || path[if drive { 2 } else { 0 }..].contains(':') {
+        return false;
+    }
+    if path.split(['/', '\\']).any(|s| s == "." || s == "..") {
+        return false;
+    }
+    let p = Path::new(path);
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        if !matches!(p.components().next(), Some(Component::Prefix(pre)) if matches!(pre.kind(), Prefix::Disk(_))) {
+            return false;
+        }
+    }
+    p.is_absolute() && p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case(EXT))
+}
+
+/// [`list_backups`] with the per-file probe injectable (tests record which paths are touched).
+fn list_backups_with(ctx: &Ctx, conn: Option<&Connection>, probe: &mut dyn FnMut(&Path) -> Option<BackupEntry>) -> Vec<BackupEntry> {
     let mut out: Vec<BackupEntry> = Vec::new();
     if let Ok(rd) = fs::read_dir(&ctx.backups_dir) {
         for e in rd.flatten() {
             let p = e.path();
             if p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case(EXT)) {
-                out.extend(entry_for(&p));
+                out.extend(probe(&p));
             }
         }
     }
     if let Some(conn) = conn {
-        for path in logged_paths(conn) {
+        for path in logged_paths(conn).into_iter().filter(|p| logged_path_ok(p)) {
             let p = PathBuf::from(&path);
             if !out.iter().any(|e| Path::new(&e.path) == p) {
-                out.extend(entry_for(&p));
+                out.extend(probe(&p));
             }
         }
     }
@@ -1318,6 +1422,24 @@ fn str_field<'a>(v: &'a Value, keys: &[&str]) -> Option<&'a str> {
     keys.iter().find_map(|k| v.get(*k).and_then(Value::as_str)).map(str::trim).filter(|s| !s.is_empty())
 }
 
+/// Caps for imported equipment, matching the phone-import limits (`app/phone-run.js`: nickname 120,
+/// serial 80, notes 2000) and the UUID-shaped ids DeckChek makes (AUD-09).
+const MAX_EQUIPMENT_ID: usize = 64;
+const MAX_EQUIPMENT_NAME: usize = 120;
+const MAX_EQUIPMENT_SERIAL: usize = 80;
+const MAX_EQUIPMENT_NOTES: usize = 2000;
+
+/// An imported equipment item is kept only when its id is 1-64 characters of `[A-Za-z0-9._:-]`
+/// and its name, serial and notes are within their caps (counted in characters).
+fn equipment_fields_ok(id: &str, name: &str, serial: Option<&str>, notes: Option<&str>) -> bool {
+    let within = |s: Option<&str>, max: usize| s.is_none_or(|s| s.chars().count() <= max);
+    id.len() <= MAX_EQUIPMENT_ID
+        && id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
+        && within(Some(name), MAX_EQUIPMENT_NAME)
+        && within(serial, MAX_EQUIPMENT_SERIAL)
+        && within(notes, MAX_EQUIPMENT_NOTES)
+}
+
 /// Imports a browser-mode workspace (`version: 1`) shaped by `workspaceToImportPayload`.
 /// Runs whose id already exists are skipped; each run is written atomically.
 pub fn import_workspace(conn: &mut Connection, payload: &Value) -> Result<ImportResult, BackupError> {
@@ -1357,10 +1479,14 @@ pub fn import_workspace(conn: &mut Connection, payload: &Value) -> Result<Import
     let now = db::now_iso(conn).map_err(|e| BackupError::new("database", e))?;
     for e in &equipment {
         let (Some(id), Some(name)) = (str_field(e, &["id"]), str_field(e, &["nickname", "name", "label", "model"])) else { continue };
+        let (serial, notes) = (str_field(e, &["serialNumber", "serial"]), str_field(e, &["notes"]));
+        if !equipment_fields_ok(id, name, serial, notes) {
+            continue;
+        }
         let n = conn
             .execute(
                 "INSERT OR IGNORE INTO asset (id, product_id, nickname, serial_number, notes, is_deleted, created_at, updated_at) VALUES (?1, NULL, ?2, ?3, ?4, 0, ?5, ?5)",
-                params![id, name, str_field(e, &["serialNumber", "serial"]), str_field(e, &["notes"]), now],
+                params![id, name, serial, notes, now],
             )
             .map_err(|e| sql_err("import equipment", e))?;
         res.equipment_imported += n as u32;
@@ -2087,14 +2213,14 @@ mod tests {
     fn highly_compressible_databases_round_trip() {
         let env = Env::new("compressible");
         make_db(env.live(), "live", 2);
-        // zero-filled blobs: ~1000:1 under deflate, as a real backup could be
+        // zero-filled blobs: ~1000:1 under deflate, as a real backup could be. They live in a
+        // DeckChek table: restore refuses tables DeckChek never creates (AUD-04).
         let src = env.out("zeros.sqlite3");
         make_db(&src, "src", 3);
         {
             let c = Connection::open(&src).unwrap();
-            c.execute_batch("CREATE TABLE filler (b BLOB);").unwrap();
-            for _ in 0..40 {
-                c.execute("INSERT INTO filler (b) VALUES (zeroblob(250000))", []).unwrap();
+            for i in 0..40 {
+                c.execute("INSERT INTO asset (id, nickname, notes, created_at, updated_at) VALUES (?1, 'Filler', zeroblob(250000), 'x', 'x')", [format!("filler-{i}")]).unwrap();
             }
         }
         let dest = backup_of(&env, &src, "zeros.deckchek-backup");
@@ -2102,7 +2228,7 @@ mod tests {
         let r = restore_backup(&env.ctx, &dest, true, &SettingsBlob::default(), None).unwrap();
         assert!(r.safety_backup.is_some());
         assert_eq!(rows(env.live(), "session"), 3);
-        assert_eq!(rows(env.live(), "filler"), 40);
+        assert_eq!(rows(env.live(), "asset WHERE nickname = 'Filler' AND length(notes) = 250000"), 40);
 
         // VACUUM-less file with a large zero freelist, packed as-is into an archive
         let loose = env.out("loose.sqlite3");
@@ -2113,7 +2239,8 @@ mod tests {
             for _ in 0..40 {
                 c.execute("INSERT INTO filler (b) VALUES (randomblob(250000))", []).unwrap();
             }
-            c.execute_batch("DELETE FROM filler;").unwrap();
+            // dropped rather than emptied: restore refuses tables DeckChek never creates (AUD-04)
+            c.execute_batch("DROP TABLE filler;").unwrap();
             let free: i64 = c.query_row("PRAGMA freelist_count", [], |x| x.get(0)).unwrap();
             assert!(free > 2000, "freelist {free}");
         }
@@ -2632,5 +2759,200 @@ mod tests {
         let m = manifest_bytes(2, 1, &[(DB_ENTRY, &db_bytes), ("photos/../../evil.jpg", b"x")]);
         write_zip(&env.out("evil.deckchek-backup"), &[(MANIFEST, &m), (DB_ENTRY, &db_bytes)]);
         assert_eq!(verify_archive(&env.out("evil.deckchek-backup")).unwrap_err().code, "bad_manifest");
+    }
+
+    // ---------- audit regressions (AUD-02, AUD-04, AUD-05, AUD-09) ----------
+
+    fn insert_log_path(c: &Connection, path: &str) {
+        c.execute(
+            "INSERT INTO backup_log (id, kind, path, bytes, schema_version, created_at, ok) VALUES (?1, 'manual', ?2, 1, 1, '2026-10-10T08:00:00.000Z', 1)",
+            params![db::new_id(), path],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn regression_aud_02_logged_paths_that_are_not_plain_local_backups_are_not_listed() {
+        let env = Env::new("aud02-list");
+        make_db(env.live(), "l", 1);
+        let real = backup_of(&env, env.live(), "real.deckchek-backup");
+        // the same file reached through a `..` segment, and a non-backup file that exists
+        let dotted = env.root.join("out").join("..").join("out").join("real.deckchek-backup");
+        let other = env.out("secret.txt");
+        fs::write(&other, b"not a backup").unwrap();
+        let c = Connection::open(env.live()).unwrap();
+        for p in [dotted.to_string_lossy().into_owned(), other.to_string_lossy().into_owned(), "real.deckchek-backup".into()] {
+            insert_log_path(&c, &p);
+        }
+        let list = list_backups(&env.ctx, Some(&c));
+        assert!(list.is_empty(), "nothing but plain local backup paths may be listed: {list:?}");
+        insert_log_path(&c, &real.to_string_lossy());
+        let list = list_backups(&env.ctx, Some(&c));
+        assert_eq!(list.len(), 1, "a plain local backup saved elsewhere is still listed");
+        assert_eq!(Path::new(&list[0].path), real.as_path());
+    }
+
+    #[test]
+    fn regression_aud_02_unc_device_and_relative_logged_paths_are_never_probed() {
+        let env = Env::new("aud02-probe");
+        make_db(env.live(), "l", 1);
+        let c = Connection::open(env.live()).unwrap();
+        let hostile = [
+            r"\\203.0.113.9\s\a.deckchek-backup",
+            "//host/s/b.deckchek-backup",
+            r"\\?\UNC\h\s\c.deckchek-backup",
+            r"\\?\C:\x\d.deckchek-backup",
+            r"\\.\pipe\e.deckchek-backup",
+            r"\\attacker@SSL\s\x.deckchek-backup",
+            r"/\host\s\f.deckchek-backup",
+            r"\/host/s/g.deckchek-backup",
+            r"C:relative.deckchek-backup",
+            r"C:\x\h.deckchek-backup:stream",
+            "relative/i.deckchek-backup",
+            "/a/../j.deckchek-backup",
+            r"C:\a\..\k.deckchek-backup",
+            "/a/./l.deckchek-backup",
+            "/a/m.txt",
+            "",
+        ];
+        for p in hostile {
+            insert_log_path(&c, p);
+        }
+        let local = if cfg!(windows) { r"C:\Backups\ok.deckchek-backup" } else { "/backups/ok.deckchek-backup" };
+        insert_log_path(&c, local);
+        let mut probed: Vec<PathBuf> = Vec::new();
+        list_backups_with(&env.ctx, Some(&c), &mut |p: &Path| {
+            probed.push(p.to_path_buf());
+            None
+        });
+        for h in hostile {
+            assert!(!logged_path_ok(h), "{h:?} must be refused");
+            assert!(!probed.iter().any(|p| p == Path::new(h)), "{h:?} must never be probed");
+        }
+        assert!(logged_path_ok(local));
+        assert_eq!(probed, vec![PathBuf::from(local)], "only the plain local path is probed");
+    }
+
+    #[test]
+    fn regression_aud_04_fresh_and_upgraded_release_databases_pass_the_schema_check() {
+        let fresh = mem_db();
+        reject_unexpected_schema(&fresh).unwrap();
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db");
+        let mut n = 0;
+        for e in fs::read_dir(&dir).unwrap().flatten() {
+            let name = e.file_name().to_string_lossy().into_owned();
+            if !name.ends_with(".sql") {
+                continue;
+            }
+            let c = Connection::open_in_memory().unwrap();
+            c.execute_batch(&fs::read_to_string(e.path()).unwrap()).unwrap();
+            apply_migrations(&c).unwrap();
+            reject_unexpected_schema(&c).unwrap_or_else(|err| panic!("{name}: {}", err.message));
+            n += 1;
+        }
+        assert!(n >= 3, "every release fixture is checked ({n})");
+    }
+
+    #[test]
+    fn regression_aud_02_restore_drops_the_backup_log_of_the_restored_database() {
+        let env = Env::new("aud02-restore");
+        make_db(env.live(), "live", 1);
+        let other = env.out("other.sqlite3");
+        make_db(&other, "other", 1);
+        {
+            let c = Connection::open(&other).unwrap();
+            for p in [r"\\203.0.113.9\s\a.deckchek-backup", "//host/s/b.deckchek-backup", r"\\?\UNC\h\s\c.deckchek-backup", r"\\attacker@SSL\s\x.deckchek-backup"] {
+                insert_log_path(&c, p);
+            }
+        }
+        let dest = backup_of(&env, &other, "hostile-log.deckchek-backup");
+        restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
+        assert_eq!(rows(env.live(), "backup_log"), 0, "paths from another database are never kept");
+    }
+
+    /// Backs up `live_src` after running `ddl` on a copy whose schema version still claims current.
+    fn hostile_schema_backup(env: &Env, ddl: &str) -> PathBuf {
+        let other = env.out(&format!("schema-{}.sqlite3", db::new_id()));
+        make_db(&other, "other", 1);
+        Connection::open(&other).unwrap().execute_batch(ddl).unwrap();
+        backup_of(env, &other, &format!("schema-{}.deckchek-backup", db::new_id()))
+    }
+
+    #[test]
+    fn regression_aud_04_restore_refuses_schema_objects_deckchek_never_creates() {
+        let env = Env::new("aud04");
+        make_db(env.live(), "live", 2);
+        for ddl in [
+            "ALTER TABLE asset ADD COLUMN x AS (length(zeroblob(1))) VIRTUAL;",
+            "CREATE INDEX i ON asset(lower(nickname));",
+            "CREATE INDEX i2 ON asset(nickname) WHERE length(nickname) > 0;",
+            "DROP INDEX idx_asset_product; CREATE INDEX idx_asset_product ON asset(lower(product_id));",
+            "DROP INDEX idx_asset_product; CREATE INDEX idx_asset_product ON asset(product_id) WHERE abs(1) = 1;",
+            "CREATE TABLE extra (x TEXT DEFAULT (printf('%.*c', 9, 'x')));",
+            "ALTER TABLE asset ADD COLUMN y TEXT DEFAULT 'z';",
+        ] {
+            let dest = hostile_schema_backup(&env, ddl);
+            let before = fs::read(env.live()).unwrap();
+            let err = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap_err();
+            assert_eq!(err.code, "unsafe_db", "{ddl}: {}", err.message);
+            assert_eq!(fs::read(env.live()).unwrap(), before, "{ddl}: live database untouched");
+            no_restore_leftovers(&env);
+        }
+    }
+
+    #[test]
+    fn regression_aud_05_restored_photos_must_be_referenced_valid_jpegs() {
+        let env = Env::new("aud05");
+        make_db(env.live(), "p", 1);
+        let a = attach_photo(&env, "asset-1", 21);
+        let dest = env.out("photos.deckchek-backup");
+        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        let photos = env.live().parent().unwrap().join("photos");
+        let a_bytes = fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap();
+
+        // one unreferenced valid JPEG and one referenced JPEG carrying an EXIF (APP1) segment
+        let unref = crate::photo::test_support::tiny_jpeg(40, 30, &[], 22);
+        let exif = crate::photo::test_support::tiny_jpeg(40, 30, &[0xFF, 0xE1, 0, 8, b'E', b'x', b'i', b'f', 0, 0], 23);
+        let (unref_sha, exif_sha) = (sha_hex(&unref), sha_hex(&exif));
+        let db_copy = env.out("db.sqlite3");
+        extract_db(&dest, &db_copy);
+        Connection::open(&db_copy)
+            .unwrap()
+            .execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p-exif', ?1, 'image/jpeg', 40, 30, ?2, 't')", params![exif_sha, exif.len() as i64])
+            .unwrap();
+        let db_bytes = fs::read(&db_copy).unwrap();
+        let (na, nu, ne) = (format!("photos/{}.jpg", a.sha256), format!("photos/{unref_sha}.jpg"), format!("photos/{exif_sha}.jpg"));
+        let hostile = env.out("hostile-photos.deckchek-backup");
+        crafted(&hostile, current_schema_version(), &[(DB_ENTRY, &db_bytes), (na.as_str(), &a_bytes), (nu.as_str(), &unref), (ne.as_str(), &exif)]);
+
+        fs::remove_dir_all(&photos).unwrap();
+        let r = restore_backup(&env.ctx, &hostile, true, &settings(), None).unwrap();
+        assert_eq!(fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(), a_bytes, "the referenced valid photo is restored");
+        assert!(!photos.join(format!("{unref_sha}.jpg")).exists(), "unreferenced photos are not written");
+        assert!(!photos.join(format!("{exif_sha}.jpg")).exists(), "photos failing validate_jpeg are not written");
+        assert!(r.warnings.iter().any(|w| w.starts_with("2 photo(s)")), "{:?}", r.warnings);
+        let left: Vec<_> = fs::read_dir(&photos).unwrap().flatten().map(|e| e.file_name()).collect();
+        assert_eq!(left.len(), 1, "no temp files left: {left:?}");
+    }
+
+    #[test]
+    fn regression_aud_09_workspace_import_caps_equipment_fields() {
+        let mut c = mem_db();
+        let long = |n: usize| "a".repeat(n);
+        let payload = json!({ "version": 1, "runs": [], "equipment": [
+            { "id": "x", "nickname": long(10_000) },
+            { "id": "n", "nickname": "ok", "notes": long(2001) },
+            { "id": "s", "nickname": "ok", "serialNumber": long(81) },
+            { "id": long(65), "nickname": "ok" },
+            { "id": "bad id\n", "nickname": "ok" },
+            { "id": "m", "model": long(121) },
+        ]});
+        let r = import_workspace(&mut c, &payload).unwrap();
+        assert_eq!(r.equipment_imported, 0, "every oversized or unsafe item is skipped");
+        let at_caps = json!({ "version": 1, "runs": [], "equipment": [
+            { "id": long(64), "nickname": long(120), "serialNumber": long(80), "notes": long(2000) },
+            { "id": "f0e1d2c3-b4a5-4697-8899-aabbccddeeff", "nickname": "Deck 2" },
+        ]});
+        assert_eq!(import_workspace(&mut c, &at_caps).unwrap().equipment_imported, 2, "values at the caps are accepted");
     }
 }
