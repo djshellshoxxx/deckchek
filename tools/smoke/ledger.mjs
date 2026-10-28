@@ -14,11 +14,13 @@ const NOTES = 'Paid 1450 EUR to Jane Customerson';
 // Init scripts also run in the sandboxed preview iframe, where localStorage throws: only touch it in the top window.
 const FLAG_ON = () => { if (window.top !== window) return; if (!localStorage.getItem('deckchek.ui.v1')) localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { gearLedger: true }, setupWizardDone: true })); };
 
-// Runs in the page after tauriMock. Backs the photo store, maintenance log, FS-20 certificates, ledger history and
-// the folder write with in-memory state on window.__ledger.
+// Runs in the page after tauriMock. Backs the photo store, maintenance log, FS-20 certificates, ledger history, the
+// revision counter (ledger_next_revision with a floor, as in Rust), the units used in service jobs
+// (ledger_customer_units) and the folder write (ledger_write_folder: whole ledger/ folder on an in-memory disk, stale
+// ledger photos and certificate files removed after the write, same-or-older revision refused) on window.__ledger.
 function ledgerMock(certJson) {
   const before = window.__TAURI__.core.invoke;
-  const st = { files: null, writes: 0, exports: [], notes: {}, failWrite: false, empty: false, seeded: false, jpeg: null };
+  const st = { files: null, writes: 0, exports: [], notes: {}, failWrite: false, empty: false, seeded: false, jpeg: null, floor: 0, serviceUnits: [], disk: null, removed: [] };
   window.__ledger = st;
   const b64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
   async function photo() {
@@ -52,17 +54,32 @@ function ledgerMock(certJson) {
     if (cmd === 'ledger_public_notes') return Object.entries(st.notes).map(([assetId, publicNotes]) => ({ assetId, publicNotes }));
     if (cmd === 'ledger_public_note_set') { st.notes[args.assetId] = args.text; return { assetId: args.assetId, publicNotes: args.text }; }
     if (cmd === 'ledger_export_list') return st.exports.slice().reverse().slice(0, args.limit);
+    const nextRevision = () => Math.max(st.floor, ...st.exports.map(e => e.revision), 0) + 1;
+    if (cmd === 'ledger_next_revision') return nextRevision();
+    if (cmd === 'ledger_customer_units') return st.serviceUnits.slice();
     if (cmd === 'ledger_export_record') {
-      const next = st.exports.length + 1;
-      if (args.record.revision !== next) throw `LEDGER_REVISION: the next revision is ${next}`;
+      const next = nextRevision();
+      if (args.record.revision !== next) throw `LEDGER_REVISION: the next revision is ${next}, not ${args.record.revision}`;
       const row = { id: `x${next}`, revision: next, createdAt: '2026-10-28T10:00:00.000Z', ...args.record };
-      st.exports.push(row); return row;
+      st.exports.push(row); st.floor = Math.max(st.floor, next); return row;
     }
-    if (cmd === 'userfiles_write_folder') {
-      if (st.failWrite) throw { code: 'io', message: 'write failed: PermissionDenied' };
-      if (args.allowedExts.join() !== 'html,json,jpg') throw { code: 'bad_extension', message: 'unexpected extension list' };
-      st.files = args.files; st.writes++; return { written: args.files.length, path: args.dir };
+    if (cmd === 'ledger_write_folder') {
+      if (st.failWrite) throw 'LEDGER_WRITE: write failed: PermissionDenied';
+      if (typeof args.dir !== 'string' || !Array.isArray(args.files) || Object.keys(args).sort().join() !== 'dir,files') throw 'LEDGER_INVALID: expected {dir, files}';
+      if (!args.files.every(f => typeof f.relPath === 'string' && f.relPath.startsWith('ledger/') && /\.(html|json|jpg)$/.test(f.relPath))) throw 'LEDGER_INVALID: every file must be under ledger/';
+      const json = args.files.find(f => f.relPath === 'ledger/ledger.json');
+      const revision = json && JSON.parse(json.text).revision;
+      if (!revision) throw 'LEDGER_INVALID: ledger/ledger.json is missing';
+      const existing = st.disk?.revision;
+      if (existing >= revision) { st.floor = Math.max(st.floor, existing); throw `LEDGER_REVISION: this folder already holds ledger revision ${existing}; export again to write revision ${existing + 1}`; }
+      const keep = new Set(args.files.map(f => f.relPath));
+      const ledgerOwn = p => /^ledger\/(assets\/a[0-9a-f]{10}\/p[1-9]\d{0,2}\.jpg|certificates\/c-[0-9a-f]{12}\.deckchek-cert\.json)$/.test(p);
+      st.removed = (st.disk?.paths || []).filter(p => ledgerOwn(p) && !keep.has(p));
+      st.disk = { revision, paths: [...new Set([...(st.disk?.paths || []).filter(p => !st.removed.includes(p)), ...keep])] };
+      st.files = args.files; st.writes++;
+      return { written: args.files.length, removed: st.removed.length, path: args.dir };
     }
+    if (cmd === 'userfiles_write_folder') throw { code: 'unexpected', message: 'the ledger folder export must go through ledger_write_folder' };
     return before(cmd, args);
   };
 }
@@ -109,9 +126,25 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   await page.waitForSelector('.rail-item[data-screen="ledger"]');
   await page.waitForFunction(() => window.__ledger?.seeded);
   check('ledger: rail shows Gear ledger while the flag is on', true);
+  // the unit is also used in a service job (ledger_customer_units): it must stay listed, unticked, with a note
+  await page.evaluate(id => { window.__ledger.serviceUnits = [id]; }, ASSET);
   await page.click('.rail-item[data-screen="ledger"]');
   await page.waitForSelector('#ledger-gear');
   check('ledger AC-1: step 1 lists owned gear with status words (photos, certificates, service)', /1 photo · 1 certificate · 1 service entry/.test(await page.locator('#ledger-gear').innerText()));
+  const flagNote = page.locator(`[data-service-note="${ASSET}"]`);
+  check('ledger regression: a unit used in service jobs is listed unticked with a visible note tied to its checkbox',
+    !(await page.locator(`#lg-${ASSET}`).isChecked()) && /Used in service jobs — check it is your own gear before including it/.test(await flagNote.innerText())
+    && (await page.locator(`#lg-${ASSET}`).getAttribute('aria-describedby')) === (await flagNote.getAttribute('id')));
+  await page.waitForFunction(() => /1 unit used in service jobs was left unticked/.test(document.getElementById('ledger-status')?.textContent || ''));
+  check('ledger regression: the service-job note is announced in the live status region', (await page.locator('#ledger-status').getAttribute('aria-live')) === 'polite');
+  await page.getByRole('button', { name: 'Select all' }).click();
+  const allCount = await page.locator('#ledger-gear input').count();
+  check('ledger regression: Select all leaves the service-job unit unticked and says so', !(await page.locator(`#lg-${ASSET}`).isChecked())
+    && (await page.locator('#ledger-gear input:checked').count()) === allCount - 1 && /left unticked/.test(await page.locator('#ledger-status').innerText()));
+  await page.getByRole('button', { name: 'Select none' }).click();
+  await page.check(`#lg-${ASSET}`);
+  check('ledger regression: the user can still include a unit used in service jobs', /^1 of \d+ selected$/.test(await page.locator('#ledger-count').innerText()));
+  await page.uncheck(`#lg-${ASSET}`);
   await page.click('#ledger-next-privacy');
   check('ledger: Next without a selection explains what to do', /Pick at least one unit/.test(await page.locator('#ledger-select-error').innerText()));
   // entry from Equipment: the asset's "Gear ledger…" button opens the wizard with that unit ticked
@@ -156,7 +189,7 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   await page.evaluate(() => { window.__ledger.failWrite = true; });
   await page.click('#ledger-export');
   await page.waitForSelector('#ledger-export-error');
-  check('ledger: disk write error is shown in words', /Export failed: write failed/.test(await page.locator('#ledger-export-error').innerText()));
+  check('ledger: disk write error is shown in words', /Export failed: (LEDGER_WRITE: )?write failed/.test(await page.locator('#ledger-export-error').innerText()));
   await page.evaluate(() => { window.__ledger.failWrite = false; });
   await page.click('#ledger-export');
   await page.waitForSelector('#ledger-success');
@@ -185,6 +218,21 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   check('ledger AC-7: re-export increments the revision counter', json2.revision === 2 && (await page.evaluate(() => window.__ledger.exports.length)) === 2);
   check('ledger AC-4: signed certificate embedded unchanged plus its own .deckchek-cert.json file', JSON.stringify(json2.items[0].certificates[0].signed) === JSON.stringify(JSON.parse(certJson)) && files2.some(f => /^ledger\/certificates\/c-[0-9a-f]{12}\.deckchek-cert\.json$/.test(f.relPath)));
   await shot(page, 'ledger-exported');
+  // revision 3 back on Public: ledger_write_folder removes the certificate file revision 2 wrote, and the note says so
+  await page.click('[data-step="privacy"]');
+  await page.check('#ledger-preset-public');
+  await page.waitForFunction(() => !document.querySelector('#ledger-matrix thead input[data-field="certificates"]')?.checked);
+  await page.keyboard.press('Control+e');
+  await page.waitForSelector('#ledger-export', { timeout: 15000 });
+  check('ledger regression: the export step shows the revision from ledger_next_revision', /This will be revision 3 \(last: 2\)/.test(await page.locator('#ledger-revision').innerText()), await page.locator('#ledger-revision').innerText());
+  await page.click('#ledger-export');
+  await page.waitForFunction(() => window.__ledger.writes === 3);
+  await page.waitForSelector('#ledger-success');
+  const removed3 = await page.evaluate(() => window.__ledger.removed);
+  check('ledger regression: re-export through ledger_write_folder removes the stale certificate file and the note says stale files were removed',
+    removed3.length === 1 && /^ledger\/certificates\/c-[0-9a-f]{12}\.deckchek-cert\.json$/.test(removed3[0])
+    && /1 photo or certificate file from earlier exports that is not in this one was removed/.test(await page.locator('#ledger-leftover').innerText())
+    && !/delete them/.test(await page.locator('#ledger-outcome').innerText()), `${removed3.join(', ')} | ${await page.locator('#ledger-outcome').innerText()}`);
 
   // ---------------------------------------------------------------- the exported folder, offline from file://
   const out = path.join(tmp, 'ledger-export');
@@ -312,7 +360,8 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   await rp.click('#ledger-next-export', { timeout: 15000 });
   await rp.click('#ledger-export');
   await rp.waitForSelector('#ledger-success');
-  check('ledger regression: the post-export note says leftover certificate files and photos stay in the folder', /certificate/i.test(await rp.locator('#ledger-outcome').innerText()) && /delete them/i.test(await rp.locator('#ledger-outcome').innerText()), await rp.locator('#ledger-outcome').innerText());
+  check('ledger regression: the post-export note reports the stale-file cleanup of ledger_write_folder (first export: none left), no "delete them" warning',
+    /No stale files from earlier exports were left in the folder/.test(await rp.locator('#ledger-leftover').innerText()) && !/delete them/i.test(await rp.locator('#ledger-outcome').innerText()), await rp.locator('#ledger-outcome').innerText());
   const ownerBefore = fileText(await lastFiles(), 'ledger/index.html').includes('Jo Smith');
   await rp.click('[data-step="privacy"]');
   await rp.locator('#ledger-owner').focus();
@@ -347,6 +396,33 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   await rp.check('#ledger-mode-folder');
   check('ledger regression: switching back to Folder restores the folder steps', /"ledger" folder/.test(await rp.locator('#ledger-publish-steps').innerText()));
   await rctx.close();
+
+  // ---------------------------------------------------------------- revision floor: the display follows ledger_next_revision
+  // (a backup restore emptied the history, but Rust keeps the floor: revision 4 was already published)
+  const fctx2 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await fctx2.addInitScript(tauriMock);
+  await fctx2.addInitScript(ledgerMock, certJson);
+  await fctx2.addInitScript(FLAG_ON);
+  const fp2 = await fctx2.newPage();
+  errors.push(watchConsole(fp2, 'ledger-floor'));
+  await fp2.goto(base);
+  await fp2.waitForFunction(() => window.__ledger?.seeded);
+  await fp2.evaluate(() => { window.__ledger.floor = 4; });
+  await fp2.click('.rail-item[data-screen="ledger"]');
+  await fp2.waitForSelector(`#lg-${ASSET}`);
+  check('ledger regression: step 1 shows the next revision from ledger_next_revision (floor kept over a restore)', /next export becomes revision 5\./.test(await fp2.locator('#ledger-last').innerText()), await fp2.locator('#ledger-last').innerText().catch(() => 'missing'));
+  await fp2.check(`#lg-${ASSET}`);
+  await fp2.locator('#ledger-h-select').focus();
+  await fp2.keyboard.press('Control+e');
+  await fp2.waitForSelector('#ledger-export', { timeout: 15000 });
+  check('ledger regression: the export step says "This will be revision 5" with no history', /^This will be revision 5\.$/.test(await fp2.locator('#ledger-revision').innerText()), await fp2.locator('#ledger-revision').innerText());
+  await fp2.click('#ledger-export');
+  await fp2.waitForSelector('#ledger-success');
+  const floorJson = JSON.parse((await fp2.evaluate(() => window.__ledger.files)).find(f => f.relPath === 'ledger/ledger.json').text);
+  check('ledger regression: the export writes and records revision 5', floorJson.revision === 5 && /Revision 5 recorded/.test(await fp2.locator('#ledger-leftover').innerText()));
+  await fp2.click('[data-step="select"]');
+  check('ledger regression: after the export step 1 shows revision 6 next', /Last export: revision 5 .*next export becomes revision 6\./.test(await fp2.locator('#ledger-last').innerText()), await fp2.locator('#ledger-last').innerText());
+  await fctx2.close();
 
   // ---------------------------------------------------------------- browser mode: single-file download
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
