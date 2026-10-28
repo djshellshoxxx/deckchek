@@ -868,17 +868,30 @@ pub fn template_variants(t: &str) -> Vec<String> {
     v
 }
 
+/// Case-insensitive `*` wildcard match. Iterative with single-star backtracking, so the cost is
+/// O(pattern x text) at worst; the earlier recursive form was exponential in the number of `*`
+/// (found by fuzzing: `regression_glob_match_many_stars_is_fast`).
 pub fn glob_match(pattern: &str, text: &str) -> bool {
-    fn go(p: &[char], t: &[char]) -> bool {
-        match p.split_first() {
-            None => t.is_empty(),
-            Some(('*', rest)) => (0..=t.len()).any(|i| go(rest, &t[i..])),
-            Some((c, rest)) => t.first().map_or(false, |x| x == c) && go(rest, &t[1..]),
-        }
-    }
     let p: Vec<char> = pattern.to_lowercase().chars().collect();
     let t: Vec<char> = text.to_lowercase().chars().collect();
-    go(&p, &t)
+    let (mut pi, mut ti) = (0usize, 0usize);
+    let mut star: Option<(usize, usize)> = None; // (pattern index after '*', text index it matched up to)
+    while ti < t.len() {
+        if pi < p.len() && p[pi] == '*' {
+            star = Some((pi + 1, ti));
+            pi += 1;
+        } else if pi < p.len() && p[pi] == t[ti] {
+            pi += 1;
+            ti += 1;
+        } else if let Some((sp, st)) = star {
+            pi = sp;
+            ti = st + 1;
+            star = Some((sp, st + 1));
+        } else {
+            return false;
+        }
+    }
+    p[pi..].iter().all(|&c| c == '*')
 }
 
 /// Resolve `*` wildcards in path segments against the file system.
@@ -1180,6 +1193,16 @@ mod tests {
     }
 
     #[test]
+    fn regression_glob_match_many_stars_is_fast() {
+        // Fuzz timeout (cargo-fuzz system_check): 30 stars against 3000 non-matching chars took >15 s.
+        let pattern = format!("{}b", "a*".repeat(30));
+        let text = "a".repeat(3000);
+        let t0 = std::time::Instant::now();
+        assert!(!glob_match(&pattern, &text));
+        assert!(t0.elapsed() < std::time::Duration::from_millis(500), "{:?}", t0.elapsed());
+    }
+
+    #[test]
     fn iso_and_clamp() {
         assert_eq!(iso_from_unix(0), "1970-01-01T00:00:00Z");
         assert_eq!(iso_from_unix(1_700_000_000), "2023-11-14T22:13:20Z");
@@ -1379,6 +1402,8 @@ mod tests {
         assert!(glob_match("Traktor *", "traktor 3.11.0"));
         assert!(!glob_match("Traktor *", "Traktor"));
         assert!(glob_match("rekordbox*", "rekordbox6"));
+        assert!(glob_match("*", "") && glob_match("**", "x") && glob_match("a*b*c", "aXXbYYc") && !glob_match("a*b*c", "aXXbYY"));
+        assert!(glob_match("*.log", "Serato.LOG") && !glob_match("*.log", "serato.log.bak") && glob_match("?", "?") && !glob_match("", "x"));
         let root = tmp("glob");
         std::fs::create_dir_all(root.join("NI/Traktor 3.11.0")).unwrap();
         std::fs::create_dir_all(root.join("NI/Traktor 4.0.1")).unwrap();

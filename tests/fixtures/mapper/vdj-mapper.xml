@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Self-authored DeckChek test fixture. -->
+<mapper device="Fixture VDJ Controller" author="Fixture Author" version="800">
+  <map value="PLAY" action="shift ? sync : play_pause"/>
+  <map value="PLAY_B" action="play_pause"/>
+  <map value="CUE" action="cue"/>
+  <map value="SHIFT" action="shift"/>
+  <map value="PAD1" action="hotcue 1"/>
+  <map value="VOLUME" action="volume"/>
+  <map value="JOG" action="jog"/>
+  <map value="CROSSFADER" action="crossfader"/>
+  <map value="WEIRD" action="param_bigger 10% &amp; browser_window 'songs'"/>
+  <map value="LED_PLAY" action="play_pause"/>
+</mapper>
