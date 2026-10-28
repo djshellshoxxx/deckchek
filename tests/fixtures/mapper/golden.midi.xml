@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MixxxControllerPreset schemaVersion="1" mixxxVersion="2.4+">
+  <info>
+    <name>Golden Two-Deck</name>
+    <author>DeckChek tests</author>
+    <description>Golden fixture</description>
+  </info>
+  <controller id="Golden Two-Deck">
+    <scriptfiles>
+      <file functionprefix="DeckChek_GoldenTwoDeck" filename="Golden Two-Deck-scripts.js"/>
+    </scriptfiles>
+    <controls>
+      <control>
+        <description>Deck 1 Play</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_play_d1</key>
+        <status>0x90</status>
+        <midino>0x0B</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Cue</description>
+        <group>[Channel1]</group>
+        <key>cue_default</key>
+        <status>0x90</status>
+        <midino>0x0C</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Cue</description>
+        <group>[Channel1]</group>
+        <key>cue_default</key>
+        <status>0x80</status>
+        <midino>0x0C</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Loop in</description>
+        <group>[Channel1]</group>
+        <key>loop_in</key>
+        <status>0x90</status>
+        <midino>0x10</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Loop 4</description>
+        <group>[Channel1]</group>
+        <key>beatloop_4_toggle</key>
+        <status>0x90</status>
+        <midino>0x14</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Jog touch</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_jog_d1_touch</key>
+        <status>0x90</status>
+        <midino>0x36</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Jog touch</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_jog_d1_touch</key>
+        <status>0x80</status>
+        <midino>0x36</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Shift</description>
+        <group>[Master]</group>
+        <key>DeckChek_GoldenTwoDeck.b_shift</key>
+        <status>0x90</status>
+        <midino>0x3F</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Shift</description>
+        <group>[Master]</group>
+        <key>DeckChek_GoldenTwoDeck.b_shift</key>
+        <status>0x80</status>
+        <midino>0x3F</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 2 Play</description>
+        <group>[Channel2]</group>
+        <key>play</key>
+        <status>0x91</status>
+        <midino>0x0B</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>FX 1 on</description>
+        <group>[EffectRack1_EffectUnit1]</group>
+        <key>group_[Channel1]_enable</key>
+        <status>0x94</status>
+        <midino>0x47</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Browse press</description>
+        <group>[Library]</group>
+        <key>GoToItem</key>
+        <status>0x96</status>
+        <midino>0x41</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Pad 1</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_hotcue_d1_activate_1</key>
+        <status>0x97</status>
+        <midino>0x00</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Pad 1</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_hotcue_d1_activate_1</key>
+        <status>0x87</status>
+        <midino>0x00</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Tempo</description>
+        <group>[Channel1]</group>
+        <key>rate</key>
+        <status>0xB0</status>
+        <midino>0x00</midino>
+        <options>
+          <fourteen-bit-msb/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Tempo</description>
+        <group>[Channel1]</group>
+        <key>rate</key>
+        <status>0xB0</status>
+        <midino>0x20</midino>
+        <options>
+          <fourteen-bit-lsb/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Jog</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.b_jog_d1_rotate_e2c</key>
+        <status>0xB0</status>
+        <midino>0x21</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 2 EQ hi</description>
+        <group>[EqualizerRack1_[Channel2]_Effect1]</group>
+        <key>parameter3</key>
+        <status>0xB1</status>
+        <midino>0x07</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 2 Volume</description>
+        <group>[Channel2]</group>
+        <key>volume</key>
+        <status>0xB1</status>
+        <midino>0x13</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Crossfader</description>
+        <group>[Master]</group>
+        <key>crossfader</key>
+        <status>0xB6</status>
+        <midino>0x1F</midino>
+        <options>
+          <normal/>
+        </options>
+      </control>
+      <control>
+        <description>Browse</description>
+        <group>[Library]</group>
+        <key>MoveVertical</key>
+        <status>0xB6</status>
+        <midino>0x40</midino>
+        <options>
+          <selectknob/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Play</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.s_sync_d1</key>
+        <status>0x90</status>
+        <midino>0x0B</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+      <control>
+        <description>Deck 1 Pad 1</description>
+        <group>[Channel1]</group>
+        <key>DeckChek_GoldenTwoDeck.s_hotcue_d1_clear_1</key>
+        <status>0x97</status>
+        <midino>0x00</midino>
+        <options>
+          <script-binding/>
+        </options>
+      </control>
+    </controls>
+    <outputs>
+      <output>
+        <group>[Channel1]</group>
+        <key>play_indicator</key>
+        <status>0x90</status>
+        <midino>0x0B</midino>
+        <on>0x7F</on>
+        <off>0x00</off>
+        <minimum>0.5</minimum>
+      </output>
+      <output>
+        <group>[Channel1]</group>
+        <key>cue_indicator</key>
+        <status>0x90</status>
+        <midino>0x0C</midino>
+        <on>0x7F</on>
+        <off>0x00</off>
+        <minimum>0.5</minimum>
+      </output>
+      <output>
+        <group>[Channel1]</group>
+        <key>beatloop_4_enabled</key>
+        <status>0x90</status>
+        <midino>0x14</midino>
+        <on>0x7F</on>
+        <off>0x00</off>
+        <minimum>0.5</minimum>
+      </output>
+      <output>
+        <group>[Channel1]</group>
+        <key>hotcue_1_enabled</key>
+        <status>0x97</status>
+        <midino>0x00</midino>
+        <on>0x7F</on>
+        <off>0x00</off>
+        <minimum>0.5</minimum>
+      </output>
+    </outputs>
+  </controller>
+</MixxxControllerPreset>

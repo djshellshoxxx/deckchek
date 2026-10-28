@@ -74,7 +74,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flags off: no cross-links anywhere -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'crosslinks-off'));
+  errors.push(watchConsole(po, 'crosslinks-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   await goScreen(po, 'quick');
@@ -89,7 +89,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await bctx.addInitScript(FLAGS_ON, FLAGS);
   const pb = await bctx.newPage();
-  errors.push(...watchConsole(pb, 'crosslinks-browser'));
+  errors.push(watchConsole(pb, 'crosslinks-browser'));
   await pb.goto(base);
   await pb.waitForSelector('.rail-item[data-screen="quick"]');
   await goScreen(pb, 'quick');
@@ -123,7 +123,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await dctx.addInitScript(tauriMock); await dctx.addInitScript(stylusMock); await dctx.addInitScript(crosslinkLayer); await dctx.addInitScript(FLAGS_ON, FLAGS);
   await dctx.addInitScript(() => { window.__sty.rated = 500; for (let i = 0; i < 20; i++) window.__sty.usage.push({ id: `u${i}`, assetId: 'a-conc', kind: 'play', startedAt: new Date(Date.now() - (i + 1) * 864e5).toISOString(), hours: 20.5, confirmed: true, source: 'manual', createdAt: new Date().toISOString() }); });
   const page = await dctx.newPage();
-  errors.push(...watchConsole(page, 'crosslinks-desktop'));
+  errors.push(watchConsole(page, 'crosslinks-desktop'));
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="quick"]');
   await goScreen(page, 'quick');
@@ -144,7 +144,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#eq-rows .record-main');
   await page.locator('#eq-rows .record-main', { hasText: 'Nagaoka' }).click();
   await page.waitForSelector('[data-xlink-card="equipment"]');
-  check('crosslinks: Equipment cartridge offers stylus wear and wear map', (await page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink))).join() === 'stylus,vinylscan');
+  check('crosslinks: Equipment cartridge offers stylus wear, wear map and (fleet on by default) Place in venue', (await page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink))).join() === 'stylus,vinylscan,fleet');
   await page.click('[data-xlink-card="equipment"] [data-xlink="stylus"]');
   await page.waitForSelector('#sty-asset');
   await page.waitForFunction(() => document.querySelector('#sty-asset')?.value === 'a-nag');
@@ -214,7 +214,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const pctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await pctx.addInitScript(tauriMock); await pctx.addInitScript(pregigMock); await pctx.addInitScript(openerLayer); await pctx.addInitScript(FLAGS_ON, FLAGS);
   const pg = await pctx.newPage();
-  errors.push(...watchConsole(pg, 'crosslinks-pregig'));
+  errors.push(watchConsole(pg, 'crosslinks-pregig'));
   await pg.goto(base);
   await pg.waitForSelector('.rail-item[data-screen="pregig"]');
   await pg.evaluate(installPrintSpy);
@@ -275,6 +275,6 @@ export default async function run({ browser, base, check, SHOTS }) {
   await goScreen(pg, 'history'); await goScreen(pg, 'pregig');
   check('crosslinks: features.pdfExport=false removes the pre-gig PDF button', (await pg.locator('#pg-export-pdf').count()) === 0);
   await pctx.close();
-  return errors;
+  return errors.flat();
 }
 

@@ -1,57 +1,135 @@
 name: DeckChek tests
 
+# Per-push / per-PR gate: one fast Linux pass over JS (incl. fuzz smoke), Rust (incl. fuzz
+# smoke) and the UI smoke. Windows tests, sanitizers, long fuzzing and stress run in
+# nightly.yml (main + schedule); platform packages in cross-platform-release-validation.yml.
+# First-party actions only (actions/checkout, setup-node, cache, upload-artifact).
+
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
   pull_request:
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  # Own group name: when release builds call this workflow, github.workflow is the caller's name.
+  group: deckchek-tests-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   javascript-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test
+      - name: Unit, property, regression and fuzz-smoke tests (JUnit)
+        run: |
+          mkdir -p "$RUNNER_TEMP/junit"
+          node --test --test-reporter=spec --test-reporter-destination=stdout \
+            --test-reporter=junit --test-reporter-destination="$RUNNER_TEMP/junit/js.xml" tests/*.test.mjs
+      - name: Performance budgets (live monitor per-hop time, lenient on shared runners)
+        run: node --expose-gc --test tests/perf/*.test.mjs
       - name: Device index is up to date
         run: node tools/build-device-index.mjs --check
       - name: Timecode facts are consistent
         run: node tools/check-timecode-facts.mjs
       - name: Migration names and numbering
         run: node tools/check-migrations.mjs
-      - name: Release tags need gap-free migrations
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: node tools/check-migrations.mjs --contiguous
       - name: Mobile vendor copies match app/ (FS-30)
         run: node tools/build-mobile.mjs --check
       - name: Syntax-check every app and mobile module
         run: |
-          find app mobile -name '*.js' -print0 | while IFS= read -r -d '' f; do
-            echo "node --check $f"
-            node --check "$f"
+          find app mobile tools tests -name '*.js' -o -name '*.mjs' | grep -v '/vendor/' | sort | while IFS= read -r f; do
+            node --check "$f" || exit 1
           done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-javascript
+          path: ${{ runner.temp }}/junit
+          if-no-files-found: error
+          retention-days: 14
+
+  rust-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Rust toolchain (rustup is preinstalled on the runner)
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Cache fetched crates (not build output)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: cargo test (unit, migrations, fuzz smoke)
+        # 4 vCPU / 16 GB runner: 4 jobs stays well inside RAM for this crate graph.
+        run: |
+          set -o pipefail
+          cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4 2>&1 | tee "$RUNNER_TEMP/rust-tests.log"
+      - name: Summarise Rust test failure
+        if: failure()
+        run: node tools/annotate-rust-failure.mjs "$RUNNER_TEMP/rust-tests.log" || true
+      - name: No compiler warnings in the app crate
+        run: |
+          cargo build --locked --manifest-path src-tauri/Cargo.toml -j 4 2>&1 | tee "$RUNNER_TEMP/build.log"
+          if grep -E '^warning' "$RUNNER_TEMP/build.log" | grep -v 'generated [0-9]* warning'; then echo '::error::compiler warnings'; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-test-log
+          path: ${{ runner.temp }}/rust-tests.log
+          retention-days: 14
 
   ui-smoke:
     # Playwright 1.56.1 does not support ubuntu-26.04; pin to a supported LTS.
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Cache Playwright browser download
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.56.1-chromium-${{ runner.os }}
       - name: Install Playwright and Chromium (CI only)
         run: |
           npm install --global playwright@1.56.1
-          npx --yes playwright@1.56.1 install --with-deps chromium
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            npx --yes playwright@1.56.1 install-deps chromium
+          else
+            npx --yes playwright@1.56.1 install --with-deps chromium
+          fi
       - name: Run UI smoke test
         run: NODE_PATH="$(npm root -g)" node tools/ui-smoke.mjs
         env:
@@ -63,36 +141,4 @@ jobs:
           name: ui-smoke-screenshots
           path: ${{ runner.temp }}/deckchek-shots
           if-no-files-found: ignore
-
-  rust-tests:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install Tauri Linux prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-      - run: cargo check --manifest-path src-tauri/Cargo.toml
-
-  windows-rust-tests:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-      - name: PDF spike (WebView2 PrintToPdf)
-        if: always()
-        run: cargo test --manifest-path src-tauri/Cargo.toml --lib pdf::windows_spike -- --ignored --nocapture --test-threads=1
-        env:
-          DECKCHEK_PDF_SPIKE_DIR: ${{ runner.temp }}\deckchek-pdf-spike
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pdf-spike
-          path: ${{ runner.temp }}\deckchek-pdf-spike
-          if-no-files-found: ignore
+          retention-days: 7
