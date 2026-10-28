@@ -161,10 +161,11 @@ pub fn fuzz_canonical(data: &[u8]) {
 
 /// JPEG structure and metadata scan used before storing a photo.
 pub fn fuzz_jpeg(data: &[u8]) {
-    if let Ok(info) = photo::inspect_jpeg(data) {
-        assert!(info.width > 0 && info.height > 0, "accepted a JPEG with a zero dimension");
+    // inspect_jpeg is structural only; validate_jpeg is the gate before a photo is stored.
+    let _ = photo::inspect_jpeg(data);
+    if let Ok(info) = photo::validate_jpeg(data) {
+        assert!(info.width > 0 && info.height > 0, "stored a JPEG with a zero dimension");
     }
-    let _ = photo::validate_jpeg(data);
 }
 
 /// URL policy, Windows Settings URIs and the allowlist parser.
@@ -264,14 +265,22 @@ mod smoke {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fuzz").join("corpus").join(target)
     }
 
+    fn files_in(dir: PathBuf) -> Vec<Vec<u8>> {
+        let Ok(rd) = std::fs::read_dir(dir) else { return Vec::new() };
+        let mut paths: Vec<_> = rd.flatten().map(|e| e.path()).filter(|p| p.is_file()).collect();
+        paths.sort();
+        paths.into_iter().filter_map(|p| std::fs::read(p).ok()).collect()
+    }
+
     fn seeds(target: &str) -> Vec<Vec<u8>> {
         let mut out = vec![Vec::new()];
-        if let Ok(rd) = std::fs::read_dir(corpus_dir(target)) {
-            let mut paths: Vec<_> = rd.flatten().map(|e| e.path()).filter(|p| p.is_file()).collect();
-            paths.sort();
-            out.extend(paths.into_iter().filter_map(|p| std::fs::read(p).ok()));
-        }
+        out.extend(files_in(corpus_dir(target)));
         out
+    }
+
+    /// Minimised crash/timeout inputs found by cargo-fuzz, replayed on every push (fast, each < 1 s).
+    fn regressions(target: &str) -> Vec<Vec<u8>> {
+        files_in(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fuzz").join("regressions").join(target))
     }
 
     fn run(target: &str, iterations: usize) {
@@ -281,6 +290,11 @@ mod smoke {
         let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ target.len() as u64);
         for s in &seeds {
             f(s);
+        }
+        for r in regressions(target) {
+            let t0 = std::time::Instant::now();
+            f(&r);
+            assert!(t0.elapsed() < std::time::Duration::from_secs(2), "{target}: regression input slow ({:?})", t0.elapsed());
         }
         for i in 0..iterations {
             let base = &seeds[rng.below(seeds.len())];
