@@ -42,6 +42,8 @@ mod wearmap;
 mod scratch;
 // [FS-15] mods
 mod humrun;
+#[cfg(any(test, feature = "fuzzing"))]
+pub mod fuzz_api; // untrusted-input fuzz entry points (cargo-fuzz in src-tauri/fuzz, smoke in cargo test)
 #[cfg(test)]
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
