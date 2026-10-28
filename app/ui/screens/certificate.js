@@ -168,7 +168,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   }
 
   function identityCard() {
-    const card = h('section', { class: 'card cert-identity', id: 'cert-identity', 'aria-label': 'Signing identity' });
+    const card = h('section', { class: 'card cert-identity', id: 'cert-identity', 'aria-label': 'Signing identity', tabindex: '-1' });
     if (st.identityError) {
       card.append(h('p', { class: 'cert-warn', html: `${icon('warn', { size: 16 })} <span>${esc(st.identityError)}</span>` }),
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-new-identity', text: 'Create new identity', onclick: newIdentity }));
@@ -184,8 +184,13 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     const ok = await confirmDialog({ title: 'Create a new signing identity?', body: 'A new key replaces the current one. Certificates you already issued still verify (each carries its public key), but buyers who noted your old fingerprint will see a different one on new certificates.', confirmLabel: 'Create new identity', danger: true });
     if (!ok) return;
     try { st.identity = await api.newIdentity(); st.identityError = null; say('New signing identity created.'); }
-    catch (e) { st.identityError = friendly(e); }
-    q('#cert-identity')?.replaceWith(identityCard());
+    catch (e) { st.identityError = friendly(e); say(st.identityError, { assertive: true }); }
+    // The old card held the focused button: focus the new card, or its retry button after a failure.
+    const old = q('#cert-identity');
+    if (!old) return;
+    const card = identityCard();
+    old.replaceWith(card);
+    (card.querySelector('#cert-new-identity') || card).focus();
   }
 
   function formCard(sel, ready) {
