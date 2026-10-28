@@ -307,5 +307,6 @@ export function initShell(defs) {
   import('../external-links.js').then(m => m.installLinkInterceptor(document, { toast, confirm: m.linkConfirmDialog })).catch(() => { /* links fall back to inert anchors */ });
   // [FS-23] init
   // [FS-31] init
+  import('./screens/monitor.js').then(m => m.installMonitorShell()).catch(error => console.warn('Live monitor shortcuts unavailable:', error));
   emit('shell-ready');
 }

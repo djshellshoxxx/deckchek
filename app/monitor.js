@@ -631,3 +631,233 @@ export function sessionSummary(deckSummaries, { durationSec = 0, droppedBlocks =
 export function exportLog(log) {
   return { version: 1, session: log?.session ?? null, events: Array.isArray(log?.events) ? log.events : [], minutes: Array.isArray(log?.minutes) ? log.minutes : [] };
 }
+
+// ---------------------------------------------------------------- session controller (no DOM; dependencies injected)
+
+const FLUSH_MS = 10_000;
+const RETRY_MS = 5_000;
+const MAX_PENDING_EVENTS = 1000;
+const SPARK_POINTS = 300; // 5 min of SNR at one point per second
+
+/**
+ * Runs one live-monitor session: stream -> per-deck monitors -> alerts, tray state and the session log.
+ * Never blocks: native calls are awaited off the block path, and every failure degrades to an explicit state.
+ * @param {object} d
+ * @param {(args:object)=>Promise<{info, stop():Promise}>} d.startStream startStreamSession-compatible (holder, deviceName,
+ *   blockMs, pairs, onBlock, onEnd); the UI wraps it in the shared capture-busy dialog.
+ * @param {(cmd:string, args?:object)=>Promise<any>} [d.invoke] Tauri invoke; null = no log and no tray (browser mode).
+ * @param {(frames:object[])=>void} [d.onFrame] latest frame per deck, once per block.
+ * @param {(alert:object, opts:{toast:boolean})=>void} [d.onAlert]
+ * @param {(state:string, info:object)=>void} [d.onState]
+ * @param {(tray:{state:string, supported:boolean})=>void} [d.onTray]
+ * @param {object} [d.settings] normalizeSettings() value.
+ * @param {()=>number} [d.now]
+ * @param {{setTimeout:Function, clearTimeout:Function, setInterval:Function, clearInterval:Function}} [d.timers]
+ */
+export function createMonitorController({ startStream, invoke = null, onFrame = () => {}, onAlert = () => {}, onState = () => {}, onTray = () => {}, settings = DEFAULT_SETTINGS, now = () => Date.now(), timers = globalThis } = {}) {
+  let cfg = normalizeSettings(settings);
+  let state = 'idle', info = {}, config = null, lastConfig = null;
+  let stream = null, monitors = [], sessionId = null, startedAt = 0;
+  let pendingEvents = [], pendingMinutes = [], eventsDropped = 0, flushing = null, flushTimer = null, retryTimer = null;
+  let trayState = 'off', traySupported = null, mutedUntil = 0, droppedBlocks = 0, epoch = 0;
+  const events = createEventLog(500);
+  const decks = new Map(); // deck -> {frame, spark, sparkAcc}
+  const perf = { blocks: 0, busyMs: 0, worstMs: 0 };
+  const clock = () => (globalThis.performance?.now?.() ?? Date.now());
+
+  const setState = (s, extra = {}) => { state = s; info = { ...extra }; try { onState(s, info); } catch { /* UI callback */ } };
+
+  async function setTray(next) {
+    if (next === trayState && traySupported !== null) return;
+    trayState = next;
+    if (invoke) {
+      try { traySupported = Boolean((await invoke('monitor_set_tray_state', { state: next }))?.supported); } catch { traySupported = false; }
+    } else traySupported = false;
+    try { onTray({ state: next, supported: traySupported }); } catch { /* UI callback */ }
+  }
+
+  function record(alert, { toast = true } = {}) {
+    events.add(alert);
+    if (pendingEvents.length >= MAX_PENDING_EVENTS) { pendingEvents.shift(); eventsDropped++; }
+    const r2 = v => (Number.isFinite(v) ? Math.round(v * 100) / 100 : null);
+    pendingEvents.push({ tMs: Math.max(0, Math.round(alert.tMs ?? 0)), deck: alert.deck ?? null, kind: alert.kind, severity: alert.severity, value: r2(alert.value), baseline: r2(alert.baseline), message: String(alert.message || '').slice(0, 300) });
+    const show = toast && cfg.toastsEnabled && now() >= mutedUntil;
+    try { onAlert(alert, { toast: show }); } catch { /* UI callback */ }
+    if (pendingEvents.length >= 50) flush();
+  }
+
+  async function flush() {
+    if (!sessionId || !invoke) { pendingEvents = []; pendingMinutes = []; return; }
+    if (flushing) return flushing;
+    const ev = pendingEvents.splice(0, 500), mins = pendingMinutes.splice(0, 240);
+    if (!ev.length && !mins.length) return;
+    const id = sessionId;
+    flushing = (async () => {
+      try {
+        const r = await invoke('monitor_log_append', { sessionId: id, events: ev, minutes: mins });
+        eventsDropped += r?.eventsDropped || 0;
+      } catch { eventsDropped += ev.length; /* the live view keeps working; the log is best effort */ }
+      finally { flushing = null; }
+    })();
+    await flushing;
+    if (pendingEvents.length || pendingMinutes.length) await flush();
+  }
+
+  function onBlock(block, myEpoch) {
+    if (myEpoch !== epoch) return;
+    const t0 = clock();
+    droppedBlocks = Math.max(droppedBlocks, block.quality?.droppedBlocks || 0);
+    const frames = [];
+    const pairs = Array.isArray(block.pairs) && block.pairs.length ? block.pairs : [{ left: block.left, right: block.right }];
+    monitors.forEach((m, i) => {
+      const p = pairs[i];
+      if (!p || !block.frames && !p.left?.length) return;
+      const frame = m.push(p.left, p.right, block.sampleRate);
+      frames.push(frame);
+      const d = decks.get(m.deck);
+      d.frame = frame;
+      d.sparkAcc.push(frame.motion === 'play' && Number.isFinite(frame.snrDb) ? frame.snrDb : NaN);
+      if (d.sparkAcc.length >= Math.max(1, Math.round(1000 / config.hopMs))) {
+        const v = d.sparkAcc.filter(Number.isFinite);
+        d.spark.push(v.length ? Math.min(...v) : NaN);
+        d.sparkAcc = [];
+      }
+      for (const a of m.alerts(frame)) record(a);
+      if (frame.minute) pendingMinutes.push(frame.minute);
+    });
+    if (!frames.length) return;
+    const next = trayStateFor(frames.map(f => f.state));
+    if (next !== trayState) setTray(next);
+    const dt = clock() - t0;
+    perf.blocks++; perf.busyMs += dt; perf.worstMs = Math.max(perf.worstMs, dt);
+    try { onFrame(frames); } catch { /* UI callback */ }
+  }
+
+  function openStream(myEpoch) {
+    return startStream({
+      holder: HOLDER, deviceName: config.deviceName, blockMs: config.hopMs, pairs: config.decks.map(d => d.first),
+      onBlock: b => onBlock(b, myEpoch),
+      onEnd: e => onStreamEnd(e, myEpoch),
+    });
+  }
+
+  const elapsedMs = () => Math.max(0, now() - startedAt);
+  const runInfo = () => ({ sessionId, deviceName: info.deviceName ?? config?.deviceName ?? null, sampleRate: info.sampleRate ?? null, persisted: Boolean(sessionId) });
+
+  function onStreamEnd(e, myEpoch) {
+    if (myEpoch !== epoch || state === 'stopping' || state === 'idle') return;
+    stream = null;
+    if (e?.reason === 'preempted') {
+      finish('preempted', { message: 'Live monitor stopped: another DeckChek feature needed the audio input.' });
+      return;
+    }
+    // deviceLost / sinkClosed: say it once, retry every 5 s until the device is back or the user stops
+    const t = elapsedMs();
+    record({ id: `dev-lost-${t}`, deck: null, kind: 'deviceLost', severity: 'critical', message: 'Audio device lost. Retrying every 5 s.', t: t / 1000, tMs: t });
+    setTray('fault');
+    setState('retrying', { ...runInfo(), message: 'Audio device lost. Retrying every 5 s: reconnect the interface, or stop the monitor.' });
+    scheduleRetry(myEpoch);
+  }
+
+  function scheduleRetry(myEpoch) {
+    timers.clearTimeout?.(retryTimer);
+    retryTimer = timers.setTimeout(async () => {
+      if (myEpoch !== epoch || state !== 'retrying') return;
+      try {
+        const s = await openStream(myEpoch);
+        if (myEpoch !== epoch) { try { await s?.stop?.(); } catch { /* raced with stop */ } return; }
+        stream = s;
+        const t = elapsedMs();
+        record({ id: `dev-back-${t}`, deck: null, kind: 'deviceRestored', severity: 'info', message: 'Audio device is back. Monitoring again.', t: t / 1000, tMs: t });
+        setState('running', runInfo());
+      } catch (error) {
+        if (myEpoch !== epoch) return;
+        if (classifyStartError(error).state === 'capture-busy') finish('capture-busy', { message: 'Live monitor stopped: another DeckChek feature is using the audio input.' });
+        else scheduleRetry(myEpoch);
+      }
+    }, RETRY_MS);
+  }
+
+  async function finish(endReason, extra = {}) {
+    epoch++;
+    timers.clearTimeout?.(retryTimer); retryTimer = null;
+    if (flushTimer != null) timers.clearInterval?.(flushTimer);
+    flushTimer = null;
+    const s = stream; stream = null;
+    if (s) { try { await s.stop(); } catch { /* already ended */ } }
+    for (const m of monitors) { const last = m.flushMinute(); if (last) pendingMinutes.push(last); }
+    await flush();
+    const summary = sessionSummary(monitors.map(m => m.summary()), { durationSec: elapsedMs() / 1000, droppedBlocks, eventsDropped, endReason });
+    if (sessionId && invoke) { try { await invoke('monitor_session_end', { sessionId, summary }); } catch { /* best effort */ } }
+    const closed = sessionId;
+    sessionId = null;
+    await setTray('off');
+    setState(endReason === 'stopped' || endReason === 'quit' ? 'idle' : endReason, { ...extra, summary, sessionId: closed });
+    return summary;
+  }
+
+  return {
+    get state() { return state; },
+    get info() { return info; },
+    get config() { return config; },
+    get lastConfig() { return lastConfig; },
+    get running() { return state === 'running' || state === 'retrying'; },
+    get muted() { return now() < mutedUntil; },
+    get tray() { return { state: trayState, supported: Boolean(traySupported) }; },
+    events,
+    perf: () => ({ ...perf, meanMs: perf.blocks ? perf.busyMs / perf.blocks : 0 }),
+    deck(id) { const d = decks.get(id); return d ? { frame: d.frame, spark: Array.from(d.spark.values()) } : null; },
+    deckIds: () => [...decks.keys()],
+    setSettings(s) { cfg = normalizeSettings(s); },
+    mute(minutes = 30) { mutedUntil = now() + minutes * 60_000; return mutedUntil; },
+    unmute() { mutedUntil = 0; },
+    /** Start monitoring. Resolves {ok, state, ...}; never rejects. */
+    async start(raw) {
+      if (state === 'running' || state === 'starting' || state === 'retrying' || state === 'stopping') return { ok: false, state, error: 'busy' };
+      const v = validateConfig(raw);
+      if (!v.ok) { setState('error', { code: 'CONFIG', message: v.errors.join(' ') }); return { ok: false, state, errors: v.errors }; }
+      config = v.config; lastConfig = v.config;
+      const myEpoch = ++epoch;
+      monitors = config.decks.map(d => createMonitor({ format: config.format, deck: d.deck, hopMs: config.hopMs, thresholds: cfg.thresholds, cooldownSec: cfg.cooldownSec }));
+      decks.clear();
+      for (const m of monitors) decks.set(m.deck, { frame: null, spark: createRing(SPARK_POINTS), sparkAcc: [] });
+      events.clear(); pendingEvents = []; pendingMinutes = []; eventsDropped = 0; droppedBlocks = 0;
+      perf.blocks = 0; perf.busyMs = 0; perf.worstMs = 0;
+      setState('starting', {});
+      let s;
+      try {
+        s = await openStream(myEpoch);
+      } catch (error) {
+        if (myEpoch !== epoch) return { ok: false, state };
+        const c = classifyStartError(error);
+        monitors = []; decks.clear(); // nothing runs: no deck cards
+        setState(c.state, { ...c, cancelled: Boolean(error?.cancelled) });
+        return { ok: false, state, error: c };
+      }
+      if (myEpoch !== epoch) { try { await s?.stop(); } catch { /* raced with stop */ } return { ok: false, state }; }
+      stream = s;
+      startedAt = now();
+      const si = s?.info || {};
+      info = { deviceName: si.deviceName ?? config.deviceName, sampleRate: si.sampleRate ?? null };
+      if (invoke) {
+        try {
+          const r = await invoke('monitor_session_start', { input: { deviceName: si.deviceName ?? config.deviceName, hostApi: null, sampleRate: Number.isFinite(si.sampleRate) ? si.sampleRate : null, format: config.format, config: { decks: config.decks, hopMs: config.hopMs, format: config.format }, assetId: null } });
+          sessionId = r?.id ?? null;
+        } catch { sessionId = null; }
+      }
+      flushTimer = timers.setInterval ? timers.setInterval(() => { flush(); }, FLUSH_MS) : null;
+      await setTray('ok');
+      if (myEpoch !== epoch) return { ok: false, state };
+      setState('running', runInfo());
+      return { ok: true, state, sessionId };
+    },
+    /** Stop monitoring and close the session log. */
+    async stop(reason = 'stopped') {
+      if (!(state === 'running' || state === 'retrying' || state === 'starting')) return null;
+      setState('stopping', {});
+      return finish(reason === 'quit' ? 'quit' : 'stopped');
+    },
+    /** Flush pending log rows now. */
+    flush,
+  };
+}
