@@ -718,16 +718,20 @@ mod tests {
             let mut c = Connection::open_in_memory().unwrap();
             c.execute_batch(&std::fs::read_to_string(dir.join(&name)).unwrap()).unwrap();
             let assets_before: i64 = c.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0)).unwrap();
+            // fixtures from v0.1.0 on already carry the ledger schema; earlier ones have neither column nor table
+            let has = |c: &Connection, q: &str| c.prepare(q).is_ok();
+            let notes_before: i64 = if has(&c, "SELECT public_notes FROM asset") { c.query_row("SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL", [], |r| r.get(0)).unwrap() } else { 0 };
+            let exports_before: i64 = if has(&c, "SELECT revision FROM ledger_export") { c.query_row("SELECT COALESCE(MAX(revision), 0) FROM ledger_export", [], |r| r.get(0)).unwrap() } else { 0 };
             c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
             apply_migrations(&c).unwrap_or_else(|e| panic!("{name}: {e}"));
             apply_migrations(&c).unwrap();
             let assets_after: i64 = c.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0)).unwrap();
             assert_eq!(assets_before, assets_after, "{name}: asset rows preserved");
-            let nulls: i64 = c.query_row("SELECT COUNT(*) FROM asset WHERE public_notes IS NULL", [], |r| r.get(0)).unwrap();
-            assert_eq!(nulls, assets_after, "{name}: public_notes starts empty");
+            let notes: i64 = c.query_row("SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL", [], |r| r.get(0)).unwrap();
+            assert_eq!(notes, notes_before, "{name}: public_notes starts empty unless the fixture set it");
             seed(&c);
-            let r = record_export(&mut c, &input(1)).unwrap_or_else(|e| panic!("{name}: {e}"));
-            assert_eq!(r.revision, 1, "{name}");
+            let r = record_export(&mut c, &input(exports_before + 1)).unwrap_or_else(|e| panic!("{name}: {e}"));
+            assert_eq!(r.revision, exports_before + 1, "{name}");
             set_public_note(&c, "fs33-a", Some("Serviced 2025")).unwrap();
             let ok: String = c.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
             assert_eq!(ok, "ok", "{name}");

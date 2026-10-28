@@ -1477,11 +1477,13 @@ mod tests {
             let c = Connection::open_in_memory().unwrap();
             c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
             c.execute_batch(&fs::read_to_string(&path).unwrap()).unwrap();
+            // fixtures from v0.1.0 on already carry reference packs; earlier ones predate the tables
+            let packs_before = if exists(&c, "reference_pack") == 1 { count(&c, "reference_pack") } else { 0 };
             apply_migrations(&c).unwrap_or_else(|e| panic!("{path:?}: {e}"));
             for t in tables {
                 assert_eq!(exists(&c, t), 1, "{path:?} {t}");
             }
-            assert_eq!(count(&c, "reference_pack"), 0);
+            assert_eq!(count(&c, "reference_pack"), packs_before, "{path:?}: the upgrade neither adds nor drops packs");
             seen += 1;
         }
         assert!(seen >= 3, "all release fixtures are exercised");
