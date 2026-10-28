@@ -15,6 +15,7 @@ import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latest
 import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, buildDeviceReportHtml } from '../../devices/dispatch.js';
 import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
 import { describeMediaRef } from '../media-picker.js';
+import { takeHandoff } from '../crosslinks.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
 import { runTimecode } from '../devices/timecode-runner.js';
 import { runMidi } from '../devices/midi-runner.js';
@@ -444,7 +445,20 @@ export function createDevicesScreen(section) {
   ensureLibrary();
 
   return {
-    onShow: () => { if (st.view !== 'run') { refreshUnits().then(() => { if (st.view !== 'run') render(); }); } showGuide(); },
+    onShow: async () => {
+      if (st.view !== 'run') {
+        const handoff = takeHandoff('devices');
+        await ensureLibrary(); await refreshUnits();
+        if (handoff?.assetId) {
+          const asset = lib.assets.find(asset => asset.id === handoff.assetId);
+          const profileId = [...lib.products].find(([, productId]) => productId === asset?.productId)?.[0];
+          const profile = profileById(profileId);
+          if (profile && asset) { selectUnit(profile, asset.id); openDevice(profile.id); }
+          else { st.view = 'grid'; render(); toast('This asset has no device profile. Use a generic diagnostic workflow.', { type: 'info' }); }
+        } else if (st.view !== 'run') render();
+      }
+      showGuide();
+    },
     onHide: () => {},
     onEscape: () => {
       if (st.view === 'run') { st.queue = null; openDevice(st.profileId); return true; }
