@@ -207,15 +207,17 @@ test('results do not depend on the block size the stream arrives in', () => {
   assert.ok(Math.abs(a.snrDb - b.snrDb) < 0.5 && Math.abs(a.carrierHz - b.carrierHz) < 0.5 && Math.abs(a.phaseDeg - b.phaseDeg) < 1);
 });
 
-test('sample-rate change restarts the analysis; reset() clears state; bad rates throw', () => {
+test('sample-rate change restarts the analysis but not the session clock; reset() clears state; bad rates throw', () => {
   const m = createMonitor({ format: 'Serato CV02.5' });
   stream(tc('Serato CV02.5', { seconds: 3 }), null, { monitor: m });
   const s44 = quadratureTimecode({ carrierHz: 1000, sampleRate: 44100, seconds: 2, snrDb: 30 });
   const f = stream(s44, null, { monitor: m, hop: 11025 }).frames.at(-1);
-  assert.ok(f.t <= 2.01, 'clock restarted at the new rate');
+  // FS-31 review: the clock carries on at the new rate (it restarted at 0 before, overwriting minute rows)
+  assert.ok(Math.abs(f.t - 5) < 0.01, `clock continues at the new rate: ${f.t}`);
   assert.ok(Math.abs(f.carrierHz - 1000) < 1);
   m.reset();
   assert.equal(m.summary().frames, 0);
+  assert.equal(m.t, 0, 'reset() restarts the clock');
   assert.throws(() => m.push(new Float32Array(10), new Float32Array(10), 0), /Sample rate/);
   assert.throws(() => createMonitor({ format: 'Nope' }), /Unknown timecode format/);
 });

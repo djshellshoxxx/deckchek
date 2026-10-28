@@ -34,6 +34,7 @@ export const HOLDER = 'live-monitor';  // capture lease holder (FS-00 §4.7)
 export const MAX_DECKS = 4;
 export const DECKS = Object.freeze(['A', 'B', 'C', 'D']);
 export const SUB_BLOCK_SEC = 0.02;
+const IDLE_CLEAR_SEC = 1; // idle this long clears the play-only rules (a lift or a stop, not a dust gap)
 
 /**
  * Tunable defaults (FS-31 §6). healthySnrDb matches the analyzeTimecode 'tc-snr' error cut (15 dB) and
@@ -185,8 +186,14 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
   const dropRef = createRing(DROP_REF);
   const scratch = new Float64Array(Math.max(DROP_REF, 512));
 
-  // ---- sample clock and tracking ----
-  let samples = 0;          // samples consumed (per channel)
+  // ---- session clock and tracking ----
+  // t = base + samples / sr is the monitor's one session clock (seconds). It never goes back: a change of sample
+  // rate folds the samples so far into `base`, and resume() moves it forward across a device outage, so alert
+  // times and minute indexes stay monotonic for the whole session (FS-31 review: one time base, no repeated
+  // minute rows).
+  let samples = 0;          // samples consumed (per channel) at the current rate
+  let base = 0;             // seconds before the current rate's first sample
+  const clockSec = () => base + (sr ? samples / sr : 0);
   let zcArmed = false, zcPrev = 0, bpMs = 0;
   const bq = new Float64Array(4); // band filter state (HP z1, z2, LP z1, z2)
   let HP = null, LP = null;
@@ -223,17 +230,30 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     LP = biquad('lp', Math.min(expectedHz * 1.8, sr * 0.45), sr);
   }
 
-  function resetTracking() {
-    samples = 0; zcArmed = false; zcPrev = 0; bpMs = 0; bq.fill(0); lastFreq = NaN; prevCarrier = NaN; lastMotion = 'idle';
+  /** Signal tracking only (filters, rings, baselines, rules): a new or reopened stream. The session clock, totals,
+   * the open minute, cooldowns and alert ids carry on. */
+  function resetSignal() {
+    zcArmed = false; zcPrev = 0; bpMs = 0; bq.fill(0); lastFreq = NaN; prevCarrier = NaN; lastMotion = 'idle';
     dropThr = -Infinity; run = 0; runPreFreq = NaN; runPreMotion = 'idle'; pendingDrop = null; dropTimes.length = 0;
     dropRef.clear(); snrBase.clear(); humBase.clear(); phaseHist.clear();
     humDb = -140; humFloorDb = -140; humMainsHz = null; hopCounter = 0; idleSince = null; idleInfoRaised = false;
     for (const k of ['snrDrop', 'snrFloor', 'dropouts', 'phase', 'hum']) rules[k] = { on: 0, off: 0, active: false };
-    lastRaise.clear(); minuteAcc = null; alertSeq = 0;
-    totals = { frames: 0, playFrames: 0, snrSum: 0, snrN: 0, snrMin: Infinity, humMax: -Infinity, driftMax: 0, dropouts: 0, alerts: { info: 0, warning: 0, critical: 0 } };
     carryN = 0; fHead = 0; fCount = 0; humPos = 0; humFill = 0; decAcc = 0; decCnt = 0;
   }
+
+  /** Full restart (reset()): clock back to 0, totals cleared. */
+  function resetTracking() {
+    resetSignal();
+    samples = 0; base = 0;
+    lastRaise.clear(); minuteAcc = null; alertSeq = 0;
+    totals = { frames: 0, playFrames: 0, snrSum: 0, snrN: 0, snrMin: Infinity, humMax: -Infinity, driftMax: 0, dropouts: 0, alerts: { info: 0, warning: 0, critical: 0 } };
+  }
   resetTracking();
+
+  /** Play-only rules (SNR drop/floor, phase): cleared when the vinyl is stopped or lifted. */
+  function clearPlayRules() {
+    for (const k of ['snrDrop', 'snrFloor', 'phase']) rules[k] = { on: 0, off: 0, active: false };
+  }
 
   // ---- one 20 ms sub-block ----
   function subBlock(L, R, o) {
@@ -300,7 +320,7 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     if (run) {
       const len = run * S / sr;
       if (run >= 2 && len <= th.maxDropoutSec && runPreMotion === 'play' && Number.isFinite(runPreFreq)) {
-        pendingDrop = { t: samples / sr, preFreq: runPreFreq, wait: 0, seen: 0 };
+        pendingDrop = { t: clockSec(), preFreq: runPreFreq, wait: 0, seen: 0 };
       }
       run = 0;
     }
@@ -399,11 +419,19 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     const speedPct = Number.isFinite(carrierHz) ? (carrierHz / expectedHz - 1) * 100 : NaN;
     const presentFrac = n ? used / n : 0;
     const direction = directionFromPhase(phaseDeg, fmt);
-    const locked = presentFrac >= 0.5 && Number.isFinite(carrierHz) && carrierHz > expectedHz * 0.4 && carrierHz < expectedHz * 1.6 && snrDb >= 6;
-    const steady = spread < 0.015 && (!Number.isFinite(prevCarrier) || Math.abs(carrierHz / prevCarrier - 1) < 0.02);
+    const present = presentFrac >= 0.5 && Number.isFinite(carrierHz) && carrierHz > expectedHz * 0.4 && carrierHz < expectedHz * 1.6;
+    const locked = present && snrDb >= 6;
+    const frameSteady = !Number.isFinite(prevCarrier) || Math.abs(carrierHz / prevCarrier - 1) < 0.02;
+    const steady = spread < 0.015 && frameSteady;
     const motion = levelDb < th.presenceDb ? 'idle' : locked && direction === 'forward' && steady && Math.abs(speedPct) <= 50 ? 'play' : 'cue';
+    // "play" without the 6 dB lock gate: the carrier is there, forward, at a steady speed (frequency spread under
+    // 1.5 %) within the play range, but too noisy to lock. Broadband noise leaves the zero-crossing frequency steady
+    // (spread < 1 % down to 0 dB SNR) while cueing and scratching smear it (spread 25-45 %), so this is a collapsed
+    // signal on a playing deck, not a gesture. The SNR floor rule is evaluated on these frames too, so the worst
+    // degradation is not mistaken for cueing (FS-31 AC-3).
+    const atSpeed = motion !== 'idle' && present && direction === 'forward' && steady && Math.abs(speedPct) <= 50;
     prevCarrier = carrierHz;
-    return { levelDb, snrDb, carrierHz, speedPct, phaseDeg, jitterDeg, balanceDb, direction, locked, motion, driftDeg: Number.isFinite(phaseDeg) ? Math.abs(phaseDeg) - 90 : NaN };
+    return { levelDb, snrDb, carrierHz, speedPct, phaseDeg, jitterDeg, balanceDb, direction, locked, atSpeed, motion, driftDeg: Number.isFinite(phaseDeg) ? Math.abs(phaseDeg) - 90 : NaN };
   }
 
   function phaseRate() {
@@ -436,12 +464,13 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
 
   /**
    * Feed one hop of stereo samples. Returns the frame for the window ending at the hop's last sample.
-   * Blocks of any length work; a change of sample rate restarts the analysis.
+   * Blocks of any length work; a change of sample rate restarts the signal analysis but not the session clock,
+   * the open minute or the totals.
    */
   function push(left, right, sampleRate) {
     const rate = Math.round(Number(sampleRate));
     if (!(rate >= 4000 && rate <= 384000)) throw new Error('Sample rate must be between 4000 and 384000 Hz.');
-    if (rate !== sr) { allocate(rate); resetTracking(); }
+    if (rate !== sr) { base = clockSec(); samples = 0; allocate(rate); resetSignal(); }
     const n = Math.min(left?.length || 0, right?.length || 0);
     let o = 0;
     if (carryN) {
@@ -460,7 +489,7 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     const ref = quantile(sorted, 0.75);
     dropThr = Number.isFinite(ref) && ref > th.presenceDb ? ref - th.dropoutDb : -Infinity;
     if (hopCounter++ % 2 === 0) measureHum();
-    const t = samples / sr;
+    const t = clockSec();
     const a = analyse();
     lastMotion = a.motion;
     while (dropTimes.length && dropTimes[0] < t - th.dropoutSpanSec) dropTimes.shift();
@@ -472,13 +501,15 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
 
     // SNR baseline: median of healthy play frames while no SNR rule is pending
     const snrBaseline = snrBase.size >= frames(th.minBaselineSec) ? median(snrBase.values()) : NaN;
-    if (play) {
-      const dropCond = Number.isFinite(snrBaseline) && a.snrDb < snrBaseline - th.snrDropDb;
-      const floorCond = a.snrDb < th.snrFloorDb;
-      const r1 = ruleStep('snrDrop', dropCond, N.snrDrop);
-      if (r1 === 'raise') emit(out, makeAlert('snrDrop', 'warning', `Deck ${deck}: timecode SNR dropped ${fmtDb(snrBaseline - a.snrDb)} dB`, t, { value: a.snrDb, baseline: snrBaseline }));
+    const floorCond = Number.isFinite(a.snrDb) && a.snrDb < th.snrFloorDb;
+    if (play || a.atSpeed) {
       const r2 = ruleStep('snrFloor', floorCond, N.snrFloor);
       if (r2 === 'raise') emit(out, makeAlert('snrFloor', 'critical', `Deck ${deck}: timecode SNR is ${fmtDb(a.snrDb)} dB, below the ${th.snrFloorDb} dB floor`, t, { value: a.snrDb, baseline: th.snrFloorDb }));
+    }
+    if (play) {
+      const dropCond = Number.isFinite(snrBaseline) && a.snrDb < snrBaseline - th.snrDropDb;
+      const r1 = ruleStep('snrDrop', dropCond, N.snrDrop);
+      if (r1 === 'raise') emit(out, makeAlert('snrDrop', 'warning', `Deck ${deck}: timecode SNR dropped ${fmtDb(snrBaseline - a.snrDb)} dB`, t, { value: a.snrDb, baseline: snrBaseline }));
       if (!dropCond && !floorCond && !rules.snrDrop.active && !rules.snrFloor.active && rules.snrDrop.on === 0 && a.snrDb >= th.healthySnrDb) snrBase.push(a.snrDb);
       // phase: only while the speed is steady (play implies steady)
       phaseHist.push(a.driftDeg);
@@ -510,6 +541,8 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     // idle / lifted: info after idleInfoSec of silence-by-design, never an alarm
     if (a.motion === 'idle') {
       if (idleSince == null) idleSince = t;
+      // stopped or lifted for a second: a fault raised during play is over, not latched through the pause
+      if (t - idleSince >= IDLE_CLEAR_SEC) clearPlayRules();
       if (!idleInfoRaised && t - idleSince >= th.idleInfoSec) {
         idleInfoRaised = true;
         emit(out, makeAlert('noSignal', 'info', `No signal on Deck ${deck}: vinyl stopped or lifted?`, t, { value: a.levelDb, baseline: th.presenceDb }));
@@ -523,9 +556,11 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
   }
 
   function deckState(frame) {
-    if (rules.snrFloor.active || rules.dropouts.active) return 'fault';
-    if (rules.snrDrop.active || rules.hum.active || rules.phase.active) return 'watch';
-    if (frame.motion === 'idle') return frame.idleSec >= th.idleInfoSec ? 'nosignal' : 'idle';
+    // stopped or lifted vinyl is idle, not a fault (FS-31 §6): the play-only rules do not colour an idle deck
+    const idle = frame.motion === 'idle';
+    if (rules.dropouts.active || (!idle && rules.snrFloor.active)) return 'fault';
+    if (rules.hum.active || (!idle && (rules.snrDrop.active || rules.phase.active))) return 'watch';
+    if (idle) return frame.idleSec >= th.idleInfoSec ? 'nosignal' : 'idle';
     return 'ok';
   }
 
@@ -546,6 +581,17 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     },
     /** Restart the analysis (keeps the format and thresholds). */
     reset() { resetTracking(); },
+    /** Session clock in seconds (monotonic for the monitor's life, see resume()). */
+    get t() { return clockSec(); },
+    /**
+     * The stream was reopened after an outage: restart the signal tracking and move the session clock forward to
+     * `tSec` (the controller's session time) if it is behind, so later alerts and minutes sort after the gap.
+     */
+    resume(tSec) {
+      const target = Number(tSec);
+      if (Number.isFinite(target) && target > clockSec()) base += target - clockSec();
+      resetSignal();
+    },
     thresholds: th,
   };
 }
@@ -571,6 +617,8 @@ export const DECK_STATE = Object.freeze({
   waiting: { label: 'Waiting', chip: 'review', icon: 'review' },
 });
 
+const NO_DEVICE_ERROR = Object.freeze({ state: 'error', code: 'NO_DEVICE', message: 'The selected input is not connected. Reconnect the interface or pick another input, then start again.' });
+
 export const DEVICE_BUSY_COPY = 'Another program is using this audio device exclusively. DeckChek can monitor without interrupting it if:';
 export const WORKAROUNDS = Object.freeze([
   'your interface driver is multi-client or has a shared/WDM mode,',
@@ -582,18 +630,36 @@ export const WORKAROUNDS = Object.freeze([
  * Map a start failure to a monitor state. code 'CAPTURE_BUSY' (another DeckChek feature holds the capture lease)
  * is 'capture-busy'; an OS-level exclusive/in-use refusal is 'device-busy' (FS-31 AC-5 copy); everything else
  * degrades to an explicit not-available state, never a hang.
+ * Native errors quote the device name ("Audio input not found: <name>", "Input pair 3-4 is not available on
+ * <name>: ..."), so those prefixes are matched first, and `deviceName` (the selected input) is removed from the
+ * text before the keyword patterns run: a device called "Centauri" or "Busy Box" never picks the wrong branch.
  */
-export function classifyStartError(error) {
+export function classifyStartError(error, { deviceName = null } = {}) {
   if (error && error.code === 'CAPTURE_BUSY') return { state: 'capture-busy', code: 'CAPTURE_BUSY', holder: error.holder ?? null };
   const text = String(error?.message ?? error ?? '');
-  const t = text.toLowerCase();
+  const lower = text.toLowerCase();
+  if (/(^|: )input pair \d+-\d+ is not available on /.test(lower)) return { state: 'error', code: 'PAIR', message: text };
+  if (/(^|: )audio input not found:/.test(lower)) return NO_DEVICE_ERROR;
+  const name = typeof deviceName === 'string' ? deviceName.trim().toLowerCase() : '';
+  const t = name.length >= 2 ? lower.split(name).join(' ') : lower;
   if (/desktop app|tauri/.test(t)) return { state: 'unsupported', code: 'UNSUPPORTED', message: 'Live monitor needs the DeckChek desktop app.' };
   if (/exclusive|in use|being used|busy|audclnt_e_device_in_use|0x8889000a|device_busy/.test(t)) return { state: 'device-busy', code: 'DEVICE_BUSY', message: DEVICE_BUSY_COPY };
   if (/^input pair|pairs? (start|are given)|is selected twice|not available on/.test(t)) return { state: 'error', code: 'PAIR', message: text };
-  if (/not found|no (default )?input|no device|no such device|unplugged|disconnected/.test(t)) return { state: 'error', code: 'NO_DEVICE', message: 'The selected input is not connected. Reconnect the interface or pick another input, then start again.' };
+  if (/not found|no (default )?input|no device|no such device|unplugged|disconnected/.test(t)) return NO_DEVICE_ERROR;
   if (/format|sample rate|unsupported/.test(t)) return { state: 'error', code: 'FORMAT_UNSUPPORTED', message: 'The device rejected the stream format. Pick another sample rate in the interface control panel, then start again.' };
   if (/permission|denied|not allowed/.test(t)) return { state: 'error', code: 'PERMISSION', message: 'Windows blocked access to the input. Allow desktop apps to use the microphone in Settings > Privacy, then start again.' };
   return { state: 'error', code: 'STREAM', message: 'The audio stream could not be opened. Check the device and driver, then start again.' };
+}
+
+/**
+ * A device or host label for the session log: control characters (C0/C1) become spaces, runs of spaces collapse,
+ * trimmed and cut to `max` characters; empty is null. Only the stored label is cleaned; the stream keeps the exact
+ * OS name it needs to open the device.
+ */
+export function sanitizeLabel(value, max = 200) {
+  if (value == null) return null;
+  const s = Array.from(String(value).replace(/\p{Cc}/gu, ' ').replace(/\s+/g, ' ').trim()).slice(0, max).join('').trim();
+  return s || null;
 }
 
 /** Validate a start configuration. Returns {ok, errors, config} with decks normalised to [{deck, pair}]. */
@@ -742,6 +808,9 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
   }
 
   const elapsedMs = () => Math.max(0, now() - startedAt);
+  // One session time base for every logged row: wall time since start, never behind the deck monitors' clocks
+  // (which only advance while audio arrives). Device events use it, and resume() moves the monitors up to it.
+  const sessionMs = () => Math.max(elapsedMs(), ...monitors.map(m => Math.ceil(m.t * 1000)));
   const runInfo = () => ({ sessionId, deviceName: info.deviceName ?? config?.deviceName ?? null, sampleRate: info.sampleRate ?? null, persisted: Boolean(sessionId) });
 
   function onStreamEnd(e, myEpoch) {
@@ -752,7 +821,7 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
       return;
     }
     // deviceLost / sinkClosed: say it once, retry every 5 s until the device is back or the user stops
-    const t = elapsedMs();
+    const t = sessionMs();
     record({ id: `dev-lost-${t}`, deck: null, kind: 'deviceLost', severity: 'critical', message: 'Audio device lost. Retrying every 5 s.', t: t / 1000, tMs: t });
     setTray('fault');
     setState('retrying', { ...runInfo(), message: 'Audio device lost. Retrying every 5 s: reconnect the interface, or stop the monitor.' });
@@ -767,12 +836,13 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
         const s = await openStream(myEpoch);
         if (myEpoch !== epoch) { try { await s?.stop?.(); } catch { /* raced with stop */ } return; }
         stream = s;
-        const t = elapsedMs();
+        const t = sessionMs();
+        for (const m of monitors) m.resume(t / 1000); // later alerts and minutes sort after the outage
         record({ id: `dev-back-${t}`, deck: null, kind: 'deviceRestored', severity: 'info', message: 'Audio device is back. Monitoring again.', t: t / 1000, tMs: t });
         setState('running', runInfo());
       } catch (error) {
         if (myEpoch !== epoch) return;
-        if (classifyStartError(error).state === 'capture-busy') finish('capture-busy', { message: 'Live monitor stopped: another DeckChek feature is using the audio input.' });
+        if (classifyStartError(error, { deviceName: config?.deviceName }).state === 'capture-busy') finish('capture-busy', { message: 'Live monitor stopped: another DeckChek feature is using the audio input.' });
         else scheduleRetry(myEpoch);
       }
     }, RETRY_MS);
@@ -788,11 +858,12 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
     for (const m of monitors) { const last = m.flushMinute(); if (last) pendingMinutes.push(last); }
     await flush();
     const summary = sessionSummary(monitors.map(m => m.summary()), { durationSec: elapsedMs() / 1000, droppedBlocks, eventsDropped, endReason });
-    if (sessionId && invoke) { try { await invoke('monitor_session_end', { sessionId, summary }); } catch { /* best effort */ } }
+    let persisted = false;
+    if (sessionId && invoke) { try { await invoke('monitor_session_end', { sessionId, summary }); persisted = true; } catch { /* best effort: reported as persisted=false */ } }
     const closed = sessionId;
     sessionId = null;
     await setTray('off');
-    setState(endReason === 'stopped' || endReason === 'quit' ? 'idle' : endReason, { ...extra, summary, sessionId: closed });
+    setState(endReason === 'stopped' || endReason === 'quit' ? 'idle' : endReason, { ...extra, summary, sessionId: closed, persisted });
     return summary;
   }
 
@@ -829,7 +900,7 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
         s = await openStream(myEpoch);
       } catch (error) {
         if (myEpoch !== epoch) return { ok: false, state };
-        const c = classifyStartError(error);
+        const c = classifyStartError(error, { deviceName: config.deviceName });
         monitors = []; decks.clear(); // nothing runs: no deck cards
         setState(c.state, { ...c, cancelled: Boolean(error?.cancelled) });
         return { ok: false, state, error: c };
@@ -838,13 +909,24 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
       stream = s;
       startedAt = now();
       const si = s?.info || {};
-      info = { deviceName: si.deviceName ?? config.deviceName, sampleRate: si.sampleRate ?? null };
+      // the OS name is untrusted text: only a cleaned label is shown and stored (an odd name must not refuse the row)
+      const label = sanitizeLabel(si.deviceName ?? config.deviceName);
+      info = { deviceName: label, sampleRate: si.sampleRate ?? null };
       if (invoke) {
+        let id = null;
+        const sr = Number.isFinite(si.sampleRate) && si.sampleRate >= 4000 && si.sampleRate <= 384000 ? Math.round(si.sampleRate) : null;
         try {
-          const r = await invoke('monitor_session_start', { input: { deviceName: si.deviceName ?? config.deviceName, hostApi: null, sampleRate: Number.isFinite(si.sampleRate) ? si.sampleRate : null, format: config.format, config: { decks: config.decks, hopMs: config.hopMs, format: config.format }, assetId: null } });
-          sessionId = r?.id ?? null;
-        } catch { sessionId = null; }
+          const r = await invoke('monitor_session_start', { input: { deviceName: label, hostApi: null, sampleRate: sr, format: config.format, config: { decks: config.decks, hopMs: config.hopMs, format: config.format }, assetId: null } });
+          id = r?.id ?? null;
+        } catch { id = null; }
+        if (myEpoch !== epoch) {
+          // stopped while the row was being created: finish() already ran without it, so close it here
+          if (id) { try { await invoke('monitor_session_end', { sessionId: id, summary: sessionSummary(monitors.map(m => m.summary()), { durationSec: elapsedMs() / 1000, endReason: 'stopped' }) }); } catch { /* best effort */ } }
+          return { ok: false, state };
+        }
+        sessionId = id;
       }
+      if (flushTimer != null) timers.clearInterval?.(flushTimer);
       flushTimer = timers.setInterval ? timers.setInterval(() => { flush(); }, FLUSH_MS) : null;
       await setTray('ok');
       if (myEpoch !== epoch) return { ok: false, state };
