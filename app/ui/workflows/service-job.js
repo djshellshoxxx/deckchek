@@ -14,7 +14,7 @@ import { dispatchFor } from '../../devices/dispatch.js';
 import { groupTestsByCategory } from '../../devices/library.js';
 import {
   LIMITS, PHOTO_LIMIT, PHOTO_STAGES, statusLabel, effectiveLog, jobTotals, newUnitNickname, nicknameMentionsCustomer,
-  renderJobSheetHtml, jobSheetPrintData, fmtNum, fmtSigned, fmtMoney, when, ROW_STATUS_TEXT, CHANGE_TEXT,
+  renderJobSheetHtml, jobSheetPrintData, fmtNum, fmtQty, fmtSigned, fmtMoney, when, ROW_STATUS_TEXT, CHANGE_TEXT,
 } from '../../service.js';
 
 export const ACCESSORY_CHOICES = Object.freeze(['Power cable', 'Dust cover', 'Slipmat', 'Headshell / cartridge', 'Counterweight', '45 rpm adapter', 'USB cable', 'Manual', 'Flight case']);
@@ -282,11 +282,16 @@ function photosCard(ctx, err) {
       const files = [...(file.files || [])];
       if (!files.length) { showError(err, 'Choose a photo first.'); return; }
       if (files.length + detail.photos.length > PHOTO_LIMIT) { showError(err, `A job can have at most ${PHOTO_LIMIT} photos.`); return; }
+      // Focus goes back to "Add photos" in the re-rendered card (or, at the photo limit, the newest photo): disabling the
+      // button during the attach drops focus to <body>, so the mark is fixed rather than taken from document.activeElement.
       add.disabled = true;
+      add.setAttribute('aria-busy', 'true');
       const failed = await attachFiles(api, detail.job.id, files, { caption: cap.value.trim(), stage: stage.value });
       add.disabled = false;
+      add.removeAttribute('aria-busy');
       if (failed) showError(err, `${failed} photo${failed === 1 ? '' : 's'} could not be added (not an image, larger than 8 MB, or the limit was reached).`);
-      ctx.reload();
+      await ctx.reload({ mark: { sel: '#svc-add-photo-btn', caret: null }, fallback: '.svc-photos > li:last-child button', quiet: true });
+      if (failed < files.length) announce(`${files.length - failed} photo${files.length - failed === 1 ? '' : 's'} added.`);
     });
     card.append(h('div', { class: 'svc-grid' }, field('Photo files', file, { help: 'Re-encoded on this computer; GPS and other metadata are removed.' }), field('Caption', cap), field('Stage', stage)), add);
   }
@@ -379,10 +384,11 @@ export function comparisonBlock(cmp) {
   if (cmp.rows.length) {
     box.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data svc-table', id: 'svc-compare-table' }, h('caption', { text: 'Measured values: change judged at k = 2 (an asterisk marks an assumed uncertainty)' }),
       h('thead', {}, h('tr', {}, ...['Metric', 'Before', 'After', 'Change', 'Result'].map(t => h('th', { scope: 'col', text: t })))),
-      h('tbody', {}, ...cmp.rows.map(r => h('tr', { 'data-metric': r.metricKey, 'data-status': r.status },
+      // Keyed by the row's (test, metric) key: one metric key can appear under several tests (two faders).
+      h('tbody', {}, ...cmp.rows.map(r => h('tr', { 'data-key': String(r.key ?? '').replace(/\u0000/g, ':'), 'data-metric': r.metricKey, 'data-status': r.status },
         h('th', { scope: 'row', text: `${r.label}${r.unit ? ` (${r.unit})` : ''}` }), h('td', { class: 'num', text: fmtNum(r.before) }), h('td', { class: 'num', text: fmtNum(r.after) }),
         h('td', { class: 'num', text: `${fmtSigned(r.delta)}${Number.isFinite(r.uncertainty) ? ` ± ${fmtNum(2 * r.uncertainty)}${r.assumed ? '*' : ''}` : ''}` }),
-        h('td', { html: `${chip(ROW_CHIP[r.status] || 'info', ROW_STATUS_TEXT[r.status] || r.status, { size: 14 })}${r.reason && r.status === 'notComparable' ? `<span class="small muted"> ${esc(r.reason)}</span>` : ''}` })))))));
+        h('td', { html: `${chip(ROW_CHIP[r.status] || 'info', ROW_STATUS_TEXT[r.status] || r.status, { size: 14 })}${r.reason && (r.status === 'notComparable' || r.ambiguous) ? `<span class="small muted"> ${esc(r.reason)}</span>` : ''}` })))))));
   }
   if (cmp.tests.length) {
     box.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data svc-table', id: 'svc-compare-tests' }, h('caption', { text: 'Test results before and after' }),
@@ -432,7 +438,7 @@ export function renderWorkStep(host, ctx) {
   const parts = log.filter(e => e.kind === 'part');
   wrap.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data svc-table', id: 'svc-parts' }, h('caption', { text: 'Parts' }),
     h('thead', {}, h('tr', {}, ...['Part', 'Qty', 'Unit cost', 'Added'].map(t => h('th', { scope: 'col', text: t })))),
-    h('tbody', {}, ...(parts.length ? parts.map(e => h('tr', { class: e.superseded ? 'svc-superseded' : '' }, h('td', { text: `${e.description}${mark(e)}` }), h('td', { class: 'num', text: fmtNum(e.quantity ?? 1, 0) }), h('td', { class: 'num', text: fmtMoney(e.unitCost, currency) }), h('td', { class: 'num', text: when(e.at) })))
+    h('tbody', {}, ...(parts.length ? parts.map(e => h('tr', { class: e.superseded ? 'svc-superseded' : '' }, h('td', { text: `${e.description}${mark(e)}` }), h('td', { class: 'num', text: fmtQty(Number.isFinite(e.quantity) ? e.quantity : 1) }), h('td', { class: 'num', text: fmtMoney(e.unitCost, currency) }), h('td', { class: 'num', text: when(e.at) })))
       : [h('tr', {}, h('td', { colspan: 4, class: 'muted', text: 'No parts.' }))])))));
   if (!readOnly) {
     const n = input({ id: 'svc-part-name', maxlength: LIMITS.description }), q = input({ id: 'svc-part-qty', type: 'number', min: '0.01', step: 'any', max: String(LIMITS.quantity), value: '1', inputmode: 'decimal' }), c = input({ id: 'svc-part-cost', type: 'number', min: '0', step: '0.01', max: String(LIMITS.unitCost), inputmode: 'decimal' });

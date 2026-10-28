@@ -235,6 +235,20 @@ export default async function run({ browser, base, check, SHOTS }) {
     return { cap: Math.round(r(cap).right - r(cap.closest('li')).right), hist: Math.round(Math.max(...[...hist.querySelectorAll('li')].map(l => r(l).right)) - r(card).right) };
   });
   check('service: regression: long photo captions and status notes wrap inside their tile and card', spill.cap <= 1 && spill.hist <= 1, JSON.stringify(spill));
+  // regression: adding photos from the keyboard keeps focus on "Add photos" after the async attach and reload
+  const photosBefore = await page.locator('.svc-photo').count();
+  await page.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = c.height = 8; c.getContext('2d').fillRect(0, 0, 8, 8);
+    const b = await new Promise(r => c.toBlob(r, 'image/png'));
+    const dt = new DataTransfer(); dt.items.add(new File([b], 'after.png', { type: 'image/png' }));
+    document.getElementById('svc-add-photo').files = dt.files;
+  });
+  await page.locator('#svc-add-photo-btn').focus();
+  await page.keyboard.press('Enter');
+  const photoAdded = await page.waitForFunction(n => document.querySelectorAll('.svc-photo').length === n + 1, photosBefore, { timeout: 5000 }).then(() => true, () => false);
+  await page.waitForTimeout(200);
+  const photoFocus = await page.evaluate(() => document.activeElement?.id || document.activeElement?.getAttribute('aria-label') || document.activeElement?.tagName);
+  check('service: regression: adding a photo keeps keyboard focus on "Add photos"', photoAdded && photoFocus === 'svc-add-photo-btn', `${photoAdded} ${photoFocus}`);
 
   // Alt+Right / Alt+Left
   await page.locator('[data-step="intake"]').focus();
@@ -286,6 +300,13 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForFunction(() => /Spring/.test(document.getElementById('svc-parts')?.innerText || ''));
   await page.waitForTimeout(150);
   check('service: regression: adding a part keeps keyboard focus in the part field', await page.evaluate(() => document.activeElement?.id === 'svc-part-name'), await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+  // regression: a fractional quantity shows its real value in the Work step (not rounded to 0)
+  await page.fill('#svc-part-name', 'Hook-up wire (m)');
+  await page.fill('#svc-part-qty', '0.25');
+  await page.click('#svc-part-add');
+  await page.waitForFunction(() => /Hook-up wire/.test(document.getElementById('svc-parts')?.innerText || ''));
+  const wireQty = await page.evaluate(() => [...document.querySelectorAll('#svc-parts tbody tr')].find(tr => /Hook-up wire/.test(tr.textContent))?.cells[1]?.textContent);
+  check('service: regression: a 0.25 part quantity shows as 0.25 in the Work step', wireQty === '0.25', String(wireQty));
   // regression: new totals are announced (live regions rebuilt already filled are not read out)
   await page.fill('#svc-labour-desc', 'Test run');
   await page.fill('#svc-labour-min', '15');
@@ -338,9 +359,23 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('service: comparison table has a caption and unchanged-within-uncertainty rows', (await page.locator('#svc-compare-table caption').count()) === 1 && /Unchanged within uncertainty/i.test(await page.locator('#svc-compare-table').innerText()));
   await shot(page, 'service-compare-dark');
 
-  // ready, AC-5 sheet
+  // regression: two tests sharing a metric key give two rows, each keyed by its (test, metric) key; a run linked
+  // without a test pairs with the only test of its metric
+  await page.evaluate(() => {
+    const f = (phase, testId, value, metricKey = 'midi_fader_jitter_lsb') => ({ phase, testId, metricKey, label: 'Jitter', value, unit: 'LSB', uncertainty: 0.1, methodKey: metricKey, methodVersion: 1, at: phase === 'before' ? '2026-10-10T10:00:00Z' : '2026-10-12T10:00:00Z', source: 'deviceTest' });
+    window.__svc.extraValues[window.__svc.jobs[0].id].push(f('before', 'djma9-fader-ch2_fader', 14), f('after', 'djma9-fader-ch2_fader', 1), f('before', 'djma9-fader-ch4_fader', 3), f('after', 'djma9-fader-ch4_fader', 2),
+      f('before', 'djma9-xf', 9, 'xf_curve'), { ...f('after', null, 4, 'xf_curve'), source: 'session' });
+  });
   await page.click('[data-status-to="ready"]');
   await page.waitForFunction(() => /Ready/.test(document.getElementById('svc-job-status')?.innerText || ''));
+  await page.click('[data-step="after"]');
+  await page.waitForSelector('#svc-compare-table tr[data-metric="xf_curve"]');
+  const keyed = await page.evaluate(() => [...document.querySelectorAll('#svc-compare-table tbody tr')].map(tr => ({ key: tr.dataset.key, metric: tr.dataset.metric, cells: [...tr.cells].map(c => c.textContent) })));
+  const faders = keyed.filter(r => r.metric === 'midi_fader_jitter_lsb'), xf = keyed.filter(r => r.metric === 'xf_curve');
+  check('service: regression: comparison rows are keyed by (test, metric), one per fader', faders.length === 2 && new Set(faders.map(r => r.key)).size === 2 && faders.every(r => r.key && r.key.endsWith('midi_fader_jitter_lsb')) && new Set(keyed.map(r => r.key)).size === keyed.length, JSON.stringify(faders));
+  check('service: regression: a before value from a device test pairs with an after value from a test-less run', xf.length === 1 && xf[0].cells[1] === '9' && xf[0].cells[2] === '4', JSON.stringify(xf));
+
+  // ready, AC-5 sheet
   await page.click('[data-step="sheet"]');
   await page.waitForSelector('#svc-sheet-preview');
   const prev = () => page.locator('#svc-sheet-preview').innerText();
