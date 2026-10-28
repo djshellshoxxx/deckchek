@@ -4,11 +4,10 @@ Branch: `continuation-deckchek-core-20261028`, stacked on PR14 source
 `9f4928a00a44b62529429d1f14ad104b65db28c6`. The older MIDI checkpoint and every
 existing branch remain preserved. No main/PR14 merge or release is intended.
 
-Source publication succeeded. Draft PR creation was denied by automatic approval
-review, which cited the earlier no-PR-creation restriction despite the later
-draft-PR request. No PR was created and no alternative creation route was used.
-Explicit approval resolving that conflict is required before retrying creation
-from this branch into `claude/confident-goldberg-o06vg2`.
+Source publication succeeded. Owner approval resolved the earlier draft-PR
+restriction. [Draft PR16](https://github.com/djshellshoxxx/deckchek/pull/16) is now
+open from this branch into `claude/confident-goldberg-o06vg2`, unmerged.
+Its body records the actual software evidence and native qualification blockers.
 
 Previous tested source: `210cb48d858992e93facf54b46e9a069799d89c8`.
 Current remediation source: `72ff3d4daded10b204fbacfa76d8c0889a43e532`.

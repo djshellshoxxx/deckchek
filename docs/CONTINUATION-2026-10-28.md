@@ -320,3 +320,18 @@ to its existing nonpublishing CI. This is an actual package-write/API-access
 limitation, not a request for extra owner permission merely to install Rust.
 Do not retry these denied operations without materially relevant new authority
 or environment/access evidence. Native and hardware qualification remain pending.
+
+
+## Draft publication outcome
+
+The owner's explicit approval resolved the earlier draft-PR publication conflict.
+A fresh search found no existing PR for the continuation branch. The single
+retry succeeded: https://github.com/djshellshoxxx/deckchek/pull/16, open and draft,
+not merged. Creation returned head `ab4b4bf9762935aacfe51a9f602580f3c5843c2e`
+and base `9f4928a00a44b62529429d1f14ad104b65db28c6`. The body discloses software
+results, failed local native setup/build gates and preserved ownership exclusions.
+No approval review, merge, release or deployment was submitted. Existing PR-test
+workflow may run from the PR event; no manual dispatch or workflow change was
+made. Actual run results remain uninspected after the executor's earlier GitHub
+Actions API access failure. This supersedes previous pending-PR status only;
+package permission failures and missing native qualification remain unchanged.
