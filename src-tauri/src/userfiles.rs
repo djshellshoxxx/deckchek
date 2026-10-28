@@ -37,7 +37,12 @@ const RESERVED: [&str; 4] = ["CON", "PRN", "AUX", "NUL"];
 /// `.midi.xml` and script, VirtualDJ/Serato `.xml`), FS-33 ledger site `html`/`css`/`js`/`json`/
 /// `jpg`/`png`. PDFs, backups and diagnostics bundles are written by Rust, not through these commands.
 pub const WRITABLE_EXTS: &[&str] =
-    &["csv", "json", "txt", "md", "html", "htm", "xml", "svg", "css", "js", "jpg", "jpeg", "png", "pdf"];
+    &["csv", "json", "txt", "md", "html", "htm", "xml", "svg", "css", "js", "jpg", "jpeg", "png", "pdf", "deckchek-pack"];
+
+/// Writable only as part of a folder export (FS-32 Mixxx script next to its `.midi.xml`, FS-33
+/// ledger site), never as a single file the page names on its own: `.js` runs under Windows Script
+/// Host when double-clicked, so a lone `.js` save is the riskier shape (AUD-01 review follow-up).
+pub const FOLDER_ONLY_EXTS: &[&str] = &["js"];
 
 /// Executable, script and shortcut types that must never be writable from the webview. Filtering
 /// uses the `WRITABLE_EXTS` allowlist; this list exists so a test proves the two are disjoint.
@@ -404,6 +409,9 @@ pub fn write_folder(dir: &str, files: &[FolderFile], allowed_exts: &[&str]) -> R
 #[tauri::command]
 #[allow(non_snake_case)]
 pub fn userfiles_write_text(path: String, content: String, allowedExt: String) -> Result<WriteTextResult, UserFileError> {
+    if FOLDER_ONLY_EXTS.iter().any(|e| e.eq_ignore_ascii_case(allowedExt.trim_start_matches('.'))) {
+        return Err(UserFileError::BadExtension);
+    }
     write_text(&path, &content, &[allowedExt.as_str()])
 }
 
@@ -613,10 +621,12 @@ mod tests {
             assert!(!WRITABLE_EXTS.iter().any(|w| w.eq_ignore_ascii_case(e)), "{e}");
         }
         let d = tmp("aud01-ok");
-        for ext in ["csv", "json", "txt", "md", "html", "xml", "svg", "css", "js", "jpg", "png", ".JSON"] {
+        for ext in ["csv", "json", "txt", "md", "html", "xml", "svg", "css", "jpg", "png", ".JSON"] {
             let name = format!("ok.{}", ext.trim_start_matches('.'));
             assert!(userfiles_write_text(s(&d.join(&name)), "x".into(), ext.into()).is_ok(), "{ext}");
         }
+        // `.js` only as part of a folder export (FOLDER_ONLY_EXTS), never as a lone file.
+        assert_eq!(userfiles_write_text(s(&d.join("ok.js")), "x".into(), "js".into()), Err(UserFileError::BadExtension));
         assert_eq!(write_text(&s(&d.join("e.csv")), "x", &[]), Err(UserFileError::BadExtension));
         assert_eq!(write_folder(&s(&d), &[], &[]), Err(UserFileError::BadExtension));
         assert_eq!(check_location(&d.join("x.json")), Ok(()));
@@ -640,5 +650,17 @@ mod tests {
     fn error_serializes_with_code() {
         let v = serde_json::to_value(UserFileError::BadExtension).unwrap();
         assert_eq!(v["code"], "bad_extension");
+    }
+
+    #[test]
+    fn regression_aud_01_js_is_folder_only_and_packs_are_writable() {
+        let dir = std::env::temp_dir().join(format!("deckchek-uf-js-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let js = dir.join("payload.js");
+        assert_eq!(userfiles_write_text(js.to_string_lossy().into_owned(), "x".into(), "js".into()).unwrap_err(), UserFileError::BadExtension);
+        assert!(!js.exists());
+        let pack = dir.join("share.deckchek-pack");
+        assert!(write_text(&pack.to_string_lossy(), "{}", &["deckchek-pack"]).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
