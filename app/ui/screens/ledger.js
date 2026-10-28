@@ -341,7 +341,8 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   return {
     onShow: () => {
       handoff = takeHandoff('ledger');
-      if (!loaded) { loaded = true; load(); } else { applyHandoff(); render(); }
+      // Reload the gear list while on step 1 (the device library may have added units since); keep the wizard otherwise.
+      if (!loaded || (st.step === 'select' && !st.busy)) { loaded = true; load(); } else { applyHandoff(); render(); }
     },
     onExport: () => {
       if (!st.gear?.rows.length || st.busy) return;

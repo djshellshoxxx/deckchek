@@ -66,7 +66,7 @@ export function normalizeRules(raw) {
   out.items = {};
   if (isObj(r.items)) {
     for (const [id, o] of Object.entries(r.items).slice(0, 500)) {
-      if (!id || id.length > 128 || !isObj(o)) continue;
+      if (!id || id.length > 128 || !isObj(o) || id === '__proto__' || id === 'constructor' || id === 'prototype') continue;
       const item = {};
       if (typeof o.include === 'boolean') item.include = o.include;
       if (SERIAL_MODES.includes(o.serialMode)) item.serialMode = o.serialMode;

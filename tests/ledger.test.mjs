@@ -117,6 +117,9 @@ test('per-item overrides beat the global toggles; untrusted rules are normalised
   assert.equal(effectiveRules(r, 'other').fields.nickname, false);
   assert.equal(effectiveRules(r, 'other').serialMode, 'masked');
   assert.deepEqual(normalizeRules(null), makeRules('public'), 'missing rules fall back to Public');
+  const proto = normalizeRules(JSON.parse('{"items":{"__proto__":{"include":false},"constructor":{"include":false}}}'));
+  assert.deepEqual(Object.keys(proto.items), [], 'prototype keys are ignored');
+  assert.equal(Object.getPrototypeOf(proto.items), Object.prototype);
   assert.equal(normalizeRules({ preset: 'nope' }).preset, 'public');
   assert.ok(matchesPreset(makeRules('insurance')));
   assert.ok(!matchesPreset({ ...makeRules('insurance'), serialMode: 'full' }));
