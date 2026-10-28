@@ -53,33 +53,42 @@ fn hours(conn: &Connection, asset: &str, until: Option<&str>) -> Result<f64, Str
     conn.query_row("SELECT COALESCE(SUM(hours),0) FROM asset_usage WHERE asset_id=?1 AND confirmed=1 AND (?2 IS NULL OR julianday(started_at)<=julianday(?2))", params![asset,until], |r| r.get(0)).map_err(err)
 }
 
-/// Confirmed ledger hours whose entire recorded span starts at/after completion.
-/// A straddling entry has no measured within-entry time distribution; return
-/// unknown until the user splits/reviews it rather than inventing runtime.
+#[cfg(test)]
 fn hours_since_completion(
     conn: &Connection,
     asset: &str,
     completed: &str,
 ) -> Result<Option<f64>, String> {
-    let mut query = conn.prepare("SELECT hours,(julianday(?2)-julianday(started_at))*24.0 FROM asset_usage WHERE asset_id=?1 AND confirmed=1").map_err(err)?;
-    let entries = query
-        .query_map(params![asset, completed], |row| {
-            Ok((row.get::<_, f64>(0)?, row.get::<_, Option<f64>>(1)?))
-        })
-        .map_err(err)?;
+    let completed: Option<f64> = conn.query_row("SELECT julianday(?1)", [completed], |r| r.get(0)).map_err(err)?;
+    let usage = confirmed_usage(conn, Some(asset))?;
+    Ok(since_completion(usage.get(asset).map_or(&[][..], Vec::as_slice), completed))
+}
+
+/// Confirmed ledger entries as (hours, julianday(started_at)) per asset, in one pass.
+fn confirmed_usage(conn: &Connection, asset: Option<&str>) -> Result<HashMap<String, Vec<(f64, Option<f64>)>>, String> {
+    let mut query = conn.prepare("SELECT asset_id,hours,julianday(started_at) FROM asset_usage WHERE confirmed=1 AND (?1 IS NULL OR asset_id=?1)").map_err(err)?;
+    let mut usage: HashMap<String, Vec<(f64, Option<f64>)>> = HashMap::new();
+    for row in query.query_map([asset], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?, r.get::<_, Option<f64>>(2)?))).map_err(err)? {
+        let (asset, hours, started) = row.map_err(err)?;
+        usage.entry(asset).or_default().push((hours, started));
+    }
+    Ok(usage)
+}
+
+/// Confirmed ledger hours whose entire recorded span starts at/after completion.
+/// A straddling entry has no measured within-entry time distribution; return
+/// unknown until the user splits/reviews it rather than inventing runtime.
+fn since_completion(entries: &[(f64, Option<f64>)], completed: Option<f64>) -> Option<f64> {
     let mut total = 0.0;
-    for entry in entries {
-        let (hours, elapsed) = entry.map_err(err)?;
-        let Some(elapsed) = elapsed else {
-            return Ok(None);
-        };
+    for &(hours, started) in entries {
+        let elapsed = (completed? - started?) * 24.0;
         if elapsed <= 0.0 {
             total += hours;
         } else if elapsed < hours - 0.000001 {
-            return Ok(None);
+            return None;
         }
     }
-    Ok(Some(total))
+    Some(total)
 }
 
 /// Titles of a device profile's tests, read from the synced profile JSON. Unknown profile or test -> no entry.
@@ -166,14 +175,32 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     )
 }
 
+const REMINDERS_SQL: &str = "SELECT id,asset_id,product_id,title,basis,interval_value,warn_before,enabled,snoozed_until,created_at FROM maintenance_reminder WHERE (?1 IS NULL OR asset_id=?1) ORDER BY title,id";
+/// Latest completion per reminder in one window pass over the event log (completion events always belong to
+/// the reminder's asset, so the asset filter can use idx_maint_asset_time).
+const LATEST_COMPLETIONS_SQL: &str = "SELECT reminder_id,event_at,hours_at_event,julianday(event_at) FROM (SELECT reminder_id,event_at,hours_at_event,ROW_NUMBER() OVER(PARTITION BY reminder_id ORDER BY julianday(event_at) DESC,id DESC) AS rank FROM maintenance_event WHERE reminder_id IS NOT NULL AND (?1 IS NULL OR asset_id=?1)) WHERE rank=1";
+
+/// Reminders with their latest completion and tracked hours since it. A fixed number of passes (reminders,
+/// completions, ledger), never a query per reminder, so the overview stays fast as the event log grows.
 pub fn reminders(conn: &Connection, asset: Option<&str>) -> Result<Vec<Value>, String> {
-    let mut query = conn.prepare("SELECT r.id,r.asset_id,r.product_id,r.title,r.basis,r.interval_value,r.warn_before,r.enabled,r.snoozed_until,r.created_at,(SELECT event_at FROM maintenance_event e WHERE e.reminder_id=r.id ORDER BY julianday(event_at) DESC,e.id DESC LIMIT 1),(SELECT hours_at_event FROM maintenance_event e WHERE e.reminder_id=r.id ORDER BY julianday(event_at) DESC,e.id DESC LIMIT 1) FROM maintenance_reminder r WHERE (?1 IS NULL OR r.asset_id=?1) ORDER BY r.title,r.id").map_err(err)?;
-    let mut rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?,"lastDoneAt":r.get::<_,Option<String>>(10)?,"hoursAtLastEvent":r.get::<_,Option<f64>>(11)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    let mut completions: HashMap<String, (String, Option<f64>, Option<f64>)> = HashMap::new();
+    {
+        let mut query = conn.prepare(LATEST_COMPLETIONS_SQL).map_err(err)?;
+        for row in query.query_map([asset], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<f64>>(2)?, r.get::<_, Option<f64>>(3)?))).map_err(err)? {
+            let (reminder, at, hours, julian) = row.map_err(err)?;
+            completions.insert(reminder, (at, hours, julian));
+        }
+    }
+    let usage = if completions.is_empty() { HashMap::new() } else { confirmed_usage(conn, asset)? };
+    let mut query = conn.prepare(REMINDERS_SQL).map_err(err)?;
+    let mut rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     for row in &mut rows {
-        if let (Some(asset), Some(completed)) =
-            (row["assetId"].as_str(), row["lastDoneAt"].as_str())
-        {
-            row["hoursSinceCompletion"] = json!(hours_since_completion(conn, asset, completed)?);
+        let latest = row["id"].as_str().and_then(|id| completions.get(id));
+        row["lastDoneAt"] = json!(latest.map(|c| &c.0));
+        row["hoursAtLastEvent"] = json!(latest.and_then(|c| c.1));
+        if let (Some(asset), Some(&(_, _, completed))) = (row["assetId"].as_str(), latest) {
+            let entries = usage.get(asset).map_or(&[][..], Vec::as_slice);
+            row["hoursSinceCompletion"] = json!(since_completion(entries, completed));
         }
     }
     Ok(rows)
@@ -307,6 +334,18 @@ pub fn snooze(conn: &Connection, id: &str, until: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Delete an asset reminder or a product template. Logged maintenance stays in the history; its link to
+/// the deleted reminder is cleared (maintenance_event.reminder_id has no ON DELETE action).
+pub fn delete_reminder(conn: &Connection, id: &str) -> Result<(), String> {
+    valid_id(id, "reminder id")?;
+    let tx = conn.unchecked_transaction().map_err(err)?;
+    tx.execute("UPDATE maintenance_event SET reminder_id=NULL WHERE reminder_id=?1", [id]).map_err(err)?;
+    if tx.execute("DELETE FROM maintenance_reminder WHERE id=?1", [id]).map_err(err)? == 0 {
+        return Err("reminder not found".into());
+    }
+    tx.commit().map_err(err)
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MaintenanceInput {
@@ -325,6 +364,16 @@ pub fn log_maintenance(conn: &Connection, input: &MaintenanceInput) -> Result<St
     ) || !timestamp_valid(conn, &input.event_at)?
     {
         return Err("invalid maintenance event".into());
+    }
+    if input.reminder_id.is_some() {
+        // A completion dated after today would reset its reminder and hide it until that date (spec §7).
+        // One calendar day of slack: the UI dates events by the user's local calendar day.
+        let future: bool = conn
+            .query_row("SELECT julianday(?1) >= julianday(date('now','+2 days'))", [&input.event_at], |r| r.get(0))
+            .map_err(err)?;
+        if future {
+            return Err("maintenance completion date is in the future".into());
+        }
     }
     if input
         .description
@@ -418,6 +467,9 @@ fn location_label(conn: &Connection, position: Option<&str>) -> Result<String, S
 
 fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) -> Result<(), String> {
     let previous: Option<String> = tx.query_row("SELECT deck_position_id FROM asset WHERE id=?1", [asset], |r| r.get(0)).map_err(err)?;
+    if previous.as_deref() == position {
+        return Ok(()); // not a move: no update and no "Moved from A to A" event
+    }
     tx.execute(
         "UPDATE asset SET deck_position_id=?2,updated_at=?3 WHERE id=?1",
         params![asset, position, now_iso(&tx)?],
@@ -481,10 +533,13 @@ pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Opt
     };
     let tx = conn.transaction().map_err(err)?;
     let assets = {
-        let mut query = tx.prepare(&format!("SELECT a.id FROM asset a JOIN deck_position d ON d.id=a.deck_position_id JOIN booth b ON b.id=d.booth_id WHERE {scope}")).map_err(err)?;
+        let mut query = tx.prepare(&format!("SELECT a.id FROM asset a JOIN deck_position d ON d.id=a.deck_position_id JOIN booth b ON b.id=d.booth_id WHERE a.is_deleted=0 AND {scope}")).map_err(err)?;
         let rows = query.query_map([id], |row| row.get::<_,String>(0)).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
         rows
     };
+    // Assets deleted in Equipment keep their old placement; release them silently (they are not shown in the
+    // fleet and have no move history to record) so they never block deleting the location.
+    tx.execute(&format!("UPDATE asset SET deck_position_id=NULL,updated_at=?2 WHERE is_deleted=1 AND deck_position_id IN (SELECT d.id FROM deck_position d JOIN booth b ON b.id=d.booth_id WHERE {scope})"), params![id, now_iso(&tx)?]).map_err(err)?;
     if let Some(target) = move_to {
         if let Some(position) = &target.deck_position_id {
             let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM deck_position WHERE id=?1)", [position], |r|r.get(0)).map_err(err)?;
@@ -551,6 +606,13 @@ pub async fn reminder_apply_template(
         apply_template(&conn, &template_id, &asset_id)
     })
     .await?
+}
+// Registration belongs in lib.rs's [FS-23] handlers block (`fleet::reminder_delete`); until then it is unused.
+#[allow(dead_code)]
+#[tauri::command]
+pub fn reminder_delete(app: AppHandle, id: String) -> Result<(), String> {
+    let conn = open_database(&database_path(&app)?)?;
+    delete_reminder(&conn, &id)
 }
 #[tauri::command]
 pub async fn reminder_snooze(app: AppHandle, id: String, until_iso: String) -> Result<(), String> {
@@ -1140,5 +1202,144 @@ mod tests {
         let sample = rows.iter().find(|r| r["assetId"] == "fleet-7").unwrap();
         assert_eq!((sample["hoursTotal"].as_f64(), sample["reminders"].as_array().unwrap().len(), sample["lastResults"].as_array().unwrap().len()), (Some(3.0), 1, 8));
         assert!(elapsed < std::time::Duration::from_secs(10), "2000-asset overview took {elapsed:?}");
+    }
+
+    /// Review FS-23: an asset deleted in Equipment (soft delete) kept its deck_position_id, so its old
+    /// position, booth and venue could never be deleted ("asset not found" / "move or unplace 1 assets").
+    #[test]
+    fn regression_soft_deleted_asset_does_not_block_location_delete() {
+        for kind in ["venue", "booth", "position"] {
+            for move_to in [None, Some(LocationMove { deck_position_id: None })] {
+                let mut conn = database();
+                place(&mut conn, "unit", Some("position")).unwrap();
+                conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", []).unwrap();
+                let before: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0)).unwrap();
+                delete_location(&mut conn, kind, kind, move_to.as_ref()).unwrap_or_else(|e| panic!("{kind} {move_to:?}: {e}"));
+                let position: Option<String> = conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r| r.get(0)).unwrap();
+                assert_eq!(position, None, "the deleted asset is released from the removed location");
+                let deleted: i64 = conn.query_row("SELECT is_deleted FROM asset WHERE id='unit'", [], |r| r.get(0)).unwrap();
+                assert_eq!(deleted, 1, "the asset stays deleted");
+                let after: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0)).unwrap();
+                assert_eq!(after, before, "no move event is logged for a deleted asset");
+            }
+        }
+        // A live asset in the same position still blocks a delete without a destination.
+        let mut conn = database();
+        place(&mut conn, "unit", Some("position")).unwrap();
+        place(&mut conn, "other", Some("position")).unwrap();
+        conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", []).unwrap();
+        assert!(delete_location(&mut conn, "position", "position", None).unwrap_err().contains("move or unplace 1 assets"));
+    }
+
+    /// Review FS-23: moving an asset to the position it already occupies logged "Moved from A to A".
+    #[test]
+    fn regression_moving_to_the_current_position_logs_no_event() {
+        let mut conn = database();
+        place(&mut conn, "unit", None).unwrap();
+        assert!(maintenance_events(&conn, "unit").unwrap().is_empty(), "Unplaced -> Unplaced is not a move");
+        place(&mut conn, "unit", Some("position")).unwrap();
+        place(&mut conn, "unit", Some("position")).unwrap();
+        let events = maintenance_events(&conn, "unit").unwrap();
+        assert_eq!(events.len(), 1, "{events:?}");
+        assert_eq!(events[0]["description"], "Moved from Unplaced to Club / Booth / Left");
+    }
+
+    /// Review FS-23: a completion dated in the future silently reset its reminder. It is now refused
+    /// (one calendar day of slack covers time zones ahead of UTC) and the reminder keeps its last real completion.
+    #[test]
+    fn regression_future_dated_completion_is_rejected() {
+        let conn = database();
+        let id = save_reminder(&conn, &reminder("unit")).unwrap();
+        let at = |offset: &str| -> String { conn.query_row("SELECT strftime('%Y-%m-%dT12:00:00.000Z','now',?1)", [offset], |r| r.get(0)).unwrap() };
+        let complete = |event_at: String| log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at, description: None, reminder_id: Some(id.clone()) });
+        complete(at("-1 day")).unwrap();
+        let error = complete(at("+2 days")).unwrap_err();
+        assert!(error.contains("future"), "{error}");
+        assert_eq!(reminders(&conn, Some("unit")).unwrap()[0]["lastDoneAt"], at("-1 day"));
+        complete(at("+1 day")).expect("tomorrow (UTC) is today somewhere ahead of UTC");
+        assert!(complete("9999-12-31T23:59:59.999Z".into()).is_err());
+    }
+
+    /// Review FS-23: reminders() ran two unindexed correlated scans of maintenance_event per reminder plus
+    /// one usage query per completed reminder. Spec §8: reminders for 1k assets in < 200 ms.
+    #[test]
+    fn regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget() {
+        let conn = database();
+        for sql in [REMINDERS_SQL, LATEST_COMPLETIONS_SQL] {
+            let mut q = conn.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
+            let plan: Vec<String> = q.query_map([Option::<String>::None], |r| r.get::<_, String>(3)).unwrap().collect::<Result<_, _>>().unwrap();
+            assert!(plan.iter().all(|step| !step.contains("CORRELATED")), "no per-reminder subquery: {plan:?}");
+        }
+        conn.execute_batch("BEGIN").unwrap();
+        for i in 0..1000 {
+            let asset = format!("fleet-{i}");
+            conn.execute("INSERT INTO asset(id,nickname,created_at,updated_at) VALUES(?1,?1,'2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')", [&asset]).unwrap();
+            for (r, basis) in [("days", "days"), ("hours", "hours")] {
+                conn.execute("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,'Clean',?3,90,14,'2026-01-01T00:00:00Z')", params![format!("rem-{r}-{i}"), asset, basis]).unwrap();
+            }
+            for e in 0..10 {
+                let reminder = match e { 3 => Some(format!("rem-days-{i}")), 7 => Some(format!("rem-hours-{i}")), _ => None };
+                conn.execute("INSERT INTO maintenance_event(id,asset_id,event_type,event_at,reminder_id,created_at) VALUES(?1,?2,'other',?3,?4,'t')", params![format!("ev-{i}-{e}"), asset, format!("2026-0{}-01T00:00:00Z", e % 9 + 1), reminder]).unwrap();
+            }
+            for u in 0..3 {
+                conn.execute("INSERT INTO asset_usage(id,asset_id,started_at,hours,source,confirmed,created_at) VALUES(?1,?2,?3,2,'manual',1,'t')", params![format!("use-{i}-{u}"), asset, format!("2026-0{}-15T00:00:00Z", u * 3 + 2)]).unwrap();
+            }
+        }
+        conn.execute_batch("COMMIT").unwrap();
+        let started = std::time::Instant::now();
+        let all = reminders(&conn, None).unwrap();
+        let elapsed = started.elapsed();
+        assert_eq!(all.len(), 2000);
+        let days = all.iter().find(|r| r["id"] == "rem-days-5").unwrap();
+        assert_eq!(days["lastDoneAt"], "2026-04-01T00:00:00Z");
+        let hours = all.iter().find(|r| r["id"] == "rem-hours-5").unwrap();
+        assert_eq!(hours["lastDoneAt"], "2026-08-01T00:00:00Z");
+        assert_eq!(hours["hoursSinceCompletion"], 2.0, "only the usage entry starting after the completion counts");
+        assert_eq!(days["hoursSinceCompletion"], 4.0);
+        let one = reminders(&conn, Some("fleet-5")).unwrap();
+        assert_eq!(one.iter().map(|r| r["hoursSinceCompletion"].clone()).collect::<Vec<_>>(), [json!(4.0), json!(2.0)]);
+        assert!(elapsed < std::time::Duration::from_millis(200), "reminders for 1k assets took {elapsed:?}");
+    }
+
+    /// Review FS-23: templates (and reminders) could not be deleted, so a product with a template could never
+    /// be deleted in Equipment (FOREIGN KEY constraint failed).
+    #[test]
+    fn regression_reminder_templates_can_be_deleted_so_the_product_can_be() {
+        let conn = database();
+        conn.execute_batch("INSERT INTO product(id,category,model,created_at,updated_at) VALUES('model','turntable','Reference','2026-01-01','2026-01-01');").unwrap();
+        let template = save_template(&conn, &TemplateInput { id: None, product_id: "model".into(), title: "Clean faders".into(), basis: "days".into(), interval_value: 180.0, warn_before: None }).unwrap();
+        assert!(conn.execute("DELETE FROM product WHERE id='model'", []).is_err(), "precondition: the template blocks the product delete");
+        delete_reminder(&conn, &template).unwrap();
+        conn.execute("DELETE FROM product WHERE id='model'", []).unwrap();
+        assert!(delete_reminder(&conn, &template).unwrap_err().contains("not found"));
+        assert!(delete_reminder(&conn, "bad id").is_err());
+        // An asset reminder with completion history: the reminder goes, the logged maintenance stays.
+        let id = save_reminder(&conn, &reminder("unit")).unwrap();
+        log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at: "2026-01-01T00:00:00Z".into(), description: None, reminder_id: Some(id.clone()) }).unwrap();
+        delete_reminder(&conn, &id).unwrap();
+        assert!(reminders(&conn, Some("unit")).unwrap().is_empty());
+        let events = maintenance_events(&conn, "unit").unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(events[0]["reminderId"].is_null());
+    }
+
+    /// Review FS-23: maintenance_reminder.asset_id is ON DELETE CASCADE, and profile pruning used to hard-delete
+    /// "unused" library assets without counting reminders. Pruning now counts every FK reference (0d7b413), so an
+    /// asset with a reminder is retired instead and the reminder survives.
+    #[test]
+    fn regression_profile_pruning_keeps_fleet_reminders() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        crate::db::apply_migrations(&conn).unwrap();
+        crate::catalog::seed_if_empty(&conn).unwrap();
+        let profile = |id: &str, model: &str| json!({"schemaVersion": 1, "id": id, "manufacturer": "Acme", "model": model, "category": "turntable", "summary": "Deck", "documents": [], "specs": [], "tests": []});
+        let synced = crate::devices::sync_profiles(&mut conn, &[profile("keep", "K-1"), profile("gone", "G-1")]).unwrap();
+        let asset = synced[1].asset_id.clone().unwrap();
+        let id = save_reminder(&conn, &reminder(&asset)).unwrap();
+        crate::devices::sync_profiles(&mut conn, &[profile("keep", "K-1")]).unwrap();
+        let (exists, deleted): (i64, i64) = conn.query_row("SELECT COUNT(*),COALESCE(MAX(is_deleted),0) FROM asset WHERE id=?1", [&asset], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        assert_eq!((exists, deleted), (1, 1), "the asset is retired, not hard-deleted");
+        let kept: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        assert_eq!(kept, 1, "the reminder is not cascade-deleted");
     }
 }

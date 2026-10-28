@@ -29,6 +29,7 @@ export function createFleetApi(invoke = globalThis.window?.__TAURI__?.core?.invo
     saveTemplate: input => call('reminder_template_upsert', { input }),
     applyTemplate: (templateId, assetId) => call('reminder_apply_template', { templateId, assetId }),
     snooze: (id, untilIso) => call('reminder_snooze', { id, untilIso }),
+    deleteReminder: id => call('reminder_delete', { id }),
     log: input => call('maintenance_log', { input }),
     events: (assetId, filters = {}) => call('maintenance_list', { assetId, ...filters }),
     saveBooth: input => call('booth_upsert', { input }),

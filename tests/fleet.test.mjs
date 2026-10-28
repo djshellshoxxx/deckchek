@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeHealth, reminderStatus, fleetToCsv, filterFleet, summarizeFleet, bannerSummary, describeReminder, nextDueReminder, BANNER_CAP } from '../app/fleet.js';
+import { computeHealth, reminderStatus, fleetToCsv, filterFleet, summarizeFleet, bannerSummary, describeReminder, nextDueReminder, reminderWhen, BANNER_CAP } from '../app/fleet.js';
 
 const now = '2026-10-22T12:00:00Z';
 test('fleet health uses the latest result per test; no readings never means healthy', () => {
@@ -163,4 +163,26 @@ test('AC-8 CSV: BOM, CRLF, RFC 4180 quoting, every formula starter neutralised, 
   assert.deepEqual(filterFleet(mixed, { category: 'mixer', status: 'healthy' }).map(r => r.assetId), ['2']);
   assert.deepEqual(filterFleet(mixed, { category: 'turntable', status: 'attention' }), []);
   assert.deepEqual(summarizeFleet(mixed), { attention: 1, overdue: 1, dueSoon: 0, never: 1 });
+});
+
+test('regression: a future-dated completion is flagged for review instead of silently resetting the reminder', () => {
+  const days = { basis: 'days', intervalValue: 90, warnBefore: 14, enabled: true, createdAt: '2026-01-01T00:00:00Z', title: 'Clean faders' };
+  const flagged = reminderStatus(days, '2027-10-28T12:00:00.000Z', null, '2026-10-28T12:00:00Z');
+  assert.equal(flagged.state, 'unknown', 'not OK: the date is a typo or the clock was set back');
+  assert.equal(flagged.dueAt, null);
+  assert.equal(flagged.future, true);
+  const shown = { ...days, lastDoneAt: '2027-10-28T12:00:00.000Z', ...flagged };
+  assert.match(reminderWhen(shown), /future/);
+  assert.equal(describeReminder(shown), 'Clean faders: Needs review (completion date is in the future)');
+  // One calendar day ahead of UTC is someone's today (time zones east of UTC): still a normal completion.
+  assert.deepEqual(reminderStatus(days, '2026-10-29T12:00:00.000Z', null, '2026-10-28T12:00:00Z'), { state: 'ok', dueAt: '2027-01-27', dueInHours: null, snoozed: false });
+  // Clock set backwards: a creation date after "now" is flagged too, not clamped to healthy.
+  assert.equal(reminderStatus({ ...days, createdAt: '2026-12-01T00:00:00Z' }, null, null, '2026-10-28T12:00:00Z').future, true);
+  const hours = { basis: 'hours', intervalValue: 300, warnBefore: 20, enabled: true };
+  const hoursFlagged = reminderStatus(hours, '2027-10-28T12:00:00.000Z', 0, '2026-10-28T12:00:00Z');
+  assert.equal(hoursFlagged.state, 'unknown', 'zero hours "since" a future completion is not OK');
+  assert.equal(hoursFlagged.future, true);
+  assert.equal(hoursFlagged.dueInHours, null);
+  assert.equal(reminderStatus(hours, '2026-10-20T12:00:00.000Z', 10, '2026-10-28T12:00:00Z').state, 'ok');
+  assert.equal(bannerSummary([{ nickname: 'Deck', reminders: [{ ...days, ...flagged }] }]).total, 0);
 });
