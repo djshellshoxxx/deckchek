@@ -2,7 +2,7 @@
 // alignment, report exports and workspace import/export.
 
 import { buildHtmlReport, compareRuns, normalizeMeasurement } from '../core.js';
-import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from '../export.js';
+import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson, sanitizeImportedRun } from '../export.js';
 import { store, workspace, saveWorkspace, emit, settings } from './state.js';
 import { isEnabled } from '../features.js';
 import { download, slug, isNative } from './dom.js';
@@ -175,7 +175,11 @@ export function exportWorkspace() {
   download('deckchek-workspace.json', serializeWorkspaceJson({ equipment: workspace.equipment, runs: workspace.runs }), 'application/json');
 }
 export async function importWorkspace(file) {
-  const data = parseWorkspaceJson(await file.text());
+  const parsed = parseWorkspaceJson(await file.text());
+  // Untrusted file: keep only object entries with a string id, shaped like the app's own runs, so a
+  // damaged import cannot be saved to localStorage and break every later start (AUD-JS-01).
+  const runs = parsed.runs.filter(r => r && typeof r === 'object' && typeof r.id === 'string' && r.id.trim()).map(sanitizeImportedRun);
+  const data = { ...parsed, equipment: parsed.equipment.filter(e => e && typeof e === 'object' && !Array.isArray(e)), runs };
   workspace.equipment = data.equipment;
   workspace.runs = data.runs;
   saveWorkspace();
