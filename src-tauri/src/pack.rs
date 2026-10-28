@@ -41,6 +41,9 @@ const MAX_UNIT_ROWS: usize = 20_000;
 const MAX_POP_WINDOW: usize = 64;
 /// Population query: method versions read per contributor (newest first).
 const MAX_POP_VERSIONS_PER_CONTRIBUTOR: usize = 16;
+/// Population query: analysis_method rows returned per method key, and the largest parameters_json passed on.
+const MAX_POP_METHODS: usize = 256;
+const MAX_POP_METHOD_PARAMS: usize = 16 * 1024;
 const MAX_LABEL_CHARS: usize = 64;
 const PACK_EXTENSIONS: &[&str] = &["deckchek-pack", "json"];
 const METRICS_JSON: &str = include_str!("../../app/population-metrics.json");
@@ -540,6 +543,30 @@ pub struct PopulationQuery {
     pub contributors: usize,
     /// True when some stored rows of this cell were not returned (per-contributor caps or the global row limit).
     pub truncated: bool,
+    /// The local analysis_method rows of this method key (every version, oldest first), so `compare.js` can apply the
+    /// AC-7 mutual-compat rule (`parameters_json.compat`) between the user's version and the population's versions.
+    pub methods: Vec<MethodInfo>,
+}
+
+/// One analysis_method registry row, shaped like the `registry` entries `metric-compat.js` reads.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MethodInfo {
+    pub key: String,
+    pub version: i64,
+    pub parameters_json: String,
+}
+
+/// Registry rows of one method key, at most MAX_POP_METHODS; a row with oversized parameters is left out (that version
+/// then simply has no compat list, so it is only compared with itself).
+fn method_registry(conn: &Connection, method_key: &str) -> Result<Vec<MethodInfo>, PackError> {
+    let mut stmt = conn.prepare(
+        "SELECT key, version, parameters_json FROM analysis_method WHERE key = ?1 AND length(parameters_json) <= ?2 ORDER BY version LIMIT ?3",
+    )?;
+    let rows = stmt.query_map(params![method_key, MAX_POP_METHOD_PARAMS as i64, MAX_POP_METHODS as i64], |r| {
+        Ok(MethodInfo { key: r.get(0)?, version: r.get(1)?, parameters_json: r.get(2)? })
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
 }
 
 pub fn query_population(conn: &Connection, product: &str, metric: &str, method_key: &str) -> Result<PopulationQuery, PackError> {
@@ -638,7 +665,8 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
         .into_iter()
         .map(|k| PopulationRow { contributor: tokens[k.contributor].clone(), product: product.to_string(), metric: metric.to_string(), method: MethodRef { key: method_key.to_string(), version: k.version }, value: k.value, unit: k.unit })
         .collect();
-    Ok(PopulationQuery { rows, contributors, truncated })
+    let methods = method_registry(conn, method_key)?;
+    Ok(PopulationQuery { rows, contributors, truncated, methods })
 }
 
 // ------------------------------------------------------------------ export
@@ -809,7 +837,9 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
     let marks = vec!["?"; names.len()].join(",");
     // Newest MAX_UNIT_ROWS_PER_PAIR per (attribution source, metric, unit) BEFORE any overall limit: attribution is a
     // function of (direct id, setup), so this keeps every unit's newest values however many newer measurements
-    // other units have. The overall LIMIT is only a safety net, and hitting it sets `truncated`.
+    // other units have. The overall LIMIT is only a safety net, and hitting it sets `truncated`; it is taken by `rn`
+    // first (every source's newest value before any source's second), so it cuts old history, never a whole unit
+    // because its runs are older than other units' runs.
     let sql = format!(
         "WITH base AS (
            SELECT m.metric_key, am.key AS method_key, am.version, m.unit, m.numeric_value, s.started_at, s.setup_id, m.id AS mid,
@@ -820,15 +850,16 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
          ), ranked AS (
            SELECT *, ROW_NUMBER() OVER (PARTITION BY direct, setup_id, metric_key, unit ORDER BY started_at DESC, mid DESC) AS rn FROM base
          )
-         SELECT metric_key, method_key, version, unit, numeric_value, started_at, setup_id, direct FROM ranked
-         WHERE rn <= {per_pair} ORDER BY started_at DESC, mid DESC LIMIT {limit}",
+         SELECT metric_key, method_key, version, unit, numeric_value, started_at, setup_id, direct, mid FROM ranked
+         WHERE rn <= {per_pair} ORDER BY rn, started_at DESC, mid DESC LIMIT {limit}",
         per_pair = MAX_UNIT_ROWS_PER_PAIR,
         limit = MAX_UNIT_ROWS * 5 + 1
     );
     let mut stmt = conn.prepare(&sql)?;
     let mut skipped_unit = 0usize;
     let mut skipped_unattributed = 0usize;
-    let mut by_pair: BTreeMap<(String, String), Vec<UnitValue>> = BTreeMap::new();
+    // Each value with its (started_at, measurement id) sort key: rows arrive by rank, not by time.
+    let mut by_pair: BTreeMap<(String, String), Vec<(String, UnitValue)>> = BTreeMap::new();
     let mut rows = stmt.query(rusqlite::params_from_iter(names.iter().map(|s| s.as_str())))?;
     let mut read = 0usize;
     let mut truncated = false;
@@ -842,7 +873,7 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         let (method_key, method_version): (String, i64) = (r.get(1)?, r.get(2)?);
         let unit: Option<String> = r.get(3)?;
         let value: f64 = r.get(4)?;
-        let (at, setup, direct): (String, Option<String>, Option<String>) = (r.get(5)?, r.get(6)?, r.get(7)?);
+        let (at, setup, direct, mid): (String, Option<String>, Option<String>, String) = (r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?);
         let Some(def) = table.get(&metric) else { continue };
         if unit.as_deref() != Some(def.unit.as_str()) || !value.is_finite() || !is_id(&method_key) {
             skipped_unit += 1;
@@ -859,12 +890,18 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
             },
         };
         let (nickname, product_key) = assets[&asset_id].clone();
-        by_pair.entry((asset_id.clone(), metric.clone())).or_default().push(UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at });
+        by_pair.entry((asset_id.clone(), metric.clone())).or_default().push((mid, UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at }));
     }
     // Each list is newest first. Keep the newest MAX_UNIT_ROWS_PER_PAIR per (unit, metric); if the total is still over
     // MAX_UNIT_ROWS, share the cap round-robin (every pair's newest value before any pair's second), so the cut drops
     // old history evenly instead of whole units, and say so with `truncated`.
-    let mut lists: Vec<Vec<UnitValue>> = by_pair.into_values().collect();
+    let mut lists: Vec<Vec<UnitValue>> = by_pair
+        .into_values()
+        .map(|mut list| {
+            list.sort_by(|a, b| b.1.at.cmp(&a.1.at).then_with(|| b.0.cmp(&a.0))); // newest first, as the old SQL order
+            list.into_iter().map(|(_, v)| v).collect()
+        })
+        .collect();
     for list in &mut lists {
         list.truncate(MAX_UNIT_ROWS_PER_PAIR);
     }
@@ -901,30 +938,45 @@ fn open(app: &AppHandle) -> Result<crate::db::DbConn, PackError> {
     Ok(open_database(&database_path(app)?)?)
 }
 
+// Every command that opens the database is `async` and runs its body through `db::off_main` (AUD-03): a sync command
+// runs on the main thread, and opening the database can wait on the DB gate, migrations or a busy lock.
+
 #[tauri::command]
-pub fn pack_preview(app: AppHandle, path: String) -> Result<PackPreview, PackError> {
-    let bytes = read_pack_file(&path)?;
-    let conn = open(&app)?;
-    preview(&conn, &bytes)
+pub async fn pack_preview(app: AppHandle, path: String) -> Result<PackPreview, PackError> {
+    crate::db::off_main(move || {
+        let bytes = read_pack_file(&path)?;
+        let conn = open(&app)?;
+        preview(&conn, &bytes)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_import(app: AppHandle, path: String, source_label: Option<String>) -> Result<ImportResult, PackError> {
-    let bytes = read_pack_file(&path)?;
-    let conn = open(&app)?;
-    import(&conn, &bytes, source_label.as_deref())
+pub async fn pack_import(app: AppHandle, path: String, source_label: Option<String>) -> Result<ImportResult, PackError> {
+    crate::db::off_main(move || {
+        let bytes = read_pack_file(&path)?;
+        let conn = open(&app)?;
+        import(&conn, &bytes, source_label.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_list(app: AppHandle) -> Result<Vec<PackInfo>, PackError> {
-    let conn = open(&app)?;
-    list(&conn)
+pub async fn pack_list(app: AppHandle) -> Result<Vec<PackInfo>, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        list(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pack_remove(app: AppHandle, pack_id: String) -> Result<RemoveResult, PackError> {
-    let conn = open(&app)?;
-    remove(&conn, &pack_id)
+pub async fn pack_remove(app: AppHandle, pack_id: String) -> Result<RemoveResult, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        remove(&conn, &pack_id)
+    })
+    .await?
 }
 
 #[tauri::command]
@@ -933,15 +985,21 @@ pub fn pack_export(selection: ExportSelection, path: String) -> Result<ExportRes
 }
 
 #[tauri::command]
-pub fn population_query(app: AppHandle, product_id: String, metric_id: String, method_key: String) -> Result<PopulationQuery, PackError> {
-    let conn = open(&app)?;
-    query_population(&conn, &product_id, &metric_id, &method_key)
+pub async fn population_query(app: AppHandle, product_id: String, metric_id: String, method_key: String) -> Result<PopulationQuery, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        query_population(&conn, &product_id, &metric_id, &method_key)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn population_unit_values(app: AppHandle) -> Result<UnitValues, PackError> {
-    let conn = open(&app)?;
-    unit_values(&conn)
+pub async fn population_unit_values(app: AppHandle) -> Result<UnitValues, PackError> {
+    crate::db::off_main(move || {
+        let conn = open(&app)?;
+        unit_values(&conn)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -1558,6 +1616,46 @@ mod tests {
         assert_eq!((s.rows.len(), s.contributors, s.truncated), (5, 5, false));
     }
 
+    /// AUD-03: the pack commands open the database through `open(&app)`, which the db.rs source scan does not list, so
+    /// check them here: every command that opens the database is `async` and runs its body through `db::off_main`.
+    #[test]
+    fn regression_aud_03_pack_db_commands_run_off_the_main_thread() {
+        let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/pack.rs")).unwrap();
+        let src = &src[..src.find("#[cfg(test)]").unwrap()];
+        let mut checked = Vec::new();
+        for chunk in src.split("#[tauri::command]").skip(1) {
+            let body = &chunk[..chunk.find("\n}").unwrap()];
+            let name: String = body[body.find("fn ").unwrap() + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            if body.contains("open(&app)") || body.contains("open_database(") {
+                assert!(body.contains("pub async fn") && body.contains("crate::db::off_main("), "{name} opens the database on the main thread");
+                checked.push(name);
+            }
+        }
+        assert_eq!(checked, ["pack_preview", "pack_import", "pack_list", "pack_remove", "population_query", "population_unit_values"]);
+    }
+
+    #[test]
+    fn regression_population_query_returns_the_method_registry_for_ac7_compat() {
+        let c = mem();
+        c.execute_batch(
+            "INSERT INTO analysis_method(id,key,version,description,parameters_json,created_at) VALUES
+               ('d1','dropout_count',1,'v1','{\"compat\":[2]}','t'),
+               ('d2','dropout_count',2,'v2','{\"compat\":[1]}','t'),
+               ('d3','dropout_count',3,'v3','{\"compat\":[]}','t'),
+               ('o1','wow_flutter_rms_percent',1,'other key','{\"compat\":[2]}','t');",
+        )
+        .unwrap();
+        insert_samples(&c, "p", (0..9).map(|i| (format!("t{i}"), 1 + (i % 3) as i64, i as f64)));
+        let q = query_population(&c, "plx", "dropout_count", "dropout_count").unwrap();
+        let got: Vec<(&str, i64, &str)> = q.methods.iter().map(|m| (m.key.as_str(), m.version, m.parameters_json.as_str())).collect();
+        assert_eq!(got, vec![("dropout_count", 1, "{\"compat\":[2]}"), ("dropout_count", 2, "{\"compat\":[1]}"), ("dropout_count", 3, "{\"compat\":[]}")], "only this method key, every version");
+        // compare.js comparePopulation reads result.methods[].{key, version, parametersJson}.
+        let json = serde_json::to_value(&q).unwrap();
+        assert_eq!(json["methods"][1], json!({ "key": "dropout_count", "version": 2, "parametersJson": "{\"compat\":[1]}" }));
+        // A cell with no local method rows still answers, with an empty registry.
+        assert!(query_population(&c, "plx", "dropout_count", "unknown_method").unwrap().methods.is_empty());
+    }
+
     fn seed_many_units(c: &Connection, units: usize, runs: usize) {
         c.execute_batch(
             "INSERT INTO product(id,category,model,created_at,updated_at) VALUES('prod-tt','turntable','TT','t','t');
@@ -1614,6 +1712,41 @@ mod tests {
         let small = mem();
         seed_many_units(&small, 2, 3);
         assert!(!unit_values(&small).unwrap().truncated);
+    }
+
+    #[test]
+    fn regression_unit_values_sql_limit_never_drops_a_whole_old_unit() {
+        let c = mem();
+        // 160 units x 13 metrics x 50 runs = 104,000 rows after the per-pair cap: above the SQL safety LIMIT.
+        seed_many_units(&c, 160, MAX_UNIT_ROWS_PER_PAIR);
+        // One unit measured once, years before everything else, so a LIMIT taken newest first would cut it off.
+        c.execute_batch(
+            "INSERT INTO asset(id,product_id,nickname,serial_number,created_at,updated_at) VALUES('old','prod-tt','Old deck',NULL,'t','t');
+             INSERT INTO session(id,session_type,setup_id,started_at,app_version,schema_version,status,config_snapshot_json) VALUES('s-old','speed',NULL,'2020-01-01T00:00:00Z','0',1,'completed','{\"assetId\":\"old\"}');
+             INSERT INTO measurement(id,session_id,method_id,metric_key,state,numeric_value,unit,quality_flags_json,created_at)
+               SELECT 'm-old', 's-old', id, key, 'measured', 0.3, '%', '[]', 't' FROM analysis_method WHERE key = 'wow_flutter_rms_percent';",
+        )
+        .unwrap();
+        let v = unit_values(&c).unwrap();
+        assert!(v.truncated, "values were left out, so the result says so");
+        assert!(v.rows.len() <= MAX_UNIT_ROWS);
+        let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
+        assert!(assets.contains("old"), "the oldest unit is still listed");
+        assert_eq!(assets.len(), 161);
+        let pairs: HashSet<(&str, &str)> = v.rows.iter().map(|r| (r.asset_id.as_str(), r.metric.as_str())).collect();
+        assert_eq!(pairs.len(), 160 * metric_table().len() + 1, "every (unit, metric) keeps its latest value");
+        // Each kept list is still the newest values of that pair, oldest first.
+        let mut newest: HashMap<(&str, &str), &str> = HashMap::new();
+        for w in v.rows.windows(2) {
+            if (w[0].asset_id.as_str(), w[0].metric.as_str()) == (w[1].asset_id.as_str(), w[1].metric.as_str()) {
+                assert!(w[0].at <= w[1].at);
+            }
+        }
+        for r in &v.rows {
+            newest.insert((r.asset_id.as_str(), r.metric.as_str()), r.at.as_str());
+        }
+        let latest: String = c.query_row("SELECT MAX(started_at) FROM session WHERE id LIKE 's000-%'", [], |r| r.get(0)).unwrap();
+        assert_eq!(newest[&("u000", "dropout_count")], latest.as_str(), "the newest run of a unit is the one kept last");
     }
 
     #[test]

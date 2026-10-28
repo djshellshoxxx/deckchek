@@ -7,7 +7,8 @@ import fs from 'node:fs';
 import { compareMetricToSpec, compareToSpec, populationComparison, stripPlot, N_MIN_PERCENTILE } from '../app/population.js';
 
 globalThis.localStorage = (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })();
-const { comparePopulation, capPreview, truncationNotice } = await import('../app/ui/screens/compare.js');
+const compareScreen = await import('../app/ui/screens/compare.js');
+const { comparePopulation, capPreview, truncationNotice } = compareScreen;
 
 const table = JSON.parse(fs.readFileSync(new URL('../app/population-metrics.json', import.meta.url), 'utf8'));
 const profile = name => JSON.parse(fs.readFileSync(new URL(`../app/devices/profiles/${name}.json`, import.meta.url), 'utf8'));
@@ -107,4 +108,45 @@ test('regression: a truncated population query gets a visible notice', () => {
   assert.match(truncationNotice({ rows: [], truncated: true }), /Only the first 100,000 reference rows were read/);
   assert.equal(truncationNotice({ rows: [], truncated: false }), null);
   assert.equal(truncationNotice(null), null);
+});
+
+test('regression: AC-7 a population_query result as Rust serialises it: two mutually compatible versions compared, an incompatible one excluded', () => {
+  // Shape of pack.rs PopulationQuery: rows[].method {key, version}; methods[] {key, version, parametersJson} for every
+  // local version of the method key.
+  const key = 'wow_flutter_rms_percent';
+  const row = (i, version) => ({ contributor: `t${String(i).padStart(3, '0')}`, product: 'plx', metric: key, method: { key, version }, value: 0.05 + i * 0.005, unit: '%' });
+  const rows = [...Array.from({ length: 12 }, (_, i) => row(i, 1)), ...Array.from({ length: 10 }, (_, i) => row(100 + i, 2)), ...Array.from({ length: 7 }, (_, i) => row(200 + i, 3))];
+  const methods = [{ key, version: 1, parametersJson: '{"compat":[2]}' }, { key, version: 2, parametersJson: '{"compat":[1]}' }, { key, version: 3, parametersJson: '{"compat":[]}' }];
+  const result = { rows, contributors: 29, truncated: false, methods };
+  const mine = { metric: key, method: { key, version: 2 }, value: 0.1, unit: '%' };
+  const c = comparePopulation(result, mine, table.metrics[key], 's');
+  assert.equal(c.contributors, 22, 'v1 and v2 rows are compared');
+  assert.equal(c.excluded, 7, 'v3 lists no compat, so its rows are left out');
+  assert.equal(c.status, 'percentile');
+  const v3 = comparePopulation(result, { ...mine, method: { key, version: 3 } }, table.metrics[key], 's');
+  assert.deepEqual([v3.contributors, v3.excluded], [7, 22], 'from v3 only v3 rows count');
+});
+
+test('regression: unit_values truncated gets a visible notice for My units and the export dialog', () => {
+  const { unitsTruncationNotice } = compareScreen;
+  assert.equal(typeof unitsTruncationNotice, 'function');
+  assert.match(unitsTruncationNotice({ rows: [], truncated: true }), /older results/i);
+  assert.equal(unitsTruncationNotice({ rows: [], truncated: false }), null);
+  assert.equal(unitsTruncationNotice({ rows: [] }), null, 'an older backend without the flag shows nothing');
+  assert.equal(unitsTruncationNotice(null), null);
+});
+
+test('regression: specFor picks the profile spec that population-metrics.json marks comparable, not the first related one', () => {
+  const { specFor } = compareScreen;
+  const thd = table.metrics.left_thd_percent; // specKeys thd, thd_n; comparable: thd in %
+  const thdN = { key: 'thd_n', value: 0.1, unit: '%' }, thdPct = { key: 'thd', value: 0.05, unit: '%' }, thdDb = { key: 'thd', value: -60, unit: 'dB' };
+  assert.equal(specFor({ specs: [thdN, thdPct] }, thd), thdPct, 'THD in % wins over an earlier THD+N');
+  assert.equal(specFor({ specs: [thdDb, thdN, thdPct] }, thd), thdPct, 'a related key in a non-comparable unit is skipped too');
+  assert.equal(compareMetricToSpec({ value: 0.03, unit: '%' }, specFor({ specs: [thdN, thdPct] }, thd), thd).status, 'ok', 'so the Spec tab gives a verdict');
+  assert.equal(specFor({ specs: [thdN, thdDb] }, thd), thdN, 'none comparable: the first related spec, so its note is shown');
+  const sep = table.metrics.channel_separation_db;
+  const a = { key: 'separation', value: 30, unit: 'dB' }, b = { key: 'channel_separation', value: 35, unit: 'dB' };
+  assert.equal(specFor({ specs: [a, b] }, sep), a, 'several comparable: profile order decides');
+  assert.equal(specFor({ specs: [thdPct] }, table.metrics.dropout_count), null);
+  assert.equal(specFor(null, thd), null);
 });

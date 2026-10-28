@@ -162,6 +162,14 @@ function specNumber(value) {
 
 const unitExact = unit => String(unit ?? '').trim().replace(/\s+/g, ' ');
 
+/** True when the metric definition's `specComparable` lists this spec's key with this exact unit (same quantity). */
+export function specIsComparable(spec, def) {
+  if (!spec || typeof spec !== 'object') return false;
+  const map = def?.specComparable;
+  const units = map && typeof map === 'object' && typeof spec.key === 'string' && Object.hasOwn(map, spec.key) ? map[spec.key] : null;
+  return Array.isArray(units) && units.map(unitExact).includes(unitExact(spec.unit));
+}
+
 /**
  * AC-1 for a whitelisted metric: compare only when the metric definition (population-metrics.json) says this spec key,
  * in this exact unit, measures the same quantity DeckChek measures (`specComparable: {specKey: [units]}`). A weighted
@@ -172,8 +180,7 @@ const unitExact = unit => String(unit ?? '').trim().replace(/\s+/g, ' ');
 export function compareMetricToSpec(measurement, spec, def) {
   const limit = def?.specLimit;
   if (!spec || typeof spec !== 'object') return compareToSpec(measurement, spec, { limit });
-  const comparable = def?.specComparable && typeof def.specComparable === 'object' && Object.hasOwn(def.specComparable, spec.key) ? def.specComparable[spec.key] : null;
-  if (!Array.isArray(comparable) || !comparable.map(unitExact).includes(unitExact(spec.unit))) {
+  if (!specIsComparable(spec, def)) {
     const shown = specNumber(spec.value) ?? (typeof spec.value === 'string' ? spec.value.slice(0, 40) : null);
     const published = shown === null ? '' : ` Published figure, for reference only: ${shown}${spec.unit ? ` ${String(spec.unit).slice(0, 40)}` : ''}.`;
     const why = typeof def?.specNote === 'string' && def.specNote ? def.specNote : 'The published figure is not the same quantity DeckChek measures for this metric, so no verdict is shown.';
