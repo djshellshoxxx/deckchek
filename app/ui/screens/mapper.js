@@ -97,9 +97,16 @@ export function sniffXml(text) {
 
 /**
  * Turn read file texts into a model. `texts` = [{name, text}]. Returns {ok, model, scripts, warnings, source} or
- * {ok:false, error:{message, line, column}}.
+ * {ok:false, error:{message, line, column}}. Never throws: a hostile file (for example a JSON value whose toString is
+ * not callable) becomes a typed error instead of an unhandled rejection.
  */
-export function importTexts(texts, { profile = null } = {}) {
+export function importTexts(texts, opts = {}) {
+  try { return importTextsUnchecked(texts, opts); } catch (e) {
+    return { ok: false, error: { message: `The file is not a usable mapping (${cleanText(e?.name || 'error', 40)}).` } };
+  }
+}
+
+function importTextsUnchecked(texts, { profile = null } = {}) {
   const json = texts.filter(t => /\.json$/i.test(t.name)), xml = texts.filter(t => /\.xml$/i.test(t.name)), js = texts.filter(t => /\.js$/i.test(t.name));
   if (json.length) {
     const p = parseJsonFile(json[0].text);
@@ -241,14 +248,21 @@ export function createMapperScreen(section) {
     const learnedControls = Array.isArray(row?.map?.controls) ? row.map.controls.length : 0;
     const published = (profile?.midi?.controls || []).filter(c => c?.message).length;
     const name = asset.nickname || [profile?.manufacturer, profile?.model].filter(Boolean).join(' ') || 'My controller';
-    st.assetId = assetId; st.profileId = profile?.id || null; st.savedId = null; st.readOnly = false; st.scripts = [];
+    const reset = () => { st.assetId = assetId; st.profileId = profile?.id || null; st.savedId = null; st.readOnly = false; st.scripts = []; };
     if (!learnedControls && !published) {
+      reset();
       setModel(createModel({ name, manufacturer: profile?.manufacturer || '', source: 'learned', sourceId: profile?.id || assetId }));
       setStatus(EMPTY_TEXT, 'info');
       announce(EMPTY_TEXT);
       return;
     }
-    const model = learnedToModel(learnedControls ? row : null, profile, { name });
+    let model;
+    try { model = learnedToModel(learnedControls ? row : null, profile, { name }); } catch {
+      setStatus('The MIDI map stored for this unit could not be read.', 'fail', { title: 'Could not open the mapping.' });
+      announce('Could not open the mapping.', { assertive: true });
+      return;
+    }
+    reset();
     setModel(model);
     const s = modelStats(model);
     setStatus(`${s.total} control${s.total === 1 ? '' : 's'} loaded from the ${learnedControls ? 'map learned on this unit' : 'official profile'}; ${s.assigned} got a suggested function.${s.unassigned ? ` ${s.unassigned} unmapped control${s.unassigned === 1 ? '' : 's'} to assign.` : ''}`, s.unassigned ? 'warn' : 'pass');
@@ -264,7 +278,7 @@ export function createMapperScreen(section) {
     let texts;
     try { texts = await Promise.all([...c.json, ...c.xml, ...c.js].map(async f => ({ name: f.name, text: await f.text() }))); } catch (e) { setStatus(`The file could not be read: ${e?.message || e}`, 'fail'); return; }
     const profile = st.profileId ? profileById(st.profileId) : null;
-    const r = importTexts(texts, { profile });
+    const r = importTexts(texts, { profile }); // never throws
     if (!r.ok) {
       setStatus(r.error.message, 'fail', { title: 'Could not open the mapping.' });
       announce('Could not open the mapping.', { assertive: true });
