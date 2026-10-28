@@ -87,3 +87,10 @@ path = "fuzz_targets/pack.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "certificate"
+path = "fuzz_targets/certificate.rs"
+test = false
+doc = false
+bench = false

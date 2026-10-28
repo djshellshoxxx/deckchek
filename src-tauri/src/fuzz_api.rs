@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 use rusqlite::Connection;
 use serde_json::Value;
 
-use crate::{backup, canonical, db, dj_sessions, links, pack, photo, system_check, userfiles};
+use crate::{backup, canonical, certificate, db, dj_sessions, links, pack, photo, system_check, userfiles};
 
 /// Untrusted text inputs are decoded leniently, exactly as the app does for files on disk.
 fn text(data: &[u8]) -> String {
@@ -231,6 +231,21 @@ pub fn fuzz_pack(data: &[u8]) {
     assert_eq!(fk, 0, "pack removal left dangling foreign keys");
 }
 
+/// Certificate verification (FS-20) on untrusted .json / .html text: never panics, and a
+/// VALID verdict always means the recomputed content hash equals the declared one.
+pub fn fuzz_certificate(data: &[u8]) {
+    let text = text(data);
+    let r = certificate::verify_text(&text, "2026-10-28T00:00:00Z", |_| false);
+    if r.status == "valid" {
+        assert!(r.content_hash.is_some() && r.content_hash == r.declared_hash, "VALID without matching hashes");
+        assert!(r.fingerprint.is_some(), "VALID without a signer fingerprint");
+    }
+    assert!(matches!(r.status.as_str(), "valid" | "modified" | "unverifiable"), "unknown status {}", r.status);
+    if let Ok(json) = certificate::json_from_html(&text) {
+        let _ = certificate::verify_text(&json, "2026-10-28T00:00:00Z", |_| false);
+    }
+}
+
 /// Every target, by name, for the drivers.
 pub const TARGETS: &[(&str, fn(&[u8]))] = &[
     ("backup_inspect", fuzz_backup_inspect),
@@ -243,6 +258,7 @@ pub const TARGETS: &[(&str, fn(&[u8]))] = &[
     ("dj_logs", fuzz_dj_logs),
     ("system_check", fuzz_system_check),
     ("pack", fuzz_pack),
+    ("certificate", fuzz_certificate),
 ];
 
 #[cfg(test)]
@@ -341,6 +357,7 @@ mod smoke {
     #[test] fn dj_logs() { run("dj_logs", 3000); }
     #[test] fn system_check() { run("system_check", 3000); }
     #[test] fn pack() { run("pack", 1500); }
+    #[test] fn certificate() { run("certificate", 3000); }
 
     /// Regenerates the seed corpus from real artefacts (run with `--ignored` after format changes).
     #[test]

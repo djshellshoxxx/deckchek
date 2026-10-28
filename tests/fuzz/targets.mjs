@@ -12,6 +12,10 @@ import { canonicalJson, isCanonical, CanonicalJsonError } from '../../app/canoni
 import { validatePack } from '../../app/pack.js';
 import { parseMessage } from '../../app/midi-tests.js';
 import { validateProfile } from '../../app/devices/library.js';
+import { parseStrictJson, validatePayload, extractJsonFromHtml, CertificateError } from '../../app/certificate.js';
+import { parseXml } from '../../app/mapper/xml.js';
+import { importMixxx } from '../../app/mapper/mixxx.js';
+import { importVdj } from '../../app/mapper/vdj.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -44,6 +48,9 @@ export function buildTargets() {
     { name: 'canonical', throws: true, allowedErrors: [CanonicalJsonError], seeds: [canonical], run: t => { let v; try { v = JSON.parse(t); } catch { return; } isCanonical(t); const c = canonicalJson(v); if (canonicalJson(JSON.parse(c)) !== c || !isCanonical(c)) throw new TypeError('canonical form not idempotent'); } },
     { name: 'pack', seeds: [pack], run: t => validatePack(t) },
     { name: 'midi-message', seeds: ['[144,60,127]', '[240,126,127,6,1,247]', '[176,7,0]'], run: t => { let a; try { a = JSON.parse(t); } catch { return; } if (!Array.isArray(a)) return; parseMessage(Uint8Array.from(a.slice(0, 4096).map(x => Number(x) & 255))); } },
+    { name: 'certificate', throws: true, allowedErrors: [CertificateError], seeds: [read('tests/fixtures/certificate/valid-v1.deckchek-cert.json')], run: t => { extractJsonFromHtml(t); let v; try { v = parseStrictJson(t); } catch { return; } if (v && typeof v === 'object' && v.payload) validatePayload(v.payload); } },
+    { name: 'mapper-xml', seeds: [read('tests/fixtures/mapper/third-party.midi.xml'), read('tests/fixtures/mapper/golden.midi.xml')], run: t => { const r = parseXml(t); if (r && r.ok === false && !r.error) throw new TypeError('rejected without an error'); importMixxx(t, []); } },
+    { name: 'mapper-vdj', seeds: [read('tests/fixtures/mapper/vdj-definition.xml')], run: t => { importVdj(t, read('tests/fixtures/mapper/vdj-mapper.xml')); importVdj(read('tests/fixtures/mapper/vdj-definition.xml'), t); } },
     { name: 'device-profile', seeds: firstJson('app/devices/profiles'), run: t => { let p; try { p = JSON.parse(t); } catch { return; } validateProfile(p); } },
   ];
 }
