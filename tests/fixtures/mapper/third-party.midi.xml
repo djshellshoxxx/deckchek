@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Self-authored DeckChek test fixture in the documented Mixxx mapping format (not taken from Mixxx). -->
+<MixxxMIDIPreset schemaVersion="1" mixxxVersion="2.2">
+    <info>
+        <name>Fixture Controller &amp; Friends</name>
+        <author>Fixture Author</author>
+        <description>Hand-written for DeckChek tests.</description>
+        <wiki>https://example.invalid/wiki</wiki>
+    </info>
+    <controller id="FIXTURE-1">
+        <scriptfiles>
+            <file filename="Fixture-Controller-scripts.js" functionprefix="FixtureCtl"/>
+        </scriptfiles>
+        <controls>
+            <control>
+                <description>Play deck 1</description>
+                <group>[Channel1]</group>
+                <key>play</key>
+                <status>0x90</status>
+                <midino>0x0B</midino>
+                <options>
+                    <Normal/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel2]</group>
+                <key>cue_default</key>
+                <status>0x91</status>
+                <midino>0x0C</midino>
+                <options><normal/></options>
+            </control>
+            <control>
+                <group>[Channel2]</group>
+                <key>cue_default</key>
+                <status>0x81</status>
+                <midino>0x0C</midino>
+                <options><normal/></options>
+            </control>
+            <unknownElement foo="bar"/>
+            <control>
+                <description>Library scroll</description>
+                <group>[Library]</group>
+                <key>MoveVertical</key>
+                <status>0xB6</status>
+                <midino>0x40</midino>
+                <options>
+                    <SelectKnob/>
+                </options>
+            </control>
+            <control>
+                <description>Tempo MSB</description>
+                <group>[Channel1]</group>
+                <key>rate</key>
+                <status>0xB0</status>
+                <midino>0x00</midino>
+                <options><fourteen-bit-msb/></options>
+            </control>
+            <control>
+                <description>Tempo LSB</description>
+                <group>[Channel1]</group>
+                <key>rate</key>
+                <status>0xB0</status>
+                <midino>0x20</midino>
+                <options><fourteen-bit-lsb/></options>
+            </control>
+            <control>
+                <description>Crossfader</description>
+                <group>[Mixer]</group>
+                <key>crossfader</key>
+                <status>0xB6</status>
+                <midino>0x1F</midino>
+                <options><soft-takeover/></options>
+            </control>
+            <control>
+                <description>Jog wheel (custom script)</description>
+                <group>[Channel1]</group>
+                <key>FixtureCtl.wheelTurn</key>
+                <status>0xB0</status>
+                <midino>0x21</midino>
+                <options><script-binding/></options>
+            </control>
+            <control>
+                <description>Beat FX select (custom script)</description>
+                <group>[EffectRack1_EffectUnit1]</group>
+                <key>FixtureCtl.beatFxSelect</key>
+                <status>0x94</status>
+                <midino>0x63</midino>
+                <options><script-binding/></options>
+            </control>
+            <control>
+                <description>Beat FX select (custom script)</description>
+                <group>[EffectRack1_EffectUnit1]</group>
+                <key>FixtureCtl.beatFxSelect</key>
+                <status>0x84</status>
+                <midino>0x63</midino>
+                <options><script-binding/></options>
+            </control>
+            <control>
+                <description>Hot cue 2 deck 1</description>
+                <group>[Channel1]</group>
+                <key>hotcue_2_activate</key>
+                <status>0x97</status>
+                <midino>0x01</midino>
+                <options><normal/></options>
+            </control>
+            <control>
+                <description>Broken status</description>
+                <group>[Channel1]</group>
+                <key>play</key>
+                <status>banana</status>
+                <midino>0x0B</midino>
+                <options><normal/></options>
+            </control>
+        </controls>
+        <outputs>
+            <output>
+                <group>[Channel1]</group>
+                <key>play_indicator</key>
+                <status>0x90</status>
+                <midino>0x0B</midino>
+                <on>0x7F</on>
+                <off>0x00</off>
+                <minimum>0.5</minimum>
+            </output>
+            <output>
+                <group>[Channel1]</group>
+                <key>vu_meter</key>
+                <status>0xB0</status>
+                <midino>0x02</midino>
+                <minimum>0.1</minimum>
+                <maximum>1</maximum>
+            </output>
+        </outputs>
+    </controller>
+</MixxxMIDIPreset>
