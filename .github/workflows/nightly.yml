@@ -1,0 +1,197 @@
+name: DeckChek nightly
+
+# Expensive checks that do not gate every push: Windows Rust tests (second OS) and the PDF
+# spike, AddressSanitizer test run, long coverage-guided fuzzing (cargo-fuzz) and JS fuzzing,
+# and the stress/performance suite. Runs on main, nightly, and by hand.
+# First-party actions only.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      fuzz_seconds:
+        description: 'cargo-fuzz seconds per target'
+        default: '300'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  windows-rust-tests:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-
+      - name: cargo test
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4
+      - name: PDF spike (WebView2 PrintToPdf)
+        if: always()
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib pdf::windows_spike -- --ignored --nocapture --test-threads=1
+        env:
+          DECKCHEK_PDF_SPIKE_DIR: ${{ runner.temp }}\deckchek-pdf-spike
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pdf-spike
+          path: ${{ runner.temp }}\deckchek-pdf-spike
+          if-no-files-found: ignore
+          retention-days: 14
+
+  rust-asan:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: rustup toolchain install nightly --profile minimal --component rust-src
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: cargo test under AddressSanitizer (lib tests incl. fuzz smoke)
+        # --target keeps build scripts and proc-macros uninstrumented.
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+          RUSTDOCFLAGS: -Zsanitizer=address
+          ASAN_OPTIONS: detect_leaks=0
+        run: cargo +nightly test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib --target x86_64-unknown-linux-gnu
+
+  rust-stress:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: cargo-deps-${{ runner.os }}-
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: Persistence stress (large history, backup/restore, import cap, concurrent readers)
+        run: cargo test --locked --release --manifest-path src-tauri/Cargo.toml -j 4 --lib stress_tests -- --ignored --nocapture --test-threads=1
+
+  cargo-fuzz:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: rustup toolchain install nightly --profile minimal
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: cargo-fuzz-deps-${{ runner.os }}-${{ hashFiles('src-tauri/fuzz/Cargo.lock') }}
+          restore-keys: cargo-fuzz-deps-${{ runner.os }}-
+      - name: Cache the cargo-fuzz tool
+        id: tool
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-fuzz
+          key: cargo-fuzz-0.13.2-${{ runner.os }}
+      - if: steps.tool.outputs.cache-hit != 'true'
+        run: cargo +nightly install cargo-fuzz --version 0.13.2 --locked
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: Build fuzz targets (ASan)
+        working-directory: src-tauri
+        run: cargo +nightly fuzz build -O
+      - name: Fuzz every target
+        working-directory: src-tauri
+        env:
+          SECS: ${{ github.event.inputs.fuzz_seconds || '300' }}
+        run: |
+          set -u
+          [[ "$SECS" =~ ^[0-9]{1,5}$ ]] || { echo '::error::fuzz_seconds must be a number'; exit 1; }
+          fail=0
+          mkdir -p "$RUNNER_TEMP/fuzz"
+          for t in $(ls fuzz/fuzz_targets | sed 's/\.rs$//'); do
+            mkdir -p "$RUNNER_TEMP/fuzz/$t"
+            if ! cargo +nightly fuzz run -O "$t" "$RUNNER_TEMP/fuzz/$t" "fuzz/corpus/$t" -- \
+                 -max_total_time="$SECS" -rss_limit_mb=2048 -timeout=10 -artifact_prefix="$RUNNER_TEMP/fuzz/$t-" > "$RUNNER_TEMP/fuzz/$t.log" 2>&1; then
+              echo "::error::fuzz target $t found a crash, leak, timeout or OOM"; tail -40 "$RUNNER_TEMP/fuzz/$t.log"; fail=1
+            fi
+            echo "$t: $(grep -o 'stat::number_of_executed_units: *[0-9]*' "$RUNNER_TEMP/fuzz/$t.log" | tail -1)"
+          done
+          exit $fail
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fuzz-crashes
+          path: |
+            ${{ runner.temp }}/fuzz/*-crash-*
+            ${{ runner.temp }}/fuzz/*-oom-*
+            ${{ runner.temp }}/fuzz/*-timeout-*
+            ${{ runner.temp }}/fuzz/*-leak-*
+            ${{ runner.temp }}/fuzz/*.log
+          retention-days: 30
+
+  js-fuzz-and-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JS fuzzing (120 s per target)
+        run: node tools/fuzz-js.mjs 120 "$RUNNER_TEMP/js-fuzz"
+      - name: Stress and performance suite
+        run: node --expose-gc --test --test-concurrency=1 tests/stress/*.test.mjs
+        env:
+          DECKCHEK_STRESS: full
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: js-fuzz-crashes
+          path: ${{ runner.temp }}/js-fuzz
+          if-no-files-found: ignore
+          retention-days: 30

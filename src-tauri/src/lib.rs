@@ -10,6 +10,7 @@ mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+mod selftest; // --self-test=<report.json>: packaged-artifact smoke test (CI release jobs)
 pub mod canonical;
 pub mod photo; // content-addressed photo store (FS-00 §4.11) // canonical JSON + SHA-256 (FS-00 §4.12); consumed by FS-20/30/33 jobs
 mod userfiles;
@@ -44,6 +45,8 @@ mod scratch;
 mod humrun;
 #[cfg(any(test, feature = "fuzzing"))]
 pub mod fuzz_api; // untrusted-input fuzz entry points (cargo-fuzz in src-tauri/fuzz, smoke in cargo test)
+#[cfg(test)]
+mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_tests -- --ignored
 #[cfg(test)]
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
@@ -115,6 +118,7 @@ pub fn run() {
             scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
             humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
+            selftest::self_test_mode, selftest::self_test_report,
             // [FS-20] handlers
             // [FS-21] handlers
             // [FS-22] handlers
@@ -162,6 +166,8 @@ pub fn run() {
             // [FS-33] setup
             // [FS-02] `--debug-crash` (debug builds, or DECKCHEK_ALLOW_DEBUG_CRASH=1): last, so the panic goes through every hook above
             diagnostics::debug_crash_if_requested(_app);
+            // `--self-test=<report.json>`: arms a watchdog; the UI runs its checks and reports back
+            selftest::setup();
             Ok(())
         })
         .build(tauri::generate_context!())

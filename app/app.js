@@ -15,6 +15,7 @@ import { migrateLocalRuns } from './ui/persistence.js';
 import { toast } from './ui/live.js';
 import { isNative } from './ui/dom.js';
 import { bindSettings } from './features.js';
+import { runSelfTestIfRequested } from './self-test.js';
 // [FS-00] screens imports
 // [FS-01] screens imports
 // [FS-02] screens imports
@@ -103,6 +104,8 @@ function start() {
   go(initial);
   // First run: sync every device profile into the catalog and create one asset per device ("My <model>").
   initNativePersistence().then(migrateLocalRuns).catch(() => {}).then(() => ensureLibrary()).catch(() => {}).then(() => initFleetReminders());
+  // `deckchek --self-test=<report.json>` (release smoke): no-op unless Rust says it is active
+  if (isNative()) runSelfTestIfRequested(window.__TAURI__.core.invoke).catch(() => {});
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
