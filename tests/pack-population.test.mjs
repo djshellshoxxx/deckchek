@@ -143,6 +143,28 @@ test('pack bridge: browser mode rejects, contributor token is stored and resetta
   await assert.rejects(() => createPackApi({ api: { core: { invoke: async () => [] }, dialog: { save: async () => null } }, appState: stateStub(), fetchJson: async () => table }).savePack([cell]).then(r => { assert.deepEqual(r, { cancelled: true }); throw new Error('cancelled'); }), /cancelled/);
 });
 
+// Exact binary ties (a median of two half-dB readings, an integer count of 1005) are where two rounding rules disagree.
+// Shared with the Rust regression test `regression_round_sig3_ties_match_the_js_preview` in src-tauri/src/pack.rs.
+const TIES = [[31.25, 31.3], [1.125, 1.13], [-62.25, -62.3], [100.5, 101], [1005, 1010], [10.25, 10.3], [12.25, 12.3]];
+const TIE_METRIC = { 31.25: 'channel_separation_db', 1.125: 'wow_flutter_rms_percent', '-62.25': 'left_hum_dbfs', 100.5: 'dropout_count', 1005: 'dropout_count', 10.25: 'channel_separation_db', 12.25: 'channel_separation_db' };
+
+test('regression: FS-21 the saved pack carries exactly the rows the preview showed, even on exact rounding ties', async () => {
+  const calls = [];
+  const api = createPackApi({
+    api: { core: { invoke: async (cmd, args) => { calls.push([cmd, args]); return { packId: args.selection.packId, rows: args.selection.rows.length, bytes: 1, sha256: 'x', path: args.path }; } },
+      dialog: { save: async () => '/tmp/x.deckchek-pack' } },
+    appState: stateStub(), fetchJson: async () => table,
+  });
+  const cells = TIES.map(([raw]) => { const metric = TIE_METRIC[raw]; return { product: 'plx', metric, method: { key: metric, version: 1 }, value: raw, unit: table.metrics[metric].unit, units: 2 }; });
+  const preview = await api.buildPreview(cells, { appVersion: '0.0.8' });
+  assert.deepEqual(preview.rows.map(r => r.value), TIES.map(([, want]) => want), 'preview rounds half away from zero (toPrecision)');
+  await api.savePack(cells, { packId: preview.packId, createdMonth: preview.createdMonth, contributor: preview.contributor });
+  const [, args] = calls.at(-1);
+  assert.deepEqual(args.selection.rows, preview.rows, 'Rust receives the previewed rows, already rounded');
+  // Rust round_sig3 is idempotent on these (asserted in the Rust test), so the written file equals the preview.
+  assert.deepEqual({ ...preview, appVersion: undefined }, { format: 'deckchek-pack', version: 1, packId: args.selection.packId, createdMonth: args.selection.createdMonth, appVersion: undefined, contributor: args.selection.contributor, rows: args.selection.rows });
+});
+
 function stateStub() {
   const data = new Map();
   return { data, get: async k => (data.has(k) ? { value: data.get(k) } : null), set: async (k, v) => { data.set(k, v); } };

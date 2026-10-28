@@ -36,6 +36,11 @@ pub const PACK_VERSION: i64 = 1;
 const MAX_REPORTED_ISSUES: usize = 20;
 const MAX_UNIT_ROWS_PER_PAIR: usize = 50;
 const MAX_UNIT_ROWS: usize = 20_000;
+/// Population query, per (contributor, method version): only the rows nearest that contributor's median are read
+/// (a window symmetric around the middle, so the median `population.js` takes per contributor is unchanged).
+const MAX_POP_WINDOW: usize = 64;
+/// Population query: method versions read per contributor (newest first).
+const MAX_POP_VERSIONS_PER_CONTRIBUTOR: usize = 16;
 const MAX_LABEL_CHARS: usize = 64;
 const PACK_EXTENSIONS: &[&str] = &["deckchek-pack", "json"];
 const METRICS_JSON: &str = include_str!("../../app/population-metrics.json");
@@ -174,11 +179,35 @@ fn exact_keys(map: &Map<String, Value>, keys: &[&str]) -> bool {
 }
 
 /// Round to three significant digits (spec §7: reduces fingerprinting). Idempotent.
+///
+/// Same rule as the export preview (JS `Number(v.toPrecision(3))`): nearest, and an exact tie of the double's decimal
+/// value rounds half away from zero (31.25 -> 31.3, -62.25 -> -62.3, 1005 -> 1010). Rust's own `{:.2e}` would round
+/// such ties to even, so the file could differ from the preview the user approved.
 pub fn round_sig3(v: f64) -> f64 {
     if v == 0.0 || !v.is_finite() {
         return if v == 0.0 { 0.0 } else { v };
     }
-    format!("{:.2e}", v).parse::<f64>().unwrap_or(v)
+    let nearest = format!("{:.2e}", v).parse::<f64>().unwrap_or(v);
+    // Exact tie: the 4th significant digit is 5 and every later digit of the exact expansion is 0. The 20-digit
+    // check is cheap; only a candidate pays for the exact expansion (a double has at most 767 significant digits).
+    let is_tie = |text: &str| {
+        let mantissa = text.split('e').next().unwrap_or("");
+        mantissa.len() > 5 && mantissa.as_bytes()[4] == b'5' && mantissa[5..].bytes().all(|b| b == b'0')
+    };
+    let abs = v.abs();
+    if !is_tie(&format!("{abs:.20e}")) || !is_tie(&format!("{abs:.800e}")) {
+        return nearest;
+    }
+    let wide = format!("{abs:.3e}");
+    let (mantissa, exp) = wide.split_once('e').unwrap_or(("", "0"));
+    let (Ok(digits), Ok(mut exp)) = (mantissa.replace('.', "")[..3].parse::<u32>(), exp.parse::<i32>()) else { return nearest };
+    let mut up = digits + 1;
+    if up == 1000 {
+        up = 100;
+        exp += 1;
+    }
+    let sign = if v < 0.0 { "-" } else { "" };
+    format!("{sign}{}.{:02}e{exp}", up / 100, up % 100).parse::<f64>().unwrap_or(nearest)
 }
 
 fn value_text(v: f64) -> String {
@@ -509,6 +538,7 @@ pub struct PopulationRow {
 pub struct PopulationQuery {
     pub rows: Vec<PopulationRow>,
     pub contributors: usize,
+    /// True when some stored rows of this cell were not returned (per-contributor caps or the global row limit).
     pub truncated: bool,
 }
 
@@ -516,18 +546,98 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
     if ![product, metric, method_key].iter().all(|s| is_id(s)) {
         return Err(PackError::new("bad_id", "Invalid product, metric or method"));
     }
+    // One voice per contributor (spec section 6): caps are applied per contributor BEFORE the global limit, and the
+    // global limit then takes rows round-robin across contributors, so no contributor token, however it sorts and
+    // however many rows or method versions it imported, can push other contributors out of the comparison.
+    //  - per (contributor, method version): only the rows nearest the middle rank are kept, in a window symmetric around
+    //    it, so the median `population.js` takes per contributor is unchanged;
+    //  - per contributor: the newest MAX_POP_VERSIONS_PER_CONTRIBUTOR method versions;
+    //  - globally: by "pair rank" (distance from the middle, then version, newest first) and then contributor, so every
+    //    contributor's median rows are read before any contributor's outer rows.
+    // The scan reads the cell in (contributor, version, value, row_hash) order, as before; only kept rows are held.
     let mut stmt = conn.prepare(
-        "SELECT contributor, product_key, metric_key, method_key, method_version, value, unit FROM reference_sample
+        "SELECT contributor, method_version, value, unit FROM reference_sample
          WHERE product_key = ?1 AND metric_key = ?2 AND method_key = ?3
-         ORDER BY contributor, method_version, value, row_hash LIMIT ?4",
+         ORDER BY contributor, method_version, value, row_hash",
     )?;
-    let mapped = stmt.query_map(params![product, metric, method_key, (MAX_ROWS + 1) as i64], |r| {
-        Ok(PopulationRow { contributor: r.get(0)?, product: r.get(1)?, metric: r.get(2)?, method: MethodRef { key: r.get(3)?, version: r.get(4)? }, value: r.get(5)?, unit: r.get(6)? })
-    })?;
-    let mut rows = mapped.collect::<rusqlite::Result<Vec<_>>>()?;
-    let truncated = rows.len() > MAX_ROWS;
-    rows.truncate(MAX_ROWS);
-    let contributors = rows.iter().map(|r| r.contributor.as_str()).collect::<HashSet<_>>().len();
+    struct Kept {
+        seq: usize,
+        contributor: usize,
+        version: i64,
+        value: f64,
+        unit: String,
+        pair_rank: usize,
+    }
+    let mut tokens: Vec<String> = Vec::new();
+    let mut kept: Vec<Kept> = Vec::new();
+    // The current contributor's finished version groups (oldest dropped past the cap), and the open group.
+    let mut versions: std::collections::VecDeque<Vec<(Kept, usize)>> = std::collections::VecDeque::new();
+    let mut group: Vec<(usize, f64, String)> = Vec::new();
+    let mut group_version = 0i64;
+    let mut total = 0usize;
+    fn close_group(group: &mut Vec<(usize, f64, String)>, version: i64, contributor: usize, versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>) {
+        if group.is_empty() {
+            return;
+        }
+        let n = group.len();
+        let window: Vec<(Kept, usize)> = group
+            .drain(..)
+            .enumerate()
+            .filter_map(|(i, (seq, value, unit))| {
+                let d = (2 * (i + 1)).abs_diff(n + 1);
+                (d < MAX_POP_WINDOW).then_some((Kept { seq, contributor, version, value, unit, pair_rank: 0 }, d))
+            })
+            .collect();
+        versions.push_back(window);
+        if versions.len() > MAX_POP_VERSIONS_PER_CONTRIBUTOR {
+            versions.pop_front();
+        }
+    }
+    fn close_contributor(versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>, kept: &mut Vec<Kept>) {
+        let mut rows: Vec<(Kept, usize)> = versions.drain(..).flatten().collect();
+        rows.sort_by(|a, b| a.1.cmp(&b.1).then(b.0.version.cmp(&a.0.version)).then(a.0.seq.cmp(&b.0.seq)));
+        let mut rank = 0usize;
+        let mut last: Option<(usize, i64)> = None;
+        for (mut row, d) in rows {
+            if last != Some((d, row.version)) {
+                rank += 1;
+                last = Some((d, row.version));
+            }
+            row.pair_rank = rank;
+            kept.push(row);
+        }
+    }
+    let mut rows = stmt.query(params![product, metric, method_key])?;
+    while let Some(r) = rows.next()? {
+        let contributor = r.get_ref(0)?.as_str().map_err(rusqlite::Error::from)?;
+        let version: i64 = r.get(1)?;
+        if tokens.last().map(String::as_str) != Some(contributor) {
+            if let Some(current) = tokens.len().checked_sub(1) {
+                close_group(&mut group, group_version, current, &mut versions);
+                close_contributor(&mut versions, &mut kept);
+            }
+            tokens.push(contributor.to_string());
+            group_version = version;
+        } else if version != group_version {
+            close_group(&mut group, group_version, tokens.len() - 1, &mut versions);
+            group_version = version;
+        }
+        group.push((total, r.get(2)?, r.get(3)?));
+        total += 1;
+    }
+    if let Some(current) = tokens.len().checked_sub(1) {
+        close_group(&mut group, group_version, current, &mut versions);
+        close_contributor(&mut versions, &mut kept);
+    }
+    kept.sort_by(|a, b| a.pair_rank.cmp(&b.pair_rank).then(a.seq.cmp(&b.seq)));
+    kept.truncate(MAX_ROWS);
+    kept.sort_by_key(|k| k.seq);
+    let truncated = total > kept.len();
+    let contributors = kept.iter().map(|k| k.contributor).collect::<HashSet<_>>().len();
+    let rows = kept
+        .into_iter()
+        .map(|k| PopulationRow { contributor: tokens[k.contributor].clone(), product: product.to_string(), metric: metric.to_string(), method: MethodRef { key: method_key.to_string(), version: k.version }, value: k.value, unit: k.unit })
+        .collect();
     Ok(PopulationQuery { rows, contributors, truncated })
 }
 
@@ -663,9 +773,13 @@ pub struct UnitValues {
     pub skipped_unit: usize,
     /// Measurements that could not be attributed to exactly one unit.
     pub skipped_unattributed: usize,
+    /// True when values were left out to stay under the row cap (oldest history first; a whole unit only when there
+    /// are more than MAX_UNIT_ROWS (unit, metric) pairs).
+    pub truncated: bool,
 }
 
-/// Measured values per unit (asset) for whitelisted metrics, oldest first, newest 50 per (unit, metric).
+/// Measured values per unit (asset) for whitelisted metrics, oldest first, newest 50 per (unit, metric), at most
+/// MAX_UNIT_ROWS in all (see `truncated`).
 /// Attribution: the run's own `assetId`/`deviceId`, or else the only profiled unit in the run's setup.
 /// Measurements with quality flags or a non-measured origin are left out (AC: passing quality only).
 pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
@@ -693,21 +807,37 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
     let mut names: Vec<&String> = table.keys().collect();
     names.sort();
     let marks = vec!["?"; names.len()].join(",");
+    // Newest MAX_UNIT_ROWS_PER_PAIR per (attribution source, metric, unit) BEFORE any overall limit: attribution is a
+    // function of (direct id, setup), so this keeps every unit's newest values however many newer measurements
+    // other units have. The overall LIMIT is only a safety net, and hitting it sets `truncated`.
     let sql = format!(
-        "SELECT m.metric_key, am.key, am.version, m.unit, m.numeric_value, s.started_at, s.setup_id,
-                COALESCE(json_extract(CASE WHEN json_valid(s.config_snapshot_json) THEN s.config_snapshot_json ELSE '{{}}' END, '$.assetId'),
-                         json_extract(CASE WHEN json_valid(s.config_snapshot_json) THEN s.config_snapshot_json ELSE '{{}}' END, '$.deviceId'))
-         FROM measurement m JOIN session s ON s.id = m.session_id JOIN analysis_method am ON am.id = m.method_id
-         WHERE m.numeric_value IS NOT NULL AND m.state = 'measured' AND m.quality_flags_json = '[]' AND m.metric_key IN ({marks})
-         ORDER BY s.started_at DESC, m.id DESC LIMIT {limit}",
-        limit = MAX_UNIT_ROWS * 5
+        "WITH base AS (
+           SELECT m.metric_key, am.key AS method_key, am.version, m.unit, m.numeric_value, s.started_at, s.setup_id, m.id AS mid,
+                  COALESCE(json_extract(CASE WHEN json_valid(s.config_snapshot_json) THEN s.config_snapshot_json ELSE '{{}}' END, '$.assetId'),
+                           json_extract(CASE WHEN json_valid(s.config_snapshot_json) THEN s.config_snapshot_json ELSE '{{}}' END, '$.deviceId')) AS direct
+           FROM measurement m JOIN session s ON s.id = m.session_id JOIN analysis_method am ON am.id = m.method_id
+           WHERE m.numeric_value IS NOT NULL AND m.state = 'measured' AND m.quality_flags_json = '[]' AND m.metric_key IN ({marks})
+         ), ranked AS (
+           SELECT *, ROW_NUMBER() OVER (PARTITION BY direct, setup_id, metric_key, unit ORDER BY started_at DESC, mid DESC) AS rn FROM base
+         )
+         SELECT metric_key, method_key, version, unit, numeric_value, started_at, setup_id, direct FROM ranked
+         WHERE rn <= {per_pair} ORDER BY started_at DESC, mid DESC LIMIT {limit}",
+        per_pair = MAX_UNIT_ROWS_PER_PAIR,
+        limit = MAX_UNIT_ROWS * 5 + 1
     );
     let mut stmt = conn.prepare(&sql)?;
     let mut skipped_unit = 0usize;
     let mut skipped_unattributed = 0usize;
     let mut by_pair: BTreeMap<(String, String), Vec<UnitValue>> = BTreeMap::new();
     let mut rows = stmt.query(rusqlite::params_from_iter(names.iter().map(|s| s.as_str())))?;
+    let mut read = 0usize;
+    let mut truncated = false;
     while let Some(r) = rows.next()? {
+        read += 1;
+        if read > MAX_UNIT_ROWS * 5 {
+            truncated = true;
+            break;
+        }
         let metric: String = r.get(0)?;
         let (method_key, method_version): (String, i64) = (r.get(1)?, r.get(2)?);
         let unit: Option<String> = r.get(3)?;
@@ -731,16 +861,38 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         let (nickname, product_key) = assets[&asset_id].clone();
         by_pair.entry((asset_id.clone(), metric.clone())).or_default().push(UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at });
     }
-    let mut out = Vec::new();
-    for (_, mut list) in by_pair {
-        list.reverse(); // the query is newest first; callers get oldest first
-        if list.len() > MAX_UNIT_ROWS_PER_PAIR {
-            list.drain(..list.len() - MAX_UNIT_ROWS_PER_PAIR);
+    // Each list is newest first. Keep the newest MAX_UNIT_ROWS_PER_PAIR per (unit, metric); if the total is still over
+    // MAX_UNIT_ROWS, share the cap round-robin (every pair's newest value before any pair's second), so the cut drops
+    // old history evenly instead of whole units, and say so with `truncated`.
+    let mut lists: Vec<Vec<UnitValue>> = by_pair.into_values().collect();
+    for list in &mut lists {
+        list.truncate(MAX_UNIT_ROWS_PER_PAIR);
+    }
+    if lists.iter().map(Vec::len).sum::<usize>() > MAX_UNIT_ROWS {
+        truncated = true;
+        let mut keep = vec![0usize; lists.len()];
+        let mut budget = MAX_UNIT_ROWS;
+        'fill: for depth in 0..MAX_UNIT_ROWS_PER_PAIR {
+            for (i, list) in lists.iter().enumerate() {
+                if budget == 0 {
+                    break 'fill;
+                }
+                if list.len() > depth {
+                    keep[i] += 1;
+                    budget -= 1;
+                }
+            }
         }
+        for (list, k) in lists.iter_mut().zip(keep) {
+            list.truncate(k);
+        }
+    }
+    let mut out = Vec::new();
+    for mut list in lists {
+        list.reverse(); // callers get oldest first
         out.extend(list);
     }
-    out.truncate(MAX_UNIT_ROWS);
-    Ok(UnitValues { rows: out, skipped_unit, skipped_unattributed })
+    Ok(UnitValues { rows: out, skipped_unit, skipped_unattributed, truncated })
 }
 
 // ------------------------------------------------------------------ commands
@@ -1313,5 +1465,175 @@ mod tests {
         assert_eq!(v.skipped_unit, 1, "unit mismatch is never converted");
         assert!(v.rows.iter().all(|r| r.product_key == "profile-tt" && r.method_key == r.metric && r.method_version == 1));
         assert_eq!(unit_values(&c).unwrap(), v, "same input twice, same output");
+    }
+
+    // Shared with the JS regression test in tests/pack-population.test.mjs: raw exact binary ties and what the preview
+    // (JS `Number(v.toPrecision(3))`, half away from zero) shows for them.
+    const TIES: [(&str, f64, f64); 7] = [
+        ("channel_separation_db", 31.25, 31.3),
+        ("wow_flutter_rms_percent", 1.125, 1.13),
+        ("left_hum_dbfs", -62.25, -62.3),
+        ("dropout_count", 100.5, 101.0),
+        ("dropout_count", 1005.0, 1010.0),
+        ("channel_separation_db", 10.25, 10.3),
+        ("channel_separation_db", 12.25, 12.3),
+    ];
+
+    #[test]
+    fn regression_round_sig3_ties_match_the_js_preview() {
+        for (_, raw, shown) in TIES {
+            assert_eq!(round_sig3(raw), shown, "tie {raw} rounds like toPrecision(3)");
+            assert_eq!(round_sig3(shown), shown, "already-rounded {shown} is left alone");
+            assert_eq!(round_sig3(-raw), -shown, "ties round away from zero for negatives too");
+        }
+        // Not ties: the exact double just below/above x.xx5 rounds to the nearest value as before.
+        assert_eq!(round_sig3(9.995), 9.99);
+        assert_eq!(round_sig3(31.250000000000004), 31.3);
+        assert_eq!(round_sig3(31.249999999999996), 31.2);
+        // Carry into the next decade.
+        assert_eq!(round_sig3(9.995_f64.next_up()), 10.0);
+        assert_eq!(round_sig3(999.5), 1000.0);
+        assert_eq!(round_sig3(0.0009995), 0.000999, "0.0009995 is not an exact tie in binary");
+
+        // The written file equals the previewed document, whether the bridge sends raw or already-rounded rows.
+        for values in [TIES.map(|(m, raw, _)| (m, raw)), TIES.map(|(m, _, shown)| (m, shown))] {
+            let rows: Vec<Value> = values.iter().map(|(m, v)| row("plx", m, *v)).collect();
+            let sel: ExportSelection = serde_json::from_value(selection(rows)).unwrap();
+            let (_, text) = build_export(&sel).unwrap();
+            let written: Value = serde_json::from_str(&text).unwrap();
+            let previewed = json!({
+                "format": "deckchek-pack", "version": 1, "packId": "pack-out", "createdMonth": "2026-10",
+                "appVersion": env!("CARGO_PKG_VERSION"), "contributor": "token-1",
+                "rows": TIES.iter().map(|(m, _, shown)| row("plx", m, *shown)).collect::<Vec<_>>(),
+            });
+            assert_eq!(written, previewed);
+        }
+    }
+
+    fn insert_samples(c: &Connection, pack_id: &str, rows: impl Iterator<Item = (String, i64, f64)>) {
+        c.execute("INSERT INTO reference_pack(id, source_label, imported_at, row_count, sha256) VALUES (?1, NULL, 't', 0, 'x')", params![pack_id]).unwrap();
+        c.execute_batch("BEGIN").unwrap();
+        {
+            let mut stmt = c
+                .prepare("INSERT INTO reference_sample(id, pack_id, contributor, product_key, metric_key, method_key, method_version, value, unit, row_hash) VALUES (?1, ?2, ?3, 'plx', 'dropout_count', 'dropout_count', ?4, ?5, 'regions', ?1)")
+                .unwrap();
+            for (i, (contributor, version, value)) in rows.enumerate() {
+                stmt.execute(params![format!("{pack_id}-{i}"), pack_id, contributor, version, value]).unwrap();
+            }
+        }
+        c.execute_batch("COMMIT").unwrap();
+    }
+
+    #[test]
+    fn regression_population_query_one_contributor_cannot_crowd_out_honest_contributors() {
+        let c = mem();
+        // One hostile token that sorts before every real one, with more rows than the global limit (distinct versions).
+        insert_samples(&c, "hostile", (0..(MAX_ROWS as i64 + 10)).map(|i| ("-".to_string(), i + 1, (i % 1000) as f64)));
+        // Sybil tokens that also sort first, each filling its own per-contributor share.
+        insert_samples(&c, "sybil", (0..250 * 1100).map(|i| (format!("-s{:03}", i / 1100), 1 + (i % 7) as i64, (i % 1100) as f64)));
+        // 25 honest contributors with one row each, and one honest contributor with many rows.
+        insert_samples(&c, "honest", (0..25).map(|i| (format!("c{i:02}"), 1, 10.0 + i as f64)));
+        insert_samples(&c, "big", (0..2001).map(|i| ("cbig".to_string(), 1, i as f64)));
+        let q = query_population(&c, "plx", "dropout_count", "dropout_count").unwrap();
+        assert!(q.truncated, "rows were dropped, so the result says so");
+        assert_eq!(q.rows.len(), MAX_ROWS, "the global limit was reached, so the round-robin share decided");
+        let honest: HashSet<&str> = q.rows.iter().map(|r| r.contributor.as_str()).filter(|t| t.starts_with('c')).collect();
+        assert_eq!(honest.len(), 26, "every honest contributor survives the limit");
+        assert_eq!(q.contributors, 1 + 250 + 26);
+        let mut big: Vec<f64> = q.rows.iter().filter(|r| r.contributor == "cbig").map(|r| r.value).collect();
+        big.sort_by(f64::total_cmp);
+        assert!(big.len() < 2001, "one contributor's rows are capped");
+        assert_eq!(big[big.len() / 2], 1000.0, "the kept window is centred, so the contributor's median is unchanged");
+        assert_eq!(big.len() % 2, 1, "symmetric window around the median of an odd count");
+        let per: HashMap<&str, usize> = q.rows.iter().fold(HashMap::new(), |mut m, r| {
+            *m.entry(r.contributor.as_str()).or_default() += 1;
+            m
+        });
+        assert!(per["-"] <= MAX_POP_WINDOW * MAX_POP_VERSIONS_PER_CONTRIBUTOR, "the hostile token gets one share, not the whole limit");
+        assert_eq!(query_population(&c, "plx", "dropout_count", "dropout_count").unwrap(), q, "deterministic");
+        // Small cells are untouched and not marked truncated.
+        let small = mem();
+        insert_samples(&small, "p", (0..5).map(|i| (format!("t{i}"), 1, i as f64)));
+        let s = query_population(&small, "plx", "dropout_count", "dropout_count").unwrap();
+        assert_eq!((s.rows.len(), s.contributors, s.truncated), (5, 5, false));
+    }
+
+    fn seed_many_units(c: &Connection, units: usize, runs: usize) {
+        c.execute_batch(
+            "INSERT INTO product(id,category,model,created_at,updated_at) VALUES('prod-tt','turntable','TT','t','t');
+             INSERT INTO device_profile(id,product_id,json,loaded_at) VALUES('profile-tt','prod-tt','{}','t');
+             BEGIN;",
+        )
+        .unwrap();
+        let metrics: Vec<String> = {
+            let mut m: Vec<String> = metric_table().keys().cloned().collect();
+            m.sort();
+            m
+        };
+        for (i, m) in metrics.iter().enumerate() {
+            c.execute("INSERT INTO analysis_method(id,key,version,description,created_at) VALUES(?1,?2,1,'x','t')", params![format!("m{i}"), m]).unwrap();
+        }
+        let mut ins = c.prepare("INSERT INTO measurement(id,session_id,method_id,metric_key,state,numeric_value,unit,quality_flags_json,created_at) VALUES(?1,?2,?3,?4,'measured',?5,?6,'[]','t')").unwrap();
+        for u in 0..units {
+            c.execute("INSERT INTO asset(id,product_id,nickname,serial_number,created_at,updated_at) VALUES(?1,'prod-tt',?1,NULL,'t','t')", params![format!("u{u:03}")]).unwrap();
+            for r in 0..runs {
+                let sid = format!("s{u:03}-{r:03}");
+                c.execute(
+                    "INSERT INTO session(id,session_type,setup_id,started_at,app_version,schema_version,status,config_snapshot_json) VALUES(?1,'speed',NULL,?2,'0',1,'completed',?3)",
+                    params![sid, format!("2026-{:02}-{:02}T{:02}:00:00Z", 1 + u % 12, 1 + r % 28, r % 24), format!("{{\"assetId\":\"u{u:03}\"}}")],
+                )
+                .unwrap();
+                for (i, m) in metrics.iter().enumerate() {
+                    let unit = &metric_table()[m].unit;
+                    ins.execute(params![format!("{sid}-{i}"), sid, format!("m{i}"), m, (r % 10) as f64, unit]).unwrap();
+                }
+            }
+        }
+        drop(ins);
+        c.execute_batch("COMMIT").unwrap();
+    }
+
+    #[test]
+    fn regression_unit_values_never_drop_whole_units_at_the_row_cap() {
+        let c = mem();
+        let units = 40; // 40 units x 13 metrics x 50 runs = 26,000 rows, above MAX_UNIT_ROWS
+        seed_many_units(&c, units, MAX_UNIT_ROWS_PER_PAIR);
+        let v = unit_values(&c).unwrap();
+        assert!(v.truncated, "the cap was hit, so the result says so");
+        assert!(v.rows.len() <= MAX_UNIT_ROWS);
+        let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
+        assert_eq!(assets.len(), units, "every unit is still in the picker, the sibling ranking and the export");
+        let pairs: HashSet<(&str, &str)> = v.rows.iter().map(|r| (r.asset_id.as_str(), r.metric.as_str())).collect();
+        assert_eq!(pairs.len(), units * metric_table().len(), "every (unit, metric) keeps its latest value");
+        // Rows stay grouped per (unit, metric), oldest first, and the newest run is the one kept last.
+        for w in v.rows.windows(2) {
+            if (w[0].asset_id.as_str(), w[0].metric.as_str()) == (w[1].asset_id.as_str(), w[1].metric.as_str()) {
+                assert!(w[0].at <= w[1].at);
+            }
+        }
+        let small = mem();
+        seed_many_units(&small, 2, 3);
+        assert!(!unit_values(&small).unwrap().truncated);
+    }
+
+    #[test]
+    fn regression_unit_values_old_units_survive_many_newer_measurements() {
+        let c = mem();
+        seed_units(&c); // a1 and a2, measured in early October 2026
+        c.execute_batch("INSERT INTO asset(id,product_id,nickname,serial_number,created_at,updated_at) VALUES('busy','prod-tt','Busy','SN-9','t','t'); BEGIN;").unwrap();
+        {
+            let mut s = c.prepare("INSERT INTO session(id,session_type,setup_id,started_at,app_version,schema_version,status,config_snapshot_json) VALUES(?1,'speed',NULL,?2,'0',1,'completed','{\"assetId\":\"busy\"}')").unwrap();
+            let mut m = c.prepare("INSERT INTO measurement(id,session_id,method_id,metric_key,state,numeric_value,unit,quality_flags_json,created_at) VALUES(?1,?2,'m-wf','wow_flutter_rms_percent','measured',0.2,'%','[]','t')").unwrap();
+            for r in 0..(MAX_UNIT_ROWS * 5 + 10) {
+                let sid = format!("busy-{r:06}");
+                s.execute(params![sid, format!("2026-11-01T00:00:00.{r:06}Z")]).unwrap();
+                m.execute(params![format!("bm-{r:06}"), sid]).unwrap();
+            }
+        }
+        c.execute_batch("COMMIT").unwrap();
+        let v = unit_values(&c).unwrap();
+        let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
+        assert_eq!(assets, HashSet::from(["a1", "a2", "busy"]), "older units are not pushed out by a busy one");
+        assert_eq!(v.rows.iter().filter(|r| r.asset_id == "busy").count(), MAX_UNIT_ROWS_PER_PAIR);
     }
 }

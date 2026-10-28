@@ -63,13 +63,19 @@ export function createPackApi({ api = tauri(), appState = createAppState(), fetc
       const metricRegistry = createMetricRegistry(await api2.metricTable());
       return buildPack({ rows: rows.map(exportRow), appVersion, contributor: contributor ?? await api2.contributor(), packId, createdMonth }, { metricRegistry });
     },
-    /** Save dialog, then Rust re-validates the selection against the whitelist and writes the file. */
+    /**
+     * Save dialog, then Rust re-validates the selection against the whitelist and writes the file. The rows sent are the
+     * previewed rows, already rounded by `buildPack` (one rounding rule, in one place); Rust's round_sig3 leaves an
+     * already-rounded value unchanged, so the file holds exactly the values the preview showed.
+     */
     async savePack(rows, { packId, createdMonth, contributor } = {}) {
       const save = api?.dialog?.save;
       if (!save) throw new Error('The save dialog is not available.');
       const path = await save({ defaultPath: `DeckChek-population.${PACK_EXT}`, filters: [{ name: 'DeckChek pack', extensions: [PACK_EXT] }] });
       if (!path) return { cancelled: true };
-      const selection = { packId, createdMonth, contributor: contributor ?? await api2.contributor(), rows: rows.map(exportRow) };
+      const token = contributor ?? await api2.contributor();
+      const shown = await api2.buildPreview(rows, { contributor: token, packId, createdMonth });
+      const selection = { packId, createdMonth, contributor: token, rows: shown.rows.map(exportRow) };
       for (const key of Object.keys(selection)) if (selection[key] === undefined) delete selection[key];
       return { cancelled: false, ...(await call('pack_export', { selection, path })) };
     },
