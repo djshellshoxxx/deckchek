@@ -63,6 +63,18 @@ export function buildExport(model, target, { name, author = 'DeckChek', scripts 
   }
 }
 
+// Downloads and the save dialog cut a file stem at 80 characters (userfiles sanitizeFileStem). The longest names
+// built from the mapping name are 'force-<stem> - Devices' (VirtualDJ, flattened for download), '<stem>-scripts'
+// (Mixxx) and '<stem> Traktor report', so a stem of at most 64 characters survives intact and the .midi.xml
+// extension and the script file named inside the XML still match.
+export const DOWNLOAD_NAME_MAX = 64;
+
+/** Mapping name used for exported file names that pass through a download or save dialog. */
+export function downloadSafeName(name) {
+  const n = String(name ?? '');
+  return n.length > DOWNLOAD_NAME_MAX ? n.slice(0, DOWNLOAD_NAME_MAX).trimEnd() : n;
+}
+
 /** Per-control problem words for the list (never colour alone): {id: 'Conflict' | 'Error' | 'Check'}. */
 export function rowFlags(validation) {
   const out = {};
@@ -657,7 +669,9 @@ export function createMapperScreen(section) {
 
   function currentExport() {
     if (!st.model) return null;
-    const name = nameInput.value || st.model.name;
+    const full = nameInput.value || st.model.name;
+    // Browser downloads (and the report's save dialog) shorten long names; the desktop folder save keeps them whole.
+    const name = !isNative() || st.target === 'serato' || st.target === 'traktor' ? downloadSafeName(full) : full;
     const key = [st.model, st.target, name, st.scripts, st.force];
     if (!sameKey(key, memo.exKey)) { memo.ex = buildExport({ ...st.model, name }, st.target, { name, scripts: st.scripts, force: st.force }); memo.exKey = key; }
     return memo.ex;
