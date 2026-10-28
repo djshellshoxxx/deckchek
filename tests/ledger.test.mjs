@@ -219,6 +219,7 @@ test('AC-3 the page is self-contained: CSP blocks network, no external URLs, inl
   assert.match(INTEGRITY_NOTE, /not proof/);
   for (const m of html.matchAll(/<img [^>]*>/g)) assert.match(m[0], /alt="[^"]+"/, 'every image has alt text');
   assert.match(previewHtml(r, 'dark'), /<html lang="en" class="theme-dark">/);
+  assert.ok(!previewHtml(r, 'light').includes('lpMain'), 'the sandboxed preview carries no script');
   assert.ok(previewHtml(r, 'light').includes('data:image/jpeg;base64,'));
   // unsafe photo sources are dropped
   const bad = renderLedgerHtml({ ...r.ledger, items: [{ ...r.ledger.items[0], photos: [{ path: 'x', alt: 'a', width: 1, height: 1 }] }] }, { photoSrc: () => 'https://evil.example/x.jpg' });

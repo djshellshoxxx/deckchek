@@ -87,7 +87,7 @@ export function matchesPreset(rules) {
   const p = PRESETS[rules?.preset];
   if (!p) return false;
   return rules.serialMode === p.serialMode && FIELD_KEYS.every(k => rules.fields[k] === p.fields[k])
-    && Object.values(rules.items || {}).every(o => o.serialMode === undefined && !o.fields);
+    && Object.values(rules.items || {}).every(o => o.serialMode === undefined && !(o.fields && Object.keys(o.fields).length));
 }
 
 /** {serialMode, fields} for one item: per-item overrides win over the global toggles. */

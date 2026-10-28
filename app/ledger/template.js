@@ -269,9 +269,10 @@ ${json.length <= MAX_INLINE_CERT_CHARS ? `<details><summary>Certificate JSON</su
 /**
  * The ledger page. `photoSrc(photo, item, n)` -> 'assets/<id>/pN.jpg' (folder) or a data:image/jpeg URI (single file,
  * preview); anything else is dropped. `theme` 'auto' (exports) or 'light'/'dark' (in-app preview). `certLinks` adds a
- * link to each certificate's own JSON file (folder mode only).
+ * link to each certificate's own JSON file (folder mode only). `script: false` leaves out the verification script (the
+ * in-app preview runs in a sandbox without scripts, so it would only be blocked there).
  */
-export function renderLedgerHtml(ledger, { photoSrc = p => p.path, theme = 'auto', certLinks = false } = {}) {
+export function renderLedgerHtml(ledger, { photoSrc = p => p.path, theme = 'auto', certLinks = false, script = true } = {}) {
   const items = Array.isArray(ledger?.items) ? ledger.items : [];
   const owner = ledger?.owner?.displayName;
   const title = owner ? `Gear ledger of ${owner}` : 'Gear ledger';
@@ -308,8 +309,7 @@ ${body || '<p>This ledger has no items.</p>'}
 <footer><p>Made with DeckChek. A static page: no tracking, no external requests. It is a record kept by the owner; serial numbers may be masked or hidden on purpose.</p>
 <noscript><p>Certificate checks need scripts; everything else on this page works without them.</p></noscript></footer>
 <script type="application/json" id="ledger-data">${embedJson(ledger)}</script>
-<script>${PAGE_SCRIPT}</script>
-</body>
+${script ? `<script>${PAGE_SCRIPT}</script>\n` : ''}</body>
 </html>
 `;
 }

@@ -172,7 +172,7 @@ export async function buildLedger(state, selection, privacy, { revision = 1, gen
 /** In-app preview HTML: photos inline as data URIs, light or dark forced (spec §3 step 3). */
 export function previewHtml(result, theme = 'light') {
   const uris = new Map([...result.photoFiles.values()].flat().map(f => [f.path, `data:image/jpeg;base64,${bytesToBase64(f.bytes)}`]));
-  return renderLedgerHtml(result.ledger, { photoSrc: p => uris.get(p.path), theme });
+  return renderLedgerHtml(result.ledger, { photoSrc: p => uris.get(p.path), theme, script: false });
 }
 
 /**
