@@ -220,7 +220,7 @@ fn tasklist_output() -> Result<String, String> {
     use std::os::windows::process::CommandExt;
     use std::process::Command;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let mut cmd = Command::new("tasklist.exe");
+    let mut cmd = Command::new(crate::system_check::system_exe("tasklist.exe"));
     cmd.args(["/FO", "CSV", "/NH"]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     crate::system_check::run_with_timeout(cmd, TIMEOUT)
@@ -246,7 +246,7 @@ fn cpu_output() -> Result<String, String> {
             $dt=[double]$_.Timestamp_Sys100NS - [double]$x.Timestamp_Sys100NS; \
             if ($dt -gt 0) { [pscustomobject]@{ Name=$_.Name; Cpu=[math]::Round(100.0*([double]$_.PercentProcessorTime - [double]$x.PercentProcessorTime)/$dt, 2).ToString($inv) } } } } | \
         ConvertTo-Csv -NoTypeInformation";
-    let mut cmd = Command::new("powershell.exe");
+    let mut cmd = Command::new(crate::system_check::system_exe("powershell.exe"));
     cmd.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", SCRIPT]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     crate::system_check::run_with_timeout(cmd, TIMEOUT)
