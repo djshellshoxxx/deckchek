@@ -150,10 +150,10 @@ pub fn fuzz_workspace_import(data: &[u8]) {
 
 /// Canonical JSON: output is canonical, idempotent and hash-stable.
 pub fn fuzz_canonical(data: &[u8]) {
-    let Ok(v) = serde_json::from_slice::<Value>(data) else { return };
+    let Ok(v) = canonical::parse_json_bytes(data) else { return };
     if let Ok(s) = canonical::canonical_json(&v) {
         assert!(canonical::is_canonical(&s), "canonical output not recognised as canonical");
-        let back: Value = serde_json::from_str(&s).expect("canonical output parses");
+        let back = canonical::parse_json(&s).expect("canonical output parses");
         assert_eq!(canonical::canonical_json(&back).expect("re-canonicalise"), s, "canonical form not idempotent");
     }
     let _ = canonical::is_canonical(&text(data));

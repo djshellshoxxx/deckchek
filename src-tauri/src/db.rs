@@ -195,6 +195,20 @@ pub fn open_database(path: &Path) -> Result<DbConn, String> {
     Ok(DbConn { conn, _gate: guard })
 }
 
+/// Owned copy of a column value that never panics. rusqlite's own `ValueRef -> Value` conversion
+/// panics on TEXT that is not UTF-8, which a restored or hand-edited database can hold; here such
+/// text is decoded lossily (U+FFFD) instead.
+pub fn owned_value(v: rusqlite::types::ValueRef<'_>) -> rusqlite::types::Value {
+    use rusqlite::types::{Value, ValueRef};
+    match v {
+        ValueRef::Null => Value::Null,
+        ValueRef::Integer(i) => Value::Integer(i),
+        ValueRef::Real(f) => Value::Real(f),
+        ValueRef::Text(t) => Value::Text(String::from_utf8_lossy(t).into_owned()),
+        ValueRef::Blob(b) => Value::Blob(b.to_vec()),
+    }
+}
+
 /// Runs the body of a database command off the main (UI) thread (AUD-03).
 ///
 /// Tauri 2 runs a non-async `#[tauri::command]` on the main thread, so a command that

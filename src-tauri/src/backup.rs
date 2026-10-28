@@ -398,7 +398,7 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
     let rows = |sql: &str, arg: &str| -> rusqlite::Result<Vec<Vec<Sql>>> {
         let mut st = conn.prepare(sql)?;
         let n = st.column_count();
-        let it = st.query_map([arg], |r| (0..n).map(|i| r.get(i)).collect::<rusqlite::Result<Vec<_>>>())?;
+        let it = st.query_map([arg], |r| (0..n).map(|i| r.get_ref(i).map(db::owned_value)).collect::<rusqlite::Result<Vec<_>>>())?;
         it.collect()
     };
     let objects = rows("SELECT type, name, tbl_name FROM sqlite_master WHERE substr(name, 1, 7) <> ?1 ORDER BY type, name", "sqlite_")?;
@@ -433,6 +433,30 @@ fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
     db::apply_migrations(&template).map_err(|e| BackupError::new("migration_failed", format!("Preparing the schema check failed: {e}. Your current data was not changed.")))?;
     if schema_shape(conn).map_err(unreadable)? != schema_shape(&template).map_err(unreadable)? {
         return Err(BackupError::new("unsafe_db", "The backup's database has tables, columns or indexes that DeckChek never creates, so it was refused. Your current data was not changed."));
+    }
+    Ok(())
+}
+
+/// DeckChek only ever writes UTF-8 TEXT. A backup whose rows hold other bytes was edited by hand
+/// or damaged, and every screen that reads such a row would fail after the restore, so it is
+/// refused. The tables are DeckChek's own at this point (`reject_unexpected_schema` ran first).
+fn reject_text_not_utf8(conn: &Connection) -> Result<(), BackupError> {
+    let unreadable = |_| BackupError::new("corrupt_db", "The backup's database cannot be read.");
+    let mut st = conn.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND substr(name, 1, 7) <> 'sqlite_' ORDER BY name").map_err(unreadable)?;
+    let tables = st.query_map([], |r| r.get::<_, String>(0)).map_err(unreadable)?.collect::<rusqlite::Result<Vec<_>>>().map_err(unreadable)?;
+    for table in tables {
+        let mut q = conn.prepare(&format!("SELECT * FROM \"{}\"", table.replace('"', "\"\""))).map_err(unreadable)?;
+        let n = q.column_count();
+        let mut rows = q.query([]).map_err(unreadable)?;
+        while let Some(row) = rows.next().map_err(unreadable)? {
+            for i in 0..n {
+                if let rusqlite::types::ValueRef::Text(t) = row.get_ref(i).map_err(unreadable)? {
+                    if std::str::from_utf8(t).is_err() {
+                        return Err(BackupError::new("corrupt_db", format!("The backup's database holds text in table {table} that is not valid UTF-8, so it was refused. Your current data was not changed.")));
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -1034,6 +1058,7 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
             return Err(BackupError::new("migration_failed", "The upgraded backup failed its checks. Your current data was not changed."));
         }
         reject_unexpected_schema(&conn)?;
+        reject_text_not_utf8(&conn)?;
         // backup_log paths name files of the machine and time the backup came from; they are
         // never probed or offered here (AUD-02).
         conn.execute("DELETE FROM backup_log", []).map_err(|e| sql_err("clear the restored backup log", e))?;
@@ -1813,6 +1838,33 @@ mod tests {
             assert_eq!(err.code, "unsafe_db", "{ddl}");
             assert_eq!(rows(env.live(), "session"), before, "live data untouched");
         }
+    }
+
+    #[test]
+    fn regression_restore_refuses_text_that_is_not_utf8() {
+        // Found by the backup_restore fuzz target: rusqlite panics converting such TEXT, and every
+        // screen that lists the row would fail after the restore.
+        let env = Env::new("not-utf8");
+        make_db(env.live(), "live", 2);
+        let other = env.out("other.sqlite3");
+        make_db(&other, "other", 1);
+        Connection::open(&other).unwrap().execute("UPDATE asset SET nickname = CAST(X'4465636BFF41' AS TEXT)", []).unwrap();
+        let dest = backup_of(&env, &other, "not-utf8.deckchek-backup");
+        let before = rows(env.live(), "session");
+        let err = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap_err();
+        assert_eq!(err.code, "corrupt_db");
+        assert!(err.message.contains("not valid UTF-8"), "{}", err.message);
+        assert_eq!(rows(env.live(), "session"), before, "live data untouched");
+    }
+
+    #[test]
+    fn regression_schema_shape_reads_names_that_are_not_utf8() {
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch("CREATE TABLE t (a TEXT); CREATE INDEX i ON t(a);").unwrap();
+        c.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, false).unwrap();
+        c.execute_batch("PRAGMA writable_schema=ON; UPDATE sqlite_master SET name = CAST(X'69FF' AS TEXT) WHERE name = 'i'; PRAGMA writable_schema=OFF;").unwrap();
+        let shape = schema_shape(&c).unwrap();
+        assert!(shape.iter().any(|l| l.contains('\u{FFFD}')), "{shape:?}");
     }
 
     fn settings() -> SettingsBlob {

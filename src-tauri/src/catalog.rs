@@ -215,14 +215,14 @@ fn select_list(spec: &EntitySpec) -> String {
 
 fn row_to_json(spec: &EntitySpec, row: &rusqlite::Row) -> rusqlite::Result<Value> {
     let mut m = Map::new();
-    m.insert("id".into(), from_sql(row.get::<_, Sql>(0)?));
+    m.insert("id".into(), from_sql(crate::db::owned_value(row.get_ref(0)?)));
     for (i, col) in spec.cols.iter().enumerate() {
-        m.insert(col.key.into(), from_sql(row.get::<_, Sql>(i + 1)?));
+        m.insert(col.key.into(), from_sql(crate::db::owned_value(row.get_ref(i + 1)?)));
     }
     let n = spec.cols.len();
-    m.insert("createdAt".into(), from_sql(row.get::<_, Sql>(n + 1)?));
+    m.insert("createdAt".into(), from_sql(crate::db::owned_value(row.get_ref(n + 1)?)));
     if spec.has_updated {
-        m.insert("updatedAt".into(), from_sql(row.get::<_, Sql>(n + 2)?));
+        m.insert("updatedAt".into(), from_sql(crate::db::owned_value(row.get_ref(n + 2)?)));
     }
     Ok(Value::Object(m))
 }
@@ -541,6 +541,18 @@ mod tests {
         assert!(delete(&c, Entity::Product, &pid).unwrap());
         assert!(delete(&c, Entity::Manufacturer, &mid).unwrap());
         assert!(!delete(&c, Entity::Manufacturer, &mid).unwrap());
+    }
+
+    #[test]
+    fn regression_text_that_is_not_utf8_lists_without_panicking() {
+        // A restored or hand-edited database can hold TEXT that is not UTF-8; rusqlite's Value
+        // conversion panics on it (found by the backup_restore fuzz target).
+        let mut c = mem();
+        let m = upsert(&mut c, Entity::Manufacturer, &json!({"name": "Acme"})).unwrap();
+        c.execute("UPDATE manufacturer SET name = CAST(X'41FF42' AS TEXT) WHERE id = ?1", [m["id"].as_str().unwrap()]).unwrap();
+        let rows = list(&c, Entity::Manufacturer, None).unwrap();
+        assert_eq!(rows[0]["name"], "A\u{FFFD}B");
+        assert_eq!(get(&c, Entity::Manufacturer, m["id"].as_str().unwrap()).unwrap().unwrap()["name"], "A\u{FFFD}B");
     }
 
     #[test]

@@ -168,7 +168,78 @@ pub fn canonical_sha256(value: &Value) -> Result<String, CanonicalError> {
 
 /// True when `text` parses as JSON and is already byte-for-byte its own canonical form.
 pub fn is_canonical(text: &str) -> bool {
-    serde_json::from_str::<Value>(text).ok().and_then(|v| canonical_json(&v).ok()).is_some_and(|c| c == text)
+    parse_json(text).ok().and_then(|v| canonical_json(&v).ok()).is_some_and(|c| c == text)
+}
+
+/// Parses untrusted JSON the way JavaScript's `JSON.parse` sees it: every object key is kept as
+/// written (a repeated key keeps its last value). serde_json's own `Value` parser, with the
+/// `raw_value` feature Tauri enables, replaces an object whose first key is its private token
+/// `$serde_json::private::RawValue` with the inner value, so the two languages would disagree
+/// about the same file (FUZZ-04). serde_json's nesting limit (128) still applies.
+pub fn parse_json(text: &str) -> serde_json::Result<Value> {
+    parse_json_bytes(text.as_bytes())
+}
+
+/// [`parse_json`] for bytes (invalid UTF-8 is a parse error).
+pub fn parse_json_bytes(bytes: &[u8]) -> serde_json::Result<Value> {
+    use serde::Deserialize;
+    let mut de = serde_json::Deserializer::from_slice(bytes);
+    let v = Literal::deserialize(&mut de)?;
+    de.end()?;
+    Ok(v.0)
+}
+
+struct Literal(Value);
+
+impl<'de> serde::Deserialize<'de> for Literal {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_any(LiteralVisitor).map(Literal)
+    }
+}
+
+struct LiteralVisitor;
+
+impl<'de> serde::de::Visitor<'de> for LiteralVisitor {
+    type Value = Value;
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("JSON")
+    }
+    fn visit_bool<E>(self, v: bool) -> Result<Value, E> {
+        Ok(Value::Bool(v))
+    }
+    fn visit_i64<E>(self, v: i64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_u64<E>(self, v: u64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_f64<E>(self, v: f64) -> Result<Value, E> {
+        Ok(serde_json::Number::from_f64(v).map_or(Value::Null, Value::Number))
+    }
+    fn visit_str<E>(self, v: &str) -> Result<Value, E> {
+        Ok(Value::String(v.to_owned()))
+    }
+    fn visit_string<E>(self, v: String) -> Result<Value, E> {
+        Ok(Value::String(v))
+    }
+    fn visit_unit<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
+    }
+    fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Value, A::Error> {
+        let mut out = Vec::new();
+        while let Some(Literal(v)) = seq.next_element()? {
+            out.push(v);
+        }
+        Ok(Value::Array(out))
+    }
+    fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Value, A::Error> {
+        let mut out = serde_json::Map::new();
+        while let Some(k) = map.next_key::<String>()? {
+            let Literal(v) = map.next_value()?;
+            out.insert(k, v);
+        }
+        Ok(Value::Object(out))
+    }
 }
 
 #[cfg(test)]
@@ -183,6 +254,21 @@ mod tests {
 
     fn list<'a>(v: &'a Value, key: &str) -> &'a Vec<Value> {
         v[key].as_array().unwrap_or_else(|| panic!("{key} missing"))
+    }
+
+    #[test]
+    fn regression_serde_raw_value_key_is_an_ordinary_key() {
+        // Found by the canonical fuzz target (FUZZ-04): serde_json's Value parser replaces an object
+        // whose first key is its private raw-value token with the inner value.
+        let key = "$serde_json::private::RawValue";
+        let v = parse_json(&format!("{{\"{key}\":{{\"a\":1}}}}")).unwrap();
+        assert_eq!(v.as_object().unwrap().len(), 1);
+        assert_eq!(v[key]["a"], 1);
+        let canon = canonical_json(&parse_json(&format!("{{\"b\":[1],\"{key}\":3}}")).unwrap()).unwrap();
+        assert_eq!(canon, format!("{{\"{key}\":3,\"b\":[1]}}"));
+        assert!(is_canonical(&canon));
+        assert!(parse_json("[1,").is_err());
+        assert!(parse_json("1 2").is_err());
     }
 
     #[test]

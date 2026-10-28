@@ -258,7 +258,7 @@ pub fn parse_pack(bytes: &[u8]) -> Result<ParsedPack, PackError> {
     if bytes.len() as u64 > MAX_PACK_BYTES {
         return Err(PackError::new("too_large", "Pack exceeds 5 MB"));
     }
-    let root: Value = serde_json::from_slice(bytes).map_err(|_| PackError::new("bad_json", "This is not a DeckChek pack: the file is not valid JSON"))?;
+    let root: Value = crate::canonical::parse_json_bytes(bytes).map_err(|_| PackError::new("bad_json", "This is not a DeckChek pack: the file is not valid JSON"))?;
     if !depth_ok(&root) {
         return Err(PackError::new("too_deep", "Pack nesting exceeds eight levels"));
     }
@@ -1065,6 +1065,16 @@ mod tests {
         let mut changed = good();
         changed["rows"][0]["value"] = json!(0.13);
         assert_ne!(parse_pack(&bytes(&changed)).unwrap().digest, a.digest);
+    }
+
+    #[test]
+    fn regression_pack_wrapped_in_serde_raw_value_key_is_not_a_pack() {
+        // serde_json (raw_value feature) would unwrap {"$serde_json::private::RawValue": <pack>}
+        // to the inner pack, while JavaScript sees a wrapper object (FUZZ-04).
+        let wrapped = format!("{{\"$serde_json::private::RawValue\":{}}}", serde_json::to_string(&good()).unwrap());
+        assert_eq!(code(parse_pack(wrapped.as_bytes())), "not_a_pack");
+        let escaped = format!("{{\"\\u0024serde_json::private::RawValue\":{}}}", serde_json::to_string(&good()).unwrap());
+        assert_eq!(code(parse_pack(escaped.as_bytes())), "not_a_pack");
     }
 
     #[test]
