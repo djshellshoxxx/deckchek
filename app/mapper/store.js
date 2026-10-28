@@ -3,7 +3,7 @@
 // API over localStorage (`deckchek.mapper.v1`, capped), so the studio works without the desktop app.
 // Rows: {id, assetId, profileId, name, model, createdAt, updatedAt}; list rows carry controlCount/version, no model.
 
-import { LIMITS, sanitizeModel, cleanText } from './model.js';
+import { LIMITS, sanitizeModel, cleanText, MODEL_VERSION } from './model.js';
 
 export const LOCAL_KEY = 'deckchek.mapper.v1';
 const MAX_LOCAL_MODELS = 50;
@@ -12,6 +12,23 @@ const tauri = () => globalThis.window?.__TAURI__ ?? null;
 function summary(row) {
   const { model, ...rest } = row;
   return { ...rest, version: Number(model?.version) || null, controlCount: Array.isArray(model?.controls) ? model.controls.length : 0 };
+}
+
+/** Typed refusal to overwrite a row saved by a newer DeckChek (Rust: `MAPPER_NEWER_VERSION: …`). */
+export class MapperVersionError extends Error {
+  constructor(version) {
+    super(`This mapping was saved by a newer DeckChek (model version ${version}) and is not overwritten.`);
+    this.name = 'MapperVersionError';
+    this.code = 'MAPPER_NEWER_VERSION';
+    this.version = version;
+  }
+}
+
+/** The stored model's version when `incoming` must not overwrite it, else null (mirrors mapper.rs save). */
+export function newerStoredVersion(stored, incoming) {
+  const v = Number.isInteger(stored?.version) ? stored.version : null;
+  const inc = Number.isInteger(incoming?.version) ? incoming.version : 0;
+  return v != null && (v > inc || v > MODEL_VERSION) ? v : null;
 }
 
 function newId() {
@@ -42,10 +59,17 @@ export function createMapperStore({ api = tauri(), storage = globalThis.localSto
     native: Boolean(invoke),
     async save({ id = null, assetId = null, profileId = null, name, model }) {
       const { name: n } = checkSavable({ name, model });
-      if (invoke) return invoke('mapper_model_save', { input: { id, assetId, profileId, name: n, model } });
+      if (invoke) {
+        return invoke('mapper_model_save', { input: { id, assetId, profileId, name: n, model } }).catch(e => {
+          const m = /^MAPPER_NEWER_VERSION: .*?model version (\d+)/.exec(typeof e === 'string' ? e : '');
+          throw m ? new MapperVersionError(Number(m[1])) : e;
+        });
+      }
       const rows = load();
       const now = new Date().toISOString();
       const prev = id ? rows.find(r => r.id === id) : null;
+      const newer = newerStoredVersion(prev?.model, model);
+      if (newer != null) throw new MapperVersionError(newer);
       // The browser store is capped; a new mapping past the cap is refused, never made room for by deleting one.
       if (!prev && rows.length >= MAX_LOCAL_MODELS) throw new Error(`This browser holds at most ${MAX_LOCAL_MODELS} saved mappings. Delete a saved mapping first, or export this one to a file.`);
       const row = { id: prev?.id || newId(), assetId, profileId, name: n, model, createdAt: prev?.createdAt || now, updatedAt: now };

@@ -23,9 +23,12 @@ const ENC_SUFFIX = { 'relative-two-complement': 'e2c', 'relative-offset64': 'e64
 const SUFFIX_ENC = Object.fromEntries(Object.entries(ENC_SUFFIX).map(([k, v]) => [v, k]));
 const OPTION_NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_SCRIPT_BYTES = 1024 * 1024;
+const MAX_LISTED_FILES = 5;
 /** <options> children DeckChek derives itself; any other one read with a recognised function is kept (mixxxOptions). */
 const OWN_OPTIONS = new Set(['normal', 'selectknob', 'diff', 'script-binding', 'fourteen-bit-msb', 'fourteen-bit-lsb']);
 const extraOptions = opts => (opts || []).filter(o => !OWN_OPTIONS.has(o));
+/** Options that transform the incoming value; at most one applies, so a derived selectknob/diff replaces these. */
+const VALUE_TRANSFORMS = new Set(['rot64', 'rot64inv', 'rot64fast', 'diff', 'selectknob', 'spread64', 'hercjog', 'hercjogfast', 'herc-jog', 'herc-jog-fast']);
 const hex2 = n => Number(n).toString(16).padStart(2, '0');
 
 const hex = n => `0x${Number(n).toString(16).toUpperCase().padStart(2, '0')}`;
@@ -134,6 +137,18 @@ export function exportMixxx(model, { name, author = 'DeckChek', description = ''
   const ctl = (c, status, midino, key, option, extra = []) => el('control', {}, c.label ? tx('description', c.label) : null, tx('group', key.group), tx('key', key.key), tx('status', hex(status)), tx('midino', hex(midino)),
     el('options', {}, ...(option === 'normal' && extra.length ? extra : [option, ...extra]).map(o => el(o))));
 
+  // Preserved lone note-off (0x8n) entries, by "<status>:<number>". A generated note-off twin on the same message
+  // would be a second entry for it in the file; both are written (the preserved one may be deliberate), with a warning.
+  const customOff = new Map();
+  for (const c of m.controls) {
+    const s = c.custom?.target === 'mixxx' && !c.function && Number.isInteger(c.custom.status) ? c.custom.status : null;
+    if (s != null && (s & 0xf0) === 0x80) customOff.set(`${s}:${c.midi.number}`, c);
+  }
+  const noteOffClash = c => {
+    const other = customOff.get(`${0x80 | (c.midi.channel - 1)}:${c.midi.number}`);
+    if (other) warnings.push({ code: 'DUPLICATE_NOTE_OFF', controlIds: [c.id, other.id], message: `${c.label}: DeckChek writes a note-off (release) entry for Note ${c.midi.number} on channel ${c.midi.channel}, and the preserved entry ${other.label} also uses that note-off; Mixxx gets both.` });
+  };
+
   for (const c of m.controls) {
     if (c.custom) {
       if (c.custom.target !== 'mixxx') continue;
@@ -172,14 +187,24 @@ export function exportMixxx(model, { name, author = 'DeckChek', description = ''
       if (!fns.some(f => f.name === fname)) fns.push({ name: fname, body });
       const key = { group: t.group, key: `${prefix}.${fname}` };
       controls.push(ctl(c, c.midi.status, c.midi.number, key, 'script-binding'));
-      if (noteOff) controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, key, 'script-binding'));
+      if (noteOff) {
+        noteOffClash(c);
+        controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, key, 'script-binding'));
+      }
     } else if (c.midi.type === 'cc14') {
       controls.push(ctl(c, c.midi.status, c.midi.number, t, 'fourteen-bit-msb', extra));
       controls.push(ctl(c, c.midi.status, c.midi.lsbNumber, t, 'fourteen-bit-lsb', extra));
     } else {
       const option = c.kind === 'relative' ? (enc === 'absolute-wrap' ? 'diff' : 'selectknob') : 'normal';
-      controls.push(ctl(c, c.midi.status, c.midi.number, t, option, extra));
-      if (noteOff) controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, t, option, extra));
+      // A derived value transform replaces any preserved one: Mixxx applies only one, so writing both is ambiguous.
+      const dropped = option === 'normal' ? [] : extra.filter(o => VALUE_TRANSFORMS.has(o));
+      const kept = dropped.length ? extra.filter(o => !VALUE_TRANSFORMS.has(o)) : extra;
+      if (dropped.length) warnings.push({ code: 'MIXXX_OPTIONS_DROPPED', controlIds: [c.id], message: `${c.label}: the Mixxx option${dropped.length === 1 ? '' : 's'} ${dropped.join(', ')} ${dropped.length === 1 ? 'conflicts' : 'conflict'} with ${option} (from the encoder setting) and ${dropped.length === 1 ? 'is' : 'are'} not written.` });
+      controls.push(ctl(c, c.midi.status, c.midi.number, t, option, kept));
+      if (noteOff) {
+        noteOffClash(c);
+        controls.push(ctl(c, 0x80 | (c.midi.channel - 1), c.midi.number, t, option, kept));
+      }
     }
     const led = c.feedback?.led;
     if (led && t.led) {
@@ -369,10 +394,13 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
       const group = cleanText(childText(o, 'group'), LIMITS.maxCustomText), key = cleanText(childText(o, 'key'), LIMITS.maxCustomText);
       const status = parseByte(childText(o, 'status')), midino = parseByte(childText(o, 'midino'));
       const on = parseNum(childText(o, 'on')), off = parseNum(childText(o, 'off'));
-      // The first base control (file order) whose function lights this group/key takes the LED.
+      // A base control whose function lights this group/key takes the LED: the one sending the same MIDI message as
+      // the output when there is one (hot cue set/clear/activate share one LED key), else the first in file order.
       const lk = `${GROUP_ALIASES[group] || group}\u0000${key}`;
-      const target = status != null && midino != null && midino <= 127 && [0x90, 0xb0].includes(status & 0xf0)
-        ? model.controls.find(c => c.layer === 'base' && !c.feedback && ledKeys.get(c) === lk) : null;
+      const usable = status != null && midino != null && midino <= 127 && [0x90, 0xb0].includes(status & 0xf0);
+      const candidates = usable ? model.controls.filter(c => c.layer === 'base' && !c.feedback && ledKeys.get(c) === lk) : [];
+      const outType = (status & 0xf0) === 0x90 ? 'note' : 'cc';
+      const target = candidates.find(c => c.midi.type === outType && c.midi.channel === (status & 0x0f) + 1 && c.midi.number === midino) || candidates[0] || null;
       if (target) {
         target.feedback = { led: { type: (status & 0xf0) === 0x90 ? 'note' : 'cc', channel: (status & 0x0f) + 1, number: midino, on: Number.isInteger(on) && on <= 127 ? on : 127, off: Number.isInteger(off) && off <= 127 ? off : 0 } };
         continue;
@@ -389,7 +417,12 @@ export function importMixxx(xmlText, jsFiles = [], { decks } = {}) {
     const custom = model.controls.filter(c => c.custom).length;
     if (custom) warnings.push(`${custom} control${custom === 1 ? '' : 's'} could not be matched to a DeckChek function and ${custom === 1 ? 'is' : 'are'} kept as custom (preserved).`);
     const missing = preservedFiles.filter(f => !(jsFiles || []).some(j => fileStem(String(j?.name || '').replace(/\.js$/i, '')) + '.js' === fileStem(f.filename.replace(/\.js$/i, '')) + '.js'));
-    if (missing.length) warnings.push(`The mapping uses script file${missing.length === 1 ? '' : 's'} ${missing.map(f => f.filename).join(', ')}; add ${missing.length === 1 ? 'it' : 'them'} next to the exported file yourself.`);
+    if (missing.length) {
+      // File names come from the imported file: each is cut to 80 characters and at most 5 are listed.
+      const listed = missing.slice(0, MAX_LISTED_FILES).map(f => cleanText(f.filename, 80)).join(', ');
+      const more = missing.length > MAX_LISTED_FILES ? ` and ${missing.length - MAX_LISTED_FILES} more` : '';
+      warnings.push(`The mapping uses script file${missing.length === 1 ? '' : 's'} ${listed}${more}; add ${missing.length === 1 ? 'it' : 'them'} next to the exported file yourself.`);
+    }
     return { ok: true, model, preservedRaw: takeScripts(jsFiles, warnings), warnings, info };
   } catch {
     return { ok: false, error: { code: 'IMPORT_FAILED', message: 'The Mixxx mapping could not be read.', line: null, column: null } };
