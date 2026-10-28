@@ -41,3 +41,12 @@
 @media (max-width: 640px) {
   .cmp-pickers .field { max-width: none; }
 }
+
+/* Narrow windows: the title block's text column must be allowed to shrink below its longest word
+   (flex items default to min-width:auto), and long tokens in status banners must wrap (CI ui-smoke at 390 px). */
+#screen-compare { grid-template-columns: minmax(0, 1fr); } /* grid track may not grow to its widest child's min-content */
+#screen-compare .screen-title > div { min-width: 0; }
+#screen-compare .screen-title, #screen-compare .cmp-status, #screen-compare .banner-text { overflow-wrap: anywhere; }
+#screen-compare .cmp-card, #screen-compare .cmp-panel { grid-template-columns: minmax(0, 1fr); }
+#screen-compare .cmp-actions .btn { white-space: normal; max-width: 100%; }
+#screen-compare #cmp-tabs { flex-wrap: wrap; }
