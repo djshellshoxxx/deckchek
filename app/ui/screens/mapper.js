@@ -97,6 +97,13 @@ export function sniffXml(text) {
   return { kind: 'unknown' };
 }
 
+/** Keep at most LIMITS.maxControls controls (the XML importers read up to twice that), with one summary note. */
+export function capControls(model, warnings = []) {
+  const n = model?.controls?.length || 0;
+  if (n <= LIMITS.maxControls) return { model, warnings };
+  return { model: { ...model, controls: model.controls.slice(0, LIMITS.maxControls) }, warnings: [`The file has ${n} controls; only the first ${LIMITS.maxControls} were kept.`, ...warnings] };
+}
+
 /**
  * Turn read file texts into a model. `texts` = [{name, text}]. Returns {ok, model, scripts, warnings, source} or
  * {ok:false, error:{message, line, column}}. Never throws: a hostile file (for example a JSON value whose toString is
@@ -125,12 +132,12 @@ function importTextsUnchecked(texts, { profile = null } = {}) {
   const mixxx = kinds.find(k => k.kind === 'mixxx');
   if (mixxx) {
     const r = importMixxx(mixxx.text, js.map(j => ({ name: j.name, content: j.text })));
-    return r.ok ? { ok: true, model: r.model, scripts: r.preservedRaw, warnings: r.warnings, source: 'Mixxx mapping' } : { ok: false, error: r.error };
+    return r.ok ? { ok: true, ...capControls(r.model, r.warnings), scripts: r.preservedRaw, source: 'Mixxx mapping' } : { ok: false, error: r.error };
   }
   const def = kinds.find(k => k.kind === 'vdj-definition'), map = kinds.find(k => k.kind === 'vdj-mapper'), legacy = kinds.find(k => k.kind === 'vdj-legacy');
   if (def || legacy) {
     const r = def ? importVdj(def.text, map?.text ?? null) : importVdj(legacy.text);
-    return r.ok ? { ok: true, model: r.model, scripts: [], warnings: r.warnings, source: 'VirtualDJ mapping' } : { ok: false, error: r.error };
+    return r.ok ? { ok: true, ...capControls(r.model, r.warnings), scripts: [], source: 'VirtualDJ mapping' } : { ok: false, error: r.error };
   }
   if (map) return { ok: false, error: { message: 'That is a VirtualDJ mapper file. Open it together with its device definition (Documents/VirtualDJ/Devices).' } };
   return { ok: false, error: { message: 'DeckChek does not recognise this XML file as a Mixxx or VirtualDJ mapping.' } };
@@ -215,6 +222,30 @@ export function createMapperScreen(section) {
     warningsBox.hidden = false;
   };
   const selected = () => st.model?.controls.find(c => c.id === st.selectedId) || null;
+
+  // Validation and export depend only on the model object (edits replace it), the target and the export options, so
+  // they are computed once per change instead of on every selection move.
+  const memo = { v: null, vKey: [], ex: null, exKey: [] };
+  const sameKey = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+  function currentValidation() {
+    const key = [st.model, st.target];
+    if (!sameKey(key, memo.vKey)) { memo.v = st.model ? validateModel(st.model, { target: st.target }) : null; memo.vKey = key; }
+    return memo.v;
+  }
+
+  /** Move the selection without rebuilding the list or the export: patch the rows in place, redraw the inspector. */
+  function selectControl(id, { focus = false } = {}) {
+    if (!st.model?.controls.some(c => c.id === id)) return;
+    st.selectedId = id;
+    for (const tr of left.querySelectorAll('#mp-rows tr')) {
+      const sel = tr.dataset.id === id;
+      tr.setAttribute('aria-selected', String(sel));
+      tr.tabIndex = sel ? 0 : -1;
+      tr.classList.toggle('is-selected', sel);
+    }
+    renderCentre();
+    if (focus) focusRow();
+  }
 
   function setModel(model, { keepUndo = false, select = null } = {}) {
     if (!keepUndo) undo.clear();
@@ -395,7 +426,7 @@ export function createMapperScreen(section) {
       const res = addLearnedControl(st.model, m, { layer: selected()?.layer === 'shift' ? 'shift' : 'base' });
       if (!res.control) { setStatus(`The mapping already has ${LIMITS.maxControls} controls.`, 'warn'); return; }
       if (res.added) edit(() => ({ model: res.model, id: res.control.id }));
-      else { st.selectedId = res.control.id; renderAll(); }
+      else selectControl(res.control.id);
       const text = `${res.added ? 'Learned' : 'Selected'} ${midiText(res.control.midi)}.`;
       setStatus(`${text} Now pick its function.`, 'pass');
       announce(text);
@@ -412,7 +443,7 @@ export function createMapperScreen(section) {
 
   function renderLeft() {
     left.replaceChildren();
-    const v = st.model ? validateModel(st.model, { target: st.target }) : null;
+    const v = currentValidation();
     const flags = rowFlags(v);
     const s = st.model ? modelStats(st.model) : null;
     const portSel = h('select', { id: 'mp-port', 'aria-label': 'MIDI input for Learn', disabled: !st.ports.length }, ...(st.ports.length ? st.ports.map(p => h('option', { value: p, text: p })) : [h('option', { value: '', text: midi.isAvailable() ? 'No MIDI input' : 'MIDI not available' })]));
@@ -430,7 +461,7 @@ export function createMapperScreen(section) {
     const rows = st.model.controls.map(c => {
       const sel = c.id === st.selectedId;
       const flag = flags[c.id];
-      const tr = h('tr', { 'data-id': c.id, tabindex: sel ? '0' : '-1', 'aria-selected': String(sel), class: `${sel ? 'is-selected' : ''} ${flag ? `has-${flag.toLowerCase()}` : ''}`.trim(), onclick: () => { st.selectedId = c.id; renderAll(); focusRow(); } },
+      const tr = h('tr', { 'data-id': c.id, tabindex: sel ? '0' : '-1', 'aria-selected': String(sel), class: `${sel ? 'is-selected' : ''} ${flag ? `has-${flag.toLowerCase()}` : ''}`.trim(), onclick: () => selectControl(c.id, { focus: true }) },
         h('th', { scope: 'row', class: 'mp-label' }, h('span', { text: c.label }), flag ? h('span', { class: `mp-flag mp-flag-${flag.toLowerCase()}`, html: icon(flag === 'Check' ? 'info' : 'warn', { size: 14 }) }, h('span', { text: flag })) : null),
         h('td', { class: 'mp-midi', text: midiText(c.midi) }),
         h('td', { text: c.layer === 'shift' ? 'Shift' : 'Base' }),
@@ -448,9 +479,7 @@ export function createMapperScreen(section) {
       if (ev.key === 'Enter') { ev.preventDefault(); section.querySelector('#mp-fn-search')?.focus(); return; }
       ev.preventDefault();
       i = ev.key === 'ArrowDown' ? Math.min(ids.length - 1, i + 1) : ev.key === 'ArrowUp' ? Math.max(0, i - 1) : ev.key === 'Home' ? 0 : ids.length - 1;
-      st.selectedId = ids[i];
-      renderAll();
-      focusRow();
+      selectControl(ids[i], { focus: true });
     });
     left.append(h('div', { class: 'mp-table-wrap' }, table));
   }
@@ -530,7 +559,10 @@ export function createMapperScreen(section) {
 
   function currentExport() {
     if (!st.model) return null;
-    return buildExport({ ...st.model, name: nameInput.value || st.model.name }, st.target, { name: nameInput.value || st.model.name, scripts: st.scripts, force: st.force });
+    const name = nameInput.value || st.model.name;
+    const key = [st.model, st.target, name, st.scripts, st.force];
+    if (!sameKey(key, memo.exKey)) { memo.ex = buildExport({ ...st.model, name }, st.target, { name, scripts: st.scripts, force: st.force }); memo.exKey = key; }
+    return memo.ex;
   }
 
   function renderRight() {
@@ -556,7 +588,7 @@ export function createMapperScreen(section) {
       validationBox.append(h('ul', { class: 'mp-issues' }, ...items.map(it => h('li', { class: `mp-issue mp-${it.sev}`, 'data-code': it.code },
         h('span', { class: 'mp-sev', html: icon(it.sev === 'error' ? 'fail' : 'warn', { size: 14 }) }, h('span', { text: it.sev === 'error' ? 'Error: ' : 'Note: ' })),
         h('span', { text: it.message }),
-        it.controlIds?.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm mp-show', text: it.controlIds.length > 1 ? `Show (${it.controlIds.length})` : 'Show', onclick: () => { st.selectedId = it.controlIds[0]; renderAll(); focusRow(); } }) : null))));
+        it.controlIds?.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm mp-show', text: it.controlIds.length > 1 ? `Show (${it.controlIds.length})` : 'Show', onclick: () => selectControl(it.controlIds[0], { focus: true }) }) : null))));
     }
     right.append(validationBox);
     if (ex.files.length) {
