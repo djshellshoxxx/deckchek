@@ -39,7 +39,7 @@ export function compareMock() {
       }
       if (cmd === 'pack_remove') { cmp.packs = cmp.packs.filter(p => p.id !== args.packId); cmp.rows = []; return { removed: true, samplesDeleted: 0 }; }
       if (cmd === 'pack_export') return { packId: args.selection.packId, rows: args.selection.rows.length, bytes: 321, sha256: 'b'.repeat(64), path: args.path };
-      if (cmd === 'population_query') { const rows = cmp.rows.filter(r => r.product === args.productId && r.metric === args.metricId); return { rows, contributors: new Set(rows.map(r => r.contributor)).size, truncated: cmp.truncated }; }
+      if (cmd === 'population_query') { const rows = cmp.rows.filter(r => r.product === args.productId && r.metric === args.metricId); return { rows, contributors: new Set(rows.map(r => r.contributor)).size, truncated: cmp.truncated, methods: [{ key: args.methodKey, version: 1, parametersJson: '{}' }] }; }
     }
     return base(cmd, args);
   };

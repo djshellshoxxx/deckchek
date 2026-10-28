@@ -41,6 +41,9 @@ const MAX_UNIT_ROWS: usize = 20_000;
 const MAX_POP_WINDOW: usize = 64;
 /// Population query: method versions read per contributor (newest first).
 const MAX_POP_VERSIONS_PER_CONTRIBUTOR: usize = 16;
+/// Population query: analysis_method rows returned per method key, and the largest parameters_json passed on.
+const MAX_POP_METHODS: usize = 256;
+const MAX_POP_METHOD_PARAMS: usize = 16 * 1024;
 const MAX_LABEL_CHARS: usize = 64;
 const PACK_EXTENSIONS: &[&str] = &["deckchek-pack", "json"];
 const METRICS_JSON: &str = include_str!("../../app/population-metrics.json");
@@ -540,6 +543,30 @@ pub struct PopulationQuery {
     pub contributors: usize,
     /// True when some stored rows of this cell were not returned (per-contributor caps or the global row limit).
     pub truncated: bool,
+    /// The local analysis_method rows of this method key (every version, oldest first), so `compare.js` can apply the
+    /// AC-7 mutual-compat rule (`parameters_json.compat`) between the user's version and the population's versions.
+    pub methods: Vec<MethodInfo>,
+}
+
+/// One analysis_method registry row, shaped like the `registry` entries `metric-compat.js` reads.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MethodInfo {
+    pub key: String,
+    pub version: i64,
+    pub parameters_json: String,
+}
+
+/// Registry rows of one method key, at most MAX_POP_METHODS; a row with oversized parameters is left out (that version
+/// then simply has no compat list, so it is only compared with itself).
+fn method_registry(conn: &Connection, method_key: &str) -> Result<Vec<MethodInfo>, PackError> {
+    let mut stmt = conn.prepare(
+        "SELECT key, version, parameters_json FROM analysis_method WHERE key = ?1 AND length(parameters_json) <= ?2 ORDER BY version LIMIT ?3",
+    )?;
+    let rows = stmt.query_map(params![method_key, MAX_POP_METHOD_PARAMS as i64, MAX_POP_METHODS as i64], |r| {
+        Ok(MethodInfo { key: r.get(0)?, version: r.get(1)?, parameters_json: r.get(2)? })
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
 }
 
 pub fn query_population(conn: &Connection, product: &str, metric: &str, method_key: &str) -> Result<PopulationQuery, PackError> {
@@ -638,7 +665,8 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
         .into_iter()
         .map(|k| PopulationRow { contributor: tokens[k.contributor].clone(), product: product.to_string(), metric: metric.to_string(), method: MethodRef { key: method_key.to_string(), version: k.version }, value: k.value, unit: k.unit })
         .collect();
-    Ok(PopulationQuery { rows, contributors, truncated })
+    let methods = method_registry(conn, method_key)?;
+    Ok(PopulationQuery { rows, contributors, truncated, methods })
 }
 
 // ------------------------------------------------------------------ export
@@ -1556,6 +1584,28 @@ mod tests {
         insert_samples(&small, "p", (0..5).map(|i| (format!("t{i}"), 1, i as f64)));
         let s = query_population(&small, "plx", "dropout_count", "dropout_count").unwrap();
         assert_eq!((s.rows.len(), s.contributors, s.truncated), (5, 5, false));
+    }
+
+    #[test]
+    fn regression_population_query_returns_the_method_registry_for_ac7_compat() {
+        let c = mem();
+        c.execute_batch(
+            "INSERT INTO analysis_method(id,key,version,description,parameters_json,created_at) VALUES
+               ('d1','dropout_count',1,'v1','{\"compat\":[2]}','t'),
+               ('d2','dropout_count',2,'v2','{\"compat\":[1]}','t'),
+               ('d3','dropout_count',3,'v3','{\"compat\":[]}','t'),
+               ('o1','wow_flutter_rms_percent',1,'other key','{\"compat\":[2]}','t');",
+        )
+        .unwrap();
+        insert_samples(&c, "p", (0..9).map(|i| (format!("t{i}"), 1 + (i % 3) as i64, i as f64)));
+        let q = query_population(&c, "plx", "dropout_count", "dropout_count").unwrap();
+        let got: Vec<(&str, i64, &str)> = q.methods.iter().map(|m| (m.key.as_str(), m.version, m.parameters_json.as_str())).collect();
+        assert_eq!(got, vec![("dropout_count", 1, "{\"compat\":[2]}"), ("dropout_count", 2, "{\"compat\":[1]}"), ("dropout_count", 3, "{\"compat\":[]}")], "only this method key, every version");
+        // compare.js comparePopulation reads result.methods[].{key, version, parametersJson}.
+        let json = serde_json::to_value(&q).unwrap();
+        assert_eq!(json["methods"][1], json!({ "key": "dropout_count", "version": 2, "parametersJson": "{\"compat\":[1]}" }));
+        // A cell with no local method rows still answers, with an empty registry.
+        assert!(query_population(&c, "plx", "dropout_count", "unknown_method").unwrap().methods.is_empty());
     }
 
     fn seed_many_units(c: &Connection, units: usize, runs: usize) {

@@ -108,3 +108,20 @@ test('regression: a truncated population query gets a visible notice', () => {
   assert.equal(truncationNotice({ rows: [], truncated: false }), null);
   assert.equal(truncationNotice(null), null);
 });
+
+test('regression: AC-7 a population_query result as Rust serialises it: two mutually compatible versions compared, an incompatible one excluded', () => {
+  // Shape of pack.rs PopulationQuery: rows[].method {key, version}; methods[] {key, version, parametersJson} for every
+  // local version of the method key.
+  const key = 'wow_flutter_rms_percent';
+  const row = (i, version) => ({ contributor: `t${String(i).padStart(3, '0')}`, product: 'plx', metric: key, method: { key, version }, value: 0.05 + i * 0.005, unit: '%' });
+  const rows = [...Array.from({ length: 12 }, (_, i) => row(i, 1)), ...Array.from({ length: 10 }, (_, i) => row(100 + i, 2)), ...Array.from({ length: 7 }, (_, i) => row(200 + i, 3))];
+  const methods = [{ key, version: 1, parametersJson: '{"compat":[2]}' }, { key, version: 2, parametersJson: '{"compat":[1]}' }, { key, version: 3, parametersJson: '{"compat":[]}' }];
+  const result = { rows, contributors: 29, truncated: false, methods };
+  const mine = { metric: key, method: { key, version: 2 }, value: 0.1, unit: '%' };
+  const c = comparePopulation(result, mine, table.metrics[key], 's');
+  assert.equal(c.contributors, 22, 'v1 and v2 rows are compared');
+  assert.equal(c.excluded, 7, 'v3 lists no compat, so its rows are left out');
+  assert.equal(c.status, 'percentile');
+  const v3 = comparePopulation(result, { ...mine, method: { key, version: 3 } }, table.metrics[key], 's');
+  assert.deepEqual([v3.contributors, v3.excluded], [7, 22], 'from v3 only v3 rows count');
+});
