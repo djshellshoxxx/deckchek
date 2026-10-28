@@ -1,0 +1,365 @@
+// FS-22 service worksheets: pure engine (app/service.js), the job-sheet printable kind and the IPC bridge.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  STATUSES, STATUS_LABELS, canTransition, nextStatuses, isReadOnly, effectiveLog, jobTotals, latestPerMetric, compareBeforeAfter,
+  testStatusChanges, comparisonCompleteness, buildComparison, directionHints, stepperState, stepIndex, newUnitNickname,
+  nicknameMentionsCustomer, listPrefsForSettings, jobSheetModel, renderJobSheetHtml, jobSheetPrintData, deleteConfirmed, isJobNumber,
+  SHEET_DISCLAIMER,
+} from '../app/service.js';
+import { jobSheetPrintable, ensureJobSheetKind, JOB_SHEET_KIND } from '../app/report-kinds/jobsheet.js';
+import { createServiceApi, onJobStatusChanged, STATUS_EVENT } from '../app/service-api.js';
+
+const ALLOWED = new Set([
+  'intake>diagnosing', 'intake>cancelled', 'diagnosing>awaiting_parts', 'diagnosing>repairing', 'diagnosing>ready', 'diagnosing>cancelled',
+  'awaiting_parts>repairing', 'awaiting_parts>cancelled', 'repairing>testing', 'repairing>awaiting_parts', 'testing>ready', 'testing>repairing', 'ready>collected',
+]);
+
+test('AC-6 transition table is exhaustive (valid and invalid) and matches the Rust table', () => {
+  for (const from of STATUSES) {
+    for (const to of STATUSES) {
+      assert.equal(canTransition(from, to), ALLOWED.has(`${from}>${to}`), `${from} -> ${to}`);
+      assert.equal(canTransition(from, to, { reopen: true }), ['collected', 'cancelled'].includes(from) && to === 'diagnosing', `reopen ${from} -> ${to}`);
+    }
+  }
+  assert.equal(canTransition('intake', 'bogus'), false);
+  assert.equal(canTransition('bogus', 'intake'), false);
+  assert.deepEqual(nextStatuses('collected'), []);
+  assert.deepEqual(nextStatuses('cancelled', { reopen: true }), ['diagnosing']);
+  assert.ok(isReadOnly('cancelled') && isReadOnly('collected') && !isReadOnly('ready'));
+  assert.deepEqual(Object.values(STATUS_LABELS), ['Intake', 'Diagnosing', 'Awaiting parts', 'Repairing', 'Testing', 'Ready', 'Collected', 'Cancelled']);
+});
+
+test('AC-7 delete needs the exact job number; job numbers have the J-<year>-<seq> shape', () => {
+  const job = { jobNumber: 'J-2026-0001' };
+  assert.equal(deleteConfirmed(job, 'J-2026-0001'), true);
+  assert.equal(deleteConfirmed(job, '  J-2026-0001 '), true);
+  assert.equal(deleteConfirmed(job, 'j-2026-0001'), false);
+  assert.equal(deleteConfirmed(job, ''), false);
+  assert.equal(deleteConfirmed({}, ''), false);
+  assert.ok(isJobNumber('J-2026-0001') && isJobNumber('J-2027-10000'));
+  assert.ok(!isJobNumber('J-26-1') && !isJobNumber('X-2026-0001'));
+});
+
+const L = (id, kind, extra = {}) => ({ id, kind, description: id, at: `2026-10-10T10:00:${String(id.length).padStart(2, '0')}.000Z`, ...extra });
+
+test('AC-3 totals are informational: labour hours and parts cost with amendments superseding originals', () => {
+  const log = [
+    L('p1', 'part', { quantity: 2, unitCost: 12.5 }),
+    L('p2', 'part', { quantity: 1 }), // unpriced
+    L('l1', 'labour', { minutes: 30 }),
+    L('l2', 'labour', { minutes: 15 }),
+    L('l2b', 'labour', { minutes: 45, amendsId: 'l2' }), // correction replaces 15 min
+    L('n1', 'note'),
+    L('n1b', 'note', { amendsId: 'n1' }),
+  ];
+  const t = jobTotals(log);
+  assert.equal(t.labourMinutes, 75);
+  assert.equal(t.labourHours, 1.25);
+  assert.equal(t.partsCost, 25);
+  assert.equal(t.partCount, 2);
+  assert.equal(t.unpricedParts, 1);
+  assert.equal(t.notes, 1);
+  const eff = effectiveLog(log);
+  assert.equal(eff.find(e => e.id === 'n1').superseded, true);
+  assert.equal(eff.find(e => e.id === 'n1').amendedBy, 'n1b');
+  assert.equal(eff.find(e => e.id === 'n1b').amendment, true);
+  assert.equal(eff.length, log.length, 'append-only: originals are kept');
+  assert.deepEqual(jobTotals([]), { labourMinutes: 0, labourHours: 0, partsCost: 0, partCount: 0, unpricedParts: 0, labourEntries: 0, notes: 0 });
+});
+
+const V = (metricKey, value, extra = {}) => ({ metricKey, value, unit: 'dB', uncertainty: 0.1, methodKey: metricKey, methodVersion: 1, at: '2026-10-10T10:00:00Z', ...extra });
+
+test('AC-4 comparison: greater, lesser, equal within uncertainty, missing and incomparable metrics', () => {
+  const before = [V('separation_db', 20), V('noise_db', -60), V('balance_db', 0.5), V('only_before', 1), V('ver', 1), V('units', 1)];
+  const after = [V('separation_db', 25), V('noise_db', -50), V('balance_db', 0.6), V('only_after', 2), V('ver', 2, { methodVersion: 2 }), V('units', 1, { unit: '%' })];
+  const rows = compareBeforeAfter(before, after, { higherIsBetter: { separation_db: true, noise_db: false } });
+  const by = k => rows.find(r => r.metricKey === k);
+  assert.equal(by('separation_db').status, 'improved');
+  assert.equal(by('separation_db').delta, 5);
+  assert.equal(by('noise_db').status, 'worse', 'lower is better and it rose by 10 dB');
+  assert.equal(by('balance_db').status, 'unchanged', '|0.1| <= 2 * RSS(0.1, 0.1)');
+  assert.equal(by('only_before').status, 'missingAfter');
+  assert.equal(by('only_after').status, 'missingBefore');
+  assert.equal(by('ver').status, 'notComparable');
+  assert.match(by('ver').reason, /method versions/);
+  assert.equal(by('units').status, 'notComparable');
+  assert.match(by('units').reason, /Units differ/);
+});
+
+test('AC-4 combined uncertainty is root-sum-square and the verdict uses k = 2', () => {
+  const [r] = compareBeforeAfter([V('x', 10, { uncertainty: 0.3 })], [V('x', 11, { uncertainty: 0.4 })], { higherIsBetter: true });
+  assert.ok(Math.abs(r.uncertainty - 0.5) < 1e-12, 'sqrt(0.3^2 + 0.4^2) = 0.5');
+  assert.equal(r.status, 'unchanged', '|1.0| <= 2 * 0.5');
+  const [r2] = compareBeforeAfter([V('x', 10, { uncertainty: 0.3 })], [V('x', 11.01, { uncertainty: 0.4 })], { higherIsBetter: true });
+  assert.equal(r2.status, 'improved');
+  assert.equal(r2.assumed, false);
+});
+
+test('AC-4 unknown uncertainty defaults to 5 % of the spec span and is marked assumed', () => {
+  const [r] = compareBeforeAfter([V('speed', 0.4, { uncertainty: null })], [V('speed', 0.05, { uncertainty: null })], { bands: { speed: { lo: -0.2, hi: 0.2 } } });
+  assert.equal(r.assumed, true);
+  assert.ok(Math.abs(r.uncertainty - Math.hypot(0.02, 0.02)) < 1e-12, '5 % of the 0.4 span on both sides');
+  assert.equal(r.status, 'improved', 'no direction known: closer to the band is better');
+  assert.equal(r.passChange, 'fixed');
+  // no span at all: 5 % of the reading, still assumed
+  const [s] = compareBeforeAfter([V('y', 100, { uncertainty: null })], [V('y', 100.5, { uncertainty: null })]);
+  assert.equal(s.assumed, true);
+  assert.equal(s.status, 'unchanged');
+  const [c] = compareBeforeAfter([V('y', 100, { uncertainty: 0 })], [V('y', 120, { uncertainty: 0 })]);
+  assert.equal(c.status, 'changed', 'significant but no direction and no band');
+});
+
+test('comparison pairs the latest valid value per phase and puts fail -> pass first', () => {
+  const m = latestPerMetric([V('a', 1, { at: '2026-10-10T10:00:00Z' }), V('a', 2, { at: '2026-10-11T10:00:00Z' }), V('a', NaN, { at: '2026-10-12T10:00:00Z' }), V('a', 3, { at: '2026-10-09T10:00:00Z' })]);
+  assert.equal(m.get('a').value, 2);
+  const rows = compareBeforeAfter([V('a_ok', 1), V('z_fix', 5)], [V('a_ok', 1), V('z_fix', 0.1)], { bands: { z_fix: { lo: null, hi: 1 } } });
+  assert.deepEqual(rows.map(r => r.metricKey), ['z_fix', 'a_ok']);
+  assert.equal(rows[0].passChange, 'fixed');
+});
+
+test('test status headline: fail -> pass first, then pass -> fail', () => {
+  const t = (phase, testId, status, at = '2026-10-10T10:00:00Z', title = testId) => ({ phase, testId, status, at, title });
+  const out = testStatusChanges([t('before', 'b', 'pass'), t('after', 'b', 'fail'), t('before', 'a', 'fail'), t('after', 'a', 'fail', '2026-10-11T10:00:00Z'), t('after', 'a', 'pass', '2026-10-12T10:00:00Z'), t('after', 'c', 'pass')]);
+  assert.deepEqual(out.map(o => [o.testId, o.change]), [['a', 'fixed'], ['b', 'regressed']]);
+});
+
+test('partial state: "Compare is incomplete, 3 of 8 metrics have no after value"', () => {
+  const before = Array.from({ length: 8 }, (_, i) => V(`m${i}`, i));
+  const after = before.slice(0, 5).map(v => ({ ...v }));
+  const c = comparisonCompleteness(compareBeforeAfter(before, after));
+  assert.equal(c.state, 'partial');
+  assert.equal(c.message, 'Compare is incomplete, 3 of 8 metrics have no after value');
+  assert.equal(comparisonCompleteness(compareBeforeAfter(before, before)).state, 'complete');
+  assert.equal(comparisonCompleteness([]).state, 'empty');
+  assert.equal(comparisonCompleteness(compareBeforeAfter([V('a', 1)], [])).message, 'Compare is incomplete, 1 of 1 metric has no after value');
+});
+
+test('buildComparison reads the job_comparison payload with its method registry (mutual compat)', () => {
+  const data = {
+    values: [{ ...V('k', 1, { methodVersion: 1 }), phase: 'before' }, { ...V('k', 5, { methodVersion: 2 }), phase: 'after' }],
+    tests: [{ phase: 'before', testId: 't', status: 'fail', at: '2026-10-10T10:00:00Z', title: 'Balance' }, { phase: 'after', testId: 't', status: 'pass', at: '2026-10-12T10:00:00Z', title: 'Balance' }],
+    methods: [{ key: 'k', version: 1, parametersJson: '{"compat":[2]}' }, { key: 'k', version: 2, parametersJson: '{"compat":[1]}' }],
+  };
+  const c = buildComparison(data, { higherIsBetter: { k: true } });
+  assert.equal(c.rows[0].status, 'improved', 'v1 and v2 list each other as compatible');
+  assert.deepEqual(c.headline.map(h => [h.kind, h.change]), [['test', 'fixed']]);
+  const one = buildComparison({ ...data, methods: [data.methods[0]] });
+  assert.equal(one.rows[0].status, 'notComparable', 'one-sided compat is not enough');
+  assert.equal(buildComparison({}).completeness.state, 'empty');
+});
+
+test('direction hints come from the device profile pass criteria', () => {
+  const h = directionHints({ tests: [{ pass: { metricId: 'wow', op: '<=', value: 0.1 } }, { pass: { metricId: 'snr', op: '>=', value: 60 } }, { pass: { metricId: 'speed', op: 'abs<=', value: 0.2 } }, { pass: { metricId: 'x', op: 'equals', value: 1 } }, { pass: null }] });
+  assert.deepEqual(h.higherIsBetter, { wow: false, snr: true });
+  assert.deepEqual(h.bands.speed, { lo: -0.2, hi: 0.2 });
+  assert.deepEqual(h.bands.wow, { lo: null, hi: 0.1 });
+  assert.equal(h.bands.x, undefined);
+});
+
+test('stepper: Intake > Before > Work > After > Sheet with done / blocked / current', () => {
+  const job = { id: 'j', jobNumber: 'J-2026-0001', status: 'intake', reportedFault: 'Hum' };
+  let s = stepperState({ job, results: [], log: [] });
+  assert.deepEqual(s.map(x => x.id), ['intake', 'before', 'work', 'after', 'sheet']);
+  assert.deepEqual(s.map(x => x.state), ['done', 'todo', 'todo', 'blocked', 'todo']);
+  assert.equal(s.find(x => x.current).id, 'before');
+  s = stepperState({ job: { ...job, status: 'testing' }, results: [{ phase: 'before' }, { phase: 'after' }], log: [L('n', 'note')] }, { completeness: { state: 'partial', message: 'Compare is incomplete, 1 of 2 metrics have no after value' } });
+  assert.equal(s.find(x => x.id === 'after').state, 'todo', 'partial comparison keeps After open');
+  assert.match(s.find(x => x.id === 'after').reason, /incomplete/);
+  s = stepperState({ job: { ...job, status: 'ready' }, results: [{ phase: 'before' }, { phase: 'after' }], log: [L('n', 'note')] }, { completeness: { state: 'complete' } });
+  assert.ok(s.every(x => x.state === 'done'));
+  assert.equal(s.find(x => x.current).id, 'sheet');
+  s = stepperState({ job: { ...job, status: 'cancelled' }, results: [], log: [] });
+  assert.equal(s.find(x => x.id === 'before').state, 'blocked');
+  assert.equal(stepIndex('intake', -1), 0);
+  assert.equal(stepIndex('work', 1), 3);
+  assert.equal(stepIndex('sheet', 1), 4);
+});
+
+test('privacy helpers: unit names never carry the customer, settings keep only the status filter', () => {
+  assert.equal(newUnitNickname('SL-1200MK4', 'GH8KA001'), 'SL-1200MK4 · GH8KA001');
+  assert.equal(newUnitNickname('', ''), 'Service unit');
+  assert.equal(nicknameMentionsCustomer('Jo Bloggs deck', 'jo bloggs'), true);
+  assert.equal(nicknameMentionsCustomer('Technics', 'Al'), false, 'very short names are not matched');
+  assert.deepEqual(listPrefsForSettings({ status: 'open', q: 'Jo Bloggs', customer: 'x' }), { status: 'open' });
+  assert.deepEqual(listPrefsForSettings({ status: 'nonsense' }), { status: 'all' });
+});
+
+const detail = (over = {}) => ({
+  job: { id: 'j1', jobNumber: 'J-2026-0007', status: 'ready', reportedFault: 'Pitch <b>drifts</b>\n+0.4 %', accessories: ['Dust cover', '<script>x</script>'], arrivalCondition: 'Scuffed "lid"', resolution: 'Trimmer & cap', openedAt: '2026-10-10T10:00:00Z', updatedAt: '2026-10-12T10:00:00Z', closedAt: null, ...over.job },
+  customer: { id: 'c', name: 'Zebedee <Pii>', phone: '+44 7700 900123', email: 'zeb@example.org' },
+  asset: { id: 'a', nickname: 'SL-1200MK4', serialNumber: 'GH8KA001', profileId: 'technics-sl-1200mk4' },
+  log: [L('p1', 'part', { description: 'Fader <img src=x onerror=alert(1)>', quantity: 2, unitCost: 12.5 }), L('l1', 'labour', { description: 'Clean', minutes: 45 }), L('n1', 'note', { description: 'first' }), L('n1b', 'note', { description: 'second', amendsId: 'n1' })],
+  photos: [{ caption: 'Lid <scratch>', stage: 'intake' }],
+  results: [], statusLog: [],
+  ...over.rest,
+});
+const cmp = buildComparison({ values: [{ ...V('balance_db', 1.8), phase: 'before', label: 'Balance <dB>' }, { ...V('balance_db', 0.2), phase: 'after', label: 'Balance <dB>' }], tests: [] }, { higherIsBetter: { balance_db: false } });
+
+test('AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default', () => {
+  const html = renderJobSheetHtml(detail(), cmp, {});
+  assert.match(html, /Job J-2026-0007/);
+  assert.match(html, /Reported fault/);
+  assert.match(html, /Before and after/);
+  assert.match(html, /<caption>Measured values before and after/);
+  assert.match(html, /<caption>Parts<\/caption>/);
+  assert.match(html, /<caption>Labour<\/caption>/);
+  assert.match(html, /Technician signature: _+/);
+  assert.ok(html.includes(SHEET_DISCLAIMER));
+  assert.equal(SHEET_DISCLAIMER, 'Measurements are indicative bench results, not a warranty.');
+  assert.doesNotMatch(html, /Unit cost|Line total|12\.50|25\.00/, 'no prices unless Include costs is ticked');
+  assert.match(html, /informational, not an invoice/);
+  assert.match(html, /\(amended, see later entry\)/);
+  assert.doesNotMatch(html, /Draft/);
+  const costs = renderJobSheetHtml(detail(), cmp, { includeCosts: true, currency: '£' });
+  assert.match(costs, /£12\.50/);
+  assert.match(costs, /£25\.00/);
+  assert.match(renderJobSheetHtml(detail({ job: { status: 'repairing' } }), cmp, {}), /Draft:/);
+});
+
+test('job sheet includes customer details only when "Include customer details" is ticked', () => {
+  const off = renderJobSheetHtml(detail(), cmp, {});
+  for (const pii of ['Zebedee', '7700 900123', 'zeb@example.org']) assert.ok(!off.includes(pii), pii);
+  assert.equal(jobSheetModel(detail(), cmp, {}).customer, null);
+  const on = renderJobSheetHtml(detail(), cmp, { includeCustomer: true });
+  assert.ok(on.includes('Zebedee &lt;Pii&gt;') && on.includes('+44 7700 900123') && on.includes('zeb@example.org'));
+});
+
+test('every free-text value is HTML-escaped in the sheet', () => {
+  const html = renderJobSheetHtml(detail(), cmp, { includeCustomer: true, includeCosts: true, currency: '<i>' });
+  for (const raw of ['<b>drifts</b>', '<script>', '<img', '<Pii>', '<scratch>', '<dB>', '"lid"', '<i>']) assert.ok(!html.includes(raw), `unescaped ${raw}`);
+  assert.ok(html.includes('Pitch &lt;b&gt;drifts&lt;/b&gt;<br>+0.4 %'), 'newlines become <br> after escaping');
+  assert.ok(html.includes('Trimmer &amp; cap'));
+  assert.ok(html.includes('&lt;script&gt;x&lt;/script&gt;'));
+});
+
+test('jobSheet printable kind composes through FS-03 with escaping, title and no customer in the file name', async () => {
+  const mod = await ensureJobSheetKind();
+  await ensureJobSheetKind(); // idempotent
+  assert.ok(mod.printableKinds().includes(JOB_SHEET_KIND));
+  const built = mod.composePrintable(JOB_SHEET_KIND, jobSheetPrintData(detail(), cmp, {}), { css: '', now: new Date('2026-10-12T12:00:00Z') });
+  assert.equal(built.title, 'Job sheet J-2026-0007');
+  assert.match(built.fileName, /JobSheet/);
+  assert.ok(!built.fileName.includes('Zebedee'));
+  assert.ok(!built.html.includes('Zebedee'));
+  assert.match(built.html, /dc-signatures/);
+  assert.doesNotMatch(built.html, /<script>x/);
+  assert.equal(jobSheetPrintable.fileKind, 'JobSheet');
+});
+
+test('bridge passes exactly the Rust argument names and turns errors into messages', async () => {
+  const calls = [];
+  const api = createServiceApi(async (cmd, args) => { calls.push([cmd, args]); if (cmd === 'job_delete') throw 'type the job number J-2026-0001 to delete this job'; return { ok: true }; });
+  await api.create({ reportedFault: 'x' });
+  await api.list({ status: 'open' });
+  await api.setStatus('j', 'ready', { expected: 'testing', note: 'n' });
+  await api.addLog('j', 'note', { description: 'x' });
+  await api.linkResults('j', 'before', { deviceTestResultIds: ['d'] });
+  await api.attachPhoto('j', { bytesB64: 'AA==', stage: 'intake' });
+  await api.comparison('j');
+  await assert.rejects(api.remove('j', 'nope'), /type the job number/);
+  assert.deepEqual(calls.map(c => c[0]), ['job_create', 'job_list', 'job_set_status', 'job_add_log', 'job_link_results', 'job_attach_photo', 'job_comparison', 'job_delete']);
+  assert.deepEqual(calls[2][1], { id: 'j', to: 'ready', expected: 'testing', note: 'n', reopen: false });
+  assert.deepEqual(calls[4][1], { id: 'j', phase: 'before', links: { sessionIds: [], deviceTestResultIds: ['d'] } });
+  await assert.rejects(createServiceApi(null).get('j'), /desktop app/);
+  const seen = [];
+  let handler = null;
+  const off = await onJobStatusChanged(p => seen.push(p), { event: { listen: async (name, cb) => { assert.equal(name, STATUS_EVENT); handler = cb; return () => {}; } } });
+  handler({ payload: { id: 'j', from: 'testing', to: 'ready' } });
+  assert.deepEqual(seen, [{ id: 'j', from: 'testing', to: 'ready' }]);
+  assert.equal(typeof off, 'function');
+  assert.equal(typeof (await onJobStatusChanged(() => {}, {})), 'function', 'no-op in the browser');
+});
+
+test('regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key', () => {
+  const F = (phase, testId, value, at) => ({ ...V('midi_fader_jitter_lsb', value, { unit: 'LSB', uncertainty: 0.1, at, label: 'Jitter' }), phase, testId, source: 'deviceTest' });
+  const data = {
+    values: [F('before', 'djma9-fader-ch2_fader', 14, '2026-10-10T10:00:00Z'), F('before', 'djma9-fader-ch4_fader', 0, '2026-10-10T10:05:00Z'), F('after', 'djma9-fader-ch2_fader', 1, '2026-10-12T10:00:00Z')],
+    tests: [
+      { phase: 'before', testId: 'djma9-fader-ch2_fader', status: 'fail', at: '2026-10-10T10:00:00Z', title: 'Channel 2 fader' },
+      { phase: 'before', testId: 'djma9-fader-ch4_fader', status: 'pass', at: '2026-10-10T10:05:00Z', title: 'Channel 4 fader' },
+      { phase: 'after', testId: 'djma9-fader-ch2_fader', status: 'pass', at: '2026-10-12T10:00:00Z', title: 'Channel 2 fader' },
+    ],
+  };
+  const c = buildComparison(data, { higherIsBetter: { midi_fader_jitter_lsb: false } });
+  assert.equal(c.rows.length, 2, 'one row per fader, not one per metric key');
+  const ch2 = c.rows.find(r => r.testId === 'djma9-fader-ch2_fader');
+  const ch4 = c.rows.find(r => r.testId === 'djma9-fader-ch4_fader');
+  assert.deepEqual([ch2.before, ch2.after, ch2.status], [14, 1, 'improved'], 'ch2 before is compared with ch2 after');
+  assert.deepEqual([ch4.before, ch4.after, ch4.status], [0, null, 'missingAfter'], 'ch4 is never compared with ch2');
+  assert.equal(ch2.metricKey, 'midi_fader_jitter_lsb', 'metricKey stays the bare key for bands and directions');
+  assert.notEqual(ch2.key, ch4.key);
+  assert.match(ch2.label, /Channel 2 fader/, 'rows from different tests can be told apart');
+  assert.match(ch4.label, /Channel 4 fader/);
+  assert.equal(c.completeness.state, 'partial', 'ch4 has no after value');
+  // a session-only link (no test id) still pairs by metric key across phases
+  const s = buildComparison({ values: [{ ...V('balance_db', 1.8), phase: 'before', testId: null }, { ...V('balance_db', 0.2), phase: 'after', testId: null }] }, { higherIsBetter: { balance_db: false } });
+  assert.deepEqual(s.rows.map(r => r.status), ['improved']);
+  assert.equal(s.rows[0].label, 'balance_db', 'unambiguous rows keep the plain label');
+});
+
+test('regression: per-test pass bands from the profile apply to their own test only', () => {
+  const h = directionHints({ tests: [{ id: 'ch1', pass: { metricId: 'jit', op: '<=', value: 2 } }, { id: 'xf', pass: { metricId: 'jit', op: '<=', value: 8 } }] });
+  const F = (phase, testId, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId });
+  const c = buildComparison({ values: [F('before', 'ch1', 5), F('after', 'ch1', 1), F('before', 'xf', 5), F('after', 'xf', 1)] }, h);
+  assert.equal(c.rows.find(r => r.testId === 'ch1').passChange, 'fixed', 'ch1 limit is 2: 5 fails, 1 passes');
+  assert.equal(c.rows.find(r => r.testId === 'xf').passChange, null, 'crossfader limit is 8: both pass');
+});
+
+test('regression: job_create sends the local calendar year so the job number matches the opened date the user sees', async () => {
+  const calls = [];
+  const api = createServiceApi(async (cmd, args) => { calls.push([cmd, args]); return {}; });
+  await api.create({ reportedFault: 'x' }, new Date(2026, 11, 31, 20, 0)); // 20:00 local on New Year's Eve
+  assert.deepEqual(calls[0], ['job_create', { input: { reportedFault: 'x', localYear: 2026 } }]);
+  await api.create({ reportedFault: 'y' }, new Date(2027, 0, 1, 8, 0));
+  assert.equal(calls[1][1].input.localYear, 2027);
+  await api.create({ reportedFault: 'z' });
+  assert.equal(calls[2][1].input.localYear, new Date().getFullYear(), 'defaults to now on the local clock');
+});
+
+test('regression: fractional part quantities show their real value on the job sheet', () => {
+  const d = detail({ rest: { log: [L('p1', 'part', { description: 'Hook-up wire (m)', quantity: 0.25, unitCost: 4 }), L('p22', 'part', { description: 'Solder wick', quantity: 0.5, unitCost: 4 }), L('p333', 'part', { description: 'Screw', quantity: 3, unitCost: 0.1 })] } });
+  const html = renderJobSheetHtml(d, cmp, { includeCosts: true, currency: '£' });
+  const qty = [...html.matchAll(/<td>(?:Hook-up wire \(m\)|Solder wick|Screw)<\/td><td class="dc-num">([^<]*)<\/td>/g)].map(m => m[1]);
+  assert.deepEqual(qty, ['0.25', '0.5', '3']);
+  assert.ok(html.includes('£1.00') && html.includes('£2.00'), 'qty x unit cost matches the line total');
+});
+
+test('regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric', () => {
+  const T = (phase, value, at) => ({ ...V('balance_db', value, { at, label: 'Balance' }), phase, testId: 'sl-balance', source: 'deviceTest' });
+  const S = (phase, value, at) => ({ ...V('balance_db', value, { at, label: 'Balance' }), phase, testId: null, source: 'session' });
+  const titles = [{ phase: 'before', testId: 'sl-balance', status: 'fail', at: '2026-10-10T10:00:00Z', title: 'Channel balance' }];
+  for (const values of [[T('before', 1.8, '2026-10-10T10:00:00Z'), S('after', 0.2, '2026-10-12T10:00:00Z')], [S('before', 1.8, '2026-10-10T10:00:00Z'), T('after', 0.2, '2026-10-12T10:00:00Z')]]) {
+    const c = buildComparison({ values, tests: titles }, { higherIsBetter: { balance_db: false } });
+    assert.equal(c.rows.length, 1, 'one paired row, not a missingAfter and a missingBefore row');
+    assert.deepEqual([c.rows[0].before, c.rows[0].after, c.rows[0].status, c.rows[0].testId], [1.8, 0.2, 'improved', 'sl-balance']);
+    assert.equal(c.completeness.state, 'complete');
+  }
+  // the latest before value wins when both a test and a test-less run measured it
+  const latest = buildComparison({ values: [T('before', 1.8, '2026-10-10T10:00:00Z'), S('before', 1.0, '2026-10-11T10:00:00Z'), S('after', 0.2, '2026-10-12T10:00:00Z')] });
+  assert.deepEqual(latest.rows.map(r => [r.before, r.after]), [[1.0, 0.2]]);
+});
+
+test('regression: a test-less value is not paired when several tests measure the metric, and the row says why', () => {
+  const F = (phase, testId, value) => ({ ...V('midi_fader_jitter_lsb', value, { unit: 'LSB', label: 'Jitter' }), phase, testId });
+  const c = buildComparison({ values: [F('before', 'ch2', 14), F('before', 'ch4', 0), F('after', null, 1)] });
+  assert.equal(c.rows.length, 3, 'never guessed onto one of the two faders');
+  const loose = c.rows.find(r => r.testId === null);
+  assert.equal(loose.status, 'missingBefore');
+  assert.equal(loose.ambiguous, true);
+  assert.match(loose.reason, /2 tests measure this metric/);
+  assert.ok(c.rows.filter(r => r.testId).every(r => r.status === 'missingAfter' && !r.ambiguous));
+});
+
+test('regression: a test with an abs<= or between band never borrows another test\'s direction', () => {
+  for (const op of [{ op: 'abs<=', value: 8 }, { op: 'between', value: -8, value2: 8 }]) {
+    const h = directionHints({ tests: [{ id: 'ch1', pass: { metricId: 'jit', op: '<=', value: 2 } }, { id: 'xf', pass: { metricId: 'jit', ...op } }] });
+    const F = (phase, testId, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId });
+    const c = buildComparison({ values: [F('before', 'ch1', 5), F('after', 'ch1', 1), F('before', 'xf', 5), F('after', 'xf', 1)] }, h);
+    assert.equal(c.rows.find(r => r.testId === 'ch1').status, 'improved', '<=: lower is better');
+    assert.equal(c.rows.find(r => r.testId === 'xf').status, 'changed', `${op.op}: inside the band both times, no direction`);
+  }
+  // with no per-test hint or band at all, the bare metric hint still applies
+  const F = (phase, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId: 't' });
+  assert.equal(buildComparison({ values: [F('before', 5), F('after', 1)] }, { higherIsBetter: { jit: false } }).rows[0].status, 'improved');
+});

@@ -398,12 +398,22 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
 /// history reference them. Returns whether a record was affected.
 pub fn delete(conn: &Connection, entity: Entity, id: &str) -> Result<bool, String> {
     let spec = entity.spec();
-    let n = if spec.soft_delete {
-        conn.execute(&format!("UPDATE {} SET is_deleted = 1 WHERE id = ?1 AND is_deleted = 0", spec.table), [id])
-    } else {
-        conn.execute(&format!("DELETE FROM {} WHERE id = ?1", spec.table), [id])
+    let tx = conn.unchecked_transaction().map_err(err)?;
+    let n = match entity {
+        // A retired asset leaves the fleet, so it also gives up its deck position (FS-23).
+        Entity::Asset => tx.execute("UPDATE asset SET is_deleted = 1, deck_position_id = NULL WHERE id = ?1 AND is_deleted = 0", [id]),
+        _ if spec.soft_delete => tx.execute(&format!("UPDATE {} SET is_deleted = 1 WHERE id = ?1 AND is_deleted = 0", spec.table), [id]),
+        _ => {
+            // FS-23 reminder templates belong to the product: remove them with it, in the same transaction, so a
+            // product still referenced elsewhere keeps its templates when the delete fails.
+            if matches!(entity, Entity::Product) {
+                tx.execute("DELETE FROM maintenance_reminder WHERE product_id = ?1 AND asset_id IS NULL", [id]).map_err(err)?;
+            }
+            tx.execute(&format!("DELETE FROM {} WHERE id = ?1", spec.table), [id])
+        }
     }
     .map_err(err)?;
+    tx.commit().map_err(err)?;
     Ok(n > 0)
 }
 
@@ -440,21 +450,30 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>) -> Result<Vec<Value>, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| list(c, e, filter.as_ref()))
+pub async fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| list(c, e, filter.as_ref()))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn catalog_upsert(app: AppHandle, entity: String, record: Value) -> Result<Value, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| upsert(c, e, &record))
+pub async fn catalog_upsert(app: AppHandle, entity: String, record: Value) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| upsert(c, e, &record))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn catalog_delete(app: AppHandle, entity: String, id: String) -> Result<bool, String> {
-    let e = Entity::parse(&entity)?;
-    with_db(&app, |c| delete(c, e, &id))
+pub async fn catalog_delete(app: AppHandle, entity: String, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let e = Entity::parse(&entity)?;
+        with_db(&app, |c| delete(c, e, &id))
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -551,6 +570,41 @@ mod tests {
         c.execute("DELETE FROM manufacturer", []).unwrap();
         assert!(!seed_if_empty(&c).unwrap());
         assert_eq!(list(&c, Entity::Manufacturer, None).unwrap().len(), 0);
+    }
+
+    /// FS-23 product reminder templates (maintenance_reminder rows with a product and no asset) reference the
+    /// product; deleting the product removes them in the same transaction instead of failing on the FK.
+    #[test]
+    fn regression_product_delete_removes_its_reminder_templates() {
+        let mut c = mem();
+        let p = upsert(&mut c, Entity::Product, &json!({"category": "TURNTABLE", "model": "T1"})).unwrap();
+        let pid = p["id"].as_str().unwrap().to_string();
+        let templates = |c: &Connection| -> i64 { c.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE product_id=?1 AND asset_id IS NULL", [&pid], |r| r.get(0)).unwrap() };
+        c.execute("INSERT INTO maintenance_reminder(id,product_id,title,basis,interval_value,created_at) VALUES('tpl',?1,'Clean','days',90,'2026-01-01')", [&pid]).unwrap();
+        // Still in use by an asset: the delete fails and the template survives (nothing half-done).
+        let a = upsert(&mut c, Entity::Asset, &json!({"productId": pid, "nickname": "Deck"})).unwrap();
+        assert!(delete(&c, Entity::Product, &pid).is_err());
+        assert_eq!(templates(&c), 1, "a failed product delete rolls back the template removal");
+        c.execute("DELETE FROM asset WHERE id=?1", [a["id"].as_str().unwrap()]).unwrap();
+        assert!(delete(&c, Entity::Product, &pid).unwrap());
+        assert_eq!(templates(&c), 0);
+        assert_eq!(list(&c, Entity::Product, None).unwrap().len(), 0);
+    }
+
+    /// FS-23: a soft-deleted asset leaves the fleet, so it must not keep occupying its deck position.
+    #[test]
+    fn regression_asset_soft_delete_clears_deck_position() {
+        let mut c = mem();
+        c.execute_batch("INSERT INTO venue(id,name,created_at,updated_at) VALUES('v','Club','2026-01-01','2026-01-01');
+            INSERT INTO booth(id,venue_id,name) VALUES('b','v','Booth');
+            INSERT INTO deck_position(id,booth_id,name) VALUES('p','b','Left');").unwrap();
+        let a = upsert(&mut c, Entity::Asset, &json!({"nickname": "Deck"})).unwrap();
+        let aid = a["id"].as_str().unwrap().to_string();
+        c.execute("UPDATE asset SET deck_position_id='p' WHERE id=?1", [&aid]).unwrap();
+        assert!(delete(&c, Entity::Asset, &aid).unwrap());
+        let (deleted, position): (i64, Option<String>) = c.query_row("SELECT is_deleted, deck_position_id FROM asset WHERE id=?1", [&aid], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        assert_eq!((deleted, position), (1, None));
+        assert!(!delete(&c, Entity::Asset, &aid).unwrap(), "a second delete is a no-op");
     }
 
     #[test]

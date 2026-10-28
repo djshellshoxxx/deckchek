@@ -12,7 +12,7 @@ DeckChek measures real hardware and its users trust the numbers, so the bar is "
 
 ### 1.1 Definition of done (every job)
 - [ ] Every acceptance criterion the job claims (listed in its job card) has an automated test, or a manual script step in `docs/testing/HARDWARE-TEST-SCRIPTS.md` when it needs real gear.
-- [ ] `npm test`, `node --check` on every `app/**/*.js`, `cargo test` (Linux), `cargo check`, `node tools/ui-smoke.mjs` (all flows) and Windows CI (`windows-rust-tests` + `windows-build`) are green on the job branch.
+- [ ] `npm test`, `node --check` on every `app/**/*.js`, `cargo test` (Linux), `cargo check`, `node tools/ui-smoke.mjs` (all flows) and Windows CI (`windows-rust-tests` in `nightly.yml`, and the release workflow's Windows builds) are green on the job branch.
 - [ ] No new compiler warnings (`cargo build` warning count not higher than `main`; clippy `-D warnings` from M9), no new console errors in the smoke run, no `TODO` without a linked follow-up in the job's PR notes.
 - [ ] Migrations follow §1.5; a new table has a Rust round-trip test; upgrade from the v0.04 fixture still passes.
 - [ ] Browser-mode fallback (or an explicit `unsupported` state) works for the feature.
@@ -23,7 +23,7 @@ DeckChek measures real hardware and its users trust the numbers, so the bar is "
 - [ ] An **independent code-review pass** on the full diff (a different agent session from the implementer, tier per §3; checklist §5.3) with all findings fixed or explicitly waived by the orchestrator.
 
 ### 1.2 Merge gates (enforced by the orchestrator)
-1. CI green: `javascript-tests`, `rust-tests` (Linux), `windows-rust-tests`, new `ui-smoke` job (added by `M5-ci`), and a manual `windows-build` run for jobs touching Rust, `tauri.conf.json`, capabilities or bundling.
+1. CI green: `javascript-tests`, `rust-tests` (Linux), `windows-rust-tests`, new `ui-smoke` job (added by `M5-ci`), and a manual run of the release workflow (`cross-platform-release-validation.yml`, Windows builds plus packaged-app self-test) for jobs touching Rust, `tauri.conf.json`, capabilities or bundling.
 2. Review pass done (§1.1 last item) and recorded in the merge commit body ("Reviewed-by-agent: <session>").
 3. Diff stays inside the job's owned files plus its own anchor blocks in hotspot files (FS-00 §4.1). Out-of-scope edits are moved to a follow-up job, not merged.
 4. Branch rebased on current `main` and re-tested after the rebase if `main` moved.
@@ -56,7 +56,7 @@ DeckChek measures real hardware and its users trust the numbers, so the bar is "
 
 ### 1.7 Versioning and release cadence
 - One pre-release per milestone: M5 → `v0.0.5`, M6 → `v0.0.6`, M7 → `v0.0.7`, M8 → `v0.0.8`, M9 → `v0.1.0-rc.1` then `v0.1.0`.
-- Release job (`M*-release`, cheap tier, orchestrator-run): bump `version` in `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` (and `Cargo.lock`), add the DB fixture for the new schema (§1.5), update `docs/IMPLEMENTATION-STATUS.md`, then run `windows-build.yml` via manual dispatch with `release_tag=v0.0.N` (publishes a GitHub pre-release with the NSIS/MSI artifacts). Hot-fixes during a milestone use `v0.0.N-fix.K`.
+- Release job (`M*-release`, cheap tier, orchestrator-run): bump `version` in `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` (and `Cargo.lock`), add the DB fixture for the new schema (§1.5), update `docs/IMPLEMENTATION-STATUS.md`, then push a `vX.Y.Z[-pre]` tag: `cross-platform-release-validation.yml` runs the full test gate, builds every platform once, runs `--self-test` on the downloaded artifacts and publishes the GitHub pre-release with SHA256SUMS (`windows-build.yml` was retired in the 2026-10 CI rework). Hot-fixes during a milestone use `v0.0.N-fix.K`.
 - A milestone is releasable only when every job card is merged or explicitly deferred, the owner's hardware script for the milestone has been run (results recorded in `docs/testing/results/v0.0.N.md`), and no open P1 bug exists.
 
 ---

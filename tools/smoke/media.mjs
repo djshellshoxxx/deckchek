@@ -35,7 +35,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await dflt.context().close();
   await ctxOff.addInitScript(() => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { testMedia: false } })); });
   const off = await ctxOff.newPage();
-  errors.push(...watchConsole(off, 'media-off'));
+  errors.push(watchConsole(off, 'media-off'));
   await off.goto(base);
   await off.waitForSelector('.rail-item');
   check('media: flag off hides the Test media screen', (await off.locator('.rail-item[data-screen="media"]').count()) === 0);
@@ -47,7 +47,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await context.addInitScript(FLAG_ON);
   const page = await context.newPage();
-  errors.push(...watchConsole(page, 'media'));
+  errors.push(watchConsole(page, 'media'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.click('.rail-item[data-screen="media"]');
@@ -189,7 +189,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await dctx.addInitScript(FLAG_ON);
   await dctx.addInitScript(mediaInvokeMock);
   const dp = await dctx.newPage();
-  errors.push(...watchConsole(dp, 'media-desktop'));
+  errors.push(watchConsole(dp, 'media-desktop'));
   await dp.goto(base);
   await dp.waitForSelector('.rail-item');
   await dp.click('.rail-item[data-screen="media"]');
@@ -200,5 +200,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   await dp.waitForTimeout(100);
   check('media: desktop owned toggle calls media_owned_set', (await dp.evaluate(() => window.__mediaCalls)).includes('media_owned_set'));
   await dctx.close();
-  return errors;
+  return errors.flat();
 }
