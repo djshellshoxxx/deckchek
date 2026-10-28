@@ -15,6 +15,8 @@ pub const MAX_ID_CHARS: usize = 128;
 pub const MAX_MODEL_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_CONTROLS: usize = 4096;
 pub const MAX_LIST: u32 = 500;
+/// Mapping model version this build writes (`MODEL_VERSION` in app/mapper/model.js).
+pub const MODEL_VERSION: i64 = 1;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -141,6 +143,13 @@ pub fn save(conn: &Connection, input: &MapperModelInput) -> Result<MapperModelRo
     let now = now_iso(conn)?;
     let id = match &input.id {
         Some(id) => {
+            // Never overwrite a mapping written by a newer DeckChek (or a newer model than the incoming one): the
+            // incoming model would be a lossy older copy. A row whose stored JSON has no readable version is repaired.
+            let incoming = input.model.get("version").and_then(Value::as_i64).unwrap_or(0);
+            let stored = get(conn, id)?.and_then(|r| r.model.get("version").and_then(Value::as_i64));
+            if let Some(v) = stored.filter(|v| *v > incoming || *v > MODEL_VERSION) {
+                return Err(format!("MAPPER_NEWER_VERSION: this mapping was saved by a newer DeckChek (model version {v}) and is not overwritten"));
+            }
             let n = conn
                 .execute(
                     "UPDATE mapper_model SET asset_id = ?2, profile_id = ?3, name = ?4, model_json = ?5, updated_at = ?6 WHERE id = ?1",
@@ -411,6 +420,32 @@ mod tests {
         c.execute("UPDATE mapper_model SET model_json = '{' WHERE id = ?1", [&s.id]).unwrap();
         assert_eq!(get(&c, &s.id).unwrap().unwrap().model, Value::Null);
         assert_eq!(list(&c, None).unwrap()[0].control_count, 0);
+    }
+
+    #[test]
+    fn regression_save_refuses_to_overwrite_a_newer_model_version() {
+        let c = mem();
+        let a = save(&c, &input()).unwrap();
+        // A newer DeckChek stored version MODEL_VERSION + 1 in the same row.
+        let newer = json!({ "version": MODEL_VERSION + 1, "name": "DDJ", "decks": 2, "controls": [], "futureField": "keep" });
+        c.execute("UPDATE mapper_model SET model_json = ?2 WHERE id = ?1", params![a.id, newer.to_string()]).unwrap();
+        let e = save(&c, &MapperModelInput { id: Some(a.id.clone()), ..input() }).unwrap_err();
+        assert!(e.starts_with("MAPPER_NEWER_VERSION: "), "{e}");
+        assert_eq!(get(&c, &a.id).unwrap().unwrap().model, newer, "the newer row is untouched");
+        // Stored version greater than the incoming one is refused even when the incoming one is current.
+        let mut v3 = newer.clone();
+        v3["version"] = json!(3);
+        c.execute("UPDATE mapper_model SET model_json = ?2 WHERE id = ?1", params![a.id, v3.to_string()]).unwrap();
+        let mut m2 = model();
+        m2["version"] = json!(2);
+        let e = save(&c, &MapperModelInput { id: Some(a.id.clone()), model: m2, ..input() }).unwrap_err();
+        assert!(e.starts_with("MAPPER_NEWER_VERSION: "), "{e}");
+        // Same version still overwrites; a corrupt stored model can be repaired.
+        c.execute("UPDATE mapper_model SET model_json = ?2 WHERE id = ?1", params![a.id, model().to_string()]).unwrap();
+        assert_eq!(save(&c, &MapperModelInput { id: Some(a.id.clone()), name: "Again".into(), ..input() }).unwrap().name, "Again");
+        c.execute_batch("PRAGMA ignore_check_constraints = ON;").unwrap();
+        c.execute("UPDATE mapper_model SET model_json = '{' WHERE id = ?1", [&a.id]).unwrap();
+        assert_eq!(save(&c, &MapperModelInput { id: Some(a.id.clone()), ..input() }).unwrap().model, model());
     }
 
     #[test]
