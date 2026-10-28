@@ -11,7 +11,7 @@ export default async function run({ browser, base, tmp, check }) {
   // ----- browser mode -----
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
   const page = await context.newPage();
-  errors.push(...watchConsole(page, 'diag-browser'));
+  errors.push(watchConsole(page, 'diag-browser'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.keyboard.press('Control+Shift+D');
@@ -62,7 +62,7 @@ export default async function run({ browser, base, tmp, check }) {
     window.__TAURI__.dialog = { save: async o => { window.__diag.saveOpts = o; return window.__diag.saveCancel ? null : 'C:\\Users\\x\\Desktop\\' + o.defaultPath; } };
   });
   const d = await dctx.newPage();
-  errors.push(...watchConsole(d, 'diag-desktop'));
+  errors.push(watchConsole(d, 'diag-desktop'));
   await d.goto(base);
   await d.waitForSelector('dialog.diag-crash[open]');
   check('diag: crash marker shows "DeckChek closed unexpectedly"', /closed unexpectedly/.test(await d.locator('dialog.diag-crash').innerText()) && /nothing is sent automatically/.test(await d.locator('dialog.diag-crash').innerText()));
@@ -102,5 +102,5 @@ export default async function run({ browser, base, tmp, check }) {
   await d.waitForFunction(() => !document.querySelector('dialog.diag-dialog'));
   await dctx.close();
 
-  return errors;
+  return errors.flat();
 }
