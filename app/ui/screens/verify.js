@@ -26,6 +26,20 @@ export function classifyFile(name, size) {
   return { kind: 'reject', reason: 'Choose a .deckchek-cert.json, DeckChek .html or .pdf certificate file.' };
 }
 
+const HASH_RE = /^[0-9a-f]{64}$/;
+
+/**
+ * Pure: the stored certificate a checked file came from, or null. Matched only on a content hash: the verified hash of
+ * a VALID file, or the hash written in a MODIFIED file (the signed original's hash when only the payload was edited).
+ * Never on the fingerprint, issue time or serial of a file whose signature did not verify: anyone can copy those
+ * (FS-20 review). A match only ever shows this install's own record next to the file.
+ */
+export function findStoredOriginal(rows, rep) {
+  const hash = rep?.status === 'valid' ? rep.contentHash : rep?.status === 'modified' ? rep.declaredHash : null;
+  if (!Array.isArray(rows) || typeof hash !== 'string' || !HASH_RE.test(hash)) return null;
+  return rows.find(r => r?.contentHash === hash) || null;
+}
+
 export function createVerifyScreen(section, { api = createCertificateApi(), dialog = globalThis.window?.__TAURI__?.dialog, events = globalThis.window?.__TAURI__?.event } = {}) {
   const native = isNative() && api.native;
   section.innerHTML = `
@@ -63,16 +77,14 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     }
     let payload = rep.payload || null, diff = [];
     if (!payload && rep.status !== 'unverifiable') { try { payload = parseStrictJson(json).payload; } catch { payload = null; } }
-    if (native && rep.status === 'modified' && rep.fingerprint && payload) diff = await diffAgainstStored(rep, payload);
+    if (native && rep.status === 'modified' && payload) diff = await diffAgainstStored(rep, payload);
     if (my !== token) return;
     render(rep, payload, diff, sourceName);
   }
 
   async function diffAgainstStored(rep, payload) {
     try {
-      const rows = await api.list(null);
-      // Same key, and the same issue time or serial (one of them may be the edited field).
-      const match = rows.find(r => r.signingKeyId === rep.fingerprint && (r.issuedAt === rep.issuedAt || r.serialNumber === rep.serial));
+      const match = findStoredOriginal(await api.list(null), rep);
       if (!match) return [];
       const rec = await api.get(match.id);
       return diffPayload(parseStrictJson(rec.fileJson).payload, payload);

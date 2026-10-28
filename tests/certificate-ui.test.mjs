@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 globalThis.localStorage = (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })();
 const { unitOptions, photoProblem } = await import('../app/ui/screens/certificate.js');
-const { classifyFile } = await import('../app/ui/screens/verify.js');
+const { classifyFile, findStoredOriginal } = await import('../app/ui/screens/verify.js');
 const { composePrintable } = await import('../app/report-pdf.js');
 const { registerCertificateKind, CERTIFICATE_KIND } = await import('../app/report-kinds/certificate.js');
 const fs = await import('node:fs');
@@ -36,6 +36,24 @@ test('AC-3 verify file classification: size checked before reading, PDFs never p
   assert.equal(classifyFile('big.html', 48 * 1024 * 1024 + 1).kind, 'reject');
   assert.equal(classifyFile('cert.exe', 10).kind, 'reject');
   assert.equal(classifyFile(undefined, 0).kind, 'reject');
+});
+
+test('regression: verify diff only matches a stored record by content hash, never by the unverified fingerprint', () => {
+  const H = n => String(n).repeat(64).slice(0, 64);
+  const rows = [
+    { id: 'c1', signingKeyId: 'fp-local', issuedAt: '2026-10-01T10:00:00Z', serialNumber: 'SN1', contentHash: H(1) },
+    { id: 'c2', signingKeyId: 'fp-local', issuedAt: '2026-10-02T10:00:00Z', serialNumber: 'SN2', contentHash: H(2) },
+  ];
+  // MODIFIED file: the payload was edited, the hash written in the file is still that of the signed original
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: H(2), contentHash: H(9), issuedAt: 'x', serial: 'edited' })?.id, 'c2');
+  // a forged file that copies this install's fingerprint plus a stored issue time / serial must not pick a record
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: H(7), contentHash: H(8), issuedAt: '2026-10-01T10:00:00Z', serial: 'SN1' }), null);
+  assert.equal(findStoredOriginal(rows, { status: 'modified', fingerprint: 'fp-local', declaredHash: null, issuedAt: '2026-10-01T10:00:00Z', serial: 'SN1' }), null);
+  // VALID: matched on its verified hash
+  assert.equal(findStoredOriginal(rows, { status: 'valid', fingerprint: 'other', contentHash: H(1), declaredHash: H(1) })?.id, 'c1');
+  assert.equal(findStoredOriginal(rows, { status: 'unverifiable', declaredHash: H(1) }), null, 'an unreadable file matches nothing');
+  assert.equal(findStoredOriginal(null, { status: 'modified', declaredHash: H(1) }), null);
+  assert.equal(findStoredOriginal(rows, { status: 'modified', declaredHash: 'not-hex' }), null);
 });
 
 test('contract tests/contracts/certificate.json: the JS bridge sends exactly the documented request fields', async () => {
