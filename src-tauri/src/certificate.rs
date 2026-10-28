@@ -9,8 +9,9 @@
 //! - [`verify_text`] `(text, now_iso, is_local) -> VerifyReport` — never panics or errors; untrusted input
 //!   becomes status `unverifiable` (unknown format/version, malformed, missing signature) or `modified`
 //!   ("content hash mismatch", bad signature) with reasons. `expired` is separate from `status`.
-//! - [`extract_json`] `(path) -> String` — `.json` as-is, the `<script id="deckchek-cert">` block of a
-//!   DeckChek `.html`, `pdf_has_no_attachment` for `.pdf` (v1: WebView2 PrintToPdf embeds no files).
+//! - [`extract_json`] `(path) -> String` — bounded certificate-envelope JSON from `.json` or the
+//!   `<script id="deckchek-cert">` block of a DeckChek `.html`; validity is left to `verify_text`.
+//!   `.pdf` returns `pdf_has_no_attachment` (v1: WebView2 PrintToPdf embeds no files).
 //! - [`store`] / [`list`] / [`get`] — `certificate` rows (0014). `store` re-verifies the file and derives
 //!   every column from the signed payload, so the UI cannot store a record that does not match it.
 //!
@@ -715,14 +716,49 @@ pub fn json_from_html(html: &str) -> Result<String, CertError> {
     Ok(json.to_string())
 }
 
-/// FS-20 `certificate_extract_json`: JSON text from a user-chosen certificate file.
+/// A recognizable v1 envelope, not a valid signature or a semantically valid signed payload.
+/// Keep modified values available to `verify_text` instead of treating extraction as verification.
+fn validate_extract_envelope(root: &Value) -> Result<(), CertError> {
+    let shape = (|| -> Result<(), String> {
+        let file = obj(root, "certificate")?;
+        exact_keys(file, "certificate", &["format", "version", "payload"], &["integrity"])?;
+        one_of(file, "format", "certificate", &[FORMAT])?;
+        int(file, "version", "certificate", VERSION, VERSION)?;
+        let payload = &file["payload"];
+        check_payload_bounds(payload)?;
+        let p = obj(payload, "payload")?;
+        obj(&p["unit"], "payload.unit")?;
+        obj(&p["plan"], "payload.plan")?;
+        array(p, "results", "payload", MAX_RESULTS)?;
+        array(p, "measurements", "payload", MAX_MEASUREMENTS)?;
+        // Unsigned drafts and stripped signatures have meaningful verification diagnostics.
+        if let Some(integrity) = file.get("integrity") {
+            let i = obj(integrity, "integrity")?;
+            exact_keys(i, "integrity", &["alg", "hashAlg", "contentHash", "publicKey", "fingerprint"], &["signature"])?;
+            for key in ["alg", "hashAlg", "contentHash", "publicKey", "fingerprint"] {
+                text(i, key, "integrity", 0, MAX_TEXT)?;
+            }
+            if i.contains_key("signature") {
+                text(i, "signature", "integrity", 0, MAX_TEXT)?;
+            }
+        }
+        Ok(())
+    })();
+    // Schema helpers can name unknown fields; extraction errors must not echo unrelated file data.
+    shape.map_err(|_| CertError::Schema("expected a DeckChek certificate v1 envelope".into()))
+}
+
+/// FS-20 `certificate_extract_json`: shape-checked certificate JSON without rewriting its contents.
+/// This content check does not establish path authorization or cryptographic validity.
 pub fn extract_json(path: &str) -> Result<String, CertError> {
     let (real, ext) = validate_read_path(path)?;
-    match ext.as_str() {
+    let json = match ext.as_str() {
         "pdf" => Err(CertError::PdfNoAttachment),
         "json" => read_capped(&real, MAX_JSON_BYTES),
         _ => json_from_html(&read_capped(&real, MAX_HTML_BYTES)?),
-    }
+    }?;
+    validate_extract_envelope(&parse_strict(&json)?)?;
+    Ok(json)
 }
 
 // ------------------------------------------------------------------ store / list

@@ -376,6 +376,92 @@ fn ac3_extract_json_handles_json_html_pdf_and_rejects_bad_paths() {
     assert_eq!(extract_json(folder.to_str().unwrap()).unwrap_err().code(), "bad_path");
 }
 
+/// Both file routes must apply the same JSON/envelope gate and preserve the original JSON bytes.
+fn extract_json_and_html(text: &str) -> Vec<Result<String, CertError>> {
+    let dir = tmpdir("extract shape");
+    let json_path = dir.join("input.json");
+    let html_path = dir.join("input.html");
+    fs::write(&json_path, text).unwrap();
+    fs::write(&html_path, format!("<!doctype html>{HTML_MARKER}{text}</script>")).unwrap();
+    let results = vec![extract_json(json_path.to_str().unwrap()), extract_json(html_path.to_str().unwrap())];
+    fs::remove_dir_all(dir).unwrap();
+    results
+}
+
+#[test]
+fn extract_rejects_unrelated_json_without_echoing_its_fields_or_values() {
+    let unrelated = r#"{"private-field-marker":"private-value-marker"}"#;
+    let mut extra = valid_file();
+    extra["private-field-marker"] = json!("private-value-marker");
+    for text in [unrelated.to_string(), serde_json::to_string(&extra).unwrap()] {
+        for result in extract_json_and_html(&text) {
+            let error = result.unwrap_err();
+            assert_eq!(error.code(), "schema");
+            let serialized = serde_json::to_string(&error).unwrap();
+            assert!(!serialized.contains("private-field-marker"));
+            assert!(!serialized.contains("private-value-marker"));
+        }
+    }
+}
+
+#[test]
+fn extract_rejects_malformed_envelopes_consistently_in_json_and_html() {
+    let good = valid_file();
+    let mut cases = vec![json!(null), json!([]), json!({"format": FORMAT, "version": VERSION}), json!({"format": FORMAT, "version": VERSION, "payload": {}})];
+    for (key, value) in [("format", json!("other")), ("version", json!(2)), ("version", json!("1")), ("payload", json!([])), ("integrity", json!([]))] {
+        let mut file = good.clone(); file[key] = value; cases.push(file);
+    }
+    for (key, value) in [("unit", json!([])), ("plan", json!(null)), ("results", json!({})), ("measurements", json!("not measurements"))] {
+        let mut file = good.clone(); file["payload"][key] = value; cases.push(file);
+    }
+    let mut missing_field = good.clone(); missing_field["integrity"].as_object_mut().unwrap().remove("contentHash"); cases.push(missing_field);
+    let mut wrong_field = good.clone(); wrong_field["integrity"]["signature"] = json!([1]); cases.push(wrong_field);
+    let mut oversized_field = good.clone(); oversized_field["integrity"]["signature"] = json!("x".repeat(MAX_TEXT + 1)); cases.push(oversized_field);
+    for file in cases {
+        for result in extract_json_and_html(&serde_json::to_string(&file).unwrap()) {
+            assert_eq!(result.unwrap_err().code(), "schema");
+        }
+    }
+}
+
+#[test]
+fn extract_applies_json_depth_size_duplicate_and_syntax_limits_to_both_file_routes() {
+    let text = serde_json::to_string(&valid_file()).unwrap();
+    let duplicate = text.replacen("\"format\":", "\"format\":\"duplicate\",\"format\":", 1);
+    let nested_duplicate = text.replacen("\"tester\":", "\"tester\":\"duplicate\",\"tester\":", 1);
+    let deep = format!("{}{}", "[".repeat(MAX_JSON_DEPTH + 1), "]".repeat(MAX_JSON_DEPTH + 1));
+    let oversized = format!("\"{}\"", "x".repeat(MAX_JSON_BYTES as usize));
+    for (input, code) in [(duplicate, "duplicate_key"), (nested_duplicate, "duplicate_key"), (deep, "too_deep"), (oversized, "too_large"), (format!("{text} {{}}"), "invalid_json")] {
+        for result in extract_json_and_html(&input) {
+            assert_eq!(result.unwrap_err().code(), code);
+        }
+    }
+}
+
+#[test]
+fn extract_preserves_crypto_failures_unsigned_drafts_and_expiry_for_normal_verification() {
+    let good = valid_file();
+    let mut cases = vec![(good.clone(), "valid", false)];
+    for (key, value, status) in [("signature", json!("not-base64"), "modified"), ("signature", json!(""), "unverifiable"), ("contentHash", json!("bad-digest"), "unverifiable"), ("contentHash", json!("0".repeat(64)), "modified")] {
+        let mut file = good.clone(); file["integrity"][key] = value; cases.push((file, status, false));
+    }
+    let mut unsigned = good.clone(); unsigned.as_object_mut().unwrap().remove("integrity"); cases.push((unsigned, "unverifiable", false));
+    let mut stripped_signature = good.clone(); stripped_signature["integrity"].as_object_mut().unwrap().remove("signature"); cases.push((stripped_signature, "unverifiable", false));
+    let mut modified = good.clone(); modified["payload"]["tester"] = json!(["modified value"]); cases.push((modified, "modified", false));
+    let mut expired_payload = sample_payload(); expired_payload["validUntil"] = json!("2026-10-20T00:00:00.000Z");
+    cases.push((sign_with(&FIXTURE_SEED, expired_payload), "valid", true));
+    for (file, status, expired) in cases {
+        let text = serde_json::to_string(&file).unwrap();
+        for result in extract_json_and_html(&text) {
+            let extracted = result.unwrap();
+            assert_eq!(extracted, text);
+            let report = verify_text(&extracted, NOW, |_| false);
+            assert_eq!(report.status, status, "{:?}", report.reasons);
+            assert_eq!(report.expired, expired);
+        }
+    }
+}
+
 #[test]
 fn oversized_file_is_rejected_from_metadata_before_reading() {
     let d = tmpdir("huge");

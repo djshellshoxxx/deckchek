@@ -1086,40 +1086,11 @@ pub fn delete(conn: &mut Connection, dir: &std::path::Path, id: &str, confirm: &
     if confirm.trim() != job.job_number {
         return Err(format!("type the job number {} to delete this job", job.job_number));
     }
-    let photo_ids: Vec<String> = {
-        let mut st = tx.prepare("SELECT DISTINCT photo_id FROM photo_link WHERE owner_kind = 'service_job' AND owner_id = ?1").map_err(e2s)?;
-        let ids = st.query_map([id], |r| r.get(0)).map_err(e2s)?.collect::<rusqlite::Result<_>>().map_err(e2s)?;
-        ids
-    };
-    tx.execute("DELETE FROM photo_link WHERE owner_kind = 'service_job' AND owner_id = ?1", [id]).map_err(e2s)?;
-    let mut orphan_files = Vec::new();
-    for photo_id in &photo_ids {
-        let links: i64 = tx.query_row("SELECT COUNT(*) FROM photo_link WHERE photo_id = ?1", [photo_id], |r| r.get(0)).map_err(e2s)?;
-        if links > 0 {
-            continue;
-        }
-        if let Some(sha) = tx.query_row("SELECT sha256 FROM photo WHERE id = ?1", [photo_id], |r| r.get::<_, String>(0)).optional().map_err(e2s)? {
-            tx.execute("DELETE FROM photo WHERE id = ?1", [photo_id]).map_err(e2s)?;
-            orphan_files.push(sha);
-        }
-    }
+    let (_, pending_photos) = photo::unlink_owner(&tx, dir, "service_job", id)?;
     tx.execute("DELETE FROM service_job_log WHERE job_id = ?1 AND amends_id IS NOT NULL", [id]).map_err(e2s)?;
     tx.execute("DELETE FROM service_job WHERE id = ?1", [id]).map_err(e2s)?;
     tx.commit().map_err(e2s)?;
-    for sha in orphan_files {
-        // the same bytes may have been attached again since the commit: keep the file then
-        let reused: i64 = conn.query_row("SELECT COUNT(*) FROM photo WHERE sha256 = ?1", [&sha], |r| r.get(0)).unwrap_or(1);
-        if reused > 0 {
-            continue;
-        }
-        let Ok(path) = photo::photo_file(dir, &sha) else { continue };
-        match std::fs::remove_file(path) {
-            Ok(()) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            // no path or hash in the log: only that an orphaned file stays behind (harmless)
-            Err(e) => eprintln!("[service] job deleted; an orphaned photo file could not be removed and was left in place ({:?})", e.kind()),
-        }
-    }
+    pending_photos.remove_after_commit(conn);
     Ok(())
 }
 

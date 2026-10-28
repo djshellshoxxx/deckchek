@@ -136,8 +136,9 @@ export function createDataScreen(section) {
     try { unlisten = await tauri()?.event?.listen?.(PROGRESS_EVENT, e => bar.set(progressPercent(e.payload))); } catch { /* progress is optional */ }
     try {
       const r = await backupApi.create({ destPath: dest, kind: 'manual', settings: exportSettingsBlob() });
-      setStatus(`Backup saved: ${formatBytes(r.bytes)}, ${r.counts.runs} run(s).`, 'success');
-      toast('Backup saved.', { type: 'success' });
+      const warnings = Array.isArray(r.warnings) ? r.warnings.filter(w => typeof w === 'string') : [];
+      setStatus(`Backup saved: ${formatBytes(r.bytes)}, ${r.counts.runs} run(s).${warnings.length ? ` Warnings: ${warnings.join(' ')}` : ''}`, warnings.length ? 'warn' : 'success');
+      toast(warnings.length ? 'Backup saved with warnings. Review the details before relying on it.' : 'Backup saved.', { type: warnings.length ? 'warn' : 'success' });
     } catch (error) {
       setStatus(`Backup failed: ${friendlyBackupError(error)}`, 'error');
     } finally { if (typeof unlisten === 'function') unlisten(); st.busy = false; await refresh(); }
