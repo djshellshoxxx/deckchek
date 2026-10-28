@@ -1,0 +1,56 @@
+/* FS-32 MIDI mapper studio. Tokens come from styles.css. */
+.mp-source { display: grid; gap: 10px; margin-top: 16px; }
+.mp-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.mp-field { display: grid; gap: 4px; min-width: 0; }
+.mp-field select, .mp-field input[type="text"] { min-height: 32px; padding: 4px 8px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface); color: var(--text); font: inherit; max-width: 100%; }
+.mp-grow { flex: 1 1 220px; }
+.mp-grow input { width: 100%; box-sizing: border-box; }
+.mp-status:empty { display: none; }
+.mp-status p { margin: 0; overflow-wrap: anywhere; }
+.mp-warnings summary { cursor: pointer; min-height: 24px; display: list-item; font-size: 13px; color: var(--text-muted); }
+.mp-warning-list { margin: 6px 0 0; padding-left: 20px; max-height: 220px; overflow: auto; font-size: 13px; display: grid; gap: 2px; overflow-wrap: anywhere; }
+
+.mp-panes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 16px; align-items: start; }
+.mp-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.mp-pane .card-head { flex-wrap: wrap; gap: 6px 12px; }
+
+.mp-learn { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mp-learn select { min-height: 32px; max-width: 100%; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface); color: var(--text); }
+#mp-learn[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.mp-table-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--border-soft); border-radius: var(--r-md); }
+.mp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mp-table th, .mp-table td { padding: 6px 8px; border-bottom: 1px solid var(--divider); text-align: left; vertical-align: top; }
+.mp-table thead th { position: sticky; top: 0; background: var(--raised); color: var(--text-muted); font-weight: 600; z-index: 1; }
+.mp-table tbody tr { cursor: pointer; }
+.mp-table tbody tr:hover { background: var(--sunken); }
+.mp-table tbody tr.is-selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.mp-table tbody tr:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.mp-table .mp-midi { font-family: var(--font-mono); white-space: nowrap; }
+.mp-label { font-weight: 500; overflow-wrap: anywhere; }
+.mp-flag { display: inline-flex; gap: 3px; align-items: center; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+.mp-flag-conflict, .mp-flag-error { color: var(--fail); background: var(--fail-bg); }
+.mp-flag-check { color: var(--warn); background: var(--warn-bg); }
+tr.has-conflict th, tr.has-error th { box-shadow: inset 3px 0 0 var(--fail); }
+
+.mp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.mp-check { display: flex; gap: 8px; align-items: center; min-height: 32px; }
+.mp-check input { width: 24px; height: 24px; margin: 0; flex: none; }
+.mp-current { margin: 0; overflow-wrap: anywhere; }
+#mp-fn-search { min-height: 32px; padding: 4px 8px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--surface); color: var(--text); font: inherit; width: 100%; box-sizing: border-box; }
+.mp-fn-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 240px; overflow: auto; }
+.mp-fn-list .btn, .mp-tabs .btn { min-height: 28px; }
+.mp-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.mp-chip { display: inline-flex; }
+.mp-sub { margin: 0; font-size: 14px; }
+.mp-issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 220px; overflow: auto; }
+.mp-issue { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; font-size: 13px; overflow-wrap: anywhere; }
+.mp-issue .mp-sev { display: inline-flex; gap: 3px; align-items: center; font-weight: 600; white-space: nowrap; }
+.mp-error .mp-sev { color: var(--fail); }
+.mp-warning .mp-sev { color: var(--warn); }
+.mp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.mp-tabs .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-preview { margin: 0; max-width: 100%; box-sizing: border-box; max-height: 360px; overflow: auto; padding: 10px 12px; background: var(--sunken); border: 1px solid var(--border-soft); border-radius: var(--r-md); font-family: var(--font-mono); font-size: 12px; line-height: 1.45; white-space: pre; tab-size: 2; }
+.mp-preview:focus-visible { outline: 2px solid var(--focus); }
+.mp-readonly .mp-centre { opacity: 0.8; }

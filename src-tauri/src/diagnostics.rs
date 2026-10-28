@@ -1183,22 +1183,32 @@ pub fn diagnostics_ack_crash(state: tauri::State<'_, DiagState>) {
     state.ack_crash();
 }
 
+/// Off the main thread (AUD-03): reads the database and redacts up to 2 MiB of logs.
+/// `Err` only if the body panicked.
 #[tauri::command]
-pub fn diagnostics_preview(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, opts: BundleOpts) -> PreviewResult {
-    let parts = run_parts(&app, &state, &opts);
-    let summary_text = parts.iter().find(|p| p.info.name == "summary.txt").map(|p| String::from_utf8_lossy(&p.bytes).into_owned()).unwrap_or_default();
-    PreviewResult { summary_text, parts: parts.into_iter().map(|p| p.info).collect() }
+pub async fn diagnostics_preview(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, opts: BundleOpts) -> Result<PreviewResult, String> {
+    let state = state.inner().clone();
+    crate::db::off_main(move || {
+        let parts = run_parts(&app, &state, &opts);
+        let summary_text = parts.iter().find(|p| p.info.name == "summary.txt").map(|p| String::from_utf8_lossy(&p.bytes).into_owned()).unwrap_or_default();
+        PreviewResult { summary_text, parts: parts.into_iter().map(|p| p.info).collect() }
+    })
+    .await
 }
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub fn diagnostics_create_bundle(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, destPath: String, opts: BundleOpts) -> Result<BundleResult, String> {
-    let dest = crate::userfiles::validate_save_path(&destPath, &["zip"]).map_err(|e| format!("{}: {}", e.code(), e))?;
-    let parts = run_parts(&app, &state, &opts);
-    let size = write_zip(&parts, &dest)?;
-    crate::userfiles::record_written(&dest);
-    state.log("INFO", "diagnostics", &format!("bundle written ({size} bytes, redact={})", opts.redact));
-    Ok(BundleResult { path: dest.to_string_lossy().into_owned(), size_bytes: size, parts: parts.into_iter().map(|p| p.info).collect() })
+pub async fn diagnostics_create_bundle(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, destPath: String, opts: BundleOpts) -> Result<BundleResult, String> {
+    let state = state.inner().clone();
+    crate::db::off_main(move || {
+        let dest = crate::userfiles::validate_save_path(&destPath, &["zip"]).map_err(|e| format!("{}: {}", e.code(), e))?;
+        let parts = run_parts(&app, &state, &opts);
+        let size = write_zip(&parts, &dest)?;
+        crate::userfiles::record_written(&dest);
+        state.log("INFO", "diagnostics", &format!("bundle written ({size} bytes, redact={})", opts.redact));
+        Ok(BundleResult { path: dest.to_string_lossy().into_owned(), size_bytes: size, parts: parts.into_iter().map(|p| p.info).collect() })
+    })
+    .await?
 }
 
 #[cfg(test)]

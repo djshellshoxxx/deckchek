@@ -1,7 +1,9 @@
 //! External links and file reveal (FS-07). Every URL the webview wants opened goes through
 //! `open_external_url`; the allowlist and URL policy are enforced here (authoritative), and the
 //! webview holds no opener permission. Local files are opened only when DeckChek wrote them this
-//! session or they live in an app-owned folder.
+//! session or they live in an app-owned folder, and `open_path` launches only the viewer types in
+//! `OPENABLE_EXTS` or a folder (AUD-01: `userfiles` may write `.js` for FS-32/FS-33 exports, which
+//! the OS would execute if opened). Revealing in the file manager is allowed for any such path.
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -201,9 +203,20 @@ pub fn check_path(raw: &str, roots: &[PathBuf], recorded: &dyn Fn(&Path) -> bool
     }
 }
 
+/// File types `open_path` may hand to the OS default handler (AUD-01). The default verb runs
+/// executables and scripts (`.js` under Windows Script Host, `.bat`, `.lnk`, ...), so anything
+/// outside this viewer set, other than a folder, is refused with `blocked_type`. `reveal_path`
+/// only shows the item in the file manager and stays available for every type.
+pub const OPENABLE_EXTS: [&str; 6] = ["pdf", "html", "htm", "csv", "json", "txt"];
+
+fn openable(p: &Path) -> bool {
+    p.is_dir() || p.extension().and_then(|e| e.to_str()).is_some_and(|e| OPENABLE_EXTS.iter().any(|o| o.eq_ignore_ascii_case(e)))
+}
+
 fn open_path_with(raw: &str, roots: &[PathBuf], recorded: &dyn Fn(&Path) -> bool, opener: &dyn Opener, reveal: bool) -> PathResult {
     match check_path(raw, roots, recorded) {
         Err(reason) => PathResult { opened: false, reason: Some(reason) },
+        Ok(p) if !reveal && !openable(&p) => PathResult { opened: false, reason: Some("blocked_type") },
         Ok(p) => match if reveal { opener.reveal(&p) } else { opener.open_path(&p) } {
             Ok(()) => PathResult { opened: true, reason: None },
             Err(_) => PathResult { opened: false, reason: Some("error") },
@@ -457,6 +470,42 @@ mod tests {
         fs::remove_file(&inside).unwrap();
         assert_eq!(check_path(inside.to_str().unwrap(), &roots, &recorded), Err("not_found"));
         assert_eq!(check_path(other.join("nope.txt").to_str().unwrap(), &roots, &recorded), Err("not_app_path"));
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(other);
+    }
+
+    // AUD-01: open_path launches only document viewers (or folders); reveal stays allowed.
+    #[test]
+    fn regression_aud_01_open_path_refuses_non_viewer_types() {
+        let root = tmp("aud01-open");
+        let roots = vec![root.clone()];
+        let never = |_: &Path| false;
+        for name in ["a.exe", "a.bat", "a.cmd", "a.js", "a.lnk", "a.vbs", "a.ps1", "a.url", "a.desktop", "a.sh", "a.hta", "a.xml", "a.EXE", "noext", "a.pdf.exe"] {
+            let f = root.join(name);
+            fs::write(&f, "x").unwrap();
+            let m = Mock::default();
+            let r = open_path_with(f.to_str().unwrap(), &roots, &never, &m, false);
+            assert_eq!((r.opened, r.reason), (false, Some("blocked_type")), "{name}");
+            assert!(m.calls.borrow().is_empty(), "{name}");
+            // Revealing in the file manager never executes, so it stays available.
+            assert!(open_path_with(f.to_str().unwrap(), &roots, &never, &m, true).opened, "{name}");
+        }
+        // A recorded (DeckChek-written) executable is refused too.
+        let other = tmp("aud01-open-other");
+        let exe = other.join("x.cmd");
+        fs::write(&exe, "x").unwrap();
+        let canon = fs::canonicalize(&exe).unwrap();
+        let rec = move |p: &Path| p == canon;
+        let m = Mock::default();
+        assert_eq!(open_path_with(exe.to_str().unwrap(), &[], &rec, &m, false).reason, Some("blocked_type"));
+        assert!(m.calls.borrow().is_empty());
+        // Viewer types and folders still open.
+        for name in ["r.pdf", "r.html", "r.htm", "r.csv", "r.json", "r.txt", "R.PDF"] {
+            fs::write(root.join(name), "x").unwrap();
+            assert!(open_path_with(root.join(name).to_str().unwrap(), &roots, &never, &m, false).opened, "{name}");
+        }
+        fs::create_dir_all(root.join("ledger")).unwrap();
+        assert!(open_path_with(root.join("ledger").to_str().unwrap(), &roots, &never, &m, false).opened);
         let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(other);
     }
