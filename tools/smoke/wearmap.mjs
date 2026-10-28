@@ -105,7 +105,7 @@ export default async function run({ browser, base, tmp, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'wearmap-off'));
+  errors.push(watchConsole(po, 'wearmap-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('wearmap: flag off hides the Control vinyl screen', (await po.locator('.rail-item[data-screen="vinylscan"]').count()) === 0);
@@ -115,7 +115,7 @@ export default async function run({ browser, base, tmp, check, SHOTS }) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'dark' });
   await ctx.addInitScript(FLAG_ON);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'wearmap-browser'));
+  errors.push(watchConsole(page, 'wearmap-browser'));
   await page.goto(base);
   await page.click('.rail-item[data-screen="vinylscan"]');
   await page.waitForSelector('#wm-empty');
@@ -234,7 +234,7 @@ export default async function run({ browser, base, tmp, check, SHOTS }) {
   const dctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'dark' });
   await dctx.addInitScript(tauriMock); await dctx.addInitScript(wearMock); await dctx.addInitScript(FLAG_ON);
   const pd = await dctx.newPage();
-  errors.push(...watchConsole(pd, 'wearmap-desktop'));
+  errors.push(watchConsole(pd, 'wearmap-desktop'));
   await pd.goto(base);
   await pd.click('.rail-item[data-screen="vinylscan"]');
   await pd.waitForSelector('#wm-add-first');
@@ -274,5 +274,5 @@ export default async function run({ browser, base, tmp, check, SHOTS }) {
   await pd.click('#wm-cancel');
   await pd.click('#theme-toggle');
   await dctx.close();
-  return errors;
+  return errors.flat();
 }

@@ -4,6 +4,26 @@ Updated: 2026-10-14 (v0.0.5 shipped; M7 wave-0 foundations merged on top of the 
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
+## Cloud continuation: M7 data and statistics foundations (2026-10-22)
+
+- Added the actual reserved schemas `0014_certificate`, `0015_unit_population`, `0016_service_worksheets`, and `0017_fleet_dashboard` from FS-20–23. Existing migration numbers and data are preserved, including databases that already applied `0018_session_origin`. These schemas provide storage foundations; they do not make the corresponding features complete. New Rust tests cover fresh setup, repeated migration execution, the out-of-order FS-30 upgrade, foreign keys, uniqueness and constraint failures.
+- FS-21 pure statistics are implemented in `app/population.js`: type-7 quantiles, scaled-MAD outlier bounds with IQR fallback, winsorization, mid-rank ties, seeded 90% bootstrap intervals, one median per contributor, minimum population sizes and explicit method/unit filtering. Raw dots retain outliers, and the comparison always includes the selection-bias caveat.
+- FS-21 `app/pack.js` builds whitelisted anonymous packs with three-significant-digit values, validates the 5 MB/100,000-row limits and known plausible ranges, and provides a removable, idempotent in-memory store. Overlapping packs retain their own observation ownership, so removing one does not delete an observation still supplied by another.
+- Still outstanding for FS-21: native import/export/persistence commands, profile plausible-range definitions, comparison and sharing UI, sibling/history integration, and manual privacy review. Flags remain off and unavailable. FS-20 certificate signing/UI and FS-22 service workflows/UI remain outstanding.
+
+### FS-23 experimental fleet workflow
+
+The Fleet option is now available under Experimental features and remains off by default while its remaining acceptance work is completed. The native app supplies asset/location, latest-test and confirmed usage-ledger evidence through `src-tauri/src/fleet.rs`; pure `app/fleet.js` policy and `app/fleet-api.js` decorate that evidence for the UI. This keeps health/reminder rules independent of SQL and presentation rather than duplicating them in the native adapter.
+
+- Fleet grid: venue/booth/category/health/search filters, sortable columns, latest result per test, explicit Never tested/Review/Attention states, failing items, tracked-hour estimates and due reminders. Exports contain exactly the selected rows, UTF-8 BOM, RFC 4180 quoting and formula-injection protection.
+- Per-asset placement and test-profile handoff; maintenance logging, reminders in calendar days or confirmed tracked hours, completing-event resets, one-day snooze; startup summary and badge with at most five listed reminders. Calendar calculations use UTC dates and reject invalid dates, impossible intervals and four-digit-year overflow.
+- Hours reminders query the current confirmed ledger by the maintenance timestamp, so importing older usage cannot falsely advance a reminder. An entry spanning that timestamp has no measured within-entry distribution: the reminder is Unknown until the entry is split or reviewed. Stored hours-at-event are historical audit data, not a subtraction baseline.
+- Venue/booth/position creation, rename and parent change. Deletion previews affected counts and requires typing the existing name. Occupied locations remain blocked unless an explicit outside destination or Unplaced is selected; moves, audit events and deletion commit atomically. Saved setup/support references still block deletion and roll back any moves; assets and historical records are preserved.
+- Booth sheet is registered with the shared PDF/print path and includes positions, asset/model, serial, last test, health, due status and a notes area. Browser mode explains that native fleet persistence is unavailable.
+- Configurable stale-result days and startup-banner preference. Keyboard `/`, `E`, `N` and arrow-key grid navigation are supported.
+- Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
+- Remaining FS-23 work: default-on qualification and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
+
 ## Implemented and test-covered
 
 - Tauri 2 desktop shell with dark/light theme, nav rail navigation and responsive local UI.
@@ -150,7 +170,7 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
 - Mature vinyl classifiers and held-out false-positive corpus validation.
 - Venue hierarchy, controlled level-step feedback test, isolation A/B workflow and incident log.
-- Maintenance/fleet trend dashboards and reminders.
+- Fleet default-on qualification and real-database/hardware walkthrough; trend dashboards beyond the experimental FS-23 view.
 - Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.
 - Device-profile pass thresholds and most specs are unverified research (marked in the UI and reports); identity of the DDJ-S8 and Technics MK4 units must be confirmed on the hardware.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
