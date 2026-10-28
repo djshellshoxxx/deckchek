@@ -1,0 +1,80 @@
+{
+  "monitor_session_start": {
+    "command": "monitor_session_start",
+    "request": {
+      "input": {
+        "deviceName": "Traktor Audio 8 DJ",
+        "hostApi": "WASAPI",
+        "sampleRate": 48000,
+        "format": "Traktor Scratch MK2",
+        "config": { "decks": [{ "deck": "A", "first": 1 }, { "deck": "B", "first": 3 }], "hopMs": 250, "format": "Traktor Scratch MK2" },
+        "assetId": null
+      }
+    },
+    "response": { "id": "00000000-0000-4000-8000-000000000031", "startedAt": "2026-10-28T21:00:00.000Z" }
+  },
+  "monitor_log_append": {
+    "command": "monitor_log_append",
+    "request": {
+      "sessionId": "00000000-0000-4000-8000-000000000031",
+      "events": [
+        { "tMs": 25250, "deck": "A", "kind": "snrDrop", "severity": "warning", "value": 24.1, "baseline": 32.2, "message": "Deck A: timecode SNR dropped 8 dB" },
+        { "tMs": 61000, "deck": "B", "kind": "dropouts", "severity": "critical", "value": 3, "baseline": 3, "message": "Deck B: 3 timecode dropouts in 10 s" }
+      ],
+      "minutes": [
+        { "minute": 0, "deck": "A", "snrDbMin": 24.1, "snrDbMean": 30.2, "humDbMax": -72.5, "driftDegMax": 1.2, "dropouts": 0 },
+        { "minute": 1, "deck": "B", "snrDbMin": 29.8, "snrDbMean": 31.0, "humDbMax": -75.0, "driftDegMax": 0.8, "dropouts": 3 }
+      ]
+    },
+    "response": { "eventsStored": 2, "eventsDropped": 0, "minutesStored": 2 }
+  },
+  "monitor_session_end": {
+    "command": "monitor_session_end",
+    "request": {
+      "sessionId": "00000000-0000-4000-8000-000000000031",
+      "summary": { "version": 1, "durationSec": 75, "endReason": "stopped", "worst": "critical", "alerts": { "info": 0, "warning": 1, "critical": 1 }, "droppedBlocks": 0, "eventsDropped": 0, "decks": [] }
+    },
+    "response": null
+  },
+  "monitor_session_get": {
+    "command": "monitor_session_get",
+    "request": { "id": "00000000-0000-4000-8000-000000000031" },
+    "response": {
+      "version": 1,
+      "session": {
+        "id": "00000000-0000-4000-8000-000000000031",
+        "startedAt": "2026-10-28T21:00:00.000Z",
+        "endedAt": "2026-10-28T21:01:15.000Z",
+        "deviceName": "Traktor Audio 8 DJ",
+        "hostApi": "WASAPI",
+        "sampleRate": 48000,
+        "format": "Traktor Scratch MK2",
+        "config": { "decks": [{ "deck": "A", "first": 1 }, { "deck": "B", "first": 3 }], "hopMs": 250, "format": "Traktor Scratch MK2" },
+        "summary": { "version": 1, "durationSec": 75, "endReason": "stopped", "worst": "critical", "alerts": { "info": 0, "warning": 1, "critical": 1 }, "droppedBlocks": 0, "eventsDropped": 0, "decks": [] },
+        "assetId": null,
+        "eventCount": 2,
+        "warningCount": 1,
+        "criticalCount": 1,
+        "minuteCount": 2
+      },
+      "events": [
+        { "id": "00000000-0000-4000-8000-0000000000e1", "tMs": 25250, "deck": "A", "kind": "snrDrop", "severity": "warning", "value": 24.1, "baseline": 32.2, "message": "Deck A: timecode SNR dropped 8 dB" },
+        { "id": "00000000-0000-4000-8000-0000000000e2", "tMs": 61000, "deck": "B", "kind": "dropouts", "severity": "critical", "value": 3.0, "baseline": 3.0, "message": "Deck B: 3 timecode dropouts in 10 s" }
+      ],
+      "minutes": [
+        { "minute": 0, "deck": "A", "snrDbMin": 24.1, "snrDbMean": 30.2, "humDbMax": -72.5, "driftDegMax": 1.2, "dropouts": 0 },
+        { "minute": 1, "deck": "B", "snrDbMin": 29.8, "snrDbMean": 31.0, "humDbMax": -75.0, "driftDegMax": 0.8, "dropouts": 3 }
+      ]
+    }
+  },
+  "monitor_session_list": {
+    "command": "monitor_session_list",
+    "request": { "limit": 10 },
+    "response": [{ "id": "00000000-0000-4000-8000-000000000031", "eventCount": 2, "warningCount": 1, "criticalCount": 1, "minuteCount": 2 }]
+  },
+  "monitor_set_tray_state": {
+    "command": "monitor_set_tray_state",
+    "request": { "state": "watch" },
+    "response": { "supported": true, "state": "watch", "tooltip": "DeckChek live monitor: Watch" }
+  }
+}

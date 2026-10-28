@@ -187,10 +187,26 @@ impl DerefMut for DbConn {
 pub fn open_database(path: &Path) -> Result<DbConn, String> {
     let guard = gate().read().unwrap_or_else(PoisonError::into_inner);
     let conn = Connection::open(path).map_err(|e| e.to_string())?;
-    conn.execute_batch("PRAGMA foreign_keys=ON;").map_err(|e| e.to_string())?;
+    // trusted_schema=OFF: expressions stored in the schema (defaults, CHECKs, indexes) may only
+    // call innocuous functions. DeckChek's own schema needs nothing more (AUD-04).
+    conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF;").map_err(|e| e.to_string())?;
     apply_migrations(&conn)?;
     crate::catalog::seed_if_empty(&conn)?;
     Ok(DbConn { conn, _gate: guard })
+}
+
+/// Runs the body of a database command off the main (UI) thread (AUD-03).
+///
+/// Tauri 2 runs a non-async `#[tauri::command]` on the main thread, so a command that
+/// waits on the DB gate (restore), on migrations or on `SQLITE_BUSY` (up to 5 s) froze
+/// the window. Commands call this from an `async fn` instead: the body runs on the
+/// blocking pool, and one lane admits these bodies one at a time in arrival order, the
+/// same mutual exclusion the main thread gave them, so concurrent IPC calls cannot
+/// start racing each other's deferred transactions. `Err` only if the body panicked.
+pub async fn off_main<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
+    static LANE: tauri::async_runtime::Mutex<()> = tauri::async_runtime::Mutex::const_new(());
+    let _lane = LANE.lock().await;
+    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| format!("background task failed: {e}"))
 }
 
 /// Apply every migration in [`MIGRATIONS`] that is not yet recorded, in order.
@@ -1432,5 +1448,175 @@ mod tests {
         let mut c = open_database(&tmp.0).unwrap();
         persist_run(&mut c, &graph_run("gate-run", "2026-10-10T00:00:00Z")).unwrap();
         assert_eq!(list_runs(&c, None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn regression_aud_04_open_database_turns_trusted_schema_off() {
+        let _serial = GATE_TESTS.lock().unwrap_or_else(PoisonError::into_inner);
+        let tmp = TempDb::new("trusted-schema");
+        let conn = open_database(&tmp.0).unwrap();
+        let trusted: i64 = conn.query_row("PRAGMA trusted_schema", [], |r| r.get(0)).unwrap();
+        assert_eq!(trusted, 0, "schema expressions must not call functions or virtual tables that are not innocuous");
+        let fk: i64 = conn.query_row("PRAGMA foreign_keys", [], |r| r.get(0)).unwrap();
+        assert_eq!(fk, 1);
+        drop(conn);
+        // a second open of the now-migrated, seeded file works the same way
+        let again = open_database(&tmp.0).unwrap();
+        assert_eq!(again.query_row::<i64, _, _>("PRAGMA trusted_schema", [], |r| r.get(0)).unwrap(), 0);
+    }
+
+    /// Calls that open the SQLite database (and so can wait on the DB gate during a
+    /// restore, on migrations, or up to 5 s on `SQLITE_BUSY`).
+    const DB_OPENERS: &[&str] = &["open_database(", "with_db(", "open_live(", "open_db_readonly(", "run_parts("];
+
+    /// Index just past the `}` matching the `{` at `open` (counts braces outside string and char
+    /// literals and line comments; good enough for this crate's own sources).
+    fn matching_brace(src: &str, open: usize) -> usize {
+        let b = src.as_bytes();
+        let (mut depth, mut i) = (0i32, open);
+        while i < b.len() {
+            match b[i] {
+                b'"' => {
+                    i += 1;
+                    while i < b.len() && b[i] != b'"' {
+                        if b[i] == b'\\' {
+                            i += 1;
+                        }
+                        i += 1;
+                    }
+                }
+                b'/' if b.get(i + 1) == Some(&b'/') => {
+                    while i < b.len() && b[i] != b'\n' {
+                        i += 1;
+                    }
+                }
+                b'\'' if b.get(i + 2) == Some(&b'\'') || (b.get(i + 1) == Some(&b'\\') && b.get(i + 3) == Some(&b'\'')) => {
+                    i += if b[i + 1] == b'\\' { 3 } else { 2 };
+                }
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return i + 1;
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        b.len()
+    }
+
+    /// `DB_OPENERS` plus every same-file helper `fn` whose body (transitively) opens the DB, so a
+    /// command that reaches the DB through a local wrapper such as `open(&app)` is caught too
+    /// (the FS-21 pack commands slipped past the direct-call scan that way).
+    fn file_db_openers(src: &str) -> Vec<String> {
+        let mut fns: Vec<(String, String)> = Vec::new();
+        let mut at = 0;
+        while let Some(i) = src[at..].find("fn ") {
+            let fn_at = at + i;
+            at = fn_at + 3;
+            let prev = src[..fn_at].chars().last();
+            if prev.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue; // part of another identifier
+            }
+            let name: String = src[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let Some(open) = src[fn_at..].find(['{', ';']) else { break };
+            if src[fn_at + open..].starts_with(';') {
+                continue; // declaration without a body (trait item)
+            }
+            let body_start = fn_at + open;
+            let body_end = matching_brace(src, body_start);
+            if !name.is_empty() {
+                fns.push((name, src[body_start..body_end].to_string()));
+            }
+        }
+        let mut openers: Vec<String> = DB_OPENERS.iter().map(|s| s.to_string()).collect();
+        loop {
+            let before = openers.len();
+            for (name, body) in &fns {
+                let call = format!("{name}(");
+                if !openers.contains(&call) && openers.iter().any(|m| body.contains(m.as_str())) {
+                    openers.push(call);
+                }
+            }
+            if openers.len() == before {
+                return openers;
+            }
+        }
+    }
+
+    /// Every `#[tauri::command]` in `src/*.rs` that is synchronous (no `async fn` and no
+    /// `#[tauri::command(async)]`) and whose body opens the database.
+    fn sync_db_commands() -> Vec<String> {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files: Vec<PathBuf> = fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "rs")).collect();
+        files.sort();
+        let mut found = Vec::new();
+        for file in files {
+            let src = fs::read_to_string(&file).unwrap();
+            let openers = file_db_openers(&src);
+            let mut at = 0;
+            while let Some(i) = src[at..].find("#[tauri::command") {
+                let start = at + i;
+                // only a real attribute at the start of a line (not text inside a string or comment)
+                let line_start = src[..start].rfind('\n').map_or(0, |n| n + 1);
+                if !src[line_start..start].trim().is_empty() {
+                    at = start + 1;
+                    continue;
+                }
+                let attr_end = start + src[start..].find(']').unwrap();
+                let attr = &src[start..=attr_end];
+                let fn_at = attr_end + src[attr_end..].find("fn ").unwrap();
+                let head = &src[attr_end..fn_at];
+                let name: String = src[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+                let body_start = fn_at + src[fn_at..].find('{').unwrap();
+                let body_end = matching_brace(&src, body_start);
+                let body = &src[body_start..body_end];
+                let is_async = attr.contains("async") || head.contains("async");
+                if !is_async && openers.iter().any(|m| body.contains(m.as_str())) {
+                    found.push(format!("{}::{name}", file.file_stem().unwrap().to_string_lossy()));
+                }
+                at = body_end;
+            }
+        }
+        found
+    }
+
+    /// AUD-03: Tauri 2 runs a non-async command on the main (UI) thread, so a DB command
+    /// that waits on the gate, a migration or a busy lock freezes the window.
+    #[test]
+    fn regression_aud_03_no_db_command_runs_on_the_main_thread() {
+        let sync = sync_db_commands();
+        assert!(sync.is_empty(), "these DB commands still run on the main thread; make them `async fn` via `db::off_main`: {sync:?}");
+    }
+
+    /// AUD-03: `off_main` runs bodies on another thread, one at a time (the mutual
+    /// exclusion the main thread used to give DB commands), and turns a panic into `Err`.
+    #[test]
+    fn regression_aud_03_off_main_runs_bodies_off_the_caller_thread_one_at_a_time() {
+        use std::sync::{atomic::AtomicUsize, Arc};
+        use tauri::async_runtime::{block_on, spawn};
+        let caller = std::thread::current().id();
+        let live = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+        let jobs: Vec<_> = (0..4)
+            .map(|_| {
+                let (live, peak) = (live.clone(), peak.clone());
+                spawn(off_main(move || {
+                    let now = live.fetch_add(1, Ordering::SeqCst) + 1;
+                    peak.fetch_max(now, Ordering::SeqCst);
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                    live.fetch_sub(1, Ordering::SeqCst);
+                    std::thread::current().id()
+                }))
+            })
+            .collect();
+        for job in jobs {
+            assert_ne!(block_on(job).unwrap().unwrap(), caller, "body must not run on the calling thread");
+        }
+        assert_eq!(peak.load(Ordering::SeqCst), 1, "DB command bodies must not overlap");
+        let failed = block_on(off_main(|| -> u8 { panic!("AUD-03 test panic") }));
+        assert!(failed.unwrap_err().starts_with("background task failed"));
     }
 }
