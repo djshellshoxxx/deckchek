@@ -46,6 +46,7 @@ mod humrun;
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
 // [FS-21] mods
+mod pack;
 // [FS-22] mods
 // [FS-23] mods
 mod fleet;
@@ -115,6 +116,8 @@ pub fn run() {
             humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
             // [FS-20] handlers
             // [FS-21] handlers
+            pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
+            pack::population_query, pack::population_unit_values,
             // [FS-22] handlers
             // [FS-23] handlers
             fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
