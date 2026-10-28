@@ -89,7 +89,7 @@ export function createLogViewer({ api, onChange = () => {}, confirm = async () =
   const list = h('ul', { class: 'mon-logs', 'aria-label': 'Saved monitor sessions' });
   const detail = h('div', { class: 'mon-log-detail' });
   const el = h('section', { class: 'card mon-logs-card', 'aria-labelledby': 'mon-logs-title' },
-    h('div', { class: 'card-head' }, h('h2', { class: 'card-title', id: 'mon-logs-title', text: 'Session logs' }),
+    h('div', { class: 'card-head' }, h('h2', { class: 'card-title', id: 'mon-logs-title', tabindex: '-1', text: 'Session logs' }),
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'mon-logs-refresh', text: 'Refresh', onclick: () => refresh() })),
     status, list, detail);
   let rows = [], openId = null;
@@ -107,7 +107,27 @@ export function createLogViewer({ api, onChange = () => {}, confirm = async () =
     draw();
   }
 
+  const ACTIONS = ['data-log-view', 'data-log-export', 'data-log-delete'];
+  /** Where keyboard focus is inside the list: {attr, id, index} of the focused row button, or null. */
+  function focusedAction() {
+    const a = document.activeElement;
+    if (!a || !list.contains(a)) return null;
+    const attr = ACTIONS.find(n => a.hasAttribute(n));
+    if (!attr) return null;
+    const li = a.closest('li');
+    return { attr, id: a.getAttribute(attr), index: Math.max(0, [...list.children].indexOf(li)) };
+  }
+  /** After a rebuild: the same button of the same log, else the same button of the row now at that position (the
+   * next log after a delete, or the previous one at the end), else the Session logs heading. */
+  function restoreFocus(was) {
+    if (!was) return;
+    const buttons = [...list.querySelectorAll(`[${was.attr}]`)];
+    const target = buttons.find(b => b.getAttribute(was.attr) === was.id) || buttons[Math.min(was.index, buttons.length - 1)];
+    (target || el.querySelector('#mon-logs-title'))?.focus();
+  }
+
   function draw() {
+    const was = focusedAction();
     list.replaceChildren(...rows.map(s => {
       const worst = sessionWorst(s);
       const st = worst === 'critical' ? DECK_STATE.fault : worst === 'warning' ? DECK_STATE.watch : DECK_STATE.ok;
@@ -119,6 +139,7 @@ export function createLogViewer({ api, onChange = () => {}, confirm = async () =
           h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-log-export': s.id, 'aria-label': `Export log of ${formatWhen(s.startedAt)} as JSON`, text: 'Export JSON', onclick: () => exportOne(s.id) }),
           h('button', { type: 'button', class: 'btn btn-ghost btn-sm btn-danger-ghost', 'data-log-delete': s.id, 'aria-label': `Delete log of ${formatWhen(s.startedAt)}`, html: icon('trash', { size: 16 }), onclick: () => removeOne(s.id) })));
     }));
+    restoreFocus(was);
   }
 
   async function open(id) {
