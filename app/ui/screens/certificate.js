@@ -206,7 +206,14 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     const photoBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-add-photo', text: 'Add photos', onclick: () => photoInput.click() });
     const photoList = h('ul', { class: 'cert-photos', id: 'cert-photo-list', 'aria-label': 'Attached photos' });
     const paintPhotos = () => photoList.replaceChildren(...st.photos.map((p, i) => h('li', {}, h('img', { src: `data:image/jpeg;base64,${p.dataB64}`, alt: `Photo ${i + 1}: ${p.name}` }),
-      h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Remove', 'aria-label': `Remove photo ${p.name}`, onclick: () => { st.photos.splice(i, 1); paintPhotos(); } }))));
+      h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Remove', 'aria-label': `Remove photo ${p.name}`, onclick: () => removePhoto(i) }))));
+    // The repaint destroys the activated button: move focus to the next Remove button (or "Add photos") and announce it.
+    const removePhoto = i => {
+      st.photos.splice(i, 1); paintPhotos();
+      const left = photoList.querySelectorAll('button');
+      (left[Math.min(i, left.length - 1)] || photoBtn).focus();
+      say(`Photo removed. ${st.photos.length} attached.`);
+    };
     paintPhotos();
     photoInput.addEventListener('change', async () => {
       const files = [...photoInput.files];
