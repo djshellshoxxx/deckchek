@@ -14,7 +14,7 @@
 //! inside an IMMEDIATE transaction.
 //!
 //! Completion hook (for FS-23 and later features): every status change emits the Tauri event
-//! `job-status-changed` with `{id, jobNumber, assetId, from, to}`; a job is complete when `to` is
+//! `job-status-changed` with `{id, jobNumber, assetId, from, to}` (`from` is null on creation); a job is complete when `to` is
 //! `ready` or `collected`. Listeners must not expect customer data in the payload.
 
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
@@ -1077,7 +1077,8 @@ pub fn delete(conn: &mut Connection, dir: &std::path::Path, id: &str, confirm: &
 
 // ------------------------------------------------------------------ commands
 
-fn emit_status(app: &AppHandle, job: &Job, from: &str) {
+/// `from` is None for a newly created job.
+fn emit_status(app: &AppHandle, job: &Job, from: Option<&str>) {
     let _ = app.emit(STATUS_EVENT, json!({ "id": job.id, "jobNumber": job.job_number, "assetId": job.asset_id, "from": from, "to": job.status }));
 }
 
@@ -1085,7 +1086,7 @@ fn emit_status(app: &AppHandle, job: &Job, from: &str) {
 pub fn job_create(app: AppHandle, input: JobCreateInput) -> Result<Job, String> {
     let mut conn = open_database(&database_path(&app)?)?;
     let job = create(&mut conn, &input)?;
-    emit_status(&app, &job, "");
+    emit_status(&app, &job, None);
     Ok(job)
 }
 
@@ -1111,7 +1112,7 @@ pub fn job_update_fields(app: AppHandle, id: String, patch: JobPatch) -> Result<
 pub fn job_set_status(app: AppHandle, id: String, to: String, expected: Option<String>, note: Option<String>, reopen: Option<bool>) -> Result<Job, String> {
     let mut conn = open_database(&database_path(&app)?)?;
     let (job, from) = set_status(&mut conn, &id, expected.as_deref(), &to, note.as_deref(), reopen.unwrap_or(false))?;
-    emit_status(&app, &job, &from);
+    emit_status(&app, &job, Some(&from));
     Ok(job)
 }
 
