@@ -41,7 +41,8 @@ export function serviceMock() {
       const rows = svc.jobs.filter(j => (!st || j.status === st || (st === 'open' && !terminal(j.status))) && (!q || j.jobNumber.toLowerCase().includes(q) || (svc.customers.find(c => c.id === j.customerId)?.name || '').toLowerCase().includes(q)))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .map(j => ({ ...j, readOnly: terminal(j.status), customerName: svc.customers.find(c => c.id === j.customerId)?.name || null, assetName: (window.__mockDb.catalog.asset || []).find(a => a.id === j.assetId)?.nickname || null, serialNumber: null }));
-      return { jobs: rows, total: rows.length };
+      const off = args.query?.offset || 0, lim = args.query?.limit || 500;
+      return { jobs: rows.slice(off, off + lim), total: rows.length };
     }
     if (cmd === 'job_create') {
       const i = args.input;
@@ -69,6 +70,7 @@ export function serviceMock() {
     }
     if (cmd === 'job_add_log') {
       editable(args.id);
+      if (svc.addDelay) await new Promise(r => setTimeout(r, svc.addDelay)); // slow IPC, to expose double submits
       const e = { id: id('l'), jobId: args.id, kind: args.kind, description: args.payload.description, quantity: args.payload.quantity ?? null, minutes: args.payload.minutes ?? null, unitCost: args.payload.unitCost ?? null, amendsId: args.payload.amendsId || null, at: now() };
       svc.log.push(e); job(args.id).updatedAt = e.at; return e;
     }
@@ -153,6 +155,28 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.keyboard.press('Escape');
   await page.waitForSelector('#svc-empty');
   check('service: Esc leaves the form for the list', (await page.locator('#svc-new-form').count()) === 0);
+  // regression: Esc in a text field must not silently throw away a half-filled form
+  await page.keyboard.press('Control+j');
+  await page.waitForSelector('#svc-new-form');
+  await page.fill('#svc-fault', 'Half-typed fault');
+  await page.locator('#svc-fault').press('Escape');
+  const escAsked = await page.waitForSelector('#confirm-dialog[open]', { timeout: 2000 }).then(() => true, () => false);
+  check('service: regression: Esc in a filled new-job form asks before discarding it', escAsked && (await page.locator('#svc-new-form').count()) === 1);
+  if (escAsked) await page.click('#confirm-cancel');
+  check('service: regression: keeping the form keeps what was typed', (await page.locator('#svc-fault').inputValue().catch(() => '')) === 'Half-typed fault');
+  if (!(await page.locator('#svc-new-form').count())) { await page.keyboard.press('Control+j'); await page.waitForSelector('#svc-new-form'); }
+  await page.check('#svc-cust-mode-old');
+  await page.fill('#svc-cust-search', 'abc');
+  await page.locator('#svc-cust-search').press('Escape');
+  await page.waitForTimeout(150);
+  check('service: regression: Esc in the customer search clears it and stays on the form', (await page.locator('#svc-new-form').count()) === 1 && (await page.locator('#confirm-dialog[open]').count()) === 0);
+  if (await page.locator('#svc-new-form').count()) {
+    await page.locator('#main').focus().catch(() => {});
+    await page.keyboard.press('Escape');
+    if (await page.waitForSelector('#confirm-dialog[open]', { timeout: 2000 }).then(() => true, () => false)) await page.click('#confirm-ok');
+  }
+  await page.waitForSelector('#svc-empty');
+  check('service: regression: confirming the discard returns to the list', (await page.locator('#svc-new-form').count()) === 0);
 
   // AC-1 create
   await page.keyboard.press('Control+j');
@@ -177,6 +201,20 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('[data-step="intake"]');
   await page.waitForSelector('#svc-fault-text');
   check('service: fault text is shown as text, not markup', await page.locator('#svc-fault-text').innerText().then(t => t.includes('<b>loud</b>')));
+  const custCopy = (await page.locator('section[aria-labelledby="svc-cust-title"]').innerText()).replace(/\s+/g, ' ');
+  check('service: regression: customer card no longer claims backups exclude customer data', !/not included in backups/i.test(custCopy) && /included in DeckChek backups/i.test(custCopy) && /privately/i.test(custCopy) && /excluded from workspace exports, packs, ledgers and diagnostics bundles/i.test(custCopy), custCopy.slice(-220));
+  // regression: Esc inside an inline edit with changes asks first
+  await page.click('#svc-fields-edit');
+  await page.fill('#svc-e-resolution', 'Unsaved resolution');
+  await page.locator('#svc-e-resolution').press('Escape');
+  const inlineAsked = await page.waitForSelector('#confirm-dialog[open]', { timeout: 2000 }).then(() => true, () => false);
+  check('service: regression: Esc in an edited inline form asks before discarding it', inlineAsked && (await page.locator('#svc-job-title').count()) === 1);
+  if (inlineAsked) await page.click('#confirm-cancel');
+  check('service: regression: keeping the inline edit keeps its text', (await page.locator('#svc-e-resolution').inputValue().catch(() => '')) === 'Unsaved resolution');
+  if (!(await page.locator('#svc-job-title').count())) { await page.click('[data-open-job="J-2026-0001"]'); await page.waitForSelector('#svc-job-title'); await page.click('[data-step="intake"]'); }
+  // long unbroken caption and status note (wrapped, not overflowing); shown after the next status change
+  await page.evaluate(() => { const j = window.__svc.jobs[0]; window.__svc.photos.push({ linkId: 'pl-long', photoId: 'p-long', jobId: j.id, caption: 'C'.repeat(200), stage: 'intake' }); });
+  await page.fill('#svc-status-note', `https://example.org/${'a'.repeat(400)}`);
 
   // stepper
   check('service: stepper is an ordered list with aria-current="step"', (await page.locator('ol#svc-stepper > li').count()) === 5 && (await page.locator('#svc-stepper [aria-current="step"]').count()) === 1);
@@ -187,6 +225,16 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('[data-status-to="diagnosing"]');
   await page.waitForFunction(() => /Diagnosing/.test(document.getElementById('svc-job-status')?.innerText || ''));
   check('service: AC-6 status change is logged with the previous status', await page.evaluate(() => window.__svc.statusLog.at(-1).fromStatus === 'intake' && window.__svc.statusLog.at(-1).toStatus === 'diagnosing'));
+  await page.waitForSelector('.svc-photo');
+  await page.waitForTimeout(150);
+  check('service: regression: focus stays in the job after a status change (not on <body>)', await page.evaluate(() => document.activeElement !== document.body && !!document.getElementById('screen-service')?.contains(document.activeElement)), await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+  const spill = await page.evaluate(() => {
+    const r = e => e.getBoundingClientRect();
+    const cap = [...document.querySelectorAll('.svc-photo span')].find(s => s.textContent.startsWith('CCCC'));
+    const hist = document.querySelector('.svc-history'), card = hist.closest('section');
+    return { cap: Math.round(r(cap).right - r(cap.closest('li')).right), hist: Math.round(Math.max(...[...hist.querySelectorAll('li')].map(l => r(l).right)) - r(card).right) };
+  });
+  check('service: regression: long photo captions and status notes wrap inside their tile and card', spill.cap <= 1 && spill.hist <= 1, JSON.stringify(spill));
 
   // Alt+Right / Alt+Left
   await page.locator('[data-step="intake"]').focus();
@@ -232,6 +280,36 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('#svc-note-save');
   await page.waitForFunction(() => /amended, see later entry/.test(document.getElementById('svc-notes')?.innerText || ''));
   check('service: an edited note is a new entry marked amended; the original is kept', await page.evaluate(() => window.__svc.log.filter(l => l.kind === 'note').length === 2 && !!window.__svc.log.find(l => l.amendsId)));
+  // regression: Enter in the part field keeps focus there after the reload
+  await page.fill('#svc-part-name', 'Spring');
+  await page.locator('#svc-part-name').press('Enter');
+  await page.waitForFunction(() => /Spring/.test(document.getElementById('svc-parts')?.innerText || ''));
+  await page.waitForTimeout(150);
+  check('service: regression: adding a part keeps keyboard focus in the part field', await page.evaluate(() => document.activeElement?.id === 'svc-part-name'), await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+  // regression: new totals are announced (live regions rebuilt already filled are not read out)
+  await page.fill('#svc-labour-desc', 'Test run');
+  await page.fill('#svc-labour-min', '15');
+  await page.click('#svc-labour-add');
+  check('service: regression: adding labour announces the new totals', await page.waitForFunction(() => /Labour added.*Labour 0\.75 h/.test(document.getElementById('sr-polite')?.textContent || ''), null, { timeout: 3000 }).then(() => true, () => false), await page.evaluate(() => document.getElementById('sr-polite')?.textContent));
+  // regression: double submits save once
+  await page.evaluate(() => { window.__svc.addDelay = 300; });
+  await page.fill('#svc-part-name', 'Gasket');
+  await page.dblclick('#svc-part-add');
+  await page.waitForFunction(() => /Gasket/.test(document.getElementById('svc-parts')?.innerText || ''));
+  await page.waitForTimeout(500);
+  const gaskets = await page.evaluate(() => window.__svc.log.filter(l => l.description === 'Gasket').length);
+  check('service: regression: double-clicking Add part saves the part once', gaskets === 1, String(gaskets));
+  await page.fill('#svc-note', 'Held Ctrl+Enter');
+  await page.locator('#svc-note').focus();
+  await page.keyboard.down('Control');
+  for (let i = 0; i < 3; i++) await page.keyboard.down('Enter');
+  await page.keyboard.up('Enter');
+  await page.keyboard.up('Control');
+  await page.waitForFunction(() => /Held Ctrl\+Enter/.test(document.getElementById('svc-notes')?.innerText || ''));
+  await page.waitForTimeout(500);
+  const held = await page.evaluate(() => window.__svc.log.filter(l => l.description === 'Held Ctrl+Enter').length);
+  check('service: regression: holding Ctrl+Enter saves the note once', held === 1, String(held));
+  await page.evaluate(() => { window.__svc.addDelay = 0; });
   await shot(page, 'service-work-dark');
 
   // statuses to testing
@@ -254,6 +332,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await answerChecklist(page, ['ok', 'ok', 'ok']);
   await page.click('#dev-run-done');
   await page.waitForSelector('#svc-compare-tests');
+  check('service: regression: the comparison outcome is announced on return from the after tests', await page.waitForFunction(() => /Compare is incomplete, 3 of 8/.test(document.getElementById('sr-polite')?.textContent || ''), null, { timeout: 3000 }).then(() => true, () => false), await page.evaluate(() => document.getElementById('sr-polite')?.textContent));
   check('service: AC-4 test headline shows Fail → Pass', /Fail → Pass.*Knobs/is.test(await page.locator('#svc-headline').innerText()));
   check('service: partial state "Compare is incomplete, 3 of 8 metrics have no after value"', /Compare is incomplete, 3 of 8 metrics have no after value/.test(await page.locator('#svc-partial').innerText()));
   check('service: comparison table has a caption and unchanged-within-uncertainty rows', (await page.locator('#svc-compare-table caption').count()) === 1 && /Unchanged within uncertainty/i.test(await page.locator('#svc-compare-table').innerText()));
@@ -285,6 +364,11 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.keyboard.press('Escape');
   await page.waitForSelector('#svc-jobs');
   check('service: list shows the job with a status word', /J-2026-0001/.test(await page.locator('#svc-jobs').innerText()) && /Ready/.test(await page.locator('#svc-jobs').innerText()));
+  await page.locator('[data-open-job="J-2026-0001"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('#svc-job-title');
+  await page.waitForTimeout(150);
+  check('service: regression: opening a job from the list moves focus to the job title', await page.evaluate(() => document.activeElement?.id === 'svc-job-title'), await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
   await page.keyboard.press('Control+j');
   await page.waitForSelector('#svc-new-form');
   await page.fill('#svc-cust-name', 'Second Customer');
@@ -324,6 +408,33 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#svc-jobs');
   const stored = await page.evaluate(() => localStorage.getItem('deckchek.ui.v1'));
   check('service: only the status filter is kept in UI settings (no customer data)', /"serviceList":\{"status":"all"\}/.test(stored) && !/Zebedee|7700|zeb@/.test(stored));
+  // regression: the search box keeps focus across the debounced reload
+  await page.click('#svc-search');
+  await page.keyboard.type('J-20');
+  await page.waitForTimeout(450);
+  await page.keyboard.type('26');
+  await page.waitForTimeout(450);
+  check('service: regression: job search keeps focus and every keystroke after the first debounce', await page.evaluate(() => document.activeElement?.id === 'svc-search' && document.activeElement.value === 'J-2026'), await page.evaluate(() => `${document.activeElement?.id || document.activeElement?.tagName} ${document.getElementById('svc-search')?.value}`));
+  await page.fill('#svc-search', '');
+  await page.waitForTimeout(400);
+  await page.locator('[data-filter="open"]').focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  check('service: regression: a status chip chosen from the keyboard keeps focus', await page.evaluate(() => document.activeElement?.dataset?.filter === 'open'), await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+  // regression: more than one page of jobs: the caption says how many are shown, and Show more loads the rest
+  await page.evaluate(() => {
+    for (let i = 0; i < 205; i++) window.__svc.jobs.push({ id: `bulk-${i}`, jobNumber: `J-2025-${String(i + 1).padStart(4, '0')}`, customerId: null, assetId: null, status: 'collected', reportedFault: 'x', accessories: [], openedAt: '2025-01-01T00:00:00Z', updatedAt: `2025-01-01T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}Z`, closedAt: null });
+  });
+  await page.click('[data-filter="all"]');
+  await page.waitForFunction(() => document.querySelectorAll('#svc-jobs tbody tr').length >= 200);
+  await page.waitForTimeout(150);
+  const cap1 = await page.locator('#svc-jobs caption').innerText();
+  const status1 = await page.locator('#svc-list-status').textContent();
+  check('service: regression: a long job list says it shows 200 of the total', /showing 200 of 206/i.test(cap1) && (await page.locator('#svc-jobs tbody tr').count()) === 200 && /200 of 206/.test(status1), `${cap1} | ${status1}`);
+  const more = await page.locator('#svc-more').count();
+  if (more) await page.click('#svc-more');
+  const all = await page.waitForFunction(() => document.querySelectorAll('#svc-jobs tbody tr').length === 206, null, { timeout: 3000 }).then(() => true, () => false);
+  check('service: regression: Show more loads the remaining jobs', more === 1 && all && /\(206\)/.test(await page.locator('#svc-jobs caption').innerText()) && (await page.locator('#svc-more').count()) === 0 && (await page.locator('[data-open-job="J-2025-0001"]').count()) === 1);
   await shot(page, 'service-list-dark');
   await ctx.close();
 
