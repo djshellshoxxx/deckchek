@@ -20,6 +20,7 @@
 .mon-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
 .mon-actions .btn { display: inline-flex; gap: 8px; align-items: center; }
 .mon-actions kbd { padding: 0 5px; border: 1px solid currentColor; border-radius: var(--r-sm); font: 600 11px/16px var(--font-ui); opacity: .8; }
+.mon-actions .btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 
 /* deck cards */
 .mon-decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
@@ -27,7 +28,7 @@
 .mon-deck { display: grid; gap: 12px; align-content: start; border-left-width: 4px; }
 .mon-deck[data-state="ok"] { border-left-color: var(--pass); }
 .mon-deck[data-state="watch"] { border-left-color: var(--warn); }
-.mon-deck[data-state="fault"] { border-left-color: var(--fail); }
+.mon-deck[data-state="fault"], .mon-deck[data-state="lost"] { border-left-color: var(--fail); }
 .mon-deck[data-state="idle"], .mon-deck[data-state="nosignal"] { border-left-color: var(--info); }
 .mon-deck .card-head { margin-bottom: 0; }
 .mon-chip .chip { height: 28px; padding: 0 10px; font-size: 13px; }
@@ -68,5 +69,9 @@
 .mon-settings summary { cursor: pointer; font: 600 16px/22px var(--font-ui); min-height: 28px; }
 .mon-settings-form { display: grid; gap: 12px; margin-top: 12px; max-width: 520px; }
 .mon-settings-form input[type="number"] { max-width: 140px; }
+
+.mon-field-error { margin: 4px 0 0; color: var(--fail); }
+.mon-field-error:empty { display: none; }
+.mon-settings-form input[aria-invalid="true"] { border-color: var(--fail); }
 
 @media (prefers-reduced-motion: reduce) { .mon-meter-fill { transition: none; } }

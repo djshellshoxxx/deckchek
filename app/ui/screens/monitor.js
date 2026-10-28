@@ -13,7 +13,7 @@ import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { settings, on } from '../state.js';
 import { go, confirmDialog, setCaptureStatus } from '../shell.js';
-import { isEnabled } from '../../features.js';
+import { isEnabled, onFeatureChange } from '../../features.js';
 import { appState } from '../../app-state.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { startStreamSession, captureHolderLabel } from '../audio-io.js';
@@ -28,7 +28,9 @@ const PREFS_KEY = 'deckchek.monitor.v1';
 const FLAG = 'liveMonitor';
 const MUTE_MIN = 30;
 const HW_NOTE = 'Sharing an input with Serato or Traktor (WASAPI shared mode next to DJ software) is not verified on real hardware yet: it is hardware test H-31. If the input is busy, use a spare input pair, the DJ software\'s thru/aux output, or a split cable.';
-const OVERALL = { off: { label: 'Off', chip: 'info', icon: 'info' }, ok: DECK_STATE.ok, watch: DECK_STATE.watch, fault: DECK_STATE.fault };
+const LOST = Object.freeze({ label: 'Device lost', chip: 'fail', icon: 'fail' });
+const OVERALL = { off: { label: 'Off', chip: 'info', icon: 'info' }, ok: DECK_STATE.ok, watch: DECK_STATE.watch, fault: DECK_STATE.fault, lost: LOST };
+const chipFor = state => (state === 'lost' ? LOST : DECK_STATE[state] || DECK_STATE.waiting);
 
 const tauri = () => (isNative() ? window.__TAURI__ : null);
 const invoke = (cmd, args) => tauri().core.invoke(cmd, args);
@@ -74,19 +76,28 @@ async function startMonitoring(config) {
   return c.start(cfg);
 }
 
+const isActive = c => Boolean(c) && (c.running || c.state === 'starting');
+
+/** Stop a running monitor (allowed whatever the flag says); start one only while the flag is on. */
 async function toggleMonitoring() {
+  if (isActive(ctrl)) { await ctrl.stop(); announce('Live monitor stopped'); return; }
   if (!isEnabled(FLAG)) return;
-  const c = controller();
-  if (c.running || c.state === 'starting') { await c.stop(); announce('Live monitor stopped'); }
-  else if (!isNative()) go('monitor', { focus: true });
+  if (!isNative()) go('monitor', { focus: true });
   else await startMonitoring();
 }
 
 let shellInstalled = false;
-/** Shell start-up hook ([FS-31] init): Ctrl+Shift+M and the tray menu actions. Inert while the flag is off. */
+/**
+ * Shell start-up hook ([FS-31] init): Ctrl+Shift+M and the tray menu actions. Nothing starts while the flag is off;
+ * switching the flag off while monitoring stops the session cleanly (its screen and controls disappear with it).
+ */
 export function installMonitorShell() {
   if (shellInstalled) return;
   shellInstalled = true;
+  onFeatureChange(({ name, enabled }) => {
+    if (name !== FLAG || enabled || !isActive(ctrl)) return;
+    ctrl.stop().then(() => announce('Live monitor stopped: the feature was switched off')).catch(() => { /* stop never rejects */ });
+  });
   document.addEventListener('keydown', e => {
     if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== 'm' || !isEnabled(FLAG)) return;
     if (document.querySelector('dialog[open]')) return;
@@ -97,10 +108,10 @@ export function installMonitorShell() {
   if (t?.event?.listen) {
     Promise.resolve(t.event.listen('monitor://tray', ev => {
       const action = ev?.payload?.action;
-      if (!isEnabled(FLAG)) return;
+      // stop and quit always work on a running monitor; only starting is gated on the flag (in toggleMonitoring)
       if (action === 'toggle') toggleMonitoring();
-      else if (action === 'mute') { controller().mute(MUTE_MIN); view?.renderControls(); }
-      else if (action === 'quit') controller().stop('quit');
+      else if (action === 'mute') { if (isActive(ctrl)) { ctrl.mute(MUTE_MIN); view?.renderControls(); } }
+      else if (action === 'quit') ctrl?.stop('quit');
     })).catch(() => { /* tray events are optional */ });
   }
 }
@@ -120,8 +131,15 @@ export function sparklinePath(values, { width = 240, height = 48, lo = 0, hi = 4
   return d.trim();
 }
 
-/** Deck card text for a frame (pure, tested): {state, chip, metrics:[{label, value}], note}. */
-export function deckView(frame, { pairLabel = '', deck = 'A' } = {}) {
+/**
+ * Deck card text for a frame (pure, tested): {state, chip, metrics:[{label, value}], note}. `deviceLost` (the
+ * controller is retrying): state 'lost' with no live values, never the frozen last frame.
+ */
+export function deckView(frame, { pairLabel = '', deck = 'A', deviceLost = false } = {}) {
+  if (deviceLost) {
+    const metrics = [['snr', 'SNR'], ['level', 'Level'], ['lock', 'Lock / drift'], ['hum', 'Hum'], ['dropouts', 'Dropouts (10 s)']].map(([key, label]) => ({ key, label, value: '—', sub: '' }));
+    return { state: 'lost', metrics, note: `Deck ${deck}: audio device lost, waiting for it to come back.`, pairLabel };
+  }
   if (!frame) return { state: 'waiting', metrics: [], note: 'Waiting for audio…' };
   const st = frame.state;
   const lock = frame.motion === 'idle' ? 'No signal' : frame.locked ? `Locked, ${frame.direction === 'forward' ? 'forward' : frame.direction === 'reverse' ? 'reverse' : 'direction unknown'}` : 'Not locked';
@@ -136,18 +154,31 @@ export function deckView(frame, { pairLabel = '', deck = 'A' } = {}) {
   return { state: st, metrics, note, pairLabel };
 }
 
+/**
+ * Parse the retention field: a whole number of days in [1, MAX_RETENTION_DAYS], else null. An empty field is null,
+ * never 0 (Number('') === 0 would clamp to 1 day and prune almost every saved log).
+ */
+export function parseRetentionDays(raw) {
+  const t = String(raw ?? '').trim();
+  if (!/^\d{1,5}$/.test(t)) return null;
+  const n = Number(t);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_RETENTION_DAYS ? n : null;
+}
+
 function levelPct(db) { return Number.isFinite(db) ? Math.max(0, Math.min(100, (db + 60) / 60 * 100)) : 0; }
 
 export function createMonitorScreen(section) {
   const native = isNative();
   const p = prefs();
   section.innerHTML = '';
-  const badge = h('span', { class: 'mon-badge', id: 'mon-badge', role: 'status', 'aria-live': 'polite' });
+  const badge = h('span', { class: 'mon-badge', id: 'mon-badge' });
+  // the visual badge is redrawn only on change; the screen-reader status is announced only once it has settled
+  const badgeLive = h('span', { class: 'sr-only', id: 'mon-badge-live', role: 'status', 'aria-live': 'polite' });
   const head = h('header', { class: 'screen-head' },
     h('div', { class: 'screen-title' }, h('span', { class: 'screen-icon', html: icon('dvs', { size: 24 }) }),
       h('div', {}, h('h1', { tabindex: '-1' }, 'Live monitor ', h('span', { class: 'chip chip-review mon-exp', text: 'Experimental' })),
         h('p', { class: 'lede', text: 'Watches the timecode coming off your decks while Serato or Traktor runs, and warns early when the signal degrades: SNR drop, dropouts, phase trouble or hum.' }))),
-    badge);
+    badge, badgeLive);
   const status = h('div', { class: 'mon-status', id: 'mon-status' });
   section.append(head, status);
 
@@ -176,7 +207,7 @@ export function createMonitorScreen(section) {
   const drawDevice = () => { deviceLine.textContent = `Input: ${settings.deviceName || 'the default input'} (change it in the top bar).`; };
   drawDevice();
   on('settings', ({ key }) => { if (key === 'deviceName') { drawDevice(); pickA.refresh(); pickB.refresh(); } });
-  const startBtn = h('button', { type: 'button', class: 'btn btn-primary', id: 'mon-start', 'aria-keyshortcuts': 'Control+Shift+M', onclick: () => startMonitoring() },
+  const startBtn = h('button', { type: 'button', class: 'btn btn-primary', id: 'mon-start', 'aria-keyshortcuts': 'Control+Shift+M', onclick: () => { if (startBtn.getAttribute('aria-disabled') !== 'true') startMonitoring(); } },
     h('span', { html: icon('play', { size: 18 }) }), h('span', { text: 'Start monitoring' }), h('kbd', { text: 'Ctrl+Shift+M' }));
   const stopBtn = h('button', { type: 'button', class: 'btn btn-danger', id: 'mon-stop', 'aria-keyshortcuts': 'Control+Shift+M', onclick: async () => { await c.stop(); announce('Live monitor stopped'); } },
     h('span', { html: icon('stop', { size: 18 }) }), h('span', { text: 'Stop monitoring' }));
@@ -202,25 +233,37 @@ export function createMonitorScreen(section) {
     api: { list: limit => invoke('monitor_session_list', { limit }), get: id => invoke('monitor_session_get', { id }), remove: id => invoke('monitor_session_delete', { id }) },
     confirm: opts => confirmDialog({ ...opts, confirmLabel: 'Delete' }),
   });
-  const retention = h('input', { type: 'number', id: 'mon-retention', min: '1', max: String(MAX_RETENTION_DAYS), step: '1', inputmode: 'numeric', value: String(monitorSettings.retentionDays) });
+  const retentionMsg = h('p', { class: 'small mon-field-error', id: 'mon-retention-msg', role: 'alert' });
+  const retention = h('input', { type: 'number', id: 'mon-retention', min: '1', max: String(MAX_RETENTION_DAYS), step: '1', inputmode: 'numeric', required: true, 'aria-describedby': 'mon-retention-msg', value: String(monitorSettings.retentionDays) });
+  const retentionValid = ok => {
+    if (ok) { retention.removeAttribute('aria-invalid'); retentionMsg.textContent = ''; return; }
+    retention.setAttribute('aria-invalid', 'true');
+    retentionMsg.textContent = `Enter a whole number of days from 1 to ${MAX_RETENTION_DAYS}. Nothing was saved; logs are still kept for ${monitorSettings.retentionDays} days.`;
+  };
+  retention.addEventListener('input', () => { if (retention.hasAttribute('aria-invalid') && parseRetentionDays(retention.value) != null) retentionValid(true); });
   const toastsOn = h('input', { type: 'checkbox', id: 'mon-toasts' });
   toastsOn.checked = monitorSettings.toastsEnabled;
   const settingsMsg = h('p', { class: 'small muted', role: 'status', 'aria-live': 'polite' });
   const settingsCard = h('details', { class: 'card mon-settings' },
     h('summary', { text: 'Monitor settings' }),
-    h('form', { class: 'mon-settings-form', onsubmit: async e => {
+    h('form', { class: 'mon-settings-form', novalidate: true, onsubmit: async e => {
       e.preventDefault();
-      const next = normalizeSettings({ ...monitorSettings, retentionDays: Number(retention.value), toastsEnabled: toastsOn.checked });
+      // validate before anything is saved: an empty, fractional or out-of-range field keeps the previous value
+      const days = retention.validity?.badInput ? null : parseRetentionDays(retention.value);
+      const next = days == null ? null : normalizeSettings({ ...monitorSettings, retentionDays: days, toastsEnabled: toastsOn.checked });
+      if (!next || next.retentionDays !== days) { retentionValid(false); settingsMsg.textContent = ''; retention.focus(); return; }
+      retentionValid(true);
       try {
         await appState.set(SETTINGS_KEY, next);
         monitorSettings = next; c.setSettings(next);
         retention.value = String(next.retentionDays);
-        const r = await invoke('monitor_prune', { retentionDays: next.retentionDays });
+        // prune only with a value that passed validation unchanged (never an implausible 0/1-day fallback)
+        const r = await invoke('monitor_prune', { retentionDays: days });
         settingsMsg.textContent = `Saved. Logs are kept for ${next.retentionDays} days${r?.deleted ? `; ${r.deleted} older log${r.deleted === 1 ? '' : 's'} removed` : ''}.`;
         logs.refresh();
       } catch (error) { settingsMsg.textContent = `Settings could not be saved: ${String(error?.message ?? error)}`; }
     } },
-    h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'mon-retention', text: 'Keep session logs for (days)' }), retention),
+    h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'mon-retention', text: 'Keep session logs for (days)' }), retention, retentionMsg),
     h('label', { class: 'mon-check', for: 'mon-toasts' }, toastsOn, h('span', { text: 'Show toasts for alerts (the event list always records them)' })),
     h('p', { class: 'small muted', text: 'Alarm thresholds are tunable defaults (SNR 6 dB under its 60 s baseline for 5 s; under 12 dB for 2 s; 3 dropouts in 10 s; hum 10 dB over baseline). Sound alerts are off.' }),
     h('div', { class: 'mon-actions' }, h('button', { type: 'submit', class: 'btn btn-secondary', id: 'mon-settings-save', text: 'Save settings' })), settingsMsg));
@@ -257,12 +300,13 @@ export function createMonitorScreen(section) {
     const ids = c.deckIds();
     for (const [id, card] of cards) if (!ids.includes(id)) { card.el.remove(); cards.delete(id); }
     const states = [];
+    const lost = c.state === 'retrying';
     for (const id of ids) {
       const d = c.deck(id);
       const card = deckCard(id);
-      const v = deckView(d.frame, { deck: id });
+      const v = deckView(d.frame, { deck: id, deviceLost: lost });
       states.push(v.state);
-      const st = DECK_STATE[v.state] || DECK_STATE.waiting;
+      const st = chipFor(v.state);
       const key = `${v.state}`;
       if (card.last !== key) {
         card.chipEl.innerHTML = `<span class="chip chip-${st.chip}" data-state="${v.state}">${icon(st.icon, { size: 14 })}<span>${st.label}</span></span>`;
@@ -270,23 +314,33 @@ export function createMonitorScreen(section) {
         card.last = key;
       }
       card.dl.replaceChildren(...v.metrics.flatMap(m => [h('dt', { text: m.label }), h('dd', { 'data-metric': m.key }, h('span', { class: 'mon-val', text: m.value }), m.sub ? h('span', { class: 'small muted', text: m.sub }) : null)]));
-      const lvl = d.frame?.levelDb;
+      const lvl = lost ? NaN : d.frame?.levelDb;
       card.meterFill.style.width = `${levelPct(lvl)}%`;
       card.meter.setAttribute('aria-valuenow', String(Number.isFinite(lvl) ? Math.max(-60, Math.round(lvl)) : -60));
       card.meter.setAttribute('aria-valuetext', Number.isFinite(lvl) && lvl > -200 ? `${fmt1(lvl)} dBFS` : 'silent');
       card.path.setAttribute('d', sparklinePath(d.spark));
       const finite = d.spark.filter(Number.isFinite);
       card.svg.setAttribute('aria-label', finite.length ? `Deck ${id} SNR over the last ${Math.ceil(d.spark.length / 60)} min: lowest ${fmt1(Math.min(...finite))} dB, latest ${fmt1(finite.at(-1))} dB` : `Deck ${id} SNR: no play yet`);
-      card.note.textContent = v.note;
+      if (card.note.textContent !== v.note) card.note.textContent = v.note;
     }
-    drawBadge(c.running ? trayStateFor(states) : 'off');
+    drawBadge(lost ? 'lost' : c.running ? trayStateFor(states) : 'off');
   }
   const scheduleRender = () => { if (!raf) raf = requestAnimationFrame(render); };
 
   let trayInfo = { state: 'off', supported: null };
+  let badgeKey = '', liveTimer = 0, liveText = '';
+  const ANNOUNCE_SETTLE_MS = 1500;
+  function announceBadge(text) {
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => { if (text !== liveText) { liveText = text; badgeLive.textContent = text; } }, ANNOUNCE_SETTLE_MS);
+  }
   function drawBadge(overall) {
     const o = OVERALL[overall] || OVERALL.off;
     const trayText = trayInfo.supported === false && c.running ? ' · tray not available here, status shown in this window' : '';
+    const key = `${overall}|${trayInfo.supported}|${trayText}`;
+    if (key === badgeKey) return; // unchanged: leave the DOM (and screen readers) alone
+    badgeKey = key;
+    announceBadge(overall === 'off' && !liveText ? '' : `Live monitor: ${o.label}`);
     badge.innerHTML = `<span class="chip chip-${o.chip}" data-overall="${overall}">${icon(o.icon, { size: 14 })}<span>Monitor: ${o.label}</span></span>`;
     badge.title = `Live monitor: ${o.label}${trayText}`;
     badge.dataset.tray = trayInfo.supported === false ? 'unsupported' : trayInfo.supported ? 'tray' : 'unknown';
@@ -297,15 +351,19 @@ export function createMonitorScreen(section) {
 
   function renderControls() {
     const running = c.running, busy = c.state === 'starting' || c.state === 'stopping';
+    const focused = [startBtn, stopBtn, muteBtn].find(b => b === document.activeElement) || null;
     startBtn.hidden = running || c.state === 'starting';
     stopBtn.hidden = !(running || c.state === 'starting');
-    startBtn.disabled = busy;
+    // aria-disabled, not disabled: a disabled button cannot hold the focus moved onto it while stopping
+    startBtn.setAttribute('aria-disabled', String(busy));
     for (const el of [format, useB, pickA.el?.querySelector('select'), pickB.el?.querySelector('select')]) if (el) el.disabled = running || busy;
     muteBtn.hidden = !running;
     muteBtn.setAttribute('aria-pressed', String(c.muted));
     muteBtn.textContent = c.muted ? 'Unmute toasts' : `Mute toasts ${MUTE_MIN} min`;
     setup.querySelector('#mon-empty').hidden = running;
     decksEl.hidden = !c.deckIds().length;
+    // the focused control was just hidden: keep keyboard focus on its visible counterpart, not <body>
+    if (focused?.hidden) (startBtn.hidden ? stopBtn : startBtn).focus();
   }
 
   function banner(kind, title, body, extra = null) {
@@ -318,7 +376,7 @@ export function createMonitorScreen(section) {
     renderControls();
     setCaptureStatus(state === 'running' ? 'Live monitor running' : state === 'retrying' ? 'Live monitor: device lost' : 'Idle', state === 'running' ? 'recording' : 'idle');
     switch (state) {
-      case 'starting': banner('info', 'Opening the audio stream…', 'Live monitor asks for the input politely: if another DeckChek feature holds it, you are asked first.'); break;
+      case 'starting': events.set(c.events.list()); banner('info', 'Opening the audio stream…', 'Live monitor asks for the input politely: if another DeckChek feature holds it, you are asked first.'); break;
       case 'running': status.replaceChildren(); if (!info.persisted) banner('info', 'Monitoring', 'The session log could not be opened, so this session is not saved. Alerts still show here.'); announce('Live monitor running'); break;
       case 'retrying': banner('warn', 'Audio device lost', info.message); break;
       case 'device-busy':

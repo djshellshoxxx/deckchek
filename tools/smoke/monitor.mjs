@@ -49,6 +49,9 @@ function monitorMock() {
     const s = stream; stream = null; lease = null;
     return { streamId: s.id, ended: 'stopped', blocksSent: s.seq, lastSeq: s.seq - 1, droppedBlocks: 0, framesCaptured: s.seq * frames, overrunSamples: 0, streamErrors: 0, streamErrorMessages: [] };
   };
+  // device loss: the native stream ends by itself and the reap reports 'deviceLost'
+  mon.lose = () => { if (!stream) return; clearInterval(stream.timer); stream.lost = true; stream.channel.onmessage(encode(stream.seq++, 0, true)); };
+  mon.prune = [];
   let n = 0; const uuid = () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
   core.invoke = async (cmd, args = {}) => {
     if (/stream|lease|preempt|monitor_|app_state/.test(cmd)) mon.calls.push(cmd);
@@ -66,7 +69,10 @@ function monitorMock() {
         return { streamId: lease.leaseId, holder: args.holder, deviceName: 'Traktor Audio 8 DJ', sampleRate: sr, channels: 8, blockMs: 250, blockFrames: frames, pairs: [{ label: '1-2', first: 1, second: 2, mono: false }, { label: '3-4', first: 3, second: 4, mono: false }] };
       }
       case 'stream_capture_ack': return null;
-      case 'stop_stream_capture': { const s = endStream(); if (!s) throw 'No stream capture is running.'; return s; }
+      case 'stop_stream_capture': {
+        if (stream?.lost) { const id = stream.id; stream = null; lease = null; return { streamId: id, ended: 'deviceLost', blocksSent: 0, lastSeq: 0, droppedBlocks: 0, framesCaptured: 0, overrunSamples: 0, streamErrors: 0, streamErrorMessages: [] }; }
+        const s = endStream(); if (!s) throw 'No stream capture is running.'; return s;
+      }
       case 'monitor_session_start': { const row = { id: uuid(), startedAt: new Date().toISOString(), endedAt: null, ...args.input, summary: null, eventCount: 0, warningCount: 0, criticalCount: 0, minuteCount: 0 }; mon.sessions.unshift(row); return { id: row.id, startedAt: row.startedAt }; }
       case 'monitor_log_append': {
         const s = mon.sessions.find(x => x.id === args.sessionId);
@@ -79,7 +85,7 @@ function monitorMock() {
       case 'monitor_session_list': return mon.sessions.map(s => ({ ...s }));
       case 'monitor_session_get': { const s = mon.sessions.find(x => x.id === args.id); return s ? { version: 1, session: { ...s }, events: mon.events.filter(e => e.sessionId === s.id), minutes: mon.minutes.filter(m => m.sessionId === s.id) } : null; }
       case 'monitor_session_delete': { const before = mon.sessions.length; mon.sessions = mon.sessions.filter(s => s.id !== args.id); return mon.sessions.length < before; }
-      case 'monitor_prune': return { deleted: 0, retentionDays: args.retentionDays, closed: 0 };
+      case 'monitor_prune': mon.prune.push(args.retentionDays); return { deleted: 0, retentionDays: args.retentionDays, closed: 0 };
       case 'monitor_set_tray_state': mon.tray.push(args.state); return { supported: false, state: args.state, tooltip: `DeckChek live monitor: ${args.state}` };
       case 'app_state_get': return null;
       case 'app_state_set': return null;
@@ -215,5 +221,104 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.click('#mon-stop');
   await page.waitForSelector('#mon-start:not([hidden])', { timeout: 5000 });
   await ctx.close();
+
+  // ----- regressions (FS-31 review) -----
+  const rctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+  await rctx.addInitScript(tauriMock); await rctx.addInitScript(monitorMock); await rctx.addInitScript(FLAG_ON);
+  const pr = await rctx.newPage();
+  errors.push(...watchConsole(pr, 'monitor-regressions'));
+  await pr.goto(base);
+  await pr.click('.rail-item[data-screen="monitor"]');
+  await pr.waitForSelector('#mon-setup');
+  await pr.waitForFunction(() => document.querySelectorAll('#mon-pair-a option').length >= 4, null, { timeout: 5000 }).catch(() => {});
+  const active = () => pr.evaluate(() => document.activeElement?.id || document.activeElement?.tagName || '');
+
+  // retention: an empty or out-of-range field never saves and never prunes
+  await pr.click('.mon-settings summary');
+  await pr.waitForFunction(() => document.getElementById('mon-retention').value === '90', null, { timeout: 3000 }).catch(() => {});
+  const setsBefore = await pr.evaluate(() => window.__mon.calls.filter(c => c === 'app_state_set').length);
+  for (const bad of ['', '0', '99999']) {
+    await pr.fill('#mon-retention', bad);
+    await pr.click('#mon-settings-save');
+    await pr.waitForTimeout(200);
+    const r = await pr.evaluate(() => ({ prune: window.__mon.prune.slice(), sets: window.__mon.calls.filter(c => c === 'app_state_set').length, msg: document.getElementById('mon-retention-msg')?.textContent || '', invalid: document.getElementById('mon-retention').getAttribute('aria-invalid') }));
+    check(`regression: retention "${bad}" is refused with a message, nothing saved or pruned`, !r.prune.length && r.sets === setsBefore && /whole number of days/i.test(r.msg) && r.invalid === 'true', JSON.stringify(r));
+  }
+  await pr.fill('#mon-retention', '30');
+  await pr.click('#mon-settings-save');
+  await pr.waitForFunction(() => window.__mon.prune.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const okSave = await pr.evaluate(() => ({ prune: window.__mon.prune.slice(), invalid: document.getElementById('mon-retention').getAttribute('aria-invalid') }));
+  check('regression: a valid retention saves and prunes with that value', JSON.stringify(okSave.prune) === '[30]' && okSave.invalid !== 'true', JSON.stringify(okSave));
+
+  // Start/Stop keep keyboard focus on the visible counterpart
+  await pr.focus('#mon-start');
+  await pr.keyboard.press('Enter');
+  await pr.waitForSelector('.mon-deck[data-deck="A"][data-state="ok"]', { timeout: 8000 });
+  check('regression: activating Start moves focus to Stop, not <body>', (await active()) === 'mon-stop', await active());
+
+  // live regions only change when the state changes
+  await pr.waitForTimeout(2000);
+  const mutations = await pr.evaluate(() => new Promise(resolve => {
+    let n = 0;
+    const targets = [document.getElementById('mon-badge'), ...document.querySelectorAll('#screen-monitor [aria-live], #screen-monitor [role="status"]')].filter(el => el && !el.closest('.mon-events-wrap, .mon-logs-card, .mon-settings'));
+    const mo = new MutationObserver(list => { n += list.length; });
+    for (const el of new Set(targets)) mo.observe(el, { childList: true, characterData: true, subtree: true });
+    setTimeout(() => { mo.disconnect(); resolve({ n, count: targets.length }); }, 1500);
+  }));
+  check('regression: steady OK monitoring does not rewrite the live badge or deck status notes', mutations.n === 0, JSON.stringify(mutations));
+
+  // device lost (retrying): badge and chips must not say OK
+  await pr.evaluate(() => window.__mon.lose());
+  await pr.waitForSelector('#mon-banner', { timeout: 4000 });
+  await pr.waitForTimeout(300);
+  const lost = await pr.evaluate(() => ({ badge: document.getElementById('mon-badge').innerText, chip: document.querySelector('.mon-deck[data-deck="A"] .mon-chip').innerText, snr: document.querySelector('.mon-deck[data-deck="A"] dd[data-metric="snr"]')?.innerText || '', banner: document.getElementById('mon-banner').innerText }));
+  check('regression: device lost shows "Device lost" on the badge and deck chip, not OK, with no frozen SNR', /Device lost/i.test(lost.badge) && !/Monitor: OK/i.test(lost.badge) && /Device lost/i.test(lost.chip) && !/dB/.test(lost.snr), JSON.stringify(lost));
+
+  // Stop keeps focus (on Start)
+  await pr.focus('#mon-stop');
+  await pr.keyboard.press('Enter');
+  await pr.waitForSelector('#mon-start:not([hidden])', { timeout: 5000 });
+  await pr.waitForFunction(() => window.__mon.sessions[0]?.endedAt, null, { timeout: 4000 }).catch(() => {});
+  check('regression: activating Stop moves focus to Start, not <body>', (await active()) === 'mon-start', await active());
+  const hadLost = await pr.locator('.mon-events .mon-event[data-kind="deviceLost"]').count();
+
+  // a new session starts with an empty live event list
+  await pr.focus('#mon-start');
+  await pr.keyboard.press('Enter');
+  await pr.waitForSelector('.mon-deck[data-deck="A"][data-state="ok"]', { timeout: 8000 });
+  check('regression: a new session clears the previous session\'s live events', hadLost >= 1 && (await pr.locator('.mon-events .mon-event[data-kind="deviceLost"]').count()) === 0, String(hadLost));
+
+  // flag switched off while monitoring: the session is stopped and closed
+  const endsBefore = await pr.evaluate(() => window.__mon.calls.filter(c => c === 'monitor_session_end').length);
+  await pr.evaluate(async () => { (await import('./features.js')).setEnabled('liveMonitor', false); });
+  await pr.waitForFunction(n => window.__mon.calls.filter(c => c === 'monitor_session_end').length > n, endsBefore, { timeout: 4000 }).catch(() => {});
+  const offState = await pr.evaluate(() => ({ ends: window.__mon.calls.filter(c => c === 'monitor_session_end').length, tray: window.__mon.tray.at(-1), open: window.__mon.sessions.filter(s => !s.endedAt).length }));
+  check('regression: turning the liveMonitor flag off while running stops monitoring and closes the session', offState.ends > endsBefore && offState.tray === 'off' && offState.open === 0, JSON.stringify(offState));
+  await pr.evaluate(async () => { (await import('./features.js')).setEnabled('liveMonitor', true); });
+
+  // deleting a session log keeps focus in the list, then on the heading when the list is empty
+  await pr.click('.rail-item[data-screen="monitor"]');
+  await pr.click('#mon-logs-refresh');
+  await pr.waitForFunction(() => document.querySelectorAll('.mon-log [data-log-delete]').length >= 2, null, { timeout: 4000 }).catch(() => {});
+  const nLogs = await pr.locator('.mon-log [data-log-delete]').count();
+  await pr.focus('.mon-log [data-log-delete]');
+  await pr.keyboard.press('Enter');
+  await pr.waitForSelector('#confirm-dialog[open]');
+  await pr.click('#confirm-ok');
+  await pr.waitForFunction(n => document.querySelectorAll('.mon-log [data-log-delete]').length === n - 1, nLogs, { timeout: 4000 }).catch(() => {});
+  await pr.waitForTimeout(100);
+  const afterDel = await pr.evaluate(() => ({ attr: document.activeElement?.hasAttribute('data-log-delete'), rows: document.querySelectorAll('.mon-log').length }));
+  check('regression: deleting a session log moves focus to the next log\'s Delete button', nLogs >= 2 && afterDel.rows === nLogs - 1 && afterDel.attr === true, JSON.stringify({ nLogs, ...afterDel }));
+  while (await pr.locator('.mon-log [data-log-delete]').count()) {
+    const left = await pr.locator('.mon-log [data-log-delete]').count();
+    await pr.focus('.mon-log [data-log-delete]');
+    await pr.keyboard.press('Enter');
+    await pr.waitForSelector('#confirm-dialog[open]');
+    await pr.click('#confirm-ok');
+    await pr.waitForFunction(n => document.querySelectorAll('.mon-log [data-log-delete]').length === n - 1, left, { timeout: 4000 });
+  }
+  await pr.waitForTimeout(100);
+  check('regression: deleting the last session log moves focus to the Session logs heading', (await active()) === 'mon-logs-title', await active());
+  await rctx.close();
   return errors;
 }
