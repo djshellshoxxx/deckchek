@@ -4,7 +4,7 @@
 // label, group and id plus its profile type (vocabulary.js FUNCTION_HINTS). Nothing is keyed to a model name.
 // Unrecognised controls stay in the model with no function ("unassigned") so the person can assign them.
 
-import { createModel, cleanControl, uniqueIds, LIMITS, kindForType } from './model.js';
+import { createModel, cleanControl, uniqueIds, cleanText, LIMITS, kindForType } from './model.js';
 import { suggestFunction, deckFromWords, normalizeFunction, functionDef } from './vocabulary.js';
 
 const KIND_BY_TYPE = { button: 'button', pad: 'button', switch: 'button', 'jog-touch': 'button', fader: 'absolute', knob: 'absolute', 'touch-strip': 'absolute', encoder: 'relative', jog: 'relative', platter: 'relative' };
@@ -46,10 +46,12 @@ export function learnedToModel(midiMap, profile = null, { name, manufacturer, de
   const controls = mergedControls(midiMap, profile).slice(0, LIMITS.maxControls);
   const channels = new Set();
   const rows = [];
-  for (const c of controls) {
-    const midi = midiFromMessage(c.message);
+  for (const raw of controls) {
+    const midi = midiFromMessage(raw.message);
     if (!midi) continue;
     channels.add(midi.channel);
+    // Untrusted text is cleaned and length-capped before any keyword regex sees it (FUNCTION_HINTS are not linear).
+    const c = { ...raw, label: cleanText(raw.label), group: cleanText(raw.group), id: raw.id == null ? raw.id : cleanText(String(raw.id), LIMITS.maxText) };
     rows.push({ c, midi });
   }
   const deckCount = Number.isInteger(decks) ? decks : Math.min(4, Math.max(2, ...[...rows].map(r => deckFromWords(`${r.c.label || ''} ${r.c.group || ''}`) || 0)));

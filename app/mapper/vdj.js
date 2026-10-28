@@ -138,9 +138,17 @@ function recogniseAction(action, deck) {
   return fn;
 }
 
+/**
+ * `shift ? A : B` -> {shift:A, base:B}; anything else is a plain action. Linear: a prefix test, then the first ':'
+ * (no backtracking regex over the untrusted action text).
+ */
 function splitShift(action) {
-  const m = /^\s*shift\s*\?\s*(.+?)\s*:\s*(.+?)\s*$/i.exec(String(action ?? ''));
-  return m ? { shift: m[1], base: m[2] } : { shift: null, base: action };
+  const s = String(action ?? '');
+  const head = /^\s*shift\s*\?/i.exec(s);
+  const rest = head ? s.slice(head[0].length) : '';
+  const i = rest.indexOf(':');
+  const shift = i < 0 ? '' : rest.slice(0, i).trim(), base = i < 0 ? '' : rest.slice(i + 1).trim();
+  return shift && base && !/[\r\n\u2028\u2029]/.test(rest) ? { shift, base } : { shift: null, base: action };
 }
 
 const parseHexOrDec = t => { const s = String(t ?? '').trim(); const n = /^0x[0-9a-f]{1,2}$/i.test(s) ? parseInt(s.slice(2), 16) : /^\d{1,3}$/.test(s) ? Number(s) : NaN; return Number.isInteger(n) && n >= 0 && n <= 127 ? n : null; };
@@ -176,8 +184,15 @@ export function importVdj(definitionXml, mapperXml = null) {
       if (action.length > LIMITS.maxCustomText) { warnings.push(`Line ${mp.line}: the action for ${cleanText(mp.attrs.value, 40)} is longer than ${LIMITS.maxCustomText} characters and was not kept.`); continue; }
       actions.set(String(mp.attrs.value).toLowerCase(), action);
     }
+    const legacyEntries = [];
+    for (const n of legacy.slice(0, LIMITS.maxControls)) {
+      const action = [n.attrs.action, n.attrs.value].filter(Boolean).join(' ');
+      // Same cap as the two-file format: longer actions could not be preserved intact, so they are reported, not cut.
+      if (action.length > LIMITS.maxCustomText) { warnings.push(`Line ${n.line}: an action longer than ${LIMITS.maxCustomText} characters was not kept.`); continue; }
+      legacyEntries.push({ line: n.line, element: 'button', name: null, type: 'note', number: parseHexOrDec(n.attrs.note), channel: Number(n.attrs.chan ?? 0), deck: null, action });
+    }
     const entries = legacy.length
-      ? legacy.slice(0, LIMITS.maxControls).map(n => ({ line: n.line, element: 'button', name: null, type: 'note', number: parseHexOrDec(n.attrs.note), channel: Number(n.attrs.chan ?? 0), deck: null, action: [n.attrs.action, n.attrs.value].filter(Boolean).join(' ') }))
+      ? legacyEntries
       : root.children.slice(0, LIMITS.maxControls * 2).map(n => ({ line: n.line, element: n.name.toLowerCase(), name: n.attrs.name ?? null, type: n.attrs.note != null ? 'note' : n.attrs.cc != null ? 'cc' : null,
         number: parseHexOrDec(n.attrs.note ?? n.attrs.cc), channel: Number(n.attrs.channel ?? 0), deck: Number(n.attrs.deck) || null, action: n.attrs.name != null ? actions.get(String(n.attrs.name).toLowerCase()) ?? null : null }));
     const ledEntries = [];
@@ -206,6 +221,8 @@ export function importVdj(definitionXml, mapperXml = null) {
       if (target && e.type && e.channel >= 0 && e.channel <= 15) target.feedback = { led: { type: e.type, channel: e.channel + 1, number: e.number, on: 127, off: 0 } };
       else warnings.push(`Line ${e.line}: LED ${cleanText(e.name, 40) || ''} is not linked to a recognised control and was not kept.`);
     }
+    // One entry can give two controls (base and shift), so the model is capped after the loop.
+    if (model.controls.length > LIMITS.maxControls) { model.controls.length = LIMITS.maxControls; warnings.push(`Only the first ${LIMITS.maxControls} controls were kept.`); }
     const maxDeck = Math.max(0, ...model.controls.map(c => c.function?.deck || 0));
     if (maxDeck > model.decks) model.decks = maxDeck;
     uniqueIds(model.controls);

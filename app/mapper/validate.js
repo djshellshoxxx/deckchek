@@ -19,7 +19,9 @@ export function validateModel(model, { target = null } = {}) {
   if (!String(model.name || '').trim()) err('NAME_EMPTY', [], 'Give the mapping a name.');
   if (model.controls.length > LIMITS.maxControls) err('TOO_MANY_CONTROLS', [], `A mapping can hold at most ${LIMITS.maxControls} controls.`);
 
-  // Unique (status, data1, layer). A 14-bit control also occupies its LSB number.
+  // Unique (status, data1, layer). A 14-bit control also occupies its LSB number. A preserved custom Mixxx entry keeps
+  // its original status (a lone note-off 0x8n entry is its own message), and several preserved entries on one message
+  // are legal in the source file (one per group/key), so custom-only collisions warn instead of blocking export.
   const slots = new Map();
   for (const c of model.controls) {
     const m = c.midi || {};
@@ -28,7 +30,8 @@ export function validateModel(model, { target = null } = {}) {
     if (m.type === 'cc14' && (!Number.isInteger(m.lsbNumber) || m.lsbNumber < 0 || m.lsbNumber > 127 || m.lsbNumber === m.number)) err('NUMBER_RANGE', [c.id], `${c.label}: the 14-bit LSB number must be 0 to 127 and differ from the MSB.`);
     const nums = m.type === 'cc14' ? [m.number, m.lsbNumber] : [m.number];
     for (const n of nums) {
-      const key = `${(m.type === 'cc14' ? 0xb0 : m.status & 0xf0)}:${m.channel}:${n}:${c.layer}`;
+      const st = m.type === 'cc14' ? 0xb0 : !c.function && c.custom && Number.isInteger(c.custom.status) && (c.custom.status & 0xf0) === 0x80 ? 0x80 : m.status & 0xf0;
+      const key = `${st}:${m.channel}:${n}:${c.layer}`;
       if (!slots.has(key)) slots.set(key, []);
       slots.get(key).push(c.id);
     }
@@ -37,7 +40,8 @@ export function validateModel(model, { target = null } = {}) {
     if (ids.length < 2) continue;
     const c = model.controls.find(x => x.id === ids[0]);
     const layer = key.split(':')[3];
-    err('DUPLICATE_BINDING', [...new Set(ids)], `${midiText(c.midi)}${layer === 'shift' ? ' (shift layer)' : ''} is bound ${ids.length} times: ${ids.map(id => model.controls.find(x => x.id === id)?.label).join(', ')}.`);
+    const allCustom = ids.every(id => { const x = model.controls.find(y => y.id === id); return x && !x.function && x.custom; });
+    (allCustom ? warn : err)(allCustom ? 'DUPLICATE_CUSTOM' : 'DUPLICATE_BINDING', [...new Set(ids)], `${midiText(c.midi)}${layer === 'shift' ? ' (shift layer)' : ''} is bound ${ids.length} times: ${ids.map(id => model.controls.find(x => x.id === id)?.label).join(', ')}.${allCustom ? ' These preserved entries are all written back.' : ''}`);
   }
 
   const hasShift = model.controls.some(c => c.function?.id === 'shift');
@@ -61,6 +65,7 @@ export function validateModel(model, { target = null } = {}) {
     if (c.layer === 'shift' && c.midi.type === 'cc14') err('SHIFT_14BIT', [c.id], `${c.label}: 14-bit controls cannot be used on the shift layer.`);
     const want = valueKind(fn);
     if (want === 'button' && c.kind !== 'button') warn('KIND_MISMATCH', [c.id], `${c.label}: ${describeFunction(fn)} expects a button, but this control is a ${c.kind === 'relative' ? 'encoder' : 'fader or knob'}.`);
+    else if (want === 'relative' && c.kind === 'absolute') warn('KIND_MISMATCH', [c.id], `${c.label}: ${describeFunction(fn)} expects a rotary encoder, but this control is a fader or knob; set the control type to encoder.`);
     else if (want !== 'button' && c.kind === 'button') warn('KIND_MISMATCH', [c.id], `${c.label}: ${describeFunction(fn)} expects a ${want === 'relative' ? 'rotary encoder' : 'fader or knob'}, but this control is a button.`);
     if (c.kind === 'relative' && !c.midi.encoding) warn('ENCODING_MISSING', [c.id], `${c.label}: choose how the encoder sends its movement; two's complement is assumed.`);
     if (target && !FUNCTION_TARGETS[target]?.[def.id]) warn('NO_EQUIVALENT', [c.id], `${c.label}: ${describeFunction(fn)} has no equivalent in this target and is skipped.`);

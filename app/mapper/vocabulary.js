@@ -288,9 +288,16 @@ export const FUNCTION_HINTS = Object.freeze([
 /** Profile control types that imply a function on their own (when no label word matches). */
 const TYPE_HINTS = { 'jog-touch': ['jog', { action: 'touch' }], platter: ['jog', { action: 'rotate' }], jog: ['jog', { action: 'rotate' }] };
 
+/**
+ * Longest text the hint rules look at. Some rules (`\bloop\b.*\bin\b`) cost O(n^2) on hostile text, so every input
+ * is cut to this many characters per field before any regex runs.
+ */
+export const MAX_HINT_CHARS = 200;
+const hintText = v => String(v ?? '').slice(0, MAX_HINT_CHARS);
+
 /** Best-guess function for a control described by words and a type, or null. Deck is decided by the caller. */
 export function suggestFunction({ label = '', group = '', id = '', type = '' } = {}) {
-  const words = `${label} ${group} ${String(id).replace(/_/g, ' ')}`.toLowerCase().replace(/[^a-z0-9/ ]+/g, ' ');
+  const words = `${hintText(label)} ${hintText(group)} ${hintText(id).replace(/_/g, ' ')}`.toLowerCase().replace(/[^a-z0-9/ ]+/g, ' ');
   for (const [re, fid, args, opt] of FUNCTION_HINTS) {
     const m = re.exec(words);
     if (!m) continue;
@@ -303,7 +310,7 @@ export function suggestFunction({ label = '', group = '', id = '', type = '' } =
 
 /** Deck number named in a label/group ("Deck 2", "CH2", "Left", "B"), or null. */
 export function deckFromWords(text = '') {
-  const t = String(text).toLowerCase();
+  const t = String(text ?? '').slice(0, MAX_HINT_CHARS * 3).toLowerCase();
   let m = /\b(?:deck|ch|channel)\s*([1-4])\b/.exec(t) || /\bdeck\s*([a-d])\b/.exec(t);
   if (m) return /[a-d]/.test(m[1]) ? 'abcd'.indexOf(m[1]) + 1 : Number(m[1]);
   if (/\bleft\b/.test(t)) return 1;

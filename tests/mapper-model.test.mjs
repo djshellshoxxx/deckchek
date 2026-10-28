@@ -234,6 +234,9 @@ test('preserved custom controls: custom vs custom duplicates warn, custom vs a n
   const v = controls => validateModel(sanitizeModel({ version: 1, name: 'c', controls }).model, { target: 'vdj' });
   assert.ok(v([custom(1), btn(1, { id: 'play', deck: 1 })]).errors.some(x => x.code === 'DUPLICATE_BINDING'));
   assert.ok(v([custom(1)]).warnings.some(x => x.code === 'CUSTOM_OTHER_TARGET'));
+  const cc = v([custom(1), { ...custom(1), custom: { ...custom(1).custom, group: '[Channel3]' } }]);
+  assert.deepEqual(cc.errors, [], 'regression: custom vs custom on one message does not block export');
+  assert.ok(cc.warnings.some(x => x.code === 'DUPLICATE_CUSTOM'));
 });
 
 test('export size gate is 512 KB (FS-32 §6)', () => {

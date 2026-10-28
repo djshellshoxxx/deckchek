@@ -46,8 +46,10 @@ export function createMapperStore({ api = tauri(), storage = globalThis.localSto
       const rows = load();
       const now = new Date().toISOString();
       const prev = id ? rows.find(r => r.id === id) : null;
+      // The browser store is capped; a new mapping past the cap is refused, never made room for by deleting one.
+      if (!prev && rows.length >= MAX_LOCAL_MODELS) throw new Error(`This browser holds at most ${MAX_LOCAL_MODELS} saved mappings. Delete a saved mapping first, or export this one to a file.`);
       const row = { id: prev?.id || newId(), assetId, profileId, name: n, model, createdAt: prev?.createdAt || now, updatedAt: now };
-      const next = [row, ...rows.filter(r => r.id !== row.id)].slice(0, MAX_LOCAL_MODELS);
+      const next = [row, ...rows.filter(r => r.id !== row.id)];
       persist(next);
       return row;
     },
