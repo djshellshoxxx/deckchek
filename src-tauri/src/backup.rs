@@ -1614,16 +1614,28 @@ pub async fn backup_list(app: AppHandle) -> Result<Vec<BackupEntry>, BackupError
     .await
 }
 
-#[tauri::command]
-pub fn backup_settings_get(app: AppHandle) -> Result<ScheduleSettings, BackupError> {
-    let ctx = app_ctx(&app)?;
-    get_schedule(&*open_live(&ctx)?)
+/// Off the main thread through the DB command lane (AUD-03): these wait on the gate and
+/// on `SQLITE_BUSY` while a scheduled backup or a restore holds the database.
+async fn db_lane<T: Send + 'static>(f: impl FnOnce() -> Result<T, BackupError> + Send + 'static) -> Result<T, BackupError> {
+    crate::db::off_main(f).await.map_err(|e| BackupError::new("io", e))?
 }
 
 #[tauri::command]
-pub fn backup_settings_set(app: AppHandle, settings: ScheduleInput) -> Result<ScheduleSettings, BackupError> {
-    let ctx = app_ctx(&app)?;
-    set_schedule(&*open_live(&ctx)?, Some(&settings), None)
+pub async fn backup_settings_get(app: AppHandle) -> Result<ScheduleSettings, BackupError> {
+    db_lane(move || {
+        let ctx = app_ctx(&app)?;
+        get_schedule(&*open_live(&ctx)?)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn backup_settings_set(app: AppHandle, settings: ScheduleInput) -> Result<ScheduleSettings, BackupError> {
+    db_lane(move || {
+        let ctx = app_ctx(&app)?;
+        set_schedule(&*open_live(&ctx)?, Some(&settings), None)
+    })
+    .await
 }
 
 #[tauri::command]
