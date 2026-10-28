@@ -367,6 +367,28 @@ fn schema_version(conn: &Connection) -> Result<i64, BackupError> {
         .map_err(|_| BackupError::new("corrupt_db", "The backup's database is not a DeckChek database (no schema version)."))
 }
 
+/// A restored database is untrusted until verified: its schema must not be able to run code
+/// (triggers, views calling functions) when migrations or the app touch it. Defensive mode also
+/// blocks writes that could corrupt the file format (`writable_schema`, raw page edits).
+fn harden_untrusted(conn: &Connection) -> Result<(), BackupError> {
+    let bad = |_| BackupError::new("corrupt_db", "The backup's database cannot be opened safely.");
+    conn.execute_batch("PRAGMA trusted_schema=OFF;").map_err(bad)?;
+    conn.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true).map_err(bad)?;
+    Ok(())
+}
+
+/// DeckChek migrations never create triggers or views, so a backup that carries one was not made
+/// by DeckChek (or was edited) and is refused before any migration runs against it.
+fn reject_schema_code(conn: &Connection) -> Result<(), BackupError> {
+    let n: i64 = conn
+        .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type IN ('trigger','view')", [], |r| r.get(0))
+        .map_err(|_| BackupError::new("corrupt_db", "The backup's database cannot be read."))?;
+    if n > 0 {
+        return Err(BackupError::new("unsafe_db", "The backup's database contains triggers or views that DeckChek never creates, so it was refused. Your current data was not changed."));
+    }
+    Ok(())
+}
+
 fn integrity_ok(conn: &Connection) -> bool {
     conn.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0)).map(|s| s == "ok").unwrap_or(false)
 }
@@ -947,9 +969,11 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     let from = {
         let conn = Connection::open_with_flags(&tmp, OpenFlags::SQLITE_OPEN_READ_WRITE)
             .map_err(|_| BackupError::new("corrupt_db", "The backup's database cannot be opened."))?;
+        harden_untrusted(&conn)?;
         if !integrity_ok(&conn) {
             return Err(BackupError::new("corrupt_db", "The backup's database is damaged (integrity check failed). Your current data was not changed."));
         }
+        reject_schema_code(&conn)?;
         let from = schema_version(&conn)?;
         if from > current_v {
             return Err(BackupError::new("too_new", too_new_message(from)));
@@ -1636,6 +1660,23 @@ mod tests {
         c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).unwrap()
     }
 
+    #[test]
+    fn regression_restore_refuses_backup_with_triggers_or_views() {
+        for ddl in ["CREATE TRIGGER wipe AFTER INSERT ON session BEGIN DELETE FROM asset; END;", "CREATE VIEW v AS SELECT 1;"] {
+            let env = Env::new("hostile");
+            make_db(env.live(), "live", 2);
+            let other = env.out("other.sqlite3");
+            make_db(&other, "other", 1);
+            Connection::open(&other).unwrap().execute_batch(ddl).unwrap();
+            let dest = env.out("hostile.deckchek-backup");
+            create_backup(&other, &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+            let before = rows(env.live(), "session");
+            let err = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap_err();
+            assert_eq!(err.code, "unsafe_db", "{ddl}");
+            assert_eq!(rows(env.live(), "session"), before, "live data untouched");
+        }
+    }
+
     fn settings() -> SettingsBlob {
         SettingsBlob {
             ui: Some(json!({ "theme": "dark", "sampleRate": 48000 })),
@@ -2227,12 +2268,14 @@ mod tests {
         assert!(restore_backup(&env.ctx, &truncated, true, &none, None).is_err());
         assert_untouched(&env, &before, "truncated db");
 
-        // a real migration error inside the backup's own data (v2 DB that blocks version 3)
+        // a real migration error inside the backup's own data: a v2 DB that already has the
+        // column migration 0004 adds, so its ALTER TABLE fails (triggers are refused earlier, see
+        // regression_restore_refuses_backup_with_triggers_or_views)
         let v2 = env.out("v2.sqlite3");
         {
             let c = Connection::open(&v2).unwrap();
             c.execute_batch(&fixture_sql()).unwrap();
-            c.execute_batch("CREATE TRIGGER block_v3 BEFORE INSERT ON schema_migration WHEN NEW.version = 3 BEGIN SELECT RAISE(ABORT, 'blocked'); END;").unwrap();
+            c.execute_batch("ALTER TABLE device_test_result ADD COLUMN media_id TEXT;").unwrap();
         }
         let blocked = backup_of(&env, &v2, "blocked.deckchek-backup");
         assert_eq!(restore_backup(&env.ctx, &blocked, true, &none, None).unwrap_err().code, "migration_failed");
