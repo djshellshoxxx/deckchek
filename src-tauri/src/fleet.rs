@@ -610,9 +610,12 @@ pub async fn reminder_apply_template(
 // Registration belongs in lib.rs's [FS-23] handlers block (`fleet::reminder_delete`); until then it is unused.
 #[allow(dead_code)]
 #[tauri::command]
-pub fn reminder_delete(app: AppHandle, id: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete_reminder(&conn, &id)
+pub async fn reminder_delete(app: AppHandle, id: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete_reminder(&conn, &id)
+    })
+    .await?
 }
 #[tauri::command]
 pub async fn reminder_snooze(app: AppHandle, id: String, until_iso: String) -> Result<(), String> {
