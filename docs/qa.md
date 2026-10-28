@@ -13,7 +13,7 @@ the named platform. Hardware-dependent measurement checks live in
 | JS fuzz smoke | 10 parser targets x 400 seeded mutations | `tests/fuzz-smoke.test.mjs` |
 | JS fuzz long | 120 s per target | nightly `js-fuzz-and-stress` (`tools/fuzz-js.mjs`) |
 | Rust unit / migrations / fixtures | every module, DB upgrade from every `tests/fixtures/db/v*.sql` | `cargo test` (Linux per push; Windows nightly and on release tags; macOS on release tags) |
-| Rust fuzz smoke | 9 targets, committed seeds + seeded mutations | `cargo test --lib fuzz_api` |
+| Rust fuzz smoke | 11 targets, committed seeds, seeded mutations and every committed crash input in `src-tauri/fuzz/regressions/<target>` | `cargo test --lib fuzz_api` |
 | Rust fuzz long | cargo-fuzz/libFuzzer + ASan, 300 s per target | nightly `cargo-fuzz` |
 | Rust ASan | full lib test suite under AddressSanitizer | nightly `rust-asan` |
 | Stress / performance | long captures, large histories, backup/restore, import caps, concurrency | nightly `js-fuzz-and-stress`, `rust-stress` (budgets in §4) |
@@ -71,3 +71,26 @@ interface mid-capture).
 ## 5. Recorded results
 
 Results are appended per run with the commit, the command and the numbers it printed.
+
+### 2026-10-28 long fuzz run (local, before v0.1.0-beta.1)
+
+Machine: 4-core Linux container, shared with other builds (execution counts are lower than on an idle machine). Rust: `cargo +nightly fuzz run -O <target>` (libFuzzer + AddressSanitizer, cargo-fuzz 0.13.2) with `-max_total_time=600 -rss_limit_mb=2048 -timeout=10`, seeded from `src-tauri/fuzz/corpus/<target>`. JS: `node tools/fuzz-js.mjs 120`. "Seconds" includes the build or rebuild before the first input.
+
+| Target | Run time | Executions | Coverage (cov) | Result |
+|---|---|---|---|---|
+| backup_inspect | 600 s | 597 894 | 1870 | no crash |
+| backup_restore | 600 s | 5 684 | 3356 | first run crashed after ~2 500 inputs: restore panicked on TEXT that is not UTF-8 (FUZZ-05, fixed in 76e9d52); re-run after the fix: no crash |
+| canonical | 600 s | 13 108 708 | 1275 | first run crashed: serde_json raw-value key parsed differently from JavaScript (FUZZ-04, fixed in 76e9d52); re-run after the fix: no crash |
+| certificate | 600 s | 11 682 358 | 2864 | no crash |
+| dj_logs | 600 s | 11 617 064 | 407 | no crash |
+| jpeg | 600 s | 171 812 270 | 116 | no crash |
+| links | 600 s | 5 609 558 | 4693 | no crash |
+| pack | 600 s | 13 094 | 1718 | no crash (each input opens and migrates a database, hence the low count) |
+| system_check | 600 s | 6 548 675 | 2326 | no crash |
+| userfiles | 600 s | 28 796 324 | 419 | no crash |
+| workspace_import | 600 s | 1 011 780 | 1351 | no crash |
+
+Earlier 120 s pass (same day): jpeg harness invariant (FUZZ-01, harness only) and a system_check glob timeout (FUZZ-02, fixed). Every crash input is committed under `src-tauri/fuzz/regressions/` and replayed by `cargo test --lib fuzz_api` on every push.
+
+JS, 120 s per target: the first pass crashed in `device-profile` (FUZZ-06: `validateProfile` threw on values that cannot become strings; fixed in 774b491). The full re-run after the fix (seed 39290673) had no crash: phone-run 1 910 327 executions, workspace 1 683 586, backup-manifest 3 467 870, media-import 1 999 052, media-state 2 517 708, catalog-state 2 292 208, canonical 236 918, pack 2 518 100, midi-message 2 941 712, certificate 2 593 240, mapper-xml 334 755, mapper-vdj 824 753, device-profile 887 345.
+
