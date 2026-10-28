@@ -129,12 +129,38 @@ function spanOf(band) {
   const v = band.hi ?? band.lo;
   return v ? Math.abs(v) : null;
 }
+const ownKey = (o, key) => !!o && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, key);
+/**
+ * Direction for a row: the hint for its own (test, metric) key, else the bare metric hint. A test that has its own hint
+ * or band but no direction (an 'abs<=' / 'between' criterion) has none: it never borrows the direction another test
+ * of the same metric stored under the bare key.
+ */
 function hib(opts, key, metricKey) {
   const h = opts.higherIsBetter;
   if (typeof h === 'function') return h(metricKey);
-  if (h && typeof h === 'object') return typeof h[key] === 'boolean' ? h[key] : h[metricKey];
+  if (h && typeof h === 'object') {
+    if (typeof h[key] === 'boolean') return h[key];
+    if (ownKey(h, key) || ownKey(opts.bands, key)) return undefined;
+    return typeof h[metricKey] === 'boolean' ? h[metricKey] : undefined;
+  }
   return typeof h === 'boolean' ? h : undefined;
 }
+
+/**
+ * Test ids per metric key among values linked with a test. A value from a run linked without a test takes the test id
+ * when exactly one test measured that metric, so a device-test "before" pairs with a test-less "after" (and the other
+ * way round). With several tests the value stays unpaired: the row is marked `ambiguous` and its reason says why.
+ */
+function testsPerMetric(values) {
+  const out = new Map();
+  for (const v of values) {
+    if (!v || typeof v.metricKey !== 'string' || typeof v.testId !== 'string' || !v.testId) continue;
+    if (!out.has(v.metricKey)) out.set(v.metricKey, new Set());
+    out.get(v.metricKey).add(v.testId);
+  }
+  return out;
+}
+const hasTest = v => typeof v?.testId === 'string' && !!v.testId;
 
 /**
  * Pairs the latest before and after value of each (test, metric) and judges the change.
@@ -142,7 +168,8 @@ function hib(opts, key, metricKey) {
  * opts: {higherIsBetter: bool | {key: bool} | (metricKey) => bool, bands: {key: {lo, hi}}, registry (analysis_method rows), k = 2,
  *        spanFraction = 0.05, testTitles: {testId: title}}. Object keys are a metricScopeKey (one test) or a bare metric key.
  * Rows carry `key` (the metricScopeKey), `testId` and `metricKey`; when one metric key appears under several tests
- * the row label is prefixed with the test title so the rows can be told apart.
+ * the row label is prefixed with the test title so the rows can be told apart. A value linked without a test pairs
+ * with the one test that measured its metric; when several did, it stays unpaired and its row is marked `ambiguous`.
  * Row status: 'improved' | 'worse' | 'unchanged' (|delta| <= k*u) | 'changed' (no direction known) | 'notComparable'
  * (different unit or method version) | 'missingAfter' | 'missingBefore'. Rows whose pass state flips (fail -> pass,
  * pass -> fail) come first.
@@ -150,7 +177,14 @@ function hib(opts, key, metricKey) {
 export function compareBeforeAfter(before = [], after = [], opts = {}) {
   const k = finite(opts.k) ? opts.k : 2;
   const spanFraction = finite(opts.spanFraction) ? opts.spanFraction : DEFAULT_SPAN_FRACTION;
-  const B = latestPerMetric(before, scopeOf), A = latestPerMetric(after, scopeOf);
+  const list = x => (Array.isArray(x) ? x : []);
+  const tests = testsPerMetric([...list(before), ...list(after)]);
+  const resolve = v => {
+    if (!v || hasTest(v)) return v;
+    const ids = tests.get(v.metricKey);
+    return ids?.size === 1 ? { ...v, testId: [...ids][0] } : v;
+  };
+  const B = latestPerMetric(list(before).map(resolve), scopeOf), A = latestPerMetric(list(after).map(resolve), scopeOf);
   const toRun = map => ({ measurements: [...map].map(([key, v]) => ({ metricId: key, label: v.label, value: v.value, unit: v.unit ?? '' })) });
   const paired = new Map(compareRuns(toRun(B), toRun(A)).map(p => [p.metricId, p]));
   const keys = [...new Set([...B.keys(), ...A.keys()])];
@@ -168,8 +202,10 @@ export function compareBeforeAfter(before = [], after = [], opts = {}) {
     const testLabel = testId ? (typeof titles[testId] === 'string' && titles[testId]) || testId : 'Saved run';
     const label = scopesPerMetric.get(metricKey) > 1 ? `${testLabel} · ${metricLabel}` : metricLabel;
     const base = { key, metricKey, testId, label, unit: (b ?? a)?.unit ?? '', before: b?.value ?? null, after: a?.value ?? null, delta: null, uncertainty: null, assumed: false, status: null, passChange: null, reason: '' };
-    if (!a) return { ...base, status: 'missingAfter', reason: 'No after value yet.' };
-    if (!b) return { ...base, status: 'missingBefore', reason: 'No before value.' };
+    const many = testId ? 0 : tests.get(metricKey)?.size || 0;
+    const unpaired = many > 1 ? { ambiguous: true, reason: `Not paired: ${many} tests measure this metric and the linked run names none of them.` } : null;
+    if (!a) return { ...base, status: 'missingAfter', reason: 'No after value yet.', ...unpaired };
+    if (!b) return { ...base, status: 'missingBefore', reason: 'No before value.', ...unpaired };
     const pair = paired.get(key);
     if (!pair) return { ...base, status: 'notComparable', reason: `Units differ (${b.unit || 'none'} before, ${a.unit || 'none'} after).` };
     const mb = { key: b.methodKey ?? metricKey, version: b.methodVersion ?? 1, unit: b.unit ?? null }, ma = { key: a.methodKey ?? metricKey, version: a.methodVersion ?? 1, unit: a.unit ?? null };

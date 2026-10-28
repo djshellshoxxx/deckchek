@@ -324,3 +324,42 @@ test('regression: fractional part quantities show their real value on the job sh
   assert.deepEqual(qty, ['0.25', '0.5', '3']);
   assert.ok(html.includes('£1.00') && html.includes('£2.00'), 'qty x unit cost matches the line total');
 });
+
+test('regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric', () => {
+  const T = (phase, value, at) => ({ ...V('balance_db', value, { at, label: 'Balance' }), phase, testId: 'sl-balance', source: 'deviceTest' });
+  const S = (phase, value, at) => ({ ...V('balance_db', value, { at, label: 'Balance' }), phase, testId: null, source: 'session' });
+  const titles = [{ phase: 'before', testId: 'sl-balance', status: 'fail', at: '2026-10-10T10:00:00Z', title: 'Channel balance' }];
+  for (const values of [[T('before', 1.8, '2026-10-10T10:00:00Z'), S('after', 0.2, '2026-10-12T10:00:00Z')], [S('before', 1.8, '2026-10-10T10:00:00Z'), T('after', 0.2, '2026-10-12T10:00:00Z')]]) {
+    const c = buildComparison({ values, tests: titles }, { higherIsBetter: { balance_db: false } });
+    assert.equal(c.rows.length, 1, 'one paired row, not a missingAfter and a missingBefore row');
+    assert.deepEqual([c.rows[0].before, c.rows[0].after, c.rows[0].status, c.rows[0].testId], [1.8, 0.2, 'improved', 'sl-balance']);
+    assert.equal(c.completeness.state, 'complete');
+  }
+  // the latest before value wins when both a test and a test-less run measured it
+  const latest = buildComparison({ values: [T('before', 1.8, '2026-10-10T10:00:00Z'), S('before', 1.0, '2026-10-11T10:00:00Z'), S('after', 0.2, '2026-10-12T10:00:00Z')] });
+  assert.deepEqual(latest.rows.map(r => [r.before, r.after]), [[1.0, 0.2]]);
+});
+
+test('regression: a test-less value is not paired when several tests measure the metric, and the row says why', () => {
+  const F = (phase, testId, value) => ({ ...V('midi_fader_jitter_lsb', value, { unit: 'LSB', label: 'Jitter' }), phase, testId });
+  const c = buildComparison({ values: [F('before', 'ch2', 14), F('before', 'ch4', 0), F('after', null, 1)] });
+  assert.equal(c.rows.length, 3, 'never guessed onto one of the two faders');
+  const loose = c.rows.find(r => r.testId === null);
+  assert.equal(loose.status, 'missingBefore');
+  assert.equal(loose.ambiguous, true);
+  assert.match(loose.reason, /2 tests measure this metric/);
+  assert.ok(c.rows.filter(r => r.testId).every(r => r.status === 'missingAfter' && !r.ambiguous));
+});
+
+test('regression: a test with an abs<= or between band never borrows another test\'s direction', () => {
+  for (const op of [{ op: 'abs<=', value: 8 }, { op: 'between', value: -8, value2: 8 }]) {
+    const h = directionHints({ tests: [{ id: 'ch1', pass: { metricId: 'jit', op: '<=', value: 2 } }, { id: 'xf', pass: { metricId: 'jit', ...op } }] });
+    const F = (phase, testId, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId });
+    const c = buildComparison({ values: [F('before', 'ch1', 5), F('after', 'ch1', 1), F('before', 'xf', 5), F('after', 'xf', 1)] }, h);
+    assert.equal(c.rows.find(r => r.testId === 'ch1').status, 'improved', '<=: lower is better');
+    assert.equal(c.rows.find(r => r.testId === 'xf').status, 'changed', `${op.op}: inside the band both times, no direction`);
+  }
+  // with no per-test hint or band at all, the bare metric hint still applies
+  const F = (phase, value) => ({ ...V('jit', value, { uncertainty: 0.01 }), phase, testId: 't' });
+  assert.equal(buildComparison({ values: [F('before', 5), F('after', 1)] }, { higherIsBetter: { jit: false } }).rows[0].status, 'improved');
+});
