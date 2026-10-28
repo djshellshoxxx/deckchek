@@ -21,7 +21,7 @@ export const FIELDS = Object.freeze([
   { key: 'photos', label: 'Photos', hint: 'Re-encoded JPEG, at most 1600 px, all metadata (EXIF, GPS) removed.' },
   { key: 'service', label: 'Service history', hint: 'Dates and types of maintenance.' },
   { key: 'serviceNotes', label: 'Service descriptions', hint: 'Free text from the maintenance log.' },
-  { key: 'certificates', label: 'Signed test certificates', hint: 'Embedded unchanged so they stay verifiable: they include the full serial number, the tester name and the certificate notes.' },
+  { key: 'certificates', label: 'Signed test certificates', hint: 'Embedded unchanged so they stay verifiable: they include the full serial number, the tester name, the certificate notes, the test photos with their original file names and the names of the measurement devices. A certificate with photos is left out for units whose Photos are off.' },
   { key: 'notes', label: 'Private notes', hint: 'The notes field from Equipment. Excluded unless you tick it.' },
 ]);
 export const FIELD_KEYS = Object.freeze(FIELDS.map(f => f.key));
@@ -53,9 +53,13 @@ export function makeRules(name = DEFAULT_PRESET) {
   return { preset: p, serialMode: PRESETS[p].serialMode, fields: { ...PRESETS[p].fields }, items: {}, ownerName: '' };
 }
 
+export const MAX_ITEM_OVERRIDES = 500;
+const MAX_ITEM_SCAN = 10000;
+
 /**
  * Normalises untrusted rules: unknown keys dropped, non-boolean toggles fall back to the preset, at most 500 item
- * overrides with ids up to 128 characters. Missing input -> Public defaults (the safest preset).
+ * overrides with ids up to 128 characters. Empty override objects (the matrix creates one per row it shows) are
+ * dropped before the cap, so they never push a real override out. Missing input -> Public defaults (the safest preset).
  */
 export function normalizeRules(raw) {
   const r = isObj(raw) ? raw : {};
@@ -65,7 +69,9 @@ export function normalizeRules(raw) {
   if (isObj(r.fields)) for (const k of FIELD_KEYS) if (typeof r.fields[k] === 'boolean') out.fields[k] = r.fields[k];
   out.items = {};
   if (isObj(r.items)) {
-    for (const [id, o] of Object.entries(r.items).slice(0, 500)) {
+    let scanned = 0;
+    for (const [id, o] of Object.entries(r.items)) {
+      if (++scanned > MAX_ITEM_SCAN || Object.keys(out.items).length >= MAX_ITEM_OVERRIDES) break;
       if (!id || id.length > 128 || !isObj(o) || id === '__proto__' || id === 'constructor' || id === 'prototype') continue;
       const item = {};
       if (typeof o.include === 'boolean') item.include = o.include;
@@ -111,25 +117,41 @@ export function maskSerial(serial, mode) {
 
 // Windows drive paths, UNC paths, home-relative paths and absolute POSIX paths with two or more segments.
 // A path continues across spaces while the next word still holds a separator ("C:\Users\Jo Smith\x.jpg" is one path).
+// Home and POSIX paths may follow any character that cannot be part of a word or a path (quotes, brackets, '<', ':'),
+// so '"/Users/jo/x"' and '[~/a/b]' are caught. A drive letter must not follow a letter or digit, so the "s:/" in
+// "https://" or the "h:/" in "path:/home" is never read as a drive. Web URLs are handled first (see scrubText).
 const PATH_RES = [
   /\bfile:\/\/[^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/gi,
-  /[A-Za-z]:[\\/][^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
+  /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
   /\\\\[^\s"'<>|()]+(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
-  /(^|[\s(=:,;])~[\\/][^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
-  /(^|[\s(=:,;])\/(?:[^\s/"'<>|()]+\/)+[^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
+  /(^|[^\w/.~-])~[\\/][^\s"'<>|()[\]{}]*(?:[ \t]+[^\s"'<>|()[\]{}]*[\\/][^\s"'<>|()[\]{}]*)*/g,
+  /(^|[^\w/.~-])\/(?:[^\s/"'<>|()[\]{}]+\/)+[^\s"'<>|()[\]{}]*(?:[ \t]+[^\s"'<>|()[\]{}]*[\\/][^\s"'<>|()[\]{}]*)*/g,
 ];
 export const PATH_PLACEHOLDER = '[path removed]';
+// http(s)/ftp URLs stay as typed (manual links) unless they carry a home folder ("/Users/<name>", "/home/<name>").
+const URL_RE = /\b(?:https?|ftp):\/\/[^\s"'<>]*[^\s"'<>.,;:!?)\]}]/gi;
+const URL_USER_PATH = /\/(?:Users|home)\/[^/\s?#]+/i;
+
+function scrubPaths(s) {
+  // For the patterns with a leading-context group, args[0] is that group; otherwise it is the match offset (a number).
+  for (const re of PATH_RES) s = s.replace(re, (m, ...args) => `${typeof args[0] === 'string' ? args[0] : ''}${PATH_PLACEHOLDER}`);
+  return s;
+}
 
 /**
  * Text that may be exported: NFC, control characters removed (line breaks kept), anything that looks like a file path
  * replaced by "[path removed]" (paths carry user names), trimmed, at most `max` characters. Non-strings -> ''.
+ * Web URLs are kept intact; a file:// URL or a URL with a home folder in it counts as a path.
  */
 export function scrubText(text, max = 2000) {
   if (typeof text !== 'string') return '';
   let s = text.normalize('NFC').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]/g, c => (c === '\t' ? ' ' : ''));
-  // For the patterns with a leading-context group, args[0] is that group; otherwise it is the match offset (a number).
-  for (const re of PATH_RES) s = s.replace(re, (m, ...args) => `${typeof args[0] === 'string' ? args[0] : ''}${PATH_PLACEHOLDER}`);
-  s = s.replace(/[ \t]+\n/g, '\n').trim();
+  let out = '', last = 0;
+  for (const m of s.matchAll(URL_RE)) {
+    out += scrubPaths(s.slice(last, m.index)) + (URL_USER_PATH.test(m[0]) ? PATH_PLACEHOLDER : m[0]);
+    last = m.index + m[0].length;
+  }
+  s = (out + scrubPaths(s.slice(last))).replace(/[ \t]+\n/g, '\n').trim();
   const chars = [...s];
   return chars.length > max ? `${chars.slice(0, max - 1).join('')}…` : s;
 }
@@ -230,17 +252,33 @@ export function privacySummary(ledger, rules) {
     { key: 'service', label: 'Service history', items: count(has('service')) },
     { key: 'serviceNotes', label: 'Service descriptions', items: count(it => (it.service || []).some(s => s.description)) },
   ];
-  const photos = items.reduce((n, it) => n + (it.photos?.length || 0), 0);
-  const certificates = items.reduce((n, it) => n + (it.certificates?.length || 0), 0);
+  const itemPhotos = items.reduce((n, it) => n + (it.photos?.length || 0), 0);
+  const certs = items.flatMap(it => (Array.isArray(it.certificates) ? it.certificates : []));
+  const certificates = certs.length;
+  const certPhotos = certs.flatMap(c => (Array.isArray(c?.signed?.payload?.unit?.photos) ? c.signed.payload.unit.photos.filter(isObj) : []));
+  const photos = itemPhotos + certPhotos.length;
   const warnings = [];
-  if (certificates) warnings.push(`${certificates} signed certificate${certificates === 1 ? '' : 's'} included: each shows the full serial number, the tester name and the certificate notes, because changing them would break verification.`);
+  if (certificates) {
+    const devices = [...new Set(certs.flatMap(c => (Array.isArray(c?.signed?.payload?.measurements) ? c.signed.payload.measurements : [])
+      .map(m => (typeof m?.calibration?.refId === 'string' ? m.calibration.refId.split('|')[0].trim() : '')).filter(d => d && d !== 'default')))];
+    const names = [...new Set(certPhotos.map(p => (typeof p.name === 'string' ? p.name : '')).filter(Boolean))];
+    warnings.push(`${certificates} signed certificate${certificates === 1 ? '' : 's'} included: each shows the full serial number, the tester name and the certificate notes, because changing them would break verification.${
+      certPhotos.length ? ` They also carry ${certPhotos.length} photo${certPhotos.length === 1 ? '' : 's'} under their original file names (${listed(names)}).` : ''}${
+      devices.length ? ` Measurement device names shown: ${listed(devices)}.` : ''}`);
+  }
   if (count(it => it.notes)) warnings.push('Private notes are included for some items.');
   if (count(it => it.serialMode === 'full')) warnings.push('Full serial numbers are included for some items.');
   if (ledger?.owner?.displayName) warnings.push(`Owner name shown: "${ledger.owner.displayName}".`);
   return {
-    preset: rules?.preset || 'custom', items: items.length, fields, photos, certificates,
+    preset: rules?.preset || 'custom', items: items.length, fields, photos, itemPhotos, certificatePhotos: certPhotos.length, certificates,
     owner: ledger?.owner?.displayName || null, never: NEVER_INCLUDED.map(n => ({ ...n })), warnings,
   };
+}
+
+/** '"a", "b" and 3 more' (at most 8 names, each quoted and capped at 80 characters). */
+function listed(names) {
+  const shown = names.slice(0, 8).map(n => `"${[...n].slice(0, 80).join('')}"`).join(', ');
+  return names.length > 8 ? `${shown} and ${names.length - 8} more` : shown;
 }
 
 function serialDetail(items) {

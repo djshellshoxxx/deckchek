@@ -151,6 +151,7 @@ pub fn run() {
             mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
             // [FS-33] handlers
             ledger::ledger_public_notes, ledger::ledger_public_note_set, ledger::ledger_export_list, ledger::ledger_export_record,
+            ledger::ledger_next_revision, ledger::ledger_customer_units, ledger::ledger_write_folder,
         ])
         .setup(|_app| {
             // [FS-00] setup
