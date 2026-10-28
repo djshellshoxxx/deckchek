@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as exportMod from '../app/export.js';
+import { chip } from '../app/ui/icons.js';
 
 const { measurementsToCsv } = exportMod;
 
@@ -27,4 +28,11 @@ test('regression: AUD-07 per-run CSV export neutralises formula-leading cells', 
   assert.equal(csvCell('plain'), 'plain');
   assert.equal(csvCell(Number.NEGATIVE_INFINITY), "'-Infinity");
   assert.equal(measurementsToCsv([{ metricId: 'a', label: 'L', value: -12.25, unit: 'dB', origin: 'measured', confidence: 1 }]).split('\r\n')[1], 'a,L,-12.25,dB,measured,1');
+});
+
+test('regression: AUD-12 chip() escapes its label', () => {
+  const html = chip('pass', '<b>x</b> & "q"');
+  assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt; &amp; &quot;q&quot;'));
+  assert.ok(!html.includes('<b>'));
+  assert.ok(chip('pass').includes('<span>PASS</span>'));
 });
