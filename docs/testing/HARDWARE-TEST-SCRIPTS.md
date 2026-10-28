@@ -335,6 +335,24 @@ Run steps 1 to 7 once per mixer: Rane Twelve MK2, Pioneer DJM-A9 (phono input), 
 
 ---
 
+## H-22 Service worksheets (FS-22)
+
+Enable `service` under Options > Advanced > Experimental features first. Use a made-up customer ("Test Customer", phone 01234 567890, test@example.com) so no real personal data enters the database or the results; delete the jobs at the end. Use the Audio 8 DJ as the capture interface for every measurement.
+
+| # | Action | Expected | Record |
+|---|---|---|---|
+| 1 | Press Ctrl+J. Enter the test customer, pick the SL-1200MK4 unit, fault "Pitch drifts at 0 %", tick Dust cover, add a phone photo taken with location on, caption "Arrival". Save. | Job J-<year>-0001 opens in Intake. The photo shows with its caption. | `H-22/1` job number, photo shown Y/N |
+| 2 | Copy the stored photo out of `<app data>/photos/<sha256>.jpg` and inspect it with an EXIF viewer. | No GPS or other EXIF fields; the file name is its SHA-256. | `H-22/2` EXIF present Y/N, GPS present Y/N |
+| 3 | Move the job to Diagnosing. Before step: select the SL-1200MK4 speed tests (33 and 45 rpm) and run them on the test record. | Results are saved to the unit and listed as before results of the job; the run banner shows "Service job ... Before tests". | `H-22/3` speed error % at 33 and 45 rpm |
+| 4 | Work step: adjust the pitch trimmer (owner's normal procedure). Add labour "Pitch trimmer adjust", 20 min, and a note with Ctrl+Enter. Amend the note once. | Totals read "Labour 0.33 h". The original note is kept and marked amended. | `H-22/4` totals text, amended shown Y/N |
+| 5 | Move to Repairing, then Testing. After step: run the same speed tests again. | The comparison shows the speed error before, after, the change with ± and a word result; improved if the error fell by more than the combined uncertainty. | `H-22/5` before %, after %, result word |
+| 6 | Repeat steps 1, 3 and 5 for the Rane Twelve MK2 (platter speed before and after a pitch calibration). | Same as above for the second job. | `H-22/6` job number, before %, after %, result |
+| 7 | DJM-A9: open a job, run channel balance (L/R) on channels 1 to 4 as before tests, clean the channel faders, run them again as after tests. Skip one channel's after test on purpose. | The comparison lists each channel; the banner reads "Compare is incomplete, 1 of N metrics have no after value". | `H-22/7` balance dB before and after per channel, partial banner text |
+| 8 | Mark the SL-1200MK4 job Ready. Sheet step: export PDF with neither box ticked, then with "Include costs" and "Include customer details". Print both on paper. | Without the boxes: no prices, no customer. With them: prices and the test customer appear. Both show the fault, the before/after table, the work log, the signature lines and "Measurements are indicative bench results, not a warranty." | `H-22/8` PDF pages, paper review OK Y/N |
+| 9 | Windows: export the sheet as HTML into a folder whose full path is longer than 200 characters, then into a folder named `CON` (expect refusal). | The long path works; the reserved name is refused with a message. | `H-22/9` long path OK Y/N, CON refused Y/N |
+| 10 | Create a diagnostics bundle (Help > Support). Search every file in the zip for "Test Customer", "567890" and "test@example.com". | No match. | `H-22/10` matches found (expect 0) |
+| 11 | Cancel the Rane job: it becomes read-only. Delete it by typing its job number. Then delete the other two jobs; on the last one keep "Also delete the customer's details" ticked. | Cancel keeps the data and hides the work forms. Delete needs the exact job number (Esc keeps the job). The delete dialog offers the customer erase only on the customer's last job; afterwards the test customer is no longer offered under Existing customer. | `H-22/11` read-only Y/N, delete OK Y/N, customer erased Y/N |
+
 ## 9. Open items and defaults for the owner
 
 These need an owner decision. Until they are decided, the defaults below apply and are recorded in H-00 step 9.
