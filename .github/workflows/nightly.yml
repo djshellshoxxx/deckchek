@@ -185,7 +185,7 @@ jobs:
       - name: JS fuzzing (120 s per target)
         run: node tools/fuzz-js.mjs 120 "$RUNNER_TEMP/js-fuzz"
       - name: Stress and performance suite
-        run: node --expose-gc --test --test-concurrency=1 tests/stress/*.test.mjs
+        run: node --expose-gc --test --test-concurrency=1 tests/stress/*.test.mjs tests/perf/*.test.mjs
         env:
           DECKCHEK_STRESS: full
       - uses: actions/upload-artifact@v4

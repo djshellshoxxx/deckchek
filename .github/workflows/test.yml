@@ -38,6 +38,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/junit"
           node --test --test-reporter=spec --test-reporter-destination=stdout \
             --test-reporter=junit --test-reporter-destination="$RUNNER_TEMP/junit/js.xml" tests/*.test.mjs
+      - name: Performance budgets (live monitor per-hop time, lenient on shared runners)
+        run: node --expose-gc --test tests/perf/*.test.mjs
       - name: Device index is up to date
         run: node tools/build-device-index.mjs --check
       - name: Timecode facts are consistent
