@@ -10,6 +10,8 @@
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::fs::{File, OpenOptions};
+use std::path::Path;
 use tauri::AppHandle;
 
 use crate::db::{database_path, new_id, now_iso, open_database};
@@ -29,6 +31,7 @@ pub const MAX_CONFIG_BYTES: usize = 16 * 1024;
 pub const MAX_SUMMARY_BYTES: usize = 64 * 1024;
 pub const MAX_MESSAGE_CHARS: usize = 300;
 pub const MAX_NAME_CHARS: usize = 200;
+pub const MAX_HOST_API_CHARS: usize = 40;
 pub const MAX_LIST: u32 = 500;
 pub const SEVERITIES: &[&str] = &["info", "warning", "critical"];
 pub const DECKS: &[&str] = &["A", "B", "C", "D"];
@@ -167,6 +170,22 @@ fn opt_text(name: &str, v: &Option<String>, max: usize) -> Result<Option<String>
     }
 }
 
+/// An optional display label from the OS (device name, host API): untrusted, but never a reason to refuse the
+/// session row. Control characters become spaces, whitespace runs collapse, the result is trimmed and cut to `max`
+/// characters; empty is `None`.
+pub fn clean_label(v: &Option<String>, max: usize) -> Option<String> {
+    let s = v.as_deref()?;
+    let spaced: String = s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+    let joined = spaced.split_whitespace().collect::<Vec<_>>().join(" ");
+    let cut: String = joined.chars().take(max).collect();
+    let t = cut.trim();
+    if t.is_empty() {
+        None
+    } else {
+        Some(t.to_string())
+    }
+}
+
 fn check_num(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
         Some(x) if !x.is_finite() || x < lo || x > hi => Err(format!("{name} must be a number between {lo} and {hi}")),
@@ -209,8 +228,7 @@ pub fn validate_start(i: &SessionStartInput) -> Result<(), String> {
     if f.is_empty() || f.chars().count() > 80 || f.chars().any(|c| c.is_control()) {
         return Err("format must be 1-80 printable characters".into());
     }
-    opt_text("deviceName", &i.device_name, MAX_NAME_CHARS)?;
-    opt_text("hostApi", &i.host_api, 40)?;
+    // deviceName / hostApi are cleaned, not validated: see clean_label
     if let Some(sr) = i.sample_rate {
         if !(4000..=384_000).contains(&sr) {
             return Err("sampleRate must be between 4000 and 384000".into());
@@ -275,7 +293,7 @@ pub fn session_start(conn: &Connection, i: &SessionStartInput) -> Result<Session
     let now = now_iso(conn)?;
     conn.execute(
         "INSERT INTO monitor_session (id, started_at, device_name, host_api, sample_rate, format, config_json, asset_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        params![id, now, opt_text("deviceName", &i.device_name, MAX_NAME_CHARS)?, opt_text("hostApi", &i.host_api, 40)?, i.sample_rate, i.format.trim(), config, i.asset_id],
+        params![id, now, clean_label(&i.device_name, MAX_NAME_CHARS), clean_label(&i.host_api, MAX_HOST_API_CHARS), i.sample_rate, i.format.trim(), config, i.asset_id],
     )
     .map_err(e2s)?;
     Ok(SessionStarted { id, started_at: now })
@@ -289,8 +307,10 @@ fn session_open(conn: &Connection, id: &str) -> Result<bool, String> {
     }
 }
 
-/// Append a batch of events and minute summaries in one transaction. Minute rows upsert (a re-flush of the
-/// same minute replaces it). Events beyond the per-session cap are dropped and counted, never an error.
+/// Append a batch of events and minute summaries in one transaction. A minute row is written once: a second row
+/// for a (minute, deck) already stored is ignored, never a silent overwrite of earlier history (the webview's
+/// session clock is monotonic, so it never sends one). Events beyond the per-session cap are dropped and
+/// counted, never an error.
 pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput], minutes: &[MinuteInput]) -> Result<AppendResult, String> {
     require_id(session_id)?;
     if events.len() > MAX_EVENTS_PER_CALL {
@@ -326,17 +346,16 @@ pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput]
             .query_row("SELECT 1 FROM monitor_minute WHERE session_id = ?1 AND minute = ?2 AND deck = ?3", params![session_id, m.minute, m.deck], |r| r.get(0))
             .optional()
             .map_err(e2s)?;
-        if exists.is_none() && mins + stored as i64 >= MAX_MINUTES_PER_SESSION {
+        if exists.is_some() || mins + stored as i64 >= MAX_MINUTES_PER_SESSION {
             continue;
         }
-        tx.execute(
-            "INSERT OR REPLACE INTO monitor_minute (session_id, minute, deck, snr_db_min, snr_db_mean, hum_db_max, drift_deg_max, dropouts) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![session_id, m.minute, m.deck, m.snr_db_min, m.snr_db_mean, m.hum_db_max, m.drift_deg_max, m.dropouts],
-        )
-        .map_err(e2s)?;
-        if exists.is_none() {
-            stored += 1;
-        }
+        stored += tx
+            .execute(
+                "INSERT INTO monitor_minute (session_id, minute, deck, snr_db_min, snr_db_mean, hum_db_max, drift_deg_max, dropouts) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                 ON CONFLICT(session_id, minute, deck) DO NOTHING",
+                params![session_id, m.minute, m.deck, m.snr_db_min, m.snr_db_mean, m.hum_db_max, m.drift_deg_max, m.dropouts],
+            )
+            .map_err(e2s)?;
     }
     tx.commit().map_err(e2s)?;
     Ok(AppendResult { events_stored: keep, events_dropped: events.len() - keep, minutes_stored: stored })
@@ -426,9 +445,15 @@ pub fn session_get(conn: &Connection, id: &str) -> Result<Option<SessionLog>, St
     Ok(Some(SessionLog { version: 1, session, events, minutes }))
 }
 
+/// Delete an ended session (cascades to its events and minutes). A session still open is being recorded (by
+/// this or another running instance; crashed ones are closed at startup) and is refused.
 pub fn session_delete(conn: &Connection, id: &str) -> Result<bool, String> {
     require_id(id)?;
-    Ok(conn.execute("DELETE FROM monitor_session WHERE id = ?1", [id]).map_err(e2s)? > 0)
+    let n = conn.execute("DELETE FROM monitor_session WHERE id = ?1 AND ended_at IS NOT NULL", [id]).map_err(e2s)?;
+    if n == 0 && session_open(conn, id).unwrap_or(false) {
+        return Err("This session is still running. Stop the live monitor first, then delete its log.".into());
+    }
+    Ok(n > 0)
 }
 
 /// Retention from `app_state` `monitor.retentionDays` (clamped), or the default.
@@ -479,14 +504,45 @@ pub fn prune(conn: &mut Connection, days: i64, close_open_before: Option<f64>) -
     Ok(PruneResult { deleted, retention_days: days, closed })
 }
 
+/// Instance lock file (next to the database). Every DeckChek process holds a shared lock on it for its whole
+/// life; the OS drops the lock when a process exits or crashes.
+pub const INSTANCE_LOCK_FILE: &str = "monitor-instance.lock";
+/// This process's shared instance lock, held until exit.
+static INSTANCE_GUARD: std::sync::OnceLock<File> = std::sync::OnceLock::new();
+
+fn now_secs() -> f64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0)
+}
+
+/// Startup prune with crash detection that a second launch cannot fool. Sessions left open are closed as
+/// "interrupted" only when the exclusive lock on `lock_path` is free, i.e. no other DeckChek process is alive (a
+/// crashed process's lock is released by the OS). A second instance (the shortcut clicked while the first runs in
+/// the tray) therefore leaves the first one's running session open. Afterwards this process takes a shared lock
+/// and returns it: keep it alive for the process lifetime. If the lock file cannot be opened, nothing is closed.
+pub fn startup_prune(conn: &mut Connection, lock_path: &Path, days: i64, process_start: f64) -> Result<(PruneResult, Option<File>), String> {
+    let file = OpenOptions::new().create(true).truncate(false).read(true).write(true).open(lock_path).ok();
+    let alone = file.as_ref().is_some_and(|f| f.try_lock().is_ok());
+    let result = prune(conn, days, if alone { Some(process_start) } else { None });
+    let guard = file.and_then(|f| {
+        if alone {
+            let _ = f.unlock();
+        }
+        f.lock_shared().ok().map(|_| f)
+    });
+    Ok((result?, guard))
+}
+
 /// Startup hook ([FS-31] setup): close crashed sessions and prune by the stored retention, off the UI thread.
 pub fn setup(app: &AppHandle) {
     let Ok(path) = database_path(app) else { return };
-    let started = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
+    let started = now_secs();
+    let lock = path.with_file_name(INSTANCE_LOCK_FILE);
     std::thread::spawn(move || {
         if let Ok(mut conn) = open_database(&path) {
             let days = stored_retention_days(&conn);
-            let _ = prune(&mut conn, days, Some(started));
+            if let Ok((_, Some(guard))) = startup_prune(&mut conn, &lock, days, started) {
+                let _ = INSTANCE_GUARD.set(guard);
+            }
         }
     });
 }
@@ -566,7 +622,6 @@ mod tests {
     use super::*;
     use crate::db::apply_migrations;
     use serde_json::json;
-    use std::path::Path;
 
     fn mem() -> Connection {
         let c = Connection::open_in_memory().unwrap();
@@ -661,7 +716,7 @@ mod tests {
         let id = start(&c);
         let r = log_append(&mut c, &id, &[ev(5250, "warning"), ev(1000, "critical")], &[minute(0, "A"), minute(0, "B"), minute(1, "A")]).unwrap();
         assert_eq!(r, AppendResult { events_stored: 2, events_dropped: 0, minutes_stored: 3 });
-        // re-flushing a minute replaces it, it does not add a row
+        // a second row for a stored minute neither adds a row nor overwrites it (FS-31 review: no silent REPLACE)
         let mut m = minute(1, "A");
         m.dropouts = Some(3);
         assert_eq!(log_append(&mut c, &id, &[], &[m]).unwrap().minutes_stored, 0);
@@ -670,7 +725,7 @@ mod tests {
         assert_eq!(log.version, 1);
         assert_eq!(log.events.iter().map(|e| e.t_ms).collect::<Vec<_>>(), [1000, 5250]);
         assert_eq!(log.minutes.len(), 3);
-        assert_eq!(log.minutes.iter().find(|m| m.minute == 1).unwrap().dropouts, Some(3));
+        assert_eq!(log.minutes.iter().find(|m| m.minute == 1).unwrap().dropouts, Some(0));
         assert_eq!(log.session.summary.as_ref().unwrap()["worst"], "critical");
         assert_eq!((log.session.event_count, log.session.warning_count, log.session.critical_count, log.session.minute_count), (2, 1, 1, 3));
         assert_eq!(log.session.device_name.as_deref(), Some("Traktor Audio 8 DJ"));
@@ -759,11 +814,13 @@ mod tests {
             SessionStartInput { sample_rate: Some(1), ..base.clone() },
             SessionStartInput { config: json!([1, 2]), ..base.clone() },
             SessionStartInput { config: json!({"x": "y".repeat(MAX_CONFIG_BYTES)}), ..base.clone() },
-            SessionStartInput { device_name: Some("d".repeat(MAX_NAME_CHARS + 1)), ..base.clone() },
             SessionStartInput { asset_id: Some("ghost".into()), ..base.clone() },
         ] {
             assert!(session_start(&c, &bad).is_err(), "{bad:?}");
         }
+        // an overlong device label is cut, not a refusal (regression_device_name_... covers control characters)
+        let long = session_start(&c, &SessionStartInput { device_name: Some("d".repeat(MAX_NAME_CHARS + 1)), ..base.clone() }).unwrap().id;
+        assert_eq!(session_get(&c, &long).unwrap().unwrap().session.device_name.unwrap().chars().count(), MAX_NAME_CHARS);
         assert!(session_end(&c, &id, &json!("str")).is_err());
         assert!(session_end(&c, &id, &json!({"x": "y".repeat(MAX_SUMMARY_BYTES)})).is_err());
         assert!(session_end(&c, "00000000-0000-4000-8000-000000000000", &json!({})).is_err());
@@ -838,6 +895,86 @@ mod tests {
         assert_eq!(stored_retention_days(&c), MAX_RETENTION_DAYS);
         crate::app_state::set(&c, SETTINGS_KEY, &json!({"retentionDays": "x"})).unwrap();
         assert_eq!(stored_retention_days(&c), DEFAULT_RETENTION_DAYS);
+    }
+
+    #[test]
+    fn regression_device_name_with_control_chars_or_overlong_is_cleaned_not_rejected() {
+        let c = mem();
+        let base = SessionStartInput { device_name: None, host_api: None, sample_rate: None, format: "Serato CV02.5".into(), config: json!({}), asset_id: None };
+        let hostile = format!("Bad\u{7}Name\twith\nnewline{}\u{85}", "x".repeat(400));
+        let id = session_start(&c, &SessionStartInput { device_name: Some(hostile), host_api: Some("WAS\u{0}API".into()), ..base.clone() }).unwrap().id;
+        let row = session_get(&c, &id).unwrap().unwrap().session;
+        let name = row.device_name.unwrap();
+        assert!(name.starts_with("Bad Name with newline"), "{name:?}");
+        assert!(!name.chars().any(|ch| ch.is_control()));
+        assert!(name.chars().count() <= MAX_NAME_CHARS);
+        assert_eq!(row.host_api.as_deref(), Some("WAS API"));
+        // a label of only control characters / spaces is stored as no label
+        let id = session_start(&c, &SessionStartInput { device_name: Some("\u{1} \u{2}".into()), ..base.clone() }).unwrap().id;
+        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.device_name, None);
+        // an overlong host API is cut to its own cap
+        let id = session_start(&c, &SessionStartInput { host_api: Some("h".repeat(100)), ..base }).unwrap().id;
+        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.host_api.unwrap().chars().count(), 40);
+    }
+
+    #[test]
+    fn regression_minute_rows_are_never_overwritten() {
+        let mut c = mem();
+        let id = start(&c);
+        assert_eq!(log_append(&mut c, &id, &[], &[minute(0, "A"), minute(1, "A")]).unwrap().minutes_stored, 2);
+        // a second row for minute 0 (e.g. a clock restart) must not replace the stored one
+        let mut again = minute(0, "A");
+        again.snr_db_min = Some(3.0);
+        again.dropouts = Some(9);
+        let r = log_append(&mut c, &id, &[], &[again, minute(2, "A")]).unwrap();
+        assert_eq!(r.minutes_stored, 1, "only the new minute is stored");
+        let log = session_get(&c, &id).unwrap().unwrap();
+        let m0 = log.minutes.iter().find(|m| m.minute == 0).unwrap();
+        assert_eq!((m0.snr_db_min, m0.dropouts), (Some(28.0), Some(0)), "the first row for minute 0 is kept");
+        assert_eq!(log.minutes.len(), 3);
+    }
+
+    #[test]
+    fn regression_open_session_cannot_be_deleted() {
+        let mut c = mem();
+        let id = start(&c);
+        log_append(&mut c, &id, &[ev(1000, "warning")], &[minute(0, "A")]).unwrap();
+        let err = session_delete(&c, &id).unwrap_err();
+        assert!(err.contains("still running"), "{err}");
+        assert!(session_get(&c, &id).unwrap().is_some());
+        assert_eq!(log_append(&mut c, &id, &[ev(2000, "info")], &[]).unwrap().events_stored, 1, "the running session keeps logging");
+        session_end(&c, &id, &json!({})).unwrap();
+        assert!(session_delete(&c, &id).unwrap());
+    }
+
+    #[test]
+    fn regression_second_instance_does_not_close_running_session() {
+        let dir = std::env::temp_dir().join(format!("deckchek-monitor-lock-{}", new_id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let lock = dir.join(INSTANCE_LOCK_FILE);
+        let mut c = mem();
+        // the first instance: started earlier, holds its instance lock and is monitoring
+        let (r, first) = startup_prune(&mut c, &lock, 90, now_secs() - 3600.0).unwrap();
+        assert_eq!(r.closed, 0);
+        let first = first.expect("instance lock held");
+        let running = start(&c);
+        log_append(&mut c, &running, &[ev(90_000, "warning")], &[]).unwrap();
+        c.execute("UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1", [&running]).unwrap();
+        // a second launch (shortcut clicked while the first hides in the tray) must leave that session open
+        let (r, second) = startup_prune(&mut c, &lock, 90, now_secs()).unwrap();
+        assert_eq!(r.closed, 0, "another instance is alive: no crash-close");
+        assert!(session_get(&c, &running).unwrap().unwrap().session.ended_at.is_none());
+        assert_eq!(log_append(&mut c, &running, &[ev(95_000, "info")], &[]).unwrap().events_stored, 1, "the first instance keeps logging");
+        // both processes gone (a crash releases the lock): the next launch closes the session as interrupted
+        drop(first);
+        drop(second);
+        let (r, third) = startup_prune(&mut c, &lock, 90, now_secs()).unwrap();
+        assert_eq!(r.closed, 1);
+        let s = session_get(&c, &running).unwrap().unwrap().session;
+        assert_eq!(s.ended_at.as_deref(), Some("2026-10-27T20:01:35.000Z"));
+        assert_eq!(s.summary.unwrap()["endReason"], "interrupted");
+        drop(third);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
