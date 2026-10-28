@@ -8,7 +8,7 @@ import { h, esc, isNative, isTyping } from '../dom.js';
 import { icon } from '../icons.js';
 import { toast, announce } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
-import { settings, setSetting, calibrationStatus } from '../state.js';
+import { settings, setSetting, calibrationStatus, store, localRun } from '../state.js';
 import { navigateTo, takeHandoff } from '../crosslinks.js';
 import { savedActions, pdfExportEnabled } from '../persistence.js';
 import { isEnabled } from '../../features.js';
@@ -16,6 +16,7 @@ import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor } f
 import {
   readiness, buildCertificatePayload, assembleCertificateFile, renderCertificateBody, renderCertificateHtml, certificateBaseName,
   VALIDITY_DAYS, DEFAULT_VALID_DAYS, LIMITS, VERDICT_LABEL, VERDICT_ICON, CertificateError,
+  certificatePlan, latestByTest, calibrationFor, certificateVerdict, validatePayload, toDecimal,
 } from '../../certificate.js';
 import { createCertificateApi, exportCertificateFiles } from '../../certificate-api.js';
 import { preparePhoto, sniffImageType, bytesToBase64, createPhotoStore } from '../../photo-store.js';
@@ -37,6 +38,74 @@ export function photoProblem(bytes, size, count) {
   const type = sniffImageType(bytes);
   if (type !== 'jpeg' && type !== 'png') return 'Only PNG or JPEG photos can be attached.';
   return null;
+}
+
+// ---------- AC-6: calibration as recorded when each measurement was taken ----------
+const flagCalibrated = m => (typeof m?.calibrated === 'boolean' ? m.calibrated
+  : !Array.isArray(m?.qualityFlags) ? null : m.qualityFlags.includes('calibrated') ? true : m.qualityFlags.includes('uncalibrated') ? false : null);
+
+/**
+ * Pure (AC-6): the calibration a stored measurement was taken with, as a profile-like {createdAt, deviceName, sampleRate,
+ * valid} for calibrationFor(), or null (taken uncalibrated, or nothing recorded: the certificate prints 'Uncalibrated').
+ * Sources: the measurement's own flag, then the run it came from (`run`: the workspace run or get_run), whose
+ * `calibration.profileCreatedAt` dates the profile. The profile active now (`current`) only supplies the reference for a
+ * measurement recorded as calibrated when its run kept no date and that profile already existed when it was measured;
+ * it never turns a measurement without a recorded calibration into a calibrated one.
+ */
+export function recordedCalibration(m, result, run = null, current = null) {
+  const runM = (Array.isArray(run?.measurements) ? run.measurements : []).find(x => x?.metricId === m?.metricId) || null;
+  const rec = [result?.detail?.calibration, run?.calibration].find(c => c && typeof c === 'object') || null;
+  let calibrated = flagCalibrated(m) ?? flagCalibrated(runM);
+  if (calibrated == null && typeof rec?.applied === 'boolean') calibrated = rec.applied;
+  if (calibrated !== true) return null;
+  const at = Date.parse(rec?.profileCreatedAt);
+  if (Number.isFinite(at)) return { createdAt: new Date(at).toISOString(), deviceName: String(rec.deviceName || ''), sampleRate: rec.sampleRate ?? run?.sampleRate ?? '', valid: true };
+  const measuredAt = Date.parse(result?.createdAt), since = Date.parse(current?.createdAt);
+  return current && current.valid !== false && Number.isFinite(since) && Number.isFinite(measuredAt) && since <= measuredAt ? current : null;
+}
+
+const latestForPlan = (plan, results) => latestByTest((results || []).filter(r => !r?.profileId || r.profileId === plan.profileId));
+const runIdOf = r => [r?.detail?.runId, r?.sessionId].find(id => typeof id === 'string' && id) || null;
+
+/** Pure (AC-6): ids of the persisted runs behind the latest result of each plan test that has measurements. */
+export function calibrationRunIds(profile, results) {
+  const plan = certificatePlan(profile), latest = latestForPlan(plan, results);
+  const ids = plan.tests.map(t => latest.get(t.id)).filter(r => Array.isArray(r?.detail?.measurements) && r.detail.measurements.length).map(runIdOf).filter(Boolean);
+  return [...new Set(ids)].slice(0, LIMITS.maxResults);
+}
+
+/**
+ * Pure (AC-6): buildCertificatePayload() with each measurement's calibration state taken from what was recorded when
+ * it was measured (recordedCalibration), not from the profile active at certificate time. `runs`: run id -> run.
+ */
+export function buildPayloadAsMeasured(args, { runs = new Map(), current = null } = {}) {
+  const plan = certificatePlan(args.profile), latest = latestForPlan(plan, args.results);
+  const source = plan.tests.flatMap(t => {
+    const r = latest.get(t.id), run = runs.get(runIdOf(r)) || null;
+    return (Array.isArray(r?.detail?.measurements) ? r.detail.measurements : []).filter(m => m?.metricId && toDecimal(m.value) != null)
+      .map(m => ({ m: { ...m, testId: t.id }, cal: recordedCalibration(m, r, run, current) }));
+  });
+  // Built with no profile, every calibratable measurement starts 'uncalibrated'; the recorded state then replaces it.
+  const payload = buildCertificatePayload({ ...args, measurements: source.map(s => s.m), calibration: null });
+  const aligned = payload.measurements.every((pm, i) => source[i] && String(source[i].m.metricId).startsWith(pm.metricId));
+  if (!aligned) return payload;
+  const now = (args.now instanceof Date ? args.now : new Date(args.now ?? Date.now())).getTime();
+  const measurements = payload.measurements.map((pm, i) => ({ ...pm, calibration: calibrationFor(source[i].m, source[i].cal, { now, intervalMonths: args.intervalMonths }) }));
+  const out = { ...payload, measurements, verdict: certificateVerdict(payload.results, measurements) };
+  const v = validatePayload(out);
+  if (!v.ok) throw new CertificateError('schema', v.errors[0]);
+  return out;
+}
+
+/** The runs behind the certificate's results: the local workspace copy (full calibration record) or the stored run. */
+async function loadCalibrationRuns(profile, results) {
+  const runs = new Map();
+  await Promise.all(calibrationRunIds(profile, results).map(async id => {
+    let run = localRun(id);
+    if (!run) { try { run = await store.getRun(id); } catch { run = null; } }
+    if (run) runs.set(id, run);
+  }));
+  return runs;
 }
 
 export function createCertificateScreen(section, { api = createCertificateApi(), photoStore = createPhotoStore(), dialog = globalThis.window?.__TAURI__?.dialog } = {}) {
@@ -176,11 +245,14 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
       if (!f) return;
       const cur = selection();
       const cal = calibrationStatus();
+      const results = resultsFor(cur.asset.id);
       let payload;
       try {
         const deckchekVersion = await (globalThis.window?.__TAURI__?.app?.getVersion?.() ?? Promise.resolve('')).catch(() => '');
-        payload = buildCertificatePayload({ asset: cur.asset, profile: cur.profile, results: resultsFor(cur.asset.id), calibration: cal.state === 'calibrated' ? cal.profile : null,
-          ...f, photos: st.photos, validDays: st.validDays, now: new Date(), deckchekVersion: deckchekVersion || '' });
+        const runs = await loadCalibrationRuns(cur.profile, results);
+        // AC-6: calibration as recorded with each measurement; the profile active now is only a dated fallback.
+        payload = buildPayloadAsMeasured({ asset: cur.asset, profile: cur.profile, results,
+          ...f, photos: st.photos, validDays: st.validDays, now: new Date(), deckchekVersion: deckchekVersion || '' }, { runs, current: cal.state === 'calibrated' ? cal.profile : null });
       } catch (e) { err.textContent = e instanceof CertificateError ? `Cannot build the certificate: ${e.message}` : friendly(e); return; }
       if (kind === 'preview') return showPreview(payload);
       if (kind === 'draft') return exportDraft(payload);
