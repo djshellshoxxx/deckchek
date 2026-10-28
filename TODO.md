@@ -58,6 +58,26 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] M7/M8 crates and tauri features added once (`ed25519-dalek`, `getrandom`, notification plugin, DPAPI feature, `tray-icon`, `image-png`).
 - [ ] Follow-ups owned by the feature jobs: first screen that uses the photo store (FS-20/22/33), register the notification plugin and add its capability when FS-23 needs it, DPAPI wrapper (cfg(windows)) with a Windows CI test.
 
+## M7 and M8 features (implemented behind flags, hardware gates open)
+
+- [x] Follow-ups from wave 0: photo store used by FS-20/22/33; DPAPI wrapper with the certificate signing key (`signing.rs`).
+- [x] FS-20 Used-gear certificate (`certificates`): signing, strict verifier, Certificates and Verify screens.
+- [x] FS-21 Unit vs population (`population`, `packs`): Compare tabs, anonymous packs, migration 0022.
+- [x] FS-22 Service worksheets (`service`): jobs, work log, job sheet, device-runner job mode.
+- [x] FS-23 Venue fleet dashboard (`fleet`, default on): grid, placement, reminders, booth sheet, banner.
+- [x] FS-30 Mobile companion and phone import (`phoneImport`).
+- [x] FS-31 Timecode doctor live monitor (`liveMonitor`): engine, session logs, tray (Windows/macOS).
+- [x] FS-32 MIDI mapper studio (`mapperStudio`): Mixxx and VirtualDJ round trip, Serato/Traktor reports.
+- [x] FS-33 Gear ledger (`gearLedger`): privacy presets, static page, atomic folder export.
+- [x] October audit fixes (AUD-01..AUD-11), 11 cargo-fuzz and 13 JS fuzz targets, first-party CI, `--self-test`.
+- [ ] Owner hardware runs H-20 to H-23 and H-31 to H-33; flip default-off flags only after they pass.
+- [ ] FS-31: WASAPI-shared capture beside DJ software (H-31 steps 1-6); negative-SNR residual (noise louder than the carrier reads as cueing).
+- [ ] FS-32: confirm the VirtualDJ file format against a real install (H-32 step 7).
+- [ ] FS-33: verify the GitHub Pages guide wording (H-33).
+- [ ] FS-21: manual privacy review of an exported pack. FS-23: real-database walkthrough before keeping the default on.
+- [ ] FS-20: PDF-embedded JSON is not possible with WebView2 `PrintToPdf` (sidecar JSON only); revisit if a PDF library is adopted.
+- [ ] Register the notification plugin and its capability if FS-23 reminders should raise OS notifications (currently an in-app banner only).
+
 ## Active beta validation gates
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
@@ -74,9 +94,9 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Vendor-specific DVS analyzers where technically and legally supportable.
 - [ ] Scratch-stress/cue-wear workflows.
 - [ ] Skip/locked-groove, warp/off-center, non-fill and mature vinyl classifiers.
-- [ ] Venue hierarchy, level-step feedback tests, isolation A/B and incident logging.
-- [ ] Fleet/maintenance trends and reminders.
+- [ ] Level-step feedback tests, isolation A/B and incident logging (venue/booth/position hierarchy is done in FS-23).
+- [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.
 - [ ] Controller/MIDI/HID DeckChek workflows.
-- [ ] Technician/Engineering service worksheets and model-specific workflows.
+- [ ] Model-specific service workflows beyond the generic FS-22 job sheet.
 - [ ] Code signing and auto-update.

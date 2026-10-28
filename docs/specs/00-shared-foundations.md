@@ -146,8 +146,9 @@ CREATE TABLE IF NOT EXISTS app_state (
 | 0019 | monitor_log | FS-31 | M8 | — |
 | 0020 | mapper_models | FS-32 | M8 | 0002 |
 | 0021 | gear_ledger | FS-33 | M8 | 0013, 0014 |
+| 0022 | unit_population_ext | FS-21 | M7 | 0015 |
 
-The runner applies any unrecorded version in ascending order, so a migration merged slightly out of order still applies on dev databases; a release tag must contain a gap-free prefix (CI check on tag builds). Numbers are never reused or renumbered after merge.
+The runner applies any unrecorded version in ascending order, so a migration merged slightly out of order still applies on dev databases; a release tag must contain a gap-free prefix (CI check on tag builds). Numbers are never reused or renumbered after merge. 0023 and above are unused.
 
 ### 5.3 `0006_asset_usage.sql`
 ```sql

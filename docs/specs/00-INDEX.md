@@ -1,8 +1,10 @@
 # Feature spec index
 
-Reconciled 2026-10-10. `FS-NN` = `docs/specs/NN-*.md`; `SPEC-NN` = architecture docs `docs/SPEC-NN-*.md`. Delivery plan, jobs and gates: [`docs/DEVELOPMENT-PLAN.md`](../DEVELOPMENT-PLAN.md). Sizes are agent effort: S <= 10 h, M 10–25 h, L 25–45 h, XL > 45 h (split into jobs in the plan).
+Reconciled 2026-10-10; implementation state of FS-20..FS-33 updated 2026-10-28. `FS-NN` = `docs/specs/NN-*.md`; `SPEC-NN` = architecture docs `docs/SPEC-NN-*.md`. Delivery plan, jobs and gates: [`docs/DEVELOPMENT-PLAN.md`](../DEVELOPMENT-PLAN.md). Sizes are agent effort: S <= 10 h, M 10–25 h, L 25–45 h, XL > 45 h (split into jobs in the plan).
 
 Status legend: **Ready** = implementable as written; **Ready\*** = implementable, one owner decision noted (defaults given); **Spike** = a short feasibility job must pass first; **Blocked** = needs an owner decision before any code.
+
+**Implemented** = built behind its flag with automated tests; the hardware gate (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) is still open and named in the row. Rows FS-00..FS-15 keep their planning status; per-spec implementation state is in `SPEC_STATUS.md` (repo root) and `docs/IMPLEMENTATION-STATUS.md`.
 
 | Spec | Title | Status | Size | Depends on | Milestone | Migration | Flag |
 |---|---|---|---|---|---|---|---|
@@ -19,14 +21,14 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-13](13-control-vinyl-wear-map.md) | Control-vinyl wear map | Ready | L | FS-00 (stream capture), FS-06 (side lengths), FS-12 optional | M6 | 0010 | `wearMap` |
 | [FS-14](14-scratch-stress-test.md) | Scratch stress test | Ready | L | FS-00 (lease, signals), `M5-tc-facts` (phaseSign) | M6 | 0011 | `scratchTest` |
 | [FS-15](15-booth-feedback-hum-hunter.md) | Booth feedback & hum hunter | Ready | L | FS-00 (hum.js, audio_out) | M6 | 0012 | `humHunter`, `feedbackStep` |
-| [FS-20](20-used-gear-certificate.md) | Used-gear test certificate | Ready | L | FS-00 (photo, canonical, QR), FS-03 | M7 | 0014 (+0013) | `certificates` |
-| [FS-21](21-unit-population-comparison.md) | Unit vs population (phases 1–2) | Ready | M | FS-00 (metric-compat) | M7 | 0015 | `population`, `packs` |
-| [FS-22](22-service-worksheets.md) | Service worksheets | Ready | L | FS-00 (photo, metric-compat), FS-03 | M7 | 0016 | `service` |
-| [FS-23](23-venue-fleet-dashboard.md) | Venue fleet dashboard | Ready | L | FS-00 (asset_usage), FS-03 | M7 | 0017 | `fleet` |
-| [FS-30](30-mobile-companion.md) | Mobile PWA companion | Blocked (hosting vs proprietary licence); desktop import Ready | M | FS-00 (canonical, sha256, QR) | M8 | 0018 | `phoneImport` |
-| [FS-31](31-timecode-doctor-live-monitor.md) | Timecode doctor live monitor | Spike (shared-mode capture beside DJ software on owner's interfaces) | L | FS-00 (stream capture, lease) | M8 | 0019 | `liveMonitor` |
-| [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Ready\* (owner's DDJ model) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
-| [FS-33](33-gear-ledger.md) | Gear ledger static export | Ready | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
+| [FS-20](20-used-gear-certificate.md) | Used-gear test certificate | Implemented (HW: H-20; no PDF-embedded JSON) | L | FS-00 (photo, canonical, QR), FS-03 | M7 | 0014 (+0013) | `certificates` |
+| [FS-21](21-unit-population-comparison.md) | Unit vs population (phases 1–2) | Implemented (HW: H-21) | M | FS-00 (metric-compat) | M7 | 0015, 0022 | `population`, `packs` |
+| [FS-22](22-service-worksheets.md) | Service worksheets | Implemented (HW: H-22) | L | FS-00 (photo, metric-compat), FS-03 | M7 | 0016 | `service` |
+| [FS-23](23-venue-fleet-dashboard.md) | Venue fleet dashboard | Implemented (HW: H-23; flag default on) | L | FS-00 (asset_usage), FS-03 | M7 | 0017 | `fleet` |
+| [FS-30](30-mobile-companion.md) | Mobile PWA companion | Desktop import and PWA implemented; hosting Blocked (hosting vs proprietary licence) | M | FS-00 (canonical, sha256, QR) | M8 | 0018 | `phoneImport` |
+| [FS-31](31-timecode-doctor-live-monitor.md) | Timecode doctor live monitor | Implemented (HW: H-31; WASAPI-shared capture beside DJ software unverified) | L | FS-00 (stream capture, lease) | M8 | 0019 | `liveMonitor` |
+| [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Implemented (HW: H-32; VirtualDJ format unverified) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
+| [FS-33](33-gear-ledger.md) | Gear ledger static export | Implemented (HW: H-33) | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
 
 Numbering gaps (04, 05, 09, 16–19, 24–29) are intentional; they leave room for future specs in the same groups (essentials 0x, DJ 1x, pro 2x, companion 3x).
 

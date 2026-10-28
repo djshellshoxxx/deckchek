@@ -1,6 +1,6 @@
 # DeckChek spec status (work list)
 
-Updated: 2026-10-28. Source of truth: feature specs `docs/specs/FS-NN` (acceptance criteria `AC-n` in each spec's §2) and the architecture specs `docs/SPEC-NN`. Delivery plan: `docs/DEVELOPMENT-PLAN.md`. Detailed narrative: `docs/IMPLEMENTATION-STATUS.md`.
+Updated: 2026-10-28 (M7/M8 features, audit fixes, fuzzing and CI merged). Source of truth: feature specs `docs/specs/FS-NN` (acceptance criteria `AC-n` in each spec's §2) and the architecture specs `docs/SPEC-NN`. Delivery plan: `docs/DEVELOPMENT-PLAN.md`. Detailed narrative: `docs/IMPLEMENTATION-STATUS.md`.
 
 Legend: **DONE** = implemented with automated tests for every AC that can be automated; **PARTIAL** = implemented, some ACs or gates outstanding (named); **MISSING** = no code. "HW" = needs the owner's physical hardware run (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) and cannot be closed in CI.
 
@@ -23,14 +23,14 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-13 | Control-vinyl wear map | DONE (HW: H-13) | `app/wear-map.js`, `src-tauri/src/wearmap.rs` | `tests/wear-map*.test.mjs` |
 | FS-14 | Scratch stress test | DONE (HW: skip thresholds need a sacrificial record) | `app/scratch.js`, `src-tauri/src/scratch.rs` | `tests/scratch*.test.mjs` |
 | FS-15 | Booth feedback and hum hunter | DONE (HW: H-15) | `app/hum*.js`, `app/feedback.js`, `src-tauri/src/humrun.rs` | `tests/hum*.test.mjs`, `tests/feedback.test.mjs` |
-| FS-20 | Used-gear test certificate | MISSING | reserved: `0014_certificate.sql`, `signing.rs`, `certificate.rs`, `app/certificate.js` | AC-1..AC-8 |
-| FS-21 | Unit vs population (phases 1-2) | MISSING | reserved: `0015_unit_population.sql`, `pack.rs`, `app/population.js`, `app/pack.js` | AC-1..AC-9 |
-| FS-22 | Service worksheets | MISSING | reserved: `0016_service_worksheets.sql`, `service.rs`, `app/service.js` | AC-1..AC-8 |
-| FS-23 | Venue fleet dashboard | MISSING | reserved: `0017_fleet_dashboard.sql`, `fleet.rs`, `app/fleet.js` | AC-1..AC-9 |
+| FS-20 | Used-gear test certificate | DONE (HW: H-20; known gap: no PDF-embedded JSON, verify the sidecar `.deckchek-cert.json`) | `src-tauri/src/{signing,certificate}.rs`, `database/migrations/0014_certificate.sql`, `app/{certificate,certificate-api}.js`, `app/ui/screens/{certificate,verify}.js` | `tests/certificate*.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8) |
+| FS-21 | Unit vs population (phases 1-2) | DONE (HW: H-21; manual privacy review of an exported pack is the owner's) | `src-tauri/src/pack.rs`, `database/migrations/{0015_unit_population,0022_unit_population_ext}.sql`, `app/{population,pack,pack-api}.js`, `app/population-metrics.json`, `app/ui/screens/compare.js` | `tests/{pack,population}*.test.mjs`, Rust pack tests, smoke `compare`, fuzz target `pack` (AC-1..AC-9) |
+| FS-22 | Service worksheets | DONE (HW: H-22) | `src-tauri/src/service.rs`, `database/migrations/0016_service_worksheets.sql`, `app/{service,service-api}.js`, `app/ui/screens/service.js`, `app/ui/workflows/service-job.js`, `app/report-kinds/jobsheet.js` | `tests/service*.test.mjs` (incl. PII leak), smoke `service` (AC-1..AC-8) |
+| FS-23 | Venue fleet dashboard | DONE (flag `fleet` default on; HW: H-23, real-database walkthrough) | `src-tauri/src/fleet.rs`, `database/migrations/0017_fleet_dashboard.sql`, `app/{fleet,fleet-api}.js`, `app/ui/screens/{fleet,fleet-venues}.js`, `app/ui/booth-sheet.js` | `tests/fleet*.test.mjs`, smoke `fleet` (AC-1..AC-9) |
 | FS-30 | Mobile companion + phone import | DONE (hosting deliberately not enabled: owner decision R12; HW: real phones) | `mobile/**`, `app/phone-run.js` | `tests/mobile-*.test.mjs`, `tests/phone-*.test.mjs` |
-| FS-31 | Timecode doctor live monitor | MISSING | reserved: `0019_monitor_log.sql`, `monitor.rs`, `app/monitor.js` | AC-1..AC-8 |
-| FS-32 | MIDI mapper studio | MISSING | reserved: `0020_mapper_models.sql`, `app/mapper/**` | AC-1..AC-7 |
-| FS-33 | Gear ledger static export | MISSING (depends on FS-20) | reserved: `0021_gear_ledger.sql`, `app/ledger/**` | AC-1..AC-7 |
+| FS-31 | Timecode doctor live monitor | DONE (HW: H-31; WASAPI-shared capture beside DJ software unverified; known residual: noise louder than the carrier reads as cueing, not an alarm) | `src-tauri/src/{monitor,tray}.rs`, `database/migrations/0019_monitor_log.sql`, `app/monitor.js`, `app/ui/screens/monitor.js` | `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8) |
+| FS-32 | MIDI mapper studio | DONE (HW: H-32; VirtualDJ format unverified; Serato and Traktor are reports only) | `src-tauri/src/mapper.rs`, `database/migrations/0020_mapper_models.sql`, `app/mapper/**`, `app/ui/screens/mapper.js` | `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7) |
+| FS-33 | Gear ledger static export | DONE (HW: H-33; GitHub Pages guide wording to verify) | `src-tauri/src/ledger.rs`, `database/migrations/0021_gear_ledger.sql`, `app/ledger/**`, `app/ui/screens/ledger.js` | `tests/ledger*.test.mjs` (incl. leak test), smoke `ledger` (AC-1..AC-7) |
 
 ## Architecture specs (SPEC-00..SPEC-20)
 
@@ -41,7 +41,7 @@ These describe the long-term product. Items that need physical hardware or vendo
 | SPEC-01 RPM/pitch/THD accuracy claims | PARTIAL (implemented, labelled as proxies) | HW validation against known references (SPEC-08/19) |
 | SPEC-02 vendor DVS decoders (Serato/Traktor/rekordbox) | MISSING (generic decoder only) | Legal/licence feasibility; out of scope for this run |
 | SPEC-03 skip/locked-groove/warp/non-fill classifiers | PARTIAL | Needs a labelled false-positive corpus |
-| SPEC-05 venue hierarchy, level-step feedback, isolation A/B, incident log | PARTIAL (feedback step test done; venue hierarchy arrives with FS-23) | — |
+| SPEC-05 venue hierarchy, level-step feedback, isolation A/B, incident log | PARTIAL (feedback step test done; venue/booth/position hierarchy built with FS-23; isolation A/B and incident log not built) | — |
 | SPEC-10 CDJ transport/media/digital-output | MISSING (consideration backlog, not committed) | Not a release commitment |
 | SPEC-17 code signing and auto-update | MISSING | Signing certificates (owner) |
 | Controller HID diagnostics | MISSING | Not specified as a job |
@@ -50,3 +50,4 @@ These describe the long-term product. Items that need physical hardware or vendo
 
 - [ ] Owner hardware runs H-00..H-33 (cannot run in CI).
 - [ ] Full automated suite green on the release commit (npm test, cargo test Linux+Windows, ui-smoke, fuzz smoke).
+- [ ] Owner checks left open by M7/M8: FS-31 WASAPI-shared spike (H-31 steps 1-6), FS-32 VirtualDJ format (H-32 step 7), FS-33 GitHub Pages wording (H-33), FS-21 pack privacy review, FS-23 default-on qualification.
