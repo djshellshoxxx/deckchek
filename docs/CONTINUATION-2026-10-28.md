@@ -119,8 +119,9 @@ packs/ledger, startup and workflows. This is a targeted whole-codebase audit, no
 an exhaustive line-by-line or professional independent certification.
 
 The five reproduced frontend audit findings and the additional independent LED
-review finding are addressed above. Four native findings
-remain **source-confirmed, runtime-unverified and unmodified**:
+review finding are addressed above. Four native findings were initially **source-confirmed and runtime-unverified**.
+The table below preserves the original evidence; the remediation addendum records
+the subsequent source fixes and unexecuted native tests:
 
 | Finding | Severity | Evidence and required next test |
 | --- | --- | --- |
@@ -135,8 +136,10 @@ The Security and Hardening skill's trust-boundary method was applied read-only:
 hostile imported files/OS metadata and a compromised WebView are the relevant
 inputs; user files, diagnostic integrity, privacy and signing identity are assets.
 No credentials were read, no external exploit traffic was sent, and no security
-controls/configuration were changed. Three findings need specific owner authority
-for remediation under this continuation's **no security changes** restriction:
+controls/configuration were changed. Three findings were initially held under the broad no-security-changes restriction.
+The owner subsequently authorized ordinary source remediation, excluding actual
+authorization and signing-provenance policy changes. The table records the
+original findings; see the remediation addendum for current disposition:
 
 | Finding | Severity | Evidence and limits |
 | --- | --- | --- |
@@ -186,7 +189,92 @@ records the updated documentation SHA.
 Recover by fetching `origin/continuation-deckchek-core-20261028` and creating a
 new worktree/branch from its verified SHA. Do not reset existing branches or
 reuse an occupied worktree path. Recheck PR14 and external ownership before
-further integration. Next work: obtain explicit security-remediation authority,
-provide a native test toolchain, reproduce the four native findings, then review
+further integration. Next work: resolve the scoped authorization/provenance decisions below,
+provide an approved native test toolchain, execute the new native regressions, then review
 PR9's distinct FS-34/35/36 work without losing current assertions. Hardware and
 driver/loopback/platform/32-bit acceptance remain owner gates; fleet stays off.
+
+
+## Authorized remediation addendum
+
+Source commit: `72ff3d4daded10b204fbacfa76d8c0889a43e532` (software-tested; native-unqualified).
+Baseline before this batch: `e2abb7c71a2f88cc6325a7ba2dd2230cc6f13d00`.
+
+The owner clarified that escaping, defensive content validation and deterministic
+native correctness fixes are authorized. This supersedes the earlier blanket
+hold on those source fixes. Changes remain isolated from Claude's stylus-hours
+UI, PR9 hardware tests and PR10 documentation, with one writer for shared
+backup/photo/capture ownership and independent lock-order review.
+
+- `app/export.js`, `app/ui/results.js`: escape imported IDs at HTML attributes and
+  normalize uncertainty at import and rendering. Retain finite nonnegative
+  magnitudes and finite positive coverage factors; do not invent missing values.
+  Real import/render browser regressions cover older stored records and hostile
+  markup without relying on CSP. Baseline failed 4/5 unit checks and 8/11 browser
+  checks; corrected source passes. The desktop CSP is unchanged.
+- `src-tauri/src/certificate.rs`: both JSON and HTML extraction require a bounded,
+  strictly parsed v1 envelope. Unrelated JSON is rejected without echoing fields.
+  Original certificate text and normal unsigned/tampered/expired verification
+  diagnostics are retained. Four Rust regression tests are added, not executed.
+- `src-tauri/src/backup.rs`, `photo.rs`, `service.rs`: protect photo bytes from
+  before the DB snapshot through archive copy. Attach and post-commit unlink
+  share a file gate; order is DB gate, then photo gate, then SQLite operations.
+  Restore checks actual existing photo hashes, repairing equal-length damage.
+  Missing/damaged photos still allow successful backup, now with warnings;
+  restore warns even when no photo files were archived. Manual backup UI displays
+  warning text safely. Pre-restore safety-backup warning propagation is not added.
+- `src-tauri/src/capture.rs`, `latency.rs`: reserve restore activity atomically
+  against all capture lease kinds without holding the activity mutex while
+  waiting for DB access. Managed tuner cancellation keeps its lease until owner
+  cleanup; IPC cannot release that managed lease. Late cancelled output callbacks
+  emit silence; cancelled input opening cannot start the stimulus/load. Added
+  10 deterministic reservation, driver-open/close and snapshot/unlink regressions
+  remain unexecuted. Existing general stream-pump join/late-open-timeout behavior
+  is outside this fix; do not claim all capture lifecycle issues are resolved.
+
+Independent source reviews found no blocker in the rendering/certificate lane
+or native lock-order design. Native compilation, rustfmt and execution have NOT
+been verified: `cargo test --manifest-path src-tauri/Cargo.toml certificate::tests`
+failed with exit 127, `cargo: command not found`. No download retry, installation
+or alternate environment was used. These changes must stay unmerged until the
+relevant native validation and integration gates pass.
+
+Available validation on this remediation source:
+
+- `npm test`: 1,205 total; 1,204 passed, one optional corpus skip, zero failed.
+- `node --test tests/workspace-render-boundary.test.mjs`: 5/5 passed.
+- Browser `backup`: 21/21, including warning visibility and literal markup text.
+- Browser `workspace-boundary compare`: 82/82 in the rendering worker's run.
+- Final integrated browser `core workspace-boundary compare`: 266/266, zero
+  console errors (`/tmp/deckchek-remediation-browser.log`).
+- `git diff --check` passed; all 17 changed/new files passed a heuristic
+  credential/private-artifact scan with zero flagged paths. This is not an
+  exhaustive secret-detection assurance.
+- Browser runs use `NODE_PATH=/opt/codex/cua_node/lib/node_modules` and
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` with
+  `node tools/ui-smoke.mjs <suite names>`; all are simulated/software evidence.
+- Logs: `/tmp/deckchek-remediation-node.log`,
+  `/tmp/deckchek-remediation-backup-browser.log`, and
+  `/tmp/deckchek-workspace-{red-unit,red-browser,green-unit-final,green-browser}.log`.
+
+Remaining scoped security decisions:
+
+1. Certificate shape validation is not path authorization. A compromised WebView
+   can still supply a readable certificate-shaped file path. A narrow future
+   design could require a native picker-issued, single-use file grant. That
+   changes native authorization and needs explicit scoped approval. Caller-owned
+   external-URL confirmation remains unchanged; native confirmation is a separate
+   policy decision. No credential file was read or exfiltration attempted.
+2. Restored `signing_key` rows can still cause misleading local-install affiliation.
+   No signature forgery is implied. Separating machine-local provenance from the
+   restored registry, or explicitly labeling restored registration without claiming
+   locality, requires an owner decision. Do not discard real current/retired keys
+   or silently change historical trust semantics.
+
+Draft PR creation remains specifically denied and was not retried. Only an
+ordinary fast-forward source checkpoint push is intended; no main/PR14 merge,
+workflow dispatch, release or deployment. Recover from the exact remote SHA in
+the publishing response, recheck external ownership, then run Cargo tests for
+`backup::tests`, `capture::tests`, `latency::tests`, `photo::tests`, `service::tests`
+and `certificate::tests` plus normal build/native gates in an approved environment.
+No physical-device, driver, hardware loopback or platform acceptance is claimed.

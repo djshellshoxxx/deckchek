@@ -10,7 +10,10 @@ draft-PR request. No PR was created and no alternative creation route was used.
 Explicit approval resolving that conflict is required before retrying creation
 from this branch into `claude/confident-goldberg-o06vg2`.
 
-Tested source: `210cb48d858992e93facf54b46e9a069799d89c8`.
+Previous tested source: `210cb48d858992e93facf54b46e9a069799d89c8`.
+Current remediation source: `72ff3d4daded10b204fbacfa76d8c0889a43e532`.
+See the detailed handoff for new evidence; the publishing response records the
+final checkpoint SHA including documentation.
 Final JavaScript suite: 1,199 passed, one optional skip, zero failed. Final core
 browser: 186/186; Compare: 73/73; fleet: 93/93; core plus mobile: 232/232 before
 the final LED guard, with core rerun afterward. All are software/mock evidence.
@@ -25,11 +28,21 @@ test evidence, inherited issues, ownership and limitations.
 The external Claude worker owns the stylus-hours UI race. PR9 FS-34/35/36 and
 PR10 documentation remain distinct. Do not duplicate or overwrite that work.
 
-Unmerged gates: Cargo/native execution is unavailable; four native correctness
-findings need runtime reproduction. Three security findings remain intentionally
-unfixed under the owner's no-security-changes restriction. Security remediation
-needs explicit authorization. Hardware, drivers, loopback, platform and 32-bit
-qualification remain unexecuted. Fleet stays off by default.
+Current remediation evidence: JavaScript 1,204 passed / one optional skip / zero
+failed; integrated core/import-render/Compare browser 266/266; backup browser
+21/21. Native regressions are added but unexecuted.
+
+New remediation: stored markup is escaped and imported uncertainty is validated;
+certificate extraction checks envelope shape without granting path authority.
+Native source fixes cover restore/capture exclusion, photo snapshot consistency,
+same-length photo repair and tuner cancellation ownership, with unexecuted Rust
+regressions. Manual backups now show missing/damaged-photo warnings.
+
+Unmerged gates: Cargo/native compilation and execution are unavailable. Native
+fixes are source-reviewed, not runtime-qualified. File-selection authorization,
+URL-confirmation policy and historical-key/local-affiliation semantics remain
+excluded pending scoped owner decisions. Hardware, drivers, loopback, platform
+and 32-bit qualification remain unexecuted. Fleet stays off by default.
 
 Recovery: fetch the branch, verify its SHA against the publishing response, then
 create a new branch/worktree from that SHA. Preserve occupied names/paths and
