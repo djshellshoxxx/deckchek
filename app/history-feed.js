@@ -72,7 +72,9 @@ export function mapPregigRun(r) {
 export function mapMonitorSession(r) {
   if (!r?.id || !iso(r.startedAt)) return null;
   const sec = fin(r.summary?.durationSec) ? r.summary.durationSec : iso(r.endedAt) ? Math.max(0, (Date.parse(r.endedAt) - Date.parse(r.startedAt)) / 1000) : null;
-  const dur = sec === null ? null : sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : `${Math.max(1, Math.round(sec / 60))} min`;
+  // round the total minutes first, then split, so 1 h 59.5 min reads "2 h 0 min", never "1 h 60 min"
+  const mins = sec === null ? null : Math.round(sec / 60);
+  const dur = mins === null ? null : mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${Math.max(1, mins)} min`;
   const crit = fin(r.criticalCount) ? r.criticalCount : 0, warn = fin(r.warningCount) ? r.warningCount : 0;
   const parts = [text(r.format), dur, crit ? `${crit} critical` : null, warn ? `${warn} warning${warn === 1 ? '' : 's'}` : null, !crit && !warn && r.endedAt ? 'no alerts' : null, r.endedAt ? null : 'not closed'].filter(Boolean);
   return row('monitor', r.id, { title: 'Live monitor session', startedAt: r.startedAt, status: crit ? 'fail' : warn ? 'warn' : r.endedAt ? 'pass' : 'info', meta: parts.join(' · ') });
