@@ -20,49 +20,51 @@ export const MIDI_KINDS = ['coverage', 'fader', 'jog', 'button', 'led', 'latency
 
 /** Split "speed:Pitch map" into {engine:'speed', mode:'Pitch map'}. */
 export function parseMethod(method) {
-  const s = String(method || '');
+  const s = typeof method === 'string' ? method : '';
   const i = s.indexOf(':');
   if (i < 0) return { engine: s.trim(), mode: '' };
   return { engine: s.slice(0, i).trim(), mode: s.slice(i + 1).trim() };
 }
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+// Profile values in messages: a parsed object such as {"toString": 0} throws when turned into a string.
+const show = v => (v !== null && typeof v === 'object' ? (Array.isArray(v) ? '[array]' : '[object]') : String(v).slice(0, 80));
 
 /** Validate a profile against the schema contract. Errors make it unusable; warnings are shown but tolerated. */
 export function validateProfile(p) {
   const errors = [], warnings = [];
   if (!isObj(p)) return { ok: false, errors: ['profile is not an object'], warnings };
-  if (p.schemaVersion !== 1) errors.push(`unsupported schemaVersion ${p.schemaVersion}`);
+  if (p.schemaVersion !== 1) errors.push(`unsupported schemaVersion ${show(p.schemaVersion)}`);
   if (typeof p.id !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.id)) errors.push('id must be kebab-case');
   for (const k of ['manufacturer', 'model', 'summary']) if (typeof p[k] !== 'string' || !p[k].trim()) errors.push(`${k} is required`);
-  if (!CATEGORIES.includes(p.category)) errors.push(`unknown category "${p.category}"`);
+  if (!CATEGORIES.includes(p.category)) errors.push(`unknown category "${show(p.category)}"`);
   if (p.image != null && (!isObj(p.image) || typeof p.image.file !== 'string')) errors.push('image.file is required when image is set');
   if (!Array.isArray(p.documents)) warnings.push('documents missing');
   if (!Array.isArray(p.specs)) errors.push('specs must be an array');
   else p.specs.forEach((s, i) => {
     if (!s?.key) errors.push(`specs[${i}].key is required`);
-    if (!['confirmed', 'unverified'].includes(s?.confidence)) warnings.push(`spec ${s?.key || i}: confidence should be confirmed|unverified`);
-    if (!s?.source) warnings.push(`spec ${s?.key || i}: no source`);
+    if (!['confirmed', 'unverified'].includes(s?.confidence)) warnings.push(`spec ${show(s?.key || i)}: confidence should be confirmed|unverified`);
+    if (!s?.source) warnings.push(`spec ${show(s?.key || i)}: no source`);
   });
   if (!Array.isArray(p.tests) || !p.tests.length) errors.push('tests must be a non-empty array');
   else {
     const seen = new Set();
     p.tests.forEach((t, i) => {
-      const where = `test ${t?.id || i}`;
+      const where = `test ${show(t?.id || i)}`;
       if (!t?.id) errors.push(`tests[${i}].id is required`);
-      else if (seen.has(t.id)) errors.push(`duplicate test id ${t.id}`);
+      else if (seen.has(t.id)) errors.push(`duplicate test id ${show(t.id)}`);
       else seen.add(t.id);
       if (!t?.title) errors.push(`${where}: title is required`);
       const { engine, mode } = parseMethod(t?.method);
-      if (!METHOD_ENGINES.includes(engine)) errors.push(`${where}: unknown method "${t?.method}"`);
+      if (!METHOD_ENGINES.includes(engine)) errors.push(`${where}: unknown method "${show(t?.method)}"`);
       else if (engine === 'midi' && !MIDI_KINDS.includes(mode)) errors.push(`${where}: unknown MIDI test "${mode}"`);
-      if (!TEST_CATEGORIES.includes(t?.category)) warnings.push(`${where}: unknown category "${t?.category}"`);
+      if (!TEST_CATEGORIES.includes(t?.category)) warnings.push(`${where}: unknown category "${show(t?.category)}"`);
       if (!Array.isArray(t?.steps) || !t.steps.length) warnings.push(`${where}: no steps`);
       if (t?.pass != null) {
-        if (!PASS_OPS.includes(t.pass.op)) errors.push(`${where}: unknown pass op "${t.pass.op}"`);
+        if (!PASS_OPS.includes(t.pass.op)) errors.push(`${where}: unknown pass op "${show(t.pass.op)}"`);
         if (!t.pass.metricId) errors.push(`${where}: pass.metricId is required`);
       }
-      if (t?.severity && !SEVERITIES.includes(t.severity)) warnings.push(`${where}: unknown severity "${t.severity}"`);
+      if (t?.severity && !SEVERITIES.includes(t.severity)) warnings.push(`${where}: unknown severity "${show(t.severity)}"`);
     });
   }
   if (p.midi != null && !Array.isArray(p.midi.controls)) errors.push('midi.controls must be an array');

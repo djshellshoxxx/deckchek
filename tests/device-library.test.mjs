@@ -246,3 +246,18 @@ test('catalog-store native bridge calls the device commands', async () => {
   assert.deepEqual(calls[3][1], { assetId: 'a' });
   assert.equal(calls[1][1].createAssets, false, 'the setup wizard owns gear creation while it is enabled');
 });
+
+test('regression: validateProfile reports values that cannot become strings instead of throwing (JS fuzz, FUZZ-06)', () => {
+  // JSON.parse gives plain objects; {"toString": 0} has no usable toString/valueOf, so interpolating it throws.
+  const odd = JSON.parse('{"toString": 0}');
+  const p = JSON.parse(fs.readFileSync(path.join(DEV, 'profiles', JSON.parse(fs.readFileSync(path.join(DEV, 'index.json'), 'utf8')).profiles[0] + '.json'), 'utf8'));
+  p.schemaVersion = odd;
+  p.category = [odd];
+  p.specs = [{ key: [odd], confidence: odd }];
+  p.tests = [{ id: [odd], title: 'x', method: [odd], category: odd, pass: { op: odd, metricId: 'm' }, severity: odd }, { id: odd, title: 'y', method: 'midi:' }];
+  const r = validateProfile(p);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some(e => /schemaVersion/.test(e)), r.errors.join('\n'));
+  assert.ok(r.errors.some(e => /unknown method/.test(e)), r.errors.join('\n'));
+  assert.ok([...r.errors, ...r.warnings].every(m => typeof m === 'string' && m.length < 400));
+});
