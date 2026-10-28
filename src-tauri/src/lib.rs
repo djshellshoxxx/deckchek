@@ -51,6 +51,7 @@ mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_te
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
 // [FS-21] mods
+mod pack;
 // [FS-22] mods
 // [FS-23] mods
 mod fleet;
@@ -121,6 +122,8 @@ pub fn run() {
             selftest::self_test_mode, selftest::self_test_report,
             // [FS-20] handlers
             // [FS-21] handlers
+            pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
+            pack::population_query, pack::population_unit_values,
             // [FS-22] handlers
             // [FS-23] handlers
             fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
