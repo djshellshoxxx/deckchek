@@ -8,7 +8,7 @@ export default async function run({ browser, base, check }) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, permissions: ['clipboard-read', 'clipboard-write'] });
   await context.addInitScript(() => { window.__opened = []; window.open = (...a) => { window.__opened.push(a); return null; }; });
   const page = await context.newPage();
-  errors.push(...watchConsole(page, 'links-browser'));
+  errors.push(watchConsole(page, 'links-browser'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.waitForFunction(() => document.querySelector('#toasts') && typeof window.open === 'function');
@@ -101,7 +101,7 @@ export default async function run({ browser, base, check }) {
     };
   });
   const dpage = await dctx.newPage();
-  errors.push(...watchConsole(dpage, 'links-desktop'));
+  errors.push(watchConsole(dpage, 'links-desktop'));
   await dpage.goto(base);
   await dpage.waitForSelector('.rail-item');
   await dpage.waitForTimeout(500);
@@ -138,5 +138,5 @@ export default async function run({ browser, base, check }) {
   await dpage.waitForTimeout(200);
   check('links(desktop): file: link is blocked before reaching Rust', (await calls()).length === before && /Blocked unsafe link/.test(await dpage.locator('#toasts').innerText()));
   await dctx.close();
-  return errors;
+  return errors.flat();
 }
