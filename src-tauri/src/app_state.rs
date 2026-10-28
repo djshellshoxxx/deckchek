@@ -77,21 +77,30 @@ pub fn delete(conn: &Connection, key: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn app_state_get(app: AppHandle, key: String) -> Result<Option<AppStateEntry>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &key)
+pub async fn app_state_get(app: AppHandle, key: String) -> Result<Option<AppStateEntry>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &key)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn app_state_set(app: AppHandle, key: String, value: Value) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    set(&conn, &key, &value)
+pub async fn app_state_set(app: AppHandle, key: String, value: Value) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        set(&conn, &key, &value)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn app_state_delete(app: AppHandle, key: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &key).map(|_| ())
+pub async fn app_state_delete(app: AppHandle, key: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &key).map(|_| ())
+    })
+    .await?
 }
 
 #[cfg(test)]
