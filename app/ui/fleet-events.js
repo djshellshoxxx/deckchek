@@ -8,6 +8,12 @@ const typeLabel = v => v.replaceAll('_', ' ');
 const label = (text, input) => h('label', { class: 'field' }, h('span', { class: 'field-label', text }), input);
 const option = (value, text) => h('option', { value, text });
 
+/** Tomorrow as a local `YYYY-MM-DD` (the date input's `max`): the latest day a maintenance event can be dated. */
+export function maxEventDate(now = new Date()) {
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
 /**
  * "Log maintenance" form. `assets` = fleet rows (nickname, assetId, reminders). With `fixedAsset` the asset is
  * the one in the side panel, otherwise a select lets the user pick it. Choosing a reminder marks it completed.
@@ -16,7 +22,7 @@ export function maintenanceForm({ assets, fixedAsset = null, api, act, id = 'fle
   const form = h('form', { id, class: 'fleet-form' });
   const asset = fixedAsset ? null : h('select', { name: 'asset', required: true }, ...assets.map(a => option(a.assetId, a.nickname)));
   const kind = h('select', { name: 'eventType' }, ...EVENT_TYPES.map(v => option(v, typeLabel(v))));
-  const when = h('input', { type: 'date', name: 'date', 'aria-label': 'Date (UTC); leave empty for now' });
+  const when = h('input', { type: 'date', name: 'date', max: maxEventDate(), 'aria-label': 'Date (UTC); leave empty for now' });
   const description = h('textarea', { name: 'description', maxlength: 2000 });
   const completes = h('select', { name: 'completes' });
   const current = () => fixedAsset ?? assets.find(a => a.assetId === asset?.value);
