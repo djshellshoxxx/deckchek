@@ -353,44 +353,84 @@ pub fn list(conn: &Connection, owner_kind: &str, owner_id: &str) -> Result<Vec<P
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
 }
 
-/// Deletes the photo row and its file when no link references it any more; returns whether the file went.
-fn drop_if_orphan(conn: &Connection, dir: &Path, photo_id: &str) -> Result<bool, String> {
-    let links: i64 = conn.query_row("SELECT COUNT(*) FROM photo_link WHERE photo_id = ?1", [photo_id], |r| r.get(0)).map_err(e2s)?;
-    if links > 0 {
-        return Ok(false);
+/// Files of photo rows deleted in a transaction that may not have committed yet. Nothing touches the disk until
+/// `remove_after_commit` runs after the commit, so a rollback (or a failed commit) never leaves a row whose file
+/// is gone; dropping this after a rollback simply keeps the files (FS-00 §4.11 review).
+#[must_use = "call remove_after_commit once the transaction has committed"]
+#[derive(Debug, Default)]
+pub struct PendingPhotoFiles {
+    files: Vec<(String, PathBuf)>,
+}
+
+impl PendingPhotoFiles {
+    pub fn is_empty(&self) -> bool {
+        self.files.is_empty()
     }
-    let sha: Option<String> = conn.query_row("SELECT sha256 FROM photo WHERE id = ?1", [photo_id], |r| r.get(0)).optional().map_err(e2s)?;
-    let Some(sha) = sha else { return Ok(false) };
-    conn.execute("DELETE FROM photo WHERE id = ?1", [photo_id]).map_err(e2s)?;
-    match fs::remove_file(photo_file(dir, &sha)?) {
-        Ok(()) => Ok(true),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(format!("could not delete the photo file: {e}")),
+
+    /// Removes the files whose photo is still gone (the same bytes may have been attached again since the commit);
+    /// returns how many were deleted. A failed removal is logged and harmless: the file is just an unreferenced orphan.
+    pub fn remove_after_commit(self, conn: &Connection) -> usize {
+        let mut removed = 0;
+        for (sha, path) in self.files {
+            match conn.query_row("SELECT COUNT(*) FROM photo WHERE sha256 = ?1", [&sha], |r| r.get::<_, i64>(0)) {
+                Ok(0) => {}
+                Ok(_) => continue,
+                Err(e) => {
+                    eprintln!("photo store: kept an unreferenced photo file (could not re-check it: {e})");
+                    continue;
+                }
+            }
+            match fs::remove_file(&path) {
+                Ok(()) => removed += 1,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                // the io error does not include the path, so no user path reaches the log
+                Err(e) => eprintln!("photo store: could not delete an unreferenced photo file: {e}"),
+            }
+        }
+        removed
     }
 }
 
+/// Deletes the photo row when no link references it any more and queues its file for removal after the commit.
+fn drop_if_orphan(conn: &Connection, dir: &Path, photo_id: &str, pending: &mut PendingPhotoFiles) -> Result<(), String> {
+    let links: i64 = conn.query_row("SELECT COUNT(*) FROM photo_link WHERE photo_id = ?1", [photo_id], |r| r.get(0)).map_err(e2s)?;
+    if links > 0 {
+        return Ok(());
+    }
+    let sha: Option<String> = conn.query_row("SELECT sha256 FROM photo WHERE id = ?1", [photo_id], |r| r.get(0)).optional().map_err(e2s)?;
+    let Some(sha) = sha else { return Ok(()) };
+    let path = photo_file(dir, &sha)?;
+    conn.execute("DELETE FROM photo WHERE id = ?1", [photo_id]).map_err(e2s)?;
+    pending.files.push((sha, path));
+    Ok(())
+}
+
+/// Removes one link; the photo's file goes only after the transaction has committed, and only when no link is left.
 pub fn unlink(conn: &mut Connection, dir: &Path, link_id: &str) -> Result<PhotoUnlinked, String> {
     let tx = conn.transaction().map_err(e2s)?;
     let photo: Option<String> = tx.query_row("SELECT photo_id FROM photo_link WHERE id = ?1", [link_id], |r| r.get(0)).optional().map_err(e2s)?;
     let Some(photo_id) = photo else { return Ok(PhotoUnlinked { unlinked: false, file_deleted: false }) };
     tx.execute("DELETE FROM photo_link WHERE id = ?1", [link_id]).map_err(e2s)?;
-    let file_deleted = drop_if_orphan(&tx, dir, &photo_id)?;
+    let mut pending = PendingPhotoFiles::default();
+    drop_if_orphan(&tx, dir, &photo_id, &mut pending)?;
     tx.commit().map_err(e2s)?;
+    let file_deleted = pending.remove_after_commit(conn) > 0;
     Ok(PhotoUnlinked { unlinked: true, file_deleted })
 }
 
-/// For owners that are being deleted (asset, service job, certificate): removes all their links and
-/// any photo left without links. Call it inside the owner's own transaction (`conn` may be a
-/// `Transaction` via deref); files of orphaned photos are deleted immediately after the SQL.
-pub fn unlink_owner(conn: &Connection, dir: &Path, owner_kind: &str, owner_id: &str) -> Result<usize, String> {
+/// For owners that are being deleted (asset, service job, certificate): removes all their links and any photo left
+/// without links. Call it inside the owner's own transaction (`conn` may be a `Transaction` via deref); it returns the
+/// number of photos the owner had and the files to remove with `remove_after_commit` once that transaction commits.
+pub fn unlink_owner(conn: &Connection, dir: &Path, owner_kind: &str, owner_id: &str) -> Result<(usize, PendingPhotoFiles), String> {
     let mut st = conn.prepare("SELECT DISTINCT photo_id FROM photo_link WHERE owner_kind = ?1 AND owner_id = ?2").map_err(e2s)?;
     let ids: Vec<String> = st.query_map(params![owner_kind, owner_id], |r| r.get(0)).map_err(e2s)?.collect::<rusqlite::Result<_>>().map_err(e2s)?;
     drop(st);
     conn.execute("DELETE FROM photo_link WHERE owner_kind = ?1 AND owner_id = ?2", params![owner_kind, owner_id]).map_err(e2s)?;
+    let mut pending = PendingPhotoFiles::default();
     for id in &ids {
-        drop_if_orphan(conn, dir, id)?;
+        drop_if_orphan(conn, dir, id, &mut pending)?;
     }
-    Ok(ids.len())
+    Ok((ids.len(), pending))
 }
 
 /// Base64 of the stored JPEG; verifies the file still matches its hash.
@@ -663,11 +703,77 @@ mod tests {
         attach(&mut c, &d.0, &input(&own, "asset", "gone")).unwrap();
         let keep = attach(&mut c, &d.0, &input(&shared, "certificate", "cert")).unwrap();
         let tx = c.transaction().unwrap();
-        assert_eq!(unlink_owner(&tx, &d.0, "asset", "gone").unwrap(), 2);
+        let (n, pending) = unlink_owner(&tx, &d.0, "asset", "gone").unwrap();
+        assert_eq!(n, 2);
         tx.commit().unwrap();
+        assert_eq!(pending.remove_after_commit(&c), 1);
         assert!(list(&c, "asset", "gone").unwrap().is_empty());
         assert_eq!(files(&d.0), vec![format!("{}.jpg", keep.sha256)]);
         assert_eq!(list(&c, "certificate", "cert").unwrap().len(), 1);
+    }
+
+    #[test]
+    fn regression_unlink_keeps_the_file_when_the_commit_fails() {
+        let mut c = mem();
+        let d = TempDir::new();
+        let jpg = tiny_jpeg(30, 30, &[], 60);
+        let a = attach(&mut c, &d.0, &input(&jpg, "asset", "a")).unwrap();
+        // a deferred reference makes COMMIT fail after the photo row was deleted inside the transaction
+        c.execute_batch("CREATE TABLE pin (photo_id TEXT REFERENCES photo(id) DEFERRABLE INITIALLY DEFERRED);").unwrap();
+        c.execute("INSERT INTO pin (photo_id) VALUES (?1)", [&a.photo_id]).unwrap();
+        assert!(unlink(&mut c, &d.0, &a.link_id).is_err(), "the commit fails");
+        assert_eq!(files(&d.0), vec![format!("{}.jpg", a.sha256)], "no file is removed before the transaction commits");
+        assert_eq!(list(&c, "asset", "a").unwrap().len(), 1, "the link is rolled back");
+        assert_eq!(read(&c, &d.0, &a.photo_id).unwrap(), B64.encode(&jpg), "and the photo is still readable");
+        c.execute("DELETE FROM pin", []).unwrap();
+        assert_eq!(unlink(&mut c, &d.0, &a.link_id).unwrap(), PhotoUnlinked { unlinked: true, file_deleted: true });
+        assert!(files(&d.0).is_empty());
+    }
+
+    #[test]
+    fn regression_unlink_owner_leaves_files_until_the_owner_transaction_commits() {
+        let mut c = mem();
+        let d = TempDir::new();
+        let a = attach(&mut c, &d.0, &input(&tiny_jpeg(30, 30, &[], 61), "service_job", "j1")).unwrap();
+        let b = attach(&mut c, &d.0, &input(&tiny_jpeg(30, 30, &[], 62), "service_job", "j1")).unwrap();
+        {
+            let tx = c.transaction().unwrap();
+            let (n, _pending) = unlink_owner(&tx, &d.0, "service_job", "j1").unwrap();
+            assert_eq!(n, 2);
+            assert_eq!(files(&d.0).len(), 2, "nothing is deleted inside the owner's transaction");
+            // the owner's delete fails: the transaction rolls back and the pending files are dropped unremoved
+        }
+        assert_eq!(files(&d.0).len(), 2);
+        assert_eq!(list(&c, "service_job", "j1").unwrap().len(), 2);
+        assert!(read(&c, &d.0, &a.photo_id).is_ok() && read(&c, &d.0, &b.photo_id).is_ok());
+        // committed: the files go once the caller removes them
+        let tx = c.transaction().unwrap();
+        let (_, pending) = unlink_owner(&tx, &d.0, "service_job", "j1").unwrap();
+        tx.commit().unwrap();
+        assert_eq!(pending.remove_after_commit(&c), 2);
+        assert!(files(&d.0).is_empty());
+    }
+
+    #[test]
+    fn regression_a_failed_file_removal_after_commit_is_harmless() {
+        let mut c = mem();
+        let d = TempDir::new();
+        let a = attach(&mut c, &d.0, &input(&tiny_jpeg(30, 30, &[], 63), "asset", "a")).unwrap();
+        // the file cannot be removed (a directory now has its name)
+        let path = photo_file(&d.0, &a.sha256).unwrap();
+        fs::remove_file(&path).unwrap();
+        fs::create_dir(&path).unwrap();
+        assert_eq!(unlink(&mut c, &d.0, &a.link_id).unwrap(), PhotoUnlinked { unlinked: true, file_deleted: false });
+        assert_eq!(c.query_row::<i64, _, _>("SELECT COUNT(*) FROM photo", [], |r| r.get(0)).unwrap(), 0, "the database change stands");
+        // a file whose bytes were attached again before the removal ran is kept
+        let jpg = tiny_jpeg(30, 30, &[], 64);
+        let x = attach(&mut c, &d.0, &input(&jpg, "asset", "x")).unwrap();
+        let tx = c.transaction().unwrap();
+        let (_, pending) = unlink_owner(&tx, &d.0, "asset", "x").unwrap();
+        tx.commit().unwrap();
+        attach(&mut c, &d.0, &input(&jpg, "asset", "y")).unwrap();
+        assert_eq!(pending.remove_after_commit(&c), 0);
+        assert!(read(&c, &d.0, &list(&c, "asset", "y").unwrap()[0].photo_id).is_ok(), "{}", x.sha256);
     }
 
     #[test]
