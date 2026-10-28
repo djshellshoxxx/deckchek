@@ -133,3 +133,48 @@ test('regression: stylus replacements are labelled "Stylus replaced", not "Other
   const r = await buildLedger(s, ALL, makeRules('public'), OPTS);
   assert.deepEqual(r.ledger.items.find(i => i.model === 'PLX-CRSS12').service, [{ at: '2026-03-01', type: 'Stylus replaced' }]);
 });
+
+// ---------------------------------------------------------------- scrubText (integration follow-up)
+
+test('regression: smb, sftp, afp, ftps and other non-http(s) scheme URLs with a user folder lose the user path', () => {
+  for (const url of [
+    'smb://nas/Users/sheldon/Gear/x.jpg', 'sftp://host/home/sheldon/a.wav', 'afp://mac.local/Users/sheldon/Deck', 'ftps://files.example.org/home/sheldon/manual.pdf',
+    'nfs://server/home/sheldon/x', 'webdav://cloud/Users/sheldon/y', 'SMB://NAS/Users/sheldon/x.jpg',
+  ]) {
+    const out = scrubText(`Photo at ${url} today`);
+    assert.equal(out, `Photo at ${PATH_PLACEHOLDER} today`, url);
+    assert.ok(!/sheldon/i.test(out), url);
+  }
+  // a user name with a space is removed in full, for web schemes too
+  for (const url of ['smb://nas/Users/Jo Smith/x.jpg', 'ftps://h/home/Jo Smith/a/b.pdf', 'https://nas.local/home/Jo Smith/deck.jpg']) {
+    assert.equal(scrubText(`see ${url}`), `see ${PATH_PLACEHOLDER}`, url);
+  }
+  // quoted and bracketed
+  assert.equal(scrubText('"smb://nas/Users/sheldon/x.jpg"'), `"${PATH_PLACEHOLDER}"`);
+  assert.equal(scrubText('(afp://mac/Users/sheldon/x)'), `(${PATH_PLACEHOLDER})`);
+});
+
+test('regression: scrubText leaves ordinary text with slashes alone (no false paths)', () => {
+  for (const s of ['50%/60%/70%', 'Café/Bar/x', 'Ça/va/bien', 'Crème/brûlée/tart', 'pitch +8%/-8%/16%', 'A&B/C/D', '1/2/3 and 33/45 rpm', 'Größe/Farbe/Typ', '日本/東京/x']) {
+    assert.equal(scrubText(s), s, s);
+  }
+});
+
+test('regression: scrubText removes paths that start with a known root after any punctuation', () => {
+  assert.equal(scrubText('50%/home/sheldon/x.jpg'), `50%${PATH_PLACEHOLDER}`);
+  assert.equal(scrubText('Café /Users/sheldon/x'), `Café ${PATH_PLACEHOLDER}`);
+  assert.equal(scrubText('copy@/Volumes/Backup/sheldon/x'), `copy@${PATH_PLACEHOLDER}`);
+  assert.equal(scrubText('run `/home/sheldon/x` again'), `run \`${PATH_PLACEHOLDER}\` again`);
+  for (const root of ['/root/x/y', '/mnt/data/sheldon', '/media/sheldon/usb/a.jpg', '/Volumes/Sheldon Disk/a.jpg', 'C:\\Users\\sheldon\\a.jpg']) {
+    const out = scrubText(`x+${root}`);
+    assert.ok(out.includes(PATH_PLACEHOLDER) && !/sheldon/i.test(out), `${root} -> ${out}`);
+  }
+});
+
+test('regression: scrubText keeps http(s) and ftp(s) URLs intact unless they hold a user path', () => {
+  for (const url of ['https://www.technics.com/global/support', 'http://example.com/media/manual.pdf', 'https://example.com/a/b?x=50%/60%', 'ftps://files.example.org/pub/manual.pdf', 'ftp://ftp.example.org/pub/x.zip']) {
+    assert.equal(scrubText(`Manual: ${url}`), `Manual: ${url}`, url);
+  }
+  assert.equal(scrubText('https://nas.local/Users/sheldon/x.jpg'), PATH_PLACEHOLDER);
+  assert.equal(scrubText('Open file:///Users/sheldon/a.jpg now'), `Open ${PATH_PLACEHOLDER} now`);
+});
