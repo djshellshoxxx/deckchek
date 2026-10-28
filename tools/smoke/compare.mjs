@@ -13,7 +13,7 @@ export function compareMock() {
   const key = 'pioneer-plx-crss12';
   const row = (assetId, nickname, metric, value, unit, at) => ({ assetId, nickname, productKey: key, metric, methodKey: metric, methodVersion: 1, unit, value, at });
   const cmp = {
-    calls: [], packs: [], rows: [], contributors: 41, state: {}, fail: null,
+    calls: [], packs: [], rows: [], contributors: 41, state: {}, fail: null, truncated: false, manyCounts: 0,
     units: [
       row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.2, '%', '2026-10-01T10:00:00Z'), row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.16, '%', '2026-10-08T10:00:00Z'),
       row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.12, '%', '2026-10-15T10:00:00Z'), row('a-2', 'Deck 2', 'wow_flutter_rms_percent', 0.18, '%', '2026-10-10T10:00:00Z'),
@@ -30,7 +30,7 @@ export function compareMock() {
       if (cmp.fail === cmd) throw cmp.failWith;
       if (cmd === 'population_unit_values') return { rows: cmp.units, skippedUnit: 0, skippedUnattributed: 0 };
       if (cmd === 'pack_list') return cmp.packs;
-      if (cmd === 'pack_preview') return { packId: 'pack-fixture', createdMonth: '2026-10', appVersion: '0.0.8', rows: cmp.contributors, counts: [{ product: key, metric: 'wow_flutter_rms_percent', rows: cmp.contributors }], sha256: 'a'.repeat(64), alreadyImported: cmp.packs.some(p => p.id === 'pack-fixture') };
+      if (cmd === 'pack_preview') return { packId: 'pack-fixture', createdMonth: '2026-10', appVersion: '0.0.8', rows: cmp.contributors, counts: cmp.manyCounts ? Array.from({ length: cmp.manyCounts }, (_, i) => ({ product: `hostile-${i}`, metric: 'dropout_count', rows: 1 })) : [{ product: key, metric: 'wow_flutter_rms_percent', rows: cmp.contributors }], sha256: 'a'.repeat(64), alreadyImported: cmp.packs.some(p => p.id === 'pack-fixture') };
       if (cmd === 'pack_import') {
         if (cmp.packs.some(p => p.id === 'pack-fixture')) return { packId: 'pack-fixture', accepted: 0, rejected: [], duplicate: true };
         cmp.packs.push({ id: 'pack-fixture', sourceLabel: args.sourceLabel, importedAt: '2026-10-20T10:00:00Z', rowCount: cmp.contributors, sha256: 'a'.repeat(64) });
@@ -39,7 +39,7 @@ export function compareMock() {
       }
       if (cmd === 'pack_remove') { cmp.packs = cmp.packs.filter(p => p.id !== args.packId); cmp.rows = []; return { removed: true, samplesDeleted: 0 }; }
       if (cmd === 'pack_export') return { packId: args.selection.packId, rows: args.selection.rows.length, bytes: 321, sha256: 'b'.repeat(64), path: args.path };
-      if (cmd === 'population_query') { const rows = cmp.rows.filter(r => r.product === args.productId && r.metric === args.metricId); return { rows, contributors: new Set(rows.map(r => r.contributor)).size, truncated: false }; }
+      if (cmd === 'population_query') { const rows = cmp.rows.filter(r => r.product === args.productId && r.metric === args.metricId); return { rows, contributors: new Set(rows.map(r => r.contributor)).size, truncated: cmp.truncated }; }
     }
     return base(cmd, args);
   };
@@ -50,9 +50,15 @@ export default async function run({ browser, base, check, SHOTS }) {
   const errors = [];
   const shot = async (page, name) => { await page.waitForTimeout(200); await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
   const text = (page, sel) => page.locator(sel).innerText();
-  const desktop = async flags => {
+  const desktop = async (flags, { extraSpecs = null } = {}) => {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await ctx.addInitScript(tauriMock); await ctx.addInitScript(compareMock); await ctx.addInitScript(setFlags, flags);
+    // a same-quantity spec the shipped profile lacks, so the AC-1 verdict path is exercised
+    if (extraSpecs) await ctx.route('**/devices/profiles/pioneer-plx-crss12.json', async route => {
+      const res = await route.fetch(); const json = await res.json();
+      json.specs = [...json.specs, ...extraSpecs];
+      await route.fulfill({ response: res, json });
+    });
     const page = await ctx.newPage();
     errors.push(watchConsole(page, 'compare'));
     await page.goto(base);
@@ -83,17 +89,19 @@ export default async function run({ browser, base, check, SHOTS }) {
   await bctx.close();
 
   // ----- desktop, phase 1 only (packs off) -----
-  const one = await desktop({ population: true });
+  const one = await desktop({ population: true }, { extraSpecs: [{ key: 'separation', label: 'Channel separation (1 kHz)', value: 30, unit: 'dB', confidence: 'confirmed', source: 'https://example.test/plx' }] });
   const p1 = one.page;
   await p1.click('.rail-item[data-screen="compare"]');
   await p1.waitForSelector('#cmp-spec');
   check('compare: packs off hides the Population tab and Data sharing', (await p1.locator('#cmp-tab-population').count()) === 0 && (await p1.locator('#cmp-sharing').count()) === 0);
-  check('compare: metric without a published spec says so', /No published spec for this metric/.test(await text(p1, '#cmp-spec-text')), await text(p1, '#cmp-spec-text'));
-  await p1.selectOption('#cmp-metric', 'wow_flutter_rms_percent');
-  await p1.waitForFunction(() => /against a published maximum/.test(document.querySelector('#cmp-spec-text')?.textContent || ''));
-  check('compare: AC-1 spec bar shows value, limit and margin in text', /0\.12 % against a published maximum of 0\.15 %\. Inside the limit with 0\.03 % to spare/.test(await text(p1, '#cmp-spec-text')), await text(p1, '#cmp-spec-text'));
-  check('compare: AC-1 the bar has a text label and the verdict is not colour only', /spec limit 0\.15/.test(await p1.locator('.cmp-bar').getAttribute('aria-label')) && /INSIDE SPEC/.test(await text(p1, '.cmp-verdict')));
+  await p1.waitForFunction(() => /against a published minimum/.test(document.querySelector('#cmp-spec-text')?.textContent || ''));
+  check('compare: AC-1 spec bar shows value, limit and margin in text', /31\.5 dB against a published minimum of 30 dB\. Inside the limit with 1\.5 dB to spare/.test(await text(p1, '#cmp-spec-text')), await text(p1, '#cmp-spec-text'));
+  check('compare: AC-1 the bar has a text label and the verdict is not colour only', /spec limit 30/.test(await p1.locator('.cmp-bar').getAttribute('aria-label')) && /INSIDE SPEC/.test(await text(p1, '.cmp-verdict')));
   await shot(p1, 'compare-spec-dark');
+  await p1.selectOption('#cmp-metric', 'wow_flutter_rms_percent');
+  await p1.waitForFunction(() => /not the same quantity/.test(document.querySelector('#cmp-spec-text')?.textContent || ''));
+  check('regression: compare AC-1 an unweighted wow/flutter proxy gets no verdict against a WRMS spec', /weighted/.test(await text(p1, '#cmp-spec-text')) && /0\.15 % WRMS/.test(await text(p1, '#cmp-spec-text'))
+    && (await p1.locator('#cmp-spec .cmp-verdict, #cmp-spec .cmp-bar').count()) === 0, await text(p1, '#cmp-spec-text'));
   await p1.click('#cmp-tab-units');
   await p1.waitForSelector('#cmp-sib-text');
   check('compare: AC-2 sibling units are ranked', /Deck 1 ranks 1st of 2 of your units/.test(await text(p1, '#cmp-sib-text')), await text(p1, '#cmp-sib-text'));
@@ -104,6 +112,11 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p1.focus('#cmp-tab-units');
   await p1.keyboard.press('ArrowLeft');
   check('compare: arrow keys move between tabs', await p1.evaluate(() => document.activeElement?.id === 'cmp-tab-spec' && document.querySelector('#cmp-tab-spec').getAttribute('aria-selected') === 'true'));
+  await p1.focus('#cmp-tab-units');
+  await p1.keyboard.press('Enter');
+  check('regression: compare Enter on a tab activates it and keeps focus on it', await p1.evaluate(() => document.activeElement?.id === 'cmp-tab-units' && document.querySelector('#cmp-tab-units').getAttribute('aria-selected') === 'true'));
+  await p1.keyboard.press('Space');
+  check('regression: compare Space on the selected tab keeps focus on it', await p1.evaluate(() => document.activeElement?.id === 'cmp-tab-units'));
   await one.ctx.close();
 
   // ----- desktop, packs on -----
@@ -111,6 +124,8 @@ export default async function run({ browser, base, check, SHOTS }) {
   const p = two.page;
   await p.click('.rail-item[data-screen="compare"]');
   await p.waitForSelector('#cmp-sharing');
+  await p.waitForSelector('#cmp-spec-text');
+  check('compare: metric without a published spec says so', /No published spec for this metric/.test(await text(p, '#cmp-spec-text')), await text(p, '#cmp-spec-text'));
   await p.selectOption('#cmp-metric', 'wow_flutter_rms_percent');
   await p.click('#cmp-tab-population');
   await p.waitForSelector('#cmp-pop-empty');
@@ -126,11 +141,19 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p.waitForFunction(() => !document.querySelector('dialog[open]'));
   check('compare: Esc cancels the import and nothing is added', (await p.evaluate(() => window.__cmp.packs.length)) === 0 && /Import cancelled/.test(await text(p, '#cmp-status')));
   check('compare: focus returns to the Import button after the dialog', await p.evaluate(() => document.activeElement?.id === 'cmp-import'));
+  await p.waitForFunction(() => /Import cancelled/.test(document.querySelector('#sr-polite')?.textContent || ''));
+  check('regression: compare a status message has one live channel (the banner is not a live region)', await p.evaluate(() => {
+    const s = document.querySelector('#cmp-status');
+    return !s.hasAttribute('aria-live') && !s.hasAttribute('role') && !s.querySelector('[role], [aria-live]');
+  }));
   await p.click('#cmp-import');
   await p.fill('#cmp-imp-label', 'Shop A');
   await p.click('#cmp-imp-confirm');
   await p.waitForSelector('#cmp-packs');
   await p.waitForFunction(() => /Not enough data/.test(document.querySelector('#cmp-pop-text')?.textContent || ''));
+  check('regression: compare focus stays on Import after a pack is imported', await p.evaluate(() => document.activeElement?.id === 'cmp-import'), await p.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+  await p.waitForFunction(() => /Not enough data \(5 of 20\)/.test(document.querySelector('#cmp-pop-live')?.textContent || ''));
+  check('regression: compare the async population result is spoken by a live region that existed before it', await p.evaluate(() => !document.querySelector('#cmp-pop-text').hasAttribute('aria-live') && document.querySelector('#cmp-pop-live').getAttribute('aria-live') === 'polite'));
   check('compare: AC-6 fewer than 20 contributors shows "Not enough data (5 of 20)"', /Not enough data \(5 of 20\)/.test(await text(p, '#cmp-pop-text')), await text(p, '#cmp-pop-text'));
   check('compare: AC-6 no percentile is claimed below the minimum', !/percentile/.test(await text(p, '#cmp-pop-text')));
   check('compare: imported pack is listed with its label', /Shop A/.test(await text(p, '#cmp-packs')));
@@ -145,10 +168,31 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('compare: AC-8 importing twice adds no second pack', (await p.evaluate(() => window.__cmp.packs.length)) === 1);
 
   // AC-9 remove, then a larger pack gives a percentile
-  await p.click('[aria-label="Remove pack Shop A"]');
+  await p.focus('[aria-label="Remove pack Shop A"]');
+  await p.keyboard.press('Enter');
   await p.waitForSelector('#cmp-no-packs');
   check('compare: AC-9 removing a pack deletes it and recomputes', /Percentiles were recomputed/.test(await text(p, '#cmp-status')) && /Import a pack/.test(await text(p, '#cmp-pop-empty')));
-  await p.evaluate(() => { window.__cmp.contributors = 41; });
+  await p.waitForFunction(() => document.activeElement?.id === 'cmp-import', null, { timeout: 2000 }).catch(() => {});
+  check('regression: compare focus moves to Import (not <body>) after the last pack is removed', await p.evaluate(() => document.activeElement?.id === 'cmp-import'), await p.evaluate(() => document.activeElement?.id || document.activeElement?.tagName));
+
+  // 12 contributors: a median only, no P10-P90 band; a truncated query is named
+  await p.evaluate(() => { window.__cmp.contributors = 12; window.__cmp.truncated = true; });
+  await p.click('#cmp-import');
+  await p.click('#cmp-imp-confirm');
+  await p.waitForFunction(() => /Not enough data \(12 of 20\)/.test(document.querySelector('#cmp-pop-text')?.textContent || ''));
+  check('regression: compare AC-6 between 8 and 19 contributors the strip shows a median, no P10/P90', (await p.locator('#cmp-strip .cmp-band').count()) === 0 && (await p.locator('#cmp-strip .cmp-median').count()) === 1
+    && !/P10|P90/.test(await p.locator('#cmp-strip').innerHTML()));
+  check('regression: compare a truncated population query shows a visible notice', await p.locator('#cmp-pop-truncated').isVisible() && /Only the first 100,000 reference rows were read/.test(await text(p, '#cmp-pop-truncated')));
+  await p.click('[aria-label="Remove pack pack-fixture"]');
+  await p.waitForSelector('#cmp-no-packs');
+  await p.evaluate(() => { window.__cmp.truncated = false; window.__cmp.manyCounts = 5000; });
+  await p.click('#cmp-import');
+  await p.waitForSelector('#cmp-imp-confirm');
+  check('regression: compare AC-5 the import preview renders at most 50 model/metric rows', (await p.locator('#cmp-imp-table tbody tr').count()) === 51 && /4,950 more model\/metric pairs/.test(await text(p, '#cmp-imp-more')));
+  check('regression: compare the long preview keeps the dialog actions reachable', await p.locator('#cmp-imp-confirm').isVisible());
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => !document.querySelector('dialog[open]'));
+  await p.evaluate(() => { window.__cmp.manyCounts = 0; window.__cmp.contributors = 41; });
   await p.click('#cmp-import');
   await p.click('#cmp-imp-confirm');
   await p.waitForFunction(() => /percentile of 41 contributors/.test(document.querySelector('#cmp-pop-text')?.textContent || ''));
@@ -162,7 +206,9 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p.evaluate(() => { window.__cmp.fail = 'pack_preview'; window.__cmp.failWith = { code: 'unsupported_version', message: 'Pack version 3 needs a different version of DeckChek', rows: [] }; });
   await p.click('#cmp-import');
   await p.waitForFunction(() => /Pack version 3 needs a different version/.test(document.querySelector('#cmp-status')?.textContent || ''));
-  check('compare: unsupported pack version shows a typed, friendly error', (await p.locator('#cmp-status [role="alert"]').count()) === 1);
+  await p.waitForFunction(() => /Pack version 3 needs a different version/.test(document.querySelector('#sr-assertive')?.textContent || ''));
+  check('compare: unsupported pack version shows a typed, friendly error, announced once and assertively', (await p.locator('#cmp-status .banner-fail').count()) === 1
+    && (await p.locator('#cmp-status [role], #cmp-status [aria-live]').count()) === 0 && !/Pack version 3/.test(await p.evaluate(() => document.querySelector('#sr-polite')?.textContent || '')));
   await p.evaluate(() => { window.__cmp.failWith = { code: 'invalid_rows', message: '2 row(s) are not valid, so the pack was not imported', rows: [{ row: 3, reason: 'value is outside the plausible range' }] }; });
   await p.click('#cmp-import');
   await p.waitForFunction(() => /Row 3: value is outside the plausible range/.test(document.querySelector('#cmp-status')?.textContent || ''));
@@ -192,6 +238,15 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p.click('#cmp-reset-token');
   await p.waitForFunction(() => /token reset/i.test(document.querySelector('#cmp-status')?.textContent || ''));
   check('compare: resetting the contributor token stores a new one', (await p.evaluate(() => window.__cmp.state['population.contributor'])) !== token);
+
+  // spec section 3: "C opens Compare on a focused result row" (rows opt in with data-compare-asset / data-compare-metric)
+  await p.click('.rail-item:not([data-screen="compare"])');
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === true);
+  await p.evaluate(() => { const row = document.createElement('div'); row.id = 'smoke-result-row'; row.tabIndex = 0; row.textContent = 'Wow and flutter 0.18 %'; row.dataset.compareAsset = 'a-2'; row.dataset.compareMetric = 'wow_flutter_rms_percent'; document.querySelector('#main').prepend(row); row.focus(); });
+  await p.keyboard.press('c');
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-2');
+  check('regression: compare the C shortcut opens Compare on the focused result row', await p.evaluate(() => document.querySelector('#cmp-asset').value === 'a-2' && document.querySelector('#cmp-metric').value === 'wow_flutter_rms_percent' && document.querySelector('#cmp-tab-spec').getAttribute('aria-selected') === 'true'));
+  await p.evaluate(() => document.querySelector('#smoke-result-row')?.remove());
 
   // themes, a11y, phone width
   const audit = await a11yAudit(p);

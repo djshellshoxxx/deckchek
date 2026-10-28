@@ -142,11 +142,44 @@ export function compareToSpec(measurement, spec, { limit } = {}) {
   if (!measurement || !Number.isFinite(measurement.value)) return { status: 'no-measurement', reason: 'There is no measured value to compare.' };
   if (!spec || typeof spec !== 'object') return { status: 'no-spec', reason: 'No published spec for this metric.' };
   if (limit !== 'max' && limit !== 'min') return { status: 'no-limit', reason: 'This metric has no spec direction, so a margin cannot be shown.' };
-  if (typeof spec.value !== 'number' || !Number.isFinite(spec.value)) return { status: 'not-numeric', reason: 'The published spec is not a single number.' };
+  const specValue = specNumber(spec.value);
+  if (specValue === null) return { status: 'not-numeric', reason: 'The published spec is not a single number.' };
   const a = unitWord(measurement.unit), b = unitWord(spec.unit);
   if (!a || !b || a !== b) return { status: 'unit-mismatch', reason: `The spec is in ${spec.unit || 'no unit'} but the measurement is in ${measurement.unit || 'no unit'}; DeckChek does not convert.` };
-  const margin = limit === 'max' ? spec.value - measurement.value : measurement.value - spec.value;
-  return { status: 'ok', limit, specValue: spec.value, unit: measurement.unit, value: measurement.value, margin, within: margin >= 0, confidence: spec.confidence ?? null, source: spec.source ?? null, tolerance: spec.tolerance ?? null };
+  const margin = limit === 'max' ? specValue - measurement.value : measurement.value - specValue;
+  return { status: 'ok', limit, specValue, unit: measurement.unit, value: measurement.value, margin, within: margin >= 0, confidence: spec.confidence ?? null, source: spec.source ?? null, tolerance: spec.tolerance ?? null };
+}
+
+/** A profile spec value as one finite number: a number, or a string that is exactly one plain decimal ("0.025"); else null. */
+function specNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string' || value.length > 32) return null;
+  const text = value.trim();
+  if (!/^[-+]?(\d+(\.\d*)?|\.\d+)$/.test(text)) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+
+const unitExact = unit => String(unit ?? '').trim().replace(/\s+/g, ' ');
+
+/**
+ * AC-1 for a whitelisted metric: compare only when the metric definition (population-metrics.json) says this spec key,
+ * in this exact unit, measures the same quantity DeckChek measures (`specComparable: {specKey: [units]}`). A weighted
+ * WRMS figure is not an unweighted RMS proxy, and time to full speed is not time to 90% of the envelope, so those are
+ * refused with the definition's `specNote` instead of an INSIDE/OUTSIDE verdict.
+ * -> compareToSpec result | {status:'different-quantity', reason}
+ */
+export function compareMetricToSpec(measurement, spec, def) {
+  const limit = def?.specLimit;
+  if (!spec || typeof spec !== 'object') return compareToSpec(measurement, spec, { limit });
+  const comparable = def?.specComparable && typeof def.specComparable === 'object' && Object.hasOwn(def.specComparable, spec.key) ? def.specComparable[spec.key] : null;
+  if (!Array.isArray(comparable) || !comparable.map(unitExact).includes(unitExact(spec.unit))) {
+    const shown = specNumber(spec.value) ?? (typeof spec.value === 'string' ? spec.value.slice(0, 40) : null);
+    const published = shown === null ? '' : ` Published figure, for reference only: ${shown}${spec.unit ? ` ${String(spec.unit).slice(0, 40)}` : ''}.`;
+    const why = typeof def?.specNote === 'string' && def.specNote ? def.specNote : 'The published figure is not the same quantity DeckChek measures for this metric, so no verdict is shown.';
+    return { status: 'different-quantity', reason: `${why}${published}` };
+  }
+  return compareToSpec(measurement, spec, { limit });
 }
 
 /** Latest value per asset from rows [{assetId, value, at, ...}] (ties on `at` keep the later row). */
@@ -212,8 +245,8 @@ export function describeComparison(comparison, measurement) {
 }
 
 /**
- * Geometry for the strip plot (spec section 3): x positions in 0..width for each dot, the P10/P50/P90 band and the
- * user's marker. Pure, so the layout is testable. Nothing is dropped: the axis grows to include every dot and the marker.
+ * Geometry for the strip plot (spec section 3): x positions in 0..width for each dot, the median (from 8 contributors),
+ * the P10/P50/P90 band (only once a percentile is allowed) and the user's marker. Pure, so the layout is testable. Nothing is dropped: the axis grows to include every dot and the marker.
  */
 export function stripPlot(comparison, value, { width = 560 } = {}) {
   const dots = comparison?.dots ?? [];
@@ -225,10 +258,14 @@ export function stripPlot(comparison, value, { width = 560 } = {}) {
   lo -= pad; hi += pad;
   const x = v => Math.round(((v - lo) / (hi - lo)) * width * 100) / 100;
   const s = comparison?.summary;
+  // Spec section 6: from 8 contributors a median only; the P10-P90 band is a percentile and needs the full minimum.
+  const median = s && Number.isFinite(s.median) ? x(s.median) : null;
+  const percentiles = median !== null && comparison.status !== 'insufficient' && comparison.contributors >= N_MIN_PERCENTILE;
   return {
     lo, hi,
     dots: dots.map(d => ({ x: x(d.value), value: d.value, outlier: d.outlier })),
-    band: s ? { p10: x(s.p10), p50: x(s.median), p90: x(s.p90) } : null,
+    median,
+    band: percentiles ? { p10: x(s.p10), p50: median, p90: x(s.p90) } : null,
     marker: Number.isFinite(value) ? x(value) : null,
   };
 }

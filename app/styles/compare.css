@@ -37,6 +37,7 @@
 .cmp-dialog { max-width: min(720px, 94vw); }
 .cmp-cells { display: grid; gap: 4px; max-height: 220px; overflow: auto; padding: 4px 0; }
 .cmp-cell { display: flex; gap: 10px; align-items: center; min-height: 32px; cursor: pointer; }
+.cmp-imp-wrap { max-height: 320px; overflow: auto; }
 .cmp-json { margin: 0; max-height: 240px; overflow: auto; padding: 10px 12px; border: 1px solid var(--divider); border-radius: var(--r-md); background: var(--sunken); font: 12px/1.45 var(--font-mono, monospace); white-space: pre-wrap; word-break: break-word; }
 @media (max-width: 640px) {
   .cmp-pickers .field { max-width: none; }
