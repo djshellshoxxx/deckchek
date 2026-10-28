@@ -2,7 +2,7 @@
 // alignment, report exports and workspace import/export.
 
 import { buildHtmlReport, compareRuns, normalizeMeasurement } from '../core.js';
-import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson } from '../export.js';
+import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson, sanitizeImportedRun } from '../export.js';
 import { store, workspace, saveWorkspace, emit, settings } from './state.js';
 import { isEnabled } from '../features.js';
 import { download, slug, isNative } from './dom.js';
@@ -90,7 +90,7 @@ export function exportRunHtml(run) {
 /** Export PDF is offered only while features.pdfExport is on. */
 export const pdfExportEnabled = () => isEnabled('pdfExport');
 
-const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report', latency: 'Latency report', stylus: 'Stylus wear report', wearMap: 'Wear map report', scratch: 'Scratch test report', hum: 'Hum report', venue: 'Venue report' };
+const PDF_LABEL = { run: 'Report', device: 'Device report', systemHealth: 'System Health report', pregig: 'Pre-gig report', latency: 'Latency report', stylus: 'Stylus wear report', wearMap: 'Wear map report', scratch: 'Scratch test report', hum: 'Hum report', venue: 'Venue report', jobSheet: 'Job sheet', boothSheet: 'Booth sheet', certificate: 'Certificate' };
 
 /** FS-00 §3 save toast actions: [Open] and [Show in folder] for the file just written (desktop only). */
 export function savedActions(path) {
@@ -175,7 +175,11 @@ export function exportWorkspace() {
   download('deckchek-workspace.json', serializeWorkspaceJson({ equipment: workspace.equipment, runs: workspace.runs }), 'application/json');
 }
 export async function importWorkspace(file) {
-  const data = parseWorkspaceJson(await file.text());
+  const parsed = parseWorkspaceJson(await file.text());
+  // Untrusted file: keep only object entries with a string id, shaped like the app's own runs, so a
+  // damaged import cannot be saved to localStorage and break every later start (AUD-JS-01).
+  const runs = parsed.runs.filter(r => r && typeof r === 'object' && typeof r.id === 'string' && r.id.trim()).map(sanitizeImportedRun);
+  const data = { ...parsed, equipment: parsed.equipment.filter(e => e && typeof e === 'object' && !Array.isArray(e)), runs };
   workspace.equipment = data.equipment;
   workspace.runs = data.runs;
   saveWorkspace();

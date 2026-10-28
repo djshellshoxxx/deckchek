@@ -64,7 +64,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'latency-off'));
+  errors.push(watchConsole(po, 'latency-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('latency: flag off hides the Latency screen', (await po.locator('.rail-item[data-screen="latency"]').count()) === 0);
@@ -74,7 +74,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await bctx.addInitScript(FLAG_ON);
   const pb = await bctx.newPage();
-  errors.push(...watchConsole(pb, 'latency-browser'));
+  errors.push(watchConsole(pb, 'latency-browser'));
   await pb.goto(base);
   await pb.waitForSelector('.rail-item[data-screen="latency"]');
   await pb.click('.rail-item[data-screen="latency"]');
@@ -89,7 +89,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await ctx.addInitScript(tauriMock); await ctx.addInitScript(latencyMock); await ctx.addInitScript(FLAG_ON);
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'latency'));
+  errors.push(watchConsole(page, 'latency'));
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="latency"]');
   await page.click('.rail-item[data-screen="latency"]');
@@ -252,5 +252,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   await shot(page, 'latency-measure-narrow-light');
   check('latency: no horizontal overflow at 760 px', await page.evaluate(() => { const m = document.getElementById('main'); return m.scrollWidth <= m.clientWidth + 1; }));
   await ctx.close();
-  return errors;
+  return errors.flat();
 }
