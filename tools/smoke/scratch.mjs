@@ -62,7 +62,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ---- flag off ----
   const offCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const off = await offCtx.newPage();
-  errors.push(...watchConsole(off, 'scratch-off'));
+  errors.push(watchConsole(off, 'scratch-off'));
   await off.goto(base); await off.waitForSelector('.rail-item');
   check('scratch: flag off hides the rail entry', (await off.locator('.rail-item[data-screen="scratch"]').count()) === 0);
   await offCtx.close();
@@ -71,7 +71,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'dark' });
   await bctx.addInitScript(FLAG_ON);
   const bp = await bctx.newPage();
-  errors.push(...watchConsole(bp, 'scratch-browser'));
+  errors.push(watchConsole(bp, 'scratch-browser'));
   await bp.goto(base); await bp.waitForSelector('.rail-item[data-screen="scratch"]');
   await bp.click('.rail-item[data-screen="scratch"]');
   await bp.waitForSelector('#screen-scratch:not([hidden]) #sc-start');
@@ -96,7 +96,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await ctx.addInitScript(FLAG_ON);
   await ctx.addInitScript(tauriMock);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'scratch'));
+  errors.push(watchConsole(page, 'scratch'));
   await page.clock.install();
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="scratch"]');
@@ -237,5 +237,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('scratch: delete removes a run after confirmation', true);
 
   await ctx.close();
-  return errors;
+  return errors.flat();
 }

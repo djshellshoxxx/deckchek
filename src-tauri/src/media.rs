@@ -425,28 +425,43 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn media_profiles_sync(app: AppHandle, profiles: Vec<Value>) -> Result<SyncSummary, String> {
-    with_db(&app, |c| sync_profiles(c, &profiles))
+pub async fn media_profiles_sync(app: AppHandle, profiles: Vec<Value>) -> Result<SyncSummary, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| sync_profiles(c, &profiles))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn media_list(app: AppHandle, include_retired: Option<bool>) -> Result<Vec<Value>, String> {
-    with_db(&app, |c| list(c, include_retired.unwrap_or(false)))
+pub async fn media_list(app: AppHandle, include_retired: Option<bool>) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| list(c, include_retired.unwrap_or(false)))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn media_custom_save(app: AppHandle, profile: Value) -> Result<Value, String> {
-    with_db(&app, |c| custom_save(c, &profile).map(|id| json!({ "id": id })))
+pub async fn media_custom_save(app: AppHandle, profile: Value) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| custom_save(c, &profile).map(|id| json!({ "id": id })))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn media_custom_delete(app: AppHandle, id: String) -> Result<(), String> {
-    with_db(&app, |c| custom_delete(c, &id).map(|_| ()))
+pub async fn media_custom_delete(app: AppHandle, id: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| custom_delete(c, &id).map(|_| ()))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn media_owned_set(app: AppHandle, media_id: String, owned: bool) -> Result<(), String> {
-    with_db(&app, |c| owned_set(c, &media_id, owned))
+pub async fn media_owned_set(app: AppHandle, media_id: String, owned: bool) -> Result<(), String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| owned_set(c, &media_id, owned))
+    })
+    .await?
 }
 
 #[cfg(test)]

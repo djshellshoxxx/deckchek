@@ -28,7 +28,7 @@ export default async function run({ browser, base, check }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(tauriMock); await ctx.addInitScript(pairsMock); await ctx.addInitScript(FLAGS);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'inputpairs'));
+  errors.push(watchConsole(page, 'inputpairs'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   const opts = sel => page.locator(`${sel} option`).evaluateAll(os => os.map(o => o.textContent));
@@ -109,5 +109,5 @@ export default async function run({ browser, base, check }) {
   await setViewport(page, { width: 420, height: 900 });
   check('pairs: no horizontal scroll at phone width with the pair box', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
   await ctx.close();
-  return errors;
+  return errors.flat();
 }

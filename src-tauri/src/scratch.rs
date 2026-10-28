@@ -361,27 +361,39 @@ pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn scratch_save(app: AppHandle, run: ScratchRunInput) -> Result<ScratchRun, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save(&mut conn, &run)
+pub async fn scratch_save(app: AppHandle, run: ScratchRunInput) -> Result<ScratchRun, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save(&mut conn, &run)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn scratch_list(app: AppHandle, filter: Option<ScratchFilter>) -> Result<Vec<ScratchRun>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &filter.unwrap_or_default())
+pub async fn scratch_list(app: AppHandle, filter: Option<ScratchFilter>) -> Result<Vec<ScratchRun>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &filter.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn scratch_get(app: AppHandle, id: String) -> Result<Option<ScratchRunDetail>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn scratch_get(app: AppHandle, id: String) -> Result<Option<ScratchRunDetail>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn scratch_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn scratch_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
