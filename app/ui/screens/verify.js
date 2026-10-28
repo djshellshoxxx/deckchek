@@ -97,7 +97,8 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
         h('span', { class: 'cert-badge', id: 'verify-badge', 'data-status': badge.status }, h('span', { 'aria-hidden': 'true', class: 'cert-badge-icon', text: badge.icon }), h('span', { text: badge.label })),
         badge.expired ? h('span', { class: 'cert-badge cert-badge-expired', id: 'verify-expired', 'data-status': 'expired' }, h('span', { 'aria-hidden': 'true', class: 'cert-badge-icon', text: '⏱' }), h('span', { text: 'EXPIRED' })) : ''),
       rep.fingerprint ? h('p', {}, h('span', { text: 'Signer key fingerprint: ' }), h('b', { class: 'cert-fp', id: 'verify-fp', text: String(rep.fingerprint).replace(/(.{4})(?=.)/g, '$1 ') }),
-        h('span', { class: 'small muted', text: rep.issuedByThisInstall ? ' (issued by this DeckChek install)' : ' — compare it with the fingerprint the seller gave you separately.' })) : '',
+        // Only a verified file may claim this install as its issuer: the fingerprint in a MODIFIED file is unchecked.
+        h('span', { class: 'small muted', text: rep.status === 'valid' && rep.issuedByThisInstall === true ? ' (issued by this DeckChek install)' : ' — compare it with the fingerprint the seller gave you separately.' })) : '',
       h('ul', { class: 'cert-reasons', id: 'verify-reasons' }, ...(rep.reasons || []).map(r => h('li', { text: r }))),
       diff.length ? h('div', { id: 'verify-diff' }, h('h3', { text: 'Changed since this install signed it' }), h('ul', { class: 'cert-list' }, ...diff.map(p => h('li', { text: p })))) : '',
       dl,
