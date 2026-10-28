@@ -261,7 +261,8 @@ function certsHtml(it, idx, { certLinks }) {
 <dt>Key fingerprint</dt><dd><code>${esc(c.fingerprint || '')}</code></dd><dt>Content SHA-256</dt><dd><code>${esc(c.sha256)}</code></dd><dt>Made with</dt><dd>DeckChek ${esc(c.toolVersion || '')}</dd></dl>
 <p><button type="button" data-verify="${idx}:${n}" aria-controls="${rid}" hidden>Verify certificate</button>${SAFE_HREF.test(href) ? ` <a href="${esc(href)}" download>Certificate file (JSON)</a>` : ''}</p>
 <p class="result" id="${rid}" role="status" aria-live="polite"></p>
-${json.length <= MAX_INLINE_CERT_CHARS ? `<details><summary>Certificate JSON</summary><pre>${esc(json)}</pre></details>` : '<p class="muted">The certificate JSON is too large to show here; use the certificate file.</p>'}</div>`;
+${json.length <= MAX_INLINE_CERT_CHARS ? `<details><summary>Certificate JSON</summary><pre>${esc(json)}</pre></details>` : (href ? '<p class="muted">The certificate JSON is too large to show here; use the certificate file.</p>'
+    : '<p class="muted">The certificate JSON is too large to show here. It is embedded in this page, so Verify can still check it.</p>')}</div>`;
   }).join('');
   return `<section aria-labelledby="ct-${idx}"><h3 id="ct-${idx}">Test certificates</h3>${blocks}</section>`;
 }

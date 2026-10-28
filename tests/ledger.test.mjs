@@ -351,7 +351,8 @@ test('privacy summary lists every field with counts, photos, certificates and wa
   const r = await buildLedger(seededState(), ALL, rules, OPTS);
   const s = privacySummary(r.ledger, rules);
   assert.equal(s.items, 2);
-  assert.equal(s.photos, 3);
+  assert.equal(s.itemPhotos, 3);
+  assert.equal(s.photos, 4, 'the total includes the photo inside the signed certificate (FS-33 review)');
   assert.equal(s.certificates, 1);
   assert.equal(s.fields.find(f => f.key === 'serial').detail, '2 full, 0 masked, 0 hidden');
   assert.equal(s.fields.find(f => f.key === 'notes').items, 0);

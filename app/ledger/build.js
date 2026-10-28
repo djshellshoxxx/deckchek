@@ -13,7 +13,7 @@
 //
 // Output files (folder mode, under `ledger/`): index.html, ledger.json, assets/<itemId>/pN.jpg and
 // certificates/c-<hash12>.deckchek-cert.json. Single-file mode: one HTML with photos as data URIs, only while all
-// photos together stay under SINGLE_FILE_MAX_BYTES (spec §10).
+// photos (as base64) and certificates (as JSON, their photos included) together stay under SINGLE_FILE_MAX_BYTES (spec §10).
 
 import { applyPrivacy, effectiveRules, normalizeRules, privacySummary, scrubText, stripJpegMetadata, PATH_PLACEHOLDER } from './privacy.js';
 import { canonicalJson, ledgerItemsSha256, sha256Hex, sha256HexSync, stableJsonText } from './hash.js';
@@ -26,7 +26,8 @@ export const LEDGER_DIR = 'ledger';
 export const LEDGER_EXTS = Object.freeze(['html', 'json', 'jpg']);
 export const SINGLE_FILE_MAX_BYTES = 5 * 1024 * 1024;
 export const LIMITS = Object.freeze({ maxItems: 500, maxPhotosPerItem: 24, maxServicePerItem: 200, maxCertificatesPerItem: 20, maxCertificateChars: 20 * 1024 * 1024 });
-export const SERVICE_LABELS = Object.freeze({ clean: 'Cleaned', lubricate: 'Lubricated', calibrate: 'Calibrated', repair: 'Repaired', replace_part: 'Part replaced', inspect: 'Inspected', other: 'Other maintenance' });
+// Every maintenance_event type the app writes: the FS-23 log types plus FS-12's stylus replacement.
+export const SERVICE_LABELS = Object.freeze({ clean: 'Cleaned', lubricate: 'Lubricated', calibrate: 'Calibrated', repair: 'Repaired', replace_part: 'Part replaced', inspect: 'Inspected', stylus_replaced: 'Stylus replaced', other: 'Other maintenance' });
 
 export class LedgerError extends Error {
   constructor(code, message) { super(message); this.name = 'LedgerError'; this.code = code; }
@@ -34,6 +35,7 @@ export class LedgerError extends Error {
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const arr = v => (Array.isArray(v) ? v : []);
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const isoOrNull = v => (typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null);
 
 /** Stable, opaque ledger id for an asset (no internal ids in file names or the public JSON). */
@@ -56,8 +58,14 @@ function serviceEntries(rows, withNotes) {
   }).filter(Boolean).sort((a, b) => a.at.localeCompare(b.at) || a.type.localeCompare(b.type) || (a.description || '').localeCompare(b.description || '')).slice(-LIMITS.maxServicePerItem);
 }
 
-/** A stored FS-20 certificate -> ledger entry with the signed file embedded unchanged, or {skip: reason}. */
-export async function certificateEntry(row) {
+/** Photos a signed certificate carries (payload.unit.photos); they cannot be removed without breaking verification. */
+export const certificatePhotos = signed => arr(signed?.payload?.unit?.photos).filter(isObj);
+
+/**
+ * A stored FS-20 certificate -> ledger entry with the signed file embedded unchanged, or {skip: reason}.
+ * `photos: false` (the item's Photos toggle is off) leaves out a certificate that carries photos.
+ */
+export async function certificateEntry(row, { photos = true } = {}) {
   const text = typeof row?.fileJson === 'string' ? row.fileJson : null;
   if (!text) return { skip: 'the stored certificate has no file' };
   if (text.length > LIMITS.maxCertificateChars) return { skip: 'the certificate is larger than 20 MB' };
@@ -70,6 +78,8 @@ export async function certificateEntry(row) {
   try { hash = await sha256Hex(canonicalJson(file.payload)); } catch { return { skip: 'the certificate payload cannot be hashed' }; }
   if (hash !== i.contentHash) return { skip: 'the stored certificate no longer matches its content hash' };
   const p = isObj(file.payload) ? file.payload : {};
+  const pics = certificatePhotos(file).length;
+  if (!photos && pics) return { skip: `it holds ${pics} photo${pics === 1 ? '' : 's'} and Photos is off for this item` };
   const entry = {
     id: `c-${i.contentHash.slice(0, 12)}`, kind: 'deckchek-certificate', issuedAt: String(p.issuedAt ?? ''), validUntil: String(p.validUntil ?? ''),
     verdict: String(p.verdict ?? ''), sha256: i.contentHash, fingerprint: String(i.fingerprint ?? ''), toolVersion: String(p.deckchekVersion ?? ''),
@@ -93,8 +103,10 @@ export async function ledgerPhoto(bytes, { reencode } = {}) {
  * Throws LedgerError('empty') with nothing selected, ('single_file_too_large') in single-file mode over the limit.
  */
 export async function buildLedger(state, selection, privacy, { revision = 1, generatedAt = new Date().toISOString(), mode = 'folder', reencode } = {}) {
-  const rules = normalizeRules(privacy);
   const ids = [...new Set(arr(selection?.items).filter(id => typeof id === 'string'))];
+  // Only the selected units' overrides matter; entries left over from earlier selections must never use up the cap.
+  const raw = isObj(privacy) && isObj(privacy.items) ? { ...privacy, items: Object.fromEntries(ids.filter(id => own(privacy.items, id)).map(id => [id, privacy.items[id]])) } : privacy;
+  const rules = normalizeRules(raw);
   const assets = ids.map(id => arr(state?.assets).find(a => a?.id === id)).filter(Boolean).filter(a => rules.items[a.id]?.include !== false);
   if (!assets.length) throw new LedgerError('empty', 'Pick at least one item for the ledger.');
   if (assets.length > LIMITS.maxItems) throw new LedgerError('too_many', `A ledger holds at most ${LIMITS.maxItems} items.`);
@@ -126,7 +138,7 @@ export async function buildLedger(state, selection, privacy, { revision = 1, gen
     if (fields.service) item.service = serviceEntries(state?.service?.[asset.id], fields.serviceNotes);
     if (fields.certificates) {
       for (const row of arr(state?.certificates?.[asset.id]).slice(0, LIMITS.maxCertificatesPerItem)) {
-        const c = await certificateEntry(row);
+        const c = await certificateEntry(row, { photos: fields.photos });
         if (c.skip) skipped.push({ item: title, what: 'certificate', reason: c.skip });
         else if (!item.certificates.some(x => x.id === c.entry.id)) item.certificates.push(c.entry);
       }
@@ -152,11 +164,14 @@ export async function buildLedger(state, selection, privacy, { revision = 1, gen
   if (rules.ownerName) ledger.owner = { displayName: rules.ownerName };
   const jsonText = stableJsonText(ledger);
   const photoBytes = [...photoFiles.values()].flat().reduce((n, f) => n + f.bytes.length, 0);
-  const singleFileOk = Math.ceil(photoBytes / 3) * 4 <= SINGLE_FILE_MAX_BYTES;
+  // A single file embeds the photos as base64 and every certificate (its own photos included) as JSON text.
+  const certificateChars = items.reduce((n, it) => n + (it.certificates || []).reduce((m, c) => m + JSON.stringify(c.signed).length, 0), 0);
+  const embeddedBytes = Math.ceil(photoBytes / 3) * 4 + certificateChars;
+  const singleFileOk = embeddedBytes <= SINGLE_FILE_MAX_BYTES;
   const summary = { ...privacySummary(ledger, rules), altGenerated: altWarnings.length, skipped: skipped.length };
   let html, files;
   if (mode === 'single') {
-    if (!singleFileOk) throw new LedgerError('single_file_too_large', `The photos add up to ${(photoBytes / 1048576).toFixed(1)} MB; a single-file ledger embeds at most ${SINGLE_FILE_MAX_BYTES / 1048576} MB. Export a folder instead, or include fewer photos.`);
+    if (!singleFileOk) throw new LedgerError('single_file_too_large', `The photos and certificates add up to ${(embeddedBytes / 1048576).toFixed(1)} MB; a single-file ledger embeds at most ${SINGLE_FILE_MAX_BYTES / 1048576} MB. Export a folder instead, or include fewer photos or certificates.`);
     const uris = new Map([...photoFiles.values()].flat().map(f => [f.path, `data:image/jpeg;base64,${bytesToBase64(f.bytes)}`]));
     html = renderLedgerHtml(ledger, { photoSrc: p => uris.get(p.path) });
     files = [{ relPath: 'index.html', text: html }];
@@ -166,7 +181,7 @@ export async function buildLedger(state, selection, privacy, { revision = 1, gen
     for (const list of photoFiles.values()) for (const f of list) files.push({ relPath: `${LEDGER_DIR}/${f.path}`, base64: bytesToBase64(f.bytes) });
     for (const it of items) for (const c of it.certificates || []) files.push({ relPath: `${LEDGER_DIR}/certificates/${c.id}.deckchek-cert.json`, text: `${JSON.stringify(c.signed, null, 2)}\n` });
   }
-  return { ledger, jsonText, html, files, summary, skipped, photoBytes, singleFileOk, photoFiles };
+  return { ledger, jsonText, html, files, summary, skipped, photoBytes, embeddedBytes, singleFileOk, photoFiles };
 }
 
 /** In-app preview HTML: photos inline as data URIs, light or dark forced (spec §3 step 3). */
