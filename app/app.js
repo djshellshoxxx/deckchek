@@ -50,6 +50,7 @@ import { fleetScreenDefs } from './ui/screens/fleet.js';
 import { phoneImportScreenDefs } from './ui/workflows/import-phone.js';
 // [FS-31] screens imports
 // [FS-32] screens imports
+import { mapperScreenDefs } from './ui/screens/mapper.js';
 // [FS-33] screens imports
 
 bindSettings(settings); // keeps feature-flag changes from being overwritten by the settings store (FS-00 §4.14)
@@ -93,6 +94,7 @@ const SCREENS = [
   ...phoneImportScreenDefs(),
   // [FS-31] screens
   // [FS-32] screens
+  ...mapperScreenDefs(),
   // [FS-33] screens
 ];
 

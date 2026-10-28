@@ -59,6 +59,7 @@ mod fleet;
 // [FS-30] mods
 // [FS-31] mods
 // [FS-32] mods
+mod mapper;
 // [FS-33] mods
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -137,6 +138,7 @@ pub fn run() {
             // [FS-30] handlers
             // [FS-31] handlers
             // [FS-32] handlers
+            mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
             // [FS-33] handlers
         ])
         .setup(|_app| {
