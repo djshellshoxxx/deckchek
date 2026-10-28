@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "note": "FS-21 whitelist of metrics that may appear in a population pack. Anything not listed here is refused on export and import. Plausible ranges are generous sanity bounds, not specifications. higherIsBetter null means the metric has no ranking direction, so only the distribution is shown.",
+  "metrics": {
+    "left_thd_percent": { "label": "Left THD", "unit": "%", "plausible": [0, 100], "higherIsBetter": false, "specKeys": ["thd", "thd_n"], "specLimit": "max" },
+    "right_thd_percent": { "label": "Right THD", "unit": "%", "plausible": [0, 100], "higherIsBetter": false, "specKeys": ["thd", "thd_n"], "specLimit": "max" },
+    "channel_separation_db": { "label": "Channel separation", "unit": "dB", "plausible": [0, 120], "higherIsBetter": true, "specKeys": ["channel_separation", "separation"], "specLimit": "min" },
+    "wow_flutter_rms_percent": { "label": "Wow and flutter (RMS)", "unit": "%", "plausible": [0, 10], "higherIsBetter": false, "specKeys": ["wow_flutter"], "specLimit": "max" },
+    "left_hum_dbfs": { "label": "Left hum", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null },
+    "right_hum_dbfs": { "label": "Right hum", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null },
+    "vinyl_rumble_dbfs": { "label": "Rumble proxy", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null },
+    "dvs_integrity_score": { "label": "Timecode signal integrity", "unit": "/100", "plausible": [0, 100], "higherIsBetter": true, "specKeys": [], "specLimit": null },
+    "vinyl_condition_score": { "label": "Record condition score", "unit": "/100", "plausible": [0, 100], "higherIsBetter": true, "specKeys": [], "specLimit": null },
+    "dropout_count": { "label": "Dropout regions", "unit": "regions", "plausible": [0, 100000], "higherIsBetter": false, "specKeys": [], "specLimit": null },
+    "startup_envelope_90_sec": { "label": "Start-up time to 90%", "unit": "s", "plausible": [0, 120], "higherIsBetter": false, "specKeys": ["start_time"], "specLimit": "max" },
+    "quartz_speed_error_percent": { "label": "Quartz speed error", "unit": "%", "plausible": [-20, 20], "higherIsBetter": null, "specKeys": [], "specLimit": null },
+    "channel_balance_db": { "label": "Channel balance L-R", "unit": "dB", "plausible": [-40, 40], "higherIsBetter": null, "specKeys": [], "specLimit": null }
+  }
+}

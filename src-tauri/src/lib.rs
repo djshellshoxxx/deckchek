@@ -3,11 +3,14 @@ mod commands;
 mod audio;
 mod capture;
 mod db;
+#[cfg(test)]
+mod migration_m7_tests;
 mod devices;
 mod midi;
 mod system_check;
 pub mod domain;
 // [FS-00] mods
+mod selftest; // --self-test=<report.json>: packaged-artifact smoke test (CI release jobs)
 pub mod canonical;
 pub mod photo; // content-addressed photo store (FS-00 §4.11) // canonical JSON + SHA-256 (FS-00 §4.12); consumed by FS-20/30/33 jobs
 mod userfiles;
@@ -40,15 +43,27 @@ mod wearmap;
 mod scratch;
 // [FS-15] mods
 mod humrun;
+#[cfg(any(test, feature = "fuzzing"))]
+pub mod fuzz_api; // untrusted-input fuzz entry points (cargo-fuzz in src-tauri/fuzz, smoke in cargo test)
+#[cfg(test)]
+mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_tests -- --ignored
 #[cfg(test)]
 mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
 // [FS-20] mods
+pub mod signing; // per-install Ed25519 identity (DPAPI on Windows)
+pub mod certificate; // used-gear certificates: sign, verify, extract, store
 // [FS-21] mods
+mod pack;
 // [FS-22] mods
+mod service;
 // [FS-23] mods
+mod fleet;
 // [FS-30] mods
 // [FS-31] mods
+mod monitor;
+mod tray;
 // [FS-32] mods
+mod mapper;
 // [FS-33] mods
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -110,13 +125,29 @@ pub fn run() {
             scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
             // [FS-15] handlers
             humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
+            selftest::self_test_mode, selftest::self_test_report,
             // [FS-20] handlers
+            signing::signing_get_identity, signing::signing_create_identity,
+            certificate::certificate_sign, certificate::certificate_verify, certificate::certificate_extract_json,
+            certificate::certificate_store, certificate::certificate_list, certificate::certificate_get,
             // [FS-21] handlers
+            pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
+            pack::population_query, pack::population_unit_values,
             // [FS-22] handlers
+            service::job_create, service::job_get, service::job_list, service::job_update_fields, service::job_set_status,
+            service::job_add_log, service::job_attach_photo, service::job_link_results, service::job_comparison, service::job_delete,
+            service::customer_list, service::customer_update, service::customer_delete,
             // [FS-23] handlers
+            fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
+            fleet::maintenance_log, fleet::maintenance_list, fleet::booth_upsert, fleet::position_upsert,
+            fleet::fleet_location_delete,
+            fleet::reminder_template_upsert, fleet::reminder_apply_template,
             // [FS-30] handlers
             // [FS-31] handlers
+            monitor::monitor_session_start, monitor::monitor_log_append, monitor::monitor_session_end, monitor::monitor_session_list,
+            monitor::monitor_session_get, monitor::monitor_session_delete, monitor::monitor_prune, tray::monitor_set_tray_state,
             // [FS-32] handlers
+            mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
             // [FS-33] handlers
         ])
         .setup(|_app| {
@@ -148,11 +179,15 @@ pub fn run() {
             // [FS-22] setup
             // [FS-23] setup
             // [FS-30] setup
-            // [FS-31] setup
+            // [FS-31] setup: close crashed monitor sessions + retention prune (background thread); close-to-tray while monitoring
+            monitor::setup(_app.handle());
+            tray::setup(_app);
             // [FS-32] setup
             // [FS-33] setup
             // [FS-02] `--debug-crash` (debug builds, or DECKCHEK_ALLOW_DEBUG_CRASH=1): last, so the panic goes through every hook above
             diagnostics::debug_crash_if_requested(_app);
+            // `--self-test=<report.json>`: arms a watchdog; the UI runs its checks and reports back
+            selftest::setup();
             Ok(())
         })
         .build(tauri::generate_context!())

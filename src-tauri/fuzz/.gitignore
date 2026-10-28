@@ -1,0 +1,4 @@
+target/
+artifacts/
+coverage/
+# libFuzzer grows corpus/ while running; only the curated seeds are committed (see README.md).

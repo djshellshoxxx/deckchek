@@ -1,0 +1,78 @@
+{
+  "format": "deckchek-certificate",
+  "integrity": {
+    "alg": "ed25519",
+    "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+    "fingerprint": "3097e2dee2cb4a34",
+    "hashAlg": "sha256",
+    "publicKey": "IVL40Zt5HSRFMkLhXy6rbLfP+ntqXtMAl5YOBpiB2xI=",
+    "signature": "ma+LNq9uFxI1XcQ8JaaCkiYpivsJztF+FvSqvdjoF3DeVwxRdZ6cPf/nT3W8gHF/yP0gAtY4Wo8P4UtWok6xDQ=="
+  },
+  "payload": {
+    "deckchekVersion": "0.0.8",
+    "disclaimer": "This certificate proves the report was not changed after signing. It does not prove the tester measured honestly or that the unit has not changed since.",
+    "issuedAt": "2026-10-01T09:30:00.000Z",
+    "measurements": [
+      {
+        "calibration": {
+          "date": "2026-09-01T10:00:00.000Z",
+          "refId": "focusrite|48000",
+          "state": "calibrated"
+        },
+        "decision": "inside",
+        "label": "Speed error",
+        "methodKey": "audio:speed",
+        "methodVersion": 1,
+        "metricId": "measured_pitch_percent",
+        "referenceHigh": "0.1",
+        "referenceLow": "-0.1",
+        "testId": "crss12-speed",
+        "uncertainty": "0.02",
+        "unit": "%",
+        "value": "0.05"
+      }
+    ],
+    "plan": {
+      "profileId": "pioneer-plx-crss12",
+      "profileVersion": 3,
+      "testIds": [
+        "crss12-driver",
+        "crss12-speed"
+      ]
+    },
+    "results": [
+      {
+        "detail": "Pass: 1==1",
+        "status": "pass",
+        "testId": "crss12-driver",
+        "title": "Driver present"
+      },
+      {
+        "detail": "Pass: 0.05<=0.1",
+        "status": "pass",
+        "testId": "crss12-speed",
+        "title": "Platter speed"
+      }
+    ],
+    "schemaVersion": 1,
+    "tester": "Alex Tester",
+    "unit": {
+      "firmware": "1.02",
+      "model": "Pioneer DJ PLX-CRSS12",
+      "notes": "Light wear on the platter.",
+      "photos": [
+        {
+          "dataB64": "/9j/4AAQSkZJRgABAQ==",
+          "mime": "image/jpeg",
+          "name": "front.jpg",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "productId": "pioneer-plx-crss12",
+      "serial": "SN <001> & \"x\""
+    },
+    "validUntil": "2099-12-31T00:00:00.000Z",
+    "verdict": "pass"
+  },
+  "version": 1
+}
