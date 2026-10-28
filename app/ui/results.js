@@ -8,9 +8,25 @@ import { METRIC_INFO, metricStatus, verdictFor, SEV_STATUS } from './metrics.js'
 import { linePlot, envelopePlot, scopePlot, eventMapPlot } from './plots.js';
 import { showInspector } from './shell.js';
 import { localRun } from './state.js';
+import { isEnabled } from '../features.js';
+import { createPackApi } from '../pack-api.js';
+import { navigateTo } from './crosslinks.js';
 
 const pct = v => `${Math.round((v ?? 0) * 100)}%`;
 const unitText = u => (u === 'ratio' || u === 'code' || !u) ? '' : u;
+
+/** Compare accepts only actual attributed units and the same registered quantity shown by this row. */
+export function resultCompareParams(run, measurement, table, rows) {
+  const assetId = run?.assetId ?? run?.deviceId;
+  const metric = measurement?.metricId;
+  if (typeof assetId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(assetId)
+    || typeof metric !== 'string' || !Object.hasOwn(table?.metrics ?? {}, metric)) return null;
+  const def = table.metrics[metric];
+  if (!Number.isFinite(measurement.value) || measurement.unit !== def.unit
+    || (measurement.origin ?? 'measured') !== 'measured' || (measurement.qualityFlags ?? []).length) return null;
+  if (!rows?.some(r => r.assetId === assetId && r.metric === metric && r.unit === def.unit)) return null;
+  return { assetId, metric };
+}
 
 export function uncertaintyText(m) {
   const u = m?.uncertainty;
@@ -113,6 +129,24 @@ function evidenceSection(run) {
     tr.addEventListener('click', open);
     tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
   });
+  if (isEnabled('population')) {
+    const api = createPackApi();
+    if (api.native) Promise.all([api.metricTable(), api.unitValues()]).then(([registry, values]) => {
+      if (!isEnabled('population') || !wrap.isConnected) return;
+      wrap.querySelectorAll('tr[data-metric]').forEach(tr => {
+        const m = run.measurements.find(x => x.metricId === tr.dataset.metric);
+        const params = resultCompareParams(run, m, registry, values.rows);
+        if (!params) return;
+        tr.dataset.compareAsset = params.assetId; tr.dataset.compareMetric = params.metric;
+        const compare = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-result-compare': '',
+          text: 'Compare', 'aria-label': `Compare ${m.label}`, onclick: e => {
+            e.stopPropagation();
+            if (isEnabled('population')) navigateTo('compare', params);
+          }, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); } });
+        tr.querySelector('th').append(compare);
+      });
+    }).catch(() => { /* optional context: the result and its inspector remain usable if comparison data fails */ });
+  }
   table.append(wrap);
   section.append(table);
   return section;

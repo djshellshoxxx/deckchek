@@ -22,6 +22,7 @@ import { runMidi } from '../devices/midi-runner.js';
 // [FS-22] job mode imports
 import { isEnabled as featureEnabled } from '../../features.js';
 import { navigateTo } from '../crosslinks.js';
+import { createPackApi } from '../../pack-api.js';
 
 const RESULT_CHIP = { pass: ['pass', 'PASS'], fail: ['fail', 'FAIL'], unknown: ['review', 'REVIEW'], skipped: ['info', 'SKIPPED'] };
 export function statusChip(status, { size = 14 } = {}) {
@@ -208,6 +209,16 @@ export function createDevicesScreen(section) {
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export', disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export report</span>`, 'data-tooltip': 'Device report as HTML (Ctrl+E)', onclick: () => exportReport(p) }),
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export-pdf', hidden: pdfExportEnabled() ? null : true, disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export PDF</span>`, 'data-tooltip': 'Device report as PDF', onclick: e => exportPdf(p, e.currentTarget) }));
     if (unit && featureEnabled('service')) bar.append(repairButton(unit)); // [FS-22] Devices > Repair this unit
+    if (unit && featureEnabled('population')) {
+      const compare = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-compare', disabled: true,
+        text: 'How does my unit rank?', title: 'Requires a saved, comparable measurement for this unit.',
+        onclick: () => { if (featureEnabled('population')) navigateTo('compare', { assetId: unit.id }); } });
+      bar.append(compare);
+      const api = createPackApi();
+      if (api.native) api.unitValues().then(values => {
+        if (compare.isConnected && featureEnabled('population')) compare.disabled = !values.rows?.some(r => r.assetId === unit.id);
+      }).catch(() => { /* stays disabled until comparison data is available */ });
+    }
   }
 
   function plan(p, unit, latest) {
