@@ -37,6 +37,26 @@ const textarea = (attrs = {}) => h('textarea', { rows: 3, ...attrs });
 const errorBox = id => h('p', { class: 'svc-error', id, role: 'alert', hidden: true });
 function showError(box, msg) { box.textContent = msg || ''; box.hidden = !msg; if (msg) announce(msg, { assertive: true }); }
 
+/**
+ * True when a field under `root` holds input that has not been saved: changed text, chosen files and, with `choices`,
+ * changed checkboxes, radios and selects. Fields marked data-svc-no-dirty (saved as they change) are ignored.
+ */
+export function hasUnsavedInput(root, { choices = false } = {}) {
+  for (const el of root.querySelectorAll('input, textarea, select')) {
+    if (el.disabled || el.hasAttribute('data-svc-no-dirty')) continue;
+    if (el.tagName === 'SELECT') {
+      if (choices && el.selectedIndex !== Math.max(0, [...el.options].findIndex(o => o.defaultSelected))) return true;
+      continue;
+    }
+    const type = (el.type || 'text').toLowerCase();
+    if (type === 'checkbox' || type === 'radio') { if (choices && el.checked !== el.defaultChecked) return true; continue; }
+    if (type === 'file') { if (el.files?.length) return true; continue; }
+    if (['button', 'submit', 'reset', 'hidden', 'range'].includes(type)) continue;
+    if (el.value !== el.defaultValue) return true;
+  }
+  return false;
+}
+
 export function resultChip(status) {
   return chip(RESULT_CHIP[status] || 'info', RESULT_WORD[status] || String(status || '').toUpperCase(), { size: 14 });
 }
@@ -164,7 +184,7 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel }
   }
   form.addEventListener('submit', e => { e.preventDefault(); submit(); });
   host.replaceChildren(form);
-  return { submit, focus: () => (custMode.value === 'new' ? name : custSearch).focus() };
+  return { submit, focus: () => (custMode.value === 'new' ? name : custSearch).focus(), isDirty: () => hasUnsavedInput(form, { choices: true }) };
 }
 
 /** Prepares (re-encodes, strips metadata) and attaches files; resolves to the number that failed. */
@@ -192,7 +212,7 @@ export function renderIntakeStep(host, ctx) {
 
   const custCard = h('section', { class: 'card svc-card', 'aria-labelledby': 'svc-cust-title' }, h('h3', { class: 'card-title', id: 'svc-cust-title', text: 'Customer' }),
     cust ? dl([['Name', cust.name], ['Phone', cust.phone], ['Email', cust.email], ['Notes', cust.notes]]) : h('p', { class: 'muted', text: 'No customer recorded.' }),
-    h('p', { class: 'muted small', text: 'Kept on this computer only. Not included in backups you share, packs, ledgers or diagnostics.' }));
+    h('p', { class: 'muted small', id: 'svc-cust-privacy', text: 'Kept on this computer. Included in DeckChek backups, so store your backups privately. Excluded from workspace exports, packs, ledgers and diagnostics bundles.' }));
   if (cust) {
     const edit = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'svc-cust-edit', html: `${icon('edit', { size: 14 })}<span>Edit customer</span>` });
     edit.addEventListener('click', () => {
@@ -221,9 +241,10 @@ export function renderIntakeStep(host, ctx) {
   if (!readOnly) {
     const edit = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'svc-fields-edit', html: `${icon('edit', { size: 14 })}<span>Edit</span>` });
     edit.addEventListener('click', () => {
-      const f1 = textarea({ id: 'svc-e-fault', maxlength: LIMITS.fault, rows: 4 }); f1.value = job.reportedFault;
-      const f2 = textarea({ id: 'svc-e-condition', maxlength: LIMITS.condition }); f2.value = job.arrivalCondition || '';
-      const f3 = textarea({ id: 'svc-e-resolution', maxlength: LIMITS.resolution }); f3.value = job.resolution || '';
+      // defaultValue = the saved text, so Esc only asks before discarding real changes (hasUnsavedInput)
+      const f1 = textarea({ id: 'svc-e-fault', maxlength: LIMITS.fault, rows: 4 }); f1.defaultValue = job.reportedFault;
+      const f2 = textarea({ id: 'svc-e-condition', maxlength: LIMITS.condition }); f2.defaultValue = job.arrivalCondition || '';
+      const f3 = textarea({ id: 'svc-e-resolution', maxlength: LIMITS.resolution }); f3.defaultValue = job.resolution || '';
       const f = h('form', { class: 'svc-inline-form' }, field('Reported fault', f1, { required: true }), field('Condition on arrival', f2), field('Resolution', f3, { help: 'What was done and why. Printed on the job sheet.' }),
         h('div', { class: 'svc-actions' }, h('button', { type: 'submit', class: 'btn btn-primary btn-sm', id: 'svc-e-save', text: 'Save' }), h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Cancel', onclick: () => ctx.reload() })));
       f.addEventListener('submit', async e => {
@@ -348,7 +369,8 @@ function linkRunCard(ctx, phase, err) {
 /** Before/after table with the partial-state banner (AC-4). */
 export function comparisonBlock(cmp) {
   const box = h('section', { class: 'svc-compare', 'aria-labelledby': 'svc-cmp-title', id: 'svc-compare' }, h('h3', { id: 'svc-cmp-title', text: 'Before and after' }));
-  const live = h('div', { 'aria-live': 'polite', id: 'svc-compare-status' });
+  // Not a live region: the block is rebuilt on every render, so the screen announces the outcome (comparisonSummary).
+  const live = h('div', { id: 'svc-compare-status' });
   box.append(live);
   if (!cmp) { live.append(h('p', { class: 'muted', text: 'Loading the comparison…' })); return box; }
   if (cmp.headline.length) box.append(h('ul', { class: 'svc-headline', id: 'svc-headline' }, ...cmp.headline.map(x => h('li', { html: `${chip(x.change === 'fixed' ? 'pass' : 'fail', CHANGE_TEXT[x.change], { size: 14 })} <span>${esc(x.title)}</span>` }))));
@@ -380,12 +402,30 @@ export function renderWorkStep(host, ctx) {
   const err = errorBox('svc-work-error');
   const currency = clip(settings.serviceCurrency || '', 4);
   const wrap = h('div', { class: 'svc-step-body' });
-  wrap.append(h('p', { class: 'svc-totals', id: 'svc-totals', 'aria-live': 'polite', text: `Labour ${fmtNum(totals.labourHours, 2)} h · ${totals.partCount} part${totals.partCount === 1 ? '' : 's'}${totals.partCount ? ` · parts ${fmtMoney(totals.partsCost, currency)}${totals.unpricedParts ? ` (${totals.unpricedParts} without a price)` : ''}` : ''}. Informational totals, not an invoice.` }));
+  wrap.append(h('p', { class: 'svc-totals', id: 'svc-totals', text: `Labour ${fmtNum(totals.labourHours, 2)} h · ${totals.partCount} part${totals.partCount === 1 ? '' : 's'}${totals.partCount ? ` · parts ${fmtMoney(totals.partsCost, currency)}${totals.unpricedParts ? ` (${totals.unpricedParts} without a price)` : ''}` : ''}. Informational totals, not an invoice.` }));
   if (readOnly) wrap.append(h('div', { class: 'banner banner-info', role: 'status', html: `${chip('info')}<div class="banner-text"><strong>This job is ${esc(statusLabel(detail.job.status).toLowerCase())} and read-only</strong><span>Reopen it to add work.</span></div>` }));
   const mark = e => (e.superseded ? ' (amended, see later entry)' : e.amendment ? ' (amended)' : '');
+  // One entry at a time: a double click, a held Enter or a held Ctrl+Enter must not save the same entry twice (the log
+  // is append-only, so a duplicate could not be removed). Busy until the reload has replaced the forms.
+  let busy = false;
   const add = async (kind, payload, after) => {
-    try { await api.addLog(id, kind, payload); announce(`${kind === 'part' ? 'Part' : kind === 'labour' ? 'Labour' : 'Note'} added`); after?.(); ctx.reload(); }
-    catch (e) { showError(err, `Not added: ${friendly(e)}`); }
+    if (busy) return;
+    busy = true;
+    const mark = ctx.focusMark?.(), focused = document.activeElement; // before the buttons are disabled
+    const buttons = [...wrap.querySelectorAll('#svc-part-add, #svc-labour-add, #svc-note-save')];
+    buttons.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); });
+    try {
+      await api.addLog(id, kind, payload);
+      after?.();
+      await ctx.reload({ mark });
+      const totalsNow = document.getElementById('svc-totals')?.textContent || '';
+      announce(`${kind === 'part' ? 'Part' : kind === 'labour' ? 'Labour' : 'Note'} added. ${totalsNow}`.trim());
+    } catch (e) { showError(err, `Not added: ${friendly(e)}`); }
+    finally {
+      busy = false;
+      buttons.forEach(b => { b.disabled = false; b.removeAttribute('aria-busy'); });
+      if (focused?.isConnected && document.activeElement === document.body) focused.focus();
+    }
   };
 
   // parts
@@ -446,7 +486,7 @@ export function renderWorkStep(host, ctx) {
       add('note', { description: ta.value.trim(), amendsId: amending }, () => { amending = null; });
     };
     save.addEventListener('click', submit);
-    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.altKey) { e.preventDefault(); submit(); } });
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.altKey) { e.preventDefault(); if (!e.repeat) submit(); } });
     wrap.append(field('New note', ta, { help: 'Notes are timestamped and cannot be edited; Amend adds a corrected entry. Ctrl+Enter saves.' }), amendLabel, h('div', { class: 'svc-actions' }, save));
   }
   wrap.append(err);
@@ -460,7 +500,7 @@ export function renderSheetStep(host, ctx) {
   const err = errorBox('svc-sheet-error');
   const costs = h('input', { type: 'checkbox', id: 'svc-sheet-costs' });
   const customer = h('input', { type: 'checkbox', id: 'svc-sheet-customer' });
-  const currency = input({ id: 'svc-sheet-currency', maxlength: 4, value: clip(settings.serviceCurrency || '', 4), size: 4 });
+  const currency = input({ id: 'svc-sheet-currency', maxlength: 4, value: clip(settings.serviceCurrency || '', 4), size: 4, 'data-svc-no-dirty': true });
   const preview = h('div', { class: 'svc-sheet-preview', id: 'svc-sheet-preview', role: 'region', 'aria-label': 'Job sheet preview', tabindex: '0' });
   const saved = h('p', { class: 'small', id: 'svc-sheet-saved', 'aria-live': 'polite' });
   const opts = () => ({ includeCosts: costs.checked, includeCustomer: customer.checked, currency: clip(currency.value.trim(), 4) });
