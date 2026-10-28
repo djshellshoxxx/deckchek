@@ -193,6 +193,20 @@ pub fn open_database(path: &Path) -> Result<DbConn, String> {
     Ok(DbConn { conn, _gate: guard })
 }
 
+/// Runs the body of a database command off the main (UI) thread (AUD-03).
+///
+/// Tauri 2 runs a non-async `#[tauri::command]` on the main thread, so a command that
+/// waits on the DB gate (restore), on migrations or on `SQLITE_BUSY` (up to 5 s) froze
+/// the window. Commands call this from an `async fn` instead: the body runs on the
+/// blocking pool, and one lane admits these bodies one at a time in arrival order, the
+/// same mutual exclusion the main thread gave them, so concurrent IPC calls cannot
+/// start racing each other's deferred transactions. `Err` only if the body panicked.
+pub async fn off_main<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
+    static LANE: tauri::async_runtime::Mutex<()> = tauri::async_runtime::Mutex::const_new(());
+    let _lane = LANE.lock().await;
+    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| format!("background task failed: {e}"))
+}
+
 /// Apply every migration in [`MIGRATIONS`] that is not yet recorded, in order.
 /// Idempotent: re-running is a no-op. Each migration's SQL and its
 /// `schema_migration` row commit in one transaction, so a crash can never leave
@@ -1432,5 +1446,76 @@ mod tests {
         let mut c = open_database(&tmp.0).unwrap();
         persist_run(&mut c, &graph_run("gate-run", "2026-10-10T00:00:00Z")).unwrap();
         assert_eq!(list_runs(&c, None).unwrap().len(), 1);
+    }
+
+    /// Calls that open the SQLite database (and so can wait on the DB gate during a
+    /// restore, on migrations, or up to 5 s on `SQLITE_BUSY`).
+    const DB_OPENERS: &[&str] = &["open_database(", "with_db(", "open_live(", "open_db_readonly(", "run_parts("];
+
+    /// Every `#[tauri::command]` in `src/*.rs` that is synchronous (no `async fn` and no
+    /// `#[tauri::command(async)]`) and whose body opens the database.
+    fn sync_db_commands() -> Vec<String> {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files: Vec<PathBuf> = fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "rs")).collect();
+        files.sort();
+        let mut found = Vec::new();
+        for file in files {
+            let src = fs::read_to_string(&file).unwrap();
+            let mut at = 0;
+            while let Some(i) = src[at..].find("#[tauri::command") {
+                let start = at + i;
+                let attr_end = start + src[start..].find(']').unwrap();
+                let attr = &src[start..=attr_end];
+                let fn_at = attr_end + src[attr_end..].find("fn ").unwrap();
+                let head = &src[attr_end..fn_at];
+                let name: String = src[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+                let body_start = fn_at + src[fn_at..].find('{').unwrap();
+                let body_end = body_start + src[body_start..].find("\n}").unwrap_or(src.len() - body_start);
+                let body = &src[body_start..body_end];
+                let is_async = attr.contains("async") || head.contains("async");
+                if !is_async && DB_OPENERS.iter().any(|m| body.contains(m)) {
+                    found.push(format!("{}::{name}", file.file_stem().unwrap().to_string_lossy()));
+                }
+                at = body_end;
+            }
+        }
+        found
+    }
+
+    /// AUD-03: Tauri 2 runs a non-async command on the main (UI) thread, so a DB command
+    /// that waits on the gate, a migration or a busy lock freezes the window.
+    #[test]
+    fn regression_aud_03_no_db_command_runs_on_the_main_thread() {
+        let sync = sync_db_commands();
+        assert!(sync.is_empty(), "these DB commands still run on the main thread; make them `async fn` via `db::off_main`: {sync:?}");
+    }
+
+    /// AUD-03: `off_main` runs bodies on another thread, one at a time (the mutual
+    /// exclusion the main thread used to give DB commands), and turns a panic into `Err`.
+    #[test]
+    fn regression_aud_03_off_main_runs_bodies_off_the_caller_thread_one_at_a_time() {
+        use std::sync::{atomic::AtomicUsize, Arc};
+        use tauri::async_runtime::{block_on, spawn};
+        let caller = std::thread::current().id();
+        let live = Arc::new(AtomicUsize::new(0));
+        let peak = Arc::new(AtomicUsize::new(0));
+        let jobs: Vec<_> = (0..4)
+            .map(|_| {
+                let (live, peak) = (live.clone(), peak.clone());
+                spawn(off_main(move || {
+                    let now = live.fetch_add(1, Ordering::SeqCst) + 1;
+                    peak.fetch_max(now, Ordering::SeqCst);
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                    live.fetch_sub(1, Ordering::SeqCst);
+                    std::thread::current().id()
+                }))
+            })
+            .collect();
+        for job in jobs {
+            assert_ne!(block_on(job).unwrap().unwrap(), caller, "body must not run on the calling thread");
+        }
+        assert_eq!(peak.load(Ordering::SeqCst), 1, "DB command bodies must not overlap");
+        let failed = block_on(off_main(|| -> u8 { panic!("AUD-03 test panic") }));
+        assert!(failed.unwrap_err().starts_with("background task failed"));
     }
 }

@@ -391,28 +391,43 @@ fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, Stri
 }
 
 #[tauri::command]
-pub fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
-    with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
+pub async fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_test_result_save(app: AppHandle, result: DeviceTestResultInput) -> Result<Value, String> {
-    with_db(&app, |c| save_result(c, &result))
+pub async fn device_test_result_save(app: AppHandle, result: DeviceTestResultInput) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| save_result(c, &result))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_test_results(app: AppHandle, asset_id: Option<String>) -> Result<Vec<Value>, String> {
-    with_db(&app, |c| list_results(c, asset_id.as_deref()))
+pub async fn device_test_results(app: AppHandle, asset_id: Option<String>) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| list_results(c, asset_id.as_deref()))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_midi_map_save(app: AppHandle, asset_id: String, profile_id: Option<String>, map: Value) -> Result<Value, String> {
-    with_db(&app, |c| save_midi_map(c, &asset_id, profile_id.as_deref(), &map))
+pub async fn device_midi_map_save(app: AppHandle, asset_id: String, profile_id: Option<String>, map: Value) -> Result<Value, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| save_midi_map(c, &asset_id, profile_id.as_deref(), &map))
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn device_midi_map_get(app: AppHandle, asset_id: String) -> Result<Option<Value>, String> {
-    with_db(&app, |c| get_midi_map(c, &asset_id))
+pub async fn device_midi_map_get(app: AppHandle, asset_id: String) -> Result<Option<Value>, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| get_midi_map(c, &asset_id))
+    })
+    .await?
 }
 
 #[cfg(test)]

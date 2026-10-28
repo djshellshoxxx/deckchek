@@ -2158,33 +2158,48 @@ pub async fn windows_tuning_scan(dpc_seconds: Option<u32>) -> Result<TuningScan,
 }
 
 #[tauri::command]
-pub fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<LatencyRun, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_run(&conn, &input)
+pub async fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<LatencyRun, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_run(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn latency_run_list(app: AppHandle, filter: Option<LatencyRunFilter>) -> Result<Vec<LatencyRun>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_runs(&conn, &filter.unwrap_or_default())
+pub async fn latency_run_list(app: AppHandle, filter: Option<LatencyRunFilter>) -> Result<Vec<LatencyRun>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_runs(&conn, &filter.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn latency_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete_run(&conn, &id)
+pub async fn latency_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete_run(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn buffer_recommendation_save(app: AppHandle, input: RecommendationInput) -> Result<Recommendation, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save_recommendation(&conn, &input)
+pub async fn buffer_recommendation_save(app: AppHandle, input: RecommendationInput) -> Result<Recommendation, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save_recommendation(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn buffer_recommendation_latest(app: AppHandle, device_name: String) -> Result<Vec<Recommendation>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    latest_recommendations(&conn, &device_name)
+pub async fn buffer_recommendation_latest(app: AppHandle, device_name: String) -> Result<Vec<Recommendation>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        latest_recommendations(&conn, &device_name)
+    })
+    .await?
 }
 
 #[cfg(test)]
