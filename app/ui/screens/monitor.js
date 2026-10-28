@@ -390,9 +390,12 @@ export function createMonitorScreen(section) {
       case 'error': banner('fail', 'Live monitor is not available', info.message || 'The stream could not be opened.'); break;
       case 'idle':
         status.replaceChildren();
-        if (info.summary) {
+        if (info.summary && info.persisted) {
           banner('info', 'Session saved', `${info.summary.alerts?.critical || 0} critical, ${info.summary.alerts?.warning || 0} warning events. The log is listed under Session logs and in History.`);
           logs.refresh();
+        } else if (info.summary) {
+          // FS-31 review: never claim a log was saved when monitor_session_end failed or no row was opened.
+          banner('warn', 'Session not saved', `${info.summary.alerts?.critical || 0} critical, ${info.summary.alerts?.warning || 0} warning events were shown, but the session log could not be saved.`);
         }
         break;
       default: break;
