@@ -195,7 +195,7 @@ export function createMapperScreen(section) {
   const undo = createUndo();
   const st = {
     model: null, readOnly: false, savedId: null, assetId: null, profileId: null, selectedId: null, target: 'mixxx', force: false,
-    scripts: [], saved: [], learning: null, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
+    scripts: [], saved: [], learning: null, learnStarting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
   const status = h('div', { id: 'mp-status', class: 'mp-status', role: 'status', 'aria-live': 'polite' });
   const warningsBox = h('details', { id: 'mp-warnings', class: 'mp-warnings', hidden: true });
@@ -402,10 +402,15 @@ export function createMapperScreen(section) {
     if (!st.ports.includes(st.port)) st.port = st.ports[0] || '';
   }
 
+  // Learn opens the chosen MIDI input and closes it again when learning ends (message learned, cancel, timeout,
+  // screen hidden), unless the input was already open before Learn (another screen owns it then).
+  const releasePort = port => { if (port) midi.close(port).catch(() => { /* already closed */ }); };
+
   function stopLearn(message = null) {
     if (!st.learning) return false;
     st.learning.unsub?.();
     clearTimeout(st.learning.timer);
+    releasePort(st.learning.ownedPort);
     st.learning = null;
     keepFocus(renderLeft);
     if (message) { setStatus(message, 'info'); announce(message); }
@@ -416,12 +421,21 @@ export function createMapperScreen(section) {
     if (st.learning) { stopLearn('Learning cancelled.'); return; }
     if (st.readOnly) return;
     if (!midi.isAvailable()) { setStatus(`MIDI is not available here (backend: ${midi.backend()}). Use the DeckChek desktop app or a browser with Web MIDI.`, 'warn'); return; }
+    if (st.learnStarting) return;
     if (!st.model) newModel();
-    await refreshPorts();
-    if (!st.port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); keepFocus(renderLeft); return; }
-    try { await midi.open(st.port); } catch (e) { setStatus(`Could not open ${st.port}: ${e?.message || e}`, 'fail'); return; }
+    st.learnStarting = true;
+    let port, owned;
+    try {
+      await refreshPorts();
+      port = st.port;
+      if (!port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); keepFocus(renderLeft); return; }
+      const before = await midi.status().catch(() => null);
+      owned = !(before?.openInputs || []).includes(port);
+      try { await midi.open(port); } catch (e) { setStatus(`Could not open ${port}: ${e?.message || e}`, 'fail'); return; }
+    } finally { st.learnStarting = false; }
+    if (section.hidden) { if (owned) releasePort(port); return; } // the screen was left while the port was opening
     const unsub = midi.onMessage(msg => {
-      if (!st.learning || (msg?.port && msg.port !== st.port)) return;
+      if (!st.learning || (msg?.port && msg.port !== port)) return;
       const m = midiFromBytes(msg?.bytes || []);
       if (!m) return;
       stopLearn();
@@ -434,9 +448,9 @@ export function createMapperScreen(section) {
       announce(text);
       focusRow();
     });
-    st.learning = { unsub, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
+    st.learning = { unsub, ownedPort: owned ? port : null, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
     keepFocus(renderLeft);
-    setStatus(`Listening on ${st.port}: move or press one control. Esc cancels.`, 'info');
+    setStatus(`Listening on ${port}: move or press one control. Esc cancels.`, 'info');
     announce('Listening for a MIDI message.');
   }
 
