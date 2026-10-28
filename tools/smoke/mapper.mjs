@@ -27,6 +27,7 @@ function mapperMock(learned) {
   core.invoke = async (cmd, args = {}) => {
     if (cmd.startsWith('mapper_model_') || cmd.startsWith('userfiles_')) mp.calls.push(cmd);
     if (cmd === 'midi_open_input' || cmd === 'midi_close_input' || cmd === 'midi_close_all') mp.midi.push(cmd);
+    if (cmd === 'midi_open_input' && mp.slowOpen) await new Promise(r => setTimeout(r, mp.slowOpen)); // a slow driver
     if (cmd === 'userfiles_write_folder') { mp.writes.push(args); return { written: args.files.length, path: args.dir }; }
     if (cmd === 'userfiles_write_text') { mp.writes.push(args); return { path: args.path, bytes: args.content.length }; }
     if (cmd === 'mapper_model_save') {
@@ -93,7 +94,8 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await page.click('#mp-clear');
   await page.fill('#mp-fn-search', 'play');
   await page.press('#mp-fn-search', 'Enter');
-  await page.waitForFunction(() => /<midino>0x58<\/midino>/.test(document.querySelector('#mp-preview')?.textContent || ''));
+  // The export is regenerated once edits pause (debounced), so wait for the new entry rather than any 0x58 entry.
+  await soft(page.waitForFunction(() => /<key>play<\/key>\s*<status>0x90<\/status>\s*<midino>0x58<\/midino>/.test(document.querySelector('#mp-preview')?.textContent || ''), null, { timeout: 5000 }));
   const preview = await page.locator('#mp-preview').innerText();
   check('mapper: assign Play then the Mixxx preview contains <key>play</key> (AC-1)', /<key>play<\/key>\s*<status>0x90<\/status>\s*<midino>0x58<\/midino>/.test(preview));
   check('mapper: the row shows its new function', /Deck 1 play/i.test(await page.locator('#mp-rows tr[aria-selected="true"]').innerText()));
@@ -162,6 +164,15 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   check('mapper: regression: the full warning list sits in a collapsed <details> outside the live region', fullList >= 300 && (await page.locator('#mp-warnings').evaluate(d => d.tagName === 'DETAILS' && !d.open && !d.closest('[aria-live]'))), String(fullList));
   check('mapper: regression: imported controls are capped at 2048', (await page.locator('#mp-rows tr').count()) === 2048, String(await page.locator('#mp-rows tr').count()));
 
+  // regression: a crafted file whose script-file list makes a megabyte warning keeps the live status short.
+  const huge = path.join(tmp, 'huge-note.midi.xml');
+  const scriptDecls = Array.from({ length: 4000 }, (_, i) => `<file filename="${String(i).padStart(4, '0')}${'n'.repeat(250)}.js" functionprefix="P${i}"/>`).join('');
+  fs.writeFileSync(huge, `<MixxxControllerPreset><info><name>Huge</name></info><controller id="Huge"><scriptfiles>${scriptDecls}</scriptfiles><controls>${ctl(0x90, 1)}</controls></controller></MixxxControllerPreset>`);
+  await openFiles(page, [huge]);
+  await statusMatches(page, /Mixxx mapping opened/, 20000);
+  const hugeStatus = await page.locator('#mp-status').innerText();
+  check('mapper: regression: a megabyte import note is cut short in the live status', hugeStatus.length < 1000 && /script files 0000n+/.test(hugeStatus) && /…/.test(hugeStatus), `${hugeStatus.length} chars`);
+
   await openFiles(page, [learnedPath]);
   await statusMatches(page, /Learned map opened/);
   await page.waitForSelector('#mp-rows tr');
@@ -176,6 +187,22 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   check('mapper: regression: arrowing through the list keeps the table and export (no full rebuild)', keptNodes && movedSel, `kept=${keptNodes} moved=${movedSel}`);
   await page.locator('#mp-rows tr').first().click();
   check('mapper: regression: clicking a row selects it without rebuilding the table', await page.evaluate(() => window.__keep.table.isConnected && document.querySelector('#mp-rows tr[aria-selected="true"]') === document.querySelectorAll('#mp-rows tr')[0]));
+
+  // regression: an edit patches only the changed row, and a burst of edits regenerates the export once.
+  const burst = await page.evaluate(async () => {
+    const other = document.querySelectorAll('#mp-rows tr')[5];
+    let previews = 0;
+    const mo = new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.id === 'mp-preview' || n.querySelector?.('#mp-preview')) previews++; });
+    mo.observe(document.querySelector('.mp-right'), { childList: true, subtree: true });
+    for (const fn of ['play', 'cue', 'sync']) document.querySelector(`#mp-fn-list [data-fn="${fn}"]`).click();
+    const rowNow = document.querySelector('#mp-rows tr[aria-selected="true"]').innerText;
+    await new Promise(r => setTimeout(r, 700));
+    mo.disconnect();
+    return { table: window.__keep.table.isConnected, other: other.isConnected, rowNow, previews, preview: /sync_enabled/.test(document.querySelector('#mp-preview')?.textContent || '') };
+  });
+  check('mapper: regression: an edit keeps the table and unchanged rows, the edited row updates at once', burst.table && burst.other && /sync/i.test(burst.rowNow), JSON.stringify(burst));
+  check('mapper: regression: three quick edits regenerate the export preview once (debounced)', burst.previews === 1 && burst.preview, JSON.stringify(burst));
+  await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
 
   // regression: typing a control name then clicking a function button directly keeps both.
   await page.locator('#mp-rows tr', { hasText: 'Deck 1 Sync' }).first().click();
@@ -344,5 +371,38 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   const future = await dp.evaluate(() => window.__mp.rows.find(r => r.id === '00000000-0000-4000-8000-999999999999'));
   check('mapper (desktop): regression: Save mapping never overwrites a newer-version row', (await dp.evaluate(() => window.__mp.calls.filter(c => c === 'mapper_model_save').length)) === savesBefore && future.model.version === 2 && future.model.futureField === 'keep me', JSON.stringify(future.model).slice(0, 80));
   await dctx.close();
+
+  // ----- desktop: Learn races (slow MIDI input open, pending name edit) -----
+  const rctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, colorScheme: 'dark' });
+  await rctx.addInitScript(tauriMock);
+  await rctx.addInitScript(mapperMock, learned);
+  await rctx.addInitScript(FLAG_ON);
+  const rp = await rctx.newPage();
+  errors.push(...watchConsole(rp, 'mapper-learn-races'));
+  await rp.goto(base);
+  await rp.waitForSelector('.rail-item[data-screen="mapper"]');
+  await rp.click('.rail-item[data-screen="mapper"]');
+  await rp.waitForFunction(() => document.querySelector('#mp-device option[value="asset-pioneer-dj-ddj-flx4"]'));
+  await rp.selectOption('#mp-device', 'asset-pioneer-dj-ddj-flx4');
+  await rp.click('#mp-load-device');
+  await rp.waitForSelector('#mp-rows tr');
+  await rp.waitForFunction(() => !document.querySelector('#mp-learn')?.disabled && document.querySelector('#mp-port option')?.value);
+  await rp.evaluate(() => { window.__mp.slowOpen = 400; });
+  await rp.click('#mp-learn');
+  await rp.waitForFunction(() => window.__mp.midi.includes('midi_open_input'));
+  await rp.keyboard.press('Escape');
+  await rp.waitForTimeout(900);
+  const race = await rp.evaluate(() => ({ pressed: document.querySelector('#mp-learn').getAttribute('aria-pressed'), status: document.querySelector('#mp-status').textContent, midi: window.__mp.midi.join() }));
+  check('mapper (desktop): regression: Esc while Learn is still opening the input cancels it and closes the input', race.pressed === 'false' && /cancelled/i.test(race.status) && !/Listening/.test(race.status) && race.midi === 'midi_open_input,midi_close_input', JSON.stringify(race));
+  await rp.evaluate(() => { window.__mp.slowOpen = 0; });
+  await rp.locator('#mp-rows tr').first().click();
+  await rp.click('#mp-learn');
+  await rp.waitForSelector('#mp-learn[aria-pressed="true"]');
+  await rp.fill('#mp-label', 'Typed before learn');
+  await rp.evaluate(() => window.__emitMidi([0x9f, 0x7e, 0x7f]));
+  await soft(rp.waitForFunction(() => document.querySelectorAll('#mp-rows tr').length === 17, null, { timeout: 3000 }));
+  const learnedRows = await rp.evaluate(() => [...document.querySelectorAll('#mp-rows tr')].map(tr => tr.innerText.replace(/\s+/g, ' ')));
+  check('mapper (desktop): regression: a name typed just before a control is learned is kept', learnedRows.length === 17 && /Typed before learn/.test(learnedRows[0]) && learnedRows.some(t => /Note 126 · ch 16/.test(t)), learnedRows.slice(0, 2).join(' | '));
+  await rctx.close();
   return errors;
 }
