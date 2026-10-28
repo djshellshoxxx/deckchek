@@ -39,6 +39,13 @@ function fleetMock(options = {}) {
     if (command === 'reminder_upsert') { const row = data.rows.find(r => r.assetId === args.input.assetId); const id = `r${row.reminders.length + 1}`; row.reminders.push({ ...args.input, id, enabled: true, createdAt: now }); return id; }
     if (command === 'reminder_template_upsert') { const id = args.input.id || `template-${data.templates.length + 1}`; data.templates = data.templates.filter(t => t.id !== id); data.templates.push({ ...args.input, id }); return id; }
     if (command === 'reminder_apply_template') { const row = data.rows.find(r => r.assetId === args.assetId), template = data.templates.find(t => t.id === args.templateId); if (row.productId !== template.productId) throw 'wrong product'; const id = `${template.id}:${row.assetId}`; row.reminders = row.reminders.filter(r => r.id !== id); row.reminders.push({ ...template, id, enabled: true, createdAt: now }); return id; }
+    if (command === 'reminder_delete') {
+      const count = () => data.templates.length + data.rows.reduce((n, r) => n + r.reminders.length, 0), before = count();
+      data.templates = data.templates.filter(t => t.id !== args.id);
+      for (const row of data.rows) row.reminders = row.reminders.filter(r => r.id !== args.id);
+      if (count() === before) throw 'reminder not found';
+      return null;
+    }
     if (command === 'maintenance_log') { const event = { ...args.input, id: `e${events.length + 1}`, hoursAtEvent: 510 }; events.push(event); for (const row of data.rows) for (const reminder of row.reminders) if (reminder.id === event.reminderId) { reminder.lastDoneAt = event.eventAt; reminder.hoursAtLastEvent = 510; } return event.id; }
     if (command === 'fleet_place_asset') {
       const row = data.rows.find(r => r.assetId === args.assetId), position = data.positions.find(p => p.id === args.deckPositionId);
@@ -152,6 +159,11 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.keyboard.press('Enter');
   await page.waitForSelector('#fleet-event-form');
   check('fleet: Enter on a row opens the side panel with the tracked-hours estimate', /510.0 tracked hours \(estimate\)/.test(await page.locator('#fleet-detail').innerText()));
+  check("fleet: regression: the maintenance date cannot be set past tomorrow's local date", await page.evaluate(() => {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    const tomorrow = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    return document.querySelector('#fleet-event-form input[name="date"]')?.max === tomorrow;
+  }), await page.locator('#fleet-event-form input[name="date"]').getAttribute('max'));
 
   // reminders, maintenance, completion (AC-7)
   await page.locator('#fleet-reminder-form input[name="title"]').fill('Inspect stylus');
@@ -192,6 +204,32 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.waitForFunction(() => window.__fleet.data.rows[0].reminders.length === 3);
   await page.getByRole('button', { name: 'Apply to selected asset', exact: true }).click();
   check('fleet: applying a template twice does not duplicate reminders', await page.evaluate(() => window.__fleet.data.rows[0].reminders.length === 3));
+
+  // deleting an applied reminder and a template: confirm dialog, Cancel keeps it, focus comes back
+  const delReminder = page.locator('#fleet-asset-reminders [data-delete-reminder="template-1:a"]');
+  check('fleet: regression: each reminder of the selected asset has a named Delete button', (await delReminder.count()) === 1 && /Delete reminder Quarterly inspection from Deck A/.test(await delReminder.getAttribute('aria-label')));
+  await delReminder.focus(); await page.keyboard.press('Enter');
+  await page.waitForSelector('#confirm-dialog[open]');
+  check('fleet: regression: deleting a reminder asks for confirmation first', /Delete reminder/.test(await page.locator('#confirm-title').innerText()) && await page.evaluate(() => !window.__fleet.calls.includes('reminder_delete')));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('confirm-dialog').open);
+  check('fleet: regression: cancelling the delete keeps the reminder and returns focus to its Delete button', await page.evaluate(() => window.__fleet.data.rows[0].reminders.some(r => r.id === 'template-1:a') && document.activeElement?.getAttribute('data-delete-reminder') === 'template-1:a'));
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('#confirm-dialog[open]');
+  await page.click('#confirm-ok');
+  await page.waitForFunction(() => !window.__fleet.data.rows[0].reminders.some(r => r.id === 'template-1:a'));
+  await page.waitForFunction(() => document.activeElement?.closest('#fleet-templates'), null, { timeout: 2000 }).catch(() => {});
+  check('fleet: regression: a confirmed reminder delete calls reminder_delete and keeps focus in the templates panel', await page.evaluate(() => window.__fleet.calls.includes('reminder_delete') && Boolean(document.activeElement?.closest('#fleet-templates'))),
+    await page.evaluate(() => document.activeElement?.outerHTML?.slice(0, 120)));
+  const delTemplate = page.locator('#fleet-templates [data-delete-reminder="template-1"]');
+  check('fleet: regression: each template has a named Delete button', (await delTemplate.count()) === 1 && /Delete template Quarterly inspection/.test(await delTemplate.getAttribute('aria-label')));
+  await delTemplate.click();
+  await page.waitForSelector('#confirm-dialog[open]');
+  await page.click('#confirm-ok');
+  await page.waitForFunction(() => window.__fleet.data.templates.length === 0);
+  await page.waitForFunction(() => document.activeElement?.matches('#fleet-template-form select[name="existing"]'), null, { timeout: 2000 }).catch(() => {});
+  check('fleet: regression: deleting the last template removes it and moves focus to the template editor', !(await page.locator('#fleet-templates').innerText()).includes('Quarterly inspection') && await page.evaluate(() => document.activeElement?.matches('#fleet-template-form select[name="existing"]')),
+    await page.evaluate(() => document.activeElement?.outerHTML?.slice(0, 120)));
 
   // events tab
   await page.click('#fleet-tab-events');
