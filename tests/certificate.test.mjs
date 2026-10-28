@@ -343,7 +343,8 @@ test('AC-8 export flow: PDF failure writes an HTML file with the identical hash;
   const out = await exportCertificateFiles({ api, dir: 'C:\\Users\\Ann\\Certs', file, pdfHtml: '<html></html>' });
   assert.equal(out.pdfPath, null);
   assert.equal(out.pdfError.code, 'unsupported');
-  assert.match(out.jsonPath, /^C:\\Users\\Ann\\Certs\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01\.deckchek-cert\.json$/);
+  assert.equal(file.integrity.contentHash.slice(0, 8), '1caa4be5');
+  assert.match(out.jsonPath, /^C:\\Users\\Ann\\Certs\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01-1caa4be5\.deckchek-cert\.json$/);
   assert.match(out.htmlPath, /\.html$/);
   const html = written.find(f => f.relPath.endsWith('.html'));
   assert.deepEqual(html.exts, ['html']);
@@ -351,7 +352,7 @@ test('AC-8 export flow: PDF failure writes an HTML file with the identical hash;
   const [h1, h2] = await Promise.all([verifyCertificateText(extractJsonFromHtml(html.text), { now: NOW }), verifyCertificateText(json.text, { now: NOW })]);
   assert.equal(h1.status, 'valid'); assert.equal(h1.contentHash, h2.contentHash);
   const ok = await exportCertificateFiles({ api: { writeFolder: async () => ({}), renderPdf: async (_h, p) => ({ path: p }) }, dir: '/home/ann/certs/', file, pdfHtml: '<html></html>' });
-  assert.equal(ok.pdfPath, '/home/ann/certs/Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.pdf');
+  assert.equal(ok.pdfPath, '/home/ann/certs/Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01-1caa4be5.pdf');
   assert.equal(ok.htmlPath, null);
   assert.equal(joinPath('/a/b', 'c.json'), '/a/b/c.json');
 });
@@ -400,4 +401,125 @@ test('certificate plan uses every profile test; certificatePlan tolerates junk',
   assert.deepEqual(certificatePlan(profile).tests.map(t => t.id), ['t-driver', 't-speed', 't-midi']);
   assert.deepEqual(certificatePlan(null), { profileId: '', profileVersion: 1, model: '', tests: [] });
   assert.equal(certificatePlan({ id: 'x', tests: [null, { id: '' }, { id: 'ok' }] }).tests.length, 1);
+});
+
+// ------------------------------------------------------------------ FS-20 review regressions
+
+test('regression: hostile payload is rejected by cheap schema bounds before canonicalising (mirror of Rust)', async () => {
+  const wrap = payload => JSON.stringify({ format: 'deckchek-certificate', version: 1, payload, integrity: { alg: 'ed25519', hashAlg: 'sha256', contentHash: '0'.repeat(64), signature: 'x', publicKey: 'x', fingerprint: '0'.repeat(16) } });
+  const longKey = { ['k'.repeat(1_000_000)]: new Array(100_000).fill(0) };
+  const base = JSON.parse(FIXTURE).payload;
+  const cases = {
+    'long top-level key': longKey,
+    'long nested key': { ...base, unit: { ...base.unit, notes: longKey } },
+    'long array': { ...base, results: new Array(LIMITS.maxMeasurements + 1).fill(0) },
+    'long string': { ...base, tester: 'x'.repeat(LIMITS.maxPhotoB64 + 1) },
+  };
+  for (const [name, payload] of Object.entries(cases)) {
+    const text = wrap(payload);
+    const t0 = Date.now();
+    const r = await verifyCertificateText(text, { now: NOW, isLocal: () => true });
+    assert.ok(Date.now() - t0 < 1000, `${name}: took ${Date.now() - t0} ms`);
+    assert.equal(r.status, 'modified', name);
+    assert.equal(r.reasons[0], 'content hash mismatch', name);
+    assert.match(r.reasons[1] || '', /schema v1 bounds/, name);
+    assert.equal(r.contentHash, null, `${name}: never canonicalised`);
+    assert.equal(r.issuedByThisInstall, false, name);
+  }
+  assert.equal((await verifyCertificateText(FIXTURE, { now: NOW })).status, 'valid', 'the shared fixture is inside the bounds');
+});
+
+test('regression: issuedByThisInstall is true only for a valid signature by the local key', async () => {
+  const asked = [];
+  const local = fp => { asked.push(fp); return true; };
+  const forged = JSON.parse(FIXTURE);
+  forged.payload.tester = 'Mallory';
+  forged.integrity.contentHash = await contentHash(forged.payload);
+  const r = await verifyCertificateText(JSON.stringify(forged), { now: NOW, isLocal: local });
+  assert.equal(r.status, 'modified');
+  assert.equal(r.issuedByThisInstall, false, 'a forged file with this install\'s printed fingerprint is not ours');
+  const edited = await verifyCertificateText(FIXTURE.replace('"0.05"', '"0.06"'), { now: NOW, isLocal: local });
+  assert.equal(edited.issuedByThisInstall, false);
+  const noCheck = await verifyCertificateText(FIXTURE, { now: NOW, isLocal: local, verifySignature: async () => null });
+  assert.equal(noCheck.status, 'unverifiable');
+  assert.equal(noCheck.issuedByThisInstall, false, 'an unchecked signature proves nothing');
+  assert.deepEqual(asked, [], 'isLocal is never asked about an unverified fingerprint');
+  const ok = await verifyCertificateText(FIXTURE, { now: NOW, isLocal: local });
+  assert.equal(ok.status, 'valid');
+  assert.equal(ok.issuedByThisInstall, true);
+  assert.deepEqual(asked, [JSON.parse(FIXTURE).integrity.fingerprint]);
+});
+
+test('regression: browser verification decodes base64 strictly, like Rust (no non-zero trailing bits)', async () => {
+  const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  // flip the lowest bit of the last data character: for these lengths it is a padding bit, which atob ignores
+  const malleate = s => { const at = s.replace(/=+$/, '').length - 1; return s.slice(0, at) + B64[B64.indexOf(s[at]) ^ 1] + s.slice(at + 1); };
+  const file = JSON.parse(FIXTURE);
+  assert.equal(atob(malleate(file.integrity.signature)), atob(file.integrity.signature), 'precondition: same bytes for atob');
+  assert.equal(atob(malleate(file.integrity.publicKey)), atob(file.integrity.publicKey), 'precondition: same bytes for atob');
+  const sig = structuredClone(file); sig.integrity.signature = malleate(sig.integrity.signature);
+  const rs = await verifyCertificateText(JSON.stringify(sig), { now: NOW });
+  assert.equal(rs.status, 'modified');
+  assert.match(rs.reasons.join(' '), /signature/);
+  const pk = structuredClone(file); pk.integrity.publicKey = malleate(pk.integrity.publicKey);
+  const rk = await verifyCertificateText(JSON.stringify(pk), { now: NOW });
+  assert.equal(rk.status, 'modified');
+  assert.match(rk.reasons.join(' '), /public key/);
+  assert.equal((await verifyCertificateText(FIXTURE, { now: NOW })).status, 'valid');
+});
+
+test('regression: re-certifying the same unit on the same day never reuses (overwrites) file names', async () => {
+  const file = JSON.parse(FIXTURE);
+  const second = structuredClone(file);
+  second.payload.issuedAt = second.payload.issuedAt.replace(/T.*/, 'T23:59:59.000Z');
+  second.integrity.contentHash = await contentHash(second.payload);
+  assert.equal(file.payload.issuedAt.slice(0, 10), second.payload.issuedAt.slice(0, 10), 'precondition: same day');
+  const names = [];
+  for (const f of [file, second]) {
+    for (const fail of [false, true]) {
+      const written = [];
+      const api = {
+        writeFolder: async (_d, files) => { written.push(...files.map(x => x.relPath)); },
+        renderPdf: async (_h, p) => { if (fail) throw new Error('no pdf'); written.push(p.split('/').pop()); return { path: p }; },
+      };
+      await exportCertificateFiles({ api, dir: '/certs', file: f, pdfHtml: '<html></html>' });
+      for (const n of written) assert.ok(n.startsWith(`${certificateBaseName(f.payload)}-${f.integrity.contentHash.slice(0, 8)}.`), n);
+      names.push(written);
+    }
+  }
+  const [firstPdf, firstHtml, secondPdf, secondHtml] = names;
+  for (const n of [...secondPdf, ...secondHtml]) assert.ok(![...firstPdf, ...firstHtml].includes(n), `${n} would overwrite the first certificate`);
+  assert.equal(certificateBaseName(file.payload, file.integrity.contentHash), `${certificateBaseName(file.payload)}-${file.integrity.contentHash.slice(0, 8)}`);
+  assert.equal(certificateBaseName(file.payload, 'not-hex'), certificateBaseName(file.payload), 'only a hex hash is used');
+});
+
+test('regression: stored device results (buildResultDetail shape) carry uncertainty into the payload and the guard band', async () => {
+  const { buildResultDetail } = await import('../app/devices/dispatch.js');
+  const { applyCalibration } = await import('../app/calibration.js');
+  // a run measurement as the workflow produces it (engine uncertainty attached), then stored the way production stores it
+  const runM = applyCalibration({ metricId: 'measured_pitch_percent', label: 'Speed error', value: 0.095, unit: '%' }, null);
+  assert.ok(runM.uncertainty?.expanded > 0.005, 'precondition: the engine supplies an uncertainty');
+  const stored = (testId, status, measurements) => ({
+    testId, profileId: profile.id, status, createdAt: '2026-10-28T11:00:00Z',
+    detail: buildResultDetail({ test: profile.tests.find(t => t.id === testId), outcome: { status, detail: `${status} detail` }, measurements }),
+  });
+  const results = [
+    stored('t-driver', 'pass', [{ metricId: 'driver_present', value: 1, unit: 'bool' }]),
+    stored('t-speed', 'pass', [runM]),
+    stored('t-midi', 'pass', []),
+  ];
+  const p = buildCertificatePayload({ profile, results, calibration: calProfile, tester: 'Alex', serial: 'SN1', now: new Date(NOW) });
+  const speed = p.measurements.find(m => m.metricId === 'measured_pitch_percent');
+  assert.ok(speed.uncertainty != null && Number(speed.uncertainty) > 0, `U is printed: ${speed.uncertainty}`);
+  assert.equal(speed.referenceHigh, '0.1');
+  assert.equal(speed.decision, 'ambiguous', '0.095 is within U of the 0.1 limit');
+  assert.equal(p.verdict, 'review', 'spec §6: a measurement within its uncertainty of a limit needs review');
+  assert.ok(renderCertificateBody(assembleCertificateFile(p, null)).includes(`0.095 ± ${speed.uncertainty} %`), 'the certificate prints value ± U');
+  assert.equal(p.measurements.find(m => m.metricId === 'driver_present').uncertainty, null, 'metrics without an uncertainty model carry none');
+  const inside = buildCertificatePayload({
+    profile, results: results.map(r => (r.testId === 't-speed' ? stored('t-speed', 'pass', [{ ...runM, value: 0.01 }]) : r)),
+    calibration: calProfile, tester: 'Alex', serial: 'SN1', now: new Date(NOW),
+  });
+  assert.equal(inside.verdict, 'pass', 'a value well inside the limits still passes');
+  assert.equal(validatePayload(p).ok, true);
 });

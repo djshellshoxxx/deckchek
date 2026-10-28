@@ -16,7 +16,7 @@
 
 import { canonicalJson } from './canonical-json.js';
 import { sha256Hex, toBytes } from './sha256.js';
-import { METRIC_RULES } from './calibration.js';
+import { METRIC_RULES, applyCalibration } from './calibration.js';
 import { qrSvg } from './vendor/qr.js';
 
 export const CERT_FORMAT = 'deckchek-certificate';
@@ -139,6 +139,18 @@ export function expandedUncertainty(m) {
 }
 
 /**
+ * Expanded uncertainty (k=2) of the calibration engine's propagation model for a measurement that reached the
+ * certificate without one. Stored device results keep only {metricId, label, value, unit} (buildResultDetail), so
+ * without this the guard band and the printed ± U never applied (FS-20 review). Uses the engine's default
+ * (uncalibrated) components, the conservative choice: a wider band can only move a verdict towards review.
+ * null for metrics the engine has no model for.
+ */
+export function modelUncertainty(m) {
+  if (!METRIC_RULES[m?.metricId] || !Number.isFinite(m?.value)) return null;
+  return expandedUncertainty({ uncertainty: applyCalibration({ metricId: m.metricId, value: m.value }, null).uncertainty });
+}
+
+/**
  * Guard-band decision (spec §6, ILAC-G8 style): 'inside' when value ± U lies inside the limits, 'outside' when it
  * lies beyond a limit by more than U, 'ambiguous' when |value - limit| <= U, 'no_limit' without limits.
  * U <= 0 or missing means no guard band (limits inclusive).
@@ -175,7 +187,7 @@ export function payloadMeasurement(m, test, { calibration = null, now, intervalM
   if (!m?.metricId || value == null) return null;
   const pass = test?.pass && test.pass.metricId === m.metricId ? test.pass : null;
   const { low, high } = limitsFromPass(pass);
-  const U = expandedUncertainty(m);
+  const U = expandedUncertainty(m) ?? modelUncertainty(m);
   const [uS, lowS, highS] = [U, low, high].map(v => (v == null ? null : toDecimal(v)));
   const decision = guardBandDecision(Number(value), lowS == null ? null : Number(lowS), highS == null ? null : Number(highS), uS == null ? null : Number(uS));
   return {
@@ -422,17 +434,24 @@ export function assembleCertificateFile(payload, sign = null) {
 }
 export const certificateFileText = file => `${JSON.stringify(file, null, 2)}\n`;
 
-/** `<model>-<serial>-<date>` with every character outside [A-Za-z0-9._-] replaced by `_` (spec §7). */
-export function certificateBaseName(payload) {
+/**
+ * `<model>-<serial>-<date>` with every character outside [A-Za-z0-9._-] replaced by `_` (spec §7). With the content
+ * hash of a signed certificate, `-<first 8 hex>` is appended so two certificates for the same unit on the same day
+ * never share (and silently overwrite) each other's files (FS-20 review).
+ */
+export function certificateBaseName(payload, contentHash = null) {
   const safe = s => String(s ?? '').replace(/[^A-Za-z0-9._-]/g, '_').replace(/^[._]+/, '').slice(0, 60) || 'unit';
-  return `${safe(payload?.unit?.model)}-${safe(payload?.unit?.serial)}-${String(payload?.issuedAt ?? '').slice(0, 10) || 'undated'}`;
+  const base = `${safe(payload?.unit?.model)}-${safe(payload?.unit?.serial)}-${String(payload?.issuedAt ?? '').slice(0, 10) || 'undated'}`;
+  return isHex(contentHash, 64) ? `${base}-${contentHash.slice(0, 8)}` : base;
 }
 
 // ------------------------------------------------------------------ verification
 
+/** Strict base64 like Rust's base64 STANDARD engine: canonical padding and no non-zero trailing bits
+ * (atob ignores them, so one text edit could decode to the same bytes; FS-20 review). */
 function b64Bytes(s, n) {
   if (typeof s !== 'string' || s.length !== Math.ceil(n / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
-  try { const bin = atob(s); if (bin.length !== n) return null; return Uint8Array.from(bin, c => c.charCodeAt(0)); } catch { return null; }
+  try { const bin = atob(s); if (bin.length !== n || btoa(bin) !== s) return null; return Uint8Array.from(bin, c => c.charCodeAt(0)); } catch { return null; }
 }
 const hexBytes = h => Uint8Array.from(h.match(/../g), b => parseInt(b, 16));
 
@@ -442,6 +461,34 @@ export async function webCryptoVerify(publicKey, digest, signature, subtle = glo
   let key;
   try { key = await subtle.importKey('raw', publicKey, { name: 'Ed25519' }, false, ['verify']); } catch (e) { return e?.name === 'NotSupportedError' || /not supported|unrecognized/i.test(e?.message || '') ? null : false; }
   try { return await subtle.verify({ name: 'Ed25519' }, key, signature, digest); } catch { return false; }
+}
+
+const PAYLOAD_KEYS = ['unit', 'plan', 'results', 'measurements', 'tester', 'deckchekVersion', 'schemaVersion', 'issuedAt', 'validUntil', 'verdict', 'disclaimer'];
+const MAX_KEY_LENGTH = 64, MAX_OBJECT_KEYS = 32;
+
+/**
+ * Cheap, linear bounds every schema v1 payload is inside (mirror of certificate.rs check_payload_bounds): the payload
+ * key set, and caps on key length, keys per object, array length and string length. Runs on untrusted input before
+ * canonicalisation so a hostile file cannot make hashing slow. -> error text or null.
+ */
+export function payloadBoundsError(payload) {
+  if (!isObj(payload)) return 'payload must be an object';
+  for (const k of PAYLOAD_KEYS) if (!has(payload, k)) return `payload.${k} is missing`;
+  for (const k of Object.keys(payload)) if (!PAYLOAD_KEYS.includes(k)) return `payload has an unknown field "${clip(k.slice(0, 160), 40)}"`;
+  const stack = [payload];
+  while (stack.length) {
+    const v = stack.pop();
+    if (typeof v === 'string') { if (v.length > LIMITS.maxPhotoB64) return `a string is longer than ${LIMITS.maxPhotoB64} bytes`; } else if (Array.isArray(v)) {
+      if (v.length > LIMITS.maxMeasurements) return `an array has more than ${LIMITS.maxMeasurements} entries`;
+      for (const item of v) stack.push(item);
+    } else if (isObj(v)) {
+      const keys = Object.keys(v);
+      if (keys.length > MAX_OBJECT_KEYS) return `an object has more than ${MAX_OBJECT_KEYS} fields`;
+      if (keys.some(k => k.length > MAX_KEY_LENGTH)) return `a field name is longer than ${MAX_KEY_LENGTH} bytes`;
+      for (const k of keys) stack.push(v[k]);
+    }
+  }
+  return null;
 }
 
 const report = (status, reasons, extra = {}) => ({ status, reasons, fingerprint: null, expired: false, contentHash: null, declaredHash: null, issuedAt: null, validUntil: null, tester: null, model: null, serial: null, verdict: null, issuedByThisInstall: false, payload: null, ...extra });
@@ -474,8 +521,12 @@ export async function verifyCertificateText(text, { now = Date.now(), verifySign
     const p = isObj(root.payload) ? root.payload : null;
     const r = report('modified', [], {
       fingerprint: i.fingerprint, declaredHash: i.contentHash, issuedAt: shortText(p?.issuedAt), validUntil: shortText(p?.validUntil), tester: shortText(p?.tester),
-      verdict: shortText(p?.verdict), model: shortText(p?.unit?.model), serial: shortText(p?.unit?.serial), issuedByThisInstall: !!(await isLocal(i.fingerprint)),
+      // issuedByThisInstall stays false until the signature by the key behind the fingerprint has verified (FS-20 review)
+      verdict: shortText(p?.verdict), model: shortText(p?.unit?.model), serial: shortText(p?.unit?.serial), issuedByThisInstall: false,
     });
+    // no signed v1 payload is outside these bounds, so the hash cannot match one; checked before canonicalising
+    const bounds = payloadBoundsError(root.payload);
+    if (bounds) { r.reasons.push('content hash mismatch', `the payload is outside the schema v1 bounds: ${bounds}`); return r; }
     try { r.contentHash = await contentHash(root.payload); } catch (e) { r.reasons.push('content hash mismatch', e.message); return r; }
     if (r.contentHash !== i.contentHash) { r.reasons.push('content hash mismatch'); return r; }
     const pk = b64Bytes(i.publicKey, 32);
@@ -489,6 +540,7 @@ export async function verifyCertificateText(text, { now = Date.now(), verifySign
     const v = validatePayload(root.payload);
     if (!v.ok) { r.status = 'unverifiable'; r.reasons.push(`signed, but the payload does not follow schema v1: ${v.errors[0]}`); return r; }
     r.status = 'valid';
+    r.issuedByThisInstall = !!(await isLocal(i.fingerprint));
     r.payload = root.payload;
     const nowIso = new Date(now instanceof Date ? now.getTime() : now).toISOString();
     r.expired = isoKey(nowIso) > isoKey(r.validUntil);

@@ -95,3 +95,12 @@ test('sha256Hex falls back to pure JS when crypto.subtle is unavailable or throw
     if (saved) Object.defineProperty(globalThis, 'crypto', saved); else delete globalThis.crypto;
   }
 });
+
+test('regression: a 1 MB key over 100k items canonicalises in linear time (FS-20 review, mirror of canonical.rs)', () => {
+  const key = 'k'.repeat(1_000_000);
+  const t0 = Date.now();
+  const out = canonicalJson({ [key]: new Array(100_000).fill(0) });
+  assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0} ms`);
+  assert.equal(out.length, '{"":[]}'.length + key.length + 100_000 * 2 - 1);
+  assert.throws(() => canonicalJson({ [key]: [0, 0.5] }), e => e instanceof CanonicalJsonError && e.path === `$.${key}[1]`);
+});

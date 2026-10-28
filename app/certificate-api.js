@@ -38,12 +38,12 @@ const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
 });
 
 /**
- * Writes `<base>.deckchek-cert.json` and `<base>.pdf` into `dir`. When the PDF fails, writes `<base>.html`
+ * Writes `<base>.deckchek-cert.json` and `<base>.pdf` into `dir` (`<base>` = `<model>-<serial>-<date>-<hash8>`). When the PDF fails, writes `<base>.html`
  * (the same signed JSON embedded, so its content hash is identical: AC-8) and reports the PDF error.
  * -> {jsonPath, pdfPath|null, htmlPath|null, pdfError|null}
  */
 export async function exportCertificateFiles({ api, dir, file, pdfHtml, timeoutMs = PDF_RENDER_TIMEOUT_MS }) {
-  const base = certificateBaseName(file.payload);
+  const base = certificateBaseName(file.payload, file.integrity?.contentHash); // unique per certificate: never overwrites another
   const jsonName = `${base}.deckchek-cert.json`;
   await api.writeFolder(dir, [{ relPath: jsonName, text: certificateFileText(file) }], ['json']);
   const out = { jsonPath: joinPath(dir, jsonName), pdfPath: null, htmlPath: null, pdfError: null };

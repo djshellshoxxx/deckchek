@@ -469,3 +469,116 @@ fn contract_examples_round_trip() {
         assert!(known.iter().any(|e| e.code() == code), "{code}");
     }
 }
+
+/// FS-20 review (DoS): a hostile payload used to be canonicalised before any schema check, and the
+/// canonicaliser copied a long key once per child, so a 1 MB key over 100k items froze the app for
+/// seconds to minutes. Cheap schema bounds now run first and canonicalisation is linear.
+#[test]
+fn regression_fs20_hostile_payload_is_rejected_by_cheap_bounds_before_canonicalising() {
+    let hostile = |payload: Value| {
+        let file = json!({"format": FORMAT, "version": 1, "payload": payload, "integrity": {
+            "alg": "ed25519", "hashAlg": "sha256", "contentHash": "0".repeat(64), "signature": "x", "publicKey": "x", "fingerprint": "0".repeat(16)
+        }});
+        let text = serde_json::to_string(&file).unwrap();
+        let started = std::time::Instant::now();
+        let r = verify_text(&text, NOW, |_| true);
+        assert!(started.elapsed() < std::time::Duration::from_secs(1), "took {:?}", started.elapsed());
+        r
+    };
+    let mut long_key = serde_json::Map::new();
+    long_key.insert("k".repeat(1_000_000), Value::Array(vec![Value::from(0); 100_000]));
+    let mut nested_key = sample_payload();
+    nested_key["unit"]["notes"] = Value::Object(long_key.clone());
+    let mut long_array = sample_payload();
+    long_array["results"] = Value::Array(vec![Value::from(0); MAX_MEASUREMENTS + 1]);
+    let mut long_string = sample_payload();
+    long_string["tester"] = json!("x".repeat(MAX_PHOTO_B64 + 1));
+    for (name, payload) in [("long top-level key", Value::Object(long_key)), ("long nested key", nested_key), ("long array", long_array), ("long string", long_string)] {
+        let r = hostile(payload);
+        assert_eq!(r.status, "modified", "{name}");
+        assert_eq!(r.reasons[0], "content hash mismatch", "{name}");
+        assert!(r.reasons.get(1).is_some_and(|m| m.contains("schema v1 bounds")), "{name}: {:?}", r.reasons);
+        assert!(r.content_hash.is_none(), "{name}: the payload is never canonicalised");
+        assert!(!r.issued_by_this_install, "{name}");
+    }
+    // a genuine certificate is still inside the bounds
+    assert_eq!(verify(&valid_file()).status, "valid");
+}
+
+/// FS-20 review (parity with the JS verifier): base64 with non-zero trailing bits decodes to the same
+/// bytes in a lenient decoder; Rust rejects it, and app/certificate.js now does too.
+#[test]
+fn regression_fs20_non_canonical_base64_signature_or_key_never_verifies() {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let malleate = |s: &str| {
+        let at = s.trim_end_matches('=').len() - 1;
+        let idx = ALPHABET.iter().position(|&c| c == s.as_bytes()[at]).unwrap();
+        format!("{}{}{}", &s[..at], ALPHABET[idx ^ 1] as char, &s[at + 1..])
+    };
+    let fixture: Value = serde_json::from_str(&fs::read_to_string(repo("tests/fixtures/certificate/valid-v1.deckchek-cert.json")).unwrap()).unwrap();
+    assert_eq!(verify(&fixture).status, "valid");
+    for field in ["signature", "publicKey"] {
+        let mut v = fixture.clone();
+        v["integrity"][field] = json!(malleate(v["integrity"][field].as_str().unwrap()));
+        let r = verify(&v);
+        assert_eq!(r.status, "modified", "{field}: {:?}", r.reasons);
+    }
+}
+
+/// FS-20 review (DoS): the certificate commands were sync, so Tauri ran them on the main thread and
+/// a slow file froze the window. Every certificate command must be `async` (off the UI thread).
+#[test]
+fn regression_fs20_certificate_commands_run_off_the_main_thread() {
+    let src = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/certificate.rs")).unwrap();
+    let mut names = Vec::new();
+    for (i, _) in src.match_indices("#[tauri::command") {
+        let after = &src[i..];
+        let attr_end = after.find(']').unwrap();
+        let fn_at = after.find("fn ").unwrap();
+        let name: String = after[fn_at + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+        let is_async = after[..attr_end].contains("async") || after[attr_end..fn_at].contains("async");
+        assert!(is_async, "{name} runs on the main thread");
+        names.push(name);
+    }
+    for want in ["certificate_sign", "certificate_verify", "certificate_extract_json", "certificate_store", "certificate_list", "certificate_get"] {
+        assert!(names.iter().any(|n| n == want), "{want} not found: {names:?}");
+    }
+}
+
+/// FS-20 review: "issued by this install" came from the file's unverified fingerprint, so a forged
+/// MODIFIED file carrying this install's (public, printed) fingerprint showed the ownership note.
+#[test]
+fn regression_fs20_issued_by_this_install_only_for_a_valid_signature_by_the_local_key() {
+    let local = |_: &str| true;
+    // forged: edited payload with a recomputed hash, the real fingerprint and key, a stale signature
+    let mut forged = valid_file();
+    forged["payload"]["tester"] = json!("Mallory");
+    let (hash, _) = content_hash(&forged["payload"]).unwrap();
+    forged["integrity"]["contentHash"] = json!(hash);
+    let r = verify_text(&serde_json::to_string(&forged).unwrap(), NOW, local);
+    assert_eq!(r.status, "modified");
+    assert!(!r.issued_by_this_install, "{:?}", r.reasons);
+    // hash mismatch, fingerprint mismatch
+    let mut edited = valid_file();
+    edited["payload"]["tester"] = json!("Mallory");
+    assert!(!verify_text(&serde_json::to_string(&edited).unwrap(), NOW, local).issued_by_this_install);
+    let mut other_fp = valid_file();
+    other_fp["integrity"]["fingerprint"] = json!("0123456789abcdef");
+    assert!(!verify_text(&serde_json::to_string(&other_fp).unwrap(), NOW, local).issued_by_this_install);
+    // signed but outside schema v1: unverifiable, not claimed
+    let mut p = sample_payload();
+    p["verdict"] = json!("excellent");
+    let r = verify_text(&serde_json::to_string(&sign_with(&FIXTURE_SEED, p)).unwrap(), NOW, local);
+    assert_eq!(r.status, "unverifiable");
+    assert!(!r.issued_by_this_install);
+    // valid: the local-key lookup decides, and it is asked about the verified fingerprint only
+    let seen = std::cell::RefCell::new(Vec::new());
+    let r = verify_text(&serde_json::to_string(&valid_file()).unwrap(), NOW, |fp| {
+        seen.borrow_mut().push(fp.to_string());
+        true
+    });
+    assert_eq!(r.status, "valid");
+    assert!(r.issued_by_this_install);
+    assert_eq!(seen.into_inner(), vec![r.fingerprint.clone().unwrap()]);
+    assert!(!verify(&valid_file()).issued_by_this_install);
+}
