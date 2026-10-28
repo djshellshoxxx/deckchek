@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 const QUEUE_CAPACITY: usize = 4096;
 const BATCH_WINDOW: Duration = Duration::from_millis(10);
@@ -136,15 +136,28 @@ fn prune_with_os(inner: &mut Inner) {
     }
 }
 
+fn background_failed(e: tauri::Error) -> String {
+    format!("background task failed: {e}")
+}
+
+/// AUD-03: the OS MIDI stack can block for seconds while it enumerates drivers or opens a busy
+/// port, so device commands run on tokio's blocking pool, never on the main (UI) thread.
+/// `State<'_>` is not `'static`, so the blocking closure fetches the state from the `AppHandle`.
 #[tauri::command]
-pub fn midi_list_ports(state: State<'_, MidiState>) -> Result<PortList, String> {
+pub async fn midi_list_ports(app: AppHandle) -> Result<PortList, String> {
+    tauri::async_runtime::spawn_blocking(move || list_ports_blocking(&app.state::<MidiState>()))
+        .await
+        .map_err(background_failed)?
+}
+
+fn list_ports_blocking(state: &MidiState) -> Result<PortList, String> {
     let inp = MidiInput::new("deckchek-list-in").map_err(|e| e.to_string())?;
     let out = MidiOutput::new("deckchek-list-out").map_err(|e| e.to_string())?;
     let inputs = inp.ports().iter().enumerate()
         .map(|(index, p)| PortInfo { index, name: inp.port_name(p).unwrap_or_default() }).collect();
     let outputs = out.ports().iter().enumerate()
         .map(|(index, p)| PortInfo { index, name: out.port_name(p).unwrap_or_default() }).collect();
-    if let Ok(mut inner) = lock(&state) {
+    if let Ok(mut inner) = lock(state) {
         let (i, o): (Vec<String>, Vec<String>) = (
             inp.ports().iter().filter_map(|p| inp.port_name(p).ok()).collect(),
             out.ports().iter().filter_map(|p| out.port_name(p).ok()).collect(),
@@ -173,8 +186,14 @@ fn ensure_pump(inner: &mut Inner, app: AppHandle, emitted: Arc<AtomicU64>) -> Sy
 }
 
 #[tauri::command]
-pub fn midi_open_input(app: AppHandle, state: State<'_, MidiState>, name: String) -> Result<(), String> {
-    let mut inner = lock(&state)?;
+pub async fn midi_open_input(app: AppHandle, name: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || open_input_blocking(&app, &app.state::<MidiState>(), name))
+        .await
+        .map_err(background_failed)?
+}
+
+fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Result<(), String> {
+    let mut inner = lock(state)?;
     let mut mi = MidiInput::new("deckchek-in").map_err(|e| e.to_string())?;
     mi.ignore(midir::Ignore::None);
     // A cached connection whose port vanished is dead: close it and reconnect (or report not found).
@@ -190,7 +209,7 @@ pub fn midi_open_input(app: AppHandle, state: State<'_, MidiState>, name: String
     let port = mi.ports().into_iter()
         .find(|p| mi.port_name(p).map(|n| n == name).unwrap_or(false))
         .ok_or_else(|| format!("MIDI input not found: {name}"))?;
-    let tx = ensure_pump(&mut inner, app, state.emitted.clone());
+    let tx = ensure_pump(&mut inner, app.clone(), state.emitted.clone());
     let dropped = state.dropped.clone();
     let port_name = name.clone();
     let conn = mi.connect(&port, "deckchek-input", move |ts, bytes, _| {
@@ -317,5 +336,20 @@ mod tests {
         assert_eq!(collect_batch(&rx, Duration::from_millis(5), BATCH_WINDOW, 10).unwrap().len(), 0);
         drop(tx);
         assert!(collect_batch(&rx, Duration::from_millis(5), BATCH_WINDOW, 10).is_none());
+    }
+
+    /// AUD-03: port listing and input open touch the OS MIDI stack, which can block for seconds
+    /// (driver enumeration, a busy port). They must be `async` and do the work on the blocking
+    /// pool, never on the main (UI) thread. Scans this file's own source.
+    #[test]
+    fn regression_aud_03_midi_device_commands_run_off_the_main_thread() {
+        let src = include_str!("midi.rs");
+        for name in ["midi_list_ports", "midi_open_input"] {
+            assert!(!src.contains(&format!("pub fn {name}(")), "{name} is still a sync command on the main thread");
+            let head = format!("pub async fn {name}(");
+            let at = src.find(&head).unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
+            let body = &src[at..at + src[at..].find("\n}\n").expect("command body")];
+            assert!(body.contains("spawn_blocking"), "{name} must run its body via spawn_blocking");
+        }
     }
 }

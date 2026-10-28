@@ -1725,7 +1725,7 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
     use std::process::Command;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let run = |exe: &str, args: &[&str], secs: u64| {
-        let mut cmd = Command::new(exe);
+        let mut cmd = Command::new(crate::system_check::system_exe(exe)); // AUD-13: absolute System32 path
         cmd.args(args);
         cmd.creation_flags(CREATE_NO_WINDOW);
         crate::system_check::run_with_timeout(cmd, Duration::from_secs(secs))

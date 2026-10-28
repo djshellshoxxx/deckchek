@@ -273,8 +273,16 @@ pub(crate) fn device_max_channels(device: &cpal::Device) -> u16 {
     ranged.max(default)
 }
 
+/// AUD-03: enumeration asks every audio driver for its configs (ASIO/WASAPI can block for
+/// seconds), so it runs on tokio's blocking pool, never on the main (UI) thread.
 #[tauri::command]
-pub fn list_native_audio_inputs() -> Result<Vec<AudioInputInfo>, String> {
+pub async fn list_native_audio_inputs() -> Result<Vec<AudioInputInfo>, String> {
+    tauri::async_runtime::spawn_blocking(list_inputs_blocking)
+        .await
+        .map_err(|e| format!("background task failed: {e}"))?
+}
+
+fn list_inputs_blocking() -> Result<Vec<AudioInputInfo>, String> {
     let host = cpal::default_host();
     let default_name = host.default_input_device().and_then(|d| d.name().ok());
 
@@ -883,5 +891,18 @@ mod tests {
         assert!(validate_duration(30.5).is_err());
         assert!(validate_duration(f32::NAN).is_err());
         assert!(validate_duration(30.0).is_ok());
+    }
+
+    /// AUD-03: input enumeration queries every audio driver (ASIO/WASAPI can block for seconds),
+    /// so the command must be `async` and enumerate on the blocking pool. Scans this file's source.
+    #[test]
+    fn regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread() {
+        let src = include_str!("audio.rs");
+        let name = "list_native_audio_inputs";
+        assert!(!src.contains(&format!("pub fn {name}(")), "{name} is still a sync command on the main thread");
+        let head = format!("pub async fn {name}(");
+        let at = src.find(&head).unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
+        let body = &src[at..at + src[at..].find("\n}\n").expect("command body")];
+        assert!(body.contains("spawn_blocking"), "{name} must enumerate via spawn_blocking");
     }
 }
