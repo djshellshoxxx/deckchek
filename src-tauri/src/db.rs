@@ -187,7 +187,9 @@ impl DerefMut for DbConn {
 pub fn open_database(path: &Path) -> Result<DbConn, String> {
     let guard = gate().read().unwrap_or_else(PoisonError::into_inner);
     let conn = Connection::open(path).map_err(|e| e.to_string())?;
-    conn.execute_batch("PRAGMA foreign_keys=ON;").map_err(|e| e.to_string())?;
+    // trusted_schema=OFF: expressions stored in the schema (defaults, CHECKs, indexes) may only
+    // call innocuous functions. DeckChek's own schema needs nothing more (AUD-04).
+    conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF;").map_err(|e| e.to_string())?;
     apply_migrations(&conn)?;
     crate::catalog::seed_if_empty(&conn)?;
     Ok(DbConn { conn, _gate: guard })
@@ -1432,5 +1434,20 @@ mod tests {
         let mut c = open_database(&tmp.0).unwrap();
         persist_run(&mut c, &graph_run("gate-run", "2026-10-10T00:00:00Z")).unwrap();
         assert_eq!(list_runs(&c, None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn regression_aud_04_open_database_turns_trusted_schema_off() {
+        let _serial = GATE_TESTS.lock().unwrap_or_else(PoisonError::into_inner);
+        let tmp = TempDb::new("trusted-schema");
+        let conn = open_database(&tmp.0).unwrap();
+        let trusted: i64 = conn.query_row("PRAGMA trusted_schema", [], |r| r.get(0)).unwrap();
+        assert_eq!(trusted, 0, "schema expressions must not call functions or virtual tables that are not innocuous");
+        let fk: i64 = conn.query_row("PRAGMA foreign_keys", [], |r| r.get(0)).unwrap();
+        assert_eq!(fk, 1);
+        drop(conn);
+        // a second open of the now-migrated, seeded file works the same way
+        let again = open_database(&tmp.0).unwrap();
+        assert_eq!(again.query_row::<i64, _, _>("PRAGMA trusted_schema", [], |r| r.get(0)).unwrap(), 0);
     }
 }
