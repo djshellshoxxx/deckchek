@@ -171,6 +171,18 @@ unresolved findings. One inherited non-routable hardware-script URL example was
 reviewed as placeholder text, not a usable credential. Remote branch SHA must
 be checked after push.
 
+Publication outcome: the source checkpoint at
+`96c38babd0e536c9e247364a8524e8720e779772` was pushed successfully and its remote
+SHA verified; main and PR14 were unchanged. The subsequent connector attempt to
+create a draft PR from `continuation-deckchek-core-20261028` into
+`claude/confident-goldberg-o06vg2` was **denied by automatic approval review**.
+The stated reason was the earlier prohibition on public PR creation; the later
+instruction to open drafts was not accepted as overriding it. No PR was created,
+and no retry, gh fallback, or indirect creation was attempted. Explicit approval
+resolving this specific publication conflict is required before retrying. This
+status-only note does not change the tested source; the final publishing response
+records the updated documentation SHA.
+
 Recover by fetching `origin/continuation-deckchek-core-20261028` and creating a
 new worktree/branch from its verified SHA. Do not reset existing branches or
 reuse an occupied worktree path. Recheck PR14 and external ownership before

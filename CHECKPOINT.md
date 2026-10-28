@@ -4,6 +4,12 @@ Branch: `continuation-deckchek-core-20261028`, stacked on PR14 source
 `9f4928a00a44b62529429d1f14ad104b65db28c6`. The older MIDI checkpoint and every
 existing branch remain preserved. No main/PR14 merge or release is intended.
 
+Source publication succeeded. Draft PR creation was denied by automatic approval
+review, which cited the earlier no-PR-creation restriction despite the later
+draft-PR request. No PR was created and no alternative creation route was used.
+Explicit approval resolving that conflict is required before retrying creation
+from this branch into `claude/confident-goldberg-o06vg2`.
+
 Tested source: `210cb48d858992e93facf54b46e9a069799d89c8`.
 Final JavaScript suite: 1,199 passed, one optional skip, zero failed. Final core
 browser: 186/186; Compare: 73/73; fleet: 93/93; core plus mobile: 232/232 before
