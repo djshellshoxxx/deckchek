@@ -46,6 +46,8 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: node tools/check-release-version.mjs "$TAG"
+      - name: Third-party notices are current and every licence is reviewed
+        run: node tools/third-party-notices.mjs --check
 
   build:
     needs: tests

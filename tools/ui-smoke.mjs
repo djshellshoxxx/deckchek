@@ -60,6 +60,8 @@ async function main() {
   } finally {
     await browser.close();
     server.close();
+    // Downloads and exported files land here; every run used to leave one behind.
+    fs.rmSync(tmp, { recursive: true, force: true });
   }
   check('no console errors', errors.length === 0, errors.slice(0, 5).join(' | '));
   const failed = results.filter(r => !r.ok);
