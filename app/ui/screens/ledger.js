@@ -31,16 +31,27 @@ export function gearRowText(row) {
   return { title: a.nickname || model || 'Unit', model, status };
 }
 
-/** Pure: the numbered GitHub Pages guide (AC-6). `folder` is the exported folder's name. */
-export function publishSteps(folder = LEDGER_DIR) {
+export const SINGLE_FILE_NAME = 'deckchek-gear-ledger.html';
+
+/**
+ * Pure: the numbered GitHub Pages guide (AC-6). Folder mode: `name` is the exported folder. Single-file mode: `name`
+ * is the saved HTML file, which GitHub Pages only serves at the site address once it is called index.html.
+ */
+export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
+  const upload = mode === 'single'
+    ? `Rename the exported file "${name}" to index.html, then upload it with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; under any other name the address shows a 404 page.`
+    : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) with "Add file > Upload files", or push them with git. If you exported into this folder before, first delete the photos and certificate files this export did not write.`;
   return [
     'On github.com, create a new repository (public, if you want the ledger to be public).',
-    `Upload the contents of the exported "${folder}" folder (index.html, ledger.json and the assets and certificates folders) with "Add file > Upload files", or push them with git.`,
+    upload,
     'Open Settings > Pages, choose "Deploy from a branch", pick the branch (main) and the root folder, and save.',
     'Wait for the Pages build, then open the address GitHub shows. Check that only the fields in the privacy summary are visible.',
   ];
 }
 export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
+export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
+/** After a folder export: the write replaces files with the same name but deletes nothing (FS-33 review). */
+export const LEFTOVER_NOTE = 'Files with the same names are replaced, but photos and certificate files (.deckchek-cert.json) from earlier exports that are not in this one stay in that folder: delete them before you upload, or they are published too.';
 export const RETRACT_NOTE = 'Deleting the ledger from your computer does not remove copies you already published or shared.';
 
 export function createLedgerScreen(section, { api = createLedgerApi(), reencode = async bytes => (await preparePhoto(bytes)).bytes } = {}) {
@@ -70,6 +81,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
 
   function setStep(step, { focus = true } = {}) {
+    commitEdits(); // its synchronous part takes the typed owner name and notes before render() removes the fields
     st.step = step;
     if (step !== 'export') { st.done = null; st.exportError = null; }
     if (step === 'select' || step === 'privacy') st.buildError = null;
@@ -130,7 +142,10 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
       ...Object.keys(PRESETS).map(name => {
         const id = `ledger-preset-${name}`;
         const r = h('input', { type: 'radio', name: 'ledger-preset', id, value: name, checked: st.rules.preset === name });
-        r.addEventListener('change', () => { const owner = st.rules.ownerName; st.rules = { ...makeRules(name), ownerName: owner }; st.result = null; render(); q(`#${id}`)?.focus(); announce(`${PRESET_LABELS[name]} preset`); });
+        // 'click' too: picking the radio that is still checked must reset per-unit overrides (no 'change' fires then).
+        const apply = () => { if (st.rules.preset === name && matchesPreset(st.rules)) return; const owner = st.rules.ownerName; st.rules = { ...makeRules(name), ownerName: owner }; st.result = null; render(); q(`#${id}`)?.focus(); announce(`${PRESET_LABELS[name]} preset`); };
+        r.addEventListener('change', apply);
+        r.addEventListener('click', apply);
         return h('label', { class: 'ledger-radio', for: id }, r, h('span', { text: PRESET_LABELS[name] }));
       }),
       st.rules.preset === 'custom' ? h('span', { class: 'chip chip-info', id: 'ledger-custom', text: 'Custom' }) : null);
@@ -138,7 +153,9 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     serial.value = st.rules.serialMode;
     serial.addEventListener('change', () => { st.rules.serialMode = serial.value; changed(); render(); q('#ledger-serial')?.focus(); });
     const owner = h('input', { type: 'text', id: 'ledger-owner', maxlength: String(MAX_OWNER_CHARS), autocomplete: 'off', value: st.rules.ownerName || '' });
-    owner.addEventListener('change', () => { st.rules.ownerName = owner.value; st.result = null; });
+    // Committed on every keystroke: Ctrl+E can fire while the cursor is still here, and removing a focused field
+    // fires no 'change' in WebKit or Firefox, so a 'change'-only handler would export the old (or a cleared) name.
+    owner.addEventListener('input', () => { st.rules.ownerName = owner.value; st.result = null; });
 
     // matrix: rows = items, columns = fields; the header row sets the field for every item
     const head = h('tr', {}, h('th', { scope: 'col', text: 'Unit' }), h('th', { scope: 'col', text: 'Include' }), h('th', { scope: 'col', text: 'Serial' }),
@@ -157,23 +174,25 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
       inc.addEventListener('change', () => { o.include = inc.checked; st.result = null; });
       const ser = h('select', { 'data-serial': id, 'aria-label': `Serial number for ${t.title}` }, ...SERIAL_MODES.map(m => h('option', { value: m, text: SERIAL_LABEL[m] })));
       ser.value = eff.serialMode;
-      ser.addEventListener('change', () => { if (ser.value === st.rules.serialMode) delete o.serialMode; else o.serialMode = ser.value; changed(); });
+      // Per-unit overrides can switch the preset to Custom: re-render so the radios and the Custom chip follow.
+      ser.addEventListener('change', () => { if (ser.value === st.rules.serialMode) delete o.serialMode; else o.serialMode = ser.value; changed(); render(); q(`#ledger-matrix [data-serial="${CSS.escape(id)}"]`)?.focus(); });
       return h('tr', {}, h('th', { scope: 'row', text: t.title }), h('td', {}, inc), h('td', {}, ser), ...FIELDS.map(f => {
         const box = h('input', { type: 'checkbox', 'data-item-field': `${id}|${f.key}`, 'aria-label': `${f.label} for ${t.title}`, checked: eff.fields[f.key] });
-        box.addEventListener('change', () => { o.fields ??= {}; if (box.checked === st.rules.fields[f.key]) delete o.fields[f.key]; else o.fields[f.key] = box.checked; changed(); });
+        box.addEventListener('change', () => { o.fields ??= {}; if (box.checked === st.rules.fields[f.key]) delete o.fields[f.key]; else o.fields[f.key] = box.checked; changed(); render(); q(`#ledger-matrix [data-item-field="${CSS.escape(`${id}|${f.key}`)}"]`)?.focus(); });
         return h('td', {}, box);
       }));
     });
     const notes = rows.map(r => {
       const t = gearRowText(r), id = `ledger-note-${r.asset.id}`.replace(/[^A-Za-z0-9_-]/g, '_');
       const ta = h('textarea', { id, rows: '2', maxlength: '2000', 'data-note': r.asset.id });
-      ta.value = r.asset.publicNotes || '';
-      ta.addEventListener('change', async () => {
-        try { const saved = await api.setPublicNote(r.asset.id, ta.value); r.asset.publicNotes = saved.publicNotes; st.result = null; status(`Public note saved for ${t.title}.`); }
-        catch (e) { status(`Could not save the note: ${friendly(e)}`); }
-      });
+      ta.value = drafts.has(r.asset.id) ? drafts.get(r.asset.id) : r.asset.publicNotes || '';
+      // The typed text is kept as a draft at once; it is saved on 'change' and, at the latest, before any build.
+      ta.addEventListener('input', () => { drafts.set(r.asset.id, ta.value); st.result = null; });
+      ta.addEventListener('change', () => { saveNote(r.asset.id); });
       return h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: `Public note: ${t.title}` }), ta);
     });
+    const notesBox = h('details', { class: 'ledger-notes', open: st.notesOpen }, h('summary', { text: 'Public notes (written for this ledger)' }), ...notes);
+    notesBox.addEventListener('toggle', () => { st.notesOpen = notesBox.open; });
     return h('section', { class: 'card', 'aria-labelledby': 'ledger-h-privacy' },
       h('h2', { class: 'card-title', id: 'ledger-h-privacy', tabindex: '-1', text: '2. Privacy' }),
       h('p', { class: 'muted', text: 'Choose what the ledger shows. Public hides serial numbers and nicknames; Insurance masks serials to the last 4 characters. Prices, venues, file paths and photo metadata (EXIF, GPS) are never exported. Private notes stay out unless you tick them.' }),
@@ -182,29 +201,97 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
         h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'ledger-serial', text: 'Serial numbers (all units)' }), serial),
         h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'ledger-owner', text: 'Owner name on the page (optional)' }), owner)),
       h('div', { class: 'table-wrap ledger-matrix-wrap' }, h('table', { class: 'ledger-matrix', id: 'ledger-matrix' }, h('caption', { class: 'sr-only', text: 'Fields per unit' }), h('thead', {}, head), h('tbody', {}, ...bodyRows))),
-      h('details', { class: 'ledger-notes' }, h('summary', { text: 'Public notes (written for this ledger)' }), ...notes),
+      notesBox,
       h('div', { class: 'action-bar' },
         h('button', { type: 'button', class: 'btn btn-secondary', text: 'Back', onclick: () => setStep('select') }),
         h('button', { type: 'button', class: 'btn btn-primary', id: 'ledger-next-preview', text: 'Next: preview', onclick: () => setStep('preview') })));
   }
 
+  // ---------------------------------------------------------------- pending edits (owner name, public notes)
+  // Ctrl+E works while the cursor is in a text field, and a re-render removes that field without a 'change' event in
+  // WebKit and Firefox. So typed text is kept in state at once and committed before every build.
+  const drafts = new Map();   // assetId -> public note typed but not saved yet
+  const inflight = new Map(); // assetId -> {text, promise} of the save in progress
+  const failed = new Map();   // assetId -> message of the last failed save
+  function saveNote(assetId) {
+    if (!drafts.has(assetId)) return null;
+    const text = drafts.get(assetId), busy = inflight.get(assetId);
+    if (busy?.text === text) return busy.promise;
+    const row = st.gear?.rows.find(r => r.asset.id === assetId);
+    if (!row) { drafts.delete(assetId); return null; }
+    const title = gearRowText(row).title;
+    const promise = (async () => {
+      try {
+        const saved = await api.setPublicNote(assetId, text);
+        row.asset.publicNotes = saved?.publicNotes ?? null;
+        if (drafts.get(assetId) === text) drafts.delete(assetId);
+        failed.delete(assetId); st.result = null;
+        status(`Public note saved for ${title}.`);
+      } catch (e) {
+        failed.set(assetId, `Could not save the public note for ${title}: ${friendly(e)}`);
+        status(failed.get(assetId));
+      } finally { if (inflight.get(assetId)?.promise === promise) inflight.delete(assetId); }
+    })();
+    inflight.set(assetId, { text, promise });
+    return promise;
+  }
+  /** Commits the visible owner field and note boxes into state (synchronously), then waits for the note saves.
+   *  Resolves to an error message when a typed note could not be saved, else null. */
+  async function commitEdits() {
+    const owner = q('#ledger-owner');
+    if (owner && owner.value !== (st.rules.ownerName || '')) { st.rules.ownerName = owner.value; st.result = null; }
+    for (const ta of q('#ledger-body')?.querySelectorAll('textarea[data-note]') || []) {
+      const id = ta.dataset.note, row = st.gear?.rows.find(r => r.asset.id === id);
+      if (ta.value !== (drafts.has(id) ? drafts.get(id) : row?.asset.publicNotes || '')) { drafts.set(id, ta.value); st.result = null; }
+    }
+    for (const id of [...drafts.keys()]) saveNote(id);
+    while (inflight.size) await Promise.allSettled([...inflight.values()].map(x => x.promise));
+    for (const [id, msg] of failed) if (drafts.has(id)) return msg;
+    return null;
+  }
+
   // ---------------------------------------------------------------- build (shared by preview and export)
-  const key = () => JSON.stringify([[...st.selected].sort(), normalizeRules(st.rules), st.gear?.rows.map(r => r.asset.publicNotes)]);
-  async function build({ mode = 'folder', revision } = {}) {
-    const ids = [...st.selected];
-    const state = await api.loadState(st.gear, ids, { onProgress: p => { st.progress = p.total ? `Processing photos and certificates: ${p.done} of ${p.total} units` : ''; const el = q('#ledger-progress'); if (el) el.textContent = st.progress; } });
-    const result = await buildLedger(state, { items: ids }, st.rules, { revision: revision ?? await api.nextRevision(), mode, reencode });
-    for (const p of state.problems) result.skipped.push({ item: st.gear.rows.find(r => r.asset.id === p.assetId)?.asset.nickname || 'Unit', what: p.what, reason: p.reason });
+  // A build works on a snapshot (selection, normalised rules, public notes) taken when it starts, and its cache key
+  // is computed from that same snapshot, so a result is never stamped with settings changed while it was building.
+  const keyOf = (ids, rules) => JSON.stringify([ids, rules, (st.gear?.rows || []).filter(r => ids.includes(r.asset.id)).map(r => [r.asset.id, r.asset.publicNotes ?? null])]);
+  const key = () => keyOf([...st.selected], normalizeRules(st.rules));
+  const fresh = () => Boolean(st.result) && !drafts.size && !inflight.size && st.resultKey === key();
+  function snapshot() {
+    const ids = [...st.selected], rules = normalizeRules(st.rules);
+    return { ids, rules, key: keyOf(ids, rules), gear: { ...st.gear, rows: st.gear.rows.map(r => ({ ...r, asset: { ...r.asset } })) } };
+  }
+  async function build(snap, { mode = 'folder', revision } = {}) {
+    const state = await api.loadState(snap.gear, snap.ids, { onProgress: p => { st.progress = p.total ? `Processing photos and certificates: ${p.done} of ${p.total} units` : ''; const el = q('#ledger-progress'); if (el) el.textContent = st.progress; } });
+    const result = await buildLedger(state, { items: snap.ids }, snap.rules, { revision: revision ?? await api.nextRevision(), mode, reencode });
+    for (const p of state.problems) result.skipped.push({ item: snap.gear.rows.find(r => r.asset.id === p.assetId)?.asset.nickname || 'Unit', what: p.what, reason: p.reason });
     return result;
   }
+  /** Re-renders the step; when focus was in the step (or fell to <body> because the step was replaced), it goes back
+   *  to the step heading so keyboard and screen-reader users keep their place. */
+  function renderKeepFocus() {
+    const a = document.activeElement;
+    const inStep = !a || a === document.body || Boolean(q('#ledger-body')?.contains(a));
+    render();
+    if (inStep) q('#ledger-body h2')?.focus();
+  }
   async function ensureBuilt() {
-    if (st.result && st.resultKey === key()) return st.result;
     if (st.busy) return null;
-    st.busy = true; st.buildError = null; render();
-    try { st.result = await build(); st.resultKey = key(); }
-    catch (e) { st.result = null; st.buildError = friendly(e); }
+    if (fresh()) return st.result;
+    st.busy = true; st.buildError = null; renderKeepFocus();
+    try {
+      for (;;) {
+        const err = await commitEdits();
+        if (err) throw new Error(err);
+        const snap = snapshot();
+        const r = await build(snap);
+        if (snap.key === key() && !drafts.size) { st.result = r; st.resultKey = snap.key; break; }
+        // The selection, rules or notes changed while building: showing this result would not match the export.
+        st.result = null;
+        if (st.step !== 'preview' && st.step !== 'export') break;
+      }
+    } catch (e) { st.result = null; st.buildError = friendly(e); }
     finally { st.busy = false; }
-    if (st.step === 'preview' || st.step === 'export') { render(); status(st.buildError ? `Preview failed: ${st.buildError}` : 'Preview ready.'); }
+    if (st.step === 'preview' || st.step === 'export') { renderKeepFocus(); status(st.buildError ? `Preview failed: ${st.buildError}` : 'Preview ready.'); }
     return st.result;
   }
 
@@ -245,8 +332,8 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   // ---------------------------------------------------------------- step 4
   function exportStep() {
     const card = h('section', { class: 'card', 'aria-labelledby': 'ledger-h-export' }, h('h2', { class: 'card-title', id: 'ledger-h-export', tabindex: '-1', text: '4. Export' }));
-    if (!st.result) {
-      if (st.buildError) {
+    if (!fresh()) {
+      if (st.buildError && !st.busy) {
         card.append(h('p', { class: 'form-error', id: 'ledger-build-error', role: 'alert', text: st.buildError }),
           h('div', { class: 'action-bar' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Back', onclick: () => { st.buildError = null; setStep('privacy'); } })));
         return card;
@@ -263,12 +350,16 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
         h('span', { text: native ? `Folder (recommended): ${LEDGER_DIR}/index.html, ledger.json, assets/ and certificates/` : 'Folder: needs the DeckChek desktop app' })),
       h('label', { class: 'ledger-radio', for: 'ledger-mode-single' }, h('input', { type: 'radio', name: 'ledger-mode', id: 'ledger-mode-single', value: 'single', checked: st.mode === 'single', disabled: !singleOk }),
         h('span', { text: singleOk ? 'Single HTML file with photos inside' : `Single file: not available, photos exceed ${SINGLE_FILE_MAX_BYTES / 1048576} MB` })));
-    modes.addEventListener('change', e => { if (e.target.name === 'ledger-mode') st.mode = e.target.value; });
+    // The publish guide depends on the format, so re-render and keep focus on the radio that was chosen.
+    modes.addEventListener('change', e => { if (e.target.name === 'ledger-mode') { st.mode = e.target.value; render(); q(`#ledger-mode-${st.mode}`)?.focus(); } });
+    const single = st.mode === 'single';
+    const savedName = single && st.done?.mode === 'single' && st.done.path ? st.done.path.split(/[\\/]/).pop() : '';
+    const singleName = /\.html?$/i.test(savedName) ? savedName : SINGLE_FILE_NAME;
     const cmp = compareWithPrevious(st.history[0] || null, { ...st.result.ledger, revision: (st.history[0]?.revision ?? 0) + 1 }, [...st.selected]);
     const outcome = h('div', { id: 'ledger-outcome', role: 'status', 'aria-live': 'polite' });
     if (st.done) {
-      outcome.append(h('p', { class: 'ledger-ok', id: 'ledger-success', html: `${icon('pass', { size: 18 })} ` }, h('span', { text: st.done.path ? `Saved to ${st.done.path}. Open index.html in a browser to check it.` : 'Downloaded deckchek-gear-ledger.html. Open it in a browser to check it.' })),
-        h('p', { class: 'small muted', text: `Revision ${st.done.revision} recorded.${st.done.path ? ' Files from earlier exports in that folder are replaced; delete photos you removed from the ledger by hand.' : ''}` }));
+      outcome.append(h('p', { class: 'ledger-ok', id: 'ledger-success', html: `${icon('pass', { size: 18 })} ` }, h('span', { text: st.done.path ? `Saved to ${st.done.path}. Open ${st.done.mode === 'single' ? 'it' : 'index.html'} in a browser to check it.` : `Downloaded ${SINGLE_FILE_NAME}. Open it in a browser to check it.` })),
+        h('p', { class: 'small muted', id: 'ledger-leftover', text: `Revision ${st.done.revision} recorded.${st.done.path && st.done.mode !== 'single' ? ` ${LEFTOVER_NOTE}` : ''}` }));
     }
     if (st.exportError) outcome.append(h('p', { class: 'form-error', id: 'ledger-export-error', role: 'alert', text: st.exportError }));
     card.append(
@@ -280,8 +371,8 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
       outcome,
       h('section', { class: 'ledger-publish', id: 'ledger-publish', 'aria-labelledby': 'ledger-h-publish' },
         h('h3', { id: 'ledger-h-publish', text: 'How to publish (GitHub Pages)' }),
-        h('p', { text: PUBLISH_COPY }),
-        h('ol', { id: 'ledger-publish-steps' }, ...publishSteps(st.mode === 'single' ? 'deckchek-gear-ledger.html' : LEDGER_DIR).map(s => h('li', { text: s }))),
+        h('p', { text: single ? PUBLISH_COPY_SINGLE : PUBLISH_COPY }),
+        h('ol', { id: 'ledger-publish-steps' }, ...publishSteps(single ? singleName : LEDGER_DIR, single ? 'single' : 'folder').map(s => h('li', { text: s }))),
         h('p', { class: 'small muted', text: `${RETRACT_NOTE} DeckChek never asks for GitHub credentials.` })),
       summaryCard(st.result));
     return card;
@@ -292,16 +383,22 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     st.busy = true; st.done = null; st.exportError = null;
     render();
     status('Exporting the ledger…');
+    const mode = st.mode;
     try {
+      const err = await commitEdits();
+      if (err) throw new Error(err);
+      const snap = snapshot();
       const revision = await api.nextRevision();
-      const result = await build({ mode: st.mode, revision });
-      const out = st.mode === 'single' ? await api.saveSingle(result.html) : await api.writeFolder(result.files);
+      const result = await build(snap, { mode, revision });
+      const out = mode === 'single' ? await api.saveSingle(result.html) : await api.writeFolder(result.files);
       if (out.cancelled) { status('Export cancelled.'); return; }
-      const row = await api.recordExport({ revision, selection: { items: [...st.selected].sort(), mode: st.mode }, privacy: normalizeRules(st.rules), ledgerSha256: result.ledger.ledgerSha256 });
+      // TODO(FS-33 ledger-core): once app/ledger/api.js offers a stale-file cleanup for the folder export, call it
+      // here (folder mode only) so leftover photos and certificate files are removed; until then LEFTOVER_NOTE says so.
+      const row = await api.recordExport({ revision, selection: { items: [...snap.ids].sort(), mode }, privacy: snap.rules, ledgerSha256: result.ledger.ledgerSha256 });
       st.history = [row, ...st.history];
-      st.result = result; st.resultKey = key();
-      const path = out.path ? `${out.path.replace(/[\\/]+$/, '')}${out.path.includes('\\') && !out.path.includes('/') ? '\\' : '/'}${st.mode === 'single' ? '' : LEDGER_DIR}` : null;
-      st.done = { path: st.mode === 'single' ? out.path : path, revision: row.revision };
+      st.result = result; st.resultKey = snap.key;
+      const path = out.path ? `${out.path.replace(/[\\/]+$/, '')}${out.path.includes('\\') && !out.path.includes('/') ? '\\' : '/'}${mode === 'single' ? '' : LEDGER_DIR}` : null;
+      st.done = { path: mode === 'single' ? out.path : path, revision: row.revision, mode };
       toast(`Ledger revision ${row.revision} saved.`, { type: 'success' });
       status(`Ledger revision ${row.revision} saved.`);
     } catch (e) {
@@ -347,7 +444,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     onExport: () => {
       if (!st.gear?.rows.length || st.busy) return;
       if (!st.selected.size) { setStep('select'); status('Pick at least one unit to export.'); return; }
-      if (st.step === 'export' && st.result) doExport(); else setStep('export');
+      if (st.step === 'export' && fresh()) doExport(); else setStep('export');
     },
     onEscape: () => {
       if (st.busy || st.step === 'select') return false;

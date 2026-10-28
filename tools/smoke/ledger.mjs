@@ -33,6 +33,8 @@ function ledgerMock(certJson) {
     st.jpeg = b64(out);
     return st.jpeg;
   }
+  // st.gate (set from the test) holds photo reads open, so a build stays in progress while the test changes things.
+  st.hold = () => { let release; const promise = new Promise(r => { release = r; }); st.gate = { promise, release: () => { st.gate = null; release(); } }; };
   window.__TAURI__.dialog = { open: async opts => (opts?.directory ? '/home/dj/Ledger' : null), save: async () => '/home/dj/Ledger/single.html' };
   window.__TAURI__.core.invoke = async (cmd, args = {}) => {
     if (cmd === 'device_profiles_sync') {
@@ -43,7 +45,7 @@ function ledgerMock(certJson) {
     }
     if (cmd === 'catalog_list' && st.empty && args.entity === 'asset') return [];
     if (cmd === 'photo_list') return args.ownerId === 'asset-pioneer-plx-crss12' ? [{ linkId: 'l1', photoId: 'ph1', sha256: 'x', width: 96, height: 64, bytes: 1, caption: 'C:\\Users\\dj\\Pictures\\front.jpg', altText: 'Front of the turntable', isPrimary: true, sort: 0, createdAt: '2026-10-01T00:00:00Z' }] : [];
-    if (cmd === 'photo_read') return photo();
+    if (cmd === 'photo_read') { if (st.gate) await st.gate.promise; return photo(); }
     if (cmd === 'maintenance_list') return [{ id: 'e1', eventType: 'replace_part', eventAt: '2025-02-01T10:00:00Z', description: 'For customer Jane Customerson', assetId: 'asset-pioneer-plx-crss12', assetName: 'x' }];
     if (cmd === 'certificate_list') return [{ id: 'cert-1', assetId: 'asset-pioneer-plx-crss12', verdict: 'pass', contentHash: JSON.parse(certJson).integrity.contentHash, issuedAt: '2026-10-01T09:30:00.000Z', jsonPath: '/home/dj/secret/cert.json' }];
     if (cmd === 'certificate_get') return { id: 'cert-1', fileJson: certJson };
@@ -254,6 +256,98 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
   check('ledger: flag off hides the rail entry', (await page.locator('.rail-item[data-screen="ledger"]').count()) === 0);
   await ctx.close();
 
+  // ---------------------------------------------------------------- review regressions (FS-33 UI findings)
+  const rctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await rctx.addInitScript(tauriMock);
+  await rctx.addInitScript(ledgerMock, certJson);
+  await rctx.addInitScript(FLAG_ON);
+  const rp = await rctx.newPage();
+  errors.push(watchConsole(rp, 'ledger-regressions'));
+  const active = () => rp.evaluate(() => document.activeElement?.id || document.activeElement?.tagName.toLowerCase());
+  const lastFiles = () => rp.evaluate(() => window.__ledger.files);
+  const fileText = (files, rel) => files.find(f => f.relPath === rel)?.text || '';
+  await rp.goto(base);
+  await rp.waitForFunction(() => window.__ledger?.seeded);
+  await rp.click('.rail-item[data-screen="ledger"]');
+  await rp.waitForSelector(`#lg-${ASSET}`);
+  const other = await rp.locator(`#ledger-gear input:not([data-asset="${ASSET}"])`).first().getAttribute('data-asset');
+  await rp.check(`#lg-${ASSET}`);
+  await rp.click('#ledger-next-privacy');
+  await rp.waitForSelector('#ledger-matrix');
+
+  // focus: Enter on "Next: preview" keeps focus on the step heading while building and after the build
+  await rp.evaluate(() => window.__ledger.hold());
+  await rp.locator('#ledger-next-preview').focus();
+  await rp.keyboard.press('Enter');
+  await rp.waitForSelector('#ledger-progress');
+  await rp.waitForTimeout(100);
+  const busyFocus = await active();
+  // cache key: while that build is held open, go back and add a unit, then return to the preview
+  await rp.click('[data-step="select"]');
+  await rp.check(`#ledger-gear input[data-asset="${other}"]`);
+  await rp.click('#ledger-next-privacy');
+  await rp.click('#ledger-next-preview');
+  await rp.evaluate(() => window.__ledger.gate.release());
+  await rp.waitForSelector('#ledger-summary', { timeout: 15000 });
+  check('ledger regression: focus stays on the preview heading while the ledger builds and after', busyFocus === 'ledger-h-preview' && (await active()) === 'ledger-h-preview', `busy=${busyFocus} after=${await active()}`);
+  check('ledger regression: a build that finishes after the selection changed is not shown as the current preview', /^2 units,/m.test(await rp.locator('#ledger-summary').innerText()), (await rp.locator('#ledger-summary').innerText()).slice(0, 80));
+
+  // per-unit overrides switch the preset to Custom at once; clicking the preset again resets them
+  await rp.click('[data-step="privacy"]');
+  await rp.selectOption(`[data-serial="${ASSET}"]`, 'full');
+  check('ledger regression: a per-unit serial override unchecks the preset and shows Custom, focus stays on the control',
+    !(await rp.locator('#ledger-preset-public').isChecked()) && (await rp.locator('#ledger-custom').count()) === 1 && (await rp.evaluate(() => document.activeElement?.dataset.serial || '')) === ASSET);
+  await rp.click('#ledger-preset-public');
+  check('ledger regression: choosing Public again resets the per-unit override', await rp.locator('#ledger-preset-public').isChecked() && (await rp.locator('#ledger-custom').count()) === 0
+    && (await rp.locator(`[data-serial="${ASSET}"]`).inputValue()) === 'hidden');
+  await rp.uncheck(`[data-item-field="${ASSET}|photos"]`);
+  check('ledger regression: a per-unit field override shows Custom and keeps focus on the checkbox', (await rp.locator('#ledger-custom').count()) === 1 && !(await rp.locator('#ledger-preset-public').isChecked())
+    && (await rp.evaluate(() => document.activeElement?.dataset.itemField || '')) === `${ASSET}|photos`);
+  await rp.click('#ledger-preset-public');
+
+  // Ctrl+E with the cursor still in the owner field / a public note exports what is typed there
+  await rp.fill('#ledger-owner', 'Jo Smith');
+  await rp.keyboard.press('Tab');
+  await rp.click('#ledger-next-preview');
+  await rp.click('#ledger-next-export', { timeout: 15000 });
+  await rp.click('#ledger-export');
+  await rp.waitForSelector('#ledger-success');
+  check('ledger regression: the post-export note says leftover certificate files and photos stay in the folder', /certificate/i.test(await rp.locator('#ledger-outcome').innerText()) && /delete them/i.test(await rp.locator('#ledger-outcome').innerText()), await rp.locator('#ledger-outcome').innerText());
+  const ownerBefore = fileText(await lastFiles(), 'ledger/index.html').includes('Jo Smith');
+  await rp.click('[data-step="privacy"]');
+  await rp.locator('#ledger-owner').focus();
+  await rp.fill('#ledger-owner', '');
+  await rp.keyboard.press('Control+e');
+  await rp.waitForSelector('#ledger-export', { timeout: 15000 });
+  await rp.waitForTimeout(100);
+  const exportFocus = await active();
+  await rp.keyboard.press('Control+e');
+  await rp.waitForFunction(() => window.__ledger.writes === 2, null, { timeout: 15000 });
+  const files2r = await lastFiles();
+  check('ledger regression: Ctrl+E right after clearing the owner name exports without it', ownerBefore && !fileText(files2r, 'ledger/index.html').includes('Jo Smith') && !fileText(files2r, 'ledger/ledger.json').includes('Jo Smith'));
+  check('ledger regression: Ctrl+E from the privacy step leaves focus on the export heading', exportFocus === 'ledger-h-export', exportFocus);
+  await rp.waitForSelector('#ledger-success');
+  await rp.click('[data-step="privacy"]');
+  await rp.click('.ledger-notes summary');
+  const noteSel = `textarea[data-note="${ASSET}"]`;
+  await rp.fill(noteSel, 'Fresh note XYZ');
+  await rp.keyboard.press('Control+e');
+  await rp.waitForSelector('#ledger-export', { timeout: 15000 });
+  await rp.keyboard.press('Control+e');
+  await rp.waitForFunction(() => window.__ledger.writes === 3, null, { timeout: 15000 });
+  check('ledger regression: Ctrl+E while typing a public note exports the typed note', fileText(await lastFiles(), 'ledger/ledger.json').includes('Fresh note XYZ'));
+
+  // the publish guide follows the format radio; single-file mode names the file and the index.html rename
+  await rp.waitForSelector('#ledger-success');
+  const folderSteps = await rp.locator('#ledger-publish-steps').innerText();
+  await rp.check('#ledger-mode-single');
+  const singleSteps = await rp.locator('#ledger-publish-steps').innerText();
+  check('ledger regression: single-file mode shows its own publish steps (rename to index.html, no folder)', /"ledger" folder/.test(folderSteps)
+    && /deckchek-gear-ledger\.html/.test(singleSteps) && /index\.html/.test(singleSteps) && !/folder \(index\.html, ledger\.json/.test(singleSteps) && (await active()) === 'ledger-mode-single', singleSteps.slice(0, 200));
+  await rp.check('#ledger-mode-folder');
+  check('ledger regression: switching back to Folder restores the folder steps', /"ledger" folder/.test(await rp.locator('#ledger-publish-steps').innerText()));
+  await rctx.close();
+
   // ---------------------------------------------------------------- browser mode: single-file download
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   await bctx.addInitScript(FLAG_ON);
@@ -270,6 +364,8 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
     await bp.click('#ledger-next-export', { timeout: 15000 });
     await bp.waitForSelector('#ledger-export');
     check('ledger browser mode: folder export is unavailable with a reason, single file is chosen', await bp.locator('#ledger-mode-folder').isDisabled() && await bp.locator('#ledger-mode-single').isChecked() && /needs the DeckChek desktop app/.test(await bp.locator('.ledger-modes').innerText()));
+    const bSteps = await bp.locator('#ledger-publish-steps').innerText();
+    check('ledger regression: browser mode publish steps describe the single file and the index.html rename', /index\.html/.test(bSteps) && !/folder \(index\.html, ledger\.json/.test(bSteps), bSteps.slice(0, 200));
     const [dl] = await Promise.all([bp.waitForEvent('download'), bp.click('#ledger-export')]);
     const body = fs.readFileSync(await dl.path(), 'utf8');
     check('ledger browser mode: single-file HTML downloads with inline CSS/JS and the ledger data', /deckchek-gear-ledger\.html$/.test(dl.suggestedFilename()) && /id="ledger-data"/.test(body) && /Content-Security-Policy/.test(body));
