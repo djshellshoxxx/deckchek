@@ -1,4 +1,4 @@
-//! FS-21 population packs (tables from `0015_unit_population.sql` and `0023_unit_population_ext.sql`).
+//! FS-21 population packs (tables from `0015_unit_population.sql` and `0022_unit_population_ext.sql`).
 //!
 //! A `.deckchek-pack` is an anonymous JSON file: product key, metric id, method key and version,
 //! value and unit, plus a random contributor token. Packs are UNTRUSTED input. Importing therefore
@@ -1462,7 +1462,7 @@ mod tests {
         }
         let versions = |c: &Connection| crate::db::applied_migrations(c).unwrap();
         let before = versions(&fresh);
-        assert!(before.contains(&15) && before.contains(&23));
+        assert!(before.contains(&15) && before.contains(&22));
         let schema = |c: &Connection| -> Vec<String> { c.prepare("SELECT sql FROM sqlite_master WHERE name LIKE 'reference_%' OR name LIKE 'idx_ref_%' ORDER BY name").unwrap().query_map([], |r| r.get::<_, String>(0)).unwrap().map(Result::unwrap).collect() };
         let snapshot = schema(&fresh);
         apply_migrations(&fresh).unwrap();
