@@ -110,7 +110,7 @@ async function loadCalibrationRuns(profile, results) {
 
 export function createCertificateScreen(section, { api = createCertificateApi(), photoStore = createPhotoStore(), dialog = globalThis.window?.__TAURI__?.dialog } = {}) {
   const native = isNative() && api.native;
-  const st = { key: null, identity: null, identityError: null, photos: [], busy: false, history: [], validDays: DEFAULT_VALID_DAYS };
+  const st = { key: null, identity: null, identityError: null, photos: [], busy: false, history: [], validDays: DEFAULT_VALID_DAYS, form: null };
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('file', { size: 24 })}</span><div><h1 tabindex="-1">Certificates</h1>
       <p class="lede">A dated, tamper-evident test certificate for a unit you sell: every test in its plan, measured values with uncertainty and calibration state, photos, a SHA-256 content hash and an Ed25519 signature.</p></div></div>
@@ -191,11 +191,14 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   function formCard(sel, ready) {
     const form = h('form', { class: 'card cert-form', id: 'cert-form', novalidate: true, 'aria-label': 'Certificate details' });
     const field = (label, input, hint = '') => h('label', { class: 'field' }, h('span', { class: 'field-label', text: label }), input, hint ? h('span', { class: 'field-hint small muted', text: hint }) : '');
+    // Typed values live in st.form (for this unit), so a re-render on onShow does not discard them.
+    const key = st.key, typed = st.form?.key === key ? st.form : null;
     const model = h('input', { id: 'cert-model', value: `${sel.profile.manufacturer} ${sel.profile.model}`, readonly: true });
-    const serial = h('input', { id: 'cert-serial', name: 'serial', required: true, maxlength: LIMITS.maxText, autocomplete: 'off', value: sel.asset.serialNumber || '' });
-    const firmware = h('input', { id: 'cert-firmware', name: 'firmware', maxlength: LIMITS.maxText, value: sel.asset.firmware || '' });
-    const tester = h('input', { id: 'cert-tester', name: 'tester', required: true, maxlength: LIMITS.maxText, value: settings.certTester || '' });
+    const serial = h('input', { id: 'cert-serial', name: 'serial', required: true, maxlength: LIMITS.maxText, autocomplete: 'off', value: typed?.serial ?? (sel.asset.serialNumber || '') });
+    const firmware = h('input', { id: 'cert-firmware', name: 'firmware', maxlength: LIMITS.maxText, value: typed?.firmware ?? (sel.asset.firmware || '') });
+    const tester = h('input', { id: 'cert-tester', name: 'tester', required: true, maxlength: LIMITS.maxText, value: typed?.tester ?? (settings.certTester || '') });
     const notes = h('textarea', { id: 'cert-notes', name: 'notes', maxlength: LIMITS.maxLongText, rows: 3 });
+    notes.value = typed?.notes ?? '';
     const validity = h('select', { id: 'cert-valid' }, ...VALIDITY_DAYS.map(d => h('option', { value: String(d), text: `${d} days` })));
     validity.value = String(st.validDays);
     validity.addEventListener('change', () => { st.validDays = Number(validity.value); });
@@ -231,6 +234,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
       err, h('div', { class: 'action-bar' }, preview, draft, sign),
       ready.ready ? '' : h('p', { class: 'small muted', text: 'Signing is blocked until every required test has a result. A draft is watermarked DRAFT and unsigned.' }));
     form.addEventListener('submit', e => { e.preventDefault(); if (ready.ready) run('sign'); });
+    form.addEventListener('input', () => { st.form = { key, serial: serial.value, firmware: firmware.value, tester: tester.value, notes: notes.value }; });
 
     const collect = () => {
       err.textContent = '';
