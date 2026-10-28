@@ -32,3 +32,5 @@ Decisions and pitfalls from the completion/audit/fuzz/release run. Short, dated,
 | windows-rust-tests | 4m06 on every PR | moved to nightly / main / release tags |
 | cross-platform matrix (6 builds) | ~44 min on every PR touching app/src | main, tags and dispatch only |
 | PR wall clock | ~44 min | ~8.3 min |
+- Disk: the session allowance is ~40 GB. A shared debug target (~15 GB), the cargo-fuzz ASan target (~5 GB), a release build and dozens of worktrees exhausted it once (ENOSPC mid-build). Remove merged worktrees (`git worktree remove`), the release target after packaging, and one-off cross-check targets promptly.
+- Never pass a commit hash to a workflow from memory: read `git rev-parse --short HEAD` first (twice a guessed hash had to be stopped and relaunched).
