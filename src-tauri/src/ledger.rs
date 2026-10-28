@@ -1009,10 +1009,9 @@ mod tests {
         assert!(customer_unit_ids(&c).unwrap().is_empty());
         c.execute_batch(
             "INSERT INTO asset (id, nickname, serial_number, created_at, updated_at) VALUES ('fs33-cust','Bench unit','CUST-1','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
-             INSERT INTO customer (id, name, created_at) VALUES ('cu1','Jane Customerson','2026-01-01T00:00:00Z');
-             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j1','2026-0001','cu1','fs33-cust','intake','hum','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
-             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j2','2026-0002','cu1','fs33-cust','collected','hum','2026-01-02T00:00:00Z','2026-01-02T00:00:00Z');
-             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j3','2026-0003','cu1',NULL,'intake','x','2026-01-02T00:00:00Z','2026-01-02T00:00:00Z');",
+             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j1','2026-0001',NULL,'fs33-cust','intake','hum','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z');
+             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j2','2026-0002',NULL,'fs33-cust','collected','hum','2026-01-02T00:00:00Z','2026-01-02T00:00:00Z');
+             INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j3','2026-0003',NULL,NULL,'intake','x','2026-01-02T00:00:00Z','2026-01-02T00:00:00Z');",
         )
         .unwrap();
         assert_eq!(customer_unit_ids(&c).unwrap(), vec!["fs33-cust".to_string()]);
