@@ -7,7 +7,8 @@ import fs from 'node:fs';
 import { compareMetricToSpec, compareToSpec, populationComparison, stripPlot, N_MIN_PERCENTILE } from '../app/population.js';
 
 globalThis.localStorage = (() => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })();
-const { comparePopulation, capPreview, truncationNotice } = await import('../app/ui/screens/compare.js');
+const compareScreen = await import('../app/ui/screens/compare.js');
+const { comparePopulation, capPreview, truncationNotice } = compareScreen;
 
 const table = JSON.parse(fs.readFileSync(new URL('../app/population-metrics.json', import.meta.url), 'utf8'));
 const profile = name => JSON.parse(fs.readFileSync(new URL(`../app/devices/profiles/${name}.json`, import.meta.url), 'utf8'));
@@ -124,4 +125,13 @@ test('regression: AC-7 a population_query result as Rust serialises it: two mutu
   assert.equal(c.status, 'percentile');
   const v3 = comparePopulation(result, { ...mine, method: { key, version: 3 } }, table.metrics[key], 's');
   assert.deepEqual([v3.contributors, v3.excluded], [7, 22], 'from v3 only v3 rows count');
+});
+
+test('regression: unit_values truncated gets a visible notice for My units and the export dialog', () => {
+  const { unitsTruncationNotice } = compareScreen;
+  assert.equal(typeof unitsTruncationNotice, 'function');
+  assert.match(unitsTruncationNotice({ rows: [], truncated: true }), /older results/i);
+  assert.equal(unitsTruncationNotice({ rows: [], truncated: false }), null);
+  assert.equal(unitsTruncationNotice({ rows: [] }), null, 'an older backend without the flag shows nothing');
+  assert.equal(unitsTruncationNotice(null), null);
 });

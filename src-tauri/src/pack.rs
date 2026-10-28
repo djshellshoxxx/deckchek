@@ -837,7 +837,9 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
     let marks = vec!["?"; names.len()].join(",");
     // Newest MAX_UNIT_ROWS_PER_PAIR per (attribution source, metric, unit) BEFORE any overall limit: attribution is a
     // function of (direct id, setup), so this keeps every unit's newest values however many newer measurements
-    // other units have. The overall LIMIT is only a safety net, and hitting it sets `truncated`.
+    // other units have. The overall LIMIT is only a safety net, and hitting it sets `truncated`; it is taken by `rn`
+    // first (every source's newest value before any source's second), so it cuts old history, never a whole unit
+    // because its runs are older than other units' runs.
     let sql = format!(
         "WITH base AS (
            SELECT m.metric_key, am.key AS method_key, am.version, m.unit, m.numeric_value, s.started_at, s.setup_id, m.id AS mid,
@@ -848,15 +850,16 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
          ), ranked AS (
            SELECT *, ROW_NUMBER() OVER (PARTITION BY direct, setup_id, metric_key, unit ORDER BY started_at DESC, mid DESC) AS rn FROM base
          )
-         SELECT metric_key, method_key, version, unit, numeric_value, started_at, setup_id, direct FROM ranked
-         WHERE rn <= {per_pair} ORDER BY started_at DESC, mid DESC LIMIT {limit}",
+         SELECT metric_key, method_key, version, unit, numeric_value, started_at, setup_id, direct, mid FROM ranked
+         WHERE rn <= {per_pair} ORDER BY rn, started_at DESC, mid DESC LIMIT {limit}",
         per_pair = MAX_UNIT_ROWS_PER_PAIR,
         limit = MAX_UNIT_ROWS * 5 + 1
     );
     let mut stmt = conn.prepare(&sql)?;
     let mut skipped_unit = 0usize;
     let mut skipped_unattributed = 0usize;
-    let mut by_pair: BTreeMap<(String, String), Vec<UnitValue>> = BTreeMap::new();
+    // Each value with its (started_at, measurement id) sort key: rows arrive by rank, not by time.
+    let mut by_pair: BTreeMap<(String, String), Vec<(String, UnitValue)>> = BTreeMap::new();
     let mut rows = stmt.query(rusqlite::params_from_iter(names.iter().map(|s| s.as_str())))?;
     let mut read = 0usize;
     let mut truncated = false;
@@ -870,7 +873,7 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         let (method_key, method_version): (String, i64) = (r.get(1)?, r.get(2)?);
         let unit: Option<String> = r.get(3)?;
         let value: f64 = r.get(4)?;
-        let (at, setup, direct): (String, Option<String>, Option<String>) = (r.get(5)?, r.get(6)?, r.get(7)?);
+        let (at, setup, direct, mid): (String, Option<String>, Option<String>, String) = (r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?);
         let Some(def) = table.get(&metric) else { continue };
         if unit.as_deref() != Some(def.unit.as_str()) || !value.is_finite() || !is_id(&method_key) {
             skipped_unit += 1;
@@ -887,12 +890,18 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
             },
         };
         let (nickname, product_key) = assets[&asset_id].clone();
-        by_pair.entry((asset_id.clone(), metric.clone())).or_default().push(UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at });
+        by_pair.entry((asset_id.clone(), metric.clone())).or_default().push((mid, UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at }));
     }
     // Each list is newest first. Keep the newest MAX_UNIT_ROWS_PER_PAIR per (unit, metric); if the total is still over
     // MAX_UNIT_ROWS, share the cap round-robin (every pair's newest value before any pair's second), so the cut drops
     // old history evenly instead of whole units, and say so with `truncated`.
-    let mut lists: Vec<Vec<UnitValue>> = by_pair.into_values().collect();
+    let mut lists: Vec<Vec<UnitValue>> = by_pair
+        .into_values()
+        .map(|mut list| {
+            list.sort_by(|a, b| b.1.at.cmp(&a.1.at).then_with(|| b.0.cmp(&a.0))); // newest first, as the old SQL order
+            list.into_iter().map(|(_, v)| v).collect()
+        })
+        .collect();
     for list in &mut lists {
         list.truncate(MAX_UNIT_ROWS_PER_PAIR);
     }
@@ -1664,6 +1673,41 @@ mod tests {
         let small = mem();
         seed_many_units(&small, 2, 3);
         assert!(!unit_values(&small).unwrap().truncated);
+    }
+
+    #[test]
+    fn regression_unit_values_sql_limit_never_drops_a_whole_old_unit() {
+        let c = mem();
+        // 160 units x 13 metrics x 50 runs = 104,000 rows after the per-pair cap: above the SQL safety LIMIT.
+        seed_many_units(&c, 160, MAX_UNIT_ROWS_PER_PAIR);
+        // One unit measured once, years before everything else, so a LIMIT taken newest first would cut it off.
+        c.execute_batch(
+            "INSERT INTO asset(id,product_id,nickname,serial_number,created_at,updated_at) VALUES('old','prod-tt','Old deck',NULL,'t','t');
+             INSERT INTO session(id,session_type,setup_id,started_at,app_version,schema_version,status,config_snapshot_json) VALUES('s-old','speed',NULL,'2020-01-01T00:00:00Z','0',1,'completed','{\"assetId\":\"old\"}');
+             INSERT INTO measurement(id,session_id,method_id,metric_key,state,numeric_value,unit,quality_flags_json,created_at)
+               SELECT 'm-old', 's-old', id, key, 'measured', 0.3, '%', '[]', 't' FROM analysis_method WHERE key = 'wow_flutter_rms_percent';",
+        )
+        .unwrap();
+        let v = unit_values(&c).unwrap();
+        assert!(v.truncated, "values were left out, so the result says so");
+        assert!(v.rows.len() <= MAX_UNIT_ROWS);
+        let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
+        assert!(assets.contains("old"), "the oldest unit is still listed");
+        assert_eq!(assets.len(), 161);
+        let pairs: HashSet<(&str, &str)> = v.rows.iter().map(|r| (r.asset_id.as_str(), r.metric.as_str())).collect();
+        assert_eq!(pairs.len(), 160 * metric_table().len() + 1, "every (unit, metric) keeps its latest value");
+        // Each kept list is still the newest values of that pair, oldest first.
+        let mut newest: HashMap<(&str, &str), &str> = HashMap::new();
+        for w in v.rows.windows(2) {
+            if (w[0].asset_id.as_str(), w[0].metric.as_str()) == (w[1].asset_id.as_str(), w[1].metric.as_str()) {
+                assert!(w[0].at <= w[1].at);
+            }
+        }
+        for r in &v.rows {
+            newest.insert((r.asset_id.as_str(), r.metric.as_str()), r.at.as_str());
+        }
+        let latest: String = c.query_row("SELECT MAX(started_at) FROM session WHERE id LIKE 's000-%'", [], |r| r.get(0)).unwrap();
+        assert_eq!(newest[&("u000", "dropout_count")], latest.as_str(), "the newest run of a unit is the one kept last");
     }
 
     #[test]

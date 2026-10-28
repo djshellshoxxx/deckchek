@@ -13,7 +13,7 @@ export function compareMock() {
   const key = 'pioneer-plx-crss12';
   const row = (assetId, nickname, metric, value, unit, at) => ({ assetId, nickname, productKey: key, metric, methodKey: metric, methodVersion: 1, unit, value, at });
   const cmp = {
-    calls: [], packs: [], rows: [], contributors: 41, state: {}, fail: null, truncated: false, manyCounts: 0,
+    calls: [], packs: [], rows: [], contributors: 41, state: {}, fail: null, truncated: false, unitsTruncated: false, manyCounts: 0,
     units: [
       row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.2, '%', '2026-10-01T10:00:00Z'), row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.16, '%', '2026-10-08T10:00:00Z'),
       row('a-1', 'Deck 1', 'wow_flutter_rms_percent', 0.12, '%', '2026-10-15T10:00:00Z'), row('a-2', 'Deck 2', 'wow_flutter_rms_percent', 0.18, '%', '2026-10-10T10:00:00Z'),
@@ -28,7 +28,7 @@ export function compareMock() {
     if (['population_unit_values', 'pack_list', 'pack_preview', 'pack_import', 'pack_remove', 'pack_export', 'population_query'].includes(cmd)) {
       cmp.calls.push({ cmd, args });
       if (cmp.fail === cmd) throw cmp.failWith;
-      if (cmd === 'population_unit_values') return { rows: cmp.units, skippedUnit: 0, skippedUnattributed: 0 };
+      if (cmd === 'population_unit_values') return { rows: cmp.units, skippedUnit: 0, skippedUnattributed: 0, truncated: cmp.unitsTruncated };
       if (cmd === 'pack_list') return cmp.packs;
       if (cmd === 'pack_preview') return { packId: 'pack-fixture', createdMonth: '2026-10', appVersion: '0.0.8', rows: cmp.contributors, counts: cmp.manyCounts ? Array.from({ length: cmp.manyCounts }, (_, i) => ({ product: `hostile-${i}`, metric: 'dropout_count', rows: 1 })) : [{ product: key, metric: 'wow_flutter_rms_percent', rows: cmp.contributors }], sha256: 'a'.repeat(64), alreadyImported: cmp.packs.some(p => p.id === 'pack-fixture') };
       if (cmd === 'pack_import') {
@@ -91,6 +91,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- desktop, phase 1 only (packs off) -----
   const one = await desktop({ population: true }, { extraSpecs: [{ key: 'separation', label: 'Channel separation (1 kHz)', value: 30, unit: 'dB', confidence: 'confirmed', source: 'https://example.test/plx' }] });
   const p1 = one.page;
+  await p1.evaluate(() => { window.__cmp.unitsTruncated = true; });
   await p1.click('.rail-item[data-screen="compare"]');
   await p1.waitForSelector('#cmp-spec');
   check('compare: packs off hides the Population tab and Data sharing', (await p1.locator('#cmp-tab-population').count()) === 0 && (await p1.locator('#cmp-sharing').count()) === 0);
@@ -106,6 +107,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p1.waitForSelector('#cmp-sib-text');
   check('compare: AC-2 sibling units are ranked', /Deck 1 ranks 1st of 2 of your units/.test(await text(p1, '#cmp-sib-text')), await text(p1, '#cmp-sib-text'));
   check('compare: AC-2 the table marks this unit in text', /Deck 1 \(this unit\)/.test(await text(p1, '#cmp-sib-table')));
+  check('regression: compare My units shows a visible notice when unit values were truncated', await p1.locator('#cmp-units-truncated').isVisible() && /some older results are left out/.test(await text(p1, '#cmp-units-truncated')));
   check('compare: AC-3 delta against the median of earlier runs', /0\.06 % below your median of 2 earlier runs \(0\.18\), which is better/.test(await text(p1, '#cmp-hist-text')), await text(p1, '#cmp-hist-text'));
   check('compare: AC-3 sparkline has a text equivalent', /Values over 3 runs/.test(await p1.locator('.cmp-spark svg').getAttribute('aria-label')));
   // tab keyboard
@@ -215,7 +217,19 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('compare: rejected rows are listed with reasons', /Row 3: value is outside the plausible range/.test(await text(p, '#cmp-status')));
   await p.evaluate(() => { window.__cmp.fail = null; });
 
-  // export (AC-4)
+  // export (AC-4); unit values that hit the row cap are named in the dialog too
+  await p.click('#cmp-tab-units');
+  await p.waitForSelector('#cmp-sib-text');
+  check('regression: compare My units shows no truncation notice when nothing was left out', (await p.locator('#cmp-units-truncated').count()) === 0);
+  await p.evaluate(() => { window.__cmp.unitsTruncated = true; });
+  await p.click('.rail-item:not([data-screen="compare"])');
+  await p.click('.rail-item[data-screen="compare"]');
+  await p.waitForSelector('#cmp-units-truncated');
+  await p.click('#cmp-export');
+  await p.waitForSelector('#cmp-exp-save');
+  check('regression: compare the export dialog names truncated unit values', await p.locator('#cmp-exp-truncated').isVisible() && /some older results are left out/.test(await text(p, '#cmp-exp-truncated')));
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(() => !document.querySelector('dialog[open]'));
   await p.click('#cmp-export');
   await p.waitForSelector('#cmp-exp-save');
   check('compare: first-time export starts with nothing ticked and Save disabled', (await p.locator('.cmp-cell input:checked').count()) === 0 && await p.isDisabled('#cmp-exp-save'));

@@ -62,6 +62,12 @@ export function truncationNotice(result) {
   return `Only the first ${POPULATION_ROW_CAP.toLocaleString('en')} reference rows were read, so some contributors may be missing from this comparison. Remove packs you do not need and compare again.`;
 }
 
+/** Visible notice when population_unit_values left values out to stay under its row cap, or null. */
+export function unitsTruncationNotice(values) {
+  if (values?.truncated !== true) return null;
+  return 'You have more stored results than DeckChek loads at once, so some older results are left out. Each unit keeps its most recent results; older history may be missing here.';
+}
+
 /**
  * Population comparison for the screen. The method registry (analysis_method rows: key, version, parameters_json with
  * `compat`) comes with the population query as `methods`, so AC-7's mutual-compat rule applies on this path too.
@@ -103,7 +109,7 @@ export function specSentence(result, label) {
 
 export function createCompareScreen(section, { api = createPackApi() } = {}) {
   const native = isNative() && api.native;
-  const st = { tab: 'spec', units: [], table: null, packs: [], assetId: null, metric: null, loading: false, error: null, pop: null, popKey: '', skipped: null };
+  const st = { tab: 'spec', units: [], table: null, packs: [], assetId: null, metric: null, loading: false, error: null, pop: null, popKey: '', skipped: null, unitsTruncated: null };
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('compare', { size: 24 })}</span><div><h1 tabindex="-1">Compare</h1>
       <p class="lede">How a unit's measurement compares with its published spec, your other units of the same model, and, if you import packs, other people's units. A percentile never decides pass or fail: the spec limit does.</p></div></div></header>
@@ -164,6 +170,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
       st.table = await api.metricTable();
       const values = await api.unitValues();
       st.units = values.rows; st.skipped = { unit: values.skippedUnit, unattributed: values.skippedUnattributed };
+      st.unitsTruncated = unitsTruncationNotice(values);
       st.packs = packsOn() ? await api.list() : [];
       const list = assets();
       if (!list.some(a => a.assetId === st.assetId)) st.assetId = list[0]?.assetId ?? null;
@@ -255,6 +262,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     const dir = typeof higher === 'boolean' ? higher : undefined;
     const sib = compareToSiblings(sel.siblings, sel.asset.assetId, { higherIsBetter: dir });
     const card = h('section', { class: 'card cmp-card', id: 'cmp-units', 'aria-label': 'Your other units of this model' }, h('h2', { class: 'card-title', text: 'Your other units of this model' }));
+    if (st.unitsTruncated) card.append(h('div', { class: 'banner banner-warn', id: 'cmp-units-truncated' }, h('span', { class: 'banner-text', text: st.unitsTruncated })));
     if (sib.status === 'single') card.append(h('p', { id: 'cmp-sib-text', text: 'This is your only unit of this model with a result for this metric.' }));
     else {
       card.append(h('p', { id: 'cmp-sib-text', text: sib.rank ? `${sel.asset.nickname} ranks ${ordinal(sib.rank)} of ${sib.of} of your units (${higher ? 'higher' : 'lower'} is better).` : `${sib.of} of your units have a result. This metric has no ranking direction, so they are listed by value.` }));
@@ -410,6 +418,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
       });
       dlg.append(h('div', { class: 'dialog-form' }, h('h2', { id: 'cmp-exp-title', text: 'Share results anonymously' }),
         h('p', { text: 'Choose what goes into the pack. Values are rounded to three significant figures. Several units of one model are combined into their median, so you count as one contributor.' }),
+        st.unitsTruncated ? h('div', { class: 'banner banner-warn', id: 'cmp-exp-truncated' }, h('span', { class: 'banner-text', text: st.unitsTruncated })) : null,
         list, h('h3', { text: 'Exactly what the file contains' }), pre, err,
         h('div', { class: 'dialog-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', 'data-initial': '', text: 'Cancel', onclick: () => finish(null) }), save)));
       refresh();
