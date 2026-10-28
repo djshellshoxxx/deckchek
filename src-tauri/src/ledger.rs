@@ -183,30 +183,42 @@ pub fn get_export(conn: &Connection, id: &str) -> Result<Option<LedgerExportRow>
 }
 
 #[tauri::command]
-pub fn ledger_public_notes(app: AppHandle) -> Result<Vec<PublicNote>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_public_notes(&conn)
+pub async fn ledger_public_notes(app: AppHandle) -> Result<Vec<PublicNote>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_public_notes(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub fn ledger_public_note_set(app: AppHandle, assetId: String, text: Option<String>) -> Result<PublicNote, String> {
-    check_asset_id(&assetId)?;
-    let conn = open_database(&database_path(&app)?)?;
-    set_public_note(&conn, &assetId, text.as_deref())
+pub async fn ledger_public_note_set(app: AppHandle, assetId: String, text: Option<String>) -> Result<PublicNote, String> {
+    crate::db::off_main(move || {
+        check_asset_id(&assetId)?;
+        let conn = open_database(&database_path(&app)?)?;
+        set_public_note(&conn, &assetId, text.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn ledger_export_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<LedgerExportRow>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_exports(&conn, limit)
+pub async fn ledger_export_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<LedgerExportRow>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_exports(&conn, limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn ledger_export_record(app: AppHandle, record: LedgerExportInput) -> Result<LedgerExportRow, String> {
-    validate_export(&record)?;
-    let mut conn = open_database(&database_path(&app)?)?;
-    record_export(&mut conn, &record)
+pub async fn ledger_export_record(app: AppHandle, record: LedgerExportInput) -> Result<LedgerExportRow, String> {
+    crate::db::off_main(move || {
+        validate_export(&record)?;
+        let mut conn = open_database(&database_path(&app)?)?;
+        record_export(&mut conn, &record)
+    })
+    .await?
 }
 
 #[cfg(test)]
