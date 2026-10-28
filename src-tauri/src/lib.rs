@@ -3,6 +3,8 @@ mod commands;
 mod audio;
 mod capture;
 mod db;
+#[cfg(test)]
+mod migration_m7_tests;
 mod devices;
 mod midi;
 mod system_check;
@@ -46,6 +48,7 @@ mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore]
 // [FS-21] mods
 // [FS-22] mods
 // [FS-23] mods
+mod fleet;
 // [FS-30] mods
 // [FS-31] mods
 // [FS-32] mods
@@ -114,6 +117,10 @@ pub fn run() {
             // [FS-21] handlers
             // [FS-22] handlers
             // [FS-23] handlers
+            fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
+            fleet::maintenance_log, fleet::maintenance_list, fleet::booth_upsert, fleet::position_upsert,
+            fleet::fleet_location_delete,
+            fleet::reminder_template_upsert, fleet::reminder_apply_template,
             // [FS-30] handlers
             // [FS-31] handlers
             // [FS-32] handlers
