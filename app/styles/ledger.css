@@ -1,0 +1,40 @@
+/* FS-33 Gear ledger screen. Tokens come from styles.css; the exported page has its own CSS (app/ledger/template.js). */
+.ledger-stepper { margin-top: 16px; }
+.ledger-status { margin: 12px 0 0; }
+.ledger-status:empty { display: none; }
+.ledger-body { display: grid; gap: 16px; margin-top: 16px; }
+.ledger-fieldset, .ledger-presets, .ledger-modes { border: 1px solid var(--divider); border-radius: var(--r-md); padding: 12px 16px; margin: 0 0 12px; min-width: 0; }
+.ledger-fieldset legend, .ledger-presets legend, .ledger-modes legend { font-weight: 600; padding: 0 4px; }
+.ledger-gear { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.ledger-gear li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 4px; border-bottom: 1px solid var(--divider); }
+.ledger-gear input[type="checkbox"], .ledger-matrix input[type="checkbox"], .ledger-radio input { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--accent); }
+.ledger-gear label { display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; cursor: pointer; min-height: 24px; }
+.ledger-gear-title { font-weight: 600; }
+.ledger-gear-status { flex-basis: 100%; }
+.ledger-presets { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.ledger-radio { display: inline-flex; gap: 8px; align-items: center; min-height: 32px; cursor: pointer; }
+.ledger-modes .ledger-radio { display: flex; }
+.ledger-matrix-wrap { overflow-x: auto; margin: 16px 0; }
+.ledger-matrix { border-collapse: collapse; font-size: 13px; }
+.ledger-matrix th, .ledger-matrix td { padding: 6px 8px; border-bottom: 1px solid var(--divider); text-align: center; vertical-align: middle; }
+.ledger-matrix thead th { vertical-align: bottom; }
+.ledger-matrix tbody th { text-align: left; font-weight: 600; white-space: nowrap; }
+.ledger-col { display: block; max-width: 9em; margin: 0 auto 4px; font-weight: 600; line-height: 1.2; }
+.ledger-matrix select { min-height: 32px; }
+.ledger-notes { margin: 8px 0 12px; }
+.ledger-notes summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.ledger-notes .field { margin-top: 10px; }
+.ledger-notes textarea { width: 100%; }
+.ledger-summary { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 12px 16px; margin: 12px 0; background: var(--sunken); }
+.ledger-summary h3 { margin: 0 0 6px; font-size: 15px; }
+.ledger-summary ul { margin: 4px 0 8px; padding-left: 20px; }
+.ledger-warnings { list-style: none; padding-left: 0 !important; }
+.ledger-warnings li, .ledger-warn { display: flex; gap: 6px; align-items: flex-start; color: var(--warn); font-weight: 600; }
+#ledger-partial { display: block; }
+#ledger-partial ul { color: var(--text); font-weight: 400; }
+.ledger-ok { display: flex; gap: 6px; align-items: center; color: var(--pass); font-weight: 600; }
+.ledger-theme { display: flex; gap: 8px; margin: 8px 0; }
+.ledger-theme [aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.ledger-preview { width: 100%; height: 60vh; min-height: 320px; border: 1px solid var(--border-soft); border-radius: var(--r-md); background: #fff; }
+.ledger-publish { border-top: 1px solid var(--divider); margin-top: 16px; padding-top: 12px; }
+.ledger-publish ol { padding-left: 22px; display: grid; gap: 4px; }

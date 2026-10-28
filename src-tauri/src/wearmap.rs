@@ -522,39 +522,57 @@ pub fn save_record(conn: &mut Connection, input: &RecordCopyInput) -> Result<Rec
 }
 
 #[tauri::command]
-pub fn wearmap_records_list(app: AppHandle) -> Result<Vec<RecordCopy>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_records(&conn)
+pub async fn wearmap_records_list(app: AppHandle) -> Result<Vec<RecordCopy>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_records(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_record_save(app: AppHandle, record: RecordCopyInput) -> Result<RecordCopy, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save_record(&mut conn, &record)
+pub async fn wearmap_record_save(app: AppHandle, record: RecordCopyInput) -> Result<RecordCopy, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save_record(&mut conn, &record)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_save(app: AppHandle, scan: WearScanInput) -> Result<WearScan, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save(&mut conn, &scan)
+pub async fn wearmap_save(app: AppHandle, scan: WearScanInput) -> Result<WearScan, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save(&mut conn, &scan)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_list(app: AppHandle, record_side_id: Option<String>, limit: Option<u32>) -> Result<Vec<WearScan>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, record_side_id.as_deref(), limit)
+pub async fn wearmap_list(app: AppHandle, record_side_id: Option<String>, limit: Option<u32>) -> Result<Vec<WearScan>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, record_side_id.as_deref(), limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_get(app: AppHandle, id: String) -> Result<Option<WearScanDetail>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn wearmap_get(app: AppHandle, id: String) -> Result<Option<WearScanDetail>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn wearmap_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
