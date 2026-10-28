@@ -420,3 +420,52 @@ fn ac7_qr_text_is_prefix_plus_hash_and_nothing_personal() {
     assert_eq!(qr.len(), 81, "17-char prefix + 64 hex (spec §6 says 71: miscount; needs QR version 5-L, which qrSvg picks)");
     assert!(!qr.contains("SN") && !qr.contains("Alex"));
 }
+
+#[test]
+fn contract_examples_round_trip() {
+    let mut raw = fs::read_to_string(repo("tests/contracts/certificate.json")).unwrap();
+    if !cfg!(windows) {
+        // the contract shows Windows paths; elsewhere `C:\…` is not absolute, so map the folder to a Unix one
+        raw = raw.replace(r"C:\\Users\\dj\\Documents\\DeckChek certificates\\", "/home/dj/DeckChek certificates/");
+    }
+    let v: Value = serde_json::from_str(&raw).unwrap();
+    let fixture = fs::read_to_string(repo("tests/fixtures/certificate/valid-v1.deckchek-cert.json")).unwrap();
+    let file = parse_strict(&fixture).unwrap();
+    // identity and sign responses have exactly the serialised field names
+    let id_keys: Vec<&str> = v["signing_get_identity"]["response"].as_object().unwrap().keys().map(String::as_str).collect();
+    let real = serde_json::to_value(crate::signing::get_or_create_identity(&mem(), &tmpdir("contract")).unwrap()).unwrap();
+    assert_eq!(real.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), id_keys);
+    let sign = SignResult { content_hash: file["integrity"]["contentHash"].as_str().unwrap().into(), signature_b64: file["integrity"]["signature"].as_str().unwrap().into(), public_key_b64: file["integrity"]["publicKey"].as_str().unwrap().into(), fingerprint: file["integrity"]["fingerprint"].as_str().unwrap().into(), protection: "dpapi".into() };
+    assert_eq!(serde_json::to_value(&sign).unwrap(), v["certificate_sign"]["response"]);
+    assert_eq!(content_hash(&file["payload"]).unwrap().0, sign.content_hash);
+    // verify, store, list, get against the fixture with its key registered as this install's
+    let c = mem();
+    seed_rows(&c);
+    c.execute("UPDATE asset SET id = 'asset-1'", []).unwrap();
+    c.execute("INSERT INTO signing_key (id, public_key_b64, created_at) VALUES (?1, ?2, 't')", params![sign.fingerprint, sign.public_key_b64]).unwrap();
+    let rep = verify_text(&fixture, v["certificate_verify"]["now"].as_str().unwrap(), |fp| signing::is_local_key(&c, fp));
+    assert_eq!(serde_json::to_value(&rep).unwrap(), v["certificate_verify"]["response"]);
+    let mut record = v["certificate_store"]["request"]["record"].clone();
+    record["fileJson"] = json!(fixture);
+    let input: StoreInput = serde_json::from_value(record).unwrap();
+    let mut got = serde_json::to_value(store(&c, &input).unwrap()).unwrap();
+    let want = &v["certificate_store"]["response"];
+    assert!(got["id"].is_string());
+    got["id"] = want["id"].clone();
+    assert_eq!(&got, want);
+    let mut rows = serde_json::to_value(list(&c, v["certificate_list"]["request"]["assetId"].as_str()).unwrap()).unwrap();
+    rows[0]["id"] = want["id"].clone();
+    assert_eq!(rows, v["certificate_list"]["response"]);
+    let real_id = list(&c, None).unwrap()[0].id.clone();
+    let mut rec = serde_json::to_value(get(&c, &real_id).unwrap().unwrap()).unwrap();
+    assert_eq!(verify_text(rec["fileJson"].as_str().unwrap(), NOW, |_| true).status, "valid");
+    rec["id"] = want["id"].clone();
+    rec["fileJson"] = v["certificate_get"]["response"]["fileJson"].clone();
+    assert_eq!(rec, v["certificate_get"]["response"]);
+    assert_eq!(v["certificate_extract_json"]["request"]["path"].as_str().map(|p| p.ends_with(".json")), Some(true));
+    for code in v["certificate_extract_json"]["errorCodes"].as_array().unwrap() {
+        let code = code.as_str().unwrap();
+        let known = [CertError::BadPath(""), CertError::TooLarge, CertError::NotUtf8, CertError::Io(String::new()), CertError::PdfNoAttachment, CertError::NoCertificateData];
+        assert!(known.iter().any(|e| e.code() == code), "{code}");
+    }
+}

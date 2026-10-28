@@ -38,6 +38,23 @@ test('AC-3 verify file classification: size checked before reading, PDFs never p
   assert.equal(classifyFile(undefined, 0).kind, 'reject');
 });
 
+test('contract tests/contracts/certificate.json: the JS bridge sends exactly the documented request fields', async () => {
+  const { createCertificateApi } = await import('../app/certificate-api.js');
+  const contract = JSON.parse(fs.readFileSync(new URL('./contracts/certificate.json', import.meta.url), 'utf8'));
+  const sent = {};
+  const api = createCertificateApi({ invoke: async (cmd, args) => { sent[cmd] = args ?? {}; return contract[cmd]?.response ?? null; } });
+  const r = name => contract[name].request;
+  await api.identity(); await api.newIdentity(); await api.sign(r('certificate_sign').payload); await api.verify(r('certificate_verify').json);
+  await api.extract(r('certificate_extract_json').path); await api.store(r('certificate_store').record); await api.list(r('certificate_list').assetId); await api.get(r('certificate_get').id);
+  for (const name of Object.keys(contract).filter(k => !k.startsWith('_'))) assert.deepEqual(sent[contract[name].command], r(name), name);
+  const verifyKeys = Object.keys(contract.certificate_verify.response).sort();
+  const { verifyCertificateText } = await import('../app/certificate.js');
+  const js = await verifyCertificateText(fs.readFileSync(new URL('./fixtures/certificate/valid-v1.deckchek-cert.json', import.meta.url), 'utf8'), { now: Date.parse(contract.certificate_verify.now), isLocal: () => true });
+  const { payload, ...rest } = js;
+  assert.deepEqual(rest, contract.certificate_verify.response, 'the JS verifier returns the same report as Rust');
+  assert.deepEqual(Object.keys(rest).sort(), verifyKeys);
+});
+
 test('printable kind "certificate": PDF carries hash, fingerprint, QR, disclaimer and no embedded script', () => {
   registerCertificateKind(); registerCertificateKind(); // idempotent
   const file = JSON.parse(fs.readFileSync(new URL('./fixtures/certificate/valid-v1.deckchek-cert.json', import.meta.url), 'utf8'));

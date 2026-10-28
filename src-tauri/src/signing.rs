@@ -62,6 +62,8 @@ pub enum SigningError {
     /// The key file exists but cannot be decoded or unsealed. Never auto-replaced.
     KeyCorrupt(&'static str),
     Random,
+    /// `signing_create_identity` called without `confirm: true`.
+    ConfirmationRequired,
     Io(String),
     Db(String),
 }
@@ -71,6 +73,7 @@ impl SigningError {
         match self {
             Self::KeyCorrupt(_) => "key_corrupt",
             Self::Random => "random_unavailable",
+            Self::ConfirmationRequired => "confirmation_required",
             Self::Io(_) => "io",
             Self::Db(_) => "db",
         }
@@ -82,6 +85,7 @@ impl std::fmt::Display for SigningError {
         match self {
             Self::KeyCorrupt(why) => write!(f, "the signing key cannot be read ({why}); create a new identity"),
             Self::Random => write!(f, "the system random number generator is unavailable"),
+            Self::ConfirmationRequired => write!(f, "replacing the signing identity needs confirmation"),
             Self::Io(kind) => write!(f, "signing key storage failed ({kind})"),
             Self::Db(e) => write!(f, "signing key registry failed: {e}"),
         }
@@ -438,7 +442,7 @@ pub fn signing_get_identity(app: tauri::AppHandle) -> Result<Identity, SigningEr
 #[tauri::command]
 pub fn signing_create_identity(app: tauri::AppHandle, confirm: bool) -> Result<Identity, SigningError> {
     if !confirm {
-        return Err(SigningError::KeyCorrupt("confirmation required"));
+        return Err(SigningError::ConfirmationRequired);
     }
     with_conn(&app, create_new_identity)
 }
