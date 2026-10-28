@@ -21,3 +21,14 @@ Decisions and pitfalls from the completion/audit/fuzz/release run. Short, dated,
 - The ASan fuzz build of the full Tauri dependency graph takes ~15 min on 2 cores; CI caches fetched crates only.
 - A restore test used a trigger to inject a migration failure; the new trigger guard refuses that earlier, so the test now injects a duplicate-column conflict (same intent, stronger guard).
 - Baseline UI smoke on this machine (pre-merge, under heavy parallel load): 825/827, two scratch timing checks (`Esc ramps the metronome ... within 100 ms`, `abort calls finish immediately`). Re-check on an idle machine before calling them regressions.
+
+## CI timing (measured from the Actions API)
+
+| Job (per PR push) | Before: run 39809717636 / 39809717358 | After: run 40627154735 |
+|---|---|---|
+| javascript-tests | 0m53 | 1m06 (adds JUnit report, fuzz smoke, wider syntax check) |
+| rust-tests | 5m29 (cargo test + separate cargo check) | 4m06 (cargo test -j4 + warning gate) |
+| ui-smoke | 13m41 (Playwright install 6m30) | 8m16 (first run, browser cache cold) |
+| windows-rust-tests | 4m06 on every PR | moved to nightly / main / release tags |
+| cross-platform matrix (6 builds) | ~44 min on every PR touching app/src | main, tags and dispatch only |
+| PR wall clock | ~44 min | ~8.3 min |
