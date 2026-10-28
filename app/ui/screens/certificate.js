@@ -8,7 +8,7 @@ import { h, esc, isNative, isTyping } from '../dom.js';
 import { icon } from '../icons.js';
 import { toast, announce } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
-import { settings, setSetting, calibrationStatus } from '../state.js';
+import { settings, setSetting, calibrationStatus, store, localRun } from '../state.js';
 import { navigateTo, takeHandoff } from '../crosslinks.js';
 import { savedActions, pdfExportEnabled } from '../persistence.js';
 import { isEnabled } from '../../features.js';
@@ -16,6 +16,7 @@ import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor } f
 import {
   readiness, buildCertificatePayload, assembleCertificateFile, renderCertificateBody, renderCertificateHtml, certificateBaseName,
   VALIDITY_DAYS, DEFAULT_VALID_DAYS, LIMITS, VERDICT_LABEL, VERDICT_ICON, CertificateError,
+  certificatePlan, latestByTest, calibrationFor, certificateVerdict, validatePayload, toDecimal,
 } from '../../certificate.js';
 import { createCertificateApi, exportCertificateFiles } from '../../certificate-api.js';
 import { preparePhoto, sniffImageType, bytesToBase64, createPhotoStore } from '../../photo-store.js';
@@ -39,9 +40,77 @@ export function photoProblem(bytes, size, count) {
   return null;
 }
 
+// ---------- AC-6: calibration as recorded when each measurement was taken ----------
+const flagCalibrated = m => (typeof m?.calibrated === 'boolean' ? m.calibrated
+  : !Array.isArray(m?.qualityFlags) ? null : m.qualityFlags.includes('calibrated') ? true : m.qualityFlags.includes('uncalibrated') ? false : null);
+
+/**
+ * Pure (AC-6): the calibration a stored measurement was taken with, as a profile-like {createdAt, deviceName, sampleRate,
+ * valid} for calibrationFor(), or null (taken uncalibrated, or nothing recorded: the certificate prints 'Uncalibrated').
+ * Sources: the measurement's own flag, then the run it came from (`run`: the workspace run or get_run), whose
+ * `calibration.profileCreatedAt` dates the profile. The profile active now (`current`) only supplies the reference for a
+ * measurement recorded as calibrated when its run kept no date and that profile already existed when it was measured;
+ * it never turns a measurement without a recorded calibration into a calibrated one.
+ */
+export function recordedCalibration(m, result, run = null, current = null) {
+  const runM = (Array.isArray(run?.measurements) ? run.measurements : []).find(x => x?.metricId === m?.metricId) || null;
+  const rec = [result?.detail?.calibration, run?.calibration].find(c => c && typeof c === 'object') || null;
+  let calibrated = flagCalibrated(m) ?? flagCalibrated(runM);
+  if (calibrated == null && typeof rec?.applied === 'boolean') calibrated = rec.applied;
+  if (calibrated !== true) return null;
+  const at = Date.parse(rec?.profileCreatedAt);
+  if (Number.isFinite(at)) return { createdAt: new Date(at).toISOString(), deviceName: String(rec.deviceName || ''), sampleRate: rec.sampleRate ?? run?.sampleRate ?? '', valid: true };
+  const measuredAt = Date.parse(result?.createdAt), since = Date.parse(current?.createdAt);
+  return current && current.valid !== false && Number.isFinite(since) && Number.isFinite(measuredAt) && since <= measuredAt ? current : null;
+}
+
+const latestForPlan = (plan, results) => latestByTest((results || []).filter(r => !r?.profileId || r.profileId === plan.profileId));
+const runIdOf = r => [r?.detail?.runId, r?.sessionId].find(id => typeof id === 'string' && id) || null;
+
+/** Pure (AC-6): ids of the persisted runs behind the latest result of each plan test that has measurements. */
+export function calibrationRunIds(profile, results) {
+  const plan = certificatePlan(profile), latest = latestForPlan(plan, results);
+  const ids = plan.tests.map(t => latest.get(t.id)).filter(r => Array.isArray(r?.detail?.measurements) && r.detail.measurements.length).map(runIdOf).filter(Boolean);
+  return [...new Set(ids)].slice(0, LIMITS.maxResults);
+}
+
+/**
+ * Pure (AC-6): buildCertificatePayload() with each measurement's calibration state taken from what was recorded when
+ * it was measured (recordedCalibration), not from the profile active at certificate time. `runs`: run id -> run.
+ */
+export function buildPayloadAsMeasured(args, { runs = new Map(), current = null } = {}) {
+  const plan = certificatePlan(args.profile), latest = latestForPlan(plan, args.results);
+  const source = plan.tests.flatMap(t => {
+    const r = latest.get(t.id), run = runs.get(runIdOf(r)) || null;
+    return (Array.isArray(r?.detail?.measurements) ? r.detail.measurements : []).filter(m => m?.metricId && toDecimal(m.value) != null)
+      .map(m => ({ m: { ...m, testId: t.id }, cal: recordedCalibration(m, r, run, current) }));
+  });
+  // Built with no profile, every calibratable measurement starts 'uncalibrated'; the recorded state then replaces it.
+  const payload = buildCertificatePayload({ ...args, measurements: source.map(s => s.m), calibration: null });
+  const aligned = payload.measurements.every((pm, i) => source[i] && String(source[i].m.metricId).startsWith(pm.metricId));
+  if (!aligned) return payload;
+  const now = (args.now instanceof Date ? args.now : new Date(args.now ?? Date.now())).getTime();
+  const measurements = payload.measurements.map((pm, i) => ({ ...pm, calibration: calibrationFor(source[i].m, source[i].cal, { now, intervalMonths: args.intervalMonths }) }));
+  const out = { ...payload, measurements, verdict: certificateVerdict(payload.results, measurements) };
+  const v = validatePayload(out);
+  if (!v.ok) throw new CertificateError('schema', v.errors[0]);
+  return out;
+}
+
+/** The runs behind the certificate's results: the local workspace copy (full calibration record) or the stored run. */
+async function loadCalibrationRuns(profile, results) {
+  const runs = new Map();
+  await Promise.all(calibrationRunIds(profile, results).map(async id => {
+    let run = localRun(id);
+    if (!run) { try { run = await store.getRun(id); } catch { run = null; } }
+    if (run) runs.set(id, run);
+  }));
+  return runs;
+}
+
 export function createCertificateScreen(section, { api = createCertificateApi(), photoStore = createPhotoStore(), dialog = globalThis.window?.__TAURI__?.dialog } = {}) {
   const native = isNative() && api.native;
-  const st = { key: null, identity: null, identityError: null, photos: [], busy: false, history: [], validDays: DEFAULT_VALID_DAYS };
+  const st = { key: null, identity: null, identityError: null, photos: [], busy: false, history: [], validDays: DEFAULT_VALID_DAYS, form: null };
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('file', { size: 24 })}</span><div><h1 tabindex="-1">Certificates</h1>
       <p class="lede">A dated, tamper-evident test certificate for a unit you sell: every test in its plan, measured values with uncertainty and calibration state, photos, a SHA-256 content hash and an Ed25519 signature.</p></div></div>
@@ -71,7 +140,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     if (!opts.some(o => o.value === st.key)) st.key = opts[0].value;
     const picker = h('select', { id: 'cert-unit' }, ...opts.map(o => h('option', { value: o.value, text: o.label })));
     picker.value = st.key;
-    picker.addEventListener('change', () => { st.key = picker.value; st.photos = []; render(); loadHistory(); });
+    picker.addEventListener('change', () => { st.key = picker.value; st.photos = []; render(); q('#cert-unit')?.focus(); loadHistory(); });
     const sel = selection();
     const ready = readiness(sel.profile, resultsFor(sel.asset.id), { now: Date.now() });
     body.replaceChildren(
@@ -99,7 +168,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   }
 
   function identityCard() {
-    const card = h('section', { class: 'card cert-identity', id: 'cert-identity', 'aria-label': 'Signing identity' });
+    const card = h('section', { class: 'card cert-identity', id: 'cert-identity', 'aria-label': 'Signing identity', tabindex: '-1' });
     if (st.identityError) {
       card.append(h('p', { class: 'cert-warn', html: `${icon('warn', { size: 16 })} <span>${esc(st.identityError)}</span>` }),
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-new-identity', text: 'Create new identity', onclick: newIdentity }));
@@ -115,18 +184,26 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     const ok = await confirmDialog({ title: 'Create a new signing identity?', body: 'A new key replaces the current one. Certificates you already issued still verify (each carries its public key), but buyers who noted your old fingerprint will see a different one on new certificates.', confirmLabel: 'Create new identity', danger: true });
     if (!ok) return;
     try { st.identity = await api.newIdentity(); st.identityError = null; say('New signing identity created.'); }
-    catch (e) { st.identityError = friendly(e); }
-    q('#cert-identity')?.replaceWith(identityCard());
+    catch (e) { st.identityError = friendly(e); say(st.identityError, { assertive: true }); }
+    // The old card held the focused button: focus the new card, or its retry button after a failure.
+    const old = q('#cert-identity');
+    if (!old) return;
+    const card = identityCard();
+    old.replaceWith(card);
+    (card.querySelector('#cert-new-identity') || card).focus();
   }
 
   function formCard(sel, ready) {
     const form = h('form', { class: 'card cert-form', id: 'cert-form', novalidate: true, 'aria-label': 'Certificate details' });
     const field = (label, input, hint = '') => h('label', { class: 'field' }, h('span', { class: 'field-label', text: label }), input, hint ? h('span', { class: 'field-hint small muted', text: hint }) : '');
+    // Typed values live in st.form (for this unit), so a re-render on onShow does not discard them.
+    const key = st.key, typed = st.form?.key === key ? st.form : null;
     const model = h('input', { id: 'cert-model', value: `${sel.profile.manufacturer} ${sel.profile.model}`, readonly: true });
-    const serial = h('input', { id: 'cert-serial', name: 'serial', required: true, maxlength: LIMITS.maxText, autocomplete: 'off', value: sel.asset.serialNumber || '' });
-    const firmware = h('input', { id: 'cert-firmware', name: 'firmware', maxlength: LIMITS.maxText, value: sel.asset.firmware || '' });
-    const tester = h('input', { id: 'cert-tester', name: 'tester', required: true, maxlength: LIMITS.maxText, value: settings.certTester || '' });
+    const serial = h('input', { id: 'cert-serial', name: 'serial', required: true, maxlength: LIMITS.maxText, autocomplete: 'off', value: typed?.serial ?? (sel.asset.serialNumber || '') });
+    const firmware = h('input', { id: 'cert-firmware', name: 'firmware', maxlength: LIMITS.maxText, value: typed?.firmware ?? (sel.asset.firmware || '') });
+    const tester = h('input', { id: 'cert-tester', name: 'tester', required: true, maxlength: LIMITS.maxText, value: typed?.tester ?? (settings.certTester || '') });
     const notes = h('textarea', { id: 'cert-notes', name: 'notes', maxlength: LIMITS.maxLongText, rows: 3 });
+    notes.value = typed?.notes ?? '';
     const validity = h('select', { id: 'cert-valid' }, ...VALIDITY_DAYS.map(d => h('option', { value: String(d), text: `${d} days` })));
     validity.value = String(st.validDays);
     validity.addEventListener('change', () => { st.validDays = Number(validity.value); });
@@ -134,7 +211,14 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     const photoBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-add-photo', text: 'Add photos', onclick: () => photoInput.click() });
     const photoList = h('ul', { class: 'cert-photos', id: 'cert-photo-list', 'aria-label': 'Attached photos' });
     const paintPhotos = () => photoList.replaceChildren(...st.photos.map((p, i) => h('li', {}, h('img', { src: `data:image/jpeg;base64,${p.dataB64}`, alt: `Photo ${i + 1}: ${p.name}` }),
-      h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Remove', 'aria-label': `Remove photo ${p.name}`, onclick: () => { st.photos.splice(i, 1); paintPhotos(); } }))));
+      h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Remove', 'aria-label': `Remove photo ${p.name}`, onclick: () => removePhoto(i) }))));
+    // The repaint destroys the activated button: move focus to the next Remove button (or "Add photos") and announce it.
+    const removePhoto = i => {
+      st.photos.splice(i, 1); paintPhotos();
+      const left = photoList.querySelectorAll('button');
+      (left[Math.min(i, left.length - 1)] || photoBtn).focus();
+      say(`Photo removed. ${st.photos.length} attached.`);
+    };
     paintPhotos();
     photoInput.addEventListener('change', async () => {
       const files = [...photoInput.files];
@@ -162,6 +246,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
       err, h('div', { class: 'action-bar' }, preview, draft, sign),
       ready.ready ? '' : h('p', { class: 'small muted', text: 'Signing is blocked until every required test has a result. A draft is watermarked DRAFT and unsigned.' }));
     form.addEventListener('submit', e => { e.preventDefault(); if (ready.ready) run('sign'); });
+    form.addEventListener('input', () => { st.form = { key, serial: serial.value, firmware: firmware.value, tester: tester.value, notes: notes.value }; });
 
     const collect = () => {
       err.textContent = '';
@@ -176,11 +261,14 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
       if (!f) return;
       const cur = selection();
       const cal = calibrationStatus();
+      const results = resultsFor(cur.asset.id);
       let payload;
       try {
         const deckchekVersion = await (globalThis.window?.__TAURI__?.app?.getVersion?.() ?? Promise.resolve('')).catch(() => '');
-        payload = buildCertificatePayload({ asset: cur.asset, profile: cur.profile, results: resultsFor(cur.asset.id), calibration: cal.state === 'calibrated' ? cal.profile : null,
-          ...f, photos: st.photos, validDays: st.validDays, now: new Date(), deckchekVersion: deckchekVersion || '' });
+        const runs = await loadCalibrationRuns(cur.profile, results);
+        // AC-6: calibration as recorded with each measurement; the profile active now is only a dated fallback.
+        payload = buildPayloadAsMeasured({ asset: cur.asset, profile: cur.profile, results,
+          ...f, photos: st.photos, validDays: st.validDays, now: new Date(), deckchekVersion: deckchekVersion || '' }, { runs, current: cal.state === 'calibrated' ? cal.profile : null });
       } catch (e) { err.textContent = e instanceof CertificateError ? `Cannot build the certificate: ${e.message}` : friendly(e); return; }
       if (kind === 'preview') return showPreview(payload);
       if (kind === 'draft') return exportDraft(payload);

@@ -1,6 +1,9 @@
 // FS-20 smoke: create a signed certificate from a mocked full plan (JSON + PDF written), verify it VALID, edit one
 // byte and see MODIFIED "content hash mismatch" with the changed section, PDF without data, HTML fallback when the
 // PDF fails (same hash), readiness blocking + draft, Esc, browser mode (unsupported create, JS verify), flag off.
+// Regression checks (review fixes): AC-6 calibration as recorded at measurement time, focus kept on the unit picker,
+// after removing a photo and after "Create new identity", typed form values surviving onShow, the verify token race,
+// and the "issued by this install" note only on a VALID result.
 import fs from 'node:fs';
 import path from 'node:path';
 import { watchConsole, tauriMock, a11yAudit } from './core.mjs';
@@ -12,7 +15,7 @@ const PROFILE = 'pioneer-plx-crss12';
 function certMock() {
   const before = window.__TAURI__.core.invoke;
   const files = {}, stored = [];
-  const state = { files, stored, nextOpen: null, pdfFail: false, seeded: false, signCalls: 0 };
+  const state = { files, stored, nextOpen: null, pdfFail: false, seeded: false, signCalls: 0, identityFail: false, newIdentityFail: false, extractDelay: {} };
   window.__cert = state;
   const engine = () => import('/certificate.js');
   const b64 = bytes => btoa(String.fromCharCode(...bytes));
@@ -30,10 +33,24 @@ function certMock() {
         state.seeded = true;
         const db = window.__mockDb;
         const t0 = Date.now() - 3600e3;
+        // AC-6: speed-33 was measured with no calibration recorded; crss12-driver comes from a persisted run (get_run) whose
+        // measurement is flagged 'calibrated'; crss12-driver-signed from a workspace run that recorded its profile date.
+        const meas = t => (t.id === 'crss12-speed-33' ? [{ metricId: 'measured_pitch_percent', value: 0.012, unit: '%', uncertainty: 0.01 }]
+          : t.id === 'crss12-driver' ? [{ metricId: 'rpm', value: 33.34, unit: 'rpm' }]
+            : t.id === 'crss12-driver-signed' ? [{ metricId: 'quartz_rpm', value: 33.33, unit: 'rpm' }] : []);
+        const runId = t => ({ 'crss12-driver': 'run-cal-db', 'crss12-driver-signed': 'run-cal-ws' })[t.id];
         p.tests.forEach((t, i) => db.deviceResults.push({ id: `seed-${i}`, assetId: 'asset-pioneer-plx-crss12', profileId: p.id, testId: t.id, status: 'pass', createdAt: new Date(t0 + i).toISOString(),
-          detail: { summary: 'Pass (mock)', measurements: t.id === 'crss12-speed-33' ? [{ metricId: 'measured_pitch_percent', value: 0.012, unit: '%', uncertainty: 0.01 }] : [] } }));
+          detail: { summary: 'Pass (mock)', measurements: meas(t), ...(runId(t) ? { runId: runId(t) } : {}) } }));
+        db.runs = db.runs.filter(r => r.id !== 'run-cal-db');
+        db.runs.push({ id: 'run-cal-db', test: 'Speed', createdAt: new Date(t0).toISOString(), score: 90, findings: [], measurements: [{ metricId: 'rpm', value: 33.34, unit: 'rpm', qualityFlags: ['calibrated'] }] });
       }
       return out;
+    }
+    if (cmd === 'signing_get_identity' && state.identityFail) throw { code: 'key_corrupt', message: 'The signing key is corrupt (mock)' };
+    if (cmd === 'signing_create_identity') {
+      if (state.newIdentityFail) throw { code: 'io', message: 'Disk full (mock)' };
+      state.identityFail = false;
+      return { fingerprint: await fingerprint(), createdAt: '2026-10-01T00:00:00Z', publicKeyB64: b64(PK), protection: 'dpapi' };
     }
     if (cmd === 'signing_get_identity') return { fingerprint: await fingerprint(), createdAt: '2026-10-01T00:00:00Z', publicKeyB64: b64(PK), protection: 'dpapi' };
     if (cmd === 'certificate_sign') {
@@ -51,6 +68,7 @@ function certMock() {
       return rep;
     }
     if (cmd === 'certificate_extract_json') {
+      if (state.extractDelay[args.path]) await new Promise(r => setTimeout(r, state.extractDelay[args.path]));
       if (args.path.endsWith('.pdf')) throw { code: 'pdf_has_no_attachment', message: 'This PDF has no DeckChek data attached.' };
       const text = files[args.path];
       if (text == null) throw { code: 'bad_path', message: 'invalid file path: file not found' };
@@ -80,6 +98,20 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await context.addInitScript(tauriMock);
   await context.addInitScript(certMock);
   await context.addInitScript(() => { if (!localStorage.getItem('deckchek.ui.v1')) localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { certificates: true }, setupWizardDone: true })); });
+  // AC-6 regression state: a calibration profile that is active now (created 2 h ago, before the seeded results) and a
+  // workspace run that recorded the (older) profile its measurements were calibrated with.
+  await context.addInitScript(() => {
+    if (localStorage.getItem('deckchek.calibration.v1')) return;
+    const DAY = 864e5;
+    const profile = { version: 1, sampleRate: 48000, valid: true, issues: [], gainDb: { left: 0, right: 0 }, mismatchDb: 0, clockPpm: 0, latencyMs: 0, uncertainty: {}, deviceName: '', createdAt: new Date(Date.now() - 2 * 3600e3).toISOString() };
+    localStorage.setItem('deckchek.calibration.v1', JSON.stringify({ 'default|48000': JSON.stringify(profile) }));
+    const recordedAt = new Date(Date.now() - 30 * DAY).toISOString();
+    const run = { id: 'run-cal-ws', workflow: 'turntable', sessionType: 'turntable', test: 'Speed', createdAt: new Date(Date.now() - 3600e3).toISOString(), sampleRate: 48000, channels: 2, score: 90, findings: [], evidence: [],
+      measurements: [{ metricId: 'quartz_rpm', label: 'Quartz rpm', value: 33.33, unit: 'rpm', calibrated: true, qualityFlags: ['calibrated'] }],
+      calibration: { applied: true, reasons: [], profileCreatedAt: recordedAt, deviceName: 'Loopback rig' } };
+    localStorage.setItem('deckchek.workspace.v1', JSON.stringify({ version: 1, equipment: [], runs: [run] }));
+    localStorage.setItem('deckchek.cal-recorded-at', recordedAt);
+  });
   const page = await context.newPage();
   errors.push(watchConsole(page, 'certificate'));
   await page.goto(base);
@@ -95,8 +127,10 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // readiness blocking on a unit without results
   const other = await page.locator('#cert-unit option').evaluateAll(os => os.map(o => o.value).find(v => !v.startsWith('pioneer-plx-crss12::')));
+  await page.focus('#cert-unit');
   await page.selectOption('#cert-unit', other);
   await page.waitForSelector('#cert-missing');
+  check('regression: changing the Unit select keeps keyboard focus on the picker', await page.evaluate(() => document.activeElement?.id === 'cert-unit'));
   check('cert AC-1: missing tests are listed and signing is blocked', !(await page.locator('#cert-sign').isEnabled()) && (await page.locator('#cert-missing li').count()) > 0);
   check('cert: partial state offers an unsigned DRAFT export', await page.locator('#cert-draft').isVisible());
   await page.fill('#cert-serial', 'DRAFT-1'); await page.fill('#cert-tester', 'Alex');
@@ -105,6 +139,53 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   check('cert: preview shows the DRAFT watermark when unsigned', /DRAFT/.test(await page.locator('#cert-preview-card').innerText()));
   await page.keyboard.press('Escape');
   check('cert: Esc closes the preview', await page.locator('#cert-preview-card').isHidden());
+
+  // typed values survive leaving and re-showing the screen
+  await page.fill('#cert-firmware', 'FW 1.2.3'); await page.fill('#cert-notes', 'Light wear on the platter.');
+  await page.click('#cert-go-verify');
+  await page.waitForSelector('#verify-drop');
+  await page.click('.rail-item[data-screen="certificate"]');
+  await page.waitForSelector('#cert-form');
+  const kept = await page.evaluate(() => ['serial', 'firmware', 'tester', 'notes'].map(k => document.getElementById(`cert-${k}`)?.value));
+  check('regression: onShow keeps the typed serial, firmware, tester and notes', JSON.stringify(kept) === JSON.stringify(['DRAFT-1', 'FW 1.2.3', 'Alex', 'Light wear on the platter.']), JSON.stringify(kept));
+
+  // removing a photo keeps keyboard focus in the list (then on "Add photos") and announces it
+  await page.evaluate(async () => {
+    const mk = async n => { const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d'); g.fillStyle = n ? '#f00' : '#00f'; g.fillRect(0, 0, 8, 8); const b = await new Promise(r => c.toBlob(r, 'image/png')); return new File([b], `photo${n}.png`, { type: 'image/png' }); };
+    const dt = new DataTransfer(); dt.items.add(await mk(0)); dt.items.add(await mk(1));
+    const inp = document.getElementById('cert-photo-input'); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+  });
+  const twoPhotos = await page.waitForFunction(() => document.querySelectorAll('#cert-photo-list li').length === 2, null, { timeout: 10000 }).then(() => true, () => false);
+  check('cert: two photos attached', twoPhotos);
+  if (twoPhotos) {
+    await page.focus('#cert-photo-list li:first-child button');
+    await page.keyboard.press('Enter');
+    const afterFirst = await page.evaluate(() => ({ label: document.activeElement?.getAttribute('aria-label') || document.activeElement?.id || document.activeElement?.tagName, status: document.getElementById('cert-status')?.textContent || '', left: document.querySelectorAll('#cert-photo-list li').length }));
+    check('regression: removing a photo moves focus to the next Remove button and announces it', afterFirst.left === 1 && /^Remove photo/.test(afterFirst.label) && /Photo removed\. 1 attached/.test(afterFirst.status), JSON.stringify(afterFirst));
+    await page.keyboard.press('Enter');
+    const afterLast = await page.evaluate(() => ({ id: document.activeElement?.id, left: document.querySelectorAll('#cert-photo-list li').length }));
+    check('regression: removing the last photo moves focus to "Add photos"', afterLast.left === 0 && afterLast.id === 'cert-add-photo', JSON.stringify(afterLast));
+  }
+
+  // "Create new identity": focus is not lost; a failure is announced
+  await page.evaluate(() => { window.__cert.identityFail = true; window.__cert.newIdentityFail = true; });
+  await page.click('.rail-item[data-screen="verify"]');
+  await page.click('.rail-item[data-screen="certificate"]');
+  await page.waitForSelector('#cert-new-identity');
+  await page.focus('#cert-new-identity');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('#confirm-dialog[open]');
+  await page.click('#confirm-ok');
+  await page.waitForFunction(() => /Disk full/.test(document.querySelector('#cert-identity')?.textContent || ''));
+  const failState = await page.evaluate(() => ({ id: document.activeElement?.id, status: document.getElementById('cert-status')?.textContent || '' }));
+  check('regression: a failed "Create new identity" keeps focus on the button and announces the error', failState.id === 'cert-new-identity' && /Disk full/.test(failState.status), JSON.stringify(failState));
+  await page.evaluate(() => { window.__cert.newIdentityFail = false; });
+  await page.focus('#cert-new-identity');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('#confirm-dialog[open]');
+  await page.click('#confirm-ok');
+  await page.waitForSelector('#cert-fp');
+  check('regression: after "Create new identity" focus moves to the new identity card', await page.evaluate(() => document.activeElement?.id === 'cert-identity'));
 
   // sign and export
   await page.selectOption('#cert-unit', `${PROFILE}::asset-${PROFILE}`);
@@ -126,6 +207,12 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   const stored = await page.evaluate(() => window.__cert.stored[0]);
   check('cert: PDF carries content hash, QR and disclaimer; tester name escaped', pdfHtml.includes(stored.contentHash) && /role="img" aria-label="QR code/.test(pdfHtml) && /does not prove the tester measured honestly/.test(pdfHtml) && pdfHtml.includes('Alex &lt;Tester&gt;'));
   check('cert AC-6: no calibration profile -> "Pass (uncalibrated)", printed beside the value', stored.verdict === 'pass_uncalibrated' && /Uncalibrated/.test(pdfHtml));
+  const calOf = await page.evaluate(() => Object.fromEntries(JSON.parse(window.__cert.stored[0].fileJson).payload.measurements.map(m => [m.metricId, m.calibration])));
+  const recordedAt = await page.evaluate(() => localStorage.getItem('deckchek.cal-recorded-at'));
+  const activeNow = await page.evaluate(async () => (await import('/ui/state.js')).calibrationStatus().state);
+  check('regression: AC-6 a calibration profile active only at certificate time does not make an unrecorded measurement Calibrated', activeNow === 'calibrated' && calOf.measured_pitch_percent?.state === 'uncalibrated', `${activeNow} ${JSON.stringify(calOf.measured_pitch_percent)}`);
+  check('regression: AC-6 calibration date and reference come from the run that took the measurement', calOf.quartz_rpm?.state === 'calibrated' && calOf.quartz_rpm?.date === recordedAt && /^Loopback rig\|48000$/.test(calOf.quartz_rpm?.refId || ''), JSON.stringify(calOf.quartz_rpm));
+  check('cert AC-6: a persisted run flagged calibrated (no recorded date) uses the earlier active profile', calOf.rpm?.state === 'calibrated', JSON.stringify(calOf.rpm));
   await page.waitForFunction(() => /Certificate signed/.test(document.getElementById('cert-status')?.textContent || ''));
   check('cert: success announced and history lists the certificate', (await page.locator('#cert-history .cert-history-row').count()) === 1);
   await shot(page, 'certificate-signed');
@@ -139,6 +226,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.waitForSelector('#verify-badge');
   check('cert AC-3: exported JSON verifies VALID with the signer fingerprint (keyboard-operated drop zone)', (await page.locator('#verify-badge').innerText()).includes('VALID') && (await page.locator('#verify-fp').count()) === 1);
   check('cert: badge has icon + text and a live result', (await page.locator('#verify-badge .cert-badge-icon').count()) === 1 && /VALID/.test(await page.locator('#verify-status').innerText()));
+  check('cert: a VALID certificate from this install says so', /issued by this DeckChek install/.test(await page.locator('#verify-result').innerText()));
 
   // mutate one byte -> MODIFIED
   await page.evaluate(p => { window.__cert.files[p] = window.__cert.files[p].replace('CRSS12 #0042', 'CRSS12 #0043'); }, jsonPath);
@@ -146,6 +234,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.waitForFunction(() => /MODIFIED/.test(document.getElementById('verify-badge')?.textContent || ''));
   check('cert AC-4: one-byte edit -> MODIFIED naming "content hash mismatch"', /content hash mismatch/.test(await page.locator('#verify-reasons').innerText()));
   check('cert: MODIFIED shows the changed section against the stored original', /payload\.unit\.serial/.test(await page.locator('#verify-diff').innerText()));
+  check('regression: a MODIFIED file does not claim it was issued by this install', !/issued by this DeckChek install/.test(await page.locator('#verify-result').innerText()));
   await shot(page, 'certificate-modified');
 
   // PDF without data
@@ -153,6 +242,15 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   await page.click('#verify-drop');
   await page.waitForFunction(() => /no DeckChek data attached/.test(document.getElementById('verify-message')?.textContent || ''));
   check('cert AC-3: a PDF explains it carries only the printed hash and asks for the JSON', /\.deckchek-cert\.json/.test(await page.locator('#verify-message').innerText()));
+  // an earlier, slower file must not replace the result of the file picked after it
+  await page.evaluate(p => { window.__cert.extractDelay[p] = 700; window.__cert.nextOpen = p; }, jsonPath);
+  await page.click('#verify-drop');
+  await page.evaluate(() => { window.__cert.nextOpen = '/home/dj/Certificates/later.pdf'; });
+  await page.click('#verify-drop');
+  await page.waitForFunction(() => /no DeckChek data attached/.test(document.getElementById('verify-message')?.textContent || ''));
+  await page.waitForTimeout(1200);
+  check('regression: a slower earlier file does not overwrite the latest verify result', (await page.locator('#verify-message').count()) === 1 && (await page.locator('#verify-badge').count()) === 0);
+  await page.evaluate(p => { delete window.__cert.extractDelay[p]; }, jsonPath);
   await page.keyboard.press('Escape');
   check('cert: Esc clears the verify result', await page.locator('#verify-result').isHidden());
   const audit = await a11yAudit(page);
