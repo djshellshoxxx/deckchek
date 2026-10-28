@@ -13,6 +13,7 @@ export const RUN_TYPES = Object.freeze([
   { id: 'scratch', label: 'Scratch test', screen: 'scratch', feature: 'scratchTest' },
   { id: 'wearmap', label: 'Wear map', screen: 'vinylscan', feature: 'wearMap' },
   { id: 'pregig', label: 'Pre-gig check', screen: 'pregig', feature: 'pregig' },
+  { id: 'monitor', label: 'Live monitor', screen: 'monitor', feature: 'liveMonitor' },
 ]);
 
 export const typeInfo = id => RUN_TYPES.find(t => t.id === id) || null;
@@ -67,12 +68,23 @@ export function mapPregigRun(r) {
   return row('pregig', r.id, { title: name ? `Pre-gig check: ${name}` : 'Pre-gig check', startedAt: r.startedAt, status: PREGIG_STATUS[r.verdict] || 'info', meta: parts.join(' · ') });
 }
 
+/** FS-31 live monitor session (monitor_session_list row): status from its worst event. */
+export function mapMonitorSession(r) {
+  if (!r?.id || !iso(r.startedAt)) return null;
+  const sec = fin(r.summary?.durationSec) ? r.summary.durationSec : iso(r.endedAt) ? Math.max(0, (Date.parse(r.endedAt) - Date.parse(r.startedAt)) / 1000) : null;
+  const dur = sec === null ? null : sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : `${Math.max(1, Math.round(sec / 60))} min`;
+  const crit = fin(r.criticalCount) ? r.criticalCount : 0, warn = fin(r.warningCount) ? r.warningCount : 0;
+  const parts = [text(r.format), dur, crit ? `${crit} critical` : null, warn ? `${warn} warning${warn === 1 ? '' : 's'}` : null, !crit && !warn && r.endedAt ? 'no alerts' : null, r.endedAt ? null : 'not closed'].filter(Boolean);
+  return row('monitor', r.id, { title: 'Live monitor session', startedAt: r.startedAt, status: crit ? 'fail' : warn ? 'warn' : r.endedAt ? 'pass' : 'info', meta: parts.join(' · ') });
+}
+
 const SOURCES = [
   { type: 'hum', cmd: 'hum_run_list', args: limit => ({ filter: { limit } }), map: mapHumRun },
   { type: 'latency', cmd: 'latency_run_list', args: limit => ({ filter: { limit } }), map: mapLatencyRun },
   { type: 'scratch', cmd: 'scratch_list', args: limit => ({ filter: { limit } }), map: mapScratchRun },
   { type: 'wearmap', cmd: 'wearmap_list', args: limit => ({ limit }), map: mapWearScan },
   { type: 'pregig', cmd: 'pregig_list_runs', args: limit => ({ limit }), map: mapPregigRun },
+  { type: 'monitor', cmd: 'monitor_session_list', args: limit => ({ limit }), map: mapMonitorSession },
 ];
 
 /**

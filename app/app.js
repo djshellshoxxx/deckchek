@@ -50,6 +50,7 @@ import { fleetScreenDefs } from './ui/screens/fleet.js';
 // [FS-30] screens imports
 import { phoneImportScreenDefs } from './ui/workflows/import-phone.js';
 // [FS-31] screens imports
+import { monitorScreenDefs } from './ui/screens/monitor.js';
 // [FS-32] screens imports
 import { mapperScreenDefs } from './ui/screens/mapper.js';
 // [FS-33] screens imports
@@ -95,6 +96,7 @@ const SCREENS = [
   // [FS-30] screens
   ...phoneImportScreenDefs(),
   // [FS-31] screens
+  ...monitorScreenDefs(),
   // [FS-32] screens
   ...mapperScreenDefs(),
   // [FS-33] screens

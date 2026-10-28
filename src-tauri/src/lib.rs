@@ -60,6 +60,8 @@ mod service;
 mod fleet;
 // [FS-30] mods
 // [FS-31] mods
+mod monitor;
+mod tray;
 // [FS-32] mods
 mod mapper;
 // [FS-33] mods
@@ -142,6 +144,8 @@ pub fn run() {
             fleet::reminder_template_upsert, fleet::reminder_apply_template,
             // [FS-30] handlers
             // [FS-31] handlers
+            monitor::monitor_session_start, monitor::monitor_log_append, monitor::monitor_session_end, monitor::monitor_session_list,
+            monitor::monitor_session_get, monitor::monitor_session_delete, monitor::monitor_prune, tray::monitor_set_tray_state,
             // [FS-32] handlers
             mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
             // [FS-33] handlers
@@ -175,7 +179,9 @@ pub fn run() {
             // [FS-22] setup
             // [FS-23] setup
             // [FS-30] setup
-            // [FS-31] setup
+            // [FS-31] setup: close crashed monitor sessions + retention prune (background thread); close-to-tray while monitoring
+            monitor::setup(_app.handle());
+            tray::setup(_app);
             // [FS-32] setup
             // [FS-33] setup
             // [FS-02] `--debug-crash` (debug builds, or DECKCHEK_ALLOW_DEBUG_CRASH=1): last, so the panic goes through every hook above
