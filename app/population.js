@@ -121,3 +121,113 @@ export function populationComparison(rows, measurement, { higherIsBetter, regist
     caveat: 'Contributors are self-selected and may not represent the wider population.',
   };
 }
+
+// ---------------------------------------------------------------- phase 1: spec, sibling units and own history (FS-21 AC-1..AC-3)
+
+/** Contributors needed for a percentile, and for showing a median at all (spec section 6). */
+export const N_MIN_PERCENTILE = 20;
+export const N_MIN_MEDIAN = 8;
+
+const unitWord = unit => String(unit ?? '').trim().split(/[\s(]/)[0].toLowerCase();
+
+/**
+ * AC-1: value against a published spec limit, no population needed.
+ * `spec` is a device-profile spec entry ({value, unit, tolerance, confidence, source}); `limit` says whether the
+ * spec is a ceiling ('max', lower is better) or a floor ('min'). Never converts units: "dBu" is not "dBFS".
+ * -> {status:'ok', limit, specValue, unit, value, margin, within, confidence, source}
+ *  | {status:'no-measurement'|'no-spec'|'no-limit'|'not-numeric'|'unit-mismatch', reason}
+ */
+export function compareToSpec(measurement, spec, { limit } = {}) {
+  if (!measurement || !Number.isFinite(measurement.value)) return { status: 'no-measurement', reason: 'There is no measured value to compare.' };
+  if (!spec || typeof spec !== 'object') return { status: 'no-spec', reason: 'No published spec for this metric.' };
+  if (limit !== 'max' && limit !== 'min') return { status: 'no-limit', reason: 'This metric has no spec direction, so a margin cannot be shown.' };
+  if (typeof spec.value !== 'number' || !Number.isFinite(spec.value)) return { status: 'not-numeric', reason: 'The published spec is not a single number.' };
+  const a = unitWord(measurement.unit), b = unitWord(spec.unit);
+  if (!a || !b || a !== b) return { status: 'unit-mismatch', reason: `The spec is in ${spec.unit || 'no unit'} but the measurement is in ${measurement.unit || 'no unit'}; DeckChek does not convert.` };
+  const margin = limit === 'max' ? spec.value - measurement.value : measurement.value - spec.value;
+  return { status: 'ok', limit, specValue: spec.value, unit: measurement.unit, value: measurement.value, margin, within: margin >= 0, confidence: spec.confidence ?? null, source: spec.source ?? null, tolerance: spec.tolerance ?? null };
+}
+
+/** Latest value per asset from rows [{assetId, value, at, ...}] (ties on `at` keep the later row). */
+export function latestPerAsset(rows) {
+  const best = new Map();
+  for (const row of rows ?? []) {
+    if (!row || typeof row.assetId !== 'string' || !Number.isFinite(row.value)) continue;
+    const old = best.get(row.assetId);
+    if (!old || String(row.at ?? '') >= String(old.at ?? '')) best.set(row.assetId, row);
+  }
+  return [...best.values()].sort((a, b) => a.assetId.localeCompare(b.assetId));
+}
+
+/**
+ * AC-2: where this unit sits among the user's other units of the same product. `units` = one {assetId, nickname, value}
+ * per asset (use latestPerAsset). Best first when the direction is known, otherwise by value; ties by assetId so the
+ * order is deterministic. Rank is a competition rank (1 = best; equal values share a rank).
+ */
+export function compareToSiblings(units, assetId, { higherIsBetter } = {}) {
+  const list = (units ?? []).filter(u => u && Number.isFinite(u.value));
+  const me = list.find(u => u.assetId === assetId);
+  if (!me) return { status: 'none', rows: [], rank: null, of: 0 };
+  const sign = higherIsBetter === true ? -1 : 1;
+  const rows = list.slice().sort((a, b) => (a.value - b.value) * sign || String(a.assetId).localeCompare(String(b.assetId)));
+  const known = typeof higherIsBetter === 'boolean';
+  const status = list.length < 2 ? 'single' : known ? 'ranked' : 'unranked';
+  const rank = known ? 1 + rows.filter(u => (higherIsBetter ? u.value > me.value : u.value < me.value)).length : null;
+  return { status, rows: rows.map(u => ({ ...u, self: u.assetId === assetId })), rank, of: list.length };
+}
+
+/**
+ * AC-3: latest run against the unit's own earlier runs. `history` oldest first [{value, at}].
+ * -> {status:'insufficient', n} | {status:'ok', n, latest, median, delta, verdict:'better'|'worse'|'same'|'changed'}
+ */
+export function historyDelta(history, { higherIsBetter } = {}) {
+  const values = (history ?? []).filter(h => h && Number.isFinite(h.value));
+  if (values.length < 2) return { status: 'insufficient', n: values.length };
+  const latest = values.at(-1).value;
+  const median = robustSummary(values.slice(0, -1).map(h => h.value)).median;
+  const delta = latest - median;
+  const verdict = delta === 0 ? 'same' : typeof higherIsBetter !== 'boolean' ? 'changed' : (delta > 0) === higherIsBetter ? 'better' : 'worse';
+  return { status: 'ok', n: values.length, latest, median, delta, verdict };
+}
+
+export function ordinal(n) {
+  const k = Math.round(n), mod100 = k % 100;
+  const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[k % 10] ?? 'th');
+  return `${k}${suffix}`;
+}
+
+const trim = (v, d = 3) => String(Number(Number(v).toPrecision(d)));
+
+/** Text equivalent of the strip plot (spec section 3). Rank is always "higher = better", whatever the metric's direction. */
+export function describeComparison(comparison, measurement) {
+  const unit = measurement.unit ? ` ${measurement.unit}` : '';
+  const value = `${trim(measurement.value)}${unit}`;
+  if (!comparison || comparison.status === 'insufficient') return `${comparison?.message ?? 'Not enough data'}. Your value is ${value}.`;
+  const who = `${comparison.contributors} contributors (${comparison.units} units)`;
+  if (comparison.status === 'unsupported') return `Your value is ${value}. The population has ${who}; this metric has no ranking direction, so only the distribution is shown.`;
+  const r = comparison.rank;
+  const band = comparison.contributors < 100 && Number.isFinite(r.lo) ? `, about ${ordinal(r.lo)} to ${ordinal(r.hi)}` : '';
+  return `Your value ${value} is at the ${ordinal(r.rank0to100)} percentile of ${who}${band}. Higher percentile is better.`;
+}
+
+/**
+ * Geometry for the strip plot (spec section 3): x positions in 0..width for each dot, the P10/P50/P90 band and the
+ * user's marker. Pure, so the layout is testable. Nothing is dropped: the axis grows to include every dot and the marker.
+ */
+export function stripPlot(comparison, value, { width = 560 } = {}) {
+  const dots = comparison?.dots ?? [];
+  const all = dots.map(d => d.value).concat(Number.isFinite(value) ? [value] : []);
+  if (!all.length) return null;
+  let lo = Math.min(...all), hi = Math.max(...all);
+  if (hi - lo < 1e-9) { lo -= 0.5; hi += 0.5; }
+  const pad = (hi - lo) * 0.06;
+  lo -= pad; hi += pad;
+  const x = v => Math.round(((v - lo) / (hi - lo)) * width * 100) / 100;
+  const s = comparison?.summary;
+  return {
+    lo, hi,
+    dots: dots.map(d => ({ x: x(d.value), value: d.value, outlier: d.outlier })),
+    band: s ? { p10: x(s.p10), p50: x(s.median), p90: x(s.p90) } : null,
+    marker: Number.isFinite(value) ? x(value) : null,
+  };
+}

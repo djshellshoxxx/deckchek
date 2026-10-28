@@ -1,6 +1,7 @@
 // FS-21 offline pack boundary. Whitelist serialization and strict import validation.
 // The memory store mirrors pack ownership, including overlapping observations.
 import { sha256HexSync } from './sha256.js';
+import { robustSummary } from './population.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_ROWS = 100000;
@@ -139,4 +140,58 @@ export function createPackStore({ metricRegistry } = {}) {
       return { rows, contributors: new Set(rows.map(row => row.contributor)).size };
     },
   };
+}
+
+// ---------------------------------------------------------------- metric whitelist and export selection (FS-21 phase 2)
+
+/**
+ * The metric whitelist shipped as `population-metrics.json` (the Rust importer reads the same file). Returns a Map-like
+ * registry for `validatePack`: any product key is accepted, the metric decides unit and plausible range. Unknown metrics
+ * are absent, so they are refused.
+ */
+export function createMetricRegistry(table) {
+  const metrics = table && typeof table === 'object' && table.metrics && typeof table.metrics === 'object' ? table.metrics : {};
+  return new class extends Map {
+    get(key) {
+      const metric = String(key).slice(String(key).lastIndexOf(':') + 1);
+      const def = Object.hasOwn(metrics, metric) ? metrics[metric] : null;
+      return def ? { unit: def.unit, plausible: def.plausible } : undefined;
+    }
+  }();
+}
+
+const cellKey = row => JSON.stringify([row.product, row.metric, row.method.key, row.method.version, row.unit]);
+
+/**
+ * Turn this computer's per-unit values (Rust `population_unit_values` rows) into shareable cells. Per (unit, metric) only the
+ * latest value counts, and several units of one product become ONE row: the median of the units, so a shop with 200 units is
+ * one voice (spec section 6). Only whitelisted fields leave this function: product, metric, method, value, unit, plus a
+ * local-only `units` count the UI shows (buildPack drops it). Rows with a unit that differs from the whitelist are skipped.
+ * Output order is sorted, so the same input gives the same output.
+ */
+export function exportRowsFromUnitValues(unitValues, table) {
+  const metrics = table?.metrics ?? {};
+  const latest = new Map();
+  const skipped = [];
+  for (const row of unitValues ?? []) {
+    if (!row || typeof row.assetId !== 'string') continue;
+    const def = Object.hasOwn(metrics, row.metric) ? metrics[row.metric] : null;
+    if (!def) { skipped.push({ metric: row.metric, reason: 'metric is not shareable' }); continue; }
+    if (row.unit !== def.unit) { skipped.push({ metric: row.metric, reason: 'unit differs from the metric definition' }); continue; }
+    if (!Number.isFinite(row.value) || row.value < def.plausible[0] || row.value > def.plausible[1]) { skipped.push({ metric: row.metric, reason: 'value is outside the plausible range' }); continue; }
+    const key = JSON.stringify([row.assetId, row.metric, row.methodKey, row.methodVersion]);
+    const old = latest.get(key);
+    if (!old || String(row.at ?? '') >= String(old.at ?? '')) latest.set(key, row);
+  }
+  const cells = new Map();
+  for (const row of latest.values()) {
+    const cell = { product: row.productKey, metric: row.metric, method: { key: row.methodKey, version: row.methodVersion }, unit: row.unit };
+    const key = cellKey(cell);
+    if (!cells.has(key)) cells.set(key, { ...cell, values: [] });
+    cells.get(key).values.push(row.value);
+  }
+  const rows = [...cells.values()]
+    .map(({ values, ...cell }) => ({ ...cell, value: robustSummary(values).median, units: values.length }))
+    .sort((a, b) => cellKey(a).localeCompare(cellKey(b)));
+  return { rows, skipped };
 }
