@@ -443,21 +443,25 @@ pub fn stored_retention_days(conn: &Connection) -> i64 {
 }
 
 /// Delete sessions that ended (or started, if never ended) more than `days` ago, and all but the newest
-/// [`MAX_SESSIONS`]. With `close_open`, sessions left open by a crash are closed first (startup only: nothing
-/// can be running then).
-pub fn prune(conn: &mut Connection, days: i64, close_open: bool) -> Result<PruneResult, String> {
+/// [`MAX_SESSIONS`]. With `close_open_before` (Unix seconds, the process start), sessions still open that started
+/// before it were left open by a crash or a kill: they are closed first, at their last event, and marked
+/// "interrupted". Sessions of the running process are never touched.
+pub fn prune(conn: &mut Connection, days: i64, close_open_before: Option<f64>) -> Result<PruneResult, String> {
     if !(1..=MAX_RETENTION_DAYS).contains(&days) {
         return Err(format!("retentionDays must be between 1 and {MAX_RETENTION_DAYS}"));
     }
     let tx = conn.transaction().map_err(e2s)?;
-    let closed = if close_open {
-        tx.execute(
-            "UPDATE monitor_session SET ended_at = started_at, summary_json = COALESCE(summary_json, '{\"version\":1,\"endReason\":\"interrupted\"}') WHERE ended_at IS NULL",
-            [],
-        )
-        .map_err(e2s)?
-    } else {
-        0
+    let closed = match close_open_before {
+        Some(before) if before.is_finite() => tx
+            .execute(
+                "UPDATE monitor_session SET
+                   ended_at = COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', julianday(started_at) + (SELECT MAX(t_ms) FROM monitor_event e WHERE e.session_id = monitor_session.id) / 86400000.0), started_at),
+                   summary_json = COALESCE(summary_json, '{\"version\":1,\"endReason\":\"interrupted\"}')
+                 WHERE ended_at IS NULL AND julianday(started_at) < julianday(?1, 'unixepoch')",
+                [before],
+            )
+            .map_err(e2s)?,
+        _ => 0,
     };
     let cutoff: String = tx
         .query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)", [format!("-{days} days")], |r| r.get(0))
@@ -478,10 +482,11 @@ pub fn prune(conn: &mut Connection, days: i64, close_open: bool) -> Result<Prune
 /// Startup hook ([FS-31] setup): close crashed sessions and prune by the stored retention, off the UI thread.
 pub fn setup(app: &AppHandle) {
     let Ok(path) = database_path(app) else { return };
+    let started = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
     std::thread::spawn(move || {
         if let Ok(mut conn) = open_database(&path) {
             let days = stored_retention_days(&conn);
-            let _ = prune(&mut conn, days, true);
+            let _ = prune(&mut conn, days, Some(started));
         }
     });
 }
@@ -532,7 +537,7 @@ pub fn monitor_prune(app: AppHandle, retention_days: Option<i64>) -> Result<Prun
         Some(d) => d,
         None => stored_retention_days(&conn),
     };
-    prune(&mut conn, days, false)
+    prune(&mut conn, days, None)
 }
 
 #[cfg(test)]
@@ -767,23 +772,38 @@ mod tests {
         session_end(&c, &recent, &json!({})).unwrap();
         c.execute("UPDATE monitor_session SET started_at = '2020-01-01T00:00:00.000Z' WHERE id = ?1", [&open_old]).unwrap();
         // on-demand prune leaves open sessions alone
-        let r = prune(&mut c, 90, false).unwrap();
+        let r = prune(&mut c, 90, None).unwrap();
         assert_eq!((r.deleted, r.closed, r.retention_days), (1, 0, 90));
         assert!(session_get(&c, &old).unwrap().is_none());
         assert_eq!((table_count(&c, "monitor_event"), table_count(&c, "monitor_minute")), (0, 0));
         assert!(session_get(&c, &open_old).unwrap().is_some());
-        // startup prune closes the crashed session first (summary marks it), then it ages out
-        let r = prune(&mut c, 90, true).unwrap();
-        assert_eq!((r.closed, r.deleted), (1, 1));
+        // startup prune: sessions left open before the process started are closed at their last event and marked
+        // interrupted (an old one then ages out); a session of the running process is not touched
+        let crashed = start(&c);
+        log_append(&mut c, &crashed, &[ev(90_000, "warning")], &[]).unwrap();
+        c.execute("UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1", [&crashed]).unwrap();
+        let running = start(&c);
+        let process_start = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f64() - 60.0;
+        let r = prune(&mut c, 3650, Some(process_start)).unwrap();
+        assert_eq!(r.closed, 2);
+        let cr = session_get(&c, &crashed).unwrap().unwrap().session;
+        assert_eq!(cr.ended_at.as_deref(), Some("2026-10-27T20:01:30.000Z"));
+        assert_eq!(cr.summary.unwrap()["endReason"], "interrupted");
+        assert!(session_get(&c, &running).unwrap().unwrap().session.ended_at.is_none());
+        let r = prune(&mut c, 90, Some(process_start)).unwrap();
+        assert_eq!((r.closed, r.deleted), (0, 1), "the 2020 session closed above now ages out");
+        assert!(session_get(&c, &open_old).unwrap().is_none());
         assert!(session_get(&c, &recent).unwrap().is_some());
-        assert!(prune(&mut c, 0, false).is_err());
-        assert!(prune(&mut c, MAX_RETENTION_DAYS + 1, false).is_err());
+        session_end(&c, &running, &json!({})).unwrap();
+        session_end(&c, &crashed, &json!({})).unwrap();
+        assert!(prune(&mut c, 0, None).is_err());
+        assert!(prune(&mut c, MAX_RETENTION_DAYS + 1, None).is_err());
         // count cap
         for _ in 0..(MAX_SESSIONS + 3) {
             let id = start(&c);
             session_end(&c, &id, &json!({})).unwrap();
         }
-        prune(&mut c, MAX_RETENTION_DAYS, false).unwrap();
+        prune(&mut c, MAX_RETENTION_DAYS, None).unwrap();
         assert_eq!(table_count(&c, "monitor_session"), MAX_SESSIONS);
     }
 
