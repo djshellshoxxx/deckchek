@@ -90,21 +90,32 @@ export function jobTotals(log = []) {
 
 const finite = v => typeof v === 'number' && Number.isFinite(v);
 
-/** Latest value per metric (by `at`, then input order) among values with a finite number. */
-export function latestPerMetric(values = []) {
+/**
+ * Comparison key of a value: (test id, metric key). Tests in one profile share metric ids (every midi:fader test
+ * emits midi_fader_jitter_lsb), so a value is only ever paired with the same metric of the same test. Values from a
+ * session linked without a test have no test id and pair with other test-less values by metric key.
+ */
+export function metricScopeKey(testId, metricKey) {
+  return `${typeof testId === 'string' ? testId : ''}\u0000${metricKey}`;
+}
+const scopeOf = v => metricScopeKey(v.testId, v.metricKey);
+
+/** Latest value per key (default: metric key; by `at`, then input order) among values with a finite number. */
+export function latestPerMetric(values = [], keyOf = v => v.metricKey) {
   const out = new Map();
   (Array.isArray(values) ? values : []).forEach((v, i) => {
     if (!v || typeof v.metricKey !== 'string' || !finite(v.value)) return;
-    const prev = out.get(v.metricKey);
+    const key = keyOf(v);
+    const prev = out.get(key);
     const t = Date.parse(v.at) || 0;
-    if (!prev || t > prev.t || (t === prev.t && i > prev.i)) out.set(v.metricKey, { ...v, t, i });
+    if (!prev || t > prev.t || (t === prev.t && i > prev.i)) out.set(key, { ...v, t, i });
   });
   for (const v of out.values()) { delete v.t; delete v.i; }
   return out;
 }
 
-function bandOf(metricKey, b, a, bands) {
-  const given = bands?.[metricKey];
+function bandOf(key, metricKey, b, a, bands) {
+  const given = bands?.[key] ?? bands?.[metricKey];
   const lo = finite(given?.lo) ? given.lo : finite(b?.referenceLow) ? b.referenceLow : finite(a?.referenceLow) ? a.referenceLow : null;
   const hi = finite(given?.hi) ? given.hi : finite(b?.referenceHigh) ? b.referenceHigh : finite(a?.referenceHigh) ? a.referenceHigh : null;
   return lo == null && hi == null ? null : { lo, hi };
@@ -118,18 +129,20 @@ function spanOf(band) {
   const v = band.hi ?? band.lo;
   return v ? Math.abs(v) : null;
 }
-function hib(opts, key) {
+function hib(opts, key, metricKey) {
   const h = opts.higherIsBetter;
-  if (typeof h === 'function') return h(key);
-  if (h && typeof h === 'object') return h[key];
+  if (typeof h === 'function') return h(metricKey);
+  if (h && typeof h === 'object') return typeof h[key] === 'boolean' ? h[key] : h[metricKey];
   return typeof h === 'boolean' ? h : undefined;
 }
 
 /**
- * Pairs the latest before and after value of each metric and judges the change.
- * before/after: [{metricKey, label?, value, unit, uncertainty?, methodKey?, methodVersion?, referenceLow?, referenceHigh?, at}]
- * opts: {higherIsBetter: bool | {key: bool} | (key) => bool, bands: {key: {lo, hi}}, registry (analysis_method rows), k = 2,
- *        spanFraction = 0.05}
+ * Pairs the latest before and after value of each (test, metric) and judges the change.
+ * before/after: [{metricKey, testId?, label?, value, unit, uncertainty?, methodKey?, methodVersion?, referenceLow?, referenceHigh?, at}]
+ * opts: {higherIsBetter: bool | {key: bool} | (metricKey) => bool, bands: {key: {lo, hi}}, registry (analysis_method rows), k = 2,
+ *        spanFraction = 0.05, testTitles: {testId: title}}. Object keys are a metricScopeKey (one test) or a bare metric key.
+ * Rows carry `key` (the metricScopeKey), `testId` and `metricKey`; when one metric key appears under several tests
+ * the row label is prefixed with the test title so the rows can be told apart.
  * Row status: 'improved' | 'worse' | 'unchanged' (|delta| <= k*u) | 'changed' (no direction known) | 'notComparable'
  * (different unit or method version) | 'missingAfter' | 'missingBefore'. Rows whose pass state flips (fail -> pass,
  * pass -> fail) come first.
@@ -137,21 +150,31 @@ function hib(opts, key) {
 export function compareBeforeAfter(before = [], after = [], opts = {}) {
   const k = finite(opts.k) ? opts.k : 2;
   const spanFraction = finite(opts.spanFraction) ? opts.spanFraction : DEFAULT_SPAN_FRACTION;
-  const B = latestPerMetric(before), A = latestPerMetric(after);
-  const toRun = map => ({ measurements: [...map.values()].map(v => ({ metricId: v.metricKey, label: v.label, value: v.value, unit: v.unit ?? '' })) });
+  const B = latestPerMetric(before, scopeOf), A = latestPerMetric(after, scopeOf);
+  const toRun = map => ({ measurements: [...map].map(([key, v]) => ({ metricId: key, label: v.label, value: v.value, unit: v.unit ?? '' })) });
   const paired = new Map(compareRuns(toRun(B), toRun(A)).map(p => [p.metricId, p]));
   const keys = [...new Set([...B.keys(), ...A.keys()])];
+  const scopesPerMetric = new Map();
+  for (const key of keys) {
+    const m = (B.get(key) ?? A.get(key)).metricKey;
+    scopesPerMetric.set(m, (scopesPerMetric.get(m) || 0) + 1);
+  }
+  const titles = opts.testTitles && typeof opts.testTitles === 'object' ? opts.testTitles : {};
   const rows = keys.map(key => {
     const b = B.get(key), a = A.get(key);
-    const label = b?.label || a?.label || key;
-    const base = { metricKey: key, label, unit: (b ?? a)?.unit ?? '', before: b?.value ?? null, after: a?.value ?? null, delta: null, uncertainty: null, assumed: false, status: null, passChange: null, reason: '' };
+    const metricKey = (b ?? a).metricKey;
+    const testId = typeof (b ?? a).testId === 'string' ? (b ?? a).testId : null;
+    const metricLabel = b?.label || a?.label || metricKey;
+    const testLabel = testId ? (typeof titles[testId] === 'string' && titles[testId]) || testId : 'Saved run';
+    const label = scopesPerMetric.get(metricKey) > 1 ? `${testLabel} · ${metricLabel}` : metricLabel;
+    const base = { key, metricKey, testId, label, unit: (b ?? a)?.unit ?? '', before: b?.value ?? null, after: a?.value ?? null, delta: null, uncertainty: null, assumed: false, status: null, passChange: null, reason: '' };
     if (!a) return { ...base, status: 'missingAfter', reason: 'No after value yet.' };
     if (!b) return { ...base, status: 'missingBefore', reason: 'No before value.' };
     const pair = paired.get(key);
     if (!pair) return { ...base, status: 'notComparable', reason: `Units differ (${b.unit || 'none'} before, ${a.unit || 'none'} after).` };
-    const mb = { key: b.methodKey ?? key, version: b.methodVersion ?? 1, unit: b.unit ?? null }, ma = { key: a.methodKey ?? key, version: a.methodVersion ?? 1, unit: a.unit ?? null };
+    const mb = { key: b.methodKey ?? metricKey, version: b.methodVersion ?? 1, unit: b.unit ?? null }, ma = { key: a.methodKey ?? metricKey, version: a.methodVersion ?? 1, unit: a.unit ?? null };
     if (!methodCompatible(mb, ma, opts.registry)) return { ...base, status: 'notComparable', reason: `Measured with different method versions (v${mb.version} before, v${ma.version} after).` };
-    const band = bandOf(key, b, a, opts.bands);
+    const band = bandOf(key, metricKey, b, a, opts.bands);
     let ub = finite(b.uncertainty) && b.uncertainty >= 0 ? b.uncertainty : null;
     let ua = finite(a.uncertainty) && a.uncertainty >= 0 ? a.uncertainty : null;
     let assumed = false;
@@ -164,7 +187,7 @@ export function compareBeforeAfter(before = [], after = [], opts = {}) {
     }
     const u = combinedUncertainty(ub, ua);
     const delta = pair.delta;
-    const direction = hib(opts, key);
+    const direction = hib(opts, key, metricKey);
     let status;
     const v = deltaVerdict(delta, u, { k, higherIsBetter: typeof direction === 'boolean' ? direction : undefined });
     if (v.verdict === 'unchanged') status = 'unchanged';
@@ -219,23 +242,31 @@ export function comparisonCompleteness(rows = []) {
 export function buildComparison(data = {}, opts = {}) {
   const values = Array.isArray(data?.values) ? data.values : [];
   const registry = (Array.isArray(data?.methods) ? data.methods : []).map(m => ({ key: m.key, version: m.version, parameters_json: m.parametersJson ?? m.parameters_json ?? '{}' }));
-  const rows = compareBeforeAfter(values.filter(v => v.phase === 'before'), values.filter(v => v.phase === 'after'), { registry, ...opts });
+  const testTitles = {};
+  for (const t of Array.isArray(data?.tests) ? data.tests : []) if (t && typeof t.testId === 'string' && typeof t.title === 'string' && t.title) testTitles[t.testId] ??= t.title;
+  const rows = compareBeforeAfter(values.filter(v => v.phase === 'before'), values.filter(v => v.phase === 'after'), { registry, testTitles, ...opts });
   const tests = testStatusChanges(data?.tests);
   const headline = [...tests.filter(t => t.change).map(t => ({ kind: 'test', ...t })), ...rows.filter(r => r.passChange).map(r => ({ kind: 'metric', title: r.label, change: r.passChange }))]
     .sort((x, y) => (x.change === 'fixed' ? 0 : 1) - (y.change === 'fixed' ? 0 : 1));
   return { rows, tests, headline, completeness: comparisonCompleteness(rows) };
 }
 
-/** Direction hints from a device profile's pass criteria: `<=` lower is better, `>=` higher, `abs<=`/`between` a band. */
+/**
+ * Direction hints from a device profile's pass criteria: `<=` lower is better, `>=` higher, `abs<=`/`between` a band.
+ * Each hint is stored under the bare metric id and, for a test with an id, under its metricScopeKey (that test only).
+ */
 export function directionHints(profile) {
   const higherIsBetter = {}, bands = {};
   for (const t of profile?.tests || []) {
     const p = t?.pass;
     if (!p || typeof p.metricId !== 'string' || !finite(p.value)) continue;
-    if (p.op === '<=') { higherIsBetter[p.metricId] = false; bands[p.metricId] = { lo: null, hi: p.value }; }
-    else if (p.op === '>=') { higherIsBetter[p.metricId] = true; bands[p.metricId] = { lo: p.value, hi: null }; }
-    else if (p.op === 'abs<=') bands[p.metricId] = { lo: -Math.abs(p.value), hi: Math.abs(p.value) };
-    else if (p.op === 'between' && finite(p.value2)) bands[p.metricId] = { lo: Math.min(p.value, p.value2), hi: Math.max(p.value, p.value2) };
+    const keys = typeof t.id === 'string' && t.id ? [p.metricId, metricScopeKey(t.id, p.metricId)] : [p.metricId];
+    for (const k of keys) {
+      if (p.op === '<=') { higherIsBetter[k] = false; bands[k] = { lo: null, hi: p.value }; }
+      else if (p.op === '>=') { higherIsBetter[k] = true; bands[k] = { lo: p.value, hi: null }; }
+      else if (p.op === 'abs<=') bands[k] = { lo: -Math.abs(p.value), hi: Math.abs(p.value) };
+      else if (p.op === 'between' && finite(p.value2)) bands[k] = { lo: Math.min(p.value, p.value2), hi: Math.max(p.value, p.value2) };
+    }
   }
   return { higherIsBetter, bands };
 }
@@ -308,6 +339,8 @@ export function fmtNum(v, digits = null) {
   const d = digits ?? (abs >= 100 ? 1 : abs >= 10 ? 2 : 3);
   return Number(v.toFixed(d)).toString().replace('-', '−');
 }
+/** Part quantity: fractions are valid (0.25 m of wire), so show up to 3 decimals with trailing zeros trimmed. */
+export function fmtQty(v) { return fmtNum(v, 3); }
 export function fmtSigned(v) { return finite(v) ? `${v > 0 ? '+' : ''}${fmtNum(v)}` : '—'; }
 export function fmtMoney(v, currency = '') { return finite(v) ? `${currency}${v.toFixed(2)}` : '—'; }
 export const ROW_STATUS_TEXT = Object.freeze({
@@ -367,7 +400,7 @@ export function renderJobSheetHtml(detail, comparison, opts = {}, esc = defaultE
   if (cmp.tests?.length) out.push(`<table><caption>Test results before and after</caption><thead><tr><th scope="col">Test</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody>${cmp.tests.map(t => `<tr><th scope="row">${esc(t.title)}</th><td>${esc(String(t.before).toUpperCase())}</td><td>${esc(String(t.after).toUpperCase())}</td></tr>`).join('')}</tbody></table>`);
 
   out.push('<h2>Work log</h2>');
-  if (m.parts.length) out.push(`<table><caption>Parts</caption><thead><tr><th scope="col">Part</th><th scope="col">Qty</th>${m.includeCosts ? '<th scope="col">Unit cost</th><th scope="col">Line total</th>' : ''}<th scope="col">Added</th></tr></thead><tbody>${m.parts.map(e => `<tr><td>${esc(e.description)}${amended(e)}</td><td class="dc-num">${esc(fmtNum(finite(e.quantity) ? e.quantity : 1, 0))}</td>${m.includeCosts ? `<td class="dc-num">${esc(fmtMoney(e.unitCost, m.currency))}</td><td class="dc-num">${esc(fmtMoney(e.lineTotal, m.currency))}</td>` : ''}<td>${esc(when(e.at))}</td></tr>`).join('')}</tbody></table>`);
+  if (m.parts.length) out.push(`<table><caption>Parts</caption><thead><tr><th scope="col">Part</th><th scope="col">Qty</th>${m.includeCosts ? '<th scope="col">Unit cost</th><th scope="col">Line total</th>' : ''}<th scope="col">Added</th></tr></thead><tbody>${m.parts.map(e => `<tr><td>${esc(e.description)}${amended(e)}</td><td class="dc-num">${esc(fmtQty(finite(e.quantity) ? e.quantity : 1))}</td>${m.includeCosts ? `<td class="dc-num">${esc(fmtMoney(e.unitCost, m.currency))}</td><td class="dc-num">${esc(fmtMoney(e.lineTotal, m.currency))}</td>` : ''}<td>${esc(when(e.at))}</td></tr>`).join('')}</tbody></table>`);
   if (m.labour.length) out.push(`<table><caption>Labour</caption><thead><tr><th scope="col">Work</th><th scope="col">Minutes</th><th scope="col">Added</th></tr></thead><tbody>${m.labour.map(e => `<tr><td>${esc(e.description)}${amended(e)}</td><td class="dc-num">${esc(fmtNum(e.minutes, 0))}</td><td>${esc(when(e.at))}</td></tr>`).join('')}</tbody></table>`);
   if (m.notes.length) out.push(`<h3>Notes</h3><ul class="dc-notes">${m.notes.map(e => `<li><span>${esc(when(e.at))}</span> ${multiline(e.description)}${amended(e)}</li>`).join('')}</ul>`);
   if (!m.parts.length && !m.labour.length && !m.notes.length) out.push('<p>No work recorded.</p>');
