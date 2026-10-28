@@ -257,12 +257,14 @@ fn floor_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 // ---------------------------------------------------------------- folder export (FS-33 review)
 //
-// `ledger_write_folder` owns `<root>/ledger/`: it writes every file into a fresh staging folder in `<root>` first
-// (through `userfiles::write_folder`, so every userfiles check applies), then removes the photos and certificate files
-// an earlier export left in `ledger/assets` and `ledger/certificates` that this export no longer contains (only names
-// the ledger itself generates, never following a symlink), then moves the new files in, index.html last. A failure
-// before the move leaves the previous export untouched. A folder that already holds the same or a later revision is
-// refused (and the floor raised), so a published ledger never goes back in revision.
+// `ledger_write_folder` owns `<root>/ledger/`: it first removes staging folders a crashed export left in `<root>`, then
+// writes every file into a fresh staging folder there (through `userfiles::write_folder`, so every userfiles check
+// applies), then lists the photos and certificate files an earlier export left in `ledger/assets` and
+// `ledger/certificates` that this export no longer contains (only names the ledger itself generates; a symlink with
+// such a name stops the export before anything moves), then moves the new files in, index.html last, and only then
+// deletes the listed stale files. A failure before or during the moves never deletes a file the previous index.html
+// still links to. A folder that already holds the same or a later revision is refused (and the floor raised), so a
+// published ledger never goes back in revision.
 
 pub const LEDGER_DIR: &str = "ledger";
 const STAGING_PREFIX: &str = ".ledger-staging-";
@@ -276,9 +278,19 @@ pub struct LedgerWriteResult {
     pub path: String,
 }
 
+/// Points where tests inject a folder-write failure (production passes `None`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(not(test), allow(dead_code))]
 enum WriteFail {
+    /// Every file is staged; nothing in `ledger/` has changed yet.
     AfterStage,
+    /// The first new file has been moved into `ledger/`; the next move fails.
+    MidRename,
+}
+
+/// `.ledger-staging-<32 lowercase hex>`: a staging folder this module creates (a crash can leave one behind).
+pub fn is_staging_name(name: &str) -> bool {
+    name.strip_prefix(STAGING_PREFIX).is_some_and(|h| is_lower_hex(h, 32))
 }
 
 fn uf(e: UserFileError) -> String {
@@ -348,11 +360,11 @@ fn read_dir_capped(p: &Path) -> Result<Vec<(String, fs::Metadata)>, String> {
     Ok(out)
 }
 
-/// Removes ledger-named files under `ledger/assets` and `ledger/certificates` that are not in `keep` (paths relative
-/// to `ledger/`, '/'-separated) and item folders left empty. Anything else is left alone; a symlink with a ledger name
-/// is an error (never followed, never removed). Returns the number of files removed.
-pub fn prune_stale(ledger_dir: &Path, keep: &HashSet<String>) -> Result<usize, String> {
-    let mut removed = 0;
+/// Ledger-named files under `ledger/assets` and `ledger/certificates` that are not in `keep` (paths relative to
+/// `ledger/`, '/'-separated). Nothing is removed here. Anything else is left alone; a symlink with a ledger name is an
+/// error (never followed, never removed), so a folder with one is refused before any file moves.
+pub fn stale_files(ledger_dir: &Path, keep: &HashSet<String>) -> Result<Vec<PathBuf>, String> {
+    let mut out = Vec::new();
     let certs = ledger_dir.join("certificates");
     match fs::symlink_metadata(&certs) {
         Ok(m) if m.file_type().is_symlink() => return Err(uf(UserFileError::Symlink)),
@@ -365,8 +377,7 @@ pub fn prune_stale(ledger_dir: &Path, keep: &HashSet<String>) -> Result<usize, S
                     return Err(uf(UserFileError::Symlink));
                 }
                 if meta.is_file() {
-                    fs::remove_file(certs.join(&name)).map_err(|e| uf(e.into()))?;
-                    removed += 1;
+                    out.push(certs.join(&name));
                 }
             }
         }
@@ -395,18 +406,54 @@ pub fn prune_stale(ledger_dir: &Path, keep: &HashSet<String>) -> Result<usize, S
                         return Err(uf(UserFileError::Symlink));
                     }
                     if meta.is_file() {
-                        fs::remove_file(dir.join(&name)).map_err(|e| uf(e.into()))?;
-                        removed += 1;
+                        out.push(dir.join(&name));
                     }
-                }
-                if fs::read_dir(&dir).map(|mut d| d.next().is_none()).unwrap_or(false) {
-                    let _ = fs::remove_dir(&dir);
                 }
             }
         }
         _ => {}
     }
+    Ok(out)
+}
+
+/// Deletes the files [`stale_files`] listed (each re-checked: only a regular file, never a symlink) and the item
+/// folders under `ledger/assets` they leave empty. Returns how many were removed, or an error naming how many are left.
+fn remove_stale(files: &[PathBuf]) -> Result<usize, String> {
+    let (mut removed, mut failed) = (0, 0);
+    for f in files {
+        match fs::symlink_metadata(f) {
+            Ok(m) if m.is_file() => match fs::remove_file(f) {
+                Ok(()) => removed += 1,
+                Err(_) => failed += 1,
+            },
+            Ok(_) => failed += 1, // replaced by a symlink or folder since it was listed: never touched
+            Err(_) => {}          // already gone
+        }
+    }
+    let parents: HashSet<&Path> = files.iter().filter_map(|f| f.parent()).collect();
+    for dir in parents {
+        let item = dir.file_name().and_then(|n| n.to_str()).is_some_and(is_ledger_item_dir);
+        if item && fs::read_dir(dir).map(|mut d| d.next().is_none()).unwrap_or(false) {
+            let _ = fs::remove_dir(dir);
+        }
+    }
+    if failed > 0 {
+        return Err(format!(
+            "LEDGER_WRITE: the new ledger was written, but {failed} photo or certificate file(s) from an earlier export could not be removed: delete them before you upload"
+        ));
+    }
     Ok(removed)
+}
+
+/// Removes `<root>/.ledger-staging-<hex>` folders an interrupted export left behind (best effort). A symlink with such
+/// a name is left alone and never followed; folders with any other name are not touched.
+fn remove_crashed_staging(root: &Path) {
+    let Ok(entries) = read_dir_capped(root) else { return };
+    for (name, meta) in entries {
+        if is_staging_name(&name) && meta.is_dir() && !meta.file_type().is_symlink() {
+            let _ = fs::remove_dir_all(root.join(&name));
+        }
+    }
 }
 
 /// Writes a folder-mode ledger (every `relPath` starts with `ledger/`, `ledger/ledger.json` included) into `dir`.
@@ -451,7 +498,9 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
         }
     }
 
-    // 1. Stage: a fresh folder next to ledger/, written with every userfiles check (extensions, names, sizes).
+    // 1. Stage: a fresh folder next to ledger/, written with every userfiles check (extensions, names, sizes). Staging
+    //    folders an interrupted export left behind are removed first.
+    remove_crashed_staging(&root);
     let staging = format!("{STAGING_PREFIX}{}", new_id().replace('-', ""));
     let staging_dir = root.join(&staging);
     if fs::symlink_metadata(&staging_dir).is_ok() {
@@ -478,7 +527,7 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
 
     // 2. Check every destination before changing anything in ledger/.
     let ledger_dir = root.join(LEDGER_DIR);
-    let swap = || -> Result<usize, String> {
+    let swap = || -> Result<Vec<PathBuf>, String> {
         ensure_real_dir(&ledger_dir)?;
         for rel in &rels {
             let mut cur = ledger_dir.clone();
@@ -498,16 +547,21 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
                 _ => {}
             }
         }
-        // 3. Remove what earlier exports left behind, 4. move the new files in (pages last).
+        // 3. List what earlier exports left behind (a symlink there stops the export here, before anything moves),
+        // 4. move the new files in (pages last), 5. only then delete the listed files: until index.html is replaced,
+        //    the old page keeps every file it links to.
         let keep: HashSet<String> = rels.iter().cloned().collect();
-        let removed = prune_stale(&ledger_dir, &keep)?;
+        let stale = stale_files(&ledger_dir, &keep)?;
         let mut order: Vec<&String> = rels.iter().collect();
         order.sort_by_key(|r| match r.as_str() {
             "index.html" => 2,
             "ledger.json" => 1,
             _ => 0,
         });
-        for rel in order {
+        for (n, rel) in order.into_iter().enumerate() {
+            if n == 1 && fail == Some(WriteFail::MidRename) {
+                return Err(uf(UserFileError::Io("injected failure while moving files in".into())));
+            }
             let segs: Vec<&str> = rel.split('/').collect();
             let mut cur = ledger_dir.clone();
             for s in &segs[..segs.len() - 1] {
@@ -519,11 +573,11 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
             fs::rename(&from, &cur).map_err(|e| uf(e.into()))?;
             crate::userfiles::record_written(&cur);
         }
-        Ok(removed)
+        Ok(stale)
     };
     let result = swap();
     cleanup();
-    let removed = result?;
+    let removed = remove_stale(&result?)?;
     crate::userfiles::record_written(&ledger_dir);
     Ok(LedgerWriteResult { written: rels.len(), removed, path: root.to_string_lossy().into_owned() })
 }
@@ -1001,6 +1055,57 @@ mod tests {
         assert_eq!(read_floor(&floor), 0, "oversized file ignored");
         raise_floor(&floor, 8).unwrap();
         assert_eq!(read_floor(&floor), 8);
+    }
+
+    #[test]
+    fn regression_fs33_failed_rename_keeps_the_old_index_and_every_file_it_points_to() {
+        let d = tmp("mid-rename");
+        earlier_export(&d, 1);
+        // the first new file is already moved in when the next move fails: the old index.html is still the page, so
+        // nothing it links to may have been deleted yet (the prune runs only after every move succeeded)
+        let e = write_ledger_folder_inner(&d.to_string_lossy(), new_export(2), None, Some(WriteFail::MidRename)).unwrap_err();
+        assert!(e.starts_with("LEDGER_WRITE"), "{e}");
+        assert_eq!(text(&d, "ledger/index.html"), "old page");
+        assert_eq!(ledger_revision_of(&text(&d, "ledger/ledger.json")), Some(1));
+        assert!(d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists(), "old photo still there");
+        assert!(d.join(format!("ledger/assets/{GONE_ITEM}/p1.jpg")).exists(), "old unit still there");
+        assert!(d.join(format!("ledger/certificates/{OLD_CERT}")).exists(), "old certificate still there");
+        assert!(no_staging_left(&d));
+        // the next export completes and then prunes
+        let r = write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap();
+        assert_eq!((r.written, r.removed), (3, 3));
+        assert_eq!(text(&d, "ledger/index.html"), "new page");
+        assert!(!d.join(format!("ledger/certificates/{OLD_CERT}")).exists());
+    }
+
+    #[test]
+    fn regression_fs33_stale_staging_folder_from_a_crash_is_removed_on_the_next_export() {
+        let d = tmp("crash-staging");
+        earlier_export(&d, 1);
+        let crashed = format!("{STAGING_PREFIX}{}", "0123456789abcdef0123456789abcdef");
+        put(&d, &format!("{crashed}/ledger.json"), &ledger_json(9));
+        put(&d, &format!("{crashed}/assets/{ITEM}/p1.jpg"), "half written");
+        // not a name the export generates: left alone
+        put(&d, &format!("{STAGING_PREFIX}mine/x.txt"), "mine");
+        let r = write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap();
+        assert_eq!(r.written, 3);
+        assert!(!d.join(&crashed).exists(), "the crashed staging folder is removed");
+        assert_eq!(text(&d, &format!("{STAGING_PREFIX}mine/x.txt")), "mine");
+        assert_eq!(text(&d, "ledger/index.html"), "new page");
+        assert!(is_staging_name(&crashed) && !is_staging_name(&format!("{STAGING_PREFIX}mine")) && !is_staging_name(&format!("{STAGING_PREFIX}{}", "A".repeat(32))));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn regression_fs33_stale_staging_cleanup_never_follows_a_symlink() {
+        let d = tmp("crash-staging-sym");
+        let outside = tmp("crash-staging-sym-out");
+        put(&outside, "keep.json", "someone else's file");
+        let name = format!("{STAGING_PREFIX}{}", "fedcba9876543210fedcba9876543210");
+        std::os::unix::fs::symlink(&outside, d.join(&name)).unwrap();
+        write_ledger_folder(&d.to_string_lossy(), new_export(1), None).unwrap();
+        assert_eq!(text(&outside, "keep.json"), "someone else's file");
+        assert!(std::fs::symlink_metadata(d.join(&name)).unwrap().file_type().is_symlink(), "the link itself is left alone");
     }
 
     #[test]
