@@ -29,7 +29,7 @@ export const FEATURES = Object.freeze({
   fleet: flag('FS-23', 'M7', true, 'Venue fleet dashboard', 'Fleet overview, placement and maintenance reminders across venues.'),
   phoneImport: flag('FS-30', 'M8', false, 'Phone import', 'Import results from the mobile companion.'),
   liveMonitor: flag('FS-31', 'M8', false, 'Live timecode monitor', 'Live timecode doctor beside DJ software.'),
-  mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.', false),
+  mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.'),
   gearLedger: flag('FS-33', 'M8', false, 'Gear ledger', 'Static gear ledger export.', false),
 });
 
