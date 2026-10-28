@@ -31,6 +31,8 @@ const MAX_FILES = 18;
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
 const UNDO_LIMIT = 50;
 const LEARN_TIMEOUT_MS = 30000;
+const STATUS_WARNINGS = 5; // at most this many import notes go into the polite live status; the rest sit in a <details>
+const LISTED_WARNINGS = 1000;
 const KIND_LABEL = { button: 'Button', absolute: 'Fader / knob', relative: 'Encoder' };
 const ENCODING_LABEL = { 'relative-two-complement': "Two's complement (1 = right, 127 = left)", 'relative-offset64': 'Offset 64 (65 = right, 63 = left)', 'absolute-wrap': 'Absolute, wraps around' };
 const ARG_LABEL = { action: 'Action', n: 'Number', unit: 'FX unit', param: 'Parameter', band: 'Band' };
@@ -134,6 +136,14 @@ function importTextsUnchecked(texts, { profile = null } = {}) {
   return { ok: false, error: { message: 'DeckChek does not recognise this XML file as a Mixxx or VirtualDJ mapping.' } };
 }
 
+/** Short form of an import's notes for the live status: the first few plus "and N more". */
+export function summariseWarnings(warnings, max = STATUS_WARNINGS) {
+  const list = Array.isArray(warnings) ? warnings : [];
+  if (list.length <= max) return list.join(' ');
+  const more = list.length - max;
+  return `${list.slice(0, max).join(' ')} …and ${more} more note${more === 1 ? '' : 's'} (listed under “All import notes”).`;
+}
+
 /** Success line after a save. */
 export function savedMessage(target, result) {
   const where = result?.path ? ` Saved to ${result.path}.` : '';
@@ -179,6 +189,7 @@ export function createMapperScreen(section) {
     scripts: [], saved: [], learning: null, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
   const status = h('div', { id: 'mp-status', class: 'mp-status', role: 'status', 'aria-live': 'polite' });
+  const warningsBox = h('details', { id: 'mp-warnings', class: 'mp-warnings', hidden: true });
   const validationBox = h('div', { id: 'mp-validation', class: 'mp-validation', 'aria-live': 'polite' });
   const left = h('section', { class: 'card mp-pane mp-left', 'aria-labelledby': 'mp-controls-title' });
   const centre = h('section', { class: 'card mp-pane mp-centre', 'aria-labelledby': 'mp-assign-title' });
@@ -193,10 +204,21 @@ export function createMapperScreen(section) {
     if (!message) return;
     status.append(h('p', { class: `hint hint-${tone}`, 'data-tone': tone }, title ? h('strong', { text: `${title} ` }) : null, message));
   };
+  // Full list of import notes, outside the live region, collapsed; only shown when the status had to shorten it.
+  const showWarnings = (list = []) => {
+    warningsBox.open = false;
+    if (list.length <= STATUS_WARNINGS) { warningsBox.hidden = true; warningsBox.replaceChildren(); return; }
+    const shown = list.slice(0, LISTED_WARNINGS);
+    warningsBox.replaceChildren(h('summary', { text: `All import notes (${list.length})` }),
+      h('ul', { class: 'mp-warning-list' }, ...shown.map(w => h('li', { text: w })),
+        ...(list.length > shown.length ? [h('li', { class: 'muted', text: `…and ${list.length - shown.length} more.` })] : [])));
+    warningsBox.hidden = false;
+  };
   const selected = () => st.model?.controls.find(c => c.id === st.selectedId) || null;
 
   function setModel(model, { keepUndo = false, select = null } = {}) {
     if (!keepUndo) undo.clear();
+    showWarnings();
     st.model = model;
     nameInput.value = model?.name || '';
     decksSelect.value = String(model?.decks || 2);
@@ -287,7 +309,8 @@ export function createMapperScreen(section) {
     st.savedId = null; st.readOnly = Boolean(r.readOnly); st.scripts = r.scripts || [];
     setModel(r.model);
     const s = modelStats(r.model);
-    setStatus(`${r.source} opened: ${s.assigned} recognised, ${s.custom} unmapped/custom (preserved), ${s.unassigned} without a function.${r.warnings.length ? ` ${r.warnings.join(' ')}` : ''}`, r.warnings.length || s.custom ? 'warn' : 'pass');
+    setStatus(`${r.source} opened: ${s.assigned} recognised, ${s.custom} unmapped/custom (preserved), ${s.unassigned} without a function.${r.warnings.length ? ` ${summariseWarnings(r.warnings)}` : ''}`, r.warnings.length || s.custom ? 'warn' : 'pass');
+    showWarnings(r.warnings);
     announce('Mapping opened.');
   }
 
@@ -311,7 +334,8 @@ export function createMapperScreen(section) {
       if (!row?.model) { setStatus('That mapping could not be read.', 'fail'); return; }
       st.savedId = row.id; st.assetId = row.assetId; st.profileId = row.profileId; st.readOnly = row.readOnly; st.scripts = [];
       setModel(row.model);
-      setStatus(row.warnings?.length ? row.warnings.join(' ') : `Opened ${row.name}.`, row.readOnly ? 'warn' : 'pass');
+      setStatus(row.warnings?.length ? summariseWarnings(row.warnings) : `Opened ${row.name}.`, row.readOnly ? 'warn' : 'pass');
+      showWarnings(row.warnings || []);
     } catch (e) { setStatus(`Could not open the mapping: ${e?.message || e}`, 'fail'); }
   }
 
@@ -608,7 +632,7 @@ export function createMapperScreen(section) {
         h('label', { class: 'mp-field', for: 'mp-decks' }, h('span', { class: 'field-label', text: 'Decks' }), decksSelect),
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: saveModel })),
       h('p', { class: 'muted small', text: 'Opens Mixxx .midi.xml (add its .js script files to keep them), VirtualDJ device + mapper .xml (pick both), or a DeckChek .json mapping or learned map. Up to 5 MB each; scripts are kept as text and never run.' }),
-      status),
+      status, warningsBox),
     h('div', { class: 'mp-panes' }, left, centre, right));
 
   // Screen keys work wherever focus is while this screen is shown (re-renders can drop focus to <body>).
