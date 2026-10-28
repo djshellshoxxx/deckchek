@@ -11,6 +11,9 @@
 .ledger-gear label { display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; cursor: pointer; min-height: 24px; }
 .ledger-gear-title { font-weight: 600; }
 .ledger-gear-status { flex-basis: 100%; }
+/* Units used in service jobs: listed unticked with a worded note (icon + text, never colour alone). */
+.ledger-gear-note { flex-basis: 100%; display: flex; gap: 6px; align-items: center; color: var(--warn); font-weight: 600; }
+.ledger-gear-note svg { flex: none; }
 .ledger-presets { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
 .ledger-radio { display: inline-flex; gap: 8px; align-items: center; min-height: 32px; cursor: pointer; }
 .ledger-modes .ledger-radio { display: flex; }

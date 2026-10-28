@@ -115,22 +115,32 @@ export function maskSerial(serial, mode) {
   return `****${chars.slice(chars.length - keep).join('')}`;
 }
 
-// Windows drive paths, UNC paths, home-relative paths and absolute POSIX paths with two or more segments.
-// A path continues across spaces while the next word still holds a separator ("C:\Users\Jo Smith\x.jpg" is one path).
-// Home and POSIX paths may follow any character that cannot be part of a word or a path (quotes, brackets, '<', ':'),
-// so '"/Users/jo/x"' and '[~/a/b]' are caught. A drive letter must not follow a letter or digit, so the "s:/" in
-// "https://" or the "h:/" in "path:/home" is never read as a drive. Web URLs are handled first (see scrubText).
+// Non-web scheme URLs (file://, smb://, sftp://, afp://, nfs://, ...), Windows drive paths, UNC paths, home-relative
+// paths, absolute POSIX paths with two or more segments, and paths under a known root (/Users, /home, /root, /mnt,
+// /media, /Volumes). A path continues across spaces while the next word still holds a separator
+// ("C:\Users\Jo Smith\x.jpg" is one path).
+// A generic POSIX or home path must start the text or follow a space, a quote, a bracket or one of = : , ; | > so a
+// '/' inside ordinary words ("50%/60%/70%", "Café/Bar/x", "A&B/C/D") is never read as a path. A path under a known
+// root may follow any character except a letter or digit in any script (Unicode classes), so "50%/home/jo/x" is
+// caught while "Café/Users" is not. A drive letter must not follow a letter or digit, so the "s:/" in "https://" or the
+// "h:/" in "path:/home" is never read as a drive. Web URLs are handled first (see scrubText).
+const SEG = String.raw`[^\s"'\x60<>|()[\]{}]`;
+const MORE = String.raw`(?:[ \t]+${SEG}*[\\/]${SEG}*)*`;
+const LEAD = String.raw`(^|[\s"'\x60([{<>=:,;|])`;
 const PATH_RES = [
-  /\bfile:\/\/[^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/gi,
+  /\b(?!(?:https?|ftps?):\/\/)[a-z][a-z0-9+.-]{0,31}:\/\/[^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/gi,
   /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>|()]*(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
   /\\\\[^\s"'<>|()]+(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/g,
-  /(^|[^\w/.~-])~[\\/][^\s"'<>|()[\]{}]*(?:[ \t]+[^\s"'<>|()[\]{}]*[\\/][^\s"'<>|()[\]{}]*)*/g,
-  /(^|[^\w/.~-])\/(?:[^\s/"'<>|()[\]{}]+\/)+[^\s"'<>|()[\]{}]*(?:[ \t]+[^\s"'<>|()[\]{}]*[\\/][^\s"'<>|()[\]{}]*)*/g,
+  new RegExp(String.raw`(^|[^\p{L}\p{N}\p{M}_/.~\\-])\/(?:Users|home|root|mnt|media|Volumes)\/${SEG}+${MORE}`, 'giu'),
+  new RegExp(String.raw`${LEAD}~[\\/]${SEG}*${MORE}`, 'g'),
+  new RegExp(String.raw`${LEAD}\/(?:[^\s/"'<>|()[\]{}]+\/)+${SEG}*${MORE}`, 'g'),
 ];
 export const PATH_PLACEHOLDER = '[path removed]';
-// http(s)/ftp URLs stay as typed (manual links) unless they carry a home folder ("/Users/<name>", "/home/<name>").
-const URL_RE = /\b(?:https?|ftp):\/\/[^\s"'<>]*[^\s"'<>.,;:!?)\]}]/gi;
+// http(s)/ftp(s) URLs stay as typed (manual links) unless they carry a home folder ("/Users/<name>", "/home/<name>");
+// then the whole URL is removed, including a user name with a space in it.
+const URL_RE = /\b(?:https?|ftps?):\/\/[^\s"'<>]*[^\s"'<>.,;:!?)\]}]/gi;
 const URL_USER_PATH = /\/(?:Users|home)\/[^/\s?#]+/i;
+const URL_PATH_MORE = /^(?:[ \t]+[^\s"'<>|()]*[\\/][^\s"'<>|()]*)*/;
 
 function scrubPaths(s) {
   // For the patterns with a leading-context group, args[0] is that group; otherwise it is the match offset (a number).
@@ -141,15 +151,18 @@ function scrubPaths(s) {
 /**
  * Text that may be exported: NFC, control characters removed (line breaks kept), anything that looks like a file path
  * replaced by "[path removed]" (paths carry user names), trimmed, at most `max` characters. Non-strings -> ''.
- * Web URLs are kept intact; a file:// URL or a URL with a home folder in it counts as a path.
+ * Web URLs (http, https, ftp, ftps) are kept intact; a URL of any other scheme (file, smb, sftp, afp, ...) or a URL
+ * with a home folder in it counts as a path.
  */
 export function scrubText(text, max = 2000) {
   if (typeof text !== 'string') return '';
   let s = text.normalize('NFC').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]/g, c => (c === '\t' ? ' ' : ''));
   let out = '', last = 0;
   for (const m of s.matchAll(URL_RE)) {
-    out += scrubPaths(s.slice(last, m.index)) + (URL_USER_PATH.test(m[0]) ? PATH_PLACEHOLDER : m[0]);
+    if (m.index < last) continue; // inside the user-path tail already removed below
+    out += scrubPaths(s.slice(last, m.index));
     last = m.index + m[0].length;
+    if (URL_USER_PATH.test(m[0])) { out += PATH_PLACEHOLDER; last += URL_PATH_MORE.exec(s.slice(last))[0].length; } else out += m[0];
   }
   s = (out + scrubPaths(s.slice(last))).replace(/[ \t]+\n/g, '\n').trim();
   const chars = [...s];

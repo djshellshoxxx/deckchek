@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const mem = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), raw: m }; };
 globalThis.localStorage = mem();
-const { gearRowText, publishSteps, PUBLISH_COPY, RETRACT_NOTE } = await import('../app/ui/screens/ledger.js');
+const { gearRowText, publishSteps, PUBLISH_COPY, RETRACT_NOTE, SERVICE_JOB_NOTE, initialSelection, selectAllIds, heldNote, exportNote, LEFTOVER_NOTE } = await import('../app/ui/screens/ledger.js');
 const { createLedgerApi, LOCAL_KEY } = await import('../app/ledger/api.js');
 const { LEDGER_EXTS } = await import('../app/ledger/build.js');
 const CONTRACT = JSON.parse(readFileSync(new URL('./contracts/ledger.json', import.meta.url), 'utf8'));
@@ -15,6 +15,53 @@ test('step 1 rows: title, model and status in words (never colour alone)', () =>
   const t = gearRowText({ asset: { id: 'a', nickname: 'Left deck', retiredDate: '2026-01-01' }, manufacturer: 'Technics', model: 'SL-1200MK4', photos: 0, certificates: 2, service: 1 });
   assert.deepEqual(t, { title: 'Left deck', model: 'Technics SL-1200MK4', status: ['no photos', '2 certificates', '1 service entry', 'retired'] });
   assert.equal(gearRowText({ asset: { id: 'b' }, manufacturer: '', model: 'Xone:23C', photos: 3, certificates: 0, service: 0 }).title, 'Xone:23C');
+});
+
+test('regression: units used in service jobs carry a visible note and start unselected (history, Select all), the user can still tick them', () => {
+  const rows = [
+    { asset: { id: 'own' }, model: 'A', usedInServiceJobs: false },
+    { asset: { id: 'bench' }, model: 'B', usedInServiceJobs: true },
+    { asset: { id: 'self' }, model: 'C', usedInServiceJobs: true },
+  ];
+  assert.equal(SERVICE_JOB_NOTE, 'Used in service jobs — check it is your own gear before including it');
+  assert.equal(gearRowText(rows[1]).note, SERVICE_JOB_NOTE);
+  assert.equal(gearRowText(rows[0]).note, undefined);
+  // re-opening after an export that included them: only the unflagged units are ticked again, the rest are reported
+  assert.deepEqual(initialSelection(rows, ['own', 'bench', 'gone']), { ids: ['own'], held: ['bench'] });
+  assert.deepEqual(initialSelection(rows, []), { ids: [], held: [] });
+  assert.deepEqual(selectAllIds(rows), ['own']);
+  assert.match(heldNote(2), /^2 units used in service jobs were left unticked/);
+  assert.match(heldNote(1), /^1 unit used in service jobs was left unticked/);
+});
+
+test('regression: the post-export note says stale files from earlier exports were removed (and only claims it when Rust pruned)', () => {
+  assert.match(exportNote({ revision: 4, mode: 'folder', path: '/x/ledger', removed: 3 }), /^Revision 4 recorded\. 3 photos or certificate files from earlier exports that are not in this one were removed\.$/);
+  assert.match(exportNote({ revision: 4, mode: 'folder', path: '/x/ledger', removed: 1 }), /1 photo or certificate file from earlier exports that is not in this one was removed/);
+  assert.match(exportNote({ revision: 4, mode: 'folder', path: '/x/ledger', removed: 0 }), /stale files from earlier exports were removed|no stale files/i);
+  assert.equal(exportNote({ revision: 2, mode: 'folder', path: '/x/ledger' }), `Revision 2 recorded. ${LEFTOVER_NOTE}`, 'an older backend that does not prune: the old warning');
+  assert.equal(exportNote({ revision: 2, mode: 'single', path: '/x/l.html' }), 'Revision 2 recorded.');
+});
+
+test('contract: ledger_write_folder, ledger_next_revision and ledger_customer_units match tests/contracts/ledger.json', async () => {
+  for (const k of ['ledger_write_folder', 'ledger_next_revision', 'ledger_customer_units']) assert.equal(CONTRACT[k]?.command, k, `${k} has a contract entry`);
+  const calls = [];
+  const invoke = async (cmd, args) => {
+    calls.push([cmd, args ?? {}]);
+    if (cmd in CONTRACT) return structuredClone(CONTRACT[cmd].response);
+    if (cmd === 'maintenance_list' || cmd === 'certificate_list') return [];
+    throw new Error(`unexpected ${cmd}`);
+  };
+  const catalog = { list: async kind => (kind === 'asset' ? [{ id: 'fs33-a' }, { id: CONTRACT.ledger_customer_units.response[0] }] : []) };
+  const api = createLedgerApi({ invoke, storage: mem(), catalog, photos: { list: async () => [] } });
+  assert.equal(await api.nextRevision(), CONTRACT.ledger_next_revision.response);
+  assert.deepEqual(calls.find(c => c[0] === 'ledger_next_revision')[1], CONTRACT.ledger_next_revision.request);
+  const gear = await api.listGear();
+  assert.deepEqual(calls.find(c => c[0] === 'ledger_customer_units')[1], CONTRACT.ledger_customer_units.request);
+  assert.deepEqual(gear.rows.filter(r => r.usedInServiceJobs).map(r => r.asset.id), CONTRACT.ledger_customer_units.response);
+  const req = CONTRACT.ledger_write_folder.request;
+  const r = await api.writeFolder(req.files, { api: { dialog: { open: async () => req.dir }, core: { invoke } } });
+  assert.deepEqual(calls.at(-1), ['ledger_write_folder', req]);
+  assert.deepEqual(r, { cancelled: false, ...CONTRACT.ledger_write_folder.response });
 });
 
 test('AC-6 publish help: numbered GitHub Pages steps naming the exact folder, no credentials, retract note', () => {

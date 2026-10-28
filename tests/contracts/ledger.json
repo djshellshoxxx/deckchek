@@ -31,5 +31,27 @@
     "command": "ledger_public_note_set",
     "request": { "assetId": "fs33-a", "text": "All original." },
     "response": { "assetId": "fs33-a", "publicNotes": "All original." }
+  },
+  "ledger_write_folder": {
+    "command": "ledger_write_folder",
+    "request": {
+      "dir": "/home/dj/Ledger",
+      "files": [
+        { "relPath": "ledger/index.html", "text": "<!doctype html><title>Gear ledger</title>" },
+        { "relPath": "ledger/ledger.json", "text": "{\"format\":\"deckchek-ledger\",\"revision\":3}" },
+        { "relPath": "ledger/assets/a0123456789/p1.jpg", "base64": "/9j/2Q==" }
+      ]
+    },
+    "response": { "written": 3, "removed": 2, "path": "/home/dj/Ledger" }
+  },
+  "ledger_next_revision": {
+    "command": "ledger_next_revision",
+    "request": {},
+    "response": 4
+  },
+  "ledger_customer_units": {
+    "command": "ledger_customer_units",
+    "request": {},
+    "response": ["fs33-cust"]
   }
 }
