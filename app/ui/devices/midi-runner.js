@@ -16,6 +16,33 @@ const nowUs = () => Math.round(performance.now() * 1000);
 const msgLabel = d => `${d.kind === 'note' ? 'Note' : d.kind === 'pitchbend' ? 'Pitch bend' : 'CC'}${d.kind === 'pitchbend' ? '' : ` ${d.number}`} · ch ${d.channel}`;
 const keyOf = msg => `${msg.kind === 'note-on' || msg.kind === 'note-off' ? 'note' : msg.kind}:${msg.channel}:${msg.number}`;
 
+// Opens are idempotent by port name in both bridges. A replacement runner can claim the same pending
+// open, so a stale completion must not close its successor's input. Keep pending closes ahead of reopens.
+const portOwners = new WeakMap();
+function claimPort(midi, port) {
+  let ports = portOwners.get(midi);
+  if (!ports) { ports = new Map(); portOwners.set(midi, ports); }
+  let entry = ports.get(port);
+  if (!entry) { entry = { owner: null, opened: false, pending: 0, closing: null }; ports.set(port, entry); }
+  const claim = { port, entry, ports };
+  entry.owner = claim;
+  return claim;
+}
+function prunePort({ port, entry, ports }) {
+  if (!entry.owner && !entry.opened && !entry.pending && !entry.closing && ports.get(port) === entry) ports.delete(port);
+}
+function releasePort(midi, claim) {
+  if (!claim) return Promise.resolve();
+  const { port, entry } = claim;
+  if (entry.owner === claim) entry.owner = null;
+  if (entry.owner || !entry.opened) { prunePort(claim); return entry.closing || Promise.resolve(); }
+  entry.opened = false;
+  const closing = (entry.closing || Promise.resolve()).then(() => midi.close(port)).catch(() => {});
+  entry.closing = closing;
+  closing.finally(() => { if (entry.closing === closing) entry.closing = null; prunePort(claim); });
+  return closing;
+}
+
 /** Control ids the profile's tests refer to, with readable labels (for learn-mode suggestions). */
 function suggestedControls(profile, eff) {
   const out = new Map();
@@ -31,7 +58,7 @@ export function runMidi(host, ctx) {
   const { test, profile, kind } = ctx;
   const midi = ctx.midi || midiBridge;
   let eff = effectiveMidiMap(profile.midi, ctx.learned?.map);
-  const st = { port: null, outPort: null, opened: null, inputs: [], outputs: [], unsub: null, panel: null };
+  const st = { port: null, outPort: null, connection: null, inputs: [], outputs: [], unsub: null, panel: null, disposed: false, generation: 0, refresh: 0 };
 
   const portCard = h('section', { class: 'card dev-midi-ports', 'aria-labelledby': 'midi-port-title' });
   const body = h('div', { class: 'dev-midi-body' });
@@ -54,6 +81,10 @@ export function runMidi(host, ctx) {
 
   // ---------- ports ----------
   async function refreshPorts() {
+    if (st.disposed) return;
+    const request = ++st.refresh;
+    ++st.generation;
+    disconnect();
     portCard.innerHTML = `<div class="card-head"><h2 class="card-title" id="midi-port-title">MIDI connection</h2><span class="muted small">${esc(midi.backend() === 'tauri' ? 'Desktop MIDI' : midi.backend() === 'webmidi' ? 'Web MIDI' : 'MIDI unavailable')}</span></div>`;
     if (!midi.isAvailable()) {
       portCard.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>MIDI is not available here</h2><p>Run this test in the DeckChek desktop app (or a browser with Web MIDI) with ${esc(profile.model)} connected by USB.</p>` }));
@@ -62,7 +93,8 @@ export function runMidi(host, ctx) {
     }
     let ports;
     try { ports = await midi.listPorts(); }
-    catch (error) { portCard.append(h('div', { class: 'banner banner-fail', role: 'alert', html: `${chip('fail')}<div class="banner-text"><strong>Could not list MIDI ports</strong><span>${esc(error?.message || error)}</span></div>` })); return; }
+    catch (error) { if (!st.disposed && request === st.refresh) portCard.append(h('div', { class: 'banner banner-fail', role: 'alert', html: `${chip('fail')}<div class="banner-text"><strong>Could not list MIDI ports</strong><span>${esc(error?.message || error)}</span></div>` })); return; }
+    if (st.disposed || request !== st.refresh) return;
     st.inputs = (ports?.inputs || []).map(p => p.name);
     st.outputs = (ports?.outputs || []).map(p => p.name);
     if (!st.inputs.length) {
@@ -90,22 +122,44 @@ export function runMidi(host, ctx) {
     await connect();
   }
 
-  async function connect() {
-    if (st.opened && st.opened !== st.port) { try { await midi.close(st.opened); } catch { /* ignore */ } st.opened = null; }
-    try { await midi.open(st.port); st.opened = st.port; st.status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(st.port)}.</span>`; }
-    catch (error) { st.status.innerHTML = `${chip('fail', 'NOT CONNECTED', { size: 14 })} <span>${esc(error?.message || error)}</span>`; return; }
+  function disconnect() {
+    const claim = st.connection; st.connection = null;
     st.unsub?.();
-    st.unsub = midi.onMessage(raw => { if (raw.port && raw.port !== st.port) return; const msg = parseMessage(raw.bytes); if (msg.kind === 'clock' || msg.kind === 'other') return; st.panel?.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs() }); });
+    st.unsub = null;
     st.panel?.dispose?.();
-    st.panel = PANELS[kind]();
+    st.panel = null;
+    body.replaceChildren();
+    return releasePort(midi, claim);
+  }
+  async function connect() {
+    if (st.disposed) return;
+    const generation = ++st.generation, port = st.port, status = st.status;
+    const previous = disconnect();
+    const claim = claimPort(midi, port); st.connection = claim;
+    const current = () => !st.disposed && generation === st.generation && st.connection === claim && claim.entry.owner === claim;
+    await previous;
+    await claim.entry.closing;
+    if (!current()) { releasePort(midi, claim); return; }
+    claim.entry.pending++;
+    try { await midi.open(port); claim.entry.opened = true; }
+    catch (error) {
+      if (current()) status.innerHTML = `${chip('fail', 'NOT CONNECTED', { size: 14 })} <span>${esc(error?.message || error)}</span>`;
+      releasePort(midi, claim);
+      return;
+    } finally { claim.entry.pending--; prunePort(claim); }
+    if (!current()) { releasePort(midi, claim); return; }
+    status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(port)}.</span>`;
+    st.unsub = midi.onMessage(raw => { if (!current() || (raw.port && raw.port !== port)) return; const msg = parseMessage(raw.bytes); if (msg.kind === 'clock' || msg.kind === 'other') return; st.panel?.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs() }); });
+    st.panel = PANELS[kind]({ current, port, outPort: st.outPort });
   }
 
   const finishBtn = (label, onClick) => h('button', { type: 'button', class: 'btn btn-primary btn-lg', id: 'midi-finish', html: `${icon('check', { size: 20 })}<span>${esc(label)}</span>`, onclick: onClick });
-  function complete(measurements, findings, extra = {}, override = null) {
+  function complete(measurements, findings, extra = {}, override = null, connection = null) {
+    if (st.disposed || (connection && !connection.current())) return;
     const outcome = override || evaluateOutcome(test, { measurements, findings });
     const btn = body.querySelector('#midi-finish');
     if (btn) { btn.disabled = true; btn.innerHTML = `${icon('check', { size: 20 })}<span>Saved</span>`; }
-    ctx.finish({ status: outcome.status, detail: outcome.detail, criterion: outcome.criterion, measurements, findings, extra: { port: st.port, map: eff.mapSource, ...extra } });
+    ctx.finish({ status: outcome.status, detail: outcome.detail, criterion: outcome.criterion, measurements, findings, extra: { port: connection?.port ?? st.port, map: eff.mapSource, ...extra } });
   }
   function resultBlock(measurements, findings) {
     return h('div', { class: 'dev-midi-result' }, h('h3', { class: 'section-title', text: 'Readings' }), readoutGrid(measurements), h('h3', { class: 'section-title', text: 'Findings' }), findingList(findings.length ? findings : [{ id: 'midi-ok', severity: 'ok', title: 'No problems found', meaning: 'Every check stayed inside its guide band.', action: '' }]));
@@ -227,8 +281,9 @@ export function runMidi(host, ctx) {
       const draw = throttle(() => {
         const t0 = samples[0]?.rUs || 0;
         live.innerHTML = linePlot(samples.slice(-600).map(s => ({ t: (s.rUs - t0) / 1e6, v: s.value })), { title: 'Control value over time', yLabel: tgt.bits === 14 ? 'value (14-bit)' : 'value (0–127)', minSpan: 4 });
-        const v = samples.map(s => s.value);
-        stats.textContent = `${samples.length} samples · now ${v.at(-1)} · min ${Math.min(...v)} · max ${Math.max(...v)}`;
+        const min = samples.reduce((value, sample) => Math.min(value, sample.value), Infinity);
+        const max = samples.reduce((value, sample) => Math.max(value, sample.value), -Infinity);
+        stats.textContent = `${samples.length} samples · now ${samples.at(-1)?.value} · min ${min} · max ${max}`;
       }, 100);
       card.append(live, stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Needs at least two samples.' }), finishBtn('Finish test', () => {
         const a = analyzeFader(samples, { bits: tgt.bits });
@@ -269,8 +324,11 @@ export function runMidi(host, ctx) {
       card.append(h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Mark one slow turn each way for ticks per revolution.' }), finishBtn('Finish test', () => {
         const a = analyzeJog(samples, { encoding: enc.value, revolutions: revs.map(({ startUs, endUs, direction }) => ({ startUs, endUs, direction })), bits: tgt.bits });
         const findings = midiFindings('jog', a);
-        card.append(resultBlock(a.measurements, findings));
-        complete(a.measurements, findings, { encoding: enc.value, revolutions: revs.map(r => ({ direction: r.direction, ticks: r.ticks })) });
+        const incomplete = !a.deltas ? { status: 'unknown', detail: 'No jog movement recorded. Turn the wheel and repeat the test.', criterion: 'evidence' } : null;
+        if (incomplete) findings.push({ id: 'jog-incomplete', severity: 'review', title: 'No jog movement recorded', meaning: incomplete.detail, action: 'Check the selected MIDI port and control, then turn the wheel.' });
+        const measurements = incomplete ? [] : a.measurements;
+        card.append(resultBlock(measurements, findings));
+        complete(measurements, findings, { encoding: enc.value, revolutions: revs.map(r => ({ direction: r.direction, ticks: r.ticks })) }, incomplete);
       })));
       body.replaceChildren(card);
       return { onMessage: (msg, t) => {
@@ -286,7 +344,8 @@ export function runMidi(host, ctx) {
       const card = h('section', { class: 'card', 'aria-labelledby': 'btn-title' });
       card.append(h('h2', { class: 'card-title', id: 'btn-title', text: 'Button bounce and stuck check' }), h('p', { class: 'muted small', text: 'Press each button or pad once firmly and once lightly. Hold one for 3 seconds. Rows flag double triggers (bounce) and buttons still held at the end.' }));
       const ids = test.params?.controlIds?.length ? new Set(test.params.controlIds) : null;
-      const scoped = { controls: eff.controls.filter(c => !ids || ids.has(c.id)) };
+      const scoped = { controls: eff.controls.filter(c => (!ids || ids.has(c.id)) && (['button', 'pad', 'switch', 'jog-touch'].includes(c.type) || (!c.type && c.message?.kind === 'note'))) };
+      const expected = ids ? [...ids] : scoped.controls.map(c => c.id);
       const pair = {}, events = [], per = new Map();
       let lastT = 0, lastR = 0;
       const table = h('table', { class: 'data dev-btn-table' }, h('thead', { html: '<tr><th scope="col">Control</th><th scope="col" class="r">Presses</th><th scope="col" class="r">Bounces</th><th scope="col">State</th></tr>' }), h('tbody'));
@@ -300,41 +359,60 @@ export function runMidi(host, ctx) {
         const endUs = lastT + (nowUs() - lastR);
         const a = analyzeButton(events, { endUs, stuckAfterSec: 2 });
         const findings = midiFindings('button', a);
-        card.append(resultBlock(a.measurements, findings));
-        complete(a.measurements, findings, { buttons: per.size, stuck: a.stuck });
+        const missing = expected.filter(id => !per.get(id)?.released || per.get(id)?.pressed);
+        const exercised = [...per.values()].some(p => p.released && !p.pressed);
+        const held = [...per.values()].some(p => p.pressed);
+        const incomplete = missing.length || !exercised || held;
+        const detail = missing.length ? `Incomplete button check: press and release ${missing.join(', ')} before finishing.` : held ? 'Incomplete button check: release every observed button before finishing.' : 'No complete button press and release recorded. Repeat the test with the correct MIDI port and controls.';
+        if (incomplete) findings.push({ id: 'button-incomplete', severity: 'review', title: 'Button check incomplete', meaning: detail, action: 'Press and release every requested button, then repeat the test.' });
+        const measurements = events.length ? a.measurements : [];
+        const outcome = evaluateOutcome(test, { measurements, findings });
+        const override = incomplete && outcome.status !== 'fail' ? { status: 'unknown', detail, criterion: 'evidence' } : outcome;
+        card.append(resultBlock(measurements, findings));
+        complete(measurements, findings, { buttons: per.size, stuck: a.stuck, missing }, override);
       })));
       body.replaceChildren(card);
       return { onMessage: (msg, t) => {
         let id, label, pressed;
-        if (scoped.controls.length) { const hit = matchControl(scoped, msg, pair); if (!hit) return; id = hit.control.id; label = hit.control.label || id; pressed = hit.pressed ?? hit.value > 0; }
-        else if (msg.kind === 'note-on' || msg.kind === 'note-off' || (msg.kind === 'cc' && (msg.value === 0 || msg.value === 127))) { id = keyOf(msg); label = msgLabel({ kind: msg.kind === 'cc' ? 'cc' : 'note', channel: msg.channel, number: msg.number }); pressed = msg.kind === 'note-on' || (msg.kind === 'cc' && msg.value > 0); }
+        if (scoped.controls.length) { const hit = matchControl(scoped, msg, pair); if (!hit || hit.complete === false) return; id = hit.control.id; label = hit.control.label || id; pressed = hit.pressed ?? hit.value > 0; }
+        else if (!eff.controls.length && (msg.kind === 'note-on' || msg.kind === 'note-off' || (msg.kind === 'cc' && (msg.value === 0 || msg.value === 127)))) { id = keyOf(msg); label = msgLabel({ kind: msg.kind === 'cc' ? 'cc' : 'note', channel: msg.channel, number: msg.number }); pressed = msg.kind === 'note-on' || (msg.kind === 'cc' && msg.value > 0); }
         else return;
         lastT = t.tUs; lastR = t.rUs;
         events.push({ tUs: t.tUs, pressed, controlId: id });
-        const p = per.get(id) || { label, presses: 0 };
+        const p = per.get(id) || { label, presses: 0, pressed: false, released: false };
         if (pressed) p.presses++;
+        else if (p.pressed) p.released = true;
+        p.pressed = pressed;
         per.set(id, p);
         draw();
       } };
     },
 
-    led() {
+    led(connection) {
+      const outPort = connection.outPort;
+      let disposed = false, answering = false;
+      const current = () => !disposed && connection.current();
       const card = h('section', { class: 'card', 'aria-labelledby': 'led-title' });
       card.append(h('h2', { class: 'card-title', id: 'led-title', text: 'LED check' }));
       const seq = buildLedSequence(eff, test.params?.controlIds);
       const steps = []; for (let i = 0; i < seq.length; i += 2) steps.push({ on: seq[i], off: seq[i + 1] });
       if (!steps.length) {
         card.append(h('div', { class: 'empty empty-sm', html: `${icon('info', { size: 32 })}<h2>No LED messages known for this unit</h2><p>${eff.mapSource === 'learn' ? 'This device has no public MIDI list. Run the MIDI coverage test, name the lit buttons and tick “LED”, then Save learned map.' : 'The map has no controls marked as having an LED.'} You can also check LEDs by eye with your DJ software.</p>` }),
-          h('div', { class: 'step-footer' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Skip test', onclick: () => ctx.skip('No LED messages known for this unit.') })));
+          h('div', { class: 'step-footer' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Skip test', onclick: () => { if (current()) ctx.skip('No LED messages known for this unit.'); } })));
         body.replaceChildren(card);
         return { onMessage() {} };
       }
-      if (!st.outPort) card.append(h('p', { class: 'hint hint-warn', html: `${icon('warn', { size: 16 })}<span>No MIDI output port found — LEDs cannot be driven. Connect the device and refresh.</span>` }));
+      if (!outPort) card.append(h('p', { class: 'hint hint-warn', html: `${icon('warn', { size: 16 })}<span>No MIDI output port found — LEDs cannot be driven. Connect the device and refresh.</span>` }));
       const answers = [];
       let i = 0;
       const stage = h('div', { class: 'dev-led-stage', 'aria-live': 'polite' });
-      async function send(bytes) { try { await midi.send(st.outPort, bytes); } catch (error) { toast(`Could not send to ${st.outPort}: ${error?.message || error}`, { type: 'error' }); } }
+      async function send(bytes, cleanup = false) {
+        if (!current() && !cleanup) return;
+        try { await midi.send(outPort, bytes); }
+        catch (error) { if (current()) toast(`Could not send to ${outPort}: ${error?.message || error}`, { type: 'error' }); }
+      }
       async function show() {
+        if (!current()) return;
         if (i >= steps.length) {
           const ok = answers.filter(a => a.lit).length;
           const pct = Math.round(100 * ok / answers.length);
@@ -342,11 +420,13 @@ export function runMidi(host, ctx) {
           const bad = answers.filter(a => !a.lit);
           const findings = bad.length ? [{ id: 'led-dead', severity: 'warning', title: `${bad.length} LED${bad.length > 1 ? 's' : ''} did not light`, meaning: `Not lit: ${bad.map(b => b.label).join(', ')}. A dead LED hides cue, loop or pad state.`, action: 'Re-run to confirm, then have the LED or its driver chip serviced.' }] : [];
           stage.replaceChildren(resultBlock(measurements, findings));
-          complete(measurements, findings, { answers }, test.pass ? null : bad.length ? { status: 'fail', detail: `${bad.length} of ${answers.length} LEDs did not light.`, criterion: 'user' } : { status: 'pass', detail: `All ${answers.length} LEDs lit.`, criterion: 'user' });
+          complete(measurements, findings, { answers }, test.pass ? null : bad.length ? { status: 'fail', detail: `${bad.length} of ${answers.length} LEDs did not light.`, criterion: 'user' } : { status: 'pass', detail: `All ${answers.length} LEDs lit.`, criterion: 'user' }, connection);
           return;
         }
         const s = steps[i];
         await send(s.on.bytes);
+        // An in-flight on can finish after disposal's off. Repeat only the old output's off cleanup.
+        if (!current()) { await send(s.off.bytes, true); return; }
         const label = s.on.label.replace(/ ON$/, '');
         stage.replaceChildren(h('p', { class: 'dev-led-q', html: `<span class="muted small">LED ${i + 1} of ${steps.length}</span><strong>Is <em>${esc(label)}</em> lit now?</strong>` }),
           h('div', { class: 'dev-led-answers' },
@@ -354,11 +434,19 @@ export function runMidi(host, ctx) {
             h('button', { type: 'button', class: 'btn btn-secondary btn-lg', id: 'led-no', html: `${icon('x', { size: 20 })}<span>No</span>`, onclick: () => answer(false, label, s) })));
         stage.querySelector('#led-yes').focus();
       }
-      async function answer(lit, label, s) { answers.push({ controlId: s.on.controlId, label, lit }); await send(s.off.bytes); i++; show(); }
+      async function answer(lit, label, s) {
+        if (!current() || answering || s !== steps[i]) return;
+        answering = true;
+        stage.querySelector('#led-yes').disabled = true; stage.querySelector('#led-no').disabled = true;
+        answers.push({ controlId: s.on.controlId, label, lit });
+        await send(s.off.bytes);
+        if (!current()) return;
+        i++; answering = false; await show();
+      }
       card.append(h('p', { class: 'muted small', text: `DeckChek lights ${steps.length} LED${steps.length > 1 ? 's' : ''} one at a time. Look at the unit and answer for each.` }), stage);
       body.replaceChildren(card);
       show();
-      return { onMessage() {}, dispose() { if (i < steps.length && st.outPort) send(steps[i].off.bytes); } };
+      return { onMessage() {}, dispose() { disposed = true; if (i < steps.length && outPort) send(steps[i].off.bytes, true); } };
     },
 
     latency() {
@@ -384,9 +472,9 @@ export function runMidi(host, ctx) {
   refreshPorts();
   return {
     dispose() {
-      st.panel?.dispose?.();
-      st.unsub?.();
-      if (st.opened) midi.close(st.opened).catch(() => {});
+      if (st.disposed) return;
+      st.disposed = true; ++st.generation; ++st.refresh;
+      disconnect();
     },
   };
 }
