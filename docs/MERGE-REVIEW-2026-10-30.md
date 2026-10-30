@@ -1,5 +1,7 @@
 # Merge review and approved continuation
 
+> Historical pre-merge snapshot. For completed merges, later validation, current blockers and the execution prompt, read [the post-consolidation review](POST-CONSOLIDATION-2026-10-30.md).
+
 The owner approved the reviewed merge order. No branch was deleted or reset.
 
 ## PR15 completed

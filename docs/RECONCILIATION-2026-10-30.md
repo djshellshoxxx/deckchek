@@ -1,5 +1,7 @@
 # DeckChek remote reconciliation — 2026-10-30
 
+> Historical pre-merge snapshot. For completed merges, later validation, current blockers and the execution prompt, read [the post-consolidation review](POST-CONSOLIDATION-2026-10-30.md).
+
 ## Scope and exact source
 
 This is a documentation-only continuation of the approved reconciliation task.
