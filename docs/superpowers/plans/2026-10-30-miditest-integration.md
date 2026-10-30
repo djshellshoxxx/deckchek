@@ -144,14 +144,14 @@
 
 **Interfaces:**
 - `tools/build-miditest.mjs [--desktop|--web] [--check]` copies `app/miditest/**`, `app/midi.js`, `app/entitlements.js`, `app/products.json` into `dist/miditest-desktop/` or `dist/miditest-web/`, rewriting import paths. `--check` fails when the output is stale (same pattern as `tools/build-mobile.mjs --check`).
-- `tauri.miditest.conf.json` is merged with `tauri build --config`. It sets `productName: "MIDItest"`, `identifier: "com.circuitdriftlabs.miditest"`, `build.frontendDist: "../dist/miditest-desktop"`, window title "MIDItest", and MIDItest icons from `app/miditest/build/`. Bundles `app/miditest/winscan.ps1` as a resource.
+- `tauri.miditest.conf.json` is merged with `cargo tauri build --config`. It sets `productName: "MIDItest"`, `identifier: "com.circuitdriftlabs.miditest"`, `build.frontendDist: "../dist/miditest-desktop"`, window title "MIDItest", and MIDItest icons from `app/miditest/build/`. Bundles `app/miditest/winscan.ps1` as a resource.
 - `midi_windows_scan(days: u32) -> Result<serde_json::Value, String>`: clamps days to 1..=30, runs the bundled script with `-NoProfile -NonInteractive -ExecutionPolicy Bypass`, 120 s timeout, `MIDITEST_DAYS` env. On non-Windows it returns `Err("Windows event-log scan is only available on Windows.")`. Same behavior as `desktop/winscan.cjs`.
 - At startup the standalone app checks `isEntitled('miditest')` and shows the same locked screen as Task 4 when false.
 
 - [ ] **Step 1: Write failing tests:** `build-miditest --check fails when app/miditest changes`, `web build contains no __TAURI__ references`; Rust `days_clamped_to_1_30`, `non_windows_returns_error`.
 - [ ] **Step 2:** Run `npm test` and `cargo test winscan`. Expected: FAIL.
 - [ ] **Step 3:** Implement the build tool, config, `winscan.rs` and the CI job; delete `desktop/`.
-- [ ] **Step 4:** Run the tests. Then on Windows CI run `node tools/build-miditest.mjs --desktop && npx tauri build --config src-tauri/tauri.miditest.conf.json`. Expected: `MIDItest_*_x64-setup.exe` and portable exe uploaded as artifacts. Other platforms are not built until the owner instructs.
+- [ ] **Step 4:** Run the tests. Then on Windows CI run `node tools/build-miditest.mjs --desktop && cargo tauri build --config src-tauri/tauri.miditest.conf.json`. Expected: `MIDItest_*_x64-setup.exe` and portable exe uploaded as artifacts. Other platforms are not built until the owner instructs.
 - [ ] **Step 5:** Commit `feat: standalone MIDItest desktop build from the DeckChek repo`.
 
 ### Task 7: Free web build and docs
