@@ -58,6 +58,11 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] M7/M8 crates and tauri features added once (`ed25519-dalek`, `getrandom`, notification plugin, DPAPI feature, `tray-icon`, `image-png`).
 - [ ] Follow-ups owned by the feature jobs: first screen that uses the photo store (FS-20/22/33), register the notification plugin and add its capability when FS-23 needs it, DPAPI wrapper (cfg(windows)) with a Windows CI test.
 
+## M6 (implemented behind default-off flags)
+
+- [x] Pre-gig check, latency/buffer tuner, stylus wear, control-vinyl wear map, scratch stress test, hum and feedback hunter, phone import and mobile companion (see docs/IMPLEMENTATION-STATUS.md).
+- [ ] Flip each flag on only after its owner hardware script passes.
+
 ## Active beta validation gates
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
