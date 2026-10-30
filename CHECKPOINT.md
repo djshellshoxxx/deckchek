@@ -1,4 +1,4 @@
-# DeckChek continuation checkpoint — 2026-10-28
+# DeckChek continuation checkpoint — updated 2026-10-30
 
 Branch: `continuation-deckchek-core-20261028`, stacked on PR14 source
 `9f4928a00a44b62529429d1f14ad104b65db28c6`. The older MIDI checkpoint and every
@@ -37,10 +37,14 @@ Native source fixes cover restore/capture exclusion, photo snapshot consistency,
 same-length photo repair and tuner cancellation ownership, with unexecuted Rust
 regressions. Manual backups now show missing/damaged-photo warnings.
 
-Unmerged gates: Cargo is now installed locally (see the validation follow-up in
-the detailed handoff). The locked native build failed before app compilation
-because GLib development files are missing; OS package setup hit filesystem
-permission denial. Native fixes remain source-reviewed, not runtime-qualified. File-selection authorization,
+Current merge status and CI evidence are in
+[the October 30 merge review](docs/MERGE-REVIEW-2026-10-30.md). PR15 is merged;
+its documentation is preserved in this continuation. Source repair dd7ae20 fixes
+the two legacy-backup failures found in remote CI. Native CI now passes 654
+tests with eight ignored; the compiler-warning gate also passes. Full browser
+CI passed 1266/1266, and JavaScript passed 1204 with one optional skip. Local native
+builds remain blocked by missing GLib development files and package permissions.
+Main integration remains gated by PR14 Sonar findings and full integration checks. File-selection authorization,
 URL-confirmation policy and historical-key/local-affiliation semantics remain
 excluded pending scoped owner decisions. Hardware, drivers, loopback, platform
 and 32-bit qualification remain unexecuted. Fleet stays off by default.
