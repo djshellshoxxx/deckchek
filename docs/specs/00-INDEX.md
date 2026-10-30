@@ -29,6 +29,7 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-31](31-timecode-doctor-live-monitor.md) | Timecode doctor live monitor | Implemented (HW: H-31; WASAPI-shared capture beside DJ software unverified) | L | FS-00 (stream capture, lease) | M8 | 0019 | `liveMonitor` |
 | [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Implemented (HW: H-32; VirtualDJ format unverified) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
 | [FS-33](33-gear-ledger.md) | Gear ledger static export | Implemented (HW: H-33) | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
+| [FS-36](36-general-midi-test.md) | General MIDI conformance and sound check | Partial: pure analyzer/sequences/tests only; UI, AC-5 and hardware pending | M | MIDI bridge and connection ownership | PR9 consolidation | — | UI not wired |
 
 Numbering gaps (04, 05, 09, 16–19, 24–29) are intentional; they leave room for future specs in the same groups (essentials 0x, DJ 1x, pro 2x, companion 3x).
 

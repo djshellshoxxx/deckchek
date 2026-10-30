@@ -32,6 +32,10 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-32 | MIDI mapper studio | DONE (HW: H-32; VirtualDJ format unverified; Serato and Traktor are reports only) | `src-tauri/src/mapper.rs`, `database/migrations/0020_mapper_models.sql`, `app/mapper/**`, `app/ui/screens/mapper.js` | `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7) |
 | FS-33 | Gear ledger static export | DONE (HW: H-33; GitHub Pages guide wording to verify) | `src-tauri/src/ledger.rs`, `database/migrations/0021_gear_ledger.sql`, `app/ledger/**`, `app/ui/screens/ledger.js` | `tests/ledger*.test.mjs` (incl. leak test), smoke `ledger` (AC-1..AC-7) |
 
+### FS-36 selective consolidation
+
+PARTIAL: the pure MIDI conformance analyzer, Identity Reply parser, General MIDI sequence builder and their tests are ported from PR9 with strict byte validation, corrected audible timing and large-stream handling, invalid-answer rejection and manual provenance for subjective GM results. `app/midi-conformance.js` and `tests/midi-conformance.test.mjs` cover the pure portion of AC-1–AC-4. UI panels, profile/dispatch wiring, ownership/cancellation integration, AC-5 and hardware qualification remain open. See `docs/specs/36-general-midi-test.md` for the original full-feature acceptance criteria and retained spec/source discrepancies. This does not include FS-34 or FS-35.
+
 ## Architecture specs (SPEC-00..SPEC-20)
 
 These describe the long-term product. Items that need physical hardware or vendor-licensed decoders cannot be closed by code alone.
