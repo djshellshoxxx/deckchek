@@ -4,6 +4,16 @@ DeckChek is a cross-platform DJ hardware diagnostic workstation for DJs, technic
 
 DeckChek is not a music player or DJ application. Its job is to measure, compare, diagnose, trend, and document DJ playback hardware and signal paths.
 
+## Screenshots
+
+Captured from the browser shell (file-analysis mode) with `tools/ui-smoke.mjs`, using bundled synthetic test audio.
+
+![Quick Check results: PASS verdict, key readings with uncertainty badges and the guide panel](docs/screenshots/quick-check-results.png)
+
+![Vinyl Scan results: warning verdict, transient candidates and rumble proxy](docs/screenshots/vinyl-scan-results.png)
+
+![Devices library: 45 researched device profiles with per-unit test plans](docs/screenshots/device-library.png)
+
 ## Product goals
 
 DeckChek should answer questions such as:
@@ -100,13 +110,35 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 
 ## Status
 
-DeckChek is now a live-capture and offline-analysis beta. The Windows desktop shell supports continuous native audio capture, real-time level meters, loopback calibration with uncertainty propagation, catalog persistence, and deterministic diagnostics with evidence-first reporting. Files can be analyzed in a browser; results export as HTML/CSV/JSON.
+DeckChek is a beta (desktop version 0.1.0 in `src-tauri/tauri.conf.json`). The Windows desktop shell supports continuous native audio capture, live meters, loopback calibration with uncertainty propagation, SQLite catalog persistence, a device library with per-unit test plans, and deterministic evidence-first diagnostics. Files can also be analyzed in a plain browser; results export as HTML, PDF, CSV and JSON. Shipped milestones include the first-run wizard, diagnostics bundle, PDF export, test-media library and backup/restore (M5), plus M6 features (pre-gig check, latency/buffer tuner, stylus wear, control-vinyl wear map, scratch stress test, hum/feedback hunter) that are behind experimental feature flags, and a mobile companion PWA in `mobile/`. Real-hardware validation is still pending, installers are unsigned and there is no auto-update.
 
 Milestone 5 adds a first-run setup wizard, a local diagnostics bundle with crash prompt, allowlisted support links, a test-media library, and verified backup and restore of your data (see [BUILDING.md](BUILDING.md#backup-and-restore)). PDF reports are implemented.
 
-Milestones 7 and 8 are implemented behind feature flags: used-gear certificates, unit-versus-population comparison, service worksheets, the venue fleet dashboard (on by default), the live timecode monitor, the MIDI mapper studio and the gear ledger, alongside an October audit pass, fuzzing and first-party CI. None of it is validated on hardware yet; the owner's hardware scripts (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) are still open.
+Milestones 7 and 8 are implemented behind feature flags: used-gear certificates, unit-versus-population comparison, service worksheets, the venue fleet dashboard (off by default pending qualification), the live timecode monitor, the MIDI mapper studio and the gear ledger, alongside an October audit pass, fuzzing and first-party CI. None of it is validated on hardware yet; the owner's hardware scripts (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) are still open.
 
-See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation.
+See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation and [TODO.md](TODO.md) for the build queue.
+
+## Run and test
+
+```
+npm test                      # JavaScript tests (tests/*.test.mjs)
+```
+
+To try the UI without Tauri, serve `app/` over HTTP (for example `python3 -m http.server -d app 8080`) and open it in a browser. For the desktop shell, Rust checks and the Playwright smoke test see [BUILDING.md](BUILDING.md).
+
+## Project layout
+
+- `app/` - vanilla ES-module front end and pure measurement code ([app/README.md](app/README.md))
+- `mobile/` - DeckChek Mobile companion PWA
+- `src-tauri/` - Rust/Tauri 2 desktop shell, native capture and SQLite
+- `database/` - SQL migrations and seed data
+- `shared/`, `tools/` - shared scripts and build/smoke tooling
+- `tests/` - JavaScript regression tests
+- `docs/` - specifications, research, status and test scripts
+
+## License
+
+Proprietary, all rights reserved; see [LICENSE](LICENSE) and [COPYRIGHT-TRADEMARK.md](COPYRIGHT-TRADEMARK.md).
 
 ## Builds and release status
 
