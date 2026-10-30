@@ -21,8 +21,25 @@ export function compareMock() {
     ],
   };
   window.__cmp = cmp;
+  // A native-only run exercises History's normalization after the local working set is gone.
+  cmp.historyRun = {
+    id: 'cmp-history', test: 'Speed stability', startedAt: '2026-10-10T10:00:00Z', score: 90,
+    config: { assetId: 'a-2', deviceId: 'a-1', sampleRate: 48000 }, hypotheses: [],
+    measurements: [
+      { metricId: 'wow_flutter_rms_percent', value: .18, unit: '%', origin: 'measured', confidence: .9, qualityFlags: [] },
+      { metricId: 'unregistered_metric', value: 1, unit: '%', origin: 'measured', qualityFlags: [] },
+      { metricId: 'left_hum_dbfs', value: -50, unit: 'dB', origin: 'measured', qualityFlags: [] },
+      { metricId: 'channel_balance_db', value: 1, unit: 'dB', origin: 'measured', qualityFlags: ['uncalibrated'] },
+    ],
+  };
   const fixtureRows = n => Array.from({ length: n }, (_, i) => ({ contributor: `c${i}`, product: key, metric: 'wow_flutter_rms_percent', method: { key: 'wow_flutter_rms_percent', version: 1 }, value: 0.08 + (i % 41) * 0.005, unit: '%' }));
   core.invoke = async (cmd, args = {}) => {
+    if (cmd === 'list_runs') return [{ id: cmp.historyRun.id, sessionType: 'speed', test: cmp.historyRun.test, startedAt: cmp.historyRun.startedAt, score: 90, measurementCount: cmp.historyRun.measurements.length, hypothesisCount: 0 }];
+    if (cmd === 'get_run' && args.id === cmp.historyRun.id) return cmp.historyRun;
+    if (cmd === 'catalog_list' && args.entity === 'asset') {
+      const assets = await base(cmd, args);
+      return [...assets, { id: 'a-1', nickname: 'Deck 1', productId: `prod-${key}` }, { id: 'a-2', nickname: 'Deck 2', productId: `prod-${key}` }];
+    }
     if (cmd === 'app_state_get') return cmp.state[args.key] ? { value: cmp.state[args.key], updatedAt: 't' } : null;
     if (cmd === 'app_state_set') { cmp.state[args.key] = args.value; return null; }
     if (['population_unit_values', 'pack_list', 'pack_preview', 'pack_import', 'pack_remove', 'pack_export', 'population_query'].includes(cmd)) {
@@ -50,6 +67,18 @@ export default async function run({ browser, base, check, SHOTS }) {
   const errors = [];
   const shot = async (page, name) => { await page.waitForTimeout(200); await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
   const text = (page, sel) => page.locator(sel).innerText();
+  const openHistory = async page => {
+    await page.click('.rail-item[data-screen="history"]');
+    await page.locator('#hist-rows .run-main').first().click();
+    await page.locator('#hist-detail summary').filter({ hasText: 'All measurements' }).click();
+    await page.waitForSelector('#hist-detail tr[data-metric="wow_flutter_rms_percent"]');
+  };
+  const openDevice = async page => {
+    await page.click('.rail-item[data-screen="devices"]');
+    if (await page.locator('#dev-back').isVisible()) await page.click('#dev-back');
+    await page.click('.dev-card[data-device="pioneer-plx-crss12"] .dev-card-main');
+    await page.waitForSelector('#dev-unit');
+  };
   const desktop = async (flags, { extraSpecs = null } = {}) => {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await ctx.addInitScript(tauriMock); await ctx.addInitScript(compareMock); await ctx.addInitScript(setFlags, flags);
@@ -68,11 +97,19 @@ export default async function run({ browser, base, check, SHOTS }) {
 
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await off.addInitScript(tauriMock); await off.addInitScript(compareMock);
   const po = await off.newPage();
   errors.push(watchConsole(po, 'compare-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('compare: flag off hides the Compare screen', (await po.locator('.rail-item[data-screen="compare"]').count()) === 0);
+  await openHistory(po);
+  check('regression: compare flag off excludes result-row buttons and C attributes', await po.locator('#hist-detail [data-result-compare], #hist-detail [data-compare-asset]').count() === 0);
+  await po.focus('#hist-detail tr[data-metric="wow_flutter_rms_percent"]');
+  await po.keyboard.press('c');
+  check('regression: compare flag off leaves focused results in History', await po.locator('#screen-history').isVisible());
+  await openDevice(po);
+  check('regression: compare flag off excludes the device-detail entry point', await po.locator('#dev-compare').count() === 0);
   await off.close();
 
   // ----- browser mode -----
@@ -253,14 +290,59 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p.waitForFunction(() => /token reset/i.test(document.querySelector('#cmp-status')?.textContent || ''));
   check('compare: resetting the contributor token stores a new one', (await p.evaluate(() => window.__cmp.state['population.contributor'])) !== token);
 
-  // spec section 3: "C opens Compare on a focused result row" (rows opt in with data-compare-asset / data-compare-metric)
-  await p.click('.rail-item:not([data-screen="compare"])');
-  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === true);
-  await p.evaluate(() => { const row = document.createElement('div'); row.id = 'smoke-result-row'; row.tabIndex = 0; row.textContent = 'Wow and flutter 0.18 %'; row.dataset.compareAsset = 'a-2'; row.dataset.compareMetric = 'wow_flutter_rms_percent'; document.querySelector('#main').prepend(row); row.focus(); });
+  // FS-21 §3: use the real History/results renderer, not a synthetic shortcut target.
+  await openHistory(p);
+  const resultRow = '#hist-detail tr[data-metric="wow_flutter_rms_percent"]';
+  await p.waitForSelector(`${resultRow} [data-result-compare]`);
+  check('regression: compare native History keeps the actual asset identity', await p.getAttribute(resultRow, 'data-compare-asset') === 'a-2');
+  check('regression: compare only compatible registered readings get entry points', await p.locator('#hist-detail [data-result-compare]').count() === 1);
+  await p.click(`${resultRow} th`);
+  check('regression: compare result-row click still opens the metric inspector', await text(p, '#inspector-title') === 'Wow & flutter (RMS)');
+  await p.evaluate(() => { document.querySelector('#inspector-title').textContent = 'Before Compare'; });
+  await p.focus(resultRow);
+  await p.keyboard.press('Enter');
+  check('regression: compare result-row Enter still opens the metric inspector', await text(p, '#inspector-title') === 'Wow & flutter (RMS)');
+  await p.evaluate(() => { document.querySelector('#inspector-title').textContent = 'Before Compare'; });
+  await p.click(`${resultRow} [data-result-compare]`);
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-2');
+  check('regression: compare chip routes to the row asset and metric without opening its inspector', await p.inputValue('#cmp-metric') === 'wow_flutter_rms_percent' && await text(p, '#inspector-title') === 'Before Compare');
+  await openHistory(p);
+  await p.focus(`${resultRow} [data-result-compare]`);
+  await p.evaluate(() => { document.querySelector('#inspector-title').textContent = 'Before Compare keyboard'; });
+  await p.keyboard.press('Enter');
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-2');
+  check('regression: compare button Enter opens Compare without triggering the row inspector', await text(p, '#inspector-title') === 'Before Compare keyboard');
+  await openHistory(p);
+  await p.focus(resultRow);
   await p.keyboard.press('c');
   await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-2');
   check('regression: compare the C shortcut opens Compare on the focused result row', await p.evaluate(() => document.querySelector('#cmp-asset').value === 'a-2' && document.querySelector('#cmp-metric').value === 'wow_flutter_rms_percent' && document.querySelector('#cmp-tab-spec').getAttribute('aria-selected') === 'true'));
-  await p.evaluate(() => document.querySelector('#smoke-result-row')?.remove());
+  await openHistory(p);
+  await p.focus('#hist-search');
+  await p.keyboard.press('c');
+  check('regression: compare C in a search input keeps typing in History', await p.locator('#screen-history').isVisible() && await p.inputValue('#hist-search') === 'c');
+  await p.fill('#hist-search', '');
+  // Content-editable descendants and modified key presses must not activate the row shortcut.
+  await p.locator(`${resultRow} th span`).first().evaluate(el => { el.contentEditable = 'true'; el.focus(); });
+  await p.keyboard.press('c');
+  check('regression: compare C in editable result text does not navigate', await p.locator('#screen-history').isVisible());
+  await p.locator(`${resultRow} th span`).first().evaluate(el => { el.contentEditable = 'false'; });
+  await p.focus(resultRow);
+  await p.keyboard.press('Control+c');
+  check('regression: compare modified C does not navigate', await p.locator('#screen-history').isVisible());
+  await openDevice(p);
+  check('regression: compare an unmeasured unit cannot silently open a different unit', await p.locator('#dev-compare').isDisabled());
+  await p.selectOption('#dev-unit', 'a-2');
+  await p.waitForSelector('#dev-compare:not([disabled])');
+  await p.click('#dev-compare');
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-2');
+  check('regression: compare device detail ranks the selected actual unit', await p.inputValue('#cmp-asset') === 'a-2' && await p.inputValue('#cmp-metric') === 'wow_flutter_rms_percent');
+  await openDevice(p);
+  await p.selectOption('#dev-unit', 'a-1');
+  await p.waitForSelector('#dev-compare:not([disabled])');
+  await p.click('#dev-compare');
+  await p.waitForFunction(() => document.querySelector('#screen-compare')?.hidden === false && document.querySelector('#cmp-asset')?.value === 'a-1');
+  check('regression: compare device detail follows a changed unit selection', await p.inputValue('#cmp-asset') === 'a-1');
 
   // themes, a11y, phone width
   const audit = await a11yAudit(p);

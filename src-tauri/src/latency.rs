@@ -45,7 +45,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::audio_out::{self, BufferInput, BufferOpts, EndReason, Engine, Fault, MakeRenderer, PlayRequest, Playing, VoiceControl};
-use crate::capture::{self, Accumulator, CaptureError, CaptureLease, CaptureQuality, LeaseKind, LiveCaptureState, Shared};
+use crate::capture::{self, Accumulator, CaptureError, CaptureLease, CaptureQuality, LiveCaptureState, Shared};
 use crate::db::{database_path, new_id, now_iso, open_database};
 
 // ------------------------------------------------------------------ constants
@@ -566,6 +566,7 @@ struct OutPlan {
     shared: Option<Arc<Shared>>,
     align: Option<Arc<AlignRecorder>>,
     meta: Option<StreamMeta>,
+    cancel: Option<Arc<AtomicBool>>,
 }
 
 /// `audio_out::Backend` that opens through a [`StreamFactory`] with the planned
@@ -581,16 +582,30 @@ impl audio_out::Backend for TunerBackend {
         let probe = plan.probe.clone().unwrap_or_else(|| Arc::new(Probe::with_capacity(0)));
         let shared = plan.shared.clone().unwrap_or_default();
         let align = plan.align.clone();
+        let cancel = plan.cancel.clone();
         let make_out: MakeOutput = Box::new(move |rate, channels| {
+            if cancel.as_ref().is_some_and(|c| c.load(Relaxed)) {
+                return Err("AUDIO_OUT_STOPPED: the capture owner was cancelled while output opened".into());
+            }
             let mut renderer = make(rate, channels)?;
             let mut rendered: u64 = 0;
             Ok(Box::new(move |out: &mut [f32], ch: usize| {
+                // A driver may finish opening after cancellation. Its callback
+                // must never emit the cancelled run's stimulus, even before the
+                // owner gets back from open() and closes the returned handle.
+                if cancel.as_ref().is_some_and(|c| c.load(Relaxed)) {
+                    out.fill(0.0);
+                    return;
+                }
                 let frames = out.len() / ch.max(1);
                 probe.record(frames);
                 if let Some(a) = &align {
                     a.record(rendered);
                 }
                 renderer.render_safe(out, ch);
+                if cancel.as_ref().is_some_and(|c| c.load(Relaxed)) {
+                    out.fill(0.0);
+                }
                 rendered += frames as u64;
             }))
         });
@@ -759,22 +774,29 @@ pub fn scope_label(host_api: &str) -> String {
 /// Releases the capture lease on every exit path.
 struct LeaseGuard<'a> {
     lease: &'a CaptureLease,
+    engine: &'a Engine,
     id: u64,
+    cancel: Arc<AtomicBool>,
 }
 
 impl<'a> LeaseGuard<'a> {
-    fn acquire(lease: &'a CaptureLease, device: Option<String>) -> Result<Self, CaptureError> {
-        let g = lease.acquire(HOLDER, device, LeaseKind::External)?;
-        Ok(Self { lease, id: g.lease_id })
+    fn acquire(lease: &'a CaptureLease, engine: &'a Engine, device: Option<String>) -> Result<Self, CaptureError> {
+        let cancel = Arc::new(AtomicBool::new(false));
+        let g = lease.acquire_managed(HOLDER, device, cancel.clone())?;
+        Ok(Self { lease, engine, id: g.lease_id, cancel })
     }
 
     fn still_held(&self) -> bool {
-        self.lease.current().is_some_and(|g| g.lease_id == self.id)
+        !self.cancel.load(Relaxed) && self.lease.current().is_some_and(|g| g.lease_id == self.id)
     }
 }
 
 impl Drop for LeaseGuard<'_> {
     fn drop(&mut self) {
+        self.cancel.store(true, Relaxed);
+        // Also runs on unwind, when the engine outlives this run. InputSide's
+        // RAII handle closes before this guard (it was declared after it).
+        self.engine.stop_all(EndReason::Stopped);
         self.lease.release(self.id);
     }
 }
@@ -849,9 +871,12 @@ impl Tuner {
     }
 
     /// Opens the input, trying Fixed first and falling back to Default.
-    fn open_input(&self, device: Option<&str>, rate: Option<u32>, requested: Option<u32>, probe: &Arc<Probe>, shared: &Arc<Shared>) -> (Option<InputSide>, OpenNotes) {
+    fn open_input(&self, device: Option<&str>, rate: Option<u32>, requested: Option<u32>, probe: &Arc<Probe>, shared: &Arc<Shared>, cancel: &AtomicBool) -> (Option<InputSide>, OpenNotes) {
         let mut notes = OpenNotes::default();
         let attempt = |buffer: Option<u32>| -> Result<(StreamMeta, InputSide), String> {
+            if cancel.load(Relaxed) {
+                return Err("capture owner was cancelled before input opened".into());
+            }
             let (tx, rx) = mpsc::channel::<Consumer<f32>>();
             let (probe, shared_cb) = (probe.clone(), shared.clone());
             let make: MakeInput = Box::new(move |rate, channels| {
@@ -868,6 +893,10 @@ impl Tuner {
             let shared_e = shared.clone();
             let on_error: ErrCb = Arc::new(move |msg: String, fatal: bool| if fatal { shared_e.record_fatal(msg) } else { shared_e.record_error(msg) });
             let (meta, handle) = self.factory.open_input(device, rate, buffer, make, on_error)?;
+            if cancel.load(Relaxed) {
+                handle.close();
+                return Err("capture owner was cancelled while input opened".into());
+            }
             let consumer = rx.try_recv().map_err(|_| "input stream opened without a capture ring".to_string())?;
             Ok((meta, InputSide { handle, consumer }))
         };
@@ -877,11 +906,11 @@ impl Tuner {
                 notes.ran_fixed = requested.is_some();
                 Ok(v)
             }
-            (Err(e), Some(_)) => {
+            (Err(e), Some(_)) if !cancel.load(Relaxed) => {
                 notes.fixed_error = Some(e);
                 attempt(None)
             }
-            (Err(e), None) => Err(e),
+            (Err(e), _) => Err(e),
         };
         match result {
             Ok((meta, side)) => {
@@ -897,10 +926,13 @@ impl Tuner {
     }
 
     /// Plays through the audio_out engine, trying Fixed first, then Default.
-    fn play(&self, device: Option<String>, rate: Option<u32>, requested: Option<u32>, req: PlayRequest, probe: &Arc<Probe>, shared: &Arc<Shared>, align: Option<Arc<AlignRecorder>>) -> (Option<u64>, OpenNotes) {
+    fn play(&self, device: Option<String>, rate: Option<u32>, requested: Option<u32>, req: PlayRequest, probe: &Arc<Probe>, shared: &Arc<Shared>, align: Option<Arc<AlignRecorder>>, cancel: &Arc<AtomicBool>) -> (Option<u64>, OpenNotes) {
         let mut notes = OpenNotes::default();
         let attempt = |buffer: Option<u32>| -> Result<u64, String> {
-            *lock(&self.plan) = OutPlan { rate, buffer, probe: Some(probe.clone()), shared: Some(shared.clone()), align: align.clone(), meta: None };
+            if cancel.load(Relaxed) {
+                return Err("AUDIO_OUT_STOPPED: capture owner was cancelled before output opened".into());
+            }
+            *lock(&self.plan) = OutPlan { rate, buffer, probe: Some(probe.clone()), shared: Some(shared.clone()), align: align.clone(), meta: None, cancel: Some(cancel.clone()) };
             self.engine.play(device.clone(), req.clone()).map(|info| info.handle)
         };
         let first = attempt(requested);
@@ -933,29 +965,37 @@ impl Tuner {
         let load_pct = r.cpu_load_pct.min(100);
         let _running = self.begin()?;
         let gen = self.abort_gen.load(Relaxed);
-        let lease = LeaseGuard::acquire(lease, r.device_name.clone())?;
+        let lease = LeaseGuard::acquire(lease, &self.engine, r.device_name.clone())?;
 
         let cap = Probe::capacity_for(seconds, 96_000);
         let (in_probe, out_probe) = (Arc::new(Probe::with_capacity(cap)), Arc::new(Probe::with_capacity(cap)));
         let (in_shared, out_shared) = (Arc::new(Shared::default()), Arc::new(Shared::default()));
 
-        let (input, in_notes) = self.open_input(r.device_name.as_deref(), r.sample_rate, r.buffer_frames, &in_probe, &in_shared);
+        let (input, in_notes) = self.open_input(r.device_name.as_deref(), r.sample_rate, r.buffer_frames, &in_probe, &in_shared, &lease.cancel);
         let out_rate = in_notes.meta.as_ref().map(|m| m.sample_rate).or(r.sample_rate);
         let silence_rate = out_rate.unwrap_or(48_000);
         let silence = PlayRequest::Buffer(
             BufferInput { sample_rate: silence_rate, left: vec![0.0; silence_rate as usize], right: vec![] },
             BufferOpts { level_dbfs: audio_out::SILENCE_DBFS, cap_dbfs: None, looped: true, ramp_ms: None },
         );
-        let (handle, out_notes) = self.play(r.out_device.clone(), out_rate, r.buffer_frames, silence, &out_probe, &out_shared, None);
+        let (handle, out_notes) = if self.abort_gen.load(Relaxed) == gen && lease.still_held() {
+            self.play(r.out_device.clone(), out_rate, r.buffer_frames, silence, &out_probe, &out_shared, None, &lease.cancel)
+        } else {
+            (None, OpenNotes::default())
+        };
 
         let mut input = input;
         let any = input.is_some() || handle.is_some();
-        let load = any.then(|| LoadGuard::start(load_pct));
+        let load = (any && lease.still_held() && self.abort_gen.load(Relaxed) == gen).then(|| LoadGuard::start(load_pct));
         let load_threads = load.as_ref().map(|l| l.threads()).unwrap_or(0);
         let started = Instant::now();
         let mut last_progress: Option<Instant> = None;
         let frames_hint = r.buffer_frames;
-        let ended = if !any {
+        let ended = if self.abort_gen.load(Relaxed) != gen {
+            RunEnd::Aborted
+        } else if !lease.still_held() {
+            RunEnd::Preempted
+        } else if !any {
             RunEnd::NoStreams
         } else {
             loop {
@@ -1050,13 +1090,13 @@ impl Tuner {
         let tail = r.tail_sec.filter(|t| t.is_finite()).unwrap_or(DEFAULT_TAIL_SECONDS).clamp(0.1, 3.0);
         let _running = self.begin()?;
         let gen = self.abort_gen.load(Relaxed);
-        let lease = LeaseGuard::acquire(lease, r.device_name.clone())?;
+        let lease = LeaseGuard::acquire(lease, &self.engine, r.device_name.clone())?;
 
         let run_secs = stim_secs + tail + 1.0;
         let cap = Probe::capacity_for(run_secs, 96_000);
         let (in_probe, out_probe) = (Arc::new(Probe::with_capacity(cap)), Arc::new(Probe::with_capacity(cap)));
         let (in_shared, out_shared) = (Arc::new(Shared::default()), Arc::new(Shared::default()));
-        let (input, in_notes) = self.open_input(r.device_name.as_deref(), Some(stim.sample_rate), r.buffer_frames, &in_probe, &in_shared);
+        let (input, in_notes) = self.open_input(r.device_name.as_deref(), Some(stim.sample_rate), r.buffer_frames, &in_probe, &in_shared, &lease.cancel);
 
         let mut handle = None;
         let mut out_notes = OpenNotes::default();
@@ -1078,7 +1118,11 @@ impl Tuner {
                 stim.clone(),
                 BufferOpts { level_dbfs: level, cap_dbfs: None, looped: false, ramp_ms: Some(audio_out::MIN_RAMP_MS) },
             );
-            let (h, notes) = self.play(r.out_device.clone(), Some(meta.sample_rate), r.buffer_frames, req, &out_probe, &out_shared, Some(align.clone()));
+            let (h, notes) = if self.abort_gen.load(Relaxed) == gen && lease.still_held() {
+                self.play(r.out_device.clone(), Some(meta.sample_rate), r.buffer_frames, req, &out_probe, &out_shared, Some(align.clone()), &lease.cancel)
+            } else {
+                (None, OpenNotes::default())
+            };
             handle = h;
             out_notes = notes;
         } else {
@@ -1089,57 +1133,69 @@ impl Tuner {
         let hard = Duration::from_secs_f64(run_secs + 5.0).min(HARD_TIMEOUT);
         let mut last_progress: Option<Instant> = None;
         let mut finished_at: Option<Instant> = None;
-        let ended = match (input.as_mut(), handle) {
-            (Some(side), Some(h)) => {
-                let acc = acc.as_mut().expect("accumulator exists when the input opened");
-                let channels = in_notes.meta.as_ref().map(|m| m.channels as usize).unwrap_or(2);
-                loop {
-                    acc.drain(&mut side.consumer, channels);
-                    self.engine.tick();
-                    if acc.tracks.iter().any(|t| t.clipped_l + t.clipped_r > 0) {
-                        self.engine.stop(h);
-                        break RunEnd::Clipped;
+        let ended = if self.abort_gen.load(Relaxed) != gen {
+            RunEnd::Aborted
+        } else if !lease.still_held() {
+            RunEnd::Preempted
+        } else {
+            match (input.as_mut(), handle) {
+                (Some(side), Some(h)) => {
+                    let acc = acc.as_mut().expect("accumulator exists when the input opened");
+                    let channels = in_notes.meta.as_ref().map(|m| m.channels as usize).unwrap_or(2);
+                    loop {
+                        acc.drain(&mut side.consumer, channels);
+                        self.engine.tick();
+                        if acc.tracks.iter().any(|t| t.clipped_l + t.clipped_r > 0) {
+                            self.engine.stop(h);
+                            break RunEnd::Clipped;
+                        }
+                        if self.abort_gen.load(Relaxed) != gen {
+                            break RunEnd::Aborted;
+                        }
+                        if !lease.still_held() {
+                            break RunEnd::Preempted;
+                        }
+                        if in_shared.is_fatal() {
+                            break RunEnd::DeviceLost;
+                        }
+                        match self.engine.ended_reason(h) {
+                            Some(EndReason::Finished) => {
+                                let t = *finished_at.get_or_insert_with(Instant::now);
+                                if t.elapsed().as_secs_f64() >= tail {
+                                    break RunEnd::Completed;
+                                }
+                            }
+                            Some(EndReason::DeviceError) | Some(EndReason::RenderFault) | Some(EndReason::Disabled) => break RunEnd::DeviceLost,
+                            Some(_) => break RunEnd::Aborted,
+                            None => {}
+                        }
+                        if started.elapsed() >= hard {
+                            break RunEnd::Timeout;
+                        }
+                        if last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_INTERVAL) {
+                            last_progress = Some(Instant::now());
+                            progress(&Progress { phase: "roundtrip".into(), step: r.step, frames: r.buffer_frames, elapsed_sec: started.elapsed().as_secs_f64() });
+                        }
+                        thread::sleep(LOOP_SLEEP);
                     }
-                    if self.abort_gen.load(Relaxed) != gen {
-                        break RunEnd::Aborted;
+                }
+                (Some(_), None) => {
+                    // Duplex unavailable (spike outcome D): still learn the input's
+                    // period, so the report says what the open side runs.
+                    let t = Instant::now();
+                    while in_probe.callbacks() < 3 && t.elapsed() < PROBE_ONLY_WAIT && self.abort_gen.load(Relaxed) == gen && lease.still_held() {
+                        thread::sleep(LOOP_SLEEP);
                     }
                     if !lease.still_held() {
-                        break RunEnd::Preempted;
+                        RunEnd::Preempted
+                    } else if self.abort_gen.load(Relaxed) != gen {
+                        RunEnd::Aborted
+                    } else {
+                        RunEnd::NoStreams
                     }
-                    if in_shared.is_fatal() {
-                        break RunEnd::DeviceLost;
-                    }
-                    match self.engine.ended_reason(h) {
-                        Some(EndReason::Finished) => {
-                            let t = *finished_at.get_or_insert_with(Instant::now);
-                            if t.elapsed().as_secs_f64() >= tail {
-                                break RunEnd::Completed;
-                            }
-                        }
-                        Some(EndReason::DeviceError) | Some(EndReason::RenderFault) | Some(EndReason::Disabled) => break RunEnd::DeviceLost,
-                        Some(_) => break RunEnd::Aborted,
-                        None => {}
-                    }
-                    if started.elapsed() >= hard {
-                        break RunEnd::Timeout;
-                    }
-                    if last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_INTERVAL) {
-                        last_progress = Some(Instant::now());
-                        progress(&Progress { phase: "roundtrip".into(), step: r.step, frames: r.buffer_frames, elapsed_sec: started.elapsed().as_secs_f64() });
-                    }
-                    thread::sleep(LOOP_SLEEP);
                 }
+                _ => RunEnd::NoStreams,
             }
-            (Some(_), None) => {
-                // Duplex unavailable (spike outcome D): still learn the input's
-                // period, so the report says what the open side runs.
-                let t = Instant::now();
-                while in_probe.callbacks() < 3 && t.elapsed() < PROBE_ONLY_WAIT && self.abort_gen.load(Relaxed) == gen {
-                    thread::sleep(LOOP_SLEEP);
-                }
-                RunEnd::NoStreams
-            }
-            _ => RunEnd::NoStreams,
         };
         if let Some(h) = handle {
             self.engine.stop(h);
@@ -2205,6 +2261,7 @@ pub async fn buffer_recommendation_latest(app: AppHandle, device_name: String) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::capture::LeaseKind;
     use serde_json::json;
 
     // ------------------------------------------------- synthetic duplex device
@@ -2407,6 +2464,74 @@ mod tests {
 
     fn tuner(f: &Arc<Fake>) -> Tuner {
         Tuner::new(f.clone(), "WASAPI")
+    }
+
+    /// Driver barriers exercise cancellation at input open, after an output
+    /// callback was constructed, and while input close awaits acknowledgment.
+    #[derive(Clone, Copy)]
+    enum DriverBarrier { InputOpen, OutputOpen, InputClose }
+
+    struct DelayedDriver {
+        inner: Arc<Fake>,
+        at: DriverBarrier,
+        reached: mpsc::SyncSender<()>,
+        resume: Mutex<mpsc::Receiver<()>>,
+        output_opens: AtomicU64,
+        late_output_silent: AtomicBool,
+    }
+
+    impl DelayedDriver {
+        fn new(at: DriverBarrier) -> (Arc<Self>, mpsc::Receiver<()>, mpsc::SyncSender<()>) {
+            let (reached, receiver) = mpsc::sync_channel(1);
+            let (resume, sender) = mpsc::sync_channel(1);
+            (Arc::new(Self {
+                inner: Fake::new(Policy::Honour, Policy::Honour), at, reached,
+                resume: Mutex::new(sender), output_opens: AtomicU64::new(0), late_output_silent: AtomicBool::new(false),
+            }), receiver, resume)
+        }
+
+        fn wait(&self) {
+            self.reached.send(()).unwrap();
+            lock(&self.resume).recv_timeout(Duration::from_secs(5)).unwrap();
+        }
+    }
+
+    impl StreamFactory for DelayedDriver {
+        fn open_input(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeInput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+            if matches!(self.at, DriverBarrier::InputOpen) { self.wait(); }
+            let (meta, handle) = self.inner.open_input(device, rate, buffer, make, on_error)?;
+            if !matches!(self.at, DriverBarrier::InputClose) { return Ok((meta, handle)); }
+            // The native close cannot return until this driver acknowledgment.
+            let reached = self.reached.clone();
+            let (resume_tx, resume_rx) = mpsc::sync_channel(1);
+            // Move the one receiver into the close thread; leave a disconnected
+            // placeholder so the factory remains Sync and no mutex spans join.
+            let resume = std::mem::replace(&mut *lock(&self.resume), resume_rx);
+            drop(resume_tx);
+            let stop = Arc::new(AtomicBool::new(false));
+            let stopping = stop.clone();
+            let thread = thread::spawn(move || {
+                while !stopping.load(Relaxed) { thread::sleep(Duration::from_millis(1)); }
+                reached.send(()).unwrap();
+                resume.recv_timeout(Duration::from_secs(5)).unwrap();
+                handle.close();
+            });
+            Ok((meta, StreamHandle::new(stop, thread)))
+        }
+
+        fn open_output(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeOutput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+            self.output_opens.fetch_add(1, Relaxed);
+            if !matches!(self.at, DriverBarrier::OutputOpen) {
+                return self.inner.open_output(device, rate, buffer, make, on_error);
+            }
+            let mut callback = make(RATE, 2)?;
+            self.wait();
+            let mut out = [1.0; 32];
+            callback(&mut out, 2);
+            self.late_output_silent.store(out.iter().all(|x| *x == 0.0), Relaxed);
+            let (_, handle) = Fake::handle();
+            Ok((StreamMeta { device_name: "Delayed Out".into(), sample_rate: RATE, channels: 2 }, handle))
+        }
     }
 
     fn stress_req(frames: Option<u32>, seconds: f64, load: u32) -> StressRequest {
@@ -2868,6 +2993,91 @@ mod tests {
     // ------------------------------------------------- abort, lease, busy
 
     #[test]
+    fn preempt_during_input_open_keeps_ownership_and_never_starts_output() {
+        let (driver, reached, resume) = DelayedDriver::new(DriverBarrier::InputOpen);
+        let tuner = Arc::new(Tuner::new(driver.clone(), "fake"));
+        let state = LiveCaptureState::default();
+        let worker = {
+            let (tuner, lease) = (tuner.clone(), state.lease.clone());
+            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+        };
+        reached.recv_timeout(Duration::from_secs(5)).unwrap();
+        let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
+        let busy = state.lease.acquire("successor", None, LeaseKind::Bounded).is_err();
+        let restore_blocked = state.lease.reserve_restore().is_err();
+        resume.send(()).unwrap();
+        let result = worker.join().unwrap().unwrap();
+        assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
+        assert!(busy && restore_blocked);
+        assert_eq!(result.ended, RunEnd::Preempted);
+        assert_eq!(driver.output_opens.load(Relaxed), 0);
+        assert!(!state.lease.is_held());
+    }
+
+    #[test]
+    fn preempt_during_output_open_mutes_the_late_driver_callback() {
+        let (driver, reached, resume) = DelayedDriver::new(DriverBarrier::OutputOpen);
+        let tuner = Arc::new(Tuner::new(driver.clone(), "fake"));
+        let state = LiveCaptureState::default();
+        let worker = {
+            let (tuner, lease) = (tuner.clone(), state.lease.clone());
+            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+        };
+        reached.recv_timeout(Duration::from_secs(5)).unwrap();
+        let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
+        let busy = state.lease.acquire("successor", None, LeaseKind::Live).is_err();
+        resume.send(()).unwrap();
+        let result = worker.join().unwrap().unwrap();
+        assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
+        assert!(busy && driver.late_output_silent.load(Relaxed));
+        assert_eq!(driver.output_opens.load(Relaxed), 1);
+        assert_eq!(result.ended, RunEnd::Preempted);
+        assert!(!state.lease.is_held());
+    }
+
+    #[test]
+    fn managed_owner_releases_only_after_input_close_acknowledgment() {
+        let (driver, reached, resume) = DelayedDriver::new(DriverBarrier::InputClose);
+        let tuner = Arc::new(Tuner::new(driver, "fake"));
+        let state = LiveCaptureState::default();
+        let worker = {
+            let (tuner, lease) = (tuner.clone(), state.lease.clone());
+            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+        };
+        reached.recv_timeout(Duration::from_secs(5)).unwrap();
+        let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
+        let busy = state.lease.acquire("successor", None, LeaseKind::Stream).is_err();
+        let restore_blocked = state.lease.reserve_restore().is_err();
+        resume.send(()).unwrap();
+        worker.join().unwrap().unwrap();
+        assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
+        assert!(busy && restore_blocked);
+        assert!(!state.lease.is_held());
+        let next = state.lease.acquire("successor", None, LeaseKind::Stream).unwrap();
+        state.lease.release(next.lease_id);
+    }
+
+    #[test]
+    fn cancelled_stress_input_open_does_not_start_output_or_load() {
+        let (driver, reached, resume) = DelayedDriver::new(DriverBarrier::InputOpen);
+        let tuner = Arc::new(Tuner::new(driver.clone(), "fake"));
+        let state = LiveCaptureState::default();
+        let worker = {
+            let lease = state.lease.clone();
+            thread::spawn(move || tuner.stress(&lease, &stress_req(Some(256), 10.0, 80), &no_progress))
+        };
+        reached.recv_timeout(Duration::from_secs(5)).unwrap();
+        let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
+        resume.send(()).unwrap();
+        let result = worker.join().unwrap().unwrap();
+        assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
+        assert_eq!(result.ended, RunEnd::Preempted);
+        assert_eq!(result.load_threads, 0);
+        assert_eq!(driver.output_opens.load(Relaxed), 0);
+        assert!(!state.lease.is_held());
+    }
+
+    #[test]
     fn esc_aborts_within_a_second_and_stops_the_load() {
         let f = Fake::new(Policy::Honour, Policy::Honour);
         let t = Arc::new(tuner(&f));
@@ -2903,7 +3113,7 @@ mod tests {
         thread::sleep(Duration::from_millis(150));
         let mine = lease.current().unwrap();
         assert_eq!(mine.holder, HOLDER);
-        lease.release(mine.lease_id); // what capture_preempt does for an External lease
+        lease.preempt_external(mine.lease_id); // managed preemption requests owner shutdown
         let r = run.join().unwrap().unwrap();
         assert_eq!(r.ended, RunEnd::Preempted);
     }

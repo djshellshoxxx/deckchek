@@ -64,7 +64,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] FS-20 Used-gear certificate (`certificates`): signing, strict verifier, Certificates and Verify screens.
 - [x] FS-21 Unit vs population (`population`, `packs`): Compare tabs, anonymous packs, migration 0022.
 - [x] FS-22 Service worksheets (`service`): jobs, work log, job sheet, device-runner job mode.
-- [x] FS-23 Venue fleet dashboard (`fleet`, default on): grid, placement, reminders, booth sheet, banner.
+- [x] FS-23 Venue fleet dashboard (`fleet`, default off): grid, placement, reminders, booth sheet, banner.
 - [x] FS-30 Mobile companion and phone import (`phoneImport`).
 - [x] FS-31 Timecode doctor live monitor (`liveMonitor`): engine, session logs, tray (Windows/macOS).
 - [x] FS-32 MIDI mapper studio (`mapperStudio`): Mixxx and VirtualDJ round trip, Serato/Traktor reports.
@@ -74,9 +74,14 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] FS-31: WASAPI-shared capture beside DJ software (H-31 steps 1-6); negative-SNR residual (noise louder than the carrier reads as cueing).
 - [ ] FS-32: confirm the VirtualDJ file format against a real install (H-32 step 7).
 - [ ] FS-33: verify the GitHub Pages guide wording (H-33).
-- [ ] FS-21: manual privacy review of an exported pack. FS-23: real-database walkthrough before keeping the default on.
+- [ ] FS-21: manual privacy review of an exported pack. FS-23: real-database walkthrough before enabling fleet by default.
 - [ ] FS-20: PDF-embedded JSON is not possible with WebView2 `PrintToPdf` (sidecar JSON only); revisit if a PDF library is adopted.
 - [ ] Register the notification plugin and its capability if FS-23 reminders should raise OS notifications (currently an in-app banner only).
+
+## M6 (implemented behind default-off flags)
+
+- [x] Pre-gig check, latency/buffer tuner, stylus wear, control-vinyl wear map, scratch stress test, hum and feedback hunter, phone import and mobile companion (see docs/IMPLEMENTATION-STATUS.md).
+- [ ] Flip each flag on only after its owner hardware script passes.
 
 ## Active beta validation gates
 

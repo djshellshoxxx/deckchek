@@ -15,6 +15,9 @@ const profile = {
 
 test('parseMessage', () => {
   assert.deepEqual(parseMessage([0x91, 60, 100]), { kind: 'note-on', channel: 2, number: 60, value: 100 });
+  assert.deepEqual(parseMessage(new Uint8Array([0x91, 60, 100])), { kind: 'note-on', channel: 2, number: 60, value: 100 });
+  assert.deepEqual(parseMessage(new Uint16Array([0x91, 60, 100])), { kind: 'note-on', channel: 2, number: 60, value: 100 });
+  assert.deepEqual(parseMessage(new Float32Array([0x91, 60, 100])), { kind: 'note-on', channel: 2, number: 60, value: 100 });
   assert.equal(parseMessage([0x90, 60, 0]).kind, 'note-off');
   assert.equal(parseMessage([0x80, 60, 5]).kind, 'note-off');
   assert.deepEqual(parseMessage([0xbf, 7, 99]), { kind: 'cc', channel: 16, number: 7, value: 99 });
@@ -24,6 +27,42 @@ test('parseMessage', () => {
   assert.equal(parseMessage([0xf0, 1, 2, 0xf7]).kind, 'sysex');
   assert.equal(parseMessage([0xf8]).kind, 'clock');
   assert.equal(parseMessage([0xfe]).kind, 'other');
+});
+
+test('parseMessage rejects malformed packets without inventing channel values', () => {
+  const neutral = { kind: 'other', channel: null, number: null, value: null };
+  const malformed = [
+    [], [0x90], [0x90, 60], [0x90, 60, 100, 0],
+    [0xc0], [0xc0, 3, 0], [0xb0, 7], [0xe0, 0, 64, 0],
+    [0x90, -1, 100], [0x90, 128, 100], [0x90, 60, 128],
+    [0x90, 60.5, 100], [0x90, 60, NaN], [256, 60, 100],
+    new Float32Array([0x90, 60.5, 100]), new Uint16Array([0x90, 0x13c, 100]),
+    [0xf0, 1, 2], [0xf0, 1, 0xf7, 2], [0xf0, 0x80, 0xf7], [0xf8, 0],
+  ];
+  for (const packet of malformed) assert.deepEqual(parseMessage(packet), neutral, `${packet}`);
+  assert.equal(parseMessage([0xf0, 0xf7]).kind, 'sysex');
+  assert.equal(parseMessage(new Uint8Array([0xe0, 0x7f, 0x7f])).value14, 16383);
+});
+
+test('malformed packets cannot affect control matching, coverage, or learn', () => {
+  const malformed = [parseMessage([0xb1, 1]), parseMessage([0x90, 11, 128]), parseMessage([0xe0, 0, 64, 0])];
+  const pairState = {};
+  for (const msg of malformed) assert.equal(matchControl(profile, msg, pairState), null);
+  assert.deepEqual(pairState, {});
+
+  const mapped = createCoverageSession(profile);
+  for (const msg of malformed) mapped.ingest(msg);
+  const mapReport = mapped.report();
+  assert.equal(mapReport.totalMessages, 0);
+  assert.equal(mapReport.percentSeen, 0);
+  assert.equal(mapReport.unexpected.length, 0);
+  assert.ok(mapReport.controls.every((control) => !control.seen));
+
+  const learned = createCoverageSession({ mapSource: 'learn', controls: [] });
+  for (const msg of malformed) learned.ingest(msg);
+  const learnReport = learned.report();
+  assert.equal(learnReport.totalMessages, 0);
+  assert.deepEqual(learnReport.discovered, []);
 });
 
 test('matchControl incl cc14 pairing and pitchbend', () => {
@@ -138,4 +177,17 @@ test('buildLedSequence', () => {
   assert.deepEqual(seq.map((s) => s.bytes), [[0x90, 11, 127], [0x80, 11, 0], [0xb2, 9, 127], [0xb2, 9, 0]]);
   assert.equal(buildLedSequence(profile, ['gain']).length, 2);
   assert.equal(buildLedSequence(profile, ['fader']).length, 0);
+});
+
+
+test('long MIDI sessions retain all fader and timing evidence without argument-limit failures', () => {
+  const count = 150000;
+  const fader = analyzeFader(Array.from({ length: count }, (_, i) => ({ value: i % 128 })));
+  assert.equal(fader.min, 0);
+  assert.equal(fader.max, 127);
+  assert.equal(fader.distinct, 128);
+  const timing = analyzeTiming(Array.from({ length: count }, (_, i) => i * 1000));
+  assert.equal(timing.count, count);
+  assert.equal(timing.maxIntervalMs, 1);
+  assert.equal(timing.jitterMs, 0);
 });

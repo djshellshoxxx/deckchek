@@ -210,6 +210,8 @@ pub struct CreateResult {
     pub kind: Kind,
     pub counts: Counts,
     pub schema_version: i64,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -293,12 +295,15 @@ pub struct ImportResult {
 }
 
 /// Where backups operate. `gate` is the FS-00 connection gate in the app; tests pass their own.
+#[derive(Clone)]
 pub struct Ctx {
     pub live_db: PathBuf,
     pub backups_dir: PathBuf,
     pub gate: &'static RwLock<()>,
     /// Whether a live capture is running; restore is refused while it is.
     pub capture_running: CaptureCheck,
+    /// The same activity state all native capture leases acquire.
+    pub activity: crate::capture::CaptureLease,
 }
 
 pub type CaptureCheck = std::sync::Arc<dyn Fn() -> bool + Send + Sync>;
@@ -577,23 +582,36 @@ fn photo_entry_sha(name: &str) -> Option<&str> {
 
 /// Photos referenced by the snapshot's `photo` table whose file is present and still matches its
 /// hash: (archive entry name, file path, bytes). Missing or damaged files are left out, not fatal.
-fn photo_files(snap: &Path, photos_dir: &Path) -> Vec<(String, PathBuf, ManifestFile)> {
-    let Ok(c) = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY) else { return Vec::new() };
-    let Ok(mut st) = c.prepare("SELECT sha256 FROM photo ORDER BY sha256") else { return Vec::new() };
-    let Ok(rows) = st.query_map([], |r| r.get::<_, String>(0)) else { return Vec::new() };
+fn photo_files(snap: &Path, photos_dir: &Path) -> Result<(Vec<(String, PathBuf, ManifestFile)>, usize), BackupError> {
+    let c = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| sql_err("read snapshot photos", e))?;
+    // Migration 0013 introduced the photo store. Old snapshots legitimately
+    // have no photo table; do not migrate the snapshot or hide a missing table
+    // in a schema that claims that migration has already run.
+    if schema_version(&c)? < 13 {
+        let exists: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'photo' COLLATE NOCASE)", [], |r| r.get(0))
+            .map_err(|e| sql_err("read snapshot photos", e))?;
+        if !exists {
+            return Ok((Vec::new(), 0));
+        }
+    }
+    let mut st = c.prepare("SELECT sha256 FROM photo ORDER BY sha256").map_err(|e| sql_err("read snapshot photos", e))?;
+    let rows = st.query_map([], |r| r.get::<_, String>(0)).map_err(|e| sql_err("read snapshot photos", e))?;
     let mut out = Vec::new();
-    for sha in rows.flatten() {
+    let mut skipped = 0;
+    for sha in rows {
+        let sha = sha.map_err(|e| sql_err("read snapshot photos", e))?;
         let name = format!("{PHOTO_PREFIX}{sha}.jpg");
         if photo_entry_sha(&name).is_none() {
+            skipped += 1;
             continue;
         }
         let path = photos_dir.join(format!("{sha}.jpg"));
         match sha_file(&path) {
             Ok((bytes, hash)) if hash == sha && bytes <= crate::photo::MAX_PHOTO_BYTES as u64 => out.push((name.clone(), path, ManifestFile { name, bytes, sha256: hash })),
-            _ => {}
+            _ => skipped += 1,
         }
     }
-    out
+    Ok((out, skipped))
 }
 
 fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupError> {
@@ -850,6 +868,12 @@ fn check_backup_space(dest: &Path, live_bytes: u64) -> Result<(), BackupError> {
 /// gate (read for normal backups, write during restore). Nothing at `dest` changes
 /// unless the finished archive re-verifies.
 pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBlob, progress: &mut dyn FnMut(u64, u64)) -> Result<CreateResult, BackupError> {
+    create_backup_with(live, dest, kind, settings, progress, &mut || {})
+}
+
+/// The hook runs after the SQLite snapshot has closed; tests synchronize an
+/// unlink here to verify that the snapshot's photo bytes remain protected.
+fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBlob, progress: &mut dyn FnMut(u64, u64), after_snapshot: &mut dyn FnMut()) -> Result<CreateResult, BackupError> {
     check_dest(live, dest)?;
     if !live.is_file() {
         return Err(BackupError::new("no_database", "There is no database to back up yet."));
@@ -859,6 +883,10 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         return Err(BackupError::new("too_large", "The database is larger than 2 GiB and cannot be backed up to a single file."));
     }
     check_backup_space(dest, live_bytes)?;
+    // DB gate -> photo file gate -> SQLite locks. Keep bytes referenced by the
+    // snapshot alive until the zip has finished reading them, even if unlink
+    // commits after the snapshot. No DB command lane is held or awaited here.
+    let _photos = crate::photo::snapshot_files();
     let snap = sidecar(dest, ".snapshot");
     let partial = sidecar(dest, ".partial");
     let mut temps = TempFiles(vec![snap.clone(), sidecar(&snap, "-journal"), partial.clone()]);
@@ -866,6 +894,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         remove_quietly(p);
     }
     snapshot_db(live, &snap, progress)?;
+    after_snapshot();
 
     let (counts_db, schema, midi) = {
         let c = Connection::open_with_flags(&snap, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| sql_err("read the snapshot", e))?;
@@ -878,7 +907,10 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
         (counts, schema_version(&c)?, midi_maps_json(&c)?)
     };
     let counts = Counts { profiles: calibration_count(settings.calibration.as_ref()), ..counts_db };
-    let photos = photo_files(&snap, &live.parent().unwrap_or(Path::new(".")).join("photos"));
+    let (photos, skipped_photos) = photo_files(&snap, &live.parent().unwrap_or(Path::new(".")).join("photos"))?;
+    let warnings = if skipped_photos == 0 { Vec::new() } else {
+        vec![format!("{skipped_photos} photo(s) were missing or damaged and were omitted from this backup.")]
+    };
 
     let mut blobs: Vec<(&str, Vec<u8>)> = Vec::new();
     if let Some(ui) = settings.ui.as_ref().filter(|v| !v.is_null()) {
@@ -914,7 +946,7 @@ pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBl
     fs::rename(&partial, dest).map_err(|e| io_err("save the backup file", e))?;
     temps.disarm();
     let bytes = fs::metadata(dest).map(|m| m.len()).unwrap_or(0);
-    Ok(CreateResult { path: dest.to_string_lossy().into_owned(), bytes, created_at: manifest.created_at, kind, counts, schema_version: schema })
+    Ok(CreateResult { path: dest.to_string_lossy().into_owned(), bytes, created_at: manifest.created_at, kind, counts, schema_version: schema, warnings })
 }
 
 fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(&str, Vec<u8>)], photos: &[(String, PathBuf, ManifestFile)]) -> Result<(), BackupError> {
@@ -1010,6 +1042,10 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     if (ctx.capture_running)() {
         return Err(capture_blocked());
     }
+    // Atomically reserve activity before preparing files or waiting on the DB
+    // gate. The reservation holds no mutex; capture cleanup never needs the DB
+    // gate, and every capture acquire observes this flag under its own mutex.
+    let _activity = ctx.activity.reserve_restore().map_err(|()| capture_blocked())?;
     let manifest = verify_archive(path)?;
     let live = ctx.live_db.as_path();
     let tmp = restore_tmp(live);
@@ -1105,11 +1141,17 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 /// (AUD-05). Best effort after the database swap: skipped photos are counted in one warning,
 /// never an error, because the restored database is already in place.
 fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_dir: &Path, warnings: &mut Vec<String>) {
+    let _files = crate::photo::mutate_files();
     let all: Vec<(&ManifestFile, &str)> = manifest.files.iter().filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha))).collect();
+    let referenced = referenced_photo_shas(restored_db);
+    let included: std::collections::HashSet<&str> = all.iter().map(|(_, sha)| *sha).collect();
+    let absent = referenced.iter().filter(|sha| !included.contains(sha.as_str())).count();
+    if absent > 0 {
+        warnings.push(format!("{absent} referenced photo(s) are absent from this backup; existing local copies, if any, were kept."));
+    }
     if all.is_empty() {
         return;
     }
-    let referenced = referenced_photo_shas(restored_db);
     let (wanted, unreferenced): (Vec<_>, Vec<_>) = all.into_iter().partition(|(_, sha)| referenced.contains(*sha));
     let mut failed = unreferenced.len();
     let result = (|| -> Result<(), BackupError> {
@@ -1120,7 +1162,7 @@ fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_d
         let mut archive = open_archive(path, &LIMITS)?;
         for (f, sha) in wanted {
             let target = photos_dir.join(format!("{sha}.jpg"));
-            if fs::metadata(&target).map(|m| m.is_file() && m.len() == f.bytes).unwrap_or(false) {
+            if sha_file(&target).is_ok_and(|(n, hash)| n == f.bytes && hash == sha) {
                 continue;
             }
             let tmp = sidecar(&target, ".restore-tmp");
@@ -1529,8 +1571,9 @@ fn app_ctx(app: &AppHandle) -> Result<Ctx, BackupError> {
     let dir = app.path().app_data_dir().map_err(|e| BackupError::new("io", e.to_string()))?.join("backups");
     fs::create_dir_all(&dir).map_err(|e| io_err("create the backups folder", e))?;
     let capture = app.try_state::<crate::capture::LiveCaptureState>().map(|s| s.inner().clone());
+    let activity = capture.as_ref().map(|s| s.lease.clone()).unwrap_or_default();
     let capture_running: CaptureCheck = std::sync::Arc::new(move || capture.as_ref().is_some_and(crate::capture::is_running));
-    Ok(Ctx { live_db: live, backups_dir: dir, gate: db::gate(), capture_running })
+    Ok(Ctx { live_db: live, backups_dir: dir, gate: db::gate(), capture_running, activity })
 }
 
 /// Opens (creating and migrating if needed) the live DB through the gate.
@@ -1617,7 +1660,7 @@ pub async fn backup_restore(app: AppHandle, path: String, confirm: bool, setting
         if let Ok(conn) = open_live(&ctx) {
             if let Some(safety) = &result.safety_backup {
                 if let Some(entry) = entry_for(Path::new(safety)) {
-                    let r = CreateResult { path: entry.path, bytes: entry.bytes, created_at: entry.created_at, kind: Kind::PreRestore, counts: Counts::default(), schema_version: result.schema_version };
+                    let r = CreateResult { path: entry.path, bytes: entry.bytes, created_at: entry.created_at, kind: Kind::PreRestore, counts: Counts::default(), schema_version: result.schema_version, warnings: Vec::new() };
                     let _ = log_backup(&conn, &r, true);
                 }
             }
@@ -1774,7 +1817,7 @@ mod tests {
             fs::create_dir_all(root.join("app data").join("backups")).unwrap();
             fs::create_dir_all(root.join("out")).unwrap();
             let gate: &'static RwLock<()> = Box::leak(Box::new(RwLock::new(())));
-            let ctx = Ctx { live_db: root.join("app data").join("deckchek.sqlite3"), backups_dir: root.join("app data").join("backups"), gate, capture_running: no_capture() };
+            let ctx = Ctx { live_db: root.join("app data").join("deckchek.sqlite3"), backups_dir: root.join("app data").join("backups"), gate, capture_running: no_capture(), activity: Default::default() };
             Env { root, ctx }
         }
         fn out(&self, name: &str) -> PathBuf {
@@ -2326,7 +2369,7 @@ mod tests {
         make_db(&src, "src", 1);
         let good = backup_of(&env, &src, "good.deckchek-backup");
         let before = fs::read(env.live()).unwrap();
-        let running = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: std::sync::Arc::new(|| true) };
+        let running = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: std::sync::Arc::new(|| true) };
         let e = restore_backup(&running, &good, true, &SettingsBlob::default(), None).unwrap_err();
         assert_eq!(e.code, "capture_running");
         assert!(e.message.starts_with("Stop the capture before restoring"));
@@ -2336,9 +2379,51 @@ mod tests {
         // a capture that starts while the copy is being prepared is caught at the swap
         let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let c2 = calls.clone();
-        let late = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: std::sync::Arc::new(move || c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0) };
+        let late = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: std::sync::Arc::new(move || c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0) };
         assert_eq!(restore_backup(&late, &good, true, &SettingsBlob::default(), None).unwrap_err().code, "capture_running");
         assert_eq!(fs::read(env.live()).unwrap(), before);
+        no_restore_leftovers(&env);
+    }
+
+    #[test]
+    fn restore_reserves_capture_activity_through_the_swap_and_cleans_up_errors() {
+        use crate::capture::LeaseKind;
+        use std::sync::Arc;
+        let env = Env::new("restore-activity");
+        make_db(env.live(), "live", 1);
+        let src = env.out("src.sqlite3");
+        make_db(&src, "src", 2);
+        let good = backup_of(&env, &src, "activity.deckchek-backup");
+        let (reached_tx, reached_rx) = std::sync::mpsc::sync_channel(1);
+        let (resume_tx, resume_rx) = std::sync::mpsc::sync_channel(1);
+        let resume_rx = Mutex::new(resume_rx);
+        let calls = std::sync::atomic::AtomicUsize::new(0);
+        let mut ctx = env.ctx.clone();
+        ctx.capture_running = Arc::new(move || {
+            if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 1 {
+                reached_tx.send(()).unwrap(); // final idle check, DB gate + reservation held
+                resume_rx.lock().unwrap().recv_timeout(Duration::from_secs(5)).unwrap();
+            }
+            false
+        });
+        let archive = good.clone();
+        let worker = std::thread::spawn(move || restore_backup(&ctx, &archive, true, &settings(), None));
+        reached_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        let gate_held = env.ctx.gate.try_read().is_err();
+        let all_blocked = [LeaseKind::Live, LeaseKind::Stream, LeaseKind::Bounded, LeaseKind::External]
+            .into_iter().all(|kind| env.ctx.activity.acquire("during-restore", None, kind).is_err());
+        resume_tx.send(()).unwrap();
+        worker.join().unwrap().unwrap();
+        assert!(gate_held && all_blocked);
+        assert_eq!(rows(env.live(), "session"), 2);
+        for fail in [FailPoint::Migration, FailPoint::AfterSafetyBackup, FailPoint::MidSwap, FailPoint::AfterSwap] {
+            assert!(restore_backup(&env.ctx, &good, true, &settings(), Some(fail)).is_err());
+            let grant = env.ctx.activity.acquire("after-error", None, LeaseKind::Bounded).unwrap();
+            assert!(env.ctx.activity.release(grant.lease_id));
+        }
+        let grant = env.ctx.activity.acquire("already-running", None, LeaseKind::Live).unwrap();
+        assert_eq!(restore_backup(&env.ctx, &good, true, &settings(), None).unwrap_err().code, "capture_running");
+        env.ctx.activity.release(grant.lease_id);
         no_restore_leftovers(&env);
     }
 
@@ -2505,7 +2590,7 @@ mod tests {
         // safety backup cannot be written (backups "folder" is a file): nothing restored
         let blocked_dir = env.root.join("not-a-dir");
         fs::write(&blocked_dir, b"x").unwrap();
-        let ctx2 = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: blocked_dir.join("backups"), gate: env.ctx.gate, capture_running: no_capture() };
+        let ctx2 = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: blocked_dir.join("backups"), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: no_capture() };
         assert!(restore_backup(&ctx2, &good, true, &none, None).is_err());
         assert_untouched(&env, &before, "safety backup failed");
 
@@ -2532,7 +2617,7 @@ mod tests {
         let good = backup_of(&env, &src, "good.deckchek-backup");
         let reader = env.ctx.gate.read().unwrap();
         let handle = {
-            let ctx = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, capture_running: no_capture() };
+            let ctx = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: no_capture() };
             std::thread::spawn(move || restore_backup(&ctx, &good, true, &SettingsBlob::default(), None).map(|_| ()))
         };
         std::thread::sleep(Duration::from_millis(300));
@@ -2732,6 +2817,36 @@ mod tests {
 
     // ---------- FS-00 §4.11: photo store in the archive ----------
 
+    #[test]
+    fn snapshot_photos_allow_legacy_absence_but_report_schema_errors() {
+        let env = Env::new("photo-schema-compat");
+        let legacy = env.out("v004.sqlite3");
+        {
+            let c = Connection::open(&legacy).unwrap();
+            c.execute_batch(&fixture_sql()).unwrap();
+            assert_eq!(schema_version(&c).unwrap(), 2);
+        }
+        let photos = env.root.join("photos");
+        let (files, skipped) = photo_files(&legacy, &photos).unwrap();
+        assert!(files.is_empty());
+        assert_eq!(skipped, 0, "a pre-photo schema has no omitted photos");
+        assert_eq!(schema_version(&Connection::open(&legacy).unwrap()).unwrap(), 2, "reading photos must not upgrade a snapshot");
+
+        // An old version does not excuse an unexpected SQL failure when a
+        // photo object exists, such as an edited table without its hash column.
+        Connection::open(&legacy).unwrap().execute_batch("CREATE TABLE Photo (unexpected TEXT);").unwrap();
+        let malformed = photo_files(&legacy, &photos).unwrap_err();
+        assert_eq!(malformed.code, "database");
+        assert!(malformed.message.contains("sha256"));
+
+        let current = env.out("current.sqlite3");
+        make_db(&current, "current", 1);
+        Connection::open(&current).unwrap().execute_batch("DROP TABLE photo;").unwrap();
+        let missing = photo_files(&current, &photos).unwrap_err();
+        assert_eq!(missing.code, "database");
+        assert!(missing.message.contains("no such table"));
+    }
+
     fn attach_photo(env: &Env, owner: &str, seed: u8) -> crate::photo::PhotoAttached {
         use base64::Engine;
         let jpg = crate::photo::test_support::tiny_jpeg(64, 48, &[], seed);
@@ -2788,8 +2903,73 @@ mod tests {
         fs::remove_file(photos.join(format!("{}.jpg", a.sha256))).unwrap();
         fs::write(photos.join(format!("{}.jpg", b.sha256)), b"damaged").unwrap();
         let dest = env.out("skip.deckchek-backup");
-        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        let created = create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        assert_eq!(created.warnings, ["2 photo(s) were missing or damaged and were omitted from this backup."]);
         assert!(verify_archive(&dest).unwrap().files.iter().all(|f| !f.name.starts_with("photos/")));
+        let restored = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
+        assert!(restored.warnings.iter().any(|w| w.starts_with("2 referenced photo(s) are absent")));
+    }
+
+    #[test]
+    fn restoring_a_good_backup_repairs_a_same_length_corrupt_photo() {
+        let env = Env::new("photo-repair");
+        make_db(env.live(), "p", 1);
+        let photo = attach_photo(&env, "asset-1", 8);
+        let path = env.live().parent().unwrap().join("photos").join(format!("{}.jpg", photo.sha256));
+        let original = fs::read(&path).unwrap();
+        let dest = env.out("repair.deckchek-backup");
+        create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        let mut corrupt = original.clone();
+        corrupt[0] ^= 1;
+        fs::write(&path, &corrupt).unwrap();
+        assert_eq!(corrupt.len(), original.len());
+        let restored = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
+        assert!(restored.warnings.is_empty());
+        assert_eq!(fs::read(&path).unwrap(), original);
+        let c = Connection::open(env.live()).unwrap();
+        assert!(crate::photo::read(&c, path.parent().unwrap(), &photo.photo_id).is_ok());
+    }
+
+    #[test]
+    fn backup_keeps_snapshot_photo_bytes_until_concurrent_unlink_finishes() {
+        let env = Env::new("photo-unlink-barrier");
+        make_db(env.live(), "p", 1);
+        let photo = attach_photo(&env, "asset-1", 9);
+        let photos = env.live().parent().unwrap().join("photos");
+        let file = photos.join(format!("{}.jpg", photo.sha256));
+        let (start_tx, start_rx) = std::sync::mpsc::channel();
+        let (committed_tx, committed_rx) = std::sync::mpsc::channel();
+        let (removed_tx, removed_rx) = std::sync::mpsc::channel();
+        let worker = {
+            let (live, photos) = (env.ctx.live_db.clone(), photos.clone());
+            std::thread::spawn(move || {
+                start_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                let mut c = Connection::open(live).unwrap();
+                c.execute_batch("PRAGMA foreign_keys=ON").unwrap();
+                let tx = c.transaction().unwrap();
+                // Same SQL/commit/file order as unlink, with a commit barrier.
+                let (_, pending) = crate::photo::unlink_owner(&tx, &photos, "asset", "asset-1").unwrap();
+                tx.commit().unwrap();
+                committed_tx.send(()).unwrap();
+                let removed = pending.remove_after_commit(&c);
+                removed_tx.send(removed).unwrap();
+            })
+        };
+        let dest = env.out("race.deckchek-backup");
+        let created = create_backup_with(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}, &mut || {
+            start_tx.send(()).unwrap();
+            committed_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+            assert!(file.is_file(), "committing unlink must not remove the snapshot's bytes yet");
+            assert!(removed_rx.try_recv().is_err());
+        }).unwrap();
+        assert!(created.warnings.is_empty());
+        assert_eq!(removed_rx.recv_timeout(Duration::from_secs(5)).unwrap(), 1);
+        worker.join().unwrap();
+        assert!(!file.exists());
+        assert!(verify_archive(&dest).unwrap().files.iter().any(|f| f.name == format!("photos/{}.jpg", photo.sha256)));
+        let restored = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
+        assert!(restored.warnings.is_empty());
+        assert!(file.exists());
     }
 
     #[test]
@@ -2810,8 +2990,15 @@ mod tests {
         assert_eq!(verify_archive(&env.out("tamper2.deckchek-backup")).unwrap_err().code, "checksum");
 
         // names that are not photos/<sha256>.jpg are neither read nor extracted
+        // This subcase has no expected photos; missing referenced photos have
+        // their own regression above and must now produce an explicit warning.
+        {
+            let c = Connection::open(&db_copy).unwrap();
+            c.execute_batch("DELETE FROM photo_link; DELETE FROM photo;").unwrap();
+        }
+        let db_without_photos = fs::read(&db_copy).unwrap();
         let other = env.out("other.deckchek-backup");
-        crafted(&other, 2, &[(DB_ENTRY, &db_bytes), ("photos/notes.txt", b"hi"), ("photos/a.jpg", b"hi"), ("photos/UPPER.jpg", b"hi")]);
+        crafted(&other, 2, &[(DB_ENTRY, &db_without_photos), ("photos/notes.txt", b"hi"), ("photos/a.jpg", b"hi"), ("photos/UPPER.jpg", b"hi")]);
         verify_archive(&other).unwrap();
         let photos = env.live().parent().unwrap().join("photos");
         fs::remove_dir_all(&photos).unwrap();

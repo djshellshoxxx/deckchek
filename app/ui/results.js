@@ -8,12 +8,29 @@ import { METRIC_INFO, metricStatus, verdictFor, SEV_STATUS } from './metrics.js'
 import { linePlot, envelopePlot, scopePlot, eventMapPlot } from './plots.js';
 import { showInspector } from './shell.js';
 import { localRun } from './state.js';
+import { isEnabled } from '../features.js';
+import { createPackApi } from '../pack-api.js';
+import { navigateTo } from './crosslinks.js';
+import { sanitizeUncertainty } from '../export.js';
 
 const pct = v => `${Math.round((v ?? 0) * 100)}%`;
 const unitText = u => (u === 'ratio' || u === 'code' || !u) ? '' : u;
 
+/** Compare accepts only actual attributed units and the same registered quantity shown by this row. */
+export function resultCompareParams(run, measurement, table, rows) {
+  const assetId = run?.assetId ?? run?.deviceId;
+  const metric = measurement?.metricId;
+  if (typeof assetId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(assetId)
+    || typeof metric !== 'string' || !Object.hasOwn(table?.metrics ?? {}, metric)) return null;
+  const def = table.metrics[metric];
+  if (!Number.isFinite(measurement.value) || measurement.unit !== def.unit
+    || (measurement.origin ?? 'measured') !== 'measured' || (measurement.qualityFlags ?? []).length) return null;
+  if (!rows?.some(r => r.assetId === assetId && r.metric === metric && r.unit === def.unit)) return null;
+  return { assetId, metric };
+}
+
 export function uncertaintyText(m) {
-  const u = m?.uncertainty;
+  const u = sanitizeUncertainty(m?.uncertainty);
   const value = typeof u === 'number' ? u : u?.expanded;
   if (!Number.isFinite(value)) return null;
   return `± ${formatNumber(value, { digits: value < .01 ? 4 : value < 1 ? 3 : 2 })}`;
@@ -29,7 +46,13 @@ function calBadge(m) {
 export function metricDetails(m, run) {
   const info = METRIC_INFO[m.metricId] || {};
   const status = metricStatus(m);
-  const u = m.uncertainty && typeof m.uncertainty === 'object' ? m.uncertainty : null;
+  const uncertainty = sanitizeUncertainty(m.uncertainty);
+  const u = uncertainty && typeof uncertainty === 'object' ? uncertainty : null;
+  const expanded = uncertaintyText(m);
+  const unit = esc(unitText(u?.unit ?? m.unit));
+  let uncertaintyDetail = 'Not modelled for this metric';
+  if (expanded) uncertaintyDetail = `${esc(expanded)} ${unit}${u?.k != null ? ` (k=${esc(u.k)}${u.k === 2 ? ', ~95%' : ''})` : ''}`;
+  else if (u?.standard != null) uncertaintyDetail = `Standard uncertainty: ${esc(formatNumber(u.standard))} ${unit}; expanded uncertainty not recorded.`;
   const related = (run?.findings || []).filter(f => (f.supportedBy || []).includes(m.metricId) || (f.contradictedBy || []).includes(m.metricId));
   return h('div', { class: 'inspect', html: `
     <p class="inspect-id mono">${esc(m.metricId)}</p>
@@ -37,7 +60,7 @@ export function metricDetails(m, run) {
     <div class="inspect-chips">${status ? chip(status) : ''} ${calBadge(m)}</div>
     <dl class="kv">
       ${info.target ? `<dt>Guide band</dt><dd>${esc(info.target)}</dd>` : ''}
-      <dt>Uncertainty</dt><dd>${u ? `${esc(uncertaintyText(m))} ${esc(unitText(u.unit))} (k=${u.k}, ~95%)` : 'Not modelled for this metric'}</dd>
+      <dt>Uncertainty</dt><dd>${uncertaintyDetail}</dd>
       ${m.rawValue != null ? `<dt>Raw (uncorrected)</dt><dd class="num">${esc(formatNumber(m.rawValue))}</dd>` : ''}
       <dt>Confidence</dt><dd>${pct(m.confidence)}</dd>
       <dt>Origin</dt><dd>${esc(m.origin || 'measured')}</dd>
@@ -70,7 +93,7 @@ function findingCard(f, run, index) {
   const links = (ids, kind) => (ids || []).map(id => `<button type="button" class="link-chip ${kind}" data-metric="${esc(id)}">${icon(kind === 'supports' ? 'check' : 'x', { size: 12 })}${esc(label(id))}</button>`).join('');
   const el = h('article', { class: `finding finding-${status}`, 'aria-labelledby': `finding-${run.id}-${index}` });
   el.innerHTML = `
-    <header class="finding-head">${chip(status)}<h3 id="finding-${run.id}-${index}">${esc(f.title)}</h3>
+    <header class="finding-head">${chip(status)}<h3 id="finding-${esc(run.id)}-${index}">${esc(f.title)}</h3>
       <span class="confidence" title="Confidence"><span class="conf-bar"><span style="width:${pct(f.confidence)}"></span></span><span class="num">${pct(f.confidence)}</span><span class="sr-only"> confidence</span></span></header>
     <p>${esc(f.detail)}</p>
     <div class="finding-grid">
@@ -113,6 +136,24 @@ function evidenceSection(run) {
     tr.addEventListener('click', open);
     tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
   });
+  if (isEnabled('population')) {
+    const api = createPackApi();
+    if (api.native) Promise.all([api.metricTable(), api.unitValues()]).then(([registry, values]) => {
+      if (!isEnabled('population') || !wrap.isConnected) return;
+      wrap.querySelectorAll('tr[data-metric]').forEach(tr => {
+        const m = run.measurements.find(x => x.metricId === tr.dataset.metric);
+        const params = resultCompareParams(run, m, registry, values.rows);
+        if (!params) return;
+        tr.dataset.compareAsset = params.assetId; tr.dataset.compareMetric = params.metric;
+        const compare = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-result-compare': '',
+          text: 'Compare', 'aria-label': `Compare ${m.label}`, onclick: e => {
+            e.stopPropagation();
+            if (isEnabled('population')) navigateTo('compare', params);
+          }, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); } });
+        tr.querySelector('th').append(compare);
+      });
+    }).catch(() => { /* optional context: the result and its inspector remain usable if comparison data fails */ });
+  }
   table.append(wrap);
   section.append(table);
   return section;
@@ -128,7 +169,7 @@ export function renderResults(run, { keyMetrics = [], actions = [] } = {}) {
     <div class="verdict-main">
       <div class="verdict-chip">${chip(verdict.status, null, { size: 20 })}</div>
       <div>
-        <h2 id="verdict-${run.id}" class="verdict-headline">${esc(verdict.headline)}</h2>
+        <h2 id="verdict-${esc(run.id)}" class="verdict-headline">${esc(verdict.headline)}</h2>
         <p class="verdict-action"><strong>Recommended:</strong> ${esc(verdict.action)}</p>
         <p class="verdict-meta muted">${esc(run.device || 'Unassigned')} · ${esc(formatDate(run.createdAt))} · ${esc(run.sourceFile || '')} · ${esc(run.sampleRate)} Hz</p>
       </div>

@@ -12,7 +12,7 @@ function backupMock() {
     if (cmd === 'backup_list') return entries.slice();
     if (cmd === 'backup_settings_get') return { mode: 'off', keep: 7, lastAutoAt: null, lastAutoMs: null };
     if (cmd === 'backup_settings_set') return { ...args.settings, lastAutoAt: null, lastAutoMs: null };
-    if (cmd === 'backup_create') { const e = { name: 'x.deckchek-backup', path: args.destPath, kind: 'manual', createdAt: '2026-03-04T10:20:00Z', bytes: 3200000 }; entries.unshift(e); return { path: args.destPath, bytes: 3200000, createdAt: e.createdAt, kind: 'manual', counts: { runs: 12, assets: 4, profiles: 2, midiMaps: 1 }, schemaVersion: 3 }; }
+    if (cmd === 'backup_create') { const e = { name: 'x.deckchek-backup', path: args.destPath, kind: 'manual', createdAt: '2026-03-04T10:20:00Z', bytes: 3200000 }; entries.unshift(e); return { path: args.destPath, bytes: 3200000, createdAt: e.createdAt, kind: 'manual', counts: { runs: 12, assets: 4, profiles: 2, midiMaps: 1 }, schemaVersion: 3, warnings: window.__createWarnings || [] }; }
     if (cmd === 'backup_inspect') return { valid: true, errors: [], errorCode: null, manifest, counts: manifest.counts, needsMigration: false, tooNew: false, currentSchemaVersion: 3 };
     if (cmd === 'backup_restore') {
       if (!args.confirm) throw { code: 'not_confirmed', message: 'no' };
@@ -63,6 +63,16 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   const create = await page.evaluate(() => window.__backupCalls.find(c => c.cmd === 'backup_create'));
   check('backup: create passes the chosen path, manual kind and settings blob', create.args.destPath.endsWith('.deckchek-backup') && create.args.kind === 'manual' && create.args.settings && 'ui' in create.args.settings && 'calibration' in create.args.settings);
   check('backup: list shows the new backup', (await page.locator('#data-backups li').count()) === 1);
+
+  await page.evaluate(() => { window.__createWarnings = ['1 missing or damaged photo was not included. <img id="backup-warning-injection">']; });
+  await page.click('#data-backup-now');
+  await page.waitForFunction(() => /Warnings:.*photo was not included/.test(document.querySelector('#data-status')?.innerText || ''));
+  check('backup: incomplete photo backup is visibly warned, with details rendered as text',
+    (await page.locator('#data-status .banner-warn').count()) === 1
+    && /<img id="backup-warning-injection">/.test(await page.locator('#data-status').innerText())
+    && (await page.locator('#backup-warning-injection').count()) === 0);
+  await page.evaluate(() => { window.__createWarnings = []; });
+
 
   // restore confirmation
   await page.click('#data-restore');

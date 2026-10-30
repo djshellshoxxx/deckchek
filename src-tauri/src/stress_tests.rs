@@ -76,7 +76,7 @@ fn stress_persist_list_backup_restore_large_history() {
     let inspected = backup::inspect_file(&dest);
     report("inspect backup of large DB", t0, 30_000);
     assert!(inspected.valid, "{:?}", inspected.errors);
-    let ctx = backup::Ctx { live_db: dir.join("restored.sqlite3"), backups_dir: dir.join("backups"), gate: Box::leak(Box::new(std::sync::RwLock::new(()))), capture_running: std::sync::Arc::new(|| false) };
+    let ctx = backup::Ctx { live_db: dir.join("restored.sqlite3"), backups_dir: dir.join("backups"), gate: Box::leak(Box::new(std::sync::RwLock::new(()))), capture_running: std::sync::Arc::new(|| false), activity: Default::default() };
     let t0 = Instant::now();
     backup::restore_backup(&ctx, &dest, true, &backup::SettingsBlob::default(), None).unwrap();
     report("restore large backup", t0, 120_000);

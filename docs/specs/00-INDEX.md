@@ -24,11 +24,12 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-20](20-used-gear-certificate.md) | Used-gear test certificate | Implemented (HW: H-20; no PDF-embedded JSON) | L | FS-00 (photo, canonical, QR), FS-03 | M7 | 0014 (+0013) | `certificates` |
 | [FS-21](21-unit-population-comparison.md) | Unit vs population (phases 1–2) | Implemented (HW: H-21) | M | FS-00 (metric-compat) | M7 | 0015, 0022 | `population`, `packs` |
 | [FS-22](22-service-worksheets.md) | Service worksheets | Implemented (HW: H-22) | L | FS-00 (photo, metric-compat), FS-03 | M7 | 0016 | `service` |
-| [FS-23](23-venue-fleet-dashboard.md) | Venue fleet dashboard | Implemented (HW: H-23; flag default on) | L | FS-00 (asset_usage), FS-03 | M7 | 0017 | `fleet` |
+| [FS-23](23-venue-fleet-dashboard.md) | Venue fleet dashboard | Implemented (HW: H-23 and real-DB qualification pending; flag default off) | L | FS-00 (asset_usage), FS-03 | M7 | 0017 | `fleet` |
 | [FS-30](30-mobile-companion.md) | Mobile PWA companion | Desktop import and PWA implemented; hosting Blocked (hosting vs proprietary licence) | M | FS-00 (canonical, sha256, QR) | M8 | 0018 | `phoneImport` |
 | [FS-31](31-timecode-doctor-live-monitor.md) | Timecode doctor live monitor | Implemented (HW: H-31; WASAPI-shared capture beside DJ software unverified) | L | FS-00 (stream capture, lease) | M8 | 0019 | `liveMonitor` |
 | [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Implemented (HW: H-32; VirtualDJ format unverified) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
 | [FS-33](33-gear-ledger.md) | Gear ledger static export | Implemented (HW: H-33) | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
+| [FS-36](36-general-midi-test.md) | General MIDI conformance and sound check | Partial: pure analyzer/sequences/tests only; UI, AC-5 and hardware pending | M | MIDI bridge and connection ownership | PR9 consolidation | — | UI not wired |
 
 Numbering gaps (04, 05, 09, 16–19, 24–29) are intentional; they leave room for future specs in the same groups (essentials 0x, DJ 1x, pro 2x, companion 3x).
 

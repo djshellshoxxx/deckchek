@@ -19,7 +19,7 @@ import { navigateTo } from '../crosslinks.js';
 const keyMetricsFor = test => WORKFLOWS.flatMap(w => w.key[test] || []);
 
 /** Normalize native get_run output or fallback output into a run-like record. */
-function normalizeRun(raw, summary) {
+export function normalizeRun(raw, summary) {
   if (!raw) return null;
   const local = localRun(raw.id);
   if (local) return local; // full record incl. evidence and labels
@@ -38,10 +38,13 @@ function normalizeRun(raw, summary) {
       isolationTests: f.isolationTests || [], supportedBy: supports, contradictedBy: contradicts, status: f.status,
     };
   });
-  const cfg = raw.config || {};
+  const cfg = raw.config && typeof raw.config === 'object' && !Array.isArray(raw.config) ? raw.config : {};
+  // Only explicit persisted attribution is an asset ID. `device` can be a display name.
+  const identity = raw.assetId ?? cfg.assetId ?? raw.deviceId ?? cfg.deviceId;
+  const assetId = typeof identity === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(identity) ? identity : null;
   return {
     id: raw.id, test: raw.test || summary?.test || cfg.test || 'Diagnostic', createdAt: raw.startedAt || raw.createdAt || summary?.startedAt,
-    score: raw.score ?? summary?.score ?? null, measurements, findings, device: cfg.deviceId || raw.device || '—',
+    score: raw.score ?? summary?.score ?? null, measurements, findings, assetId, deviceId: assetId, device: cfg.deviceId || raw.device || '—',
     sourceFile: cfg.sourceFile || raw.sourceFile, sampleRate: cfg.sampleRate || raw.sampleRate, channels: cfg.channels || raw.channels,
     calibration: { applied: measurements.some(m => m.calibrated), reasons: ['see measurement flags'] }, evidence: {}, eventMap: [],
   };

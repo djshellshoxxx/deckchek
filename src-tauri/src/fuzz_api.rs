@@ -68,6 +68,7 @@ pub fn fuzz_backup_restore(data: &[u8]) {
         backups_dir: dir.join("backups"),
         gate: db::gate(),
         capture_running: std::sync::Arc::new(|| false),
+        activity: Default::default(),
     };
     let _ = backup::restore_backup(&ctx, &archive, true, &backup::SettingsBlob::default(), None);
     // Whatever happened, the live database (if one was swapped in) must be openable and sane.

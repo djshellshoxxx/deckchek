@@ -10,6 +10,20 @@ export function parseWorkspaceJson(text){if(typeof text!=='string'||text.length>
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 const strList = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : []);
 
+/** Keep recorded numeric uncertainty only; never infer a missing magnitude or coverage factor. */
+export function sanitizeUncertainty(value) {
+  const magnitude = v => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+  if (typeof value === 'number') return magnitude(value) ? value : null;
+  if (!isObj(value)) return null;
+  const out = {};
+  for (const key of ['standard', 'expanded']) if (magnitude(value[key])) out[key] = value[key];
+  if (!Object.keys(out).length) return null;
+  if (typeof value.k === 'number' && Number.isFinite(value.k) && value.k > 0) out.k = value.k;
+  if (typeof value.unit === 'string') out.unit = value.unit;
+  if (isObj(value.components)) out.components = Object.fromEntries(Object.entries(value.components).filter(([, v]) => magnitude(v)));
+  return out;
+}
+
 /**
  * Imported workspace files are untrusted: keep only the shapes `toPersistRun` reads (arrays of
  * objects, string lists, string fields) so a damaged or hostile file is skipped field by field
@@ -25,6 +39,7 @@ export function sanitizeImportedRun(run) {
   }));
   const measurements = (Array.isArray(run.measurements) ? run.measurements : []).filter(isObj).map(m => ({
     ...m, metricId: str(m.metricId), label: str(m.label), unit: str(m.unit), origin: str(m.origin), qualityFlags: strList(m.qualityFlags),
+    uncertainty: sanitizeUncertainty(m.uncertainty),
   }));
   return { ...run, id: run.id, test: str(run.test), createdAt: str(run.createdAt), workflow: str(run.workflow), sessionType: str(run.sessionType), measurements, findings };
 }

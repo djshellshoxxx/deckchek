@@ -1,5 +1,5 @@
-// FS-23 smoke: Venue fleet dashboard. Default flag is ON (DEVELOPMENT-PLAN §1.6): a context with no stored flag must show
-// the Fleet rail entry; an explicit override of false hides it. Desktop mode runs against an in-memory implementation of
+// FS-23 smoke: Venue fleet dashboard. The flag defaults OFF pending owner qualification: no stored override hides
+// the Fleet rail entry and banner; manual opt-in enables the workflow, and explicit false hides it. Desktop mode runs against an in-memory implementation of
 // the fleet commands (window.__fleet exposes state). Covers AC-1/2/3 (grid, never tested, failing items), AC-4/6 (start-up
 // banner: copy, cap of five with "and N more", dismiss snoozes without deleting), AC-7 (completing a reminder), AC-8 (CSV
 // bytes), AC-9 (one-page booth sheet), the venues editor (empty guide, Move to, delete confirmation), the reminders and
@@ -71,6 +71,7 @@ function fleetMock(options = {}) {
   };
 }
 
+const FLAG_ON = () => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { fleet: true } }));
 const FLAG_OFF = () => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { fleet: false } }));
 
 export default async function run({ browser, base, check, ROOT, SHOTS }) {
@@ -84,11 +85,33 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
     return { context, page };
   };
 
-  // ----- flag: default on, explicit false hides -----
+  // ----- flag: default off, manual UI opt-in, explicit false hides -----
   {
-    const { context, page } = await open(null, tauriMock);
+    const { context, page } = await open({ label: 'default' }, tauriMock);
     await page.goto(base); await page.waitForSelector('.rail-item');
-    check('fleet: flag defaults ON (rail entry present with no stored override)', (await page.locator('.rail-item[data-screen="fleet"]').count()) === 1);
+    await page.waitForTimeout(400);
+    check('fleet: flag defaults OFF with no stored override (rail entry and banner hidden)',
+      await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.ui.v1') || '{}').features?.fleet === undefined)
+      && (await page.locator('.rail-item[data-screen="fleet"]').count()) === 0
+      && (await page.locator('#fleet-reminder-banner').count()) === 0);
+    await page.click('#cdlOptionsBtn');
+    await page.waitForSelector('#cdlOptionsDialog [data-support-id="experimental"]');
+    await page.click('#cdlOptionsDialog [data-support-id="experimental"]');
+    await page.waitForSelector('dialog.experimental-dialog[open]');
+    const fleetSwitch = page.locator('dialog.experimental-dialog [data-feature="fleet"]');
+    check('fleet: Experimental features lists fleet unchecked for manual opt-in', (await fleetSwitch.count()) === 1 && !(await fleetSwitch.isChecked()));
+    await fleetSwitch.check();
+    await page.waitForSelector('.rail-item[data-screen="fleet"]');
+    await page.waitForSelector('#fleet-reminder-banner');
+    check('fleet: manual opt-in persists true and reveals the rail and reminder banner live',
+      await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.ui.v1') || '{}').features?.fleet === true)
+      && (await page.locator('.rail-item[data-screen="fleet"]').count()) === 1
+      && (await page.locator('#fleet-reminder-banner').count()) === 1);
+    await page.click('[data-experimental-close]');
+    await page.waitForFunction(() => !document.querySelector('dialog.experimental-dialog'));
+    await page.click('.rail-item[data-screen="fleet"]');
+    await page.waitForSelector('#fleet-grid');
+    check('fleet: manually opted-in Fleet screen renders the seeded assets', await page.locator('#screen-fleet').isVisible() && /Deck A/.test(await page.locator('#fleet-grid').innerText()));
     await context.close();
     const off = await open({ label: 'off' }, tauriMock, FLAG_OFF);
     await off.page.goto(base); await off.page.waitForSelector('.rail-item');
@@ -99,7 +122,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- start-up banner: cap of five + "and N more", dismiss snoozes -----
   {
-    const { context, page } = await open({ label: 'many', mock: { extraOverdue: 6 } }, tauriMock);
+    const { context, page } = await open({ label: 'many', mock: { extraOverdue: 6 } }, tauriMock, FLAG_ON);
     await page.goto(base); await page.waitForSelector('#fleet-reminder-banner');
     const text = await page.locator('#fleet-reminder-banner').innerText();
     check('fleet: AC-6 banner copy counts overdue items and offers Review', /7 maintenance items need attention: 7 overdue, 0 due soon\./.test(text) && (await page.locator('#fleet-banner-review').count()) === 1, text);
@@ -121,7 +144,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   }
 
   // ----- desktop: one overdue reminder, full flow -----
-  const { context, page } = await open({ label: 'main' }, tauriMock);
+  const { context, page } = await open({ label: 'main' }, tauriMock, FLAG_ON);
   await page.goto(base); await page.waitForSelector('#fleet-reminder-banner');
   check('fleet: banner for one overdue item uses singular copy', /1 maintenance item needs attention: 1 overdue, 0 due soon\./.test(await page.locator('#fleet-reminder-banner').innerText()));
   await page.click('#fleet-banner-review');
@@ -287,7 +310,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- regressions (FS-23 review): data safety, keyboard and screen-reader behaviour -----
   {
-    const { context: rc, page: rp } = await open({ label: 'reg', mock: { slow: 150 } }, tauriMock);
+    const { context: rc, page: rp } = await open({ label: 'reg', mock: { slow: 150 } }, tauriMock, FLAG_ON);
     const polite = () => rp.evaluate(() => document.getElementById('sr-polite')?.textContent ?? '');
     const waitPolite = async re => rp.waitForFunction(source => new RegExp(source, 'i').test(document.getElementById('sr-polite')?.textContent ?? ''), re.source, { timeout: 3000 }).then(() => true, () => false);
     const active = () => rp.evaluate(() => { const el = document.activeElement; return !el || el === document.body ? 'BODY' : el.id ? `#${el.id}` : el.outerHTML.slice(0, 80); });
@@ -385,7 +408,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- regressions: large fleets (reminder cap note, venue tree cap) and long names -----
   {
-    const { context: nc, page: np } = await open({ label: 'long', mock: { longName: true } }, tauriMock);
+    const { context: nc, page: np } = await open({ label: 'long', mock: { longName: true } }, tauriMock, FLAG_ON);
     await np.setViewportSize({ width: 900, height: 900 });
     await np.goto(base); await np.waitForSelector('#fleet-reminder-banner');
     // No sideways scroll of <main>, every listed element fits its own box, and the box stays inside its card.
@@ -404,7 +427,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
     const gridSpill = await spill('#fleet-grid, #fleet-grid td, #fleet-grid .fleet-asset-name, #fleet-grid .fleet-failing');
     check('fleet: regression: long unbroken names do not overflow the fleet grid', !gridSpill, gridSpill);
     await nc.close();
-    const { context: lc, page: lp } = await open({ label: 'large', mock: { extraOverdue: 505, placeExtra: true } }, tauriMock);
+    const { context: lc, page: lp } = await open({ label: 'large', mock: { extraOverdue: 505, placeExtra: true } }, tauriMock, FLAG_ON);
     await lp.goto(base); await lp.waitForSelector('.rail-item[data-screen="fleet"]');
     await lp.click('.rail-item[data-screen="fleet"]'); await lp.waitForSelector('#fleet-grid');
     await lp.click('#fleet-tab-reminders'); await lp.waitForSelector('#fleet-reminder-table');
@@ -418,7 +441,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- regressions: booth sheet print with FS-03 PDF export switched off -----
   {
-    const PDF_OFF = () => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { pdfExport: false } }));
+    const PDF_OFF = () => localStorage.setItem('deckchek.ui.v1', JSON.stringify({ features: { fleet: true, pdfExport: false } }));
     const { context: pc, page: pp } = await open({ label: 'nopdf' }, tauriMock, PDF_OFF);
     await pp.goto(base); await pp.waitForSelector('.rail-item[data-screen="fleet"]');
     await pp.click('.rail-item[data-screen="fleet"]'); await pp.waitForSelector('#fleet-grid');
@@ -432,7 +455,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- empty state -----
   {
-    const empty = await open({ label: 'empty', mock: { noVenues: true } }, tauriMock);
+    const empty = await open({ label: 'empty', mock: { noVenues: true } }, tauriMock, FLAG_ON);
     await empty.page.goto(base); await empty.page.waitForSelector('.rail-item[data-screen="fleet"]');
     await empty.page.click('.rail-item[data-screen="fleet"]'); await empty.page.click('#fleet-tab-venues');
     await empty.page.waitForSelector('#fleet-empty');
@@ -448,7 +471,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
 
   // ----- error state -----
   {
-    const { context: ec, page: ep } = await open({ label: 'error' }, tauriMock);
+    const { context: ec, page: ep } = await open({ label: 'error' }, tauriMock, FLAG_ON);
     await ep.addInitScript(() => { window.__failSnapshot = true; });
     await ep.goto(base); await ep.waitForSelector('.rail-item[data-screen="fleet"]');
     await ep.evaluate(() => { const real = window.__TAURI__.core.invoke; window.__TAURI__.core.invoke = async (c, a) => { if (c === 'fleet_snapshot' && window.__failSnapshot) throw 'database is locked'; return real(c, a); }; });
@@ -463,6 +486,7 @@ export default async function run({ browser, base, check, ROOT, SHOTS }) {
   // ----- browser mode -----
   {
     const browserContext = await browser.newContext();
+    await browserContext.addInitScript(FLAG_ON);
     const browserPage = await browserContext.newPage(); errors.push(watchConsole(browserPage, 'fleet-browser'));
     await browserPage.goto(base); await browserPage.click('.rail-item[data-screen="fleet"]');
     await browserPage.waitForSelector('#fleet-unsupported');

@@ -8,7 +8,7 @@ import { addResult, getSettings } from '../lib/store.js';
 export const CAPTURE_SEC = 4;
 
 export default function mount(root, ctx) {
-  const st = { running: false, abort: null };
+  const st = { running: false, abort: null, disposed: false };
   const format = el('select', { id: 'speed-format', 'aria-label': 'Record speed' }, ...FORMATS.map(f => el('option', { value: f.id, text: f.label })));
   const ref = el('select', { id: 'speed-ref', 'aria-label': 'Reference tone' }, ...REFERENCES.map(r => el('option', { value: r.hz, text: r.label })));
   const start = el('button', { type: 'button', class: 'btn btn-primary btn-big', id: 'speed-start', text: 'Start' });
@@ -22,18 +22,20 @@ export default function mount(root, ctx) {
   const empty = () => say('empty', 'Play a 1 kHz test tone and tap Start.', 'Hold the phone close to the speaker or cartridge.');
 
   async function run() {
-    st.running = true; st.abort = new AbortController();
+    st.running = true;
+    const abort = new AbortController(); st.abort = abort;
     start.textContent = 'Stop'; progress.hidden = false; progress.value = 0; result.replaceChildren();
     const nominal = FORMATS.find(f => f.id === format.value).rpm, referenceHz = Number(ref.value);
-    let release = () => {};
+    let mic, release = () => {};
     try {
       say('loading', 'Waiting for the microphone.', 'Allow it when asked.');
-      const mic = await startMic();
+      mic = await startMic({ signal: abort.signal });
       release = await keepAwake();
+      if (abort.signal.aborted || mic.signal.aborted) throw new DOMException('Capture stopped', 'AbortError');
       const kept = [];
       say('loading', 'Listening...', `${CAPTURE_SEC} seconds.`);
       const samples = await captureSeconds(CAPTURE_SEC, {
-        signal: st.abort.signal,
+        mic, signal: abort.signal,
         onChunk: (block, total) => {
           let peak = 0; for (let i = 0; i < block.length; i++) peak = Math.max(peak, Math.abs(block[i]));
           level.value = Math.min(1, peak);
@@ -48,9 +50,11 @@ export default function mount(root, ctx) {
           }
         },
       });
+      if (abort.signal.aborted || mic.signal.aborted) throw new DOMException('Capture stopped', 'AbortError');
       mic.stop();
       say('loading', 'Working out the speed...', '');
       await new Promise(r => setTimeout(r, 30)); // let the message paint before the synchronous analysis
+      if (abort.signal.aborted) throw new DOMException('Capture stopped', 'AbortError');
       const measurements = measureSpeed(samples, mic.sampleRate, { referenceHz, nominalRpm: nominal });
       const state = speedStatus(measurements);
       const settings = getSettings();
@@ -61,11 +65,13 @@ export default function mount(root, ctx) {
       });
       renderResult(run, measurements, state, mic.flags);
     } catch (error) {
+      if (st.disposed) return;
       if (error?.name === 'AbortError') say('empty', 'Stopped.', 'Tap Start to try again.');
       else if (error instanceof MicError) say('error', error.kind === 'unsupported' ? 'Not supported.' : 'Microphone problem.', error.message);
       else say('error', 'Could not measure.', error?.message || String(error));
     } finally {
-      release(); st.running = false; start.textContent = 'Start'; progress.hidden = true; level.value = 0;
+      mic?.stop(); release();
+      if (!st.disposed && st.abort === abort) { st.running = false; st.abort = null; start.textContent = 'Start'; progress.hidden = true; level.value = 0; }
     }
   }
 
@@ -99,5 +105,5 @@ export default function mount(root, ctx) {
     el('div', { class: 'row' }, start, level, live), progress, status, result);
   if (!micSupported()) say('error', 'Not supported.', MIC_MESSAGES.unsupported);
   else empty();
-  return () => { st.abort?.abort(); };
+  return () => { st.disposed = true; st.abort?.abort(); };
 }

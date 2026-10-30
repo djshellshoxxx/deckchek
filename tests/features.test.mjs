@@ -33,7 +33,7 @@ test('every features.* flag mentioned in docs/specs exists in FEATURES', () => {
 test('defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off', () => {
   fresh();
   for (const n of ['setupWizard', 'pdfExport', 'backup', 'testMedia', 'diagnosticsBundle']) assert.equal(isEnabled(n), true, n);
-  for (const n of ['pregig', 'liveMonitor', 'packs', 'service', 'gearLedger']) assert.equal(isEnabled(n), false, n);
+  for (const n of ['pregig', 'liveMonitor', 'packs', 'service', 'fleet', 'gearLedger']) assert.equal(isEnabled(n), false, n);
   assert.equal(isEnabled('doesNotExist'), false);
 });
 
@@ -97,11 +97,55 @@ test('resetFeatures drops every override and notifies listeners', async () => {
   assert.deepEqual(seen.sort(), ['backup', 'pregig']);
 });
 
-test('flags with no code behind them are marked unwired and default off (except always-on diagnostics)', () => {
+test('fleet stays wired for manual opt-in and defaults off pending owner qualification', () => {
+  const storage = fresh();
+  assert.equal(FEATURES.fleet.wired, true);
+  assert.equal(FEATURES.fleet.default, false);
+  for (const record of [{}, { features: {} }]) {
+    storage.setItem('deckchek.ui.v1', JSON.stringify(record));
+    assert.equal(isEnabled('fleet'), false, 'absent override keeps fleet off');
+  }
+});
+
+test('fleet honors explicit true and false overrides from storage and bound settings', () => {
+  const storage = fresh();
+  for (const enabled of [true, false]) {
+    storage.setItem('deckchek.ui.v1', JSON.stringify({ features: { fleet: enabled } }));
+    assert.equal(isEnabled('fleet'), enabled, `stored override ${enabled}`);
+    bindSettings({ features: { fleet: !enabled } });
+    assert.equal(isEnabled('fleet'), !enabled, `bound override ${!enabled} takes precedence`);
+    bindSettings(null);
+    assert.equal(isEnabled('fleet'), enabled, `stored override ${enabled} survives unbinding`);
+  }
+});
+
+test('fleet can switch on and off, persist opt-in, and notify listeners', () => {
+  const storage = fresh();
+  const settings = { theme: 'dark' };
+  bindSettings(settings);
+  const seen = [];
+  const off = onFeatureChange(event => seen.push(event));
+  try {
+    for (const enabled of [true, false, true, false]) {
+      setEnabled('fleet', enabled);
+      assert.equal(isEnabled('fleet'), enabled);
+      assert.deepEqual(settings.features, enabled ? { fleet: true } : {});
+      assert.deepEqual(JSON.parse(storage.raw()), { features: enabled ? { fleet: true } : {} });
+      configureFeatures({ storage }); // Reload from persisted settings without a bound object.
+      assert.equal(isEnabled('fleet'), enabled);
+      bindSettings(settings);
+    }
+  } finally {
+    off();
+  }
+  assert.deepEqual(seen, [true, false, true, false].map(enabled => ({ name: 'fleet', enabled })));
+});
+
+test('M7 and M8 flags stay default off while wired adapters remain available', () => {
   for (const [name, meta] of Object.entries(FEATURES)) {
-    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet', 'population', 'packs', 'service', 'mapperStudio', 'certificates', 'liveMonitor', 'gearLedger'].includes(name), name); assert.equal(meta.default, name === 'fleet', name); } // FS-20 certificates, FS-21 population/packs, FS-22 service, FS-23 fleet, FS-30 import, FS-31 live monitor and FS-32 mapper and FS-33 ledger have UI adapters; FS-23 ships ON (DEVELOPMENT-PLAN §1.6)
+    if (meta.milestone === 'M7' || meta.milestone === 'M8') { assert.equal(meta.wired, ['phoneImport', 'fleet', 'population', 'packs', 'service', 'mapperStudio', 'certificates', 'liveMonitor', 'gearLedger'].includes(name), name); assert.equal(meta.default, false, name); }
   }
   assert.equal(FEATURES.diagnosticsBundle.wired, false);
   assert.equal(FEATURES.testMedia.default, true);
-  assert.equal(FEATURES.fleet.default, true, 'FS-23 fleet dashboard defaults on');
+  assert.equal(FEATURES.fleet.default, false, 'FS-23 fleet dashboard awaits owner qualification');
 });

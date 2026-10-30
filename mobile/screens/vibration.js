@@ -11,9 +11,9 @@ export function spectrumSvg(spectrum, dominantHz) {
   const max = Math.max(1e-9, ...spectrum.map(p => p.amp));
   const x = hz => pad + (hz - spectrum[0].hz) / Math.max(1e-9, spectrum.at(-1).hz - spectrum[0].hz) * (W - 2 * pad);
   const y = a => H - pad - (a / max) * (H - 2 * pad);
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', class: 'spectrum', 'aria-label': `Vibration spectrum from ${spectrum[0].hz} to ${spectrum.at(-1).hz} hertz, strongest near ${fmt(dominantHz, 1)} hertz` });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', class: 'spectrum', 'aria-label': `Vibration spectrum from ${spectrum[0].hz} to ${spectrum.at(-1).hz} hertz, ${Number.isFinite(dominantHz) ? `strongest near ${fmt(dominantHz, 1)} hertz` : 'no dominant frequency'}` });
   svg.append(svgEl('polyline', { points: spectrum.map(p => `${x(p.hz).toFixed(1)},${y(p.amp).toFixed(1)}`).join(' '), class: 'spectrum-line', fill: 'none' }));
-  svg.append(svgEl('line', { x1: x(dominantHz).toFixed(1), x2: x(dominantHz).toFixed(1), y1: pad, y2: H - pad, class: 'spectrum-peak' }));
+  if (Number.isFinite(dominantHz)) svg.append(svgEl('line', { x1: x(dominantHz).toFixed(1), x2: x(dominantHz).toFixed(1), y1: pad, y2: H - pad, class: 'spectrum-peak' }));
   return svg;
 }
 
@@ -57,7 +57,7 @@ export default function mount(root, ctx) {
         el('h2', { id: 'vib-result-h', text: 'Result' }),
         el('dl', { class: 'big-readings' },
           el('div', {}, el('dt', { text: 'RMS' }), el('dd', { class: 'num', text: `${fmt(m.rmsMs2, 4)} m/s2` })),
-          el('div', {}, el('dt', { text: 'Strongest at' }), el('dd', { class: 'num', text: `${fmt(m.dominantHz, 1)} Hz` })),
+          el('div', {}, el('dt', { text: 'Strongest at' }), el('dd', { class: 'num', text: Number.isFinite(m.dominantHz) ? `${fmt(m.dominantHz, 1)} Hz` : 'No dominant frequency' })),
           el('div', {}, el('dt', { text: 'Level' }), el('dd', { id: 'vib-band', text: band }))),
         spectrumSvg(m.spectrum, m.dominantHz),
         el('p', { class: 'hint', text: `Sensor rate about ${fmt(m.rateHz, 0)} Hz, so nothing above ${fmt(m.nyquistHz, 0)} Hz is visible. The level word is relative: record again after changing isolation feet and compare the RMS. For rumble in the usual sense, use the desktop app.` }),

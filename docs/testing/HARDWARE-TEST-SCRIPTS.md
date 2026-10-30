@@ -406,7 +406,7 @@ Enable `service` under Options > Advanced > Experimental features first. Use a m
 
 ## H-23 Venue fleet dashboard (FS-23)
 
-The fleet screen and the start-up banner are on by default (flag `fleet`). Model the owner's gear as two booths: **Home** (PLX-CRSS12, SL-1200MK4, DJM-A9) and **Second booth** (Rane Twelve MK2, Xone:23C, DDJ). Use the real DeckChek database copy, not a fixture. Restarting means closing and reopening the app.
+The fleet screen and start-up banner are off by default pending qualification. Enable `fleet` explicitly in Experimental features for this walkthrough; retain the opt-in gate until H-23 and the real-database checks pass. Model the owner's gear as two booths: **Home** (PLX-CRSS12, SL-1200MK4, DJM-A9) and **Second booth** (Rane Twelve MK2, Xone:23C, DDJ). Use the real DeckChek database copy, not a fixture. Restarting means closing and reopening the app.
 
 | # | Action | Expected | Record |
 |---|---|---|---|

@@ -12,6 +12,7 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::{PoisonError, RwLock, RwLockReadGuard};
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
@@ -31,6 +32,20 @@ pub const MAX_LINKS_PER_OWNER: i64 = 100;
 const MAX_OWNER_ID_CHARS: usize = 128;
 const MAX_TEXT_CHARS: usize = 500;
 const MAX_STAGE_CHARS: usize = 64;
+
+// Lock order: callers acquire the DB connection gate before this file gate.
+// Backup holds a read guard from before its SQLite snapshot until the archive
+// has read the photo bytes. Mutations use a write guard; orphan deletion takes
+// it only AFTER committing SQL, never while holding a SQLite write transaction.
+static FILE_GATE: RwLock<()> = RwLock::new(());
+
+pub(crate) fn snapshot_files() -> RwLockReadGuard<'static, ()> {
+    FILE_GATE.read().unwrap_or_else(PoisonError::into_inner)
+}
+
+pub(crate) fn mutate_files() -> std::sync::RwLockWriteGuard<'static, ()> {
+    FILE_GATE.write().unwrap_or_else(PoisonError::into_inner)
+}
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -243,6 +258,7 @@ pub fn attach(conn: &mut Connection, dir: &Path, input: &PhotoAttachInput) -> Re
     let info = validate_jpeg(&bytes)?;
     let sha = sha256_hex(&bytes);
     let path = photo_file(dir, &sha)?;
+    let _files = mutate_files();
     fs::create_dir_all(dir).map_err(|e| format!("could not create the photos folder: {e}"))?;
 
     // reuse an intact file with the same name; replace one whose size does not match (damaged)
@@ -370,6 +386,7 @@ impl PendingPhotoFiles {
     /// Removes the files whose photo is still gone (the same bytes may have been attached again since the commit);
     /// returns how many were deleted. A failed removal is logged and harmless: the file is just an unreferenced orphan.
     pub fn remove_after_commit(self, conn: &Connection) -> usize {
+        let _files = mutate_files();
         let mut removed = 0;
         for (sha, path) in self.files {
             match conn.query_row("SELECT COUNT(*) FROM photo WHERE sha256 = ?1", [&sha], |r| r.get::<_, i64>(0)) {

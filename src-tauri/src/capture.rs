@@ -573,8 +573,26 @@ pub fn validate_holder(holder: &str) -> Result<String, String> {
 
 /// The process-wide capture lease (FS-00 §6.2): non-blocking acquire, one
 /// holder at a time, regardless of device.
+#[derive(Default)]
+struct Activity {
+    capture: Option<LeaseGrant>,
+    /// A managed owner keeps its lease until its streams have closed.
+    cancel: Option<Arc<AtomicBool>>,
+    restoring: bool,
+}
+
 #[derive(Clone, Default)]
-pub struct CaptureLease(Arc<Mutex<Option<LeaseGrant>>>);
+pub struct CaptureLease(Arc<Mutex<Activity>>);
+
+/// A logical reservation, not a held mutex: restore may wait on the DB gate
+/// without blocking capture cleanup. Drop releases it on every error path.
+pub(crate) struct RestoreReservation(CaptureLease);
+
+impl Drop for RestoreReservation {
+    fn drop(&mut self) {
+        lock(&self.0.0).restoring = false;
+    }
+}
 
 impl CaptureLease {
     pub fn acquire(
@@ -583,9 +601,20 @@ impl CaptureLease {
         device_name: Option<String>,
         kind: LeaseKind,
     ) -> Result<LeaseGrant, CaptureError> {
+        self.acquire_with_cancel(holder, device_name, kind, None)
+    }
+
+    pub(crate) fn acquire_managed(&self, holder: &str, device_name: Option<String>, cancel: Arc<AtomicBool>) -> Result<LeaseGrant, CaptureError> {
+        self.acquire_with_cancel(holder, device_name, LeaseKind::External, Some(cancel))
+    }
+
+    fn acquire_with_cancel(&self, holder: &str, device_name: Option<String>, kind: LeaseKind, cancel: Option<Arc<AtomicBool>>) -> Result<LeaseGrant, CaptureError> {
         let holder = validate_holder(holder)?;
         let mut slot = lock(&self.0);
-        if let Some(current) = slot.as_ref() {
+        if slot.restoring {
+            return Err("RESTORE_BUSY: wait for the database restore to finish before starting capture.".into());
+        }
+        if let Some(current) = slot.capture.as_ref() {
             return Err(CaptureError::Busy(CaptureBusy::from_grant(current)));
         }
         let grant = LeaseGrant {
@@ -595,15 +624,52 @@ impl CaptureLease {
             since: now_ms(),
             kind,
         };
-        *slot = Some(grant.clone());
+        slot.capture = Some(grant.clone());
+        slot.cancel = cancel;
         Ok(grant)
+    }
+
+    /// Atomically excludes every kind of capture before restore touches files
+    /// or waits on db::gate. No activity mutex is held while taking the DB gate,
+    /// opening a driver, joining a thread, or entering a session-slot mutex.
+    pub(crate) fn reserve_restore(&self) -> Result<RestoreReservation, ()> {
+        let mut slot = lock(&self.0);
+        if slot.restoring || slot.capture.is_some() {
+            return Err(());
+        }
+        slot.restoring = true;
+        Ok(RestoreReservation(self.clone()))
+    }
+
+    /// Managed external owners are cancelled, never released by a preempter.
+    /// An explicitly acquired external lease has no native stream to await.
+    pub(crate) fn preempt_external(&self, lease_id: u64) {
+        let mut slot = lock(&self.0);
+        if slot.capture.as_ref().is_some_and(|g| g.lease_id == lease_id && g.kind == LeaseKind::External) {
+            if let Some(cancel) = &slot.cancel {
+                cancel.store(true, Relaxed);
+            } else {
+                slot.capture = None;
+            }
+        }
+    }
+
+    fn release_unmanaged_external(&self, lease_id: u64) -> bool {
+        let mut slot = lock(&self.0);
+        if slot.cancel.is_none() && slot.capture.as_ref().is_some_and(|g| g.lease_id == lease_id && g.kind == LeaseKind::External) {
+            slot.capture = None;
+            true
+        } else {
+            false
+        }
     }
 
     /// Releases the lease if `lease_id` still holds it. Idempotent.
     pub fn release(&self, lease_id: u64) -> bool {
         let mut slot = lock(&self.0);
-        if slot.as_ref().is_some_and(|g| g.lease_id == lease_id) {
-            *slot = None;
+        if slot.capture.as_ref().is_some_and(|g| g.lease_id == lease_id) {
+            slot.capture = None;
+            slot.cancel = None;
             true
         } else {
             false
@@ -611,11 +677,11 @@ impl CaptureLease {
     }
 
     pub fn current(&self) -> Option<LeaseGrant> {
-        lock(&self.0).clone()
+        lock(&self.0).capture.clone()
     }
 
     pub fn is_held(&self) -> bool {
-        lock(&self.0).is_some()
+        lock(&self.0).capture.is_some()
     }
 
     pub fn status(&self) -> LeaseStatus {
@@ -1528,7 +1594,7 @@ pub const CAPTURE_STOPPING: &str = "CAPTURE_STOPPING";
 /// grant that was stopped, or None when the input was free.
 ///
 /// The lease is only released by its owner (session stop, bounded guard) or,
-/// for an external lease, here. A live or stream session that is still
+/// for an unmanaged external lease, here. A live or stream session that is still
 /// opening, or a bounded capture that has not noticed its cancel flag yet,
 /// keeps the input; after [`PREEMPT_WAIT`] the preempter gets
 /// `CAPTURE_STOPPING` instead of a lease that is free on paper while a stream
@@ -1537,7 +1603,7 @@ fn preempt_blocking(state: &LiveCaptureState) -> Result<Option<LeaseGrant>, Stri
     preempt_with_wait(state, PREEMPT_WAIT)
 }
 
-fn preempt_with_wait(state: &LiveCaptureState, wait: Duration) -> Result<Option<LeaseGrant>, String> {
+pub(crate) fn preempt_with_wait(state: &LiveCaptureState, wait: Duration) -> Result<Option<LeaseGrant>, String> {
     let Some(current) = state.lease.current() else { return Ok(None) };
     let id = current.lease_id;
     let still_held = || state.lease.current().is_some_and(|g| g.lease_id == id);
@@ -1560,7 +1626,7 @@ fn preempt_with_wait(state: &LiveCaptureState, wait: Duration) -> Result<Option<
                 }
             }
             LeaseKind::External => {
-                state.lease.release(id);
+                state.lease.preempt_external(id);
             }
         }
         if !still_held() {
@@ -1615,10 +1681,7 @@ pub(crate) fn with_bounded_lease<T>(
 /// Releases an explicitly acquired lease. Live and stream leases end with
 /// their session (stop or preempt), never through this call.
 fn release_external(state: &LiveCaptureState, lease_id: u64) -> bool {
-    match state.lease.current() {
-        Some(g) if g.lease_id == lease_id && g.kind == LeaseKind::External => state.lease.release(lease_id),
-        _ => false,
-    }
+    state.lease.release_unmanaged_external(lease_id)
 }
 
 // ---------------------------------------------------------------- commands
@@ -1749,6 +1812,79 @@ pub async fn stop_stream_capture(state: State<'_, LiveCaptureState>, stream_id: 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn restore_reservation_excludes_every_capture_kind_and_releases_on_drop() {
+        let lease = CaptureLease::default();
+        let reservation = lease.reserve_restore().unwrap();
+        for kind in [LeaseKind::Live, LeaseKind::Stream, LeaseKind::Bounded, LeaseKind::External] {
+            let error = lease.acquire("test", None, kind).unwrap_err();
+            assert!(matches!(error, CaptureError::Message(ref s) if s.starts_with("RESTORE_BUSY")));
+        }
+        assert!(lease.reserve_restore().is_err());
+        drop(reservation);
+        let capture = lease.acquire("test", None, LeaseKind::Live).unwrap();
+        assert!(lease.reserve_restore().is_err());
+        lease.release(capture.lease_id);
+        assert!(lease.reserve_restore().is_ok());
+    }
+
+    #[test]
+    fn simultaneous_capture_and_restore_have_exactly_one_owner() {
+        let lease = CaptureLease::default();
+        let start = Arc::new(std::sync::Barrier::new(3));
+        let finish = Arc::new(std::sync::Barrier::new(3));
+        let (tx, rx) = mpsc::channel();
+        let capture = {
+            let (lease, start, finish, tx) = (lease.clone(), start.clone(), finish.clone(), tx.clone());
+            thread::spawn(move || {
+                start.wait();
+                let acquired = lease.acquire("race", None, LeaseKind::Bounded);
+                tx.send(acquired.is_ok()).unwrap();
+                finish.wait();
+                if let Ok(g) = acquired { lease.release(g.lease_id); }
+            })
+        };
+        let restore = {
+            let (lease, start, finish) = (lease.clone(), start.clone(), finish.clone());
+            thread::spawn(move || {
+                start.wait();
+                let reservation = lease.reserve_restore();
+                tx.send(reservation.is_ok()).unwrap();
+                finish.wait();
+                drop(reservation);
+            })
+        };
+        start.wait();
+        let a = rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let b = rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        // Release both workers even if the ownership assertion fails.
+        finish.wait();
+        capture.join().unwrap();
+        restore.join().unwrap();
+        assert_ne!(a, b, "capture and restore must not overlap or both refuse an idle activity");
+        assert!(lease.reserve_restore().is_ok());
+    }
+
+    #[test]
+    fn managed_external_preemption_waits_for_owner_cleanup() {
+        let state = LiveCaptureState::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let grant = state.lease.acquire_managed("latency-tuner", None, cancel.clone()).unwrap();
+        let err = preempt_with_wait(&state, Duration::ZERO).unwrap_err();
+        assert!(err.starts_with(CAPTURE_STOPPING));
+        assert!(cancel.load(Relaxed));
+        assert!(!release_external(&state, grant.lease_id), "IPC must not release a managed owner's lease");
+        assert!(state.lease.reserve_restore().is_err());
+        assert!(state.lease.acquire("next", None, LeaseKind::Live).is_err());
+        assert_eq!(state.lease.current(), Some(grant.clone()));
+        assert!(state.lease.release(grant.lease_id), "only the owner acknowledges its closed streams");
+        let next = state.lease.acquire("next", None, LeaseKind::Live).unwrap();
+        state.lease.preempt_external(grant.lease_id);
+        assert!(!state.lease.release(grant.lease_id));
+        assert_eq!(state.lease.current(), Some(next.clone()));
+        state.lease.release(next.lease_id);
+    }
 
     #[test]
     fn max_seconds_is_clamped() {

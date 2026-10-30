@@ -1,5 +1,7 @@
 # DeckChek audit (AI-assisted review)
 
+Follow-up: [2026-10-28 continuation and separate correctness/security reviews](docs/CONTINUATION-2026-10-28.md) record later fixes (including R1-14), newly verified findings, and remaining native/security gates. The counts and rows below describe their original audited snapshot.
+
 This is an AI-assisted review. Claude Code agents did the work, and other agents tried to refute each finding. It is not an independent professional audit, and it is no guarantee of security. A clean row here means the reviewers found a fix and a named test. It does not mean the area is free of bugs.
 
 **Scope.** All Rust modules in `src-tauri/src`, the JavaScript in `app/`, the Tauri capability files, `src-tauri/tauri.conf.json` and the CI workflows in `.github/workflows`. The review was run against commit 41e24f8. Statuses were checked against the working tree at 8451f76, which is one release-prep commit later. That commit changes the app version (`Cargo.toml`, `Cargo.lock`, `tauri.conf.json`), adds `THIRD-PARTY-NOTICES.md` with its generator `tools/third-party-notices.mjs` and a release-workflow check step, and adds the ui-smoke temp-folder cleanup (INT-05). No other row is affected.
