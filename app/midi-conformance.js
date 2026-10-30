@@ -108,7 +108,7 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
 
   const gaps = a => a.slice(1).map((t, i) => (t - a[i]) / 1000);
   let sensingMax = null;
-  const singleSensingGapKnown = sensing.length === 1 && Number.isFinite(sensing[0]) && Number.isFinite(endUs) && endUs >= sensing[0];
+  const singleSensingGapKnown = sensing.length === 1 && Number.isFinite(sensing[0]) && Number.isFinite(endUs) && endUs >= sensing[0] && Number.isFinite(endUs - sensing[0]);
   if (sensing.length >= 2 || singleSensingGapKnown) {
     sensingMax = -Infinity;
     for (let i = 1; i < sensing.length; i++) sensingMax = Math.max(sensingMax, (sensing[i] - sensing[i - 1]) / 1000);

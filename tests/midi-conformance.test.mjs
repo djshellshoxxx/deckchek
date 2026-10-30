@@ -385,7 +385,7 @@ test('one Active Sensing message measures the known trailing gap without inventi
 test('one Active Sensing message needs finite numeric timestamps and a non-reversed session end', () => {
   const invalid = [undefined, null, false, true, '125000', NaN, Infinity, -Infinity, 125000n, Symbol('time'), {}, [], Object.create(null), new Number(125000)];
   const cases = invalid.flatMap(value => [[125000, value], [value, 125000], [value, value]]);
-  cases.push([125000, 124999]);
+  cases.push([125000, 124999], [-Number.MAX_VALUE, Number.MAX_VALUE]);
   for (const [timestampUs, endUs] of cases) {
     const analysis = analyzeStream([ev(timestampUs, [0xfe])], { endUs });
     assert.equal(analysis.total, 1);
