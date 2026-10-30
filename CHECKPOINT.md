@@ -1,60 +1,51 @@
 # DeckChek continuation checkpoint — 2026-10-30
 
-Latest review: [remote reconciliation and remaining gates](docs/RECONCILIATION-2026-10-30.md).
-At reviewed head `722c7fdaadedfb2fd4906a6bd12ecaf9438d66b6`, PR16 also fails
-Sonar reliability (four annotations). The earlier green checkpoint below refers
-to its named software-test jobs; it does not establish that all merge gates pass.
+Start with the [current continuation prompt](docs/CONTINUATION-PROMPT-2026-10-30.md)
+and [post-consolidation review](docs/POST-CONSOLIDATION-2026-10-30.md).
+Earlier merge/reconciliation reports are historical snapshots.
 
-Start with the [consolidation/development prompt](docs/CONTINUATION-PROMPT-2026-10-30.md)
-and [merge review](docs/MERGE-REVIEW-2026-10-30.md). The
-[October 28 handoff](docs/CONTINUATION-2026-10-28.md) preserves earlier attempts;
-its obsolete current-state claims are superseded by the evidence here.
+## Current integration state
 
-## Current baseline and validation
+- Integration branch: `continuation-deckchek-core-20261028`, draft PR16 targeting
+  PR14 (`claude/confident-goldberg-o06vg2`). Latest source merge:
+  `6bd93e2d1ceb2ff878521de58188cb39d5833c36`, followed by this documentation merge.
+- Main: `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`; the corrected MIDItest proposal is documentation only.
+  Its licensing, issuer, hosting, authorization and Electron decisions remain open.
+- PR19 integrated the refreshed PR10 wiki. PR21 and PR22 integrated the repaired
+  pure FS36 engine and 21 tests. New UI/profile/dispatch wiring and FS34/35 remain
+  open. The latest main proposal is incorporated with this handoff, preserving
+  its ancestry. All original branches remain preserved.
+- PR14 and PR16 still have unresolved broad Sonar failures. Do not merge the
+  code stack into main until those gates and ownership checks pass. Passing
+  child analyses do not waive them. No rule was disabled or finding accepted.
 
-Branch `continuation-deckchek-core-20261028`, draft
-[PR16](https://github.com/djshellshoxxx/deckchek/pull/16), targets
-`claude/confident-goldberg-o06vg2` (PR14). Known green checkpoint:
-`6fb85e21a19fca06467969b9af4bc3ffd1120998`. Subsequent prompt/handoff changes are
-documentation only; use the publishing response for their exact head SHA.
+## Actual validation
 
-- Source repair `dd7ae20fd2c82479dd88b5a1c6390120ac57b17e`: all jobs in
-  [CI 41032654999](https://github.com/djshellshoxxx/deckchek/actions/runs/41032654999)
-  passed: JavaScript 1204 passed, one optional skip; Linux Rust 654 passed,
-  eight ignored; browser 1266/1266. Zero failures; compiler-warning gate passed.
-- The full JavaScript, Rust and browser jobs also passed at checkpoint `6fb85e2`
-  in [CI 41033986019](https://github.com/djshellshoxxx/deckchek/actions/runs/41033986019).
-- PR15 is merged into main at `f3fbf1cc0ba2047e6e1929f3c6622f55a76865f1`.
-  Continuation merge `33ca5f5` preserved screenshots/guide and current M7/M8 status,
-  resolving README/TODO conflicts without application/test changes.
-- PR16 description now records the passing evidence after explicit owner approval.
-  The prior draft-creation and description-update approval conflicts are resolved.
+Exact source `84b687c8b0b5102420b2d3d82ced9aebcea05664` passed [CI 41044618304](https://github.com/djshellshoxxx/deckchek/actions/runs/41044618304): **1,225 JavaScript passed**, one optional skip; **654 Linux Rust passed**, eight ignored; **1,266/1,266 browser checks**, no console errors; zero failures. Performance and compiler-warning gates passed. Sonar child check 124026196929 passed. All 21 FS36 module tests passed. Merge `6bd93e2d1ceb2ff878521de58188cb39d5833c36` has the identical tested tree `f78f93eac7aef92103c1bb56af847f16c99e47e1`; these results do not clear the broad PR14/16 Sonar holds.
 
-## Completed and remaining
+The report records older exact-head results, skipped/ignored cases, source-tree
+equivalence, late review repairs, macOS ARM installer-action failure and the
+intermittent Windows PowerShell scan timeout. Do not confuse source-identical CI
+reuse with a claim that every later job passed. No hardware, actual driver,
+loopback-accuracy, all-platform or 32-bit acceptance is established here.
 
-Completed: Compare entry points; strict MIDI validation and lifecycle/evidence
-fixes; mobile microphone, stationary-vibration and large-session fixes; stored
-markup escaping and uncertainty validation; certificate envelope-shape checks;
-restore/capture exclusion, photo consistency/hash repair/omission warnings, managed
-tuner cancellation; legacy pre-photo backup compatibility and fleet opt-in smoke.
+## Next work and constraints
 
-The code stack remains unmerged pending PR14 Sonar security/reliability triage
-and PR16 Sonar reliability triage.
-Fleet stays default off pending hardware and real-database qualification. External
-Claude's stylus-hours ownership must be rechecked before touching that lane.
-PR9 FS34/35/36, PR10 wiki and PR17 MIDItest proposal remain separate. PR12 changes
-are represented by ancestry/equivalent patches; PR13 is an ancestor. Preserve
-all original branches, including old MIDI and squash-merged audio histories.
+Obtain detailed PR14/16 Sonar findings through supported access or an authorized
+export. Then consolidate PR16 → PR14 → main with fresh refs and guarded ordinary
+merges. In parallel, independently owned work can reconcile remaining PR9
+FS34/35/36 UI, with captured MIDI connection ownership and audio cancellation
+regressions. Preserve existing tests, measurement thresholds, migrations and
+manual/simulated/measured provenance. Fleet remains default OFF.
 
-The prior saved environment recorded Rust under `/workspace/deckchek-toolchain`;
-that environment and toolchain are not accessible in this session. Its last local
-native build was blocked by missing GLib development files and package-write permissions.
-Remote Linux CI evidence above supersedes old statements that native regressions
-were never executed. No hardware, actual-driver, loopback-accuracy, all-platform
-or 32-bit acceptance is claimed. Native path authorization, URL confirmation and
-historical signing-key/provenance semantics remain scoped owner decisions.
+The saved DeckChek environment/worktrees/toolchain were unavailable in the last
+session; bounded remote edits used the authorized connector, temporary staging,
+independent review and existing PR CI. No replacement environment was created.
+Local/external ownership could not be verified. External Claude was the last
+explicit stylus-hours owner; leave that lane untouched until coordinated.
 
-Recovery: fetch and verify the branch head, preserve dirty/occupied worktrees,
-then continue from a new named branch/worktree if needed. Recheck live refs,
-checks and external ownership before integration. Do not reset/delete branches,
-weaken tests, retry denied access without new evidence, or replace the environment.
+Do not redo implemented FS20/21/22/23/31/32/33 or duplicate PR12/13/epic ancestor
+work. The report distinguishes accepted residuals, optional UX and physical/
+platform gates. No force push/reset, branch deletion, approval review, tag,
+release, deployment, credential change or unsafe hardware operation is authorized
+by this checkpoint.
