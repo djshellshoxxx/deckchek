@@ -154,3 +154,11 @@ These documents define candidates and validation requirements. Dependencies, det
 ## Possible future features
 
 The [service-bench consideration backlog](docs/POSSIBLE-FUTURE-FEATURES.md) records 49 proposed turntable, CDJ and controller workflows, plus deferred instrument-assisted engineering tests. It includes software-generated tones, multimeter worksheets, microphone and phone-video comparisons, CDJ service-result/CSV imports and controller checks, with equipment requirements, measurement limits, source links and validation gates. These are future candidates, not implemented capabilities or beta dependencies.
+
+## Tests (verified on this snapshot)
+
+`npm test` (Node built-in test runner, `tests/*.test.mjs`) ran 823 tests: 820 passed and 3 failed. The three failures are in `tests/device-library.test.mjs` (the `loadProfiles`, `groupTestsByCategory, specSummary and progressFor`, and catalog-store device-result tests). They were not investigated in this documentation pass, so treat the suite as not fully green.
+
+## Wiki
+
+Wiki source pages are in [docs/wiki/](docs/wiki/Home.md): developer guide, architecture rationale and codebase map. `docs/IMPLEMENTATION-STATUS.md` is the current code and spec reconciliation.
