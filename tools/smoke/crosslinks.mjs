@@ -144,7 +144,16 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.waitForSelector('#eq-rows .record-main');
   await page.locator('#eq-rows .record-main', { hasText: 'Nagaoka' }).click();
   await page.waitForSelector('[data-xlink-card="equipment"]');
-  check('crosslinks: Equipment cartridge offers stylus wear, wear map and (fleet on by default) Place in venue', (await page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink))).join() === 'stylus,vinylscan,fleet');
+  const equipmentLinks = () => page.locator('[data-xlink-card="equipment"] [data-xlink]').evaluateAll(b => b.map(x => x.dataset.xlink));
+  check('crosslinks: Equipment cartridge offers stylus and wear map, with fleet absent by default', (await equipmentLinks()).join() === 'stylus,vinylscan');
+  await page.evaluate(async () => { (await import('./features.js')).setEnabled('fleet', true); });
+  await page.locator('#eq-rows .record-main', { hasText: 'Nagaoka' }).click();
+  await page.waitForSelector('[data-xlink-card="equipment"] [data-xlink="fleet"]');
+  check('crosslinks: explicit fleet opt-in adds Place in venue without losing cartridge links', (await equipmentLinks()).join() === 'stylus,vinylscan,fleet');
+  await page.evaluate(async () => { (await import('./features.js')).setEnabled('fleet', false); });
+  await page.locator('#eq-rows .record-main', { hasText: 'Nagaoka' }).click();
+  await page.waitForSelector('[data-xlink-card="equipment"] [data-xlink="fleet"]', { state: 'detached' });
+  check('crosslinks: turning fleet off removes Place in venue and keeps cartridge links', (await equipmentLinks()).join() === 'stylus,vinylscan');
   await page.click('[data-xlink-card="equipment"] [data-xlink="stylus"]');
   await page.waitForSelector('#sty-asset');
   await page.waitForFunction(() => document.querySelector('#sty-asset')?.value === 'a-nag');

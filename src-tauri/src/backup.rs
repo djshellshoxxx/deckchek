@@ -584,6 +584,16 @@ fn photo_entry_sha(name: &str) -> Option<&str> {
 /// hash: (archive entry name, file path, bytes). Missing or damaged files are left out, not fatal.
 fn photo_files(snap: &Path, photos_dir: &Path) -> Result<(Vec<(String, PathBuf, ManifestFile)>, usize), BackupError> {
     let c = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| sql_err("read snapshot photos", e))?;
+    // Migration 0013 introduced the photo store. Old snapshots legitimately
+    // have no photo table; do not migrate the snapshot or hide a missing table
+    // in a schema that claims that migration has already run.
+    if schema_version(&c)? < 13 {
+        let exists: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'photo' COLLATE NOCASE)", [], |r| r.get(0))
+            .map_err(|e| sql_err("read snapshot photos", e))?;
+        if !exists {
+            return Ok((Vec::new(), 0));
+        }
+    }
     let mut st = c.prepare("SELECT sha256 FROM photo ORDER BY sha256").map_err(|e| sql_err("read snapshot photos", e))?;
     let rows = st.query_map([], |r| r.get::<_, String>(0)).map_err(|e| sql_err("read snapshot photos", e))?;
     let mut out = Vec::new();
@@ -2806,6 +2816,36 @@ mod tests {
     }
 
     // ---------- FS-00 §4.11: photo store in the archive ----------
+
+    #[test]
+    fn snapshot_photos_allow_legacy_absence_but_report_schema_errors() {
+        let env = Env::new("photo-schema-compat");
+        let legacy = env.out("v004.sqlite3");
+        {
+            let c = Connection::open(&legacy).unwrap();
+            c.execute_batch(&fixture_sql()).unwrap();
+            assert_eq!(schema_version(&c).unwrap(), 2);
+        }
+        let photos = env.root.join("photos");
+        let (files, skipped) = photo_files(&legacy, &photos).unwrap();
+        assert!(files.is_empty());
+        assert_eq!(skipped, 0, "a pre-photo schema has no omitted photos");
+        assert_eq!(schema_version(&Connection::open(&legacy).unwrap()).unwrap(), 2, "reading photos must not upgrade a snapshot");
+
+        // An old version does not excuse an unexpected SQL failure when a
+        // photo object exists, such as an edited table without its hash column.
+        Connection::open(&legacy).unwrap().execute_batch("CREATE TABLE Photo (unexpected TEXT);").unwrap();
+        let malformed = photo_files(&legacy, &photos).unwrap_err();
+        assert_eq!(malformed.code, "database");
+        assert!(malformed.message.contains("sha256"));
+
+        let current = env.out("current.sqlite3");
+        make_db(&current, "current", 1);
+        Connection::open(&current).unwrap().execute_batch("DROP TABLE photo;").unwrap();
+        let missing = photo_files(&current, &photos).unwrap_err();
+        assert_eq!(missing.code, "database");
+        assert!(missing.message.contains("no such table"));
+    }
 
     fn attach_photo(env: &Env, owner: &str, seed: u8) -> crate::photo::PhotoAttached {
         use base64::Engine;
