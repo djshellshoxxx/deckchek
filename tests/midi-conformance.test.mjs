@@ -382,6 +382,20 @@ test('one Active Sensing message measures the known trailing gap without inventi
   }
 });
 
+test('one Active Sensing message needs finite numeric timestamps and a non-reversed session end', () => {
+  const invalid = [undefined, null, false, true, '125000', NaN, Infinity, -Infinity, 125000n, Symbol('time'), {}, [], Object.create(null), new Number(125000)];
+  const cases = invalid.flatMap(value => [[125000, value], [value, 125000], [value, value]]);
+  cases.push([125000, 124999]);
+  for (const [timestampUs, endUs] of cases) {
+    const analysis = analyzeStream([ev(timestampUs, [0xfe])], { endUs });
+    assert.equal(analysis.total, 1);
+    assert.equal(analysis.sensing.count, 1);
+    assert.equal(analysis.sensing.maxGapMs, null, 'invalid timing metadata cannot establish a gap');
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
+  }
+});
+
 test('GM cleanup silences a simulated sustained-chord abort and release tails on all channels', () => {
   const sustain = scheduledMessages(gmSteps().find(s => s.id === 'sustain')).events;
   // A pure receiver model: key release can latch a note under sustain, and a
