@@ -3,6 +3,8 @@ mod commands;
 mod audio;
 mod capture;
 mod db;
+#[cfg(test)]
+mod migration_m7_tests;
 mod devices;
 mod midi;
 mod system_check;

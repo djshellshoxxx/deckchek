@@ -4,6 +4,13 @@ Updated: 2026-10-14 (v0.0.5 shipped; M7 wave-0 foundations merged on top of the 
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
 
+## Cloud continuation: M7 data and statistics foundations (2026-10-22)
+
+- Added the actual reserved schemas `0014_certificate`, `0015_unit_population`, `0016_service_worksheets`, and `0017_fleet_dashboard` from FS-20–23. Existing migration numbers and data are preserved, including databases that already applied `0018_session_origin`. These schemas provide storage foundations; they do not make the corresponding features complete. New Rust tests cover fresh setup, repeated migration execution, the out-of-order FS-30 upgrade, foreign keys, uniqueness and constraint failures.
+- FS-21 pure statistics are implemented in `app/population.js`: type-7 quantiles, scaled-MAD outlier bounds with IQR fallback, winsorization, mid-rank ties, seeded 90% bootstrap intervals, one median per contributor, minimum population sizes and explicit method/unit filtering. Raw dots retain outliers, and the comparison always includes the selection-bias caveat.
+- FS-21 `app/pack.js` builds whitelisted anonymous packs with three-significant-digit values, validates the 5 MB/100,000-row limits and known plausible ranges, and provides a removable, idempotent in-memory store. Overlapping packs retain their own observation ownership, so removing one does not delete an observation still supplied by another.
+- Still outstanding for FS-21: native import/export/persistence commands, profile plausible-range definitions, comparison and sharing UI, sibling/history integration, and manual privacy review. Flags remain off and unavailable. FS-20 certificate signing/UI, FS-22 service workflows/UI and FS-23 fleet workflows/UI also remain outstanding.
+
 ## Implemented and test-covered
 
 - Tauri 2 desktop shell with dark/light theme, nav rail navigation and responsive local UI.
