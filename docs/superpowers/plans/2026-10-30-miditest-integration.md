@@ -2,6 +2,8 @@
 
 > **Proposal status:** Not approved for implementation of licensing, hosting, private-key issuance, security-policy changes or Electron retirement. Corrected against DeckChek continuation `722c7fdaadedfb2fd4906a6bd12ecaf9438d66b6` on 2026-10-30; recheck the integration baseline and active ownership before implementation. This document does not authorize releases or deployments. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Baseline scope:** Workflow, migration and bridge details below describe continuation `722c7fdaadedfb2fd4906a6bd12ecaf9438d66b6`, which is not yet merged into main. Main `f3fbf1cc0ba2047e6e1929f3c6622f55a76865f1` still has `windows-build.yml`, uses `npm test` in its test workflow, and has no `nightly.yml`. Reconcile the chosen implementation baseline before executing these tasks. Merging this proposal does not merge or approve the continuation stack.
+
 **Goal:** Propose moving MIDItest into the DeckChek repo as a self-contained subprogram with a DeckChek workspace, a separate desktop app and a web build from shared source. Licensing and distribution remain conditional on D1–D4 below; the existing free MIDI Tester scope is unchanged until an explicit decision is recorded.
 
 **Architecture:** MIDItest source lives in `app/miditest/` (imported with `git subtree`, history kept). It talks to MIDI through a Web-MIDI-compatible shim over DeckChek's existing `app/midi.js` bridge (Tauri `midir` backend on desktop, Web MIDI in browsers), so the MIDItest UI code barely changes. If D1 approves licensed access, a separately reviewed offline entitlement design would control access to the add-on and standalone app. A second Tauri config builds the standalone `MIDItest.exe` from the same Rust crate.
