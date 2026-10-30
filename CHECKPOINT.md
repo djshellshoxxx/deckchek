@@ -1,5 +1,10 @@
 # DeckChek continuation checkpoint — 2026-10-30
 
+Latest review: [remote reconciliation and remaining gates](docs/RECONCILIATION-2026-10-30.md).
+At reviewed head `722c7fdaadedfb2fd4906a6bd12ecaf9438d66b6`, PR16 also fails
+Sonar reliability (four annotations). The earlier green checkpoint below refers
+to its named software-test jobs; it does not establish that all merge gates pass.
+
 Start with the [consolidation/development prompt](docs/CONTINUATION-PROMPT-2026-10-30.md)
 and [merge review](docs/MERGE-REVIEW-2026-10-30.md). The
 [October 28 handoff](docs/CONTINUATION-2026-10-28.md) preserves earlier attempts;
@@ -33,15 +38,17 @@ markup escaping and uncertainty validation; certificate envelope-shape checks;
 restore/capture exclusion, photo consistency/hash repair/omission warnings, managed
 tuner cancellation; legacy pre-photo backup compatibility and fleet opt-in smoke.
 
-The code stack remains unmerged pending PR14 Sonar security/reliability triage.
+The code stack remains unmerged pending PR14 Sonar security/reliability triage
+and PR16 Sonar reliability triage.
 Fleet stays default off pending hardware and real-database qualification. External
 Claude's stylus-hours ownership must be rechecked before touching that lane.
 PR9 FS34/35/36, PR10 wiki and PR17 MIDItest proposal remain separate. PR12 changes
 are represented by ancestry/equivalent patches; PR13 is an ancestor. Preserve
 all original branches, including old MIDI and squash-merged audio histories.
 
-Local Rust exists under `/workspace/deckchek-toolchain`, but local native builds
-are blocked by missing GLib development files and package-write permissions.
+The prior saved environment recorded Rust under `/workspace/deckchek-toolchain`;
+that environment and toolchain are not accessible in this session. Its last local
+native build was blocked by missing GLib development files and package-write permissions.
 Remote Linux CI evidence above supersedes old statements that native regressions
 were never executed. No hardware, actual-driver, loopback-accuracy, all-platform
 or 32-bit acceptance is claimed. Native path authorization, URL confirmation and
