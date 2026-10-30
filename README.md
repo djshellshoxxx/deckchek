@@ -126,6 +126,10 @@ npm test                      # JavaScript tests (tests/*.test.mjs)
 
 To try the UI without Tauri, serve `app/` over HTTP (for example `python3 -m http.server -d app 8080`) and open it in a browser. For the desktop shell, Rust checks and the Playwright smoke test see [BUILDING.md](BUILDING.md).
 
+## Wiki
+
+Repository wiki pages: [Home](docs/wiki/Home.md), [Developer Guide](docs/wiki/Developer-Guide.md), [Architecture and Design Rationale](docs/wiki/Architecture-and-Design-Rationale.md), and [Codebase Map](docs/wiki/Codebase-Map.md). The guide records revision-specific test evidence and current workflow responsibilities. See [CHECKPOINT](CHECKPOINT.md) for live-check prerequisites and unresolved gates.
+
 ## Project layout
 
 - `app/` - vanilla ES-module front end and pure measurement code ([app/README.md](app/README.md))
