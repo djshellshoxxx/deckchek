@@ -87,7 +87,12 @@ test('GM steps follow General MIDI Level 1 facts', () => {
   assert.ok(byId['all-notes-off'].some(b => b[0] === 0xb0 && b[1] === 123));
   // waits were folded into the previous message
   assert.ok(steps.find(s => s.id === 'polyphony').messages.some(x => x.delayMs >= 1800));
-  assert.equal(gmCleanup().length, 17);
+  for (let channel = 1; channel <= 16; channel++) {
+    for (const controller of [64, 123, 120]) {
+      assert.equal(gmCleanup().filter(b => b[0] === 0xb0 + channel - 1 && b[1] === controller && b[2] === 0).length, 1,
+        `cleanup releases sustain, notes and sound on channel ${channel}: CC${controller}`);
+    }
+  }
   assert.ok(gmCleanup().every(b => validateMessage(b).ok));
   assert.equal(noteOff(10, 36)[0], 0x89);
 });
@@ -277,5 +282,162 @@ test('GM answer summaries retain manual provenance for passing and failing resul
   }
   const stream = analyzeStream([ev(0, noteOn(1, 60)), ev(1000, noteOff(1, 60))], { endUs: 2000 });
   assert.ok(stream.measurements.every(measurement => measurement.origin === 'measured'), 'stream-derived evidence keeps its measured origin');
+});
+
+test('14-bit pairing consumes distinct halves and keeps channels and controllers separate', () => {
+  for (const [msb, lsb, expected] of [
+    [[0], [0, 100, 200, 300, 400, 500, 600], 0.75],
+    [[0, 100, 200, 300, 400, 500, 600], [0], 0.75],
+    [[0, 0], [0], 0.333],
+    [[0, 0], [0, 0], 0],
+  ]) {
+    const events = [
+      ...msb.map(t => ev(t, controlChange(1, 1, 10))),
+      ...lsb.map(t => ev(t, controlChange(1, 33, 20))),
+    ].sort((a, b) => a.tUs - b.tUs);
+    const analysis = analyzeStream(events);
+    assert.deepEqual(analysis.pairs, [{ channel: 1, cc: 1, unpairedFraction: expected }]);
+    assert.equal(mv(analysis, 'midi_unpaired_14bit'), expected > 0.5 ? 1 : 0);
+  }
+  const separate = analyzeStream([
+    ev(0, controlChange(1, 1, 10)), ev(0, controlChange(2, 33, 20)),
+    ev(0, controlChange(1, 2, 10)), ev(0, controlChange(1, 34, 20)),
+    ev(0, controlChange(1, 35, 20)),
+  ]);
+  assert.deepEqual(separate.pairs, [{ channel: 1, cc: 2, unpairedFraction: 0 }],
+    'a half from another channel or controller cannot supply the missing half');
+});
+
+test('14-bit pairing is timestamp-order independent and preserves the 20 ms and half-unpaired boundaries', () => {
+  const ordered = [
+    ev(0, controlChange(1, 1, 10)), ev(20000, controlChange(1, 33, 20)),
+    ev(40000, controlChange(1, 1, 30)), ev(60000, controlChange(1, 33, 40)),
+  ];
+  for (const events of [ordered, ordered.slice().reverse(), [ordered[2], ordered[1], ordered[0], ordered[3]]]) {
+    const before = events.map(e => e.tUs);
+    Object.freeze(events);
+    assert.deepEqual(analyzeStream(events).pairs, [{ channel: 1, cc: 1, unpairedFraction: 0 }]);
+    assert.deepEqual(events.map(e => e.tUs), before, 'analyzing does not reorder the supplied stream');
+  }
+  for (const [msbUs, lsbUs, expected] of [[0, 20000, 0], [20000, 0, 0], [0, 20001, 1], [20001, 0, 1]]) {
+    const analysis = analyzeStream([ev(msbUs, controlChange(1, 1, 1)), ev(lsbUs, controlChange(1, 33, 1))]);
+    assert.equal(analysis.pairs[0].unpairedFraction, expected, 'the 20 ms window is inclusive in either direction');
+  }
+  for (const [lsbCount, expected, flagged] of [[3, 0.5, false], [4, 0.6, true]]) {
+    const analysis = analyzeStream([
+      ev(0, controlChange(1, 1, 1)),
+      ...Array.from({ length: lsbCount }, (_, i) => ev(i * 100, controlChange(1, 33, 1))),
+    ]);
+    assert.equal(analysis.pairs[0].unpairedFraction, expected);
+    assert.equal(mv(analysis, 'midi_unpaired_14bit'), flagged ? 1 : 0);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-14bit'), flagged);
+  }
+});
+
+test('invalid CC timestamps remain unpaired evidence instead of matching or disappearing', () => {
+  for (const invalid of [NaN, undefined, Infinity, -Infinity, '0', null, 0n, Symbol('time')]) {
+    for (const [msbUs, lsbUs] of [[invalid, 0], [0, invalid], [invalid, invalid]]) {
+      const analysis = analyzeStream([ev(msbUs, controlChange(1, 1, 1)), ev(lsbUs, controlChange(1, 33, 1))]);
+      assert.equal(analysis.total, 2);
+      assert.equal(analysis.pairs[0].unpairedFraction, 1);
+      assert.equal(mv(analysis, 'midi_unpaired_14bit'), 1);
+    }
+    const mixed = analyzeStream([
+      ev(0, controlChange(1, 1, 1)), ev(invalid, controlChange(1, 1, 2)), ev(0, controlChange(1, 33, 1)),
+    ]);
+    assert.equal(mixed.total, 3);
+    assert.equal(mixed.pairs[0].unpairedFraction, 0.333, 'invalid timestamps stay in the denominator');
+  }
+});
+
+test('dense 14-bit captures preserve every unmatched half without repeated cross-scans', () => {
+  const groups = 20000;
+  const events = Array.from({ length: groups }, (_, i) => [
+    ...[0, 100, 200, 300].map(offset => ev(i * 1000 + offset, controlChange(1, 1, i & 0x7f))),
+    ev(i * 1000 + 400, controlChange(1, 33, i & 0x7f)),
+  ]).flat();
+  const analysis = analyzeStream(events);
+  assert.equal(analysis.total, 100000);
+  assert.deepEqual(analysis.pairs, [{ channel: 1, cc: 1, unpairedFraction: 0.6 }]);
+  assert.equal(mv(analysis, 'midi_unpaired_14bit'), 1);
+  assert.equal(analysis.invalid.length, 0);
+});
+
+test('one Active Sensing message measures the known trailing gap without inventing absent evidence', () => {
+  for (const [gapMs, warned] of [[0, false], [330, false], [331, true], [625, true]]) {
+    const analysis = analyzeStream([ev(125000, [0xfe])], { endUs: 125000 + gapMs * 1000 });
+    assert.equal(analysis.sensing.count, 1);
+    assert.equal(analysis.sensing.maxGapMs, gapMs);
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), gapMs);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), warned);
+  }
+  for (const analysis of [
+    analyzeStream([], { endUs: 1000000 }),
+    analyzeStream([ev(125000, [0xfe])]),
+    analyzeStream([ev(125000, [0xfe])], { endUs: null }),
+  ]) {
+    assert.equal(analysis.sensing.maxGapMs, null);
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
+  }
+});
+
+test('one Active Sensing message needs finite numeric timestamps and a non-reversed session end', () => {
+  const invalid = [undefined, null, false, true, '125000', NaN, Infinity, -Infinity, 125000n, Symbol('time'), {}, [], Object.create(null), new Number(125000)];
+  const cases = invalid.flatMap(value => [[125000, value], [value, 125000], [value, value]]);
+  cases.push([125000, 124999], [-Number.MAX_VALUE, Number.MAX_VALUE]);
+  for (const [timestampUs, endUs] of cases) {
+    const analysis = analyzeStream([ev(timestampUs, [0xfe])], { endUs });
+    assert.equal(analysis.total, 1);
+    assert.equal(analysis.sensing.count, 1);
+    assert.equal(analysis.sensing.maxGapMs, null, 'invalid timing metadata cannot establish a gap');
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
+  }
+});
+
+test('GM cleanup silences a simulated sustained-chord abort and release tails on all channels', () => {
+  const sustain = scheduledMessages(gmSteps().find(s => s.id === 'sustain')).events;
+  // A pure receiver model: key release can latch a note under sustain, and a
+  // released voice can still have an audible envelope until All Sound Off.
+  for (const abortMs of [0, 250, 500, 1000, 1999]) {
+    const channels = Array.from({ length: 16 }, () => ({ pedal: false, held: new Set(), latched: new Set(), releasing: new Set() }));
+    const release = (channel, note) => {
+      if (channel.held.delete(note)) (channel.pedal ? channel.latched : channel.releasing).add(note);
+    };
+    const receive = bytes => {
+      const channel = channels[bytes[0] & 0x0f], type = bytes[0] & 0xf0;
+      if (type === 0x90 && bytes[2] > 0) channel.held.add(bytes[1]);
+      else if (type === 0x80 || (type === 0x90 && bytes[2] === 0)) release(channel, bytes[1]);
+      else if (type === 0xb0 && bytes[1] === 64) {
+        channel.pedal = bytes[2] >= 64;
+        if (!channel.pedal) {
+          for (const note of channel.latched) channel.releasing.add(note);
+          channel.latched.clear();
+        }
+      } else if (type === 0xb0 && bytes[1] === 123) {
+        for (const note of [...channel.held]) release(channel, note);
+      } else if (type === 0xb0 && bytes[1] === 120) {
+        channel.latched.clear();
+        channel.releasing.clear();
+      }
+    };
+    for (let channel = 2; channel <= 16; channel++) {
+      receive(controlChange(channel, 64, 127));
+      receive(noteOn(channel, 60));
+      receive(noteOff(channel, 60));
+    }
+    for (const event of sustain) if (event.timeMs <= abortMs) receive(event.bytes);
+    assert.equal(channels[0].pedal, true, 'abort occurs before the scheduled pedal release');
+    assert.equal(channels[0].held.size, abortMs < 500 ? 3 : 0);
+    assert.equal(channels[0].latched.size, abortMs < 500 ? 0 : 3);
+    for (const bytes of gmCleanup()) receive(bytes);
+    for (const channel of channels) {
+      assert.equal(channel.pedal, false, 'cleanup releases sustain');
+      assert.equal(channel.held.size, 0, 'cleanup releases every held key');
+      assert.equal(channel.latched.size, 0, 'cleanup releases pedal-held voices');
+      assert.equal(channel.releasing.size, 0, 'cleanup also silences release tails');
+    }
+  }
 });
 

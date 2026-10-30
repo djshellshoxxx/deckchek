@@ -91,16 +91,25 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     if (cc > 31) continue;
     const lsb = ccTimes.get(`${ch}:${cc + 32}`);
     if (!lsb) continue;
-    const near = (t, list) => list.some(x => Math.abs(x - t) <= 20000);
-    const hit = msb.filter(t => near(t, lsb)).length + lsb.filter(t => near(t, msb)).length;
-    const frac = 1 - hit / (msb.length + lsb.length);
+    // Match each half once. Sort private timing arrays, not the note/event stream;
+    // invalid timestamps remain in the denominator but cannot establish a pair.
+    const msbTimes = msb.filter(Number.isFinite).sort((a, b) => a - b);
+    const lsbTimes = lsb.filter(Number.isFinite).sort((a, b) => a - b);
+    let i = 0, j = 0, matched = 0;
+    while (i < msbTimes.length && j < lsbTimes.length) {
+      if (Math.abs(msbTimes[i] - lsbTimes[j]) <= 20000) { matched++; i++; j++; }
+      else if (msbTimes[i] < lsbTimes[j]) i++;
+      else j++;
+    }
+    const frac = 1 - (2 * matched) / (msb.length + lsb.length);
     pairs.push({ channel: ch, cc, unpairedFraction: round(frac, 3) });
   }
   const unpaired14 = pairs.filter(p => p.unpairedFraction > 0.5).length;
 
   const gaps = a => a.slice(1).map((t, i) => (t - a[i]) / 1000);
   let sensingMax = null;
-  if (sensing.length >= 2) {
+  const singleSensingGapKnown = sensing.length === 1 && Number.isFinite(sensing[0]) && Number.isFinite(endUs) && endUs >= sensing[0] && Number.isFinite(endUs - sensing[0]);
+  if (sensing.length >= 2 || singleSensingGapKnown) {
     sensingMax = -Infinity;
     for (let i = 1; i < sensing.length; i++) sensingMax = Math.max(sensingMax, (sensing[i] - sensing[i - 1]) / 1000);
     if (endUs != null) sensingMax = Math.max(sensingMax, (endUs - sensing[sensing.length - 1]) / 1000);
@@ -165,7 +174,6 @@ export const GM_FACTS = Object.freeze({ percussionChannel: 10, drumKeyRange: [35
 
 const seq = (...items) => items.flat();
 const at = (ms, bytes) => ({ delayMs: ms, bytes });
-const allOff = () => Array.from({ length: 16 }, (_, c) => at(0, controlChange(c + 1, 123, 0)));
 
 /** The ten audible steps. Each: {id, title, question, feature, messages:[{delayMs,bytes}]}; delayMs = wait AFTER sending. */
 export function gmSteps() {
@@ -201,7 +209,11 @@ export function gmSteps() {
 }
 
 /** Panic bytes sent when a GM test ends or is aborted. */
-export const gmCleanup = () => allOff().map(x => x.bytes).concat([[0xb9, 120, 0]]);
+export const gmCleanup = () => Array.from({ length: 16 }, (_, c) => [
+  controlChange(c + 1, 64, 0), // release any pedal-held notes
+  controlChange(c + 1, 123, 0), // retain All Notes Off for held keys
+  controlChange(c + 1, 120, 0), // silence release tails on every channel
+]).flat();
 
 /** answers: {[stepId]: 'yes'|'no'|'na'} -> measurement + findings + status ('skipped' when all N/A, null when unanswered). */
 export function evaluateGm(answers = {}, steps = gmSteps()) {
