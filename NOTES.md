@@ -2,6 +2,13 @@
 
 Decisions and pitfalls from the completion/audit/fuzz/release run. Short, dated, newest last.
 
+Current-state correction (2026-10-30): the decisions below are historical. Consult
+`CHECKPOINT.md` and `docs/CONTINUATION-PROMPT-2026-10-30.md` before continuing.
+Actual migrations currently end at 0022 (0019 monitor, 0020 mapper, 0021 ledger,
+0022 population extension); the old 0022–0025 reservations below are not current
+allocations. Determine new numbers from the live migration tree, never reuse a
+number or rewrite existing migrations. Fleet is default off pending qualification.
+
 ## Decisions
 
 - **Spec source.** The run brief was written for a "plugin dependency scanner"; this repo is DeckChek. Work list derived from `docs/specs/FS-*` (acceptance criteria) and `docs/DEVELOPMENT-PLAN.md`, tracked in `SPEC_STATUS.md`.

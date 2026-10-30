@@ -75,3 +75,27 @@ Repair source: `dd7ae20fd2c82479dd88b5a1c6390120ac57b17e`.
 Native CI is software evidence on its runner only. It does not qualify hardware,
 actual audio drivers, loopback accuracy, all platforms or 32-bit builds. Existing
 path-authorization and signing-provenance exclusions remain unchanged.
+
+
+## Additional handoff review
+
+The owner explicitly approved PR16's previously denied description update; the
+single retry succeeded and GitHub confirmed the new body. No merge of PR16 or
+PR14 occurred. Checkpoint `6fb85e21a19fca06467969b9af4bc3ffd1120998` also passed all
+three jobs in CI 41033986019. The new continuation prompt is the execution entry
+point; CHECKPOINT now states current evidence without contradictory native-status
+claims. Historical NOTES migration reservations are explicitly marked obsolete.
+
+All 13 live branch refs were rechecked. PR11 is confirmed merged with squash
+commit `9f74fc2ee7952378bf17698bb6d648a8a2fbbb86`; nonmatching commit/patch history
+on the old audio branch must not be mistaken for 26 missing features. The old
+catalog branch differs by an unsupported DDJ-S8 profile and older device/dispatch
+behavior; inspect content before reusing anything, not just its 94 unique commits.
+The old MIDI checkpoint has three equivalent code patches and two historical
+handoff commits; retain its original 846/186 results as historical evidence.
+
+GitHub reported PR10/12/17 nonmergeable on this refresh, while local merge-tree
+against exact main `f3fbf1c` succeeded for each. Treat this discrepancy as unresolved
+remote metadata, not permission to merge. PR14 locally conflicts in README/TODO;
+PR9 conflicts in device-library tests/core smoke. Continuation already carries the
+reviewed main-documentation resolution. Recheck current refs/checks before acting.
