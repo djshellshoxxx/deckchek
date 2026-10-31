@@ -22,7 +22,8 @@
 //   applied incrementally, counted only when the deck was playing steadily before the gap and the carrier
 //   comes back at the same speed (a hand stop, cue or backspin changes the speed, a dust skip does not).
 // Alarm rules (FS-31 §6, tunable defaults, not sourced) are evaluated only on "play" frames (locked, forward,
-// steady speed): cueing, scratching and backspins freeze the counters instead of raising alarms. Hysteresis:
+// steady speed). The SNR floor also accepts a coherent continuation of a recently healthy carrier when noise
+// defeats zero-crossing tracking; cueing, scratching and backspins otherwise freeze the counters. Hysteresis:
 // raise after N consecutive frames, clear after 2N; cooldown per (deck, kind) 60 s.
 
 import { dbfs } from './core.js';
@@ -126,6 +127,9 @@ export function createEventLog(cap = 500) {
 
 const TAU = 2 * Math.PI;
 const DEG = 180 / Math.PI;
+// Carrier-evidence discriminator, not an alarm threshold: both channels must retain phase coherence over a full
+// window at the last healthy forward frequency. Unrelated noise and moving/scratched carriers do not qualify.
+const REFERENCE_COHERENCE = 0.9;
 
 function resolveFormat(format) {
   const fmt = typeof format === 'string' ? findFormat(format, TIMECODE_FORMATS) : format;
@@ -181,6 +185,8 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
   let sr = 0, S = 0, W = 0, D = 1, humN = 0;
   let carryL, carryR, carryN = 0;
   let fL, fR, fFreq, fSnr, fAmpL, fAmpR, fCrossRe, fCrossIm, fLevel, fMs, fHead = 0, fCount = 0, F = 0;
+  let refLRe, refLIm, refRRe, refRIm;
+  let referenceHz = NaN, referencePhase = 0, referenceCount = 0, referenceMisses = 0;
   let humRing, humPos = 0, humFill = 0, decAcc = 0, decCnt = 0, humBuf, hann;
   const DROP_REF = 100; // 2 s of 20 ms levels for the 75th-percentile reference
   const dropRef = createRing(DROP_REF);
@@ -220,6 +226,7 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     carryL = new Float32Array(S); carryR = new Float32Array(S); carryN = 0;
     const mk = () => new Float64Array(F);
     fL = mk(); fR = mk(); fFreq = mk(); fSnr = mk(); fAmpL = mk(); fAmpR = mk(); fCrossRe = mk(); fCrossIm = mk(); fLevel = mk(); fMs = mk();
+    refLRe = mk(); refLIm = mk(); refRRe = mk(); refRIm = mk();
     fHead = 0; fCount = 0;
     D = Math.max(1, Math.floor(sr / 12000));
     humN = Math.max(64, Math.round(win * sr / D));
@@ -234,6 +241,7 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
    * the open minute, cooldowns and alert ids carry on. */
   function resetSignal() {
     zcArmed = false; zcPrev = 0; bpMs = 0; bq.fill(0); lastFreq = NaN; prevCarrier = NaN; lastMotion = 'idle';
+    referenceHz = NaN; referencePhase = 0; referenceCount = 0; referenceMisses = 0;
     dropThr = -Infinity; run = 0; runPreFreq = NaN; runPreMotion = 'idle'; pendingDrop = null; dropTimes.length = 0;
     dropRef.clear(); snrBase.clear(); humBase.clear(); phaseHist.clear();
     humDb = -140; humFloorDb = -140; humMainsHz = null; hopCounter = 0; idleSince = null; idleInfoRaised = false;
@@ -298,6 +306,20 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     const car = (aL * aL + aR * aR) / 2, tot = msL + msR;
     const res = Math.max(tot - car, tot * 1e-7, 1e-30);
     const idx = fHead;
+    if (Number.isFinite(referenceHz)) {
+      // One fixed-frequency bin, phase-aligned across sub-blocks. Its full-window sum distinguishes a carrier
+      // continuing under noise from the low apparent SNR caused by a changing scratch/cue frequency.
+      const rw = TAU * referenceHz / sr, rcw = Math.cos(rw), rsw = Math.sin(rw);
+      let c = Math.cos(referencePhase), s = Math.sin(referencePhase), lr = 0, li = 0, rr = 0, ri = 0;
+      for (let i = 0; i < S; i++) {
+        const a = L[o + i], b = R[o + i];
+        lr += a * c; li -= a * s; rr += b * c; ri -= b * s;
+        const nc = c * rcw - s * rsw; s = s * rcw + c * rsw; c = nc;
+      }
+      refLRe[idx] = lr; refLIm[idx] = li; refRRe[idx] = rr; refRIm[idx] = ri;
+      referencePhase = (referencePhase + rw * S) % TAU;
+      referenceCount = Math.min(W, referenceCount + 1);
+    }
     fL[idx] = msL; fR[idx] = msR; fFreq[idx] = f; fAmpL[idx] = aL; fAmpR[idx] = aR;
     fSnr[idx] = car > 0 ? 10 * Math.log10(car / res) : -60;
     // Z_R * conj(Z_L): angle = right minus left
@@ -411,7 +433,7 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     fr.sort((a, b) => a - b); sn.sort((a, b) => a - b);
     const carrierHz = quantile(fr, 0.5);
     const spread = fr.length >= 3 ? (quantile(fr, 0.75) - quantile(fr, 0.25)) / carrierHz : Infinity;
-    const snrDb = sn.length ? quantile(sn, 0.5) : NaN;
+    let snrDb = sn.length ? quantile(sn, 0.5) : NaN;
     const phaseDeg = used ? Math.atan2(cim, cre) * DEG : NaN;
     const Rbar = used ? Math.hypot(ure, uim) / used : 0;
     const jitterDeg = used ? Math.sqrt(Math.max(0, -2 * Math.log(Math.max(Rbar, 1e-12)))) * DEG : NaN;
@@ -429,7 +451,32 @@ export function createMonitor({ format, deck = 'A', hopMs = 250, windowSec = 0.5
     // (spread < 1 % down to 0 dB SNR) while cueing and scratching smear it (spread 25-45 %), so this is a collapsed
     // signal on a playing deck, not a gesture. The SNR floor rule is evaluated on these frames too, so the worst
     // degradation is not mistaken for cueing (FS-31 AC-3).
-    const atSpeed = motion !== 'idle' && present && direction === 'forward' && steady && Math.abs(speedPct) <= 50;
+    let atSpeed = motion !== 'idle' && present && direction === 'forward' && steady && Math.abs(speedPct) <= 50;
+    // A mixed healthy/noisy window can still report a high median SNR while its crossings lose steadiness.
+    // Discard on observed clean reverse or idle immediately; other motion must fail the coherent window first.
+    if (motion === 'idle' || (locked && direction === 'reverse' && jitterDeg < th.phaseJitterDeg)) {
+      referenceHz = NaN; referenceCount = 0; referenceMisses = 0;
+    } else if (motion === 'play' && snrDb >= th.healthySnrDb) {
+      referenceHz = carrierHz; referencePhase = 0; referenceCount = 0; referenceMisses = 0;
+    } else if ((!atSpeed || snrDb < 6) && referenceCount >= W && Number.isFinite(referenceHz)) {
+      let lr = 0, li = 0, rr = 0, ri = 0, la = 0, ra = 0, total = 0;
+      for (let i = 0; i < W; i++) {
+        const j = (fHead - 1 - i + F * 2) % F;
+        lr += refLRe[j]; li += refLIm[j]; rr += refRRe[j]; ri += refRIm[j];
+        la += Math.hypot(refLRe[j], refLIm[j]); ra += Math.hypot(refRRe[j], refRIm[j]);
+        total += fL[j] + fR[j];
+      }
+      const coherent = la > 0 && ra > 0 && Math.min(Math.hypot(lr, li) / la, Math.hypot(rr, ri) / ra) >= REFERENCE_COHERENCE;
+      const phase = Math.atan2(ri * lr - rr * li, rr * lr + ri * li) * DEG;
+      if (coherent && directionFromPhase(phase, fmt) === 'forward') {
+        const power = 2 * (lr * lr + li * li + rr * rr + ri * ri) / (W * S) ** 2;
+        total /= W;
+        snrDb = 10 * Math.log10(Math.max(power, 1e-30) / Math.max(total - power, total * 1e-7, 1e-30));
+        atSpeed = true; referenceMisses = 0;
+      } else if (!atSpeed && ++referenceMisses >= frames(win)) {
+        referenceHz = NaN; referenceCount = 0; referenceMisses = 0;
+      }
+    } else if (atSpeed) referenceMisses = 0;
     prevCarrier = carrierHz;
     return { levelDb, snrDb, carrierHz, speedPct, phaseDeg, jitterDeg, balanceDb, direction, locked, atSpeed, motion, driftDeg: Number.isFinite(phaseDeg) ? Math.abs(phaseDeg) - 90 : NaN };
   }

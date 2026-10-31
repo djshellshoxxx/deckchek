@@ -13,7 +13,7 @@ const FLAG_ON = () => { localStorage.setItem('deckchek.ui.v1', JSON.stringify({ 
 function monitorMock() {
   const core = window.__TAURI__.core, base = core.invoke;
   const sr = 16000, frames = 4000; // 250 ms blocks
-  const mon = { snrA: 32, dropB: false, busyText: null, leaseHolder: null, tray: [], calls: [], sessions: [], events: [], minutes: [] };
+  const mon = { snrA: 32, amplitudeA: 0.5, carrierA: 1000, dropB: false, busyText: null, leaseHolder: null, tray: [], calls: [], sessions: [], events: [], minutes: [] };
   window.__mon = mon;
   let stream = null, lease = null, nextLease = 1;
   let seed = 12345;
@@ -27,15 +27,15 @@ function monitorMock() {
     v.setUint16(4, 2, true); v.setUint16(6, final ? 1 : 0, true); v.setUint32(8, seq, true); v.setUint32(12, sr, true); v.setUint32(16, n, true);
     v.setUint32(28, pairs, true); v.setFloat64(40, (seq + 1) * n, true);
     for (let p = 0; p < pairs; p++) {
-      const snr = p === 0 ? mon.snrA : 32, A = 0.5, sigma = A / Math.SQRT2 / Math.pow(10, snr / 20), base0 = 48 + p * n * 8;
+      const snr = p === 0 ? mon.snrA : 32, A = p === 0 ? mon.amplitudeA : 0.5, hz = p === 0 ? mon.carrierA : 1000, sigma = A / Math.SQRT2 / Math.pow(10, snr / 20), base0 = 48 + p * n * 8;
       for (let i = 0; i < n; i++) {
         const t = tSec + i / sr;
         const drop = p === 1 && mon.dropB && (t % 0.8) < 0.06;
-        const ph = phase[p] + 2 * Math.PI * 1000 * i / sr;
+        const ph = phase[p] + 2 * Math.PI * hz * i / sr;
         v.setFloat32(base0 + i * 4, drop ? 0 : A * Math.sin(ph) + sigma * gauss(), true);
         v.setFloat32(base0 + n * 4 + i * 4, drop ? 0 : A * Math.cos(ph) + sigma * gauss(), true);
       }
-      phase[p] = (phase[p] + 2 * Math.PI * 1000 * n / sr) % (2 * Math.PI);
+      phase[p] = (phase[p] + 2 * Math.PI * hz * n / sr) % (2 * Math.PI);
     }
     tSec += n / sr;
     return buf;
@@ -120,6 +120,30 @@ export default async function run({ browser, base, check, SHOTS }) {
   await pb.waitForSelector('#mon-unsupported');
   check('monitor: browser mode states it needs the desktop app', /needs the desktop app/i.test(await pb.locator('#mon-unsupported').innerText()));
   await bctx.close();
+
+  // Real synthetic samples through the rendered controller; no physical capture claim.
+  // A healthy acquired MK2 carrier becomes quieter than noise without changing speed.
+  const lowCtx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+  await lowCtx.addInitScript(tauriMock); await lowCtx.addInitScript(monitorMock); await lowCtx.addInitScript(FLAG_ON);
+  const lowPage = await lowCtx.newPage();
+  errors.push(...watchConsole(lowPage, 'monitor-negative-snr'));
+  await lowPage.goto(base);
+  await lowPage.evaluate(() => { window.__mon.carrierA = 2500; window.__mon.amplitudeA = 0.1; });
+  await lowPage.click('.rail-item[data-screen="monitor"]');
+  await lowPage.waitForSelector('#mon-setup');
+  await lowPage.selectOption('#mon-format', 'Traktor Scratch MK2');
+  await lowPage.click('#mon-start');
+  await lowPage.waitForSelector('.mon-deck[data-deck="A"][data-state="ok"]', { timeout: 8000 });
+  await lowPage.waitForTimeout(2000);
+  await lowPage.evaluate(() => { window.__mon.snrA = -6; });
+  await lowPage.waitForSelector('.mon-deck[data-deck="A"][data-state="fault"]', { timeout: 8000 });
+  check('AC-3 monitor: acquired steady carrier below noise raises a critical floor event',
+    await lowPage.locator('.mon-events .mon-event[data-kind="snrFloor"][data-severity="critical"]').count() >= 1);
+  check('AC-3 monitor: negative-SNR floor drives the tray to fault', await lowPage.evaluate(() => window.__mon.tray.at(-1) === 'fault'));
+  await lowPage.click('#mon-stop');
+  check('AC-7 monitor: negative-SNR critical floor persists in the saved session',
+    await lowPage.evaluate(() => window.__mon.events.some(e => e.kind === 'snrFloor' && e.severity === 'critical')));
+  await lowCtx.close();
 
   // ----- desktop: main flow -----
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
