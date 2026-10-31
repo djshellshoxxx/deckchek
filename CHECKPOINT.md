@@ -1,3 +1,25 @@
+# DeckChek monitor milestone — 2026-10-31
+
+Latest isolated source: `8a654fb2ed6de407ace85390ad052236da764310`, branch
+`codex/monitor-snr-20261031`, based on integration `f24beb8e2643d38474b475394a7bd25eb0447bd5`.
+Read the [current continuation prompt](docs/CONTINUATION-PROMPT-2026-10-31.md)
+and [monitor milestone evidence](docs/MONITOR-MILESTONE-2026-10-31.md).
+
+Negative-SNR floor alarms now cover an acquired coherent carrier under noise;
+cold-start/changing-pitch and hardware limitations remain. Final local evidence:
+**1,233 JavaScript passed, one optional skip; 43 focused monitor tests; 42/42
+monitor browser checks; unchanged performance budget passed**. Independent
+review found no must-fix issue. Remote checks for this new source are pending
+at this documentation commit; baseline CI is not evidence for this delta.
+
+No merge attempted: PR14/16 broad Sonar holds remain. Saved environment is
+available; local native dependencies remain unavailable after denied package
+writes. External Claude stylus work and all existing branches are preserved.
+The local old continuation checkout at 722c7fd is stale: do not overwrite the
+newer remote. Fleet stays OFF. No release/deployment or policy change.
+
+---
+
 # DeckChek continuation checkpoint — 2026-10-30
 
 Start with the [current continuation prompt](docs/CONTINUATION-PROMPT-2026-10-30.md)
