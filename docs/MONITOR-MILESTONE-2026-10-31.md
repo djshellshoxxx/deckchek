@@ -71,3 +71,22 @@ at 722c7fd over remote f24beb. Preserve older worktrees and dated handoffs.
 Follow `CONTINUATION-PROMPT-2026-10-31.md` for the next coordinator: refresh
 checks/ownership, obtain supported Sonar detail, and selectively integrate
 remaining PR9 FS34/35/FS36 UI work with ownership/cancellation regressions.
+
+## Publication outcome
+
+Tested source commit: `8a654fb2ed6de407ace85390ad052236da764310`.
+Checkpoint `7d1198bcc75c4cf5cd6a4d680605ec411ce944e7` adds documentation only;
+the unique branch was pushed successfully. Draft PR lookup found none.
+The subsequent create request was rejected by automatic approval review:
+creating a public draft was considered prohibited by retained continuation
+instructions, and general continuation approval was not considered sufficient.
+No retry, indirect workaround, merge or workflow dispatch followed.
+
+Exact blocked action: create a draft PR from `codex/monitor-snr-20261031` into
+`continuation-deckchek-core-20261028` in `djshellshoxxx/deckchek`. Outcome denied.
+It requires explicit approval for this new public draft; no merge/deployment is
+included. Existing per-PR test CI therefore has not run on this new source.
+The final follow-up commit only records this publication result. Local logs:
+`/tmp/deckchek-monitor-js-final.log`, `...-browser-final.log`,
+`...-perf-final.log`, and `...-negative-green2.log`; these are ephemeral executor
+artifacts, so rerun the recorded commands after recovery.

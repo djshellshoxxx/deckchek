@@ -14,6 +14,9 @@ push it over the newer remote. Preserve all branches/worktrees and unique work.
 External Claude last owned the stylus-hours UI race; leave that lane untouched
 until ownership is coordinated. Use one writer per module and bounded review.
 
+The unique monitor branch is pushed, but creating its new public draft PR was
+rejected by automatic approval review. Do not retry or use another route without
+explicit approval for this source/target draft. PR CI for this delta has not run.
 First review the monitor milestone and exact-head checks. Preserve the 12 dB
 floor, two-second raise, four-second clear, cooldowns and scratch/idle/reverse
 counterexamples. Synthetic signal/controller/browser evidence is not physical

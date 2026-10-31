@@ -9,8 +9,12 @@ Negative-SNR floor alarms now cover an acquired coherent carrier under noise;
 cold-start/changing-pitch and hardware limitations remain. Final local evidence:
 **1,233 JavaScript passed, one optional skip; 43 focused monitor tests; 42/42
 monitor browser checks; unchanged performance budget passed**. Independent
-review found no must-fix issue. Remote checks for this new source are pending
-at this documentation commit; baseline CI is not evidence for this delta.
+review found no must-fix issue. The source is pushed. Creating its draft PR was rejected by automatic approval
+review under the retained public-publication restriction; no retry or alternate
+route was used. New-head PR CI has not run; baseline CI is not evidence for this
+delta. Required specific approval: create the public draft from
+`codex/monitor-snr-20261031` into `continuation-deckchek-core-20261028`, without
+merging or deploying.
 
 No merge attempted: PR14/16 broad Sonar holds remain. Saved environment is
 available; local native dependencies remain unavailable after denied package
