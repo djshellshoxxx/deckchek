@@ -691,7 +691,7 @@ export function classifyStartError(error, { deviceName = null } = {}) {
   const t = name.length >= 2 ? lower.split(name).join(' ') : lower;
   if (/desktop app|tauri/.test(t)) return { state: 'unsupported', code: 'UNSUPPORTED', message: 'Live monitor needs the DeckChek desktop app.' };
   if (/exclusive|in use|being used|busy|audclnt_e_device_in_use|0x8889000a|device_busy/.test(t)) return { state: 'device-busy', code: 'DEVICE_BUSY', message: DEVICE_BUSY_COPY };
-  if (/^input pair|pairs? (start|are given)|is selected twice|not available on/.test(t)) return { state: 'error', code: 'PAIR', message: text };
+  if (/(?:^input pair)|pairs? (?:start|are given)|is selected twice|not available on/.test(t)) return { state: 'error', code: 'PAIR', message: text };
   if (/not found|no (default )?input|no device|no such device|unplugged|disconnected/.test(t)) return NO_DEVICE_ERROR;
   if (/format|sample rate|unsupported/.test(t)) return { state: 'error', code: 'FORMAT_UNSUPPORTED', message: 'The device rejected the stream format. Pick another sample rate in the interface control panel, then start again.' };
   if (/permission|denied|not allowed/.test(t)) return { state: 'error', code: 'PERMISSION', message: 'Windows blocked access to the input. Allow desktop apps to use the microphone in Settings > Privacy, then start again.' };

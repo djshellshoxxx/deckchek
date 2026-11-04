@@ -385,7 +385,7 @@ export function comparisonBlock(cmp) {
     box.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data svc-table', id: 'svc-compare-table' }, h('caption', { text: 'Measured values: change judged at k = 2 (an asterisk marks an assumed uncertainty)' }),
       h('thead', {}, h('tr', {}, ...['Metric', 'Before', 'After', 'Change', 'Result'].map(t => h('th', { scope: 'col', text: t })))),
       // Keyed by the row's (test, metric) key: one metric key can appear under several tests (two faders).
-      h('tbody', {}, ...cmp.rows.map(r => h('tr', { 'data-key': String(r.key ?? '').replace(/\u0000/g, ':'), 'data-metric': r.metricKey, 'data-status': r.status },
+      h('tbody', {}, ...cmp.rows.map(r => h('tr', { 'data-key': String(r.key ?? '').split('\u0000').join(':'), 'data-metric': r.metricKey, 'data-status': r.status },
         h('th', { scope: 'row', text: `${r.label}${r.unit ? ` (${r.unit})` : ''}` }), h('td', { class: 'num', text: fmtNum(r.before) }), h('td', { class: 'num', text: fmtNum(r.after) }),
         h('td', { class: 'num', text: `${fmtSigned(r.delta)}${Number.isFinite(r.uncertainty) ? ` ± ${fmtNum(2 * r.uncertainty)}${r.assumed ? '*' : ''}` : ''}` }),
         h('td', { html: `${chip(ROW_CHIP[r.status] || 'info', ROW_STATUS_TEXT[r.status] || r.status, { size: 14 })}${r.reason && (r.status === 'notComparable' || r.ambiguous) ? `<span class="small muted"> ${esc(r.reason)}</span>` : ''}` })))))));
