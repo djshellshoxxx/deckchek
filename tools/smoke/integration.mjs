@@ -25,11 +25,15 @@ export default async function run({ browser, base, check }) {
   await page.waitForFunction(() => !document.querySelector('dialog.diag-dialog'));
 
   // ----- Help entries (links go through the FS-07 helper) -----
+  // Verify the requested destination without depending on GitHub's network
+  // response, and wait for navigation rather than sampling about:blank.
+  await context.route('https://github.com/*/*/releases', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Release destination</title>' }));
   await page.click('#helpBtn');
   await page.waitForSelector('#helpDialog [data-support-entry]');
   const labels = await page.locator('#helpDialog [data-support-entry] button').allInnerTexts();
   check('help: Support entries list diagnostics, GitHub issues and releases', labels.some(l => /diagnostics/i.test(l)) && labels.some(l => /issue/i.test(l)) && labels.some(l => /Releases/i.test(l)), labels.join(' | '));
   const [popup] = await Promise.all([context.waitForEvent('page', { timeout: 5000 }).catch(() => null), page.click('#helpDialog [data-support-id="releases"]')]);
+  if (popup) await popup.waitForURL(/^https:\/\/github\.com\/[^/]+\/[^/]+\/releases$/, { timeout: 5000 }).catch(() => {});
   const openedUrl = popup ? popup.url() : '';
   if (popup) await popup.close().catch(() => {});
   check('help: Releases link opens the allowlisted GitHub URL without a prompt', /^https:\/\/github\.com\/.+\/releases$/.test(openedUrl) || (popup && /github\.com/.test(openedUrl)), openedUrl);

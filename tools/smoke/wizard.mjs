@@ -191,6 +191,9 @@ export default async function run({ browser, base, check, SHOTS }) {
     const products = await page.locator(`${dlg} .wiz-gear`).count();
     check('wizard: gear grid lists every library product by category', products >= 8 && (await page.locator(`${dlg} .wiz-gear-group`).count()) >= 4, `${products} products`);
     // Images decode asynchronously (a CI runner can be slow): wait for them to settle instead of sampling once.
+    // Offscreen lazy images are intentionally not requested until scrolled into
+    // view; eagerly load the full grid for this asset/CSP verification.
+    await page.locator(`${dlg} .wiz-gear-thumb img`).evaluateAll(images => images.forEach(image => { image.loading = 'eager'; }));
     const imagesLoaded = () => [...document.querySelectorAll('dialog.wizard .wiz-gear-thumb img')].every(i => i.complete && i.naturalWidth > 0);
     await page.waitForFunction(imagesLoaded, null, { timeout: 10000 }).catch(() => {});
     check('wizard: product images load under CSP', await page.evaluate(imagesLoaded));

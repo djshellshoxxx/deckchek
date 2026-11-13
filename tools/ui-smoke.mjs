@@ -46,7 +46,9 @@ async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'deckchek-smoke-'));
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch();
+  // Cloud and offline machines can reuse a verified system Chromium without
+  // downloading another browser. CI keeps Playwright's pinned default.
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
   const errors = [];
   try {
     for (const file of modules) {

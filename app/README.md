@@ -22,6 +22,8 @@ review it without compiling Tauri.
 - `ui/audio-io.js`, `ui/persistence.js`, `ui/state.js` — capture/file I/O, saving/exports, settings and calibration profiles.
 - `core.js`, `advanced.js`, `diagnostics.js`, `calibration.js` — pure measurement code (unit tested).
 - `capture.js`, `catalog-store.js` — bridges to the native capture and SQLite commands.
+- `population.js` — FS-21 pure population statistics, contributor weighting, method/unit compatibility and deterministic bootstrap intervals. It never changes raw observations, converts units or decides pass/fail.
+- `pack.js` — FS-21 whitelist pack builder, strict preview validation and an in-memory ownership-aware pack store. Callers must supply a product/metric registry with exact units and plausible numeric bounds; unknown bounds are rejected. File dialogs, native persistence and the comparison screen remain pending, so the population flags stay unavailable.
 
 See [BUILDING.md](../BUILDING.md) for tests and the UI smoke test.
 
