@@ -90,7 +90,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // =========================================================== browser mode
   {
     const { context, page } = await fresh();
-    errors.push(...watchConsole(page, 'wizard-browser'));
+    errors.push(watchConsole(page, 'wizard-browser'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     check('wizard AC-1: fresh install opens the wizard modally before Quick', await open(page) === 1 && await page.evaluate(() => document.querySelector('dialog.wizard').matches(':modal')));
@@ -243,7 +243,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ---- resume banner (AC-2) and Esc at step 1
   {
     const { context, page } = await fresh();
-    errors.push(...watchConsole(page, 'wizard-resume'));
+    errors.push(watchConsole(page, 'wizard-resume'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await next(page); await stepTitle(page, /choose your interface/);
@@ -267,7 +267,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   }
   {
     const { context, page } = await fresh();
-    errors.push(...watchConsole(page, 'wizard-dismiss'));
+    errors.push(watchConsole(page, 'wizard-dismiss'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await page.keyboard.press('Escape');
@@ -277,7 +277,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   }
   {
     const { context, page } = await fresh();
-    errors.push(...watchConsole(page, 'wizard-banner-dismiss'));
+    errors.push(watchConsole(page, 'wizard-banner-dismiss'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await next(page);
@@ -298,7 +298,7 @@ export default async function run({ browser, base, check, SHOTS }) {
       localStorage.setItem('deckchek.catalog.v1', JSON.stringify({ catalog: { manufacturer: [], product: [], asset: [{ id: 'a1', nickname: 'My old deck', productId: 'p1', createdAt: 't', updatedAt: 't' }], setup: [], venue: [] }, runs: [], alignments: [], deviceProfiles: {}, productSpecs: [], deviceResults: [], midiMaps: {} }));
     };
     const { context, page } = await fresh({}, { before: seed });
-    errors.push(...watchConsole(page, 'wizard-upgrade'));
+    errors.push(watchConsole(page, 'wizard-upgrade'));
     await page.goto(base);
     await page.waitForSelector('.rail-item');
     await page.waitForFunction(() => localStorage.getItem('deckchek.wizard.v1'), null, { timeout: 8000 });
@@ -312,7 +312,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // =========================================================== mocked Windows desktop mode
   {
     const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true });
-    errors.push(...watchConsole(page, 'wizard-desktop'));
+    errors.push(watchConsole(page, 'wizard-desktop'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     check('wizard desktop: 7 steps including System Health', (await page.locator(`${dlg} #wiz-stepper li`).count()) === 7 && /Step 1 of 7/.test(await page.locator(`${dlg} #wiz-count`).innerText()));
@@ -389,7 +389,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ---- desktop: capture failure stops the tone and shows a recoverable error; dialog close stops everything
   {
     const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true });
-    errors.push(...watchConsole(page, 'wizard-desktop-errors'));
+    errors.push(watchConsole(page, 'wizard-desktop-errors'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await next(page); await stepTitle(page, /choose your interface/);
@@ -425,7 +425,7 @@ export default async function run({ browser, base, check, SHOTS }) {
       localStorage.setItem('deckchek.calibration.v1', JSON.stringify({ 'focusrite usb (in 1/2)|48000': text }));
     };
     const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true, before: [calSeed, seed] });
-    errors.push(...watchConsole(page, 'wizard-desktop-ac5'));
+    errors.push(watchConsole(page, 'wizard-desktop-ac5'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await next(page); await stepTitle(page, /choose your interface/);
@@ -440,7 +440,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   {
     const noInputs = () => { const t = window.__TAURI__.core.invoke; window.__TAURI__.core.invoke = async (c, a) => (c === 'list_native_audio_inputs' ? [] : t(c, a)); };
     const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true, before: noInputs });
-    errors.push(...watchConsole(page, 'wizard-desktop-noinputs'));
+    errors.push(watchConsole(page, 'wizard-desktop-noinputs'));
     await page.goto(base);
     await page.waitForSelector(dlg);
     await next(page); await stepTitle(page, /choose your interface/);
@@ -456,7 +456,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ---- AC-10 native: existing v0.04 data -> no wizard, gear kept
   {
     const { context, page } = await fresh({ userAgent: WIN_UA }, { native: true, before: () => { window.__wizExistingData = true; if (window.__wiz) window.__wiz.hasUserData = true; } });
-    errors.push(...watchConsole(page, 'wizard-desktop-upgrade'));
+    errors.push(watchConsole(page, 'wizard-desktop-upgrade'));
     await page.goto(base);
     await page.waitForSelector('.rail-item');
     await page.waitForFunction(() => window.__wiz.saved, null, { timeout: 8000 });
@@ -465,5 +465,5 @@ export default async function run({ browser, base, check, SHOTS }) {
     await context.close();
   }
 
-  return errors;
+  return errors.flat();
 }

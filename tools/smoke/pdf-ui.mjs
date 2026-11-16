@@ -35,7 +35,7 @@ export default async function run({ browser, base, check }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   await ctx.addInitScript(run => { if (window.top === window) { try { localStorage.setItem('deckchek.workspace.v1', JSON.stringify({ version: 1, equipment: [], runs: [run] })); } catch { /* ignore */ } } }, RUN);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'pdf-ui-browser'));
+  errors.push(watchConsole(page, 'pdf-ui-browser'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.evaluate(installPrintSpy);
@@ -96,7 +96,7 @@ export default async function run({ browser, base, check }) {
     };
   });
   const dp = await dctx.newPage();
-  errors.push(...watchConsole(dp, 'pdf-ui-desktop'));
+  errors.push(watchConsole(dp, 'pdf-ui-desktop'));
   await dp.goto(base);
   await dp.waitForSelector('.rail-item');
   await dp.click('.rail-item[data-screen="system"]');
@@ -134,5 +134,5 @@ export default async function run({ browser, base, check }) {
   })()]);
   check('pdf-ui: a failed PDF reports the error and offers Export HTML instead', /system-health.*\.html$/.test(dl.suggestedFilename()));
   await dctx.close();
-  return errors;
+  return errors.flat();
 }

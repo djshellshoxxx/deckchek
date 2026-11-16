@@ -50,7 +50,7 @@ export default async function run({ browser, base, check }) {
   // ----- browser mode (dark theme): AC-6 fallback -----
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'dark' });
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'pdf-browser'));
+  errors.push(watchConsole(page, 'pdf-browser'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.evaluate(installPrintSpy);
@@ -92,7 +92,7 @@ export default async function run({ browser, base, check }) {
 
   // Print host: link-stylesheet fallback is awaited, active content stripped, state machine.
   const host = await ctx.newPage();
-  errors.push(...watchConsole(host, 'pdf-print-host'));
+  errors.push(watchConsole(host, 'pdf-print-host'));
   await host.goto(`${base}print-host.html`);
   await host.waitForFunction(() => window.__dcPrintHost);
   const hostRes = await host.evaluate(async (report) => {
@@ -134,7 +134,7 @@ export default async function run({ browser, base, check }) {
     };
   });
   const dp = await dctx.newPage();
-  errors.push(...watchConsole(dp, 'pdf-desktop'));
+  errors.push(watchConsole(dp, 'pdf-desktop'));
   await dp.goto(base);
   await dp.waitForSelector('.rail-item');
   await dp.evaluate(installPrintSpy);
@@ -164,5 +164,5 @@ export default async function run({ browser, base, check }) {
   const st2 = await dp.evaluate(() => ({ saves: window.__pdf.saves.length, printed: window.__printed.length }));
   check('pdf: "unsupported" backend falls back and is remembered for the session', un.value?.fallback === true && un.value.reason === 'unsupported' && un2.value?.fallback === true && st2.printed === 3 && st2.saves === 5, JSON.stringify(st2));
   await dctx.close();
-  return errors;
+  return errors.flat();
 }

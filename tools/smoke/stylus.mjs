@@ -53,7 +53,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'stylus-off'));
+  errors.push(watchConsole(po, 'stylus-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('stylus: flag off hides the Stylus wear screen', (await po.locator('.rail-item[data-screen="stylus"]').count()) === 0);
@@ -63,7 +63,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await bctx.addInitScript(FLAG_ON);
   const pb = await bctx.newPage();
-  errors.push(...watchConsole(pb, 'stylus-browser'));
+  errors.push(watchConsole(pb, 'stylus-browser'));
   await pb.goto(base);
   await pb.waitForSelector('.rail-item[data-screen="stylus"]');
   await pb.click('.rail-item[data-screen="stylus"]');
@@ -76,7 +76,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await ectx.addInitScript(tauriMock); await ectx.addInitScript(stylusMock); await ectx.addInitScript(FLAG_ON);
   await ectx.addInitScript(() => { window.__sty.cartridges = false; });
   const pe = await ectx.newPage();
-  errors.push(...watchConsole(pe, 'stylus-empty'));
+  errors.push(watchConsole(pe, 'stylus-empty'));
   await pe.goto(base);
   await pe.waitForSelector('.rail-item[data-screen="stylus"]');
   await pe.click('.rail-item[data-screen="stylus"]');
@@ -88,7 +88,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(tauriMock); await ctx.addInitScript(stylusMock); await ctx.addInitScript(FLAG_ON);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'stylus'));
+  errors.push(watchConsole(page, 'stylus'));
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="stylus"]');
   await page.click('.rail-item[data-screen="stylus"]');
@@ -231,5 +231,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   }
   await shot(page, 'stylus-phone');
   await ctx.close();
-  return errors;
+  return errors.flat();
 }

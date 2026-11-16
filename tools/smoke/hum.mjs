@@ -81,7 +81,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'hum-off'));
+  errors.push(watchConsole(po, 'hum-off'));
   await po.goto(base); await po.waitForSelector('.rail-item');
   check('hum: flag off hides the Hum screen', (await po.locator('.rail-item[data-screen="hum"]').count()) === 0);
   await off.close();
@@ -90,7 +90,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await bctx.addInitScript(FLAGS_ON);
   const pb = await bctx.newPage();
-  errors.push(...watchConsole(pb, 'hum-browser'));
+  errors.push(watchConsole(pb, 'hum-browser'));
   await pb.goto(base); await pb.waitForSelector('.rail-item[data-screen="hum"]');
   await pb.click('.rail-item[data-screen="hum"]');
   await pb.waitForSelector('#hum-unsupported');
@@ -107,7 +107,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const hctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await hctx.addInitScript(tauriMock); await hctx.addInitScript(humMock); await hctx.addInitScript(HUM_ONLY);
   const ph = await hctx.newPage();
-  errors.push(...watchConsole(ph, 'hum-only'));
+  errors.push(watchConsole(ph, 'hum-only'));
   await ph.goto(base); await ph.waitForSelector('.rail-item[data-screen="hum"]');
   await ph.click('.rail-item[data-screen="hum"]'); await ph.waitForSelector('#hum-form');
   check('feedback: tab hidden while features.feedbackStep is off', (await ph.locator('#hum-tab-feedback').count()) === 0);
@@ -117,7 +117,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(tauriMock); await ctx.addInitScript(humMock); await ctx.addInitScript(FLAGS_ON);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'hum'));
+  errors.push(watchConsole(page, 'hum'));
   await page.goto(base); await page.waitForSelector('.rail-item[data-screen="hum"]');
   await page.click('.rail-item[data-screen="hum"]');
   await page.waitForSelector('#hum-form');
@@ -329,11 +329,11 @@ export default async function run({ browser, base, check, SHOTS }) {
   await nctx.addInitScript(tauriMock); await nctx.addInitScript(humMock); await nctx.addInitScript(FLAGS_ON);
   await nctx.addInitScript(() => { window.__noOutputs = true; });
   const pn = await nctx.newPage();
-  errors.push(...watchConsole(pn, 'hum-nooutput'));
+  errors.push(watchConsole(pn, 'hum-nooutput'));
   await pn.goto(base); await pn.waitForSelector('.rail-item[data-screen="hum"]');
   await pn.click('.rail-item[data-screen="hum"]'); await pn.click('#hum-tab-feedback');
   await pn.waitForSelector('#fb-no-output');
   check('feedback: with no output device the test is disabled and hum still works', /hum hunter works with an input only/i.test(await pn.locator('#fb-no-output').innerText()));
   await nctx.close();
-  return errors;
+  return errors.flat();
 }

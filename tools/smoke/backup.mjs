@@ -34,7 +34,7 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   // ----- browser mode -----
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const b = await bctx.newPage();
-  errors.push(...watchConsole(b, 'backup-browser'));
+  errors.push(watchConsole(b, 'backup-browser'));
   await b.goto(base);
   await b.waitForSelector('.rail-item');
   await b.click('.rail-item[data-screen="data"]');
@@ -49,7 +49,7 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await ctx.addInitScript(tauriMock);
   await ctx.addInitScript(backupMock);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'backup'));
+  errors.push(watchConsole(page, 'backup'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.click('.rail-item[data-screen="data"]');
@@ -93,7 +93,7 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await ctx2.addInitScript(tauriMock);
   await ctx2.addInitScript(backupMock);
   const p2 = await ctx2.newPage();
-  errors.push(...watchConsole(p2, 'backup-ws'));
+  errors.push(watchConsole(p2, 'backup-ws'));
   await p2.goto(base);
   await p2.waitForSelector('.rail-item');
   await p2.click('.rail-item[data-screen="data"]');
@@ -109,5 +109,5 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await p2.waitForFunction(() => /Imported 1 run/.test(document.querySelector('#data-status')?.innerText || ''));
   check('workspace: import calls Rust once with the mapped payload', await p2.evaluate(() => window.__backupCalls.filter(c => c.cmd === 'backup_import_workspace').length === 1));
   await ctx2.close();
-  return errors;
+  return errors.flat();
 }
