@@ -9,6 +9,7 @@ import * as midiBridge from '../../midi.js';
 import { parseMessage, matchControl, createCoverageSession, analyzeFader, analyzeJog, analyzeButton, analyzeTiming, buildLedSequence } from '../../midi-tests.js';
 import { analyzeStream, conformanceFindings, parseIdentityReply, validateMessage, IDENTITY_REQUEST, gmSteps, gmAbortCleanup, evaluateGm } from '../../midi-conformance.js';
 import { evaluateOutcome, effectiveMidiMap, learnedControls, learnKey, inferControlType, pickMidiPort, midiFindings } from '../../devices/dispatch.js';
+import { midiPrerequisites } from '../../devices/test-plan.js';
 import { linePlot } from '../plots.js';
 import { stepsCard, readoutGrid, findingList } from './runners.js';
 import { announce, toast } from '../live.js';
@@ -87,17 +88,29 @@ function suggestedControls(profile, eff) {
 export function runMidi(host, ctx) {
   const { test, profile, kind } = ctx;
   const midi = ctx.midi || midiBridge;
+  const prerequisites = midiPrerequisites(profile);
+  const explicitOutput = test.auto === true && kind === 'conformance' && test.params?.outputSelection === 'explicit';
+  let canSkip = true;
   let eff = effectiveMidiMap(profile.midi, ctx.learned?.map);
   const st = { port: null, outPort: null, connection: null, inputs: [], outputs: [], unsub: null, panel: null, disposed: false, generation: 0, refresh: 0 };
 
   const portCard = h('section', { class: 'card dev-midi-ports', 'aria-labelledby': 'midi-port-title' });
   const body = h('div', { class: 'dev-midi-body' });
   const mapNote = h('p', { class: 'hint' });
-  host.replaceChildren(h('div', { class: 'dev-run-grid' }, h('div', { class: 'dev-run-main' }, portCard, body), h('aside', { class: 'dev-run-side', 'aria-label': 'Test instructions' }, stepsCard(test, { extra: params(test) }), mapNote)));
+  const instructions = stepsCard(test, { extra: params(test) });
+  if (test.params?.condition && typeof ctx.skip === 'function') {
+    instructions.append(h('button', { type: 'button', class: 'btn btn-ghost', id: 'midi-conditional-skip', text: 'Skip: MIDI prerequisite not established', onclick: () => {
+      if (st.disposed || !canSkip) return;
+      dispose();
+      ctx.skip('MIDI capability or the required connection was not established for this unit.');
+    } }));
+  }
+  host.replaceChildren(h('div', { class: 'dev-run-grid' }, h('div', { class: 'dev-run-main' }, portCard, body), h('aside', { class: 'dev-run-side', 'aria-label': 'Test instructions' }, instructions, mapNote)));
   renderMapNote();
 
   function params(t) {
     const out = [];
+    if (t.params?.condition) out.push(['When to run it', String(t.params.condition)]);
     if (t.params?.controlId) out.push(['Control', t.params.controlId]);
     if (t.params?.controlIds?.length) out.push(['Controls', t.params.controlIds.join(', ')]);
     if (t.params?.groups?.length) out.push(['Groups', t.params.groups.join(', ')]);
@@ -117,7 +130,7 @@ export function runMidi(host, ctx) {
     disconnect();
     portCard.innerHTML = `<div class="card-head"><h2 class="card-title" id="midi-port-title">MIDI connection</h2><span class="muted small">${esc(midi.backend() === 'tauri' ? 'Desktop MIDI' : midi.backend() === 'webmidi' ? 'Web MIDI' : 'MIDI unavailable')}</span></div>`;
     if (!midi.isAvailable()) {
-      portCard.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>MIDI is not available here</h2><p>Run this test in the DeckChek desktop app (or a browser with Web MIDI) with ${esc(profile.model)} connected by USB.</p>` }));
+      portCard.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>MIDI is not available here</h2><p>Run this test in the DeckChek desktop app or a browser with Web MIDI. ${esc(prerequisites.connection)}</p>` }));
       body.replaceChildren();
       return;
     }
@@ -129,7 +142,7 @@ export function runMidi(host, ctx) {
     st.outputs = (ports?.outputs || []).map(p => p.name);
     if (!st.inputs.length) {
       const empty = h('div', { class: 'empty empty-sm', id: 'midi-empty' });
-      empty.innerHTML = `${icon('plug', { size: 32 })}<h2>No MIDI device found</h2><p>Connect ${esc(profile.model)} by USB, power it on, wait a few seconds, then refresh. Close DJ software that may hold the port exclusively.</p>`;
+      empty.innerHTML = `${icon('plug', { size: 32 })}<h2>No MIDI device found</h2><p>${esc(prerequisites.connection)} Power on the device and interface, then refresh. Close software that may hold the input port exclusively.</p>`;
       empty.append(h('button', { type: 'button', class: 'btn btn-primary', id: 'midi-refresh', html: `${icon('refresh', { size: 18 })}<span>Refresh</span>`, onclick: refreshPorts }));
       portCard.append(empty);
       body.replaceChildren();
@@ -138,7 +151,7 @@ export function runMidi(host, ctx) {
     const auto = pickMidiPort(st.inputs, profile);
     st.port ||= auto || st.inputs[0];
     if (!st.inputs.includes(st.port)) st.port = auto || st.inputs[0];
-    st.outPort = pairedOutput(st.inputs, st.outputs, st.port, profile);
+    st.outPort = explicitOutput ? null : pairedOutput(st.inputs, st.outputs, st.port, profile);
     const sel = h('select', { id: 'midi-port' });
     st.inputs.forEach(n => sel.append(h('option', { value: n, text: `${n}${n === auto ? ' (matches profile)' : ''}`, selected: n === st.port ? true : null })));
     const outSel = h('select', { id: 'midi-output' });
@@ -146,7 +159,7 @@ export function runMidi(host, ctx) {
     st.outputs.forEach(n => outSel.append(h('option', { value: n, text: n, selected: n === st.outPort || null, disabled: st.outputs.filter(x => x === n).length > 1 || null })));
     sel.addEventListener('change', async () => {
       st.port = sel.value;
-      st.outPort = pairedOutput(st.inputs, st.outputs, st.port, profile);
+      st.outPort = explicitOutput ? null : pairedOutput(st.inputs, st.outputs, st.port, profile);
       outSel.value = st.outPort || '';
       await connect();
     });
@@ -156,7 +169,7 @@ export function runMidi(host, ctx) {
       h('label', { class: 'field', for: 'midi-output' }, h('span', { class: 'field-label', text: 'Output port' }), outSel),
       h('button', { type: 'button', class: 'btn btn-ghost btn-icon', 'aria-label': 'Refresh MIDI ports', 'data-tooltip': 'Refresh MIDI ports', html: icon('refresh', { size: 18 }), onclick: refreshPorts }));
     portCard.append(row);
-    portCard.append(h('p', { class: 'hint', text: 'Choose the matching output for Identity, LED and General MIDI tests. When no output is selected, DeckChek only listens.' }));
+    portCard.append(h('p', { class: 'hint', text: prerequisites.output }));
     if (!auto) portCard.append(h('p', { class: 'hint hint-warn', html: `${icon('warn', { size: 16 })}<span>No port name matches ${esc((profile.connectivity?.midi?.portNamePatterns || []).map(p => `“${p}”`).join(', ') || 'this device')}. Pick the port for your ${esc(profile.model)}.</span>` }));
     st.status = h('p', { class: 'muted small dev-port-status', role: 'status' });
     portCard.append(st.status);
@@ -209,6 +222,7 @@ export function runMidi(host, ctx) {
   const finishBtn = (label, onClick) => h('button', { type: 'button', class: 'btn btn-primary btn-lg', id: 'midi-finish', html: `${icon('check', { size: 20 })}<span>${esc(label)}</span>`, onclick: onClick });
   function complete(measurements, findings, extra = {}, override = null, connection = null) {
     if (st.disposed || (connection && !connection.current())) return;
+    canSkip = false;
     const outcome = override || evaluateOutcome(test, { measurements, findings });
     const btn = body.querySelector('#midi-finish');
     if (btn) { btn.disabled = true; btn.innerHTML = `${icon('check', { size: 20 })}<span>Saved</span>`; }
@@ -504,13 +518,13 @@ export function runMidi(host, ctx) {
 
     latency() {
       const card = h('section', { class: 'card', 'aria-labelledby': 'lat-title' });
-      card.append(h('h2', { class: 'card-title', id: 'lat-title', text: 'MIDI timing jitter' }), h('p', { class: 'muted small', text: 'Spin the jog wheel (or sweep a fader) at a steady speed for about 10 seconds. DeckChek measures how evenly the messages arrive.' }));
+      card.append(h('h2', { class: 'card-title', id: 'lat-title', text: 'MIDI timing jitter' }), h('p', { class: 'muted small', text: 'Move an available continuous MIDI control, such as a knob, fader or wheel, at a steady speed for about 10 seconds. DeckChek measures how evenly the messages arrive.' }));
       const tgt = targetPicker(card, { controlId: test.params?.controlId });
       const stamps = [];
       const stats = h('p', { class: 'num dev-live-stats', 'aria-live': 'off', text: '0 messages' });
       tgt.onReset = () => { stamps.length = 0; };
       const draw = throttle(() => { const a = analyzeTiming(stamps); stats.textContent = `${stamps.length} messages${a.jitterMs != null ? ` · jitter ${formatNumber(a.jitterMs, { digits: 2 })} ms · ${formatNumber(a.ratePerSec, { digits: 0 })} msg/s` : ''}`; }, 250);
-      card.append(stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Use a direct USB port, not a hub.' }), finishBtn('Finish test', () => {
+      card.append(stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: prerequisites.timing }), finishBtn('Finish test', () => {
         const a = analyzeTiming(stamps);
         if (!a.measurements.length) { toast(a.error === 'not enough samples' ? 'Not enough messages yet — keep the control moving.' : 'MIDI timestamps were invalid or did not advance. Refresh the connection and repeat the timing test.', { type: 'warn' }); return; }
         const findings = midiFindings('latency', a);
@@ -531,7 +545,7 @@ export function runMidi(host, ctx) {
       let lastT = null, lastR = null, lastTimestamp = null, timestampFaults = 0, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
       const statusBase = captureStatus(midi, connection.port);
       const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
-      card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek asks the device to identify itself, then checks every message it sends while you use the controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing.' }));
+      card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek checks messages received while you use the MIDI controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing. An optional Identity Request is sent when an output is selected.' }));
       const idLine = h('p', { class: 'dev-target', role: 'status' });
       const stats = h('p', { class: 'num dev-live-stats', 'aria-live': 'off', text: '0 messages' });
       const showId = () => {
@@ -728,12 +742,11 @@ export function runMidi(host, ctx) {
     },
   };
 
+  function dispose() {
+    if (st.disposed) return;
+    st.disposed = true; ++st.generation; ++st.refresh;
+    disconnect();
+  }
   refreshPorts();
-  return {
-    dispose() {
-      if (st.disposed) return;
-      st.disposed = true; ++st.generation; ++st.refresh;
-      disconnect();
-    },
-  };
+  return { dispose };
 }
