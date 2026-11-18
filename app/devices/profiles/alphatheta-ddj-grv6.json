@@ -5,7 +5,7 @@
   "model": "DDJ-GRV6",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): rekordbox,Serato DJ Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the manufacturer's DDJ-GRV6 Instruction Manual DRI1927A documents USB MIDI control (p. 170), a nominal 48 kHz audio section and 24-bit A/D and D/A converters (p. 168). Nominal sampling and converter resolution do not establish a complete USB format/rate list or channel counts, which remain unknown. USB IDs, class compliance, DIN transport, receiving capability, Identity support, exact control maps, hardware/firmware revision, current OS/driver compatibility and physical performance remain unverified; no factory pass tolerances are inferred.",
   "documents": [
     {
       "title": "Manufacturer detailed product feature and specifications",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "DDJ-GRV6 Instruction Manual (DRI1927A)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-GRV6/DDJ-GRV6_DRI1927A_manual.pdf",
+      "language": "en",
+      "notes": "Exact manufacturer manual checked 2026-11-18. USB MIDI control: printed/PDF p. 170; audio-section and scoped converter specifications: printed/PDF p. 168. No manual revision publication date or current-platform/hardware qualification is inferred."
     }
   ],
   "connectivity": {
@@ -55,7 +62,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-GRV6"
@@ -134,6 +141,33 @@
       "source": "https://alphatheta.com/en/product/dj-controller/ddj-grv6/black/",
       "confidence": "confirmed",
       "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI control transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-GRV6/DDJ-GRV6_DRI1927A_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1927A p. 170. The manufacturer documents controlling MIDI software through USB. This does not establish a complete control map, incoming MIDI capability, Identity support, USB IDs or current host compatibility."
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Audio-section nominal sampling rate",
+      "value": 48000,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-GRV6/DDJ-GRV6_DRI1927A_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1927A p. 168. Nominal audio-section specification; not an exhaustive host USB sample-rate list. Keep connectivity.audio.sampleRatesHz unknown."
+    },
+    {
+      "key": "verified_ad_da_converter_depth",
+      "label": "A/D and D/A converter resolution",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-GRV6/DDJ-GRV6_DRI1927A_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1927A p. 168. Converter resolution in the stated scope, not an enumeration of USB PCM sample formats. Keep connectivity.audio.bitDepth unknown."
     }
   ],
   "midi": {
