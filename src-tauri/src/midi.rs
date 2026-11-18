@@ -123,6 +123,26 @@ pub fn stale_names<'a>(open: impl Iterator<Item = &'a String>, present: &[String
     v
 }
 
+/// A display name must identify exactly one port before a new connection can own it.
+/// Failed name lookups remain unselectable; existing connections keep their captured ports.
+fn unique_named_port<P>(
+    ports: impl IntoIterator<Item = P>,
+    name: &str,
+    direction: &str,
+    mut port_name: impl FnMut(&P) -> Option<String>,
+) -> Result<P, String> {
+    let mut matches = ports
+        .into_iter()
+        .filter(|p| port_name(p).map(|n| n == name).unwrap_or(false));
+    let port = matches
+        .next()
+        .ok_or_else(|| format!("MIDI {direction} not found: {name}"))?;
+    if matches.next().is_some() {
+        return Err(format!("MIDI {direction} name is ambiguous: {name}"));
+    }
+    Ok(port)
+}
+
 fn input_names(mi: &MidiInput) -> Vec<String> {
     mi.ports()
         .iter()
@@ -251,18 +271,19 @@ fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Resu
     // A cached connection whose port vanished is dead: close it and reconnect (or report not found).
     let present = input_names(&mi);
     if inner.inputs.contains_key(&name) {
-        if present.iter().any(|p| p == &name) {
+        let matches = present.iter().filter(|p| *p == &name).count();
+        if matches > 1 {
+            // Reject a new open request without closing another caller's captured connection.
+            return Err(format!("MIDI input name is ambiguous: {name}"));
+        }
+        if matches == 1 {
             return Ok(());
         }
         if let Some(c) = inner.inputs.remove(&name) {
             c.close();
         }
     }
-    let port = mi
-        .ports()
-        .into_iter()
-        .find(|p| mi.port_name(p).map(|n| n == name).unwrap_or(false))
-        .ok_or_else(|| format!("MIDI input not found: {name}"))?;
+    let port = unique_named_port(mi.ports(), &name, "input", |p| mi.port_name(p).ok())?;
     let tx = ensure_pump(&mut inner, app.clone(), state.emitted.clone());
     let dropped = state.dropped.clone();
     let port_name = name.clone();
@@ -323,11 +344,7 @@ pub fn midi_send(state: State<'_, MidiState>, name: String, bytes: Vec<u8>) -> R
 
 fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
     let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
-    let port = mo
-        .ports()
-        .into_iter()
-        .find(|p| mo.port_name(p).map(|n| n == name).unwrap_or(false))
-        .ok_or_else(|| format!("MIDI output not found: {name}"))?;
+    let port = unique_named_port(mo.ports(), name, "output", |p| mo.port_name(p).ok())?;
     mo.connect(&port, "deckchek-output")
         .map_err(|e| e.to_string())
 }
@@ -373,6 +390,78 @@ mod tests {
     }
 
     use super::*;
+
+    fn select_test_port(
+        ports: &[(u8, Option<&str>)],
+        name: &str,
+        direction: &str,
+    ) -> Result<u8, String> {
+        unique_named_port(ports, name, direction, |p| p.1.map(str::to_owned)).map(|p| p.0)
+    }
+
+    #[test]
+    fn duplicate_port_names_are_rejected_in_either_order() {
+        for direction in ["input", "output"] {
+            for ports in [
+                [(11, Some("DDJ")), (33, Some("Other")), (22, Some("DDJ"))],
+                [(22, Some("DDJ")), (33, Some("Other")), (11, Some("DDJ"))],
+            ] {
+                assert_eq!(
+                    select_test_port(&ports, "DDJ", direction),
+                    Err(format!("MIDI {direction} name is ambiguous: DDJ"))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn unique_port_name_selects_the_requested_port_among_unrelated_duplicates() {
+        let ports = [(11, Some("Other")), (22, Some("DDJ")), (33, Some("Other"))];
+        for direction in ["input", "output"] {
+            assert_eq!(select_test_port(&ports, "DDJ", direction), Ok(22));
+        }
+    }
+
+    #[test]
+    fn missing_port_preserves_exact_name_matching_and_not_found_errors() {
+        let ports = [(11, Some("ddj")), (22, Some("DDJ Pro")), (33, None)];
+        for direction in ["input", "output"] {
+            assert_eq!(
+                select_test_port(&ports, "DDJ", direction),
+                Err(format!("MIDI {direction} not found: DDJ"))
+            );
+            assert_eq!(
+                select_test_port(&[], "DDJ", direction),
+                Err(format!("MIDI {direction} not found: DDJ"))
+            );
+        }
+    }
+
+    #[test]
+    fn failed_name_reads_remain_unselectable() {
+        let ports = [(11, None), (22, Some("DDJ")), (33, None)];
+        for direction in ["input", "output"] {
+            assert_eq!(select_test_port(&ports, "DDJ", direction), Ok(22));
+            assert_eq!(
+                select_test_port(&ports, "", direction),
+                Err(format!("MIDI {direction} not found: "))
+            );
+        }
+    }
+
+    #[test]
+    fn successful_empty_names_require_the_same_uniqueness_as_other_names() {
+        for direction in ["input", "output"] {
+            assert_eq!(
+                select_test_port(&[(11, None), (22, Some(""))], "", direction),
+                Ok(22)
+            );
+            assert_eq!(
+                select_test_port(&[(11, Some("")), (22, Some(""))], "", direction),
+                Err(format!("MIDI {direction} name is ambiguous: "))
+            );
+        }
+    }
 
     fn msg(i: u64) -> MidiMessage {
         MidiMessage {
