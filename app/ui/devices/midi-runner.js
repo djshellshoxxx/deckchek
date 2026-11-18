@@ -629,7 +629,7 @@ export function runMidi(host, ctx) {
     // panic is never overtaken by an in-flight note and never reaches a replacement port.
     gm(connection) {
       const { outPort } = connection;
-      let disposed = false, run = 0, playing = null, chain = Promise.resolve(), timer = null, wake = null;
+      let disposed = false, run = 0, action = 0, playing = null, chain = Promise.resolve(), timer = null, wake = null;
       const current = () => !disposed && connection.current();
       const card = h('section', { class: 'card', 'aria-labelledby': 'gm-title' });
       card.append(h('h2', { class: 'card-title', id: 'gm-title', text: 'General MIDI sound check' }), h('p', { class: 'muted small', text: 'For devices with a built-in General MIDI sound source. DeckChek sends GM System On, then ten short musical checks. Turn the unit’s output up a little, listen, and answer for each.' }));
@@ -649,6 +649,8 @@ export function runMidi(host, ctx) {
       const label = (btn, on) => { btn.innerHTML = on ? `${icon('stop', { size: 14 })}<span>Stop</span>` : `${icon('play', { size: 14 })}<span>Play</span>`; btn.setAttribute('aria-pressed', String(on)); };
       /** Stop the current step (if any) and silence the captured output; cleanup is allowed after disposal. */
       function abort() {
+        // Invalidate pending step switches even while cleanup has temporarily cleared `playing`.
+        ++action;
         if (!playing) return chain;
         const stopped = playing; playing = null; ++run; interrupt();
         const btn = buttons.get(stopped.id); if (btn && !disposed) label(btn, false);
@@ -656,7 +658,13 @@ export function runMidi(host, ctx) {
       }
       async function play(step) {
         if (!current()) return;
-        if (playing) { const same = playing.id === step.id; await abort(); if (same || !current()) return; }
+        const previous = playing;
+        const cleanup = previous ? abort() : null;
+        const request = ++action;
+        if (cleanup) {
+          await cleanup;
+          if (previous.id === step.id || !current() || request !== action) return;
+        }
         const mine = ++run; playing = { id: step.id, run: mine };
         const btn = buttons.get(step.id); label(btn, true);
         const live = () => current() && run === mine;
@@ -700,7 +708,12 @@ export function runMidi(host, ctx) {
         list.append(li);
       });
       refresh();
-      card.append(list, h('div', { class: 'step-footer' }, status, h('button', { type: 'button', class: 'btn btn-ghost', id: 'gm-silence', text: 'Silence everything', onclick: () => { if (!current()) return; if (playing) abort(); else gmAbortCleanup().forEach(b => enqueue(b).catch(() => {})); } }), save));
+      card.append(list, h('div', { class: 'step-footer' }, status, h('button', { type: 'button', class: 'btn btn-ghost', id: 'gm-silence', text: 'Silence everything', onclick: () => {
+        if (!current()) return;
+        const active = playing;
+        abort();
+        if (!active) gmAbortCleanup().forEach(b => enqueue(b).catch(() => {}));
+      } }), save));
       body.replaceChildren(card);
       return { onMessage() {}, dispose() { disposed = true; abort(); } };
     },

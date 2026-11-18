@@ -271,6 +271,49 @@ test('GM: stopping a step queues the abort cleanup behind the in-flight note and
   assert.equal(noteOns(m.midi.sends.slice(1)).length, 0);
 });
 
+test('GM: a pending step switch cannot replace a newer Play action after cleanup resolves', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const inFlight = deferred();
+  const m = mount({ kind: 'gm', midi: bridge({ send: (_, __, n) => n === 1 ? inFlight.promise : Promise.resolve() }) });
+  t.after(() => m.runner.dispose()); await settle();
+  await m.click('gm-play-programs'); await settle();
+  await m.click('gm-play-drums'); await settle(); // waits for the original send and its cleanup
+  await m.click('gm-play-pan'); await settle(); // newer intent while cleanup is still pending
+  inFlight.resolve(); await settle();
+  assert.equal(m.midi.sends.some(s => s.bytes[0] === 0x99), false, 'the superseded drum switch never starts');
+  assert.equal(m.byId('gm-play-pan').getAttribute('aria-pressed'), 'true', 'the newest step owns playback');
+  assert.equal(m.byId('gm-play-drums').getAttribute('aria-pressed'), 'false');
+});
+
+test('GM: Silence cancels a pending step switch even when no step is currently marked playing', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const inFlight = deferred();
+  const m = mount({ kind: 'gm', midi: bridge({ send: (_, __, n) => n === 1 ? inFlight.promise : Promise.resolve() }) });
+  t.after(() => m.runner.dispose()); await settle();
+  await m.click('gm-play-programs'); await settle();
+  await m.click('gm-play-drums'); await settle();
+  await m.click('gm-silence'); await settle();
+  inFlight.resolve(); await settle();
+  t.mock.timers.tick(10000); await settle();
+  assert.equal(noteOns(m.midi.sends).length, 0, 'a cancelled switch cannot restart notes after Silence');
+  assert.equal(m.byId('gm-play-drums').getAttribute('aria-pressed'), 'false');
+});
+
+test('GM: Save cancels a pending step switch before it can restart playback', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const inFlight = deferred();
+  const m = mount({ kind: 'gm', midi: bridge({ send: (_, __, n) => n === 1 ? inFlight.promise : Promise.resolve() }) });
+  t.after(() => m.runner.dispose()); await settle();
+  gmSteps().forEach((_, i) => answerButtons(m.host, 'yes')[i].fire('click'));
+  await m.click('gm-play-programs'); await settle();
+  await m.click('gm-play-drums'); await settle();
+  await m.click('midi-finish'); await settle();
+  inFlight.resolve(); await settle();
+  t.mock.timers.tick(10000); await settle();
+  assert.equal(m.finished.length, 1);
+  assert.equal(noteOns(m.midi.sends).length, 0, 'saving cannot be followed by the stale switch starting notes');
+});
+
 test('GM: disposal or a port switch mid-step silences only the captured output and saves nothing', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const m = mount({ kind: 'gm' }); await settle();
