@@ -1,4 +1,5 @@
-//! THROWAWAY spike (M6-latency-spike, FS-11 section 7). Not part of the app, not in CI.
+//! THROWAWAY spike (M6-latency-spike, FS-11 section 7). Not run by the app or CI.
+//! CI's all-target Clippy check still compiles this example.
 //!
 //! Question: does cpal 0.16 (WASAPI, shared mode) honour `BufferSize::Fixed(n)`, and what
 //! period does the driver actually use? For each requested size it opens an input and an
@@ -240,16 +241,15 @@ fn summarise(p: &Probe, requested: u32, rate: u32) -> Value {
     })
 }
 
-fn run_one(
-    inp: &Device,
-    out: &Device,
-    ic: &StreamConfig,
-    oc: &StreamConfig,
-    ifmt: SampleFormat,
-    ofmt: SampleFormat,
-    size: u32,
-    secs: u64,
-) -> Value {
+struct ProbeDevice<'a> {
+    device: &'a Device,
+    config: &'a StreamConfig,
+    format: SampleFormat,
+}
+
+fn run_one(input: &ProbeDevice<'_>, output: &ProbeDevice<'_>, size: u32, secs: u64) -> Value {
+    let (inp, ic, ifmt) = (input.device, input.config, input.format);
+    let (out, oc, ofmt) = (output.device, output.config, output.format);
     let rate = ic.sample_rate.0;
     let cap = (secs as usize + 2) * (rate as usize / size.max(16) as usize + 100) * 2;
     let ip = Arc::new(Mutex::new(Probe::with_capacity(cap)));
@@ -363,18 +363,19 @@ fn main() {
         host.id(), ic.channels, idef.sample_format(), describe_buf(idef.buffer_size()),
         oc.channels, odef.sample_format(), describe_buf(odef.buffer_size()), a.seconds);
 
+    let input = ProbeDevice {
+        device: &inp,
+        config: &ic,
+        format: idef.sample_format(),
+    };
+    let output = ProbeDevice {
+        device: &out,
+        config: &oc,
+        format: odef.sample_format(),
+    };
     let mut rows = Vec::new();
     for &size in &a.sizes {
-        let r = run_one(
-            &inp,
-            &out,
-            &ic,
-            &oc,
-            idef.sample_format(),
-            odef.sample_format(),
-            size,
-            a.seconds,
-        );
+        let r = run_one(&input, &output, size, a.seconds);
         println!("{}", row(&r));
         rows.push(r);
     }
