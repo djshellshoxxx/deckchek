@@ -1,8 +1,20 @@
 # DeckChek release readiness
 
-> Current continuation: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Current qualification and limits are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
+> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+
+> Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
+
+> Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
 
 The [checkpoint 35 integrity account](DECKCHEK-CONTINUATION-35.md#concurrent-integrity-and-warning-repairs) supersedes earlier narrative assurances that the Cargo warning policy was unchanged: source `057d42f` reproduced and corrected the dependency/stderr-warning gap. Original job outcomes and failure rows below remain historical observations, not evidence that the earlier gate enforced the corrected policy.
+
+## Current source38 qualification boundary
+
+Source `fe936f7d` passed the complete serial Node suite **1,747/0/1**, applicable local static gates and the separately reviewed exact native-core/harness proof. The [current report](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#combined-source38-qualification) records timings, unchanged source hashes, the allocator tradeoff and five harness/application transitive-lock differences. Full native application, current-source hosted/platform/Chromium, broad Sonar, hardware and packaging qualification remain open. The previous Windows pass remains scoped to published checkpoint35.
+
+## Historical source37 qualification boundary
+
+Source37 passed the combined Node and local static gates described in the [follow-up report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#qualification-by-source). At the **16:26:45.220 UTC** hosted snapshot, published checkpoint35 `72dd38c` had a real Windows pass: **714/0/9 ignored**, plus a separate actual PDF **1/1**. The ten other non-tag jobs remained queued; tag-only release-checks was skipped. These outcomes apply to the published checkpoint35 tree, not source37. No current-source full native, Chromium, packaging, broad Sonar or hardware pass is claimed; all historical outcomes below remain intact.
 
 ## Historical checkpoint 34 — source 32419404
 

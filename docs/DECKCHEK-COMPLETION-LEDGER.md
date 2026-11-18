@@ -1,6 +1,10 @@
 # DeckChek feature completion ledger
 
-> Current continuation: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Current qualification and limits are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
+> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+
+> Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
+
+> Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
 
 ## Historical checkpoint 34 — source 32419404
 
@@ -176,6 +180,8 @@ No physical device or loopback qualification was performed in this session. Fina
 
 ## FS-15 — Booth feedback and hum hunter
 
+**Source38 follow-up:** native validation streams complete history and retains only bounded result pages/current originals, preserving global corruption refusal and immutable evidence. Exact native-core/harness proof passed 23/23; the independent review verified unchanged original tests and scoped allocator/parity evidence. [Current proof and tradeoff](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) do not establish full-application or physical qualification and do not change the historical evidence or aggregate completion criteria below.
+
 **Specification:** [15-booth-feedback-hum-hunter.md](specs/15-booth-feedback-hum-hunter.md), manual incidents/pagination in §12, support descriptions in §13 and passive A/B in §14.
 **Implementation:** Existing hum/feedback and incident/catalog paths plus `app/support-isolation.js`, its production UI/capture adapter and `src-tauri/src/support_isolation.rs`. Additive migration 0024 retains A/B originals and comparisons; support-description editing and incident pagination add no migrations.
 **Status:** Manual incidents/pagination, current support editing/context preservation, passive digital LF A/B and the separate browser history archive are implemented and reviewed.
@@ -275,6 +281,8 @@ No physical device or loopback qualification was performed in this session. Fina
 
 ## FS-34 — Device test completeness
 
+**Source37 follow-up:** explicit USB/DIN facts replace descriptor-object inference; unresolved transports stay conditional. Current plan coverage is 45 profiles, 506 handwritten and 187 generated checks, zero gaps, 23 conditional audio cases and 20 conditional MIDI profiles / 60 requirements. Two exact-model AlphaTheta updates bring reviewed provenance to 21 existing profiles. This adds no hardware score; [qualification and limits](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md) are separate from the historical evidence below.
+
 **Specification:** [34-device-test-completeness.md](specs/34-device-test-completeness.md)
 **Implementation:** `app/devices/{test-plan,library,dispatch}.js`, `app/device-checks.js`, `tools/check-device-coverage.mjs`, `app/ui/devices/library-state.js`, `app/ui/screens/devices.js`
 **Status:** Software plan coverage retained; finite-evidence evaluation and result chronology corrections implemented and independently reviewed. Hardware-qualified tests remain separate.
@@ -296,6 +304,8 @@ No physical device or loopback qualification was performed in this session. Fina
 **Assigned agent:** prior audio_quality_completion work retained; diagnostics_audit finite-evidence implementation; native_audit independent review; root integration. **Verification commit:** prior `742c67ab93ab52baafa278cc48c6ca7c6d0a8df7`, new `934f9fd`, included in `ef49ed6`; final CI is identified in the handoff.
 
 ## FS-36 — MIDI conformance and General MIDI
+
+**Source37 follow-up:** generated conformance without confirmed USB MIDI requires manual output selection; conditional prerequisites can be skipped without a backend/input and cannot replace saved evidence. Known-USB and handwritten pairing, captured-connection ownership and explicit General MIDI opt-in remain unchanged. The [new behavior and regression record](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior) do not qualify physical port identity or real hardware.
 
 **Specification:** [36-general-midi-test.md](specs/36-general-midi-test.md)
 **Implementation:** `app/{midi-conformance,midi-tests,midi}.js`, `app/ui/devices/midi-runner.js`, `src-tauri/src/midi.rs`

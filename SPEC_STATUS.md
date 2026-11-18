@@ -1,6 +1,18 @@
 # DeckChek spec status (work list)
 
-## Current continuation snapshot
+## Current source38 publication candidate
+
+Source `fe936f7d48db2633ba3c2e948c682fa49ab68490` (tree `f74910a66e7bf9da818185fc87d4ec22a8cf2b4c`) adds streaming native support-history validation to accepted source37. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; **265.537171973 TAP seconds**), with all **1,429** frozen files unchanged; local static gates passed. The separate exact native-core/harness run passed **23/23**, with bounded allocator measurements and explicit full-application exclusions. See the [current report](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the increased cumulative-allocation/time tradeoff and qualification limits.
+
+The intended draft branch remains `review/deckchek-midi-profile-20261118`, targeting `integration/deckchek-consolidation-20261118` at `0acb612`; no branch/PR is published in this snapshot. It preserves the contribution of stable PR30 head `72dd38c`. Source37’s report remains an unchanged earlier snapshot. Current-source hosted/native-platform/Chromium, broad Sonar and hardware gates remain open; Fleet stays OFF.
+
+## Historical source37 MIDI/profile snapshot
+
+Source `2ec083c411c7f9353fb0926fdf6dd828e200c5a0` (tree `795cfa22f3eb4d4b7e7838100b60e158f3c0424d`) adds explicit MIDI transport prerequisites and exact-model DDJ-GRV6/XDJ-AZ provenance. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; 247.940381799 TAP seconds), with all **1,428** frozen files unchanged; static gates passed. Coverage remains **45 profiles / 506 handwritten / 187 generated / 0 gaps**, with **23 conditional audio cases** and **20 conditional MIDI profiles / 60 requirements**. Reviewed provenance now covers 21 existing profiles, without physical qualification. See the [follow-up report](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md).
+
+This is a prepublication snapshot for the intended `review/deckchek-midi-profile-20261118` branch into `integration/deckchek-consolidation-20261118` at `0acb612`. The follow-up descends from published PR30 at `72dd38c` and preserves its contribution; PR30’s head stays stable. The integration base keeps existing nightly/platform gates applicable. The Windows pass at `72dd38c` is preceding-head evidence. Source37 hosted/browser/native/platform, broad Sonar and hardware gates remain open. The separate native support-history memory work is outside this source. Fleet stays OFF.
+
+## Historical checkpoint 35 snapshot
 
 The reviewed source is `3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5` (tree `8f47b511c8de5cbdfd183f6fd7e119e708edc513`). It combines both browser archives, history navigation, Windows test corrections, Fleet result ownership and concurrent integrity/profile repairs. The complete serial Node 22.23.5 suite passed **1,722 tests, zero failures and one optional Mixxx-corpus skip (1,723 total; 246.284718878 TAP seconds)** across 146 files, with all 1,424 frozen files unchanged. Current coverage is **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**; reviewed provenance covers **19 existing profiles**. See [checkpoint 35](docs/DECKCHEK-CONTINUATION-35.md) for exact evidence and limits.
 
@@ -37,6 +49,14 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-31 | Timecode doctor live monitor | DONE (HW: H-31; WASAPI-shared capture beside DJ software unverified; negative-SNR floor supported for an acquired coherent carrier; cold-start/changing-pitch noise remains limited) | `src-tauri/src/{monitor,tray}.rs`, `database/migrations/0019_monitor_log.sql`, `app/monitor.js`, `app/ui/screens/monitor.js` | `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8) |
 | FS-32 | MIDI mapper studio | DONE (HW: H-32; VirtualDJ format unverified; Serato and Traktor are reports only) | `src-tauri/src/mapper.rs`, `database/migrations/0020_mapper_models.sql`, `app/mapper/**`, `app/ui/screens/mapper.js` | `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7) |
 | FS-33 | Gear ledger static export | DONE (HW: H-33; GitHub Pages guide wording to verify) | `src-tauri/src/ledger.rs`, `database/migrations/0021_gear_ledger.sql`, `app/ledger/**`, `app/ui/screens/ledger.js` | `tests/ledger*.test.mjs` (incl. leak test), smoke `ledger` (AC-1..AC-7) |
+
+### Native support-history working memory
+
+Source38 implements bounded retained Rust history pages while preserving complete global validation, immutable originals, transaction/error ordering and the existing API. The [native contract](docs/support-isolation-native-history.md) retains the largest-row memory dependency, unchanged list limits and harmless raw-whitespace acceptance. [Measured proof](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#memory-measurement-and-tradeoff) excludes SQLite/C allocations and process RSS; full-application qualification remains open.
+
+### Current MIDI transport prerequisites
+
+The [source37 follow-up](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior) corrects descriptor-object inference: USB and DIN facts stay Boolean-or-null; unresolved transports produce conditional plans and a direct prerequisite Skip action. Generated conformance without confirmed USB MIDI requires an explicitly selected output. Handwritten tests, known-USB pairing, explicit General MIDI opt-in and certificate exclusions remain unchanged. Physical port identity and real MIDI/GM qualification remain open.
 
 ### FS-36 selective consolidation
 

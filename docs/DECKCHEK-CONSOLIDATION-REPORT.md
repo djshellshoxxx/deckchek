@@ -1,6 +1,18 @@
 # DeckChek consolidation report
 
-> Current continuation: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Current qualification and limits are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
+> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+
+> Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
+
+> Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
+
+## Current native history integration
+
+Source38 adds exactly the accepted native support-history module change and its contract note to source37. Streaming validation and indexed lookups preserve original data, same-transaction consistency, global corruption/error ordering and all public limits; returned comparisons retain their full source observations. [Current qualification](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) separates the 23/23 native harness, allocator tradeoff and byte-identical parity artifact from the complete Node/static gates. The earlier MIDI/profile report remains byte-identical.
+
+## Historical source37 bounded MIDI/profile integration
+
+The [follow-up report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md) records 13 source paths relative to published checkpoint35: the accepted MIDI planning/runner correction, two existing AlphaTheta profile updates with additive provenance, focused regressions and the generated coverage matrix. Source37 changes six paths from source36; root regenerated only the two affected matrix rows. The original profile-author **84 passed / 1 failed** result remains recorded beside the subsequent **1,747/0/1** combined proof. Both protected earlier reports and all source-scoped failure histories are retained.
 
 ## Historical checkpoint 34 — source 32419404
 

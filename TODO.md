@@ -1,6 +1,18 @@
 # DeckChek build queue
 
-## Current continuation snapshot
+## Current source38 publication candidate
+
+Source `fe936f7d48db2633ba3c2e948c682fa49ab68490` (tree `f74910a66e7bf9da818185fc87d4ec22a8cf2b4c`) adds streaming native support-history validation to accepted source37. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; **265.537171973 TAP seconds**), with all **1,429** frozen files unchanged; local static gates passed. The separate exact native-core/harness run passed **23/23**, with bounded allocator measurements and explicit full-application exclusions. See the [current report](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the increased cumulative-allocation/time tradeoff and qualification limits.
+
+The intended draft branch remains `review/deckchek-midi-profile-20261118`, targeting `integration/deckchek-consolidation-20261118` at `0acb612`; no branch/PR is published in this snapshot. It preserves the contribution of stable PR30 head `72dd38c`. Source37’s report remains an unchanged earlier snapshot. Current-source hosted/native-platform/Chromium, broad Sonar and hardware gates remain open; Fleet stays OFF.
+
+## Historical source37 MIDI/profile snapshot
+
+Source `2ec083c411c7f9353fb0926fdf6dd828e200c5a0` (tree `795cfa22f3eb4d4b7e7838100b60e158f3c0424d`) adds explicit MIDI transport prerequisites and exact-model DDJ-GRV6/XDJ-AZ provenance. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; 247.940381799 TAP seconds), with all **1,428** frozen files unchanged; static gates passed. Coverage remains **45 profiles / 506 handwritten / 187 generated / 0 gaps**, with **23 conditional audio cases** and **20 conditional MIDI profiles / 60 requirements**. Reviewed provenance now covers 21 existing profiles, without physical qualification. See the [follow-up report](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md).
+
+This is a prepublication snapshot for the intended `review/deckchek-midi-profile-20261118` branch into `integration/deckchek-consolidation-20261118` at `0acb612`. The follow-up descends from published PR30 at `72dd38c` and preserves its contribution; PR30’s head stays stable. The integration base keeps existing nightly/platform gates applicable. The Windows pass at `72dd38c` is preceding-head evidence. Source37 hosted/browser/native/platform, broad Sonar and hardware gates remain open. The separate native support-history memory work is outside this source. Fleet stays OFF.
+
+## Historical checkpoint 35 snapshot
 
 The reviewed source is `3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5` (tree `8f47b511c8de5cbdfd183f6fd7e119e708edc513`). It combines both browser archives, history navigation, Windows test corrections, Fleet result ownership and concurrent integrity/profile repairs. The complete serial Node 22.23.5 suite passed **1,722 tests, zero failures and one optional Mixxx-corpus skip (1,723 total; 246.284718878 TAP seconds)** across 146 files, with all 1,424 frozen files unchanged. Current coverage is **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**; reviewed provenance covers **19 existing profiles**. See [checkpoint 35](docs/DECKCHEK-CONTINUATION-35.md) for exact evidence and limits.
 
@@ -126,10 +138,14 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Level-step feedback, manual venue incidents with 100-row page navigation, and reports capped at 300 incidents are implemented; physical H-15 and hosted qualification remain open.
 - [x] Reusable support descriptions/setup assignment, hidden-context/settings preservation and strict measured-history report errors.
 - [x] Passive support A/B: retained original observations, versioned 20–200 Hz digital power comparison, explicit context/PA/procedure/calibration comparability and history/report integration. No output or physical isolation-efficiency claim; see [the bounded contract](docs/DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons).
+- [x] Source38 native support-history validation streams all records and retains bounded result pages, preserving original values, error precedence and exact retries. [Allocator proof and tradeoff](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#memory-measurement-and-tradeoff) are separate from full-application qualification.
+- [ ] Qualify the native history refactor in the full application and supported platform jobs, retaining existing validation, API limits and transaction semantics.
 - [x] Separate browser venue-history archive: complete saved incidents/observations/comparisons, strict preflight/conflicts, explicit Data import and resumable recovery; see [implementation and limits](docs/DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive).
 - [x] Separate browser Equipment catalog archive: all six collections and components, strict known graph, exact conflicts and one staged write; [bounds and startup limitations](docs/catalog-archive.md) remain explicit.
 - [ ] Native-only booth/deck-position/settings-snapshot portability and device-profile association remain distinct from the transferred browser catalog.
-- [ ] Correct MIDI plan transport inference from descriptor-object presence; the confirmed gap is being investigated outside checkpoint 35.
+- [x] Correct MIDI transport inference, conditional prerequisites/Skip and generated non-USB output selection; source37 combined qualification passed. [Behavior and preserved limits](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior).
+- [x] Record exact-model USB MIDI and scoped nominal audio/converter provenance for DDJ-GRV6 and XDJ-AZ; complete audio objects remain unknown and conditional.
+- [ ] Resolve the remaining 20 conditional MIDI profiles from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.

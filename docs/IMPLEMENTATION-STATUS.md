@@ -1,6 +1,18 @@
 # DeckChek implementation status
 
-## Current continuation snapshot
+## Current source38 publication candidate
+
+Source `fe936f7d48db2633ba3c2e948c682fa49ab68490` (tree `f74910a66e7bf9da818185fc87d4ec22a8cf2b4c`) adds streaming native support-history validation to accepted source37. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; **265.537171973 TAP seconds**), with all **1,429** frozen files unchanged; local static gates passed. The separate exact native-core/harness run passed **23/23**, with bounded allocator measurements and explicit full-application exclusions. See the [current report](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the increased cumulative-allocation/time tradeoff and qualification limits.
+
+The intended draft branch remains `review/deckchek-midi-profile-20261118`, targeting `integration/deckchek-consolidation-20261118` at `0acb612`; no branch/PR is published in this snapshot. It preserves the contribution of stable PR30 head `72dd38c`. Source37’s report remains an unchanged earlier snapshot. Current-source hosted/native-platform/Chromium, broad Sonar and hardware gates remain open; Fleet stays OFF.
+
+## Historical source37 MIDI/profile snapshot
+
+Source `2ec083c411c7f9353fb0926fdf6dd828e200c5a0` (tree `795cfa22f3eb4d4b7e7838100b60e158f3c0424d`) adds explicit MIDI transport prerequisites and exact-model DDJ-GRV6/XDJ-AZ provenance. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; 247.940381799 TAP seconds), with all **1,428** frozen files unchanged; static gates passed. Coverage remains **45 profiles / 506 handwritten / 187 generated / 0 gaps**, with **23 conditional audio cases** and **20 conditional MIDI profiles / 60 requirements**. Reviewed provenance now covers 21 existing profiles, without physical qualification. See the [follow-up report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md).
+
+This is a prepublication snapshot for the intended `review/deckchek-midi-profile-20261118` branch into `integration/deckchek-consolidation-20261118` at `0acb612`. The follow-up descends from published PR30 at `72dd38c` and preserves its contribution; PR30’s head stays stable. The integration base keeps existing nightly/platform gates applicable. The Windows pass at `72dd38c` is preceding-head evidence. Source37 hosted/browser/native/platform, broad Sonar and hardware gates remain open. The separate native support-history memory work is outside this source. Fleet stays OFF.
+
+## Historical checkpoint 35 snapshot
 
 The reviewed source is `3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5` (tree `8f47b511c8de5cbdfd183f6fd7e119e708edc513`). It combines both browser archives, history navigation, Windows test corrections, Fleet result ownership and concurrent integrity/profile repairs. The complete serial Node 22.23.5 suite passed **1,722 tests, zero failures and one optional Mixxx-corpus skip (1,723 total; 246.284718878 TAP seconds)** across 146 files, with all 1,424 frozen files unchanged. Current coverage is **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**; reviewed provenance covers **19 existing profiles**. See [checkpoint 35](DECKCHEK-CONTINUATION-35.md) for exact evidence and limits.
 
@@ -31,6 +43,14 @@ The Fleet option is now available under Experimental features and remains off by
 - Configurable stale-result days and startup-banner preference. Keyboard `/`, `E`, `N` and arrow-key grid navigation are supported.
 - Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
 - Remaining FS-23 work: default-on qualification and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
+
+## Current native support-history memory correction
+
+Source38 streams native history validation and performs indexed original-record lookups inside the same transactions. Filters bound returned rows without suppressing unrelated corruption; exact retries, original metadata, validation order and API limits are preserved. The [23/23 exact-source harness proof](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#native-proof-and-preserved-failures) includes 22 production contracts plus a separate allocator probe. Lower peak Rust allocation comes with more cumulative allocation and sampled debug time; full Tauri/platform memory and latency remain unqualified.
+
+## Current MIDI transport and profile correction
+
+[Source37](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md) separates explicit USB/DIN facts from generic MIDI applicability. Unknown transports retain conditional plans and a direct prerequisite Skip action; generated conformance without confirmed USB MIDI starts with no output selected. Existing handwritten and known-USB pairing, General MIDI opt-in, test IDs, non-MIDI plans and certificate policy are preserved. DDJ-GRV6/XDJ-AZ USB MIDI is now manufacturer-sourced, while nominal audio rates and converter resolution remain separate from unknown host USB formats. Combined Node/static qualification is recorded in the follow-up report; physical transport identity and hardware qualification remain open.
 
 ## PR9 consolidation: FS-34, FS-35 and FS-36 (2026-11-18)
 
@@ -231,7 +251,7 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 - Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
 - Mature vinyl classifiers and held-out false-positive corpus validation.
 - Native-only booth/position/settings-snapshot portability, device-profile association, surrounding-metric capture and broader shock/DVS/feedback-onset isolation outcomes. Saved supports, passive digital LF A/B, incident history/pagination and separate browser history/catalog archives are implemented; physical qualification remains open.
-- MIDI transport planning still infers capability from descriptor-object presence. The next isolated correction is outside checkpoint 35.
+- Physical MIDI identity/direction and complete control mapping remain unqualified; 20 profiles still require explicit transport prerequisites. Descriptor-object inference is corrected in source37, as documented above.
 - Fleet (FS-23, default off pending qualification): owner's real-database and hardware walkthrough (H-23); trend dashboards beyond the current view.
 - Hardware validation of the M7/M8 features: H-20 to H-23 and H-31 to H-33, including the FS-31 WASAPI-shared capture spike beside DJ software and the negative-SNR residual in the live monitor; VirtualDJ file-format check for FS-32; wording check of the FS-33 GitHub Pages guide; manual privacy review of an exported population pack (FS-21).
 - Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.

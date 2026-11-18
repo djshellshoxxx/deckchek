@@ -1,8 +1,22 @@
 # DeckChek security and diagnostic-integrity audit
 
-> Current continuation: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Current qualification and limits are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
+> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+
+> Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
+
+> Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
 
 The [checkpoint 35 integrity account](DECKCHEK-CONTINUATION-35.md#concurrent-integrity-and-warning-repairs) supersedes earlier narrative assurances that the Cargo warning policy was unchanged: source `057d42f` reproduced and corrected the dependency/stderr-warning gap. Original job outcomes and failure rows below remain historical observations, not evidence that the earlier gate enforced the corrected policy.
+
+## Current native history resource and integrity boundary
+
+The previous native path retained the entire parsed history even for a missing-ID lookup or a one-row page. Source38 replaces that retained working set with streaming global validation and same-transaction indexed lookups. Corrupt off-page/off-venue rows still cause errors before successful reads, retries or writes; validation is not reduced to the requested page, and original storage is not repaired or pruned. The [measured reduction](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#memory-measurement-and-tradeoff) concerns Rust allocator peak for fixed records, with increased cumulative allocation/debug elapsed samples. Largest raw rows, SQLite/C allocation, RSS and full-application limits remain outside that result. Security-scan qualification remains separate.
+
+## Source37 MIDI routing and capability integrity
+
+The [follow-up](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior) records reproduced descriptor-object capability inference and generated Xone:92/WARM2 panels sending an optional Identity Request to a sole unrelated output. The accepted correction preserves unknown transports and requires explicit output selection for generated conformance without confirmed USB MIDI. Existing handwritten/known-USB pairing remains; a selected or matching host name still does not establish physical identity. The two new manual-backed USB MIDI facts do not establish receiving support, complete maps or USB audio formats.
+
+The **16:28:36.307 UTC** check/status observation for published `72dd38c` contains no broad Sonar result. Its Snyk success reports only no manifest changes in five projects; it is not a new broad scan or source37 clearance. The unchanged security gates and earlier findings below remain applicable.
 
 ## Historical checkpoint 34 — source 32419404
 
