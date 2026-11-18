@@ -5,7 +5,6 @@
 
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde_json::{json, Map, Value};
-use std::collections::{HashMap, HashSet};
 use tauri::AppHandle;
 
 use crate::db::{database_path, now_iso, open_database};
@@ -1148,7 +1147,11 @@ struct Stored {
     observation_b_id: Option<String>,
 }
 
-fn read_table(conn: &Connection, comparison: bool) -> Result<Vec<Value>, String> {
+fn read_table(
+    conn: &Connection,
+    comparison: bool,
+    mut visit: impl FnMut(Value) -> Result<(), String>,
+) -> Result<(), String> {
     let sql = if comparison {
         "SELECT id,pair_id,venue_id,setup_id,created_at,recorded_at,payload_json,observation_a_id,observation_b_id FROM support_isolation_comparison ORDER BY created_at COLLATE BINARY DESC,id COLLATE BINARY DESC"
     } else {
@@ -1170,7 +1173,6 @@ fn read_table(conn: &Connection, comparison: bool) -> Result<Vec<Value>, String>
             })
         })
         .map_err(storage)?;
-    let mut result = Vec::new();
     for row in rows {
         let row = row.map_err(storage)?;
         let value: Value = serde_json::from_str(&row.payload_json).map_err(storage)?;
@@ -1205,45 +1207,101 @@ fn read_table(conn: &Connection, comparison: bool) -> Result<Vec<Value>, String>
         {
             return Err(storage("Stored comparison reference columns disagree"));
         }
-        result.push(value);
+        visit(value)?;
     }
-    Ok(result)
+    Ok(())
+}
+
+// Call only after both tables' original JSON and columns have been validated
+// in the current transaction. The transaction keeps these indexed lookups on
+// the same snapshot; retaining every parsed original is unnecessary.
+fn lookup_validated_record(
+    conn: &Connection,
+    comparison: bool,
+    id: &str,
+) -> Result<Option<Value>, String> {
+    let sql = if comparison {
+        "SELECT payload_json FROM support_isolation_comparison WHERE id=?1"
+    } else {
+        "SELECT payload_json FROM support_isolation_observation WHERE id=?1"
+    };
+    let payload: Option<String> = conn
+        .query_row(sql, [id], |row| row.get(0))
+        .optional()
+        .map_err(storage)?;
+    payload
+        .map(|payload| serde_json::from_str(&payload).map_err(storage))
+        .transpose()
 }
 
 struct History {
     observations: Vec<Value>,
     comparisons: Vec<Value>,
+    observation_total: usize,
+    comparison_total: usize,
 }
 
-fn read_all(conn: &Connection) -> Result<History, String> {
-    let observations = read_table(conn, false)?;
-    let comparisons = read_table(conn, true)?;
-    let mut ids = HashSet::new();
-    for row in observations.iter().chain(&comparisons) {
-        let id = row["id"]
-            .as_str()
-            .ok_or_else(|| storage("Invalid stored ID"))?;
-        if !ids.insert(id) {
-            return Err(storage("Duplicate immutable record ID"));
+fn read_history(
+    conn: &Connection,
+    venue_id: Option<&str>,
+    limit: usize,
+) -> Result<History, String> {
+    let mut history = History {
+        observations: Vec::new(),
+        comparisons: Vec::new(),
+        observation_total: 0,
+        comparison_total: 0,
+    };
+    // Keep the original refusal order: all observation records, then all
+    // comparison records, then ID collisions, then derived/reference checks.
+    // A filter or zero retained rows never skips global history validation.
+    read_table(conn, false, |row| {
+        if venue_id.is_none_or(|venue| row["venueId"] == venue) {
+            history.observation_total += 1;
+            if history.observations.len() < limit {
+                history.observations.push(row);
+            }
         }
+        Ok(())
+    })?;
+    read_table(conn, true, |row| {
+        if venue_id.is_none_or(|venue| row["venueId"] == venue) {
+            history.comparison_total += 1;
+            if history.comparisons.len() < limit {
+                history.comparisons.push(row);
+            }
+        }
+        Ok(())
+    })?;
+    // Each table's primary key enforces its own unique IDs. The remaining
+    // collision is across the two tables and can use their existing indexes.
+    let duplicate: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM support_isolation_comparison AS c JOIN support_isolation_observation AS o ON o.id=c.id)",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(storage)?;
+    if duplicate {
+        return Err(storage("Duplicate immutable record ID"));
     }
-    let by_id: HashMap<&str, &Value> = observations
-        .iter()
-        .map(|row| (row["id"].as_str().unwrap_or_default(), row))
-        .collect();
-    for row in &comparisons {
-        let a = by_id
-            .get(row["observationAId"].as_str().unwrap_or_default())
-            .ok_or_else(|| storage("Comparison source observation is missing"))?;
-        let b = by_id
-            .get(row["observationBId"].as_str().unwrap_or_default())
-            .ok_or_else(|| storage("Comparison source observation is missing"))?;
-        verified_comparison(row, a, b).map_err(storage)?;
-    }
-    Ok(History {
-        observations,
-        comparisons,
-    })
+    read_table(conn, true, |row| {
+        let a = lookup_validated_record(
+            conn,
+            false,
+            row["observationAId"].as_str().unwrap_or_default(),
+        )?
+        .ok_or_else(|| storage("Comparison source observation is missing"))?;
+        let b = lookup_validated_record(
+            conn,
+            false,
+            row["observationBId"].as_str().unwrap_or_default(),
+        )?
+        .ok_or_else(|| storage("Comparison source observation is missing"))?;
+        verified_comparison(&row, &a, &b).map_err(storage)?;
+        Ok(())
+    })?;
+    Ok(history)
 }
 
 fn current_context_matches(conn: &Connection, input: &Value) -> Result<bool, String> {
@@ -1333,16 +1391,16 @@ fn persistence_time(conn: &Connection) -> Result<String, String> {
 pub fn save_observation(conn: &Connection, value: &Value) -> Result<Value, String> {
     let input = normalize_observation(value)?;
     let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate).map_err(storage)?;
-    let all = read_all(&tx)?;
-    if let Some(previous) = all.observations.iter().find(|row| row["id"] == input["id"]) {
-        if !same(&selected_input(previous, OBS_KEYS), &input) {
+    read_history(&tx, None, 0)?;
+    let id = input["id"].as_str().unwrap_or_default();
+    if let Some(previous) = lookup_validated_record(&tx, false, id)? {
+        if !same(&selected_input(&previous, OBS_KEYS), &input) {
             return Err(conflict());
         }
-        let previous = previous.clone();
         tx.commit().map_err(storage)?;
         return Ok(previous);
     }
-    if all.comparisons.iter().any(|row| row["id"] == input["id"]) {
+    if lookup_validated_record(&tx, true, id)?.is_some() {
         return Err(conflict());
     }
     let matches = current_context_matches(&tx, &input)?;
@@ -1366,8 +1424,8 @@ pub fn get_observation(conn: &Connection, id: &str) -> Result<Option<Value>, Str
         return Err(invalid("Observation ID must be a valid identifier"));
     }
     let tx = Transaction::new_unchecked(conn, TransactionBehavior::Deferred).map_err(storage)?;
-    let all = read_all(&tx)?;
-    let result = all.observations.into_iter().find(|row| row["id"] == id);
+    read_history(&tx, None, 0)?;
+    let result = lookup_validated_record(&tx, false, id)?;
     tx.commit().map_err(storage)?;
     Ok(result)
 }
@@ -1375,29 +1433,31 @@ pub fn get_observation(conn: &Connection, id: &str) -> Result<Option<Value>, Str
 pub fn save_comparison(conn: &Connection, value: &Value) -> Result<Value, String> {
     let input = normalize_comparison(value)?;
     let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate).map_err(storage)?;
-    let all = read_all(&tx)?;
-    if let Some(previous) = all.comparisons.iter().find(|row| row["id"] == input["id"]) {
-        if !same(&selected_input(previous, CMP_KEYS), &input) {
+    read_history(&tx, None, 0)?;
+    let id = input["id"].as_str().unwrap_or_default();
+    if let Some(previous) = lookup_validated_record(&tx, true, id)? {
+        if !same(&selected_input(&previous, CMP_KEYS), &input) {
             return Err(conflict());
         }
-        let previous = previous.clone();
         tx.commit().map_err(storage)?;
         return Ok(previous);
     }
-    if all.observations.iter().any(|row| row["id"] == input["id"]) {
+    if lookup_validated_record(&tx, false, id)?.is_some() {
         return Err(conflict());
     }
-    let a = all
-        .observations
-        .iter()
-        .find(|row| row["id"] == input["observationAId"])
-        .ok_or_else(|| invalid("Comparison source observation is missing"))?;
-    let b = all
-        .observations
-        .iter()
-        .find(|row| row["id"] == input["observationBId"])
-        .ok_or_else(|| invalid("Comparison source observation is missing"))?;
-    let result = compare_observations(a, b, &input)?;
+    let a = lookup_validated_record(
+        &tx,
+        false,
+        input["observationAId"].as_str().unwrap_or_default(),
+    )?
+    .ok_or_else(|| invalid("Comparison source observation is missing"))?;
+    let b = lookup_validated_record(
+        &tx,
+        false,
+        input["observationBId"].as_str().unwrap_or_default(),
+    )?
+    .ok_or_else(|| invalid("Comparison source observation is missing"))?;
+    let result = compare_observations(&a, &b, &input)?;
     let mut record = input;
     for key in ["pairId", "venueId", "setupId"] {
         record[key] = a[key].clone();
@@ -1431,30 +1491,28 @@ pub fn list(conn: &Connection, filter: &Value) -> Result<Value, String> {
         number(&filter["limit"]).unwrap_or(0.0) as usize
     };
     let tx = Transaction::new_unchecked(conn, TransactionBehavior::Deferred).map_err(storage)?;
-    let all = read_all(&tx)?;
-    let matches = |row: &&Value| venue_id.is_none_or(|venue| row["venueId"] == venue);
-    let observations: Vec<&Value> = all.observations.iter().filter(matches).collect();
-    let comparisons: Vec<&Value> = all.comparisons.iter().filter(matches).collect();
-    let by_id: HashMap<&str, &Value> = all
-        .observations
+    let history = read_history(&tx, venue_id, limit)?;
+    let expanded: Vec<Value> = history
+        .comparisons
         .iter()
-        .map(|row| (row["id"].as_str().unwrap_or_default(), row))
-        .collect();
-    let expanded: Vec<Value> = comparisons
-        .iter()
-        .take(limit)
         .map(|row| {
-            let a = by_id
-                .get(row["observationAId"].as_str().unwrap_or_default())
-                .ok_or_else(|| storage("Comparison source observation is missing"))?;
-            let b = by_id
-                .get(row["observationBId"].as_str().unwrap_or_default())
-                .ok_or_else(|| storage("Comparison source observation is missing"))?;
-            verified_comparison(row, a, b).map_err(storage)
+            let a = lookup_validated_record(
+                &tx,
+                false,
+                row["observationAId"].as_str().unwrap_or_default(),
+            )?
+            .ok_or_else(|| storage("Comparison source observation is missing"))?;
+            let b = lookup_validated_record(
+                &tx,
+                false,
+                row["observationBId"].as_str().unwrap_or_default(),
+            )?
+            .ok_or_else(|| storage("Comparison source observation is missing"))?;
+            verified_comparison(row, &a, &b).map_err(storage)
         })
         .collect::<Result<_, _>>()?;
-    let response = json!({"observations":observations.iter().take(limit).collect::<Vec<_>>(),
-        "comparisons":expanded, "observationTotal":observations.len(), "comparisonTotal":comparisons.len(), "limit":limit});
+    let response = json!({"observations":history.observations,
+        "comparisons":expanded, "observationTotal":history.observation_total, "comparisonTotal":history.comparison_total, "limit":limit});
     tx.commit().map_err(storage)?;
     Ok(response)
 }
@@ -2316,5 +2374,220 @@ mod tests {
         assert_eq!(list(&conn, &json!({})).unwrap()["observationTotal"], 1);
         drop(conn);
         std::fs::remove_file(path).unwrap();
+    }
+    // Build valid retained history once; avoid measuring repeated append preflights.
+    fn seed_retained_history(conn: &Connection, pairs: usize) -> (Value, Value, Value) {
+        assert!(pairs > 0);
+        let (mut a, mut b, mut comparison) = save_pair(conn);
+        for row in [&mut a, &mut b, &mut comparison] {
+            row["recordedAt"] = json!("2026-01-01T00:00:00.000Z");
+        }
+        let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate).unwrap();
+        tx.execute("DELETE FROM support_isolation_comparison", [])
+            .unwrap();
+        tx.execute("DELETE FROM support_isolation_observation", [])
+            .unwrap();
+        for index in 0..pairs {
+            a["id"] = json!(format!("retained-a-{index:06}"));
+            b["id"] = json!(format!("retained-b-{index:06}"));
+            comparison["id"] = json!(format!("retained-c-{index:06}"));
+            for row in [&mut a, &mut b, &mut comparison] {
+                row["pairId"] = json!(format!("retained-pair-{index:06}"));
+            }
+            comparison["observationAId"] = a["id"].clone();
+            comparison["observationBId"] = b["id"].clone();
+            for row in [&a, &b] {
+                tx.execute("INSERT INTO support_isolation_observation (id,pair_id,venue_id,setup_id,captured_at,recorded_at,payload_json) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+                    params![row["id"].as_str(), row["pairId"].as_str(), row["venueId"].as_str(), row["setupId"].as_str(),
+                        row["capturedAt"].as_str(), row["recordedAt"].as_str(), row.to_string()]).unwrap();
+            }
+            tx.execute("INSERT INTO support_isolation_comparison (id,pair_id,venue_id,setup_id,observation_a_id,observation_b_id,created_at,recorded_at,payload_json) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+                params![comparison["id"].as_str(), comparison["pairId"].as_str(), comparison["venueId"].as_str(), comparison["setupId"].as_str(),
+                    comparison["observationAId"].as_str(), comparison["observationBId"].as_str(), comparison["createdAt"].as_str(),
+                    comparison["recordedAt"].as_str(), comparison.to_string()]).unwrap();
+        }
+        tx.commit().unwrap();
+        (a, b, comparison)
+    }
+
+    #[test]
+    fn retained_history_small_page_keeps_totals_full_sources_and_exact_retries() {
+        let conn = mem();
+        let (a, b, comparison) = seed_retained_history(&conn, 24);
+        let before = raw_rows(&conn);
+        let mut expanded = comparison.clone();
+        expanded["observationA"] = a.clone();
+        expanded["observationB"] = b.clone();
+        assert_eq!(
+            list(&conn, &json!({"venueId":"venue-a", "limit":1})).unwrap(),
+            json!({"observations":[b.clone()], "comparisons":[expanded],
+                "observationTotal":48, "comparisonTotal":24, "limit":1})
+        );
+        assert_eq!(
+            get_observation(&conn, a["id"].as_str().unwrap()).unwrap(),
+            Some(a.clone())
+        );
+        assert_eq!(
+            save_observation(&conn, &selected_input(&a, OBS_KEYS)).unwrap(),
+            a
+        );
+        assert_eq!(
+            save_comparison(&conn, &selected_input(&comparison, CMP_KEYS)).unwrap(),
+            comparison
+        );
+        let mut oldest = b;
+        oldest["id"] = json!("retained-b-000000");
+        oldest["pairId"] = json!("retained-pair-000000");
+        assert_eq!(
+            get_observation(&conn, "retained-b-000000").unwrap(),
+            Some(oldest)
+        );
+        assert_eq!(
+            list(&conn, &json!({"venueId":"venue-b", "limit":1})).unwrap(),
+            json!({"observations":[], "comparisons":[], "observationTotal":0, "comparisonTotal":0, "limit":1})
+        );
+        assert_eq!(raw_rows(&conn), before);
+    }
+
+    #[test]
+    fn retained_history_global_corruption_keeps_validation_phase_and_refusal_order() {
+        fn every_operation_refuses(
+            conn: &Connection,
+            a: &Value,
+            comparison: &Value,
+            expected: &str,
+        ) {
+            let before = raw_rows(conn);
+            assert_eq!(
+                list(conn, &json!({"venueId":"venue-b", "limit":1})).unwrap_err(),
+                expected
+            );
+            assert_eq!(get_observation(conn, "missing").unwrap_err(), expected);
+            assert_eq!(
+                save_observation(conn, &fixture()["observationA"]).unwrap_err(),
+                expected
+            );
+            assert_eq!(
+                save_comparison(conn, &fixture()["comparison"]).unwrap_err(),
+                expected
+            );
+            assert_eq!(
+                save_observation(conn, &selected_input(a, OBS_KEYS)).unwrap_err(),
+                expected
+            );
+            assert_eq!(
+                save_comparison(conn, &selected_input(comparison, CMP_KEYS)).unwrap_err(),
+                expected
+            );
+            assert_eq!(raw_rows(conn), before);
+        }
+        let conn = mem();
+        let (a, _, comparison) = seed_retained_history(&conn, 20);
+        let old_a: String = conn.query_row("SELECT payload_json FROM support_isolation_observation WHERE id='retained-a-000000'", [], |row| row.get(0)).unwrap();
+        let old_c: String = conn.query_row("SELECT payload_json FROM support_isolation_comparison WHERE id='retained-c-000000'", [], |row| row.get(0)).unwrap();
+        let mut malformed: Value = serde_json::from_str(&old_c).unwrap();
+        malformed["result"]["deltaDb"]["pair"] = json!("not a number");
+        conn.execute(
+            "UPDATE support_isolation_comparison SET payload_json=?1 WHERE id='retained-c-000000'",
+            [malformed.to_string()],
+        )
+        .unwrap();
+        let mut forged = comparison.clone();
+        forged["result"]["deltaDb"]["pair"] = json!(99);
+        conn.execute(
+            "UPDATE support_isolation_comparison SET payload_json=?1 WHERE id=?2",
+            params![forged.to_string(), forged["id"].as_str()],
+        )
+        .unwrap();
+        let mut duplicate = comparison.clone();
+        duplicate["id"] = json!("retained-a-000005");
+        conn.execute("INSERT INTO support_isolation_comparison SELECT ?1,pair_id,venue_id,setup_id,observation_a_id,observation_b_id,created_at,recorded_at,?2 FROM support_isolation_comparison WHERE id=?3",
+            params![duplicate["id"].as_str(), duplicate.to_string(), comparison["id"].as_str()]).unwrap();
+        conn.execute("UPDATE support_isolation_observation SET payload_json='{invalid' WHERE id='retained-a-000000'", []).unwrap();
+        let parse_error = storage(serde_json::from_str::<Value>("{invalid").unwrap_err());
+        every_operation_refuses(&conn, &a, &comparison, &parse_error);
+        conn.execute(
+            "UPDATE support_isolation_observation SET payload_json=?1 WHERE id='retained-a-000000'",
+            [&old_a],
+        )
+        .unwrap();
+        every_operation_refuses(
+            &conn,
+            &a,
+            &comparison,
+            "SUPPORT_STORAGE: SUPPORT_INVALID: Invalid saved delta",
+        );
+        conn.execute(
+            "UPDATE support_isolation_comparison SET payload_json=?1 WHERE id='retained-c-000000'",
+            [&old_c],
+        )
+        .unwrap();
+        every_operation_refuses(
+            &conn,
+            &a,
+            &comparison,
+            "SUPPORT_STORAGE: Duplicate immutable record ID",
+        );
+        conn.execute(
+            "DELETE FROM support_isolation_comparison WHERE id='retained-a-000005'",
+            [],
+        )
+        .unwrap();
+        every_operation_refuses(
+            &conn,
+            &a,
+            &comparison,
+            "SUPPORT_STORAGE: SUPPORT_INVALID: Saved delta disagrees with original evidence",
+        );
+        conn.execute(
+            "UPDATE support_isolation_comparison SET payload_json=?1 WHERE id=?2",
+            params![comparison.to_string(), comparison["id"].as_str()],
+        )
+        .unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=OFF; DELETE FROM support_isolation_observation WHERE id='retained-a-000000'; PRAGMA foreign_keys=ON;").unwrap();
+        every_operation_refuses(
+            &conn,
+            &a,
+            &comparison,
+            "SUPPORT_STORAGE: Comparison source observation is missing",
+        );
+    }
+
+    #[test]
+    fn retained_history_raw_whitespace_larger_than_evidence_limit_is_preserved() {
+        let conn = mem();
+        let (a, _, comparison) = save_pair(&conn);
+        for (table, row) in [
+            ("support_isolation_observation", &a),
+            ("support_isolation_comparison", &comparison),
+        ] {
+            let encoded = row.to_string();
+            assert!(encoded.len() < EVIDENCE_BYTES);
+            let padded = format!("{}{}\n\t", " ".repeat(EVIDENCE_BYTES + 8192), encoded);
+            assert!(padded.len() > EVIDENCE_BYTES);
+            conn.execute(
+                &format!("UPDATE {table} SET payload_json=?1 WHERE id=?2"),
+                params![padded, row["id"].as_str()],
+            )
+            .unwrap();
+        }
+        let before = raw_rows(&conn);
+        assert_eq!(
+            get_observation(&conn, "observation-a").unwrap(),
+            Some(a.clone())
+        );
+        assert_eq!(
+            list(&conn, &json!({"limit":1})).unwrap()["comparisons"][0]["observationA"],
+            a
+        );
+        assert_eq!(
+            save_observation(&conn, &selected_input(&a, OBS_KEYS)).unwrap(),
+            a
+        );
+        assert_eq!(
+            save_comparison(&conn, &selected_input(&comparison, CMP_KEYS)).unwrap(),
+            comparison
+        );
+        assert_eq!(raw_rows(&conn), before);
     }
 }
