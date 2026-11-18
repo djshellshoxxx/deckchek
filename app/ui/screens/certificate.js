@@ -110,7 +110,8 @@ async function loadCalibrationRuns(profile, results) {
 
 export function createCertificateScreen(section, { api = createCertificateApi(), photoStore = createPhotoStore(), dialog = globalThis.window?.__TAURI__?.dialog } = {}) {
   const native = isNative() && api.native;
-  const st = { key: null, identity: null, identityError: null, photos: [], busy: false, history: [], validDays: DEFAULT_VALID_DAYS, form: null };
+  const st = { key: null, identity: null, identityError: null, identityCreating: false, photos: [], busy: false, history: [], historyKey: null, validDays: DEFAULT_VALID_DAYS, form: null };
+  let historyRequest = 0, identityRequest = 0;
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('file', { size: 24 })}</span><div><h1 tabindex="-1">Certificates</h1>
       <p class="lede">A dated, tamper-evident test certificate for a unit you sell: every test in its plan, measured values with uncertainty and calibration state, photos, a SHA-256 content hash and an Ed25519 signature.</p></div></div>
@@ -171,7 +172,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
     const card = h('section', { class: 'card cert-identity', id: 'cert-identity', 'aria-label': 'Signing identity', tabindex: '-1' });
     if (st.identityError) {
       card.append(h('p', { class: 'cert-warn', html: `${icon('warn', { size: 16 })} <span>${esc(st.identityError)}</span>` }),
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-new-identity', text: 'Create new identity', onclick: newIdentity }));
+        h('button', { type: 'button', class: 'btn btn-secondary', id: 'cert-new-identity', text: 'Create new identity', disabled: st.identityCreating, onclick: newIdentity }));
     } else if (st.identity) {
       card.append(h('p', {}, h('span', { text: 'Your signing key fingerprint: ' }), h('b', { class: 'cert-fp', id: 'cert-fp', text: st.identity.fingerprint.replace(/(.{4})(?=.)/g, '$1 ') })),
         h('p', { class: st.identity.protection === 'file' ? 'cert-warn' : 'muted small', text: PROTECTION_TEXT[st.identity.protection] || '' }),
@@ -181,10 +182,15 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   }
 
   async function newIdentity() {
+    if (st.identityCreating) return;
     const ok = await confirmDialog({ title: 'Create a new signing identity?', body: 'A new key replaces the current one. Certificates you already issued still verify (each carries its public key), but buyers who noted your old fingerprint will see a different one on new certificates.', confirmLabel: 'Create new identity', danger: true });
     if (!ok) return;
+    st.identityCreating = true; identityRequest++;
+    const button = q('#cert-new-identity');
+    if (button) button.disabled = true;
     try { st.identity = await api.newIdentity(); st.identityError = null; say('New signing identity created.'); }
     catch (e) { st.identityError = friendly(e); say(st.identityError, { assertive: true }); }
+    finally { st.identityCreating = false; }
     // The old card held the focused button: focus the new card, or its retry button after a failure.
     const old = q('#cert-identity');
     if (!old) return;
@@ -333,6 +339,7 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   function renderHistory() {
     const host = q('#cert-history-list');
     if (!host) return;
+    if (st.historyKey !== st.key) { host.replaceChildren(h('p', { class: 'muted', text: 'Loading certificates for this unit…' })); return; }
     if (!st.history.length) { host.replaceChildren(h('p', { class: 'muted', text: 'No certificates yet for this unit.' })); return; }
     host.replaceChildren(h('ul', { class: 'cert-list' }, ...st.history.map(c => h('li', { class: 'cert-history-row' },
       h('span', { class: 'cert-verdict', 'data-verdict': c.verdict, text: `${VERDICT_ICON[c.verdict] || ''} ${VERDICT_LABEL[c.verdict] || c.verdict}` }),
@@ -342,12 +349,25 @@ export function createCertificateScreen(section, { api = createCertificateApi(),
   async function loadHistory() {
     const sel = selection();
     if (!native || !sel) return;
-    try { st.history = await api.list(sel.asset.id); } catch { st.history = []; }
+    const key = st.key, request = ++historyRequest;
+    let history;
+    try { history = await api.list(sel.asset.id); } catch { history = []; }
+    // Navigation caches this screen; only a newer request or unit selection supersedes the result.
+    if (request !== historyRequest || key !== st.key) return;
+    st.history = history; st.historyKey = key;
     renderHistory();
   }
   async function loadIdentity() {
-    try { st.identity = await api.identity(); st.identityError = null; }
-    catch (e) { st.identityError = e?.code === 'key_corrupt' ? `${friendly(e)}.` : `Signing identity unavailable: ${friendly(e)}`; }
+    if (st.identityCreating) return;
+    const request = ++identityRequest;
+    try {
+      const identity = await api.identity();
+      if (request !== identityRequest) return;
+      st.identity = identity; st.identityError = null;
+    } catch (e) {
+      if (request !== identityRequest) return;
+      st.identityError = e?.code === 'key_corrupt' ? `${friendly(e)}.` : `Signing identity unavailable: ${friendly(e)}`;
+    }
     q('#cert-identity')?.replaceWith(identityCard());
   }
 
