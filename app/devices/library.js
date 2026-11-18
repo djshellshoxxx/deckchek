@@ -124,12 +124,34 @@ export function specSummary(profile) {
   };
 }
 
-/** Latest result per test id (results may be in any order). */
+/** A validated observation time; legacy date-only results retain their UTC-day ordering. */
+export function resultTimestamp(result) {
+  const text = result?.createdAt;
+  const match = typeof text === 'string' && /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2}))?$/.exec(text);
+  if (!match || +match[2] > 23 || +match[3] > 59 || +match[4] > 59) return NaN;
+  const calendar = Date.parse(`${match[1]}T00:00:00Z`);
+  if (!Number.isFinite(calendar) || new Date(calendar).toISOString().slice(0, 10) !== match[1]) return NaN;
+  return Date.parse(text);
+}
+
+/** Display uncertainty without overwriting the stored observation or hiding a recorded failure. */
+export function resultStatus(result) {
+  if (!result) return undefined;
+  return result.status !== 'fail' && !Number.isFinite(resultTimestamp(result)) ? 'unknown' : result.status;
+}
+
+/** Latest result per test id. Uncertain ordering and equal instants retain adverse evidence. */
 export function latestResults(results = []) {
   const out = new Map();
+  const priority = result => resultStatus(result) === 'fail' ? 2 : resultStatus(result) === 'pass' ? 0 : 1;
   for (const r of results) {
+    if (!r || typeof r.testId !== 'string' || !r.testId) continue;
     const prev = out.get(r.testId);
-    if (!prev || String(r.createdAt) > String(prev.createdAt)) out.set(r.testId, r);
+    const at = resultTimestamp(r), oldAt = resultTimestamp(prev);
+    const valid = Number.isFinite(at), oldValid = Number.isFinite(oldAt);
+    if (!prev || (valid && oldValid
+      ? at > oldAt || (at === oldAt && priority(r) > priority(prev))
+      : priority(r) > priority(prev) || (priority(r) === priority(prev) && !valid && oldValid))) out.set(r.testId, r);
   }
   return out;
 }
@@ -140,7 +162,7 @@ export function progressFor(profile, results = []) {
   const p = { total: 0, passed: 0, failed: 0, unknown: 0, skipped: 0, untested: 0 };
   for (const t of profile?.tests || []) {
     p.total++;
-    const s = latest.get(t.id)?.status;
+    const s = resultStatus(latest.get(t.id));
     if (s === 'pass') p.passed++;
     else if (s === 'fail') p.failed++;
     else if (s === 'unknown') p.unknown++;

@@ -4,7 +4,7 @@
 
 import { WORKFLOWS, paramsForTest } from '../ui/workflows/definitions.js';
 import { evaluatePass } from '../device-checks.js';
-import { parseMethod, groupTestsByCategory, latestResults, progressFor, specSummary, CATEGORY_LABELS, MIDI_KINDS, AUDIO_KINDS } from './library.js';
+import { parseMethod, groupTestsByCategory, latestResults, resultStatus, resultTimestamp, progressFor, specSummary, CATEGORY_LABELS, MIDI_KINDS, AUDIO_KINDS } from './library.js';
 
 const norm = s => String(s || '').trim().toLowerCase();
 
@@ -234,11 +234,13 @@ export function buildDeviceReportHtml({ profile, asset = null, results = [], gen
   const spec = specSummary(profile);
   const groups = groupTestsByCategory(profile).map(g => `<h3>${esc(g.label)}</h3><table><thead><tr><th>Test</th><th>Status</th><th>Run</th><th>Result</th></tr></thead><tbody>${g.tests.map(t => {
     const r = latest.get(t.id);
+    const status = resultStatus(r), time = resultTimestamp(r);
     const d = r?.detail || {};
     const ms = (d.measurements || []).map(m => `${esc(m.label)}: <b>${esc(fmtVal(m.value))}</b> ${esc(m.unit)}`).join('<br>');
     const fs = (d.findings || []).filter(f => f.severity !== 'ok').map(f => `<li><b>${esc(f.title)}</b>${f.meaning ? ` — ${esc(f.meaning)}` : ''}${f.action ? ` <i>${esc(f.action)}</i>` : ''}</li>`).join('');
     const notes = d.notes ? `<p>Notes: ${esc(d.notes)}</p>` : '';
-    return `<tr><td><b>${esc(t.title)}</b><br><small>${esc(methodLabel(t))} · ${esc(t.severity || '')}</small></td><td class="s s-${esc(r?.status || 'none')}">${esc(r ? STATUS_WORD[r.status] || r.status : 'NOT RUN')}</td><td>${r ? esc(new Date(r.createdAt).toLocaleString()) : '—'}</td><td>${r ? `<p>${esc(d.summary || '')}</p>${ms ? `<p>${ms}</p>` : ''}${fs ? `<ul>${fs}</ul>` : ''}${notes}` : ''}</td></tr>`;
+    const timing = r && !Number.isFinite(time) ? '<p>Result timestamp could not be verified. Review the stored observation before relying on its order.</p>' : '';
+    return `<tr><td><b>${esc(t.title)}</b><br><small>${esc(methodLabel(t))} · ${esc(t.severity || '')}</small></td><td class="s s-${esc(status || 'none')}">${esc(r ? STATUS_WORD[status] || status : 'NOT RUN')}</td><td>${Number.isFinite(time) ? esc(new Date(time).toLocaleString()) : '—'}</td><td>${r ? `${timing}<p>${esc(d.summary || '')}</p>${ms ? `<p>${ms}</p>` : ''}${fs ? `<ul>${fs}</ul>` : ''}${notes}` : ''}</td></tr>`;
   }).join('')}</tbody></table>`).join('');
   const unverified = (profile.specs || []).filter(s => s.confidence !== 'confirmed');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(`DeckChek device report — ${profile.manufacturer} ${profile.model}`)}</title>

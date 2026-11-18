@@ -131,6 +131,46 @@ test('groupTestsByCategory, specSummary and progressFor', () => {
   assert.equal(docs.missing.length, p.documents.filter(doc => !doc.url).length);
 });
 
+test('device latest results compare actual instants and preserve adverse evidence on timestamp ties', () => {
+  const profile = { id: 'unit', tests: [{ id: 't', method: 'manual:inspection', category: 'mechanical', title: 'Inspect' }], specs: [] };
+  for (const [earlierAt, laterAt] of [
+    ['2026-11-17T08:00:00Z', '2026-11-17T08:00:00.500Z'],
+    ['2026-11-17T09:00:00+02:00', '2026-11-17T08:00:00Z'],
+    ['2026-11-16', '2026-11-17'],
+  ]) {
+    const earlier = { profileId: 'unit', testId: 't', status: 'pass', createdAt: earlierAt };
+    const later = { profileId: 'unit', testId: 't', status: 'fail', createdAt: laterAt };
+    for (const results of [[earlier, later], [later, earlier]]) {
+      assert.equal(latestResults(results).get('t'), later);
+      const progress = progressFor(profile, results);
+      assert.equal(progress.failed, 1);
+      assert.equal(progress.passed, 0);
+    }
+  }
+  const pass = { testId: 't', status: 'pass', createdAt: '2026-11-17T08:00:00Z' };
+  for (const status of ['fail', 'unknown', 'skipped']) {
+    const adverse = { testId: 't', status, createdAt: '2026-11-17T10:00:00.000+02:00' };
+    for (const results of [[pass, adverse], [adverse, pass]]) assert.equal(latestResults(results).get('t'), adverse);
+  }
+});
+
+test('malformed result timestamps remain reviewable without hiding known failure or changing stored evidence', () => {
+  const profile = { id: 'unit', manufacturer: 'A', model: 'B', tests: [{ id: 't', method: 'manual:inspection', category: 'mechanical', title: 'Inspect' }], specs: [] };
+  for (const createdAt of [undefined, '', 'bad', '2026-02-30T08:00:00Z', '2026-11-17T24:00:00Z', '2026-11-17T08:00:00', '2026-11-17T08:00:00+99:00']) {
+    const undated = { profileId: 'unit', testId: 't', status: 'pass', createdAt, detail: { summary: 'Original observation' } };
+    assert.equal(latestResults([undated]).get('t'), undated, 'the raw stored result is retained');
+    assert.equal(progressFor(profile, [undated]).passed, 0, String(createdAt));
+    assert.equal(progressFor(profile, [undated]).unknown, 1);
+    const html = buildDeviceReportHtml({ profile, results: [undated] });
+    assert.match(html, /class="s s-unknown">REVIEW/);
+    assert.match(html, /timestamp.*could not be verified/i);
+    assert.equal(undated.status, 'pass');
+    assert.equal(undated.detail.summary, 'Original observation');
+    const knownFailure = { ...undated, status: 'fail', createdAt: '2026-11-17T08:00:00Z' };
+    for (const results of [[undated, knownFailure], [knownFailure, undated]]) assert.equal(latestResults(results).get('t'), knownFailure);
+  }
+});
+
 test('MIDI map helpers: learn, merge, port matching, findings', () => {
   const rane = byId('rane-twelve-mk2');
   const plain = effectiveMidiMap(rane.midi, null);

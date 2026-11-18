@@ -11,7 +11,7 @@ import { onFeatureChange } from '../../features.js';
 import { go, showInspector } from '../shell.js';
 import { verdictFor } from '../metrics.js';
 import { workflowInstance } from '../workflows/flow.js';
-import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, imageUrl, documentLinks } from '../../devices/library.js';
+import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, resultStatus, resultTimestamp, imageUrl, documentLinks } from '../../devices/library.js';
 import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, buildDeviceReportHtml } from '../../devices/dispatch.js';
 import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
 import { describeMediaRef } from '../media-picker.js';
@@ -233,10 +233,11 @@ export function createDevicesScreen(section) {
       const ul = h('ul', { class: 'dev-tests', role: 'list' });
       for (const t of g.tests) {
         const r = latest.get(t.id);
+        const status = resultStatus(r);
         const d = dispatchFor(t);
-        const li = h('li', { class: `dev-test ${r ? `dev-test-${r.status}` : ''}`, 'data-test': t.id });
-        li.innerHTML = `<span class="dev-test-status">${statusChip(r?.status)}</span>`;
-        const info = h('button', { type: 'button', class: 'dev-test-main', 'aria-label': `${t.title}. ${r ? `Last result ${r.status}` : 'Not run yet'}. Show details.` });
+        const li = h('li', { class: `dev-test ${r ? `dev-test-${status}` : ''}`, 'data-test': t.id });
+        li.innerHTML = `<span class="dev-test-status">${statusChip(status)}</span>`;
+        const info = h('button', { type: 'button', class: 'dev-test-main', 'aria-label': `${t.title}. ${r ? `Last result ${status}` : 'Not run yet'}. Show details.` });
         info.innerHTML = `<strong>${esc(t.title)}</strong><span class="muted small">${esc(methodLabel(t))} · ${esc(SEVERITY_LABEL[t.severity] || t.severity || '')}${r ? ` · ${esc(formatDate(r.createdAt))}` : ''}${t.pass ? '' : d.runner === 'manual' || (d.runner === 'midi' && d.kind === 'led') ? ' · your judgement' : ' · judged by analysis'}</span>`;
         info.addEventListener('click', () => testDetails(p, t, unit));
         const run = h('button', { type: 'button', class: `btn ${r ? 'btn-ghost' : 'btn-secondary'} btn-sm dev-run-btn`, 'data-run-test': t.id, disabled: !unit || d.runner === 'unsupported' || null, 'aria-label': `${r ? 'Run again' : 'Run'}: ${t.title}`, html: `${icon(r ? 'refresh' : 'play', { size: 14 })}<span>${r ? 'Re-run' : 'Run'}</span>` });
@@ -252,14 +253,15 @@ export function createDevicesScreen(section) {
   function testDetails(p, t, unit) {
     const history = unit ? resultsFor(unit.id).filter(r => r.profileId === p.id && r.testId === t.id) : [];
     const body = h('div', { class: 'inspect' });
-    const last = history[0];
-    body.innerHTML = `<div class="inspect-chips">${statusChip(last?.status)}<span class="small">${esc(methodLabel(t))}</span></div>
+    const last = latestResults(history).get(t.id);
+    body.innerHTML = `<div class="inspect-chips">${statusChip(resultStatus(last))}<span class="small">${esc(methodLabel(t))}</span></div>
       <p>${esc(t.why || '')}</p>
+      ${last && !Number.isFinite(resultTimestamp(last)) ? '<p>Result timestamp could not be verified. Review the stored observation before relying on its order.</p>' : ''}
       <h3>Steps</h3><ol class="dev-steplist">${(t.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
       ${(t.equipment || []).length ? `<h3>Equipment</h3><p>${esc(t.equipment.join(', '))}</p>` : ''}
       <h3>Pass criterion</h3><p>${t.pass ? esc(passText(t)) : 'None in the profile — judged from the analysis verdict or your answers.'}</p>
       ${last ? `<h3>Last result</h3><p>${esc(last.detail?.summary || '')}</p>${last.mediaId ? '<p class="small" data-media-used>Test medium: <span class="media-used"></span></p>' : ''}${(last.detail?.measurements || []).length ? `<table class="mini"><tbody>${last.detail.measurements.map(m => `<tr><th scope="row">${esc(m.label)}</th><td class="num">${esc(typeof m.value === 'number' ? +m.value.toFixed(3) : m.value ?? '—')} ${esc(m.unit === 'bool' ? '' : m.unit)}</td></tr>`).join('')}</tbody></table>` : ''}${last.detail?.notes ? `<p><strong>Notes:</strong> ${esc(last.detail.notes)}</p>` : ''}` : ''}
-      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(r.status, { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span>${r.mediaId ? `<span class="small muted media-used" data-media-id="${esc(r.mediaId)}" data-track-key="${esc(r.mediaTrackKey || '')}"></span>` : ''}</li>`).join('')}</ul>` : ''}
+      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(resultStatus(r), { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span>${r.mediaId ? `<span class="small muted media-used" data-media-id="${esc(r.mediaId)}" data-track-key="${esc(r.mediaTrackKey || '')}"></span>` : ''}</li>`).join('')}</ul>` : ''}
       <p class="inspect-id mono">${esc(t.id)}</p>`;
     // Test medium used (FS-06 AC-6): resolved asynchronously so the library can load first.
     body.querySelectorAll('.dev-history .media-used').forEach(el => {
