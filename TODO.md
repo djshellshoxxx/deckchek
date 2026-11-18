@@ -2,7 +2,9 @@
 
 ## Current continuation snapshot
 
-The reviewed continuation source is `f0106e79ffb8e7a97ca34787b559c12bafdab3cd` in [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30), targeting PR #27's existing integration branch. PR29 merged its older fd39b145 head; main remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The complete serial Node 22 suite passed **1,536 passed, zero failed, 1 optional skip (1,537 total; 229.581 seconds)**, with all 1,382 frozen files unchanged. Manual venue incidents now retain operator provenance, original selected context and occurrence/save times, retries and bounded history/reporting. Native database backups include incidents; browser workspace JSON excludes them and the UI discloses that scope. Ten researched profiles retain 45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases. Guided stylus version 3, checked ledger facts, monitor/native ownership, both GLib patches and exact warning/stress gates remain preserved. Current hosted native/browser/platform/extended, broad Sonar, full stress, hardware and release gates remain separate. See the six continuation reports for exact evidence and limitations.
+The reviewed source is `524d5357a20faac03378fc9d267e85da13c8df52` (tree `a91b5cd67528dbb3439395996f36ce36332d26b3`), a child of `740fb78`. Its complete serial Node 22.23.5 suite passed **1,592 tests, zero failures and one optional Mixxx-corpus skip (1,593 total; 244.078776606 seconds)** across 136 test files; all 1,390 frozen files were unchanged. Equipment support descriptions/setup assignment and context-preservation corrections are implemented; venue reports identify current support context and reject unreadable measured history. Manual incidents now browse **100 rows per page** with Older/Newer/Newest, while reports retain their **300-record** limit. Three new USB-MIDI provenance decisions bring the researched total to **13**; catalog counts remain **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**. All three complete audio objects remain unresolved.
+
+At the recorded pre-publication snapshot, [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30) remained a draft at `740fb78`, targeting PR27's existing integration; main remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The preceding `f0106e79` result remains **1,536/0/1**, source-scoped historical evidence. Controlled support A/B is the next isolated implementation, outside `524d5357`; structured browser incident/catalog portability and surrounding metrics remain open. Hosted native/browser/platform/extended checks, broad Sonar, hardware and release qualification remain separate. Earlier guided, ledger, native ownership, GLib and failure evidence remains in the continuation reports; Fleet stays OFF.
 
 See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detailed code/spec reconciliation.
 
@@ -31,7 +33,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Fully local UI assets/CSP.
 - [x] Native continuous stereo capture with bounded buffering and capture-quality counters.
 - [x] Interface loopback/gain calibration and uncertainty propagation.
-- [x] Catalog CRUD for manufacturer/product/asset/setup/venue with starter seeding.
+- [x] Catalog CRUD for manufacturer/product/asset/setup/venue with starter seeding; reusable support descriptions and context-preserving setup assignment are implemented.
 - [x] Evidence graph persistence (hypothesis/support/contradiction).
 - [x] Repeat-scan alignment and confirmation for vinyl event candidates.
 - [x] Guided L/R isolated-track crosstalk/channel-separation workflow.
@@ -121,8 +123,9 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Vendor-specific DVS analyzers where technically and legally supportable.
 - [ ] Scratch-stress/cue-wear workflows.
 - [ ] Skip/locked-groove, warp/off-center, non-fill and mature vinyl classifiers.
-- [x] Level-step feedback workflow and manual venue-incident recording/history/reporting are implemented; physical H-15 and hosted qualification remain open.
-- [ ] Reusable support descriptions/setup assignment and controlled isolation A/B; structured browser incident portability and history pagination (venue/booth/position hierarchy exists in FS-23).
+- [x] Level-step feedback, manual venue incidents with 100-row page navigation, and reports capped at 300 incidents are implemented; physical H-15 and hosted qualification remain open.
+- [x] Reusable support descriptions/setup assignment, hidden-context/settings preservation and strict measured-history report errors.
+- [ ] Controlled support-isolation A/B in the separate worktree; structured browser incident/catalog portability and surrounding metrics (venue/booth/position hierarchy exists in FS-23).
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.
 - [ ] Controller/MIDI/HID DeckChek workflows.
