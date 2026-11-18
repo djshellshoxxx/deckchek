@@ -114,7 +114,9 @@ impl InputGenerations {
 
 struct Inner {
     inputs: HashMap<String, MidiInputConnection<()>>,
-    outputs: HashMap<String, MidiOutputConnection>,
+    // None retains a failed/disappeared binding until an explicit reset. Old
+    // Note Off cleanup must never reconnect to a new device with the same name.
+    outputs: HashMap<String, Option<MidiOutputConnection>>,
     tx: Option<SyncSender<MidiMessage>>,
 }
 
@@ -193,7 +195,7 @@ fn output_names(mo: &MidiOutput) -> Vec<String> {
         .collect()
 }
 
-/// Drop (and close) every cached connection whose port has disappeared, so a replug reopens fresh.
+/// Close vanished inputs and retire vanished outputs without forgetting their ownership.
 fn prune_stale(inner: &mut Inner, inputs_present: &[String], outputs_present: &[String]) {
     for n in stale_names(inner.inputs.keys(), inputs_present) {
         if let Some(c) = inner.inputs.remove(&n) {
@@ -201,7 +203,7 @@ fn prune_stale(inner: &mut Inner, inputs_present: &[String], outputs_present: &[
         }
     }
     for n in stale_names(inner.outputs.keys(), outputs_present) {
-        if let Some(c) = inner.outputs.remove(&n) {
+        if let Some(c) = inner.outputs.get_mut(&n).and_then(Option::take) {
             c.close();
         }
     }
@@ -392,25 +394,40 @@ pub fn midi_close_input(state: State<'_, MidiState>, name: String) -> Result<(),
 #[tauri::command]
 pub fn midi_send(state: State<'_, MidiState>, name: String, bytes: Vec<u8>) -> Result<(), String> {
     let mut inner = lock(&state)?;
-    for attempt in 0..2 {
-        if !inner.outputs.contains_key(&name) {
-            let conn = connect_output(&name)?;
-            inner.outputs.insert(name.clone(), conn);
+    send_on_captured_output(
+        &mut inner.outputs,
+        &name,
+        || connect_output(&name),
+        |connection| connection.send(&bytes).map_err(|error| error.to_string()),
+        |connection| {
+            connection.close();
+        },
+    )
+}
+
+/// Bind only on a first send. Known loss requires an explicit reset, never a
+/// retry by display name; subsequent cleanup still belongs to the old device.
+fn send_on_captured_output<C>(
+    outputs: &mut HashMap<String, Option<C>>,
+    name: &str,
+    connect: impl FnOnce() -> Result<C, String>,
+    send: impl FnOnce(&mut C) -> Result<(), String>,
+    close: impl FnOnce(C),
+) -> Result<(), String> {
+    let output = match outputs.entry(name.to_owned()) {
+        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+        std::collections::hash_map::Entry::Vacant(entry) => entry.insert(Some(connect()?)),
+    };
+    let connection = output.as_mut().ok_or_else(|| {
+        format!("MIDI output {name} is unavailable. Restart DeckChek to reset MIDI connections before using a reconnected or replacement output.")
+    })?;
+    if let Err(error) = send(connection) {
+        if let Some(connection) = output.take() {
+            close(connection);
         }
-        match inner.outputs.get_mut(&name).unwrap().send(&bytes) {
-            Ok(()) => return Ok(()),
-            Err(e) => {
-                // The cached connection is stale (device unplugged/replugged): drop it and retry once.
-                if let Some(c) = inner.outputs.remove(&name) {
-                    c.close();
-                }
-                if attempt == 1 {
-                    return Err(format!("MIDI send to {name} failed: {e}"));
-                }
-            }
-        }
+        return Err(format!("MIDI send to {name} failed: {error}. Restart DeckChek to reset MIDI connections before using a reconnected or replacement output."));
     }
-    Err(format!("MIDI send to {name} failed"))
+    Ok(())
 }
 
 fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
@@ -428,7 +445,9 @@ pub fn midi_close_all(state: State<'_, MidiState>) -> Result<(), String> {
         c.close();
     }
     for (_, c) in inner.outputs.drain() {
-        c.close();
+        if let Some(c) = c {
+            c.close();
+        }
     }
     Ok(())
 }
@@ -438,7 +457,12 @@ pub fn midi_status(state: State<'_, MidiState>) -> Result<MidiStatus, String> {
     let mut inner = lock(&state)?;
     prune_with_os(&mut inner);
     let mut open_inputs: Vec<String> = inner.inputs.keys().cloned().collect();
-    let mut open_outputs: Vec<String> = inner.outputs.keys().cloned().collect();
+    let mut open_outputs: Vec<String> = inner
+        .outputs
+        .iter()
+        .filter(|(_, connection)| connection.is_some())
+        .map(|(name, _)| name.clone())
+        .collect();
     open_inputs.sort();
     open_outputs.sort();
     Ok(MidiStatus {
@@ -494,6 +518,90 @@ mod tests {
         assert_ne!(generations.for_port("A"), old_a);
         assert_ne!(generations.for_port("A"), new_a);
         assert_eq!(generations.for_port("B"), new_b);
+    }
+
+    #[test]
+    fn failed_output_retains_ownership_until_reset() {
+        let mut outputs = HashMap::new();
+        let mut sent = Vec::new();
+        send_on_captured_output(
+            &mut outputs,
+            "A",
+            || Ok(11_u8),
+            |connection| {
+                sent.push(*connection);
+                Ok(())
+            },
+            |_| panic!("successful output must stay open"),
+        )
+        .unwrap();
+        let mut closed = Vec::new();
+        let failure = send_on_captured_output(
+            &mut outputs,
+            "A",
+            || panic!("cached output must keep its connection"),
+            |connection| {
+                assert_eq!(*connection, 11);
+                Err("disconnected".into())
+            },
+            |connection| closed.push(connection),
+        )
+        .unwrap_err();
+        assert!(failure.contains("Restart DeckChek"));
+        assert_eq!(closed, vec![11]);
+        assert_eq!(outputs.get("A"), Some(&None));
+        for _ in 0..3 {
+            assert!(send_on_captured_output(
+                &mut outputs,
+                "A",
+                || panic!("cleanup must not reconnect to a replacement"),
+                |_| panic!("no captured output remains"),
+                |_| panic!("the old output was already closed"),
+            )
+            .is_err());
+        }
+        outputs.clear();
+        send_on_captured_output(
+            &mut outputs,
+            "A",
+            || Ok(22),
+            |connection| {
+                sent.push(*connection);
+                Ok(())
+            },
+            |_| panic!("fresh output must stay open"),
+        )
+        .unwrap();
+        assert_eq!(sent, vec![11, 22]);
+    }
+
+    #[test]
+    fn unavailable_output_does_not_block_another_port_or_retry_before_binding() {
+        let mut outputs = HashMap::from([("A".to_owned(), None)]);
+        assert!(send_on_captured_output(
+            &mut outputs,
+            "B",
+            || Err("not connected yet".into()),
+            |_: &mut u8| panic!("no connection exists"),
+            |_| panic!("no connection exists"),
+        )
+        .is_err());
+        assert!(!outputs.contains_key("B"));
+        for _ in 0..2 {
+            send_on_captured_output(
+                &mut outputs,
+                "B",
+                || Ok(33),
+                |connection| {
+                    assert_eq!(*connection, 33);
+                    Ok(())
+                },
+                |_| panic!("successful output must stay open"),
+            )
+            .unwrap();
+        }
+        assert_eq!(outputs.get("A"), Some(&None));
+        assert_eq!(outputs.get("B"), Some(&Some(33)));
     }
 
     fn select_test_port(
