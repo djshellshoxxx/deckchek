@@ -1,30 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { benchmarkConfig, benchmarkSteps, validateBenchmarkCapture, benchmarkStepRecord, guidedBenchmarkPayload, benchmarksSinceReplacement } from '../app/stylus-benchmark.js';
+import { benchmarkConfig, benchmarkSteps, validateBenchmarkCapture, benchmarkStepRecord, guidedBenchmarkPayload, benchmarksSinceReplacement, measureGuidedBenchmarkStep, GUIDED_MEASUREMENT_METHOD } from '../app/stylus-benchmark.js';
 import { createGuidedBenchmark, mountGuidedBenchmark } from '../app/ui/workflows/stylus-benchmark.js';
 import { buildRun, persistCaptureFields } from '../app/ui/analysis.js';
+import { payloadToAudio } from '../app/ui/audio-io.js';
 import { loadAssetState } from '../app/ui/screens/stylus.js';
 import { TIMECODE_FORMATS } from '../app/timecode.js';
 import { deferred, installServiceDom, settle } from './fixtures/service-screen-dom.mjs';
 
 const config = (extra = {}) => ({ assetId: 'stylus-a', assetName: 'Cartridge A', hoursAt: 12, record: 'Reference LP', side: 'A', trackingForce: 2.5, vta: 'Height 2', chain: 'Deck > phono stage > Input A, gain 0 dB', setupId: 'setup-a', deviceName: 'Input A', pairs: [1], nominalRpm: 33.333333, timecodeFormat: '', sameConditions: true, ...extra });
 function result(seconds = 10) {
-  const sampleRate = 8000, n = sampleRate * seconds;
+  const sampleRate = 22050, n = sampleRate * seconds;
   const left = Float32Array.from({ length: n }, (_, i) => 0.2 * Math.sin(2 * Math.PI * 1000 * i / sampleRate));
   return {
-    audio: { left, right: left.map(value => value / 2), channels: 2, sampleRate, durationSec: seconds, pairs: [{ pair: { first: 1, second: 2, mono: false } }] },
+    audio: payloadToAudio({ left, right: left.map(value => value / 2), channels: 2, sampleRate, pairs: [{ first: 1, second: 2, mono: false }], deviceName: 'Input A', streamErrors: [] }),
     quality: { framesCaptured: n, overrunSamples: 0, streamErrors: 0, clippedSamplesL: 0, clippedSamplesR: 0, callbackCount: 10, maxCallbackGapMs: 10, truncated: false, streamErrorMessages: [] },
     streamErrors: [], deviceName: 'Input A',
+    captureInfo: { deviceName: 'Input A', sampleRate, channels: 2, pairs: [{ first: 1, second: 2, mono: false }] },
   };
 }
-const metrics = (args, id = 'run-a') => ({
-  id, test: args.test, assetId: args.device?.id || 'stylus-a', deviceId: args.device?.id || 'stylus-a', capture: args.capture || { kind: 'live', startedAt: '2026-11-18T01:00:00Z', endedAt: '2026-11-18T01:00:10Z' },
-  calibration: { applied: false, reasons: ['no calibration profile'], profileCreatedAt: null, deviceName: 'Input A' },
-  measurements: [
-    ['left_thd_percent', 0.4], ['right_thd_percent', 0.6], ['channel_separation_db', args.params?.separationActive === 'right' ? 22 : 30],
-    ['tc_snr_db', -2], ['tc_phase_error_deg', 3], ['tc_dropouts', 2], ['tc_direction_code', 1], ['clipped_samples', 0],
-  ].map(([metricId, value]) => ({ metricId, value })),
-});
+const contractReferences = new Map();
+function metrics(args, id = 'run-a') {
+  const step = args.guidedBenchmarkStep ?? (args.test === 'Channel & cartridge' ? 'tone' : args.test === 'Channel separation' ? args.params?.separationActive === 'right' ? 'right' : 'left' : null);
+  let analysis = null;
+  if (step) {
+    if (!contractReferences.has(step)) contractReferences.set(step, measureGuidedBenchmarkStep(step, result().audio));
+    analysis = structuredClone(contractReferences.get(step));
+    // These lifecycle/aggregation tests inject contract values. Production DSP
+    // outcomes are checked separately below and in the real-evidence suite.
+    analysis.values = step === 'tone' ? { leftThdPercent: .4, rightThdPercent: .6 } : { separationDb: step === 'right' ? 22 : 30 };
+  }
+  return {
+    id, test: args.test, assetId: args.device?.id || 'stylus-a', deviceId: args.device?.id || 'stylus-a', capture: args.capture || { kind: 'live', startedAt: '2026-11-18T01:00:00Z', endedAt: '2026-11-18T01:00:10Z' },
+    sampleRate: 22050, totalSamples: 220500, params: { referenceHz: 1000, ...args.params }, evidence: analysis ? { guidedBenchmarkAnalysis: analysis } : {},
+    calibration: { applied: false, reasons: ['no calibration profile'], profileCreatedAt: null, deviceName: 'Input A' },
+    measurements: [
+      ['left_thd_percent', 0.4], ['right_thd_percent', 0.6], ['channel_separation_db', args.params?.separationActive === 'right' ? 22 : 30],
+      ['tc_snr_db', -2], ['tc_phase_error_deg', 3], ['tc_dropouts', 2], ['tc_direction_code', 1], ['clipped_samples', 0],
+    ].map(([metricId, value]) => ({ metricId, value, qualityFlags: analysis ? [GUIDED_MEASUREMENT_METHOD] : [] })),
+  };
+}
 function records(input = config()) {
   return benchmarkSteps(input).map((step, index) => benchmarkStepRecord(step, result(step.seconds), metrics({ test: step.test, params: { separationActive: step.id } }, `run-${index}`), null));
 }
@@ -34,7 +49,7 @@ function harness(extra = {}) {
   const io = {
     capture: async options => {
       const item = { options, stopped: false, cancelled: 0, elapsedSec: 0, data: result(options.maxSeconds - 5) };
-      const session = { get stopped() { return item.stopped; }, elapsed: () => item.elapsedSec, stop: async () => { item.stopped = true; return item.data; }, cancel: async () => { item.cancelled += 1; item.stopped = true; } };
+      const session = { info: item.data.captureInfo, get stopped() { return item.stopped; }, elapsed: () => item.elapsedSec, stop: async () => { item.stopped = true; return item.data; }, cancel: async () => { item.cancelled += 1; item.stopped = true; } };
       item.session = session; sessions.push(item); return session;
     },
     analyze: args => metrics(args, `run-${++sequence}`), profileFor: () => null,
@@ -234,21 +249,21 @@ test('production analysis on DC, absent reference, and sub-floor tones remains e
     const r = result(), amplitude = frequency === 1000 ? 0.00001 : 0.2;
     r.audio.left = Float32Array.from(r.audio.left, (_, i) => frequency === 0 ? amplitude : amplitude * Math.sin(2 * Math.PI * frequency * i / r.audio.sampleRate));
     r.audio.right = r.audio.left.slice();
-    const run = buildRun({ test: step.test, audio: r.audio, params: { referenceHz: 1000 }, device: { id: cfg.assetId }, quality: r.quality, streamErrors: [], deviceName: r.deviceName });
+    const run = buildRun({ test: step.test, audio: r.audio, guidedBenchmarkStep: step.id, params: { referenceHz: 1000 }, device: { id: cfg.assetId }, quality: r.quality, streamErrors: [], deviceName: r.deviceName });
     const row = benchmarkStepRecord(step, r, run, null);
-    assert.ok(row.issues.some(issue => issue.includes('reference tone is not measurable')));
-    if (frequency === 0) assert.ok(row.values.leftThdPercent < 0.01, 'the production analyzer alone can produce a benign-looking DC result');
+    assert.ok(row.issues.some(issue => issue.includes('not measurable')));
+    assert.equal(row.values.leftThdPercent, null, 'no finite fallback qualifies an unavailable reference');
     const rows = records(); rows[0] = row; const payload = guidedBenchmarkPayload(cfg, rows);
     assert.equal(payload.valid, false); assert.equal(payload.detail.steps[0].reference.hz, 1000);
   }
 });
 
 test('production analysis supplies real THD and isolated-channel metrics to guided records', () => {
-  const rate = 8000, n = rate * 10, cfg = config(), steps = benchmarkSteps(cfg);
+  const rate = 22050, n = rate * 10, cfg = config(), steps = benchmarkSteps(cfg);
   for (const step of steps) {
     const r = result(); r.audio.sampleRate = rate; r.audio.left = new Float32Array(n); r.audio.right = new Float32Array(n); r.quality.framesCaptured = n;
     for (let i = 0; i < n; i++) { const tone = 0.2 * Math.sin(2 * Math.PI * 1000 * i / rate), harmonic = 0.002 * Math.sin(2 * Math.PI * 2000 * i / rate); r.audio.left[i] = step.id === 'right' ? tone / 100 : tone + harmonic; r.audio.right[i] = step.id === 'left' ? tone / 100 : tone + harmonic; }
-    const run = buildRun({ test: step.test, workflowId: 'cartridge', audio: r.audio, params: { referenceHz: 1000, separationActive: step.id === 'right' ? 'right' : 'left' }, source: 'Live capture', device: { id: cfg.assetId }, quality: r.quality, streamErrors: [], deviceName: r.deviceName });
+    const run = buildRun({ test: step.test, workflowId: 'cartridge', audio: r.audio, guidedBenchmarkStep: step.id, params: { referenceHz: 1000, separationActive: step.id === 'right' ? 'right' : 'left' }, source: 'Live capture', device: { id: cfg.assetId }, quality: r.quality, streamErrors: [], deviceName: r.deviceName });
     const record = benchmarkStepRecord(step, r, run, null);
     assert.equal(record.issues.length, 0);
     if (step.id === 'tone') assert.ok(Math.abs(record.values.leftThdPercent - 1) < 0.02);

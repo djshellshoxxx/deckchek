@@ -140,6 +140,13 @@ export function evaluateChecklist(steps = [], answers = []) {
 // ---------- MIDI maps ----------
 const hasMessage = c => { const m = c?.message; return !!m?.kind && (m.kind === 'pitchbend' || m.number != null); };
 
+/** Automatic stored-map use rejects a known profile mismatch; legacy unknown identity stays compatible. */
+export function storedMidiMapForProfile(row, profile) {
+  const savedId = row?.profileId, currentId = profile?.id;
+  if (typeof savedId === 'string' && savedId.length && typeof currentId === 'string' && currentId.length && savedId !== currentId) return null;
+  return row;
+}
+
 /** Profile map merged with the asset's learned map (learned controls win by id). */
 export function effectiveMidiMap(profileMidi, learned) {
   const base = profileMidi || { mapSource: 'learn', complete: false, controls: [] };

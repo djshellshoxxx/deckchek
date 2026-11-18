@@ -5,20 +5,21 @@
   "model": "Mixtrack Platinum FX",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): Serato DJ Lite.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the exact Mixtrack Platinum FX User Guide v1.2 documents 44.1 kHz/24-bit audio and USB MIDI control. Manual version 1.2 is not a firmware qualification. Numeric USB audio input/output counts and microphone-to-USB routing remain unresolved; physical sockets and third-party software routing are not used to invent those counts. MIDI maps, USB IDs, class compliance, hardware revision, firmware, OS support and physical performance remain unverified.",
   "documents": [
     {
-      "title": "Model specific official feature reference",
-      "type": "manual",
+      "title": "Mixtrack Platinum FX product specifications",
+      "type": "spec-sheet",
       "url": "https://www.numark.com/product/mixtrack-platinum-fx",
-      "language": "en"
+      "language": "en",
+      "notes": "Checked 2026-11-18. Exact Platinum FX product page specifies 44.1 kHz/24-bit audio and links to User Guide v1.2."
     },
     {
-      "title": "Manufacturer manual/product documentation",
-      "type": "manual",
-      "url": "https://www.numark.com/support",
+      "title": "Mixtrack Platinum FX User Guide v1.2",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/Numark/vAC9uYWEnT/mtplfx/MixTrackPlatinumFX-UserGuide-v1.2.pdf",
       "language": "en",
-      "notes": "Direct manual for some models; otherwise manufacturer's product/support landing page. Verify exact variant."
+      "notes": "Checked 2026-11-18. Back page identifies Manual Version 1.2; no publication date identified. Rear Panel, printed p. 5, explicitly describes USB MIDI; Appendix, p. 31, lists 44.1 kHz/24-bit audio. Numeric USB audio counts are not established. This document revision does not identify installed firmware."
     },
     {
       "title": "Firmware, driver and downloads",
@@ -55,7 +56,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "Mixtrack Platinum FX"
@@ -64,8 +65,10 @@
     "audio": {
       "usbChannelsIn": null,
       "usbChannelsOut": null,
-      "sampleRatesHz": [],
-      "bitDepth": null
+      "sampleRatesHz": [
+        44100
+      ],
+      "bitDepth": 24
     }
   },
   "software": [
@@ -120,6 +123,24 @@
       "source": "https://www.numark.com/product/mixtrack-platinum-fx",
       "confidence": "confirmed",
       "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_sample_rate",
+      "label": "Audio sample rate",
+      "value": 44100,
+      "unit": "Hz",
+      "source": "https://cdn.inmusicbrands.com/Numark/vAC9uYWEnT/mtplfx/MixTrackPlatinumFX-UserGuide-v1.2.pdf Appendix, printed p. 31",
+      "confidence": "confirmed",
+      "notes": "Manual Version 1.2 lists 44.1 kHz/24-bit audio for Mixtrack Platinum FX; this does not establish USB input/output channel counts."
+    },
+    {
+      "key": "verified_usb_midi",
+      "label": "USB MIDI control",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/Numark/vAC9uYWEnT/mtplfx/MixTrackPlatinumFX-UserGuide-v1.2.pdf Rear Panel, printed p. 5",
+      "confidence": "confirmed",
+      "notes": "The USB port sends MIDI data for software control. Exact message maps and USB identifiers remain unverified."
     },
     {
       "key": "verified_effects_paddles",

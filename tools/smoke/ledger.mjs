@@ -258,15 +258,43 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
       await fp.waitForFunction(() => /Match|Mismatch|Cannot/.test(document.getElementById('vr-0-0')?.textContent || ''));
       const vr = await fp.locator('#vr-0-0').innerText();
       check('ledger AC-4: "Verify certificate" recomputes SHA-256 and shows a match (signature checked or "not checked by this browser")', /^✓ Match/.test(vr) && (/signature checks out/.test(vr) || /signature not checked by this browser/.test(vr)), vr);
+      const checkedCertificate = JSON.parse(certJson);
+      const checkedFacts = [`Verdict: ${checkedCertificate.payload.verdict}`, `Tester: ${checkedCertificate.payload.tester}`,
+        `Serial: ${checkedCertificate.payload.unit.serial}`, `Issued: ${checkedCertificate.payload.issuedAt}`,
+        `Key fingerprint (certificate signature block): ${checkedCertificate.integrity.fingerprint}`];
+      check('ledger R4-21: Verify reports facts from the hash-checked certificate with a separately labelled fingerprint',
+        vr.includes('Certificate content (hash checked)') && checkedFacts.every(value => vr.includes(value)), vr);
+      const originalSummary = await fp.evaluate(() => {
+        const summary = document.querySelector('.cert');
+        const previous = [summary.querySelector('strong').textContent, summary.querySelector('code').textContent];
+        summary.querySelector('strong').textContent = 'Edited ledger summary';
+        summary.querySelector('code').textContent = 'ffffffffffffffff';
+        return previous;
+      });
+      await fp.click('button[data-verify="0:0"]');
+      await fp.waitForFunction(() => /Certificate content/.test(document.getElementById('vr-0-0')?.textContent || ''));
+      const afterSummaryEdit = await fp.locator('#vr-0-0').innerText();
+      check('ledger R4-21: editing visible ledger facts cannot replace the checked certificate facts',
+        checkedFacts.every(value => afterSummaryEdit.includes(value))
+        && !afterSummaryEdit.includes('Edited ledger summary') && !afterSummaryEdit.includes('ffffffffffffffff'), afterSummaryEdit);
+      await fp.evaluate(previous => {
+        const summary = document.querySelector('.cert');
+        summary.querySelector('strong').textContent = previous[0];
+        summary.querySelector('code').textContent = previous[1];
+      }, originalSummary);
       const tampered = certJson.replace('"verdict": "pass"', '"verdict": "fail"');
       await fp.fill('#paste-input', tampered);
       await fp.click('#paste-check');
       await fp.waitForFunction(() => /Match|Mismatch|Cannot/.test(document.getElementById('paste-result')?.textContent || ''));
-      check('ledger AC-4: a pasted tampered certificate shows a mismatch', /^✗ Mismatch/.test(await fp.locator('#paste-result').innerText()));
+      const mismatchedPaste = await fp.locator('#paste-result').innerText();
+      check('ledger AC-4: a pasted tampered certificate shows a mismatch', /^✗ Mismatch/.test(mismatchedPaste) && !mismatchedPaste.includes('Certificate content (hash checked)'));
       await fp.fill('#paste-input', certJson);
       await fp.click('#paste-check');
       await fp.waitForFunction(() => /Match/.test(document.getElementById('paste-result')?.textContent || '') && !/Mismatch/.test(document.getElementById('paste-result')?.textContent || ''));
       check('ledger AC-4: the untouched certificate pasted back matches and is found in this ledger', /listed in this ledger/.test(await fp.locator('#paste-result').innerText()) && !/not listed/.test(await fp.locator('#paste-result').innerText()));
+      const checkedPaste = await fp.locator('#paste-result').innerText();
+      check('ledger R4-21: pasted certificates show the same checked facts as the inline Verify action',
+        checkedFacts.every(value => checkedPaste.includes(value)), checkedPaste);
       await fp.emulateMedia({ media: 'print' });
       check('ledger: print stylesheet hides buttons and the paste box', await fp.locator('#paste-section').isHidden());
       await fp.emulateMedia({ media: 'screen' });

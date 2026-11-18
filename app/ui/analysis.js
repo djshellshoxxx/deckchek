@@ -7,6 +7,7 @@ import { dropoutMetrics, frequencyTrace, speedStabilityMetrics } from '../advanc
 import { channelSeparationDb, compareEventMaps, dvsIntegrityScore, dvsIntegrityTimeline, ellipseMetrics, normalizedEventMap, normalizedLevelTrace, pitchMapMetrics, reasonFromEvidence, repeatabilityMetrics, subsonicPeak, thdPercent, traceModulationPercent, transitionMetrics, trendMetrics } from '../diagnostics.js';
 import { applyCalibration, isProfileApplicable, profileInapplicableReasons } from '../calibration.js';
 import { analyzeTimecode, detectTimecodeFormat, findFormat } from '../timecode.js';
+import { measureGuidedBenchmarkStep, GUIDED_MEASUREMENT_METHOD } from '../stylus-benchmark.js';
 import { uid } from './dom.js';
 
 const SEVERITY_PENALTY = { critical: 35, warning: 18, review: 8 };
@@ -49,9 +50,15 @@ function lissajous(left, right, n = 1500) {
 }
 
 /** Per-test analysis. Returns measurements, findings, score, eventMap and plot evidence. */
-export function analyzeForTest(test, audio, params = {}) {
+export function analyzeForTest(test, audio, params = {}, guidedBenchmarkStep = null) {
   let resultEventMap = [];
   const evidence = { envelope: { left: envelope(audio.left), right: envelope(audio.right), durationSec: audio.durationSec } };
+  const guided = guidedBenchmarkStep === null ? null : measureGuidedBenchmarkStep(guidedBenchmarkStep, audio);
+  if (guided && guided.test !== test) throw new Error('The guided measurement step does not match the requested analysis.');
+  if (guided && params.referenceHz != null && Number(params.referenceHz) !== 1000) throw new Error('The guided benchmark declares a nominal 1000 Hz reference.');
+  if (guided && guided.step !== 'tone' && params.separationActive != null && params.separationActive !== guided.step) throw new Error('The guided isolated-channel declaration does not match the measurement step.');
+  if (guided) evidence.guidedBenchmarkAnalysis = guided;
+  const guidedFlags = value => guided ? [GUIDED_MEASUREMENT_METHOD, ...(guided.issues.length ? ['reference_readiness_uncertain'] : []), ...(value === null ? ['measurement_unavailable'] : [])] : [];
   const q = quickDiagnostic(audio);
   let measurements = [...q.measurements], findings = [...q.findings], score = scoreFromFindings(q.findings);
   if (test === 'Speed & pitch') {
@@ -144,27 +151,29 @@ export function analyzeForTest(test, audio, params = {}) {
     if (tm.startupSec == null || tm.brakeSec == null) findings.push({ code: 'TRANSITION_INCOMPLETE', title: 'Transition threshold not reached', detail: 'The selected recording did not cross one or more envelope thresholds.', severity: 'review', confidence: .8, possibleCauses: ['incorrect stop marker', 'recording does not contain full transition', 'signal level too low'], isolationTests: ['repeat from stationary start', 'capture through complete stop', 'adjust stop marker'] });
     score = scoreFromFindings(findings);
   } else if (test === 'Channel separation') {
-    const active = params.separationActive || 'left';
+    const active = guided ? guided.step : params.separationActive || 'left';
     const { referenceHz } = speedParams(params);
-    const activeLevel = toneAmplitude(active === 'left' ? audio.left : audio.right, audio.sampleRate, referenceHz);
-    const leakLevel = toneAmplitude(active === 'left' ? audio.right : audio.left, audio.sampleRate, referenceHz);
-    const separation = channelSeparationDb(activeLevel, leakLevel);
+    const activeLevel = guided ? null : toneAmplitude(active === 'left' ? audio.left : audio.right, audio.sampleRate, referenceHz);
+    const leakLevel = guided ? null : toneAmplitude(active === 'left' ? audio.right : audio.left, audio.sampleRate, referenceHz);
+    const separation = guided ? guided.values.separationDb : channelSeparationDb(activeLevel, leakLevel);
     measurements.push(
-      M('channel_separation_db', `${active === 'left' ? 'Left' : 'Right'}-track tone separation`, separation, 'dB', { confidence: .85 }),
+      M('channel_separation_db', `${active === 'left' ? 'Left' : 'Right'}-track tone separation`, separation, 'dB', { confidence: .85, qualityFlags: guidedFlags(separation) }),
       M('separation_reference_channel', 'Isolated reference channel', active === 'left' ? 0 : 1, 'code', { origin: 'user_entered', confidence: 1 }),
       M('separation_reference_hz', 'Separation reference tone', referenceHz, 'Hz', { origin: 'user_entered', confidence: 1 }),
     );
-    findings.push({ code: 'SEPARATION_CONTEXT', title: 'Channel-separation result requires reference context', detail: `Measured broadband separation is ${separation.toFixed(2)} dB for the declared isolated-${active} track. Compare against the documented test record and calibrated interface baseline before attributing loss to the cartridge.`, severity: 'informational', confidence: .9, possibleCauses: ['cartridge crosstalk', 'azimuth/alignment', 'test-record leakage', 'interface or mixer crosstalk'], isolationTests: ['measure interface loopback isolation', 'repeat opposite-channel track', 'compare known-good cartridge'] });
+    findings.push({ code: 'SEPARATION_CONTEXT', title: 'Channel-separation result requires reference context', detail: guided
+      ? `Measured windowed tone separation is ${Number.isFinite(separation) ? separation.toFixed(2) + ' dB' : 'unavailable'} for the declared isolated-${active} track. Active and leakage powers use the same observed reference frequency in every complete window. Compare against the documented test record and calibrated interface baseline before attributing loss to the cartridge.`
+      : `Measured broadband separation is ${separation.toFixed(2)} dB for the declared isolated-${active} track. Compare against the documented test record and calibrated interface baseline before attributing loss to the cartridge.`, severity: 'informational', confidence: .9, possibleCauses: ['cartridge crosstalk', 'azimuth/alignment', 'test-record leakage', 'interface or mixer crosstalk'], isolationTests: ['measure interface loopback isolation', 'repeat opposite-channel track', 'compare known-good cartridge'] });
     score = scoreFromFindings(findings);
   } else if (test === 'Channel & cartridge') {
     const { referenceHz } = speedParams(params);
-    const leftThd = thdPercent(audio.left, audio.sampleRate, referenceHz);
-    const rightThd = thdPercent(audio.right, audio.sampleRate, referenceHz);
+    const leftThd = guided ? guided.values.leftThdPercent : thdPercent(audio.left, audio.sampleRate, referenceHz);
+    const rightThd = guided ? guided.values.rightThdPercent : thdPercent(audio.right, audio.sampleRate, referenceHz);
     measurements.push(
-      M('left_thd_percent', 'Left THD estimate', leftThd, '%', { confidence: .65 }),
-      M('right_thd_percent', 'Right THD estimate', rightThd, '%', { confidence: .65 }),
+      M('left_thd_percent', 'Left THD estimate', leftThd, '%', { confidence: .65, qualityFlags: guidedFlags(leftThd) }),
+      M('right_thd_percent', 'Right THD estimate', rightThd, '%', { confidence: .65, qualityFlags: guidedFlags(rightThd) }),
     );
-    if (Math.max(leftThd, rightThd) > 5) findings.push({ code: 'ELEVATED_DISTORTION', title: 'Elevated harmonic distortion estimate', detail: `Estimated THD L ${leftThd.toFixed(2)}%, R ${rightThd.toFixed(2)}% at the selected reference frequency.`, severity: 'review', confidence: .65, possibleCauses: ['mistracking', 'test-record distortion', 'input overload', 'stylus/cartridge condition'], isolationTests: ['verify clean reference track', 'reduce gain and repeat', 'compare cartridge/channel swap'] });
+    if (Math.max(leftThd ?? -Infinity, rightThd ?? -Infinity) > 5) findings.push({ code: 'ELEVATED_DISTORTION', title: 'Elevated harmonic distortion estimate', detail: `Estimated THD L ${leftThd === null ? 'unavailable' : leftThd.toFixed(2)}%, R ${rightThd === null ? 'unavailable' : rightThd.toFixed(2)}% at the selected reference frequency.`, severity: 'review', confidence: .65, possibleCauses: ['mistracking', 'test-record distortion', 'input overload', 'stylus/cartridge condition'], isolationTests: ['verify clean reference track', 'reduce gain and repeat', 'compare cartridge/channel swap'] });
     score = scoreFromFindings(findings);
   } else if (test === 'Vibration check') {
     const low = lowBandEnergyDb(audio.left, audio.sampleRate, 80);
@@ -190,6 +199,18 @@ export function analyzeForTest(test, audio, params = {}) {
     if (v.events.length) findings.push({ code: 'VINYL_TRANSIENTS', title: `${v.events.length} transient candidates detected`, detail: 'Transient candidates are evidence only; clicks, dust, scratches, cueing and musical attacks require confirmation.', severity: v.conditionScore < 65 ? 'warning' : 'review', confidence: .65, possibleCauses: ['surface contamination', 'scratch or groove damage', 'musical transient', 'static discharge'], isolationTests: ['repeat scan', 'clean record and compare', 'check recurrence at platter period'] });
     if (v.recurrence.confidence > .7) findings.push({ code: 'REPEATING_EVENT', title: 'Repeating event pattern detected', detail: `Candidate recurrence period ${v.recurrence.periodSec?.toFixed(3)} s.`, severity: 'review', confidence: v.recurrence.confidence, possibleCauses: ['repeating scratch', 'locked/repeating groove', 'periodic mechanical event'], isolationTests: ['repeat scan from same side', 'compare event position by revolution'] });
     score = v.conditionScore;
+  }
+  if (guided) {
+    const ranges = guided.reference.channels.map(channel => {
+      const frequencies = channel.windows.filter(window => window.dominantHarmonic >= 1 && window.dominantHarmonic <= guided.reference.harmonics).map(window => window.observedPeakHz / window.dominantHarmonic).filter(Number.isFinite);
+      return channel.channel + ': ' + (frequencies.length ? Math.min(...frequencies).toFixed(4) + '–' + Math.max(...frequencies).toFixed(4) + ' Hz' : 'unresolved');
+    });
+    findings.push({ code: 'GUIDED_REFERENCE_MEASUREMENT', title: 'Guided measured-reference analysis',
+      detail: `Method ${GUIDED_MEASUREMENT_METHOD}. Declared reference: 1000 Hz. Observed fundamentals (${ranges.join('; ')}). Complete windows of at most ${guided.reference.maxWindowSec} seconds use periodic Hann weights with coherent-gain normalization for presence, THD and leakage, then pool measured powers before calibration. Exact window noise bandwidth increases the guided THD/separation noise uncertainty components; chain and gain components are retained. Nominal-frequency and rectangular projections remain diagnostic evidence.`,
+      severity: 'informational', confidence: .9, possibleCauses: [], isolationTests: [] });
+    if (guided.issues.length) findings.push({ code: 'GUIDED_REFERENCE_READINESS', title: 'Guided reference readiness is uncertain', detail: guided.issues.join(' '), severity: 'review', confidence: .9,
+      possibleCauses: ['reference-track mismatch', 'speed variation', 'unmeasurable reference', 'insufficient sample rate'], isolationTests: ['verify the reference track and capture conditions', 'repeat the complete guided capture'] });
+    score = scoreFromFindings(findings);
   }
   const drop = dropoutMetrics(audio.left, audio.sampleRate, { windowMs: 20, dropDb: 30 });
   measurements.push(M('dropout_count', 'Capture/signal dropout regions', drop.dropoutCount, 'regions', { confidence: .8 }));
@@ -300,18 +321,18 @@ export function linkEvidence(findings, measurements) {
 export function captureQualityMeasurements(quality) {
   if (!quality) return [];
   return [
-    M('capture_overrun_samples', 'Capture buffer overrun samples', quality.overrunSamples ?? 0, 'samples', { confidence: 1 }),
-    M('capture_stream_errors', 'Capture stream errors', quality.streamErrors ?? 0, 'errors', { confidence: 1 }),
-    M('capture_max_callback_gap_ms', 'Longest capture callback gap', quality.maxCallbackGapMs ?? 0, 'ms', { confidence: .9 }),
-  ];
+    Number.isSafeInteger(quality.overrunSamples) && quality.overrunSamples >= 0 ? M('capture_overrun_samples', 'Capture buffer overrun samples', quality.overrunSamples, 'samples', { confidence: 1 }) : null,
+    Number.isSafeInteger(quality.streamErrors) && quality.streamErrors >= 0 ? M('capture_stream_errors', 'Capture stream errors', quality.streamErrors, 'errors', { confidence: 1 }) : null,
+    Number.isFinite(quality.maxCallbackGapMs) && quality.maxCallbackGapMs >= 0 ? M('capture_max_callback_gap_ms', 'Longest capture callback gap', quality.maxCallbackGapMs, 'ms', { confidence: .9 }) : null,
+  ].filter(Boolean);
 }
 export function captureQualityFindings(quality, streamErrorText = []) {
   if (!quality) return [];
   const out = [];
-  const messages = [...(quality.streamErrorMessages || []), ...streamErrorText];
+  const messages = [...(Array.isArray(quality.streamErrorMessages) ? quality.streamErrorMessages : []), ...(Array.isArray(streamErrorText) ? streamErrorText : [])].filter(value => typeof value === 'string');
   if (quality.streamErrors > 0 || messages.length) out.push({ code: 'CAPTURE_STREAM_ERROR', title: 'Audio stream reported errors', detail: messages.join('; ') || `${quality.streamErrors} stream error(s).`, severity: 'review', confidence: 1, possibleCauses: ['device/driver interruption', 'buffer scheduling issue'], isolationTests: ['repeat capture', 'check device connection and driver'] });
   if (quality.overrunSamples > 0) out.push({ code: 'CAPTURE_OVERRUN', title: 'Capture buffer overruns', detail: `${quality.overrunSamples} samples were dropped because the capture buffer overflowed. Timing-based metrics may be affected.`, severity: 'warning', confidence: 1, possibleCauses: ['system load', 'driver buffer too small', 'USB bandwidth'], isolationTests: ['close other audio apps', 'increase driver buffer size', 'repeat capture'] });
-  if (quality.maxCallbackGapMs > 100) out.push({ code: 'CAPTURE_GAP', title: 'Long gap between audio callbacks', detail: `Longest gap ${quality.maxCallbackGapMs.toFixed(1)} ms.`, severity: 'review', confidence: .8, possibleCauses: ['system load', 'power management'], isolationTests: ['repeat capture', 'disable USB power saving'] });
+  if (Number.isFinite(quality.maxCallbackGapMs) && quality.maxCallbackGapMs > 100) out.push({ code: 'CAPTURE_GAP', title: 'Long gap between audio callbacks', detail: `Longest gap ${quality.maxCallbackGapMs.toFixed(1)} ms.`, severity: 'review', confidence: .8, possibleCauses: ['system load', 'power management'], isolationTests: ['repeat capture', 'disable USB power saving'] });
   if (quality.truncated) out.push({ code: 'CAPTURE_TRUNCATED', title: 'Capture reached its maximum length', detail: 'Recording stopped at the configured limit; later audio was not captured.', severity: 'informational', confidence: 1, possibleCauses: ['capture limit'], isolationTests: ['increase capture length'] });
   return out;
 }
@@ -351,10 +372,11 @@ export function persistCaptureFields(run) {
 }
 
 // ---------- calibration ----------
-export function calibrateMeasurements(measurements, profile, ctx) {
+export function calibrateMeasurements(measurements, profile, ctx, guidedContext = null) {
   const reasons = profile ? profileInapplicableReasons(profile, { deviceName: ctx.deviceName, sampleRate: ctx.sampleRate }) : ['no calibration profile'];
   const applied = Boolean(profile) && isProfileApplicable(profile, { deviceName: ctx.deviceName, sampleRate: ctx.sampleRate });
-  return { measurements: measurements.map(m => applyCalibration(m, applied ? profile : null, ctx)), applied, reasons };
+  return { measurements: measurements.map(m => applyCalibration(m, applied ? profile : null,
+    guidedContext && ['left_thd_percent', 'right_thd_percent', 'channel_separation_db'].includes(m.metricId) && m.qualityFlags?.includes(GUIDED_MEASUREMENT_METHOD) ? guidedContext : ctx)), applied, reasons };
 }
 
 // ---------- multi-run aggregation ----------
@@ -427,19 +449,35 @@ function aggregate(run, prior, test) {
  * Full pipeline: analyze, add capture quality, calibrate, aggregate with prior runs,
  * link evidence and score. Returns a run record ready to persist.
  */
-export function buildRun({ test, workflowId, audio, params = {}, source, device = null, prior = [], quality = null, streamErrors = [], profile = null, deviceName = '', capture = null }) {
-  const result = analyzeForTest(test, audio, params);
+export function buildRun({ test, workflowId, audio, params = {}, source, device = null, prior = [], quality = null, streamErrors = [], profile = null, deviceName = '', capture = null, guidedBenchmarkStep = null }) {
+  const result = analyzeForTest(test, audio, params, guidedBenchmarkStep);
   result.measurements.push(...captureQualityMeasurements(quality));
   result.findings.push(...captureQualityFindings(quality, streamErrors));
   const ctx = { deviceName, sampleRate: audio.sampleRate, referenceHz: Number(params.referenceHz) || 1000, nominalRpm: Number(params.nominalRpm) || 33.333333, windowSec: .5, windowSamples: Math.floor(audio.sampleRate * .5) };
-  const cal = calibrateMeasurements(result.measurements, profile, ctx);
+  const guided = result.evidence.guidedBenchmarkAnalysis;
+  const windowSizes = guided?.reference.channels.flatMap(channel => channel.windows.map(window => window.endSample - window.startSample)) || [];
+  if (windowSizes.length) { ctx.windowSamples = Math.min(...windowSizes); ctx.windowSec = ctx.windowSamples / audio.sampleRate; }
+  const tapers = guided?.reference.windowing.byLength || [];
+  let guidedContext = null;
+  if (tapers.length) {
+    const effectiveWindowSamples = Math.min(...tapers.map(taper => taper.effectiveSamples));
+    const noiseBandwidthBins = Math.max(...tapers.map(taper => taper.noiseBandwidthBins));
+    // ENBW widens noise variance by B: N_eff = N/B for THD, and the same
+    // sqrt(B) increase for separation's existing assumed leak-noise term.
+    // Keep untapered Level-0 and all ordinary-run uncertainty contexts unchanged.
+    const assumedLeakSnrDb = 20, adjustedLeakSnrDb = assumedLeakSnrDb - 10 * Math.log10(noiseBandwidthBins);
+    guidedContext = { ...ctx, windowSamples: effectiveWindowSamples, leakSnrDb: adjustedLeakSnrDb };
+    guided.uncertaintyBasis = { physicalWindowSamples: ctx.windowSamples, effectiveWindowSamples, noiseBandwidthBins, assumedLeakSnrDb, adjustedLeakSnrDb,
+      aggregation: 'worst-window-no-window-count-reduction' };
+  }
+  const cal = calibrateMeasurements(result.measurements, profile, ctx, guidedContext);
   const createdAt = new Date().toISOString();
   const timing = captureTiming({ capture, source, quality, durationSec: audio.durationSec ?? audio.left.length / audio.sampleRate, createdAt });
   const run = {
     id: uid('run'), workflow: workflowId, sessionType: workflowId, deviceId: device?.id || null, device: device?.name || 'Unassigned', test,
     createdAt, startedAt: timing.startedAt, endedAt: timing.endedAt, captureKind: timing.kind, capture: timing, assetId: device?.id || null,
     sourceFile: source, durationSec: audio.durationSec, sampleRate: audio.sampleRate, channels: audio.channels,
-    totalSamples: audio.left.length, params: { ...params }, measurements: cal.measurements, findings: result.findings, score: result.score,
+    totalSamples: audio.left.length, params: { ...params, ...(guided ? { referenceHz: 1000, guidedBenchmarkStep, guidedMeasurementMethod: GUIDED_MEASUREMENT_METHOD } : {}) }, measurements: cal.measurements, findings: result.findings, score: result.score,
     eventMap: result.eventMap || [], evidence: result.evidence, quality: quality || null,
     calibration: { applied: cal.applied, reasons: cal.reasons, profileCreatedAt: cal.applied ? profile.createdAt : null, deviceName },
   };

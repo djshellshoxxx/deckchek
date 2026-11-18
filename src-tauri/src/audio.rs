@@ -1114,7 +1114,12 @@ mod tests {
     /// so the command must be `async` and enumerate on the blocking pool. Scans this file's source.
     #[test]
     fn regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread() {
-        let src = include_str!("audio.rs");
+        assert_audio_input_enumeration_off_main_thread(include_str!("audio.rs"));
+    }
+
+    fn assert_audio_input_enumeration_off_main_thread(src: &str) {
+        // include_str! retains CRLF from Windows checkouts.
+        let src = src.replace("\r\n", "\n");
         let name = "list_native_audio_inputs";
         assert!(
             !src.contains(&format!("pub fn {name}(")),
@@ -1129,5 +1134,27 @@ mod tests {
             body.contains("spawn_blocking"),
             "{name} must enumerate via spawn_blocking"
         );
+    }
+
+    #[test]
+    fn regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands() {
+        let fixture =
+            "pub async fn list_native_audio_inputs() {\n    spawn_blocking(|| enumerate());\n}\n";
+        for src in [fixture.to_owned(), fixture.replace('\n', "\r\n")] {
+            assert_audio_input_enumeration_off_main_thread(&src);
+            for unsafe_src in [
+                src.replace("pub async fn", "pub fn"),
+                src.replace("list_native_audio_inputs", "other_command"),
+                src.replace("spawn_blocking", "run_inline"),
+            ] {
+                assert!(
+                    std::panic::catch_unwind(|| {
+                        assert_audio_input_enumeration_off_main_thread(&unsafe_src)
+                    })
+                    .is_err(),
+                    "unsafe audio enumeration must still be rejected"
+                );
+            }
+        }
     }
 }

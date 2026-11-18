@@ -1,5 +1,6 @@
-// FS-08 smoke: Data & backup screen. Browser mode shows only the JSON workspace actions; desktop mode (mocked
-// invoke + dialogs) covers back up, the restore confirmation, the capture_running error and workspace import.
+// FS-08 smoke: Data & backup screen. Browser mode keeps the JSON workspace actions;
+// separate catalog/history smoke modules cover their archives. Mocked desktop mode
+// covers backup, restore confirmation, capture_running and workspace import.
 import { watchConsole, tauriMock } from './core.mjs';
 
 function backupMock() {
@@ -40,7 +41,9 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await b.click('.rail-item[data-screen="data"]');
   await b.waitForSelector('#screen-data:not([hidden]) #data-export-json');
   check('backup: browser mode explains backup files need the desktop app', /desktop app/.test(await b.locator('#data-unsupported').innerText()));
-  check('backup: browser mode shows only the JSON actions', (await b.locator('#data-backup-now, #data-restore').count()) === 0 && (await b.locator('#data-import-json').count()) === 1);
+  check('backup: browser mode hides native restore and keeps workspace import', (await b.locator('#data-backup-now, #data-restore').count()) === 0 && (await b.locator('#data-import-json').count()) === 1);
+  check('backup: browser mode offers separate catalog and venue-history files',
+    await b.locator('#catalog-archive-export').count() === 1 && await b.locator('#venue-history-export').count() === 1);
   await shot(b, 'backup-browser');
   await bctx.close();
 

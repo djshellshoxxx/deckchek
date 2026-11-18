@@ -1,3 +1,21 @@
+# DeckChek source41 checkpoint — 18 November 2026
+
+Current source code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. Accepted work covers learned-map profile identity, optional native incident latest readings, the fourteen-profile MIDI transport batch and Push3 16-in/16-out USB audio. Pack verification passed 16/16 persistent, 32/32 related and 3/3 unchanged independent probes; candidate acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. Coverage remains 45 profiles / 506 handwritten / 187 generated / zero gaps, with 22 conditional audio profiles and 3 conditional MIDI profiles / 9 requirements.
+
+| Final source41 qualification | State |
+| --- | --- |
+| Complete serial JavaScript and inventories | 1,975 passed / 0 failed / 1 optional skip; 1,976 total across 162 top-level files on Node 22.23.5, 257.854541805 TAP seconds; all 1,480 source hashes and tree unchanged (record `13c24e29722dab5b487fc862ba34018ad232b2ba8d39c1c70c9b30407e704631`) |
+| Static, coverage and authored smoke syntax | All 11 static/performance/syntax gates passed, including 426 syntax files, 25 migrations and the 45-profile coverage check; all 1,480 source hashes and the tree matched before/after every gate |
+| Both performance gates and inventories | 2/2 passed with all 1,480 source hashes/tree unchanged: controller 2,400 hops, 0.339 ms mean / 1.04 ms worst / 0.07 MB heap; monitor 2,400 hops, 0.329 ms mean / 1.29 ms worst / 0.06 MB heap (record `91ae72485525171783e1061ba945e3dc959d91bae25040f234baab9285ec673a`) |
+| Accepted native input/dependency carry | Verified 38 production inputs, 39 generated files, 52 application-lock identities and five direct dependency feature sets; carries bounded 45/45 and strict Clippy, not full Tauri/platform execution (record `736e13fc6bd413265948ac110c697c4b95bf9876914e1b71872836b5c181e69f`) |
+| Fresh remote/publication snapshot | Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending |
+
+The sole project executor is ROOT. The [current handoff](docs/DECKCHEK-CONTINUATION-HANDOFF.md#source41-resume-state-and-ownership) and [source41 report](docs/DECKCHEK-CONTINUATION-41.md) supersede older resume/ownership instructions below. Source39's three workflows and source40's primary workflow passed at their exact trees. No source41 hosted check or merge is asserted. The intended route retargets PR33 to refreshed integration before publishing the successor, then requires applicable gates before integration and main qualification. Keep PR27 metadata unchanged and retain PR32/PR30 until replacement reaches main. Fleet stays OFF; no release, tag, deployment, deletion or history rewrite.
+
+## Historical checkpoint snapshots
+
+The following entries retain their original dates, branch inventories, results and open-work wording; they are not the current source41 state.
+
 # DeckChek consolidation and PR9 port — 2026-11-18
 
 Branch `nodata/practical-ptolemy-wu3ekp`, draft PR #26 into `main`. It fast-forwards

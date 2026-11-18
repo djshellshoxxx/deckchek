@@ -1,4 +1,4 @@
-//! Catalog CRUD (manufacturer, product, asset, setup, venue).
+//! Catalog CRUD (manufacturer, product, asset, setup, venue, support description).
 //!
 //! All SQL is parameterized. Table and column names come exclusively from the
 //! static [`EntitySpec`] whitelists below, never from caller input.
@@ -19,6 +19,7 @@ pub enum Entity {
     Asset,
     Setup,
     Venue,
+    SupportConfiguration,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -49,6 +50,7 @@ struct EntitySpec {
     cols: &'static [Col],
     search: &'static [&'static str],
     order: &'static str,
+    has_created: bool,
     has_updated: bool,
     soft_delete: bool,
 }
@@ -64,6 +66,7 @@ static MANUFACTURER: EntitySpec = EntitySpec {
     ],
     search: &["name"],
     order: "name COLLATE NOCASE",
+    has_created: true,
     has_updated: true,
     soft_delete: false,
 };
@@ -84,6 +87,7 @@ static PRODUCT: EntitySpec = EntitySpec {
     ],
     search: &["model", "variant", "description"],
     order: "category, model COLLATE NOCASE",
+    has_created: true,
     has_updated: true,
     soft_delete: false,
 };
@@ -103,6 +107,7 @@ static ASSET: EntitySpec = EntitySpec {
     ],
     search: &["nickname", "serial_number"],
     order: "nickname COLLATE NOCASE",
+    has_created: true,
     has_updated: true,
     soft_delete: true,
 };
@@ -125,6 +130,7 @@ static SETUP: EntitySpec = EntitySpec {
     ],
     search: &["name"],
     order: "name COLLATE NOCASE",
+    has_created: true,
     has_updated: false,
     soft_delete: false,
 };
@@ -141,7 +147,26 @@ static VENUE: EntitySpec = EntitySpec {
     ],
     search: &["name", "city"],
     order: "name COLLATE NOCASE",
+    has_created: true,
     has_updated: true,
+    soft_delete: false,
+};
+
+static SUPPORT_CONFIGURATION: EntitySpec = EntitySpec {
+    table: "support_configuration",
+    cols: &[
+        c("deckPositionId", "deck_position_id", Text, false),
+        c("name", "name", Text, true),
+        c("description", "description", Text, false),
+        c("structureJson", "structure_json", Text, true),
+        c("approximateMassKg", "approximate_mass_kg", Real, false),
+        c("coupledState", "coupled_state", Text, false),
+        c("notes", "notes", Text, false),
+    ],
+    search: &["name", "description", "coupled_state", "notes"],
+    order: "name COLLATE NOCASE",
+    has_created: false,
+    has_updated: false,
     soft_delete: false,
 };
 
@@ -160,6 +185,7 @@ impl Entity {
             "asset" => Ok(Entity::Asset),
             "setup" => Ok(Entity::Setup),
             "venue" => Ok(Entity::Venue),
+            "supportConfiguration" => Ok(Entity::SupportConfiguration),
             other => Err(format!("unknown catalog entity: {other}")),
         }
     }
@@ -171,6 +197,7 @@ impl Entity {
             Entity::Asset => &ASSET,
             Entity::Setup => &SETUP,
             Entity::Venue => &VENUE,
+            Entity::SupportConfiguration => &SUPPORT_CONFIGURATION,
         }
     }
 }
@@ -220,7 +247,9 @@ fn from_sql(v: Sql) -> Value {
 fn select_list(spec: &EntitySpec) -> String {
     let mut cols = vec!["id".to_string()];
     cols.extend(spec.cols.iter().map(|c| c.col.to_string()));
-    cols.push("created_at".into());
+    if spec.has_created {
+        cols.push("created_at".into());
+    }
     if spec.has_updated {
         cols.push("updated_at".into());
     }
@@ -240,14 +269,18 @@ fn row_to_json(spec: &EntitySpec, row: &rusqlite::Row) -> rusqlite::Result<Value
         );
     }
     let n = spec.cols.len();
-    m.insert(
-        "createdAt".into(),
-        from_sql(crate::db::owned_value(row.get_ref(n + 1)?)),
-    );
+    if spec.has_created {
+        m.insert(
+            "createdAt".into(),
+            from_sql(crate::db::owned_value(row.get_ref(n + 1)?)),
+        );
+    }
     if spec.has_updated {
         m.insert(
             "updatedAt".into(),
-            from_sql(crate::db::owned_value(row.get_ref(n + 2)?)),
+            from_sql(crate::db::owned_value(
+                row.get_ref(n + 1 + usize::from(spec.has_created))?,
+            )),
         );
     }
     Ok(Value::Object(m))
@@ -367,6 +400,172 @@ pub fn get(conn: &Connection, entity: Entity, id: &str) -> Result<Option<Value>,
     Ok(Some(rec))
 }
 
+/// Only descriptive metadata is writable here. Historical structure bytes and
+/// a legacy position binding are never reconstructed from this editor's fields.
+fn upsert_support(
+    conn: &mut Connection,
+    id: &str,
+    obj: &Map<String, Value>,
+) -> Result<Value, String> {
+    if id.trim().is_empty() || id.chars().count() > 128 {
+        return Err("Support id must be a non-empty string of at most 128 characters.".into());
+    }
+    let tx = conn.transaction().map_err(err)?;
+    let previous = get(&tx, Entity::SupportConfiguration, id)?;
+    for (key, default) in [
+        ("deckPositionId", Value::Null),
+        ("structureJson", json!("[]")),
+    ] {
+        let kept = previous
+            .as_ref()
+            .and_then(|p| p.get(key))
+            .unwrap_or(&default);
+        if obj.get(key).is_some_and(|value| value != kept) {
+            return Err(format!(
+                "Support {key} is read-only; existing data was kept."
+            ));
+        }
+    }
+    let mut values = Map::new();
+    for (key, limit, required) in [
+        ("name", 200, true),
+        ("description", 5000, false),
+        ("coupledState", 200, false),
+        ("notes", 5000, false),
+    ] {
+        let value = obj
+            .get(key)
+            .or_else(|| previous.as_ref().and_then(|p| p.get(key)));
+        let text = match value {
+            None | Some(Value::Null) => "",
+            Some(Value::String(s)) => s.trim(),
+            _ => return Err(format!("Support {key} must be text.")),
+        };
+        if required && text.is_empty() {
+            return Err(format!("Support {key} is required."));
+        }
+        if text.chars().count() > limit {
+            return Err(format!("Support {key} must be at most {limit} characters."));
+        }
+        values.insert(
+            key.into(),
+            if text.is_empty() {
+                Value::Null
+            } else {
+                json!(text)
+            },
+        );
+    }
+    let mass = obj
+        .get("approximateMassKg")
+        .or_else(|| previous.as_ref().and_then(|p| p.get("approximateMassKg")))
+        .unwrap_or(&Value::Null);
+    if !mass.is_null()
+        && !mass
+            .as_f64()
+            .is_some_and(|number| number.is_finite() && number >= 0.0)
+    {
+        return Err("Support approximateMassKg must be a finite nonnegative number.".into());
+    }
+    values.insert("approximateMassKg".into(), mass.clone());
+    let mut binds = vec![Sql::Text(id.to_string())];
+    for key in [
+        "name",
+        "description",
+        "approximateMassKg",
+        "coupledState",
+        "notes",
+    ] {
+        let col = SUPPORT_CONFIGURATION
+            .cols
+            .iter()
+            .find(|col| col.key == key)
+            .expect("static support column");
+        binds.push(to_sql(col, values.get(key))?);
+    }
+    tx.execute("INSERT INTO support_configuration(id,name,description,approximate_mass_kg,coupled_state,notes) VALUES(?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,approximate_mass_kg=excluded.approximate_mass_kg,coupled_state=excluded.coupled_state,notes=excluded.notes", params_from_iter(binds.iter())).map_err(err)?;
+    tx.commit().map_err(err)?;
+    get(conn, Entity::SupportConfiguration, id)?
+        .ok_or_else(|| "support vanished after upsert".into())
+}
+
+fn validate_setup_context(
+    conn: &Connection,
+    id: &str,
+    obj: &Map<String, Value>,
+) -> Result<(), String> {
+    let previous = get(conn, Entity::Setup, id)?;
+    if let Some(old) = &previous {
+        if obj.get("venueId").unwrap_or(&Value::Null) != &old["venueId"] {
+            let support = match old["supportConfigurationId"].as_str() {
+                Some(id) => get(conn, Entity::SupportConfiguration, id)?,
+                None => None,
+            };
+            if !old["boothId"].is_null()
+                || !old["deckPositionId"].is_null()
+                || support
+                    .as_ref()
+                    .is_some_and(|support| !support["deckPositionId"].is_null())
+            {
+                return Err("Cannot change the venue of a setup with a saved booth, deck position or position-bound support. Keep its original venue.".into());
+            }
+        }
+    }
+    if let Some(components) = obj.get("components") {
+        for component in components.as_array().ok_or("components must be an array")? {
+            let fields = component.as_object().ok_or("component must be an object")?;
+            let Some(snapshot_id) = fields.get("settingsSnapshotId").and_then(Value::as_str) else {
+                continue;
+            };
+            let old = previous
+                .as_ref()
+                .and_then(|record| record["components"].as_array())
+                .and_then(|rows| {
+                    rows.iter()
+                        .find(|row| row["id"].as_str().is_some() && row["id"] == component["id"])
+                });
+            // Preserve an unchanged legacy association. New/changed associations must match the snapshot's actual owner.
+            if old.is_some_and(|old| {
+                old["assetId"] == component["assetId"] && old["settingsSnapshotId"] == snapshot_id
+            }) {
+                continue;
+            }
+            let owner: String = conn
+                .query_row(
+                    "SELECT asset_id FROM asset_settings_snapshot WHERE id=?1",
+                    [snapshot_id],
+                    |row| row.get(0),
+                )
+                .map_err(|error| match error {
+                    rusqlite::Error::QueryReturnedNoRows => {
+                        "The selected settings snapshot does not exist.".to_string()
+                    }
+                    other => err(other),
+                })?;
+            if component["assetId"].as_str() != Some(owner.as_str()) {
+                return Err(
+                    "The selected settings snapshot belongs to a different component asset.".into(),
+                );
+            }
+        }
+    }
+    let Some(support_id) = obj.get("supportConfigurationId").and_then(Value::as_str) else {
+        return Ok(());
+    };
+    let support = get(conn, Entity::SupportConfiguration, support_id)?
+        .ok_or("The selected support description does not exist.")?;
+    let position = obj.get("deckPositionId").unwrap_or(&Value::Null);
+    let unchanged = previous.as_ref().is_some_and(|old| {
+        old["supportConfigurationId"] == support_id && &old["deckPositionId"] == position
+    });
+    if !support["deckPositionId"].is_null() && &support["deckPositionId"] != position && !unchanged
+    {
+        return Err("The selected support belongs to a different deck position.".into());
+    }
+    Ok(())
+}
+
 /// Insert or fully replace a record by id. A missing id is generated.
 /// Returns the stored record. Setup records may carry `components`.
 pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<Value, String> {
@@ -377,6 +576,9 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
         Some(Value::String(s)) if !s.is_empty() => s.clone(),
         _ => return Err("id must be a non-empty string".into()),
     };
+    if entity == Entity::SupportConfiguration {
+        return upsert_support(conn, &id, obj);
+    }
     let mut values: Vec<Sql> = Vec::new();
     for col in spec.cols {
         values.push(to_sql(col, obj.get(col.key))?);
@@ -385,13 +587,17 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
 
     let mut names = vec!["id".to_string()];
     names.extend(spec.cols.iter().map(|c| c.col.to_string()));
-    names.push("created_at".into());
+    if spec.has_created {
+        names.push("created_at".into());
+    }
     if spec.has_updated {
         names.push("updated_at".into());
     }
     let mut binds = vec![Sql::Text(id.clone())];
     binds.extend(values);
-    binds.push(Sql::Text(now.clone()));
+    if spec.has_created {
+        binds.push(Sql::Text(now.clone()));
+    }
     if spec.has_updated {
         binds.push(Sql::Text(now));
     }
@@ -413,6 +619,9 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
     );
 
     let tx = conn.transaction().map_err(err)?;
+    if entity == Entity::Setup {
+        validate_setup_context(&tx, &id, obj)?;
+    }
     tx.execute(&sql, params_from_iter(binds.iter()))
         .map_err(err)?;
     if spec.soft_delete {
@@ -455,6 +664,20 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
 pub fn delete(conn: &Connection, entity: Entity, id: &str) -> Result<bool, String> {
     let spec = entity.spec();
     let tx = conn.unchecked_transaction().map_err(err)?;
+    if entity == Entity::SupportConfiguration {
+        let assigned: bool = tx
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM setup WHERE support_configuration_id=?1)",
+                [id],
+                |row| row.get(0),
+            )
+            .map_err(err)?;
+        if assigned {
+            return Err(
+                "This support description is assigned to a setup and cannot be removed.".into(),
+            );
+        }
+    }
     let n = match entity {
         // A retired asset leaves the fleet, so it also gives up its deck position (FS-23).
         Entity::Asset => tx.execute("UPDATE asset SET is_deleted = 1, deck_position_id = NULL WHERE id = ?1 AND is_deleted = 0", [id]),
@@ -802,5 +1025,271 @@ mod tests {
         upsert(&mut c, Entity::Manufacturer, &json!({"name": "Mine"})).unwrap();
         assert!(!seed_if_empty(&c).unwrap());
         assert_eq!(list(&c, Entity::Manufacturer, None).unwrap().len(), 1);
+    }
+
+    fn support_contract() -> Value {
+        serde_json::from_str(include_str!(
+            "../../tests/contracts/support-configurations.json"
+        ))
+        .unwrap()
+    }
+
+    fn support_context(c: &mut Connection) -> Value {
+        let contract = support_contract();
+        c.execute_batch("INSERT INTO venue(id,name,created_at,updated_at) VALUES('venue-a','Club','2026-01-01','2026-01-01');
+            INSERT INTO booth(id,venue_id,name) VALUES('booth-a','venue-a','Booth');
+            INSERT INTO deck_position(id,booth_id,name) VALUES('position-a','booth-a','Left'),('position-b','booth-a','Right');
+            INSERT INTO asset(id,nickname,created_at,updated_at) VALUES('asset-a','Deck','2026-01-01','2026-01-01');
+            INSERT INTO asset_settings_snapshot(id,asset_id,captured_at,custom_json) VALUES('settings-a','asset-a','2026-01-01','{}');").unwrap();
+        let legacy = &contract["legacy"];
+        c.execute("INSERT INTO support_configuration(id,deck_position_id,name,description,structure_json,approximate_mass_kg,coupled_state,notes) VALUES('support-legacy','position-a',?1,?2,?3,6,'decoupled',NULL)",
+            [legacy["name"].as_str().unwrap(), legacy["description"].as_str().unwrap(), legacy["structureJson"].as_str().unwrap()]).unwrap();
+        upsert(c, Entity::Setup, &contract["setup"]).unwrap();
+        contract
+    }
+
+    #[test]
+    fn support_descriptions_round_trip_without_fabricated_timestamps() {
+        let mut c = mem();
+        let entity = Entity::parse("supportConfiguration").unwrap();
+        let contract = support_contract();
+        let saved = upsert(&mut c, entity, &contract["input"]).unwrap();
+        let mut expected = contract["input"].clone();
+        expected["deckPositionId"] = Value::Null;
+        expected["structureJson"] = json!("[]");
+        assert_eq!(saved, expected);
+        assert!(saved.get("createdAt").is_none());
+        assert!(saved.get("updatedAt").is_none());
+        assert_eq!(
+            list(&c, entity, Some(&json!({"search":"isolation"}))).unwrap(),
+            vec![expected]
+        );
+        assert!(delete(&c, entity, "support-new").unwrap());
+        assert!(list(&c, entity, None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn support_metadata_edit_preserves_legacy_structure_bytes_and_position() {
+        let mut c = mem();
+        let contract = support_context(&mut c);
+        let entity = Entity::parse("supportConfiguration").unwrap();
+        let saved = upsert(&mut c, entity, &json!({"id":"support-legacy","name":"Renamed","description":"Rechecked","approximateMassKg":6,"coupledState":"decoupled","notes":"Kept"})).unwrap();
+        assert_eq!(saved["structureJson"], contract["legacy"]["structureJson"]);
+        assert_eq!(saved["deckPositionId"], "position-a");
+        let mut changed = saved.clone();
+        changed["structureJson"] = json!("[]");
+        assert!(upsert(&mut c, entity, &changed)
+            .unwrap_err()
+            .contains("read-only"));
+        changed = saved.clone();
+        changed["deckPositionId"] = Value::Null;
+        assert!(upsert(&mut c, entity, &changed)
+            .unwrap_err()
+            .contains("read-only"));
+        assert_eq!(get(&c, entity, "support-legacy").unwrap().unwrap(), saved);
+        assert_eq!(
+            upsert(&mut c, entity, &saved).unwrap(),
+            saved,
+            "a full record can round-trip its unchanged read-only fields"
+        );
+    }
+
+    #[test]
+    fn setup_support_assignment_is_validated_without_rewriting_legacy_bindings() {
+        let mut c = mem();
+        let contract = support_context(&mut c);
+        let entity = Entity::parse("supportConfiguration").unwrap();
+        upsert(&mut c, entity, &contract["input"]).unwrap();
+        let mut setup = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        setup["supportConfigurationId"] = json!("support-new");
+        let saved = upsert(&mut c, Entity::Setup, &setup).unwrap();
+        assert_eq!(saved["components"][0]["settingsSnapshotId"], "settings-a");
+        assert_eq!(saved["boothId"], "booth-a");
+        assert_eq!(saved["deckPositionId"], "position-a");
+        setup["id"] = json!("setup-b");
+        setup["deckPositionId"] = json!("position-b");
+        setup["components"] = json!([]);
+        upsert(&mut c, Entity::Setup, &setup).unwrap();
+        setup["supportConfigurationId"] = json!("missing");
+        assert!(upsert(&mut c, Entity::Setup, &setup)
+            .unwrap_err()
+            .contains("support"));
+        setup["supportConfigurationId"] = json!("support-legacy");
+        assert!(upsert(&mut c, Entity::Setup, &setup)
+            .unwrap_err()
+            .contains("position"));
+        assert_eq!(
+            get(&c, Entity::Setup, "setup-b").unwrap().unwrap()["supportConfigurationId"],
+            "support-new"
+        );
+        c.execute("UPDATE setup SET support_configuration_id='support-legacy', deck_position_id='position-b' WHERE id='setup-a'", []).unwrap();
+        let mut legacy = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        legacy["name"] = json!("Legacy rename");
+        let kept = upsert(&mut c, Entity::Setup, &legacy).unwrap();
+        assert_eq!(kept["supportConfigurationId"], "support-legacy");
+        assert_eq!(kept["deckPositionId"], "position-b");
+        assert_eq!(kept["components"][0]["settingsSnapshotId"], "settings-a");
+        legacy["deckPositionId"] = Value::Null;
+        assert!(upsert(&mut c, Entity::Setup, &legacy)
+            .unwrap_err()
+            .contains("position"));
+        assert!(delete(&c, entity, "support-legacy").is_err());
+        assert!(get(&c, entity, "support-legacy").unwrap().is_some());
+    }
+
+    #[test]
+    fn invalid_support_descriptions_do_not_mutate_storage() {
+        let mut c = mem();
+        let entity = Entity::parse("supportConfiguration").unwrap();
+        for invalid in [
+            json!({"name":" "}),
+            json!({"name":"A","approximateMassKg":-1}),
+            json!({"name":"A","notes":{}}),
+            json!({"name":"A","description":"x".repeat(5001)}),
+            json!({"name":"A","deckPositionId":"position-a"}),
+            json!({"name":"A","structureJson":"{}"}),
+        ] {
+            assert!(upsert(&mut c, entity, &invalid).is_err(), "{invalid}");
+        }
+        assert!(list(&c, entity, None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn old_entity_timestamps_keep_their_existing_shape_and_creation_time() {
+        let mut c = mem();
+        for (entity, mut input) in [
+            (Entity::Manufacturer, json!({"id":"old-m","name":"Maker"})),
+            (
+                Entity::Product,
+                json!({"id":"old-p","category":"TURNTABLE","model":"Deck"}),
+            ),
+            (Entity::Asset, json!({"id":"old-a","nickname":"Asset"})),
+            (Entity::Setup, json!({"id":"old-s","name":"Setup"})),
+            (Entity::Venue, json!({"id":"old-v","name":"Venue"})),
+        ] {
+            let first = upsert(&mut c, entity, &input).unwrap();
+            assert!(first["createdAt"].is_string());
+            assert_eq!(first.get("updatedAt").is_some(), entity != Entity::Setup);
+            c.execute(
+                &format!(
+                    "UPDATE {} SET created_at='2000-01-01T00:00:00.000Z' WHERE id=?1",
+                    entity.spec().table
+                ),
+                [first["id"].as_str().unwrap()],
+            )
+            .unwrap();
+            input["notes"] = json!("Edited");
+            let updated = upsert(&mut c, entity, &input).unwrap();
+            assert_eq!(updated["createdAt"], "2000-01-01T00:00:00.000Z");
+            assert_eq!(
+                get(&c, entity, first["id"].as_str().unwrap())
+                    .unwrap()
+                    .unwrap(),
+                updated
+            );
+        }
+    }
+
+    #[test]
+    fn support_correction_component_snapshots_follow_asset_ownership() {
+        let mut c = mem();
+        support_context(&mut c);
+        c.execute_batch("INSERT INTO asset(id,nickname,created_at,updated_at) VALUES('asset-b','Replacement','t','t');
+            INSERT INTO asset_settings_snapshot(id,asset_id,captured_at) VALUES('settings-b','asset-b','t');").unwrap();
+        let original = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        let mut changed = original.clone();
+        changed["components"][0]["assetId"] = json!("asset-b");
+        assert!(upsert(&mut c, Entity::Setup, &changed)
+            .unwrap_err()
+            .contains("snapshot"));
+        assert_eq!(
+            get(&c, Entity::Setup, "setup-a").unwrap().unwrap(),
+            original
+        );
+        changed["components"][0]["settingsSnapshotId"] = Value::Null;
+        let saved = upsert(&mut c, Entity::Setup, &changed).unwrap();
+        assert_eq!(saved["components"][0]["assetId"], "asset-b");
+        assert!(saved["components"][0]["settingsSnapshotId"].is_null());
+        assert_eq!(
+            c.query_row(
+                "SELECT asset_id FROM asset_settings_snapshot WHERE id='settings-a'",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+            "asset-a"
+        );
+        changed["components"][0]["settingsSnapshotId"] = json!("settings-b");
+        upsert(&mut c, Entity::Setup, &changed).unwrap();
+        changed["id"] = json!("new-setup");
+        changed["components"][0]["id"] = json!("new-component");
+        changed["components"][0]["settingsSnapshotId"] = json!("settings-a");
+        assert!(upsert(&mut c, Entity::Setup, &changed)
+            .unwrap_err()
+            .contains("snapshot"));
+        assert!(get(&c, Entity::Setup, "new-setup").unwrap().is_none());
+        // An existing legacy association is not silently rewritten by an ordinary metadata edit.
+        c.execute(
+            "UPDATE setup_component SET settings_snapshot_id='settings-a' WHERE id='component-a'",
+            [],
+        )
+        .unwrap();
+        let mut legacy = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        legacy["name"] = json!("Legacy metadata edit");
+        let kept = upsert(&mut c, Entity::Setup, &legacy).unwrap();
+        assert_eq!(kept["components"][0]["assetId"], "asset-b");
+        assert_eq!(kept["components"][0]["settingsSnapshotId"], "settings-a");
+    }
+
+    #[test]
+    fn support_correction_bound_setup_venue_changes_preserve_original_context() {
+        let mut c = mem();
+        let contract = support_context(&mut c);
+        upsert(
+            &mut c,
+            Entity::Venue,
+            &json!({"id":"venue-b","name":"Other venue"}),
+        )
+        .unwrap();
+        let original = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        for venue in [json!("venue-b"), Value::Null] {
+            let mut changed = original.clone();
+            changed["venueId"] = venue;
+            assert!(upsert(&mut c, Entity::Setup, &changed)
+                .unwrap_err()
+                .contains("venue"));
+            changed["boothId"] = Value::Null;
+            changed["deckPositionId"] = Value::Null;
+            changed["supportConfigurationId"] = Value::Null;
+            assert!(upsert(&mut c, Entity::Setup, &changed)
+                .unwrap_err()
+                .contains("venue"));
+            assert_eq!(
+                get(&c, Entity::Setup, "setup-a").unwrap().unwrap(),
+                original
+            );
+        }
+        c.execute(
+            "UPDATE setup SET booth_id=NULL,deck_position_id=NULL WHERE id='setup-a'",
+            [],
+        )
+        .unwrap();
+        let mut legacy = get(&c, Entity::Setup, "setup-a").unwrap().unwrap();
+        legacy["venueId"] = json!("venue-b");
+        assert!(upsert(&mut c, Entity::Setup, &legacy)
+            .unwrap_err()
+            .contains("venue"));
+        upsert(
+            &mut c,
+            Entity::parse("supportConfiguration").unwrap(),
+            &contract["input"],
+        )
+        .unwrap();
+        let mut unbound = upsert(&mut c, Entity::Setup, &json!({"id":"unbound","name":"Reusable","venueId":"venue-a","supportConfigurationId":"support-new","components":[]})).unwrap();
+        unbound["venueId"] = json!("venue-b");
+        assert_eq!(
+            upsert(&mut c, Entity::Setup, &unbound).unwrap()["venueId"],
+            "venue-b"
+        );
     }
 }

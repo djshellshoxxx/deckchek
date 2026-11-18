@@ -1,6 +1,6 @@
 // Compare screen (FS-21): "your unit against the published spec, your other units and a reference population".
 // Phase 1 (flag `population`) is fully offline: Spec and My units tabs. Phase 2 (flag `packs`) adds the Population tab and
-// the Data sharing card (anonymous .deckchek-pack export and import). Statistics live in population.js, pack rules in
+// the Data sharing card (offline .deckchek-pack export and import). Statistics live in population.js, pack rules in
 // pack.js and pack.rs; this file is layout, forms and inline SVG. Desktop only: the values come from the local database.
 
 import { h, esc, isNative, isTyping, storageGet, storageSet } from '../dom.js';
@@ -114,6 +114,8 @@ export function specSentence(result, label) {
 export function createCompareScreen(section, { api = createPackApi() } = {}) {
   const native = isNative() && api.native;
   const st = { tab: 'spec', units: [], table: null, packs: [], assetId: null, metric: null, loading: false, error: null, pop: null, popKey: '', skipped: null, unitsTruncated: null };
+  let exportEpoch = 0, exportVisible = true, exportDestroyed = false, closeExport = null;
+  const retireExport = () => { exportEpoch++; const close = closeExport; closeExport = null; close?.(); };
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('compare', { size: 24 })}</span><div><h1 tabindex="-1">Compare</h1>
       <p class="lede">How a unit's measurement compares with its published spec, your other units of the same model, and, if you import packs, other people's units. A percentile never decides pass or fail: the spec limit does.</p></div></div></header>
@@ -356,9 +358,9 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     share.replaceChildren();
     if (!native || !packsOn()) return;
     const card = h('section', { class: 'card cmp-card cmp-share', id: 'cmp-sharing', 'aria-label': 'Data sharing' }, h('h2', { class: 'card-title', text: 'Data sharing' }),
-      h('p', { text: 'Packs contain only model, metric values and method versions. No serial numbers, names, dates or locations. Sharing is always manual and previewed first; nothing is sent over the network.' }),
+      h('p', { text: 'Packs contain model and rounded metric values, units and method versions, plus a pack ID, creation month, app version and contributor token. Serial numbers, names, measurement timestamps and locations are not copied into the pack. Sharing is always manual and previewed first; nothing is sent over the network.' }),
       h('div', { class: 'cmp-actions' },
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'cmp-export', html: `${icon('download', { size: 18 })} Share results anonymously…`, onclick: exportPack }),
+        h('button', { type: 'button', class: 'btn btn-secondary', id: 'cmp-export', html: `${icon('download', { size: 18 })} Share population results…`, onclick: exportPack }),
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'cmp-import', html: `${icon('upload', { size: 18 })} Import a pack…`, onclick: importPack }),
         h('button', { type: 'button', class: 'btn btn-ghost', id: 'cmp-reset-token', text: 'Reset my contributor token', onclick: resetToken })));
     if (st.packs.length) {
@@ -386,10 +388,16 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   }
 
   async function exportPack() {
+    if (!exportVisible || exportDestroyed) return;
+    retireExport();
+    const epoch = exportEpoch;
+    const ownsRequest = () => !exportDestroyed && exportVisible && epoch === exportEpoch;
     let cells;
-    try { cells = exportRowsFromUnitValues(st.units, st.table ?? await api.metricTable()); } catch (e) { setStatus(`Could not prepare the export: ${friendly(e)}`, 'error'); return; }
+    try { cells = exportRowsFromUnitValues(st.units, st.table ?? await api.metricTable()); } catch (e) { if (ownsRequest()) setStatus(`Could not prepare the export: ${friendly(e)}`, 'error'); return; }
+    if (!ownsRequest()) return;
     if (!cells.rows.length) { setStatus('There are no results that can be shared yet. Run a test on one of your units first.', 'warn'); return; }
     const appVersion = await getVersion();
+    if (!ownsRequest()) return;
     const first = !storageGet(EXPORTED_KEY, false); // first-time users start with nothing ticked
     const picked = new Set(first ? [] : cells.rows.keys());
     const meta = {};
@@ -400,34 +408,67 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
       const err = h('p', { class: 'form-error', id: 'cmp-exp-error', role: 'alert' });
       const save = h('button', { type: 'button', class: 'btn btn-primary', id: 'cmp-exp-save', text: 'Save pack…' });
       const selected = () => cells.rows.filter((_, i) => picked.has(i));
+      let revision = 0, ready = null, saving = false, closed = false;
+      const current = () => ownsRequest() && !closed;
+      const retire = () => {
+        closed = true; revision++; ready = null; save.disabled = true;
+        if (closeExport === close) closeExport = null;
+      };
+      const close = () => { retire(); finish(null); };
+      closeExport = close;
+      dlg.addEventListener('close', retire, { once: true });
+      dlg.addEventListener('cancel', retire, { once: true });
       async function refresh() {
+        if (!current() || saving) return;
+        const request = ++revision;
         const rows = selected();
-        save.disabled = rows.length === 0; err.textContent = '';
+        ready = null; save.disabled = true; err.textContent = '';
         if (!rows.length) { pre.textContent = 'Nothing selected.'; return; }
+        pre.textContent = 'Preparing preview…';
         try {
           const pack = await api.buildPreview(rows, { appVersion, packId: meta.packId, createdMonth: meta.createdMonth });
-          meta.packId = pack.packId; meta.createdMonth = pack.createdMonth; meta.contributor = pack.contributor;
-          pre.textContent = JSON.stringify(pack, null, 2);
-        } catch (e) { pre.textContent = ''; err.textContent = friendly(e); save.disabled = true; }
+          if (!current() || request !== revision) return;
+          const text = JSON.stringify(pack, null, 2), shown = JSON.parse(text);
+          if (!shown || !Array.isArray(shown.rows) || !shown.rows.length) throw new Error('Could not prepare the pack preview.');
+          meta.packId = shown.packId; meta.createdMonth = shown.createdMonth; meta.contributor = shown.contributor;
+          ready = { rows: shown.rows, options: { packId: shown.packId, createdMonth: shown.createdMonth, contributor: shown.contributor } };
+          pre.textContent = text; save.disabled = false;
+        } catch (e) {
+          if (!current() || request !== revision) return;
+          pre.textContent = ''; err.textContent = friendly(e); ready = null; save.disabled = true;
+        }
       }
       cells.rows.forEach((r, i) => {
         const id = `cmp-cell-${i}`;
-        const box = h('input', { type: 'checkbox', id, checked: picked.has(i) ? true : null, onchange: () => { if (box.checked) picked.add(i); else picked.delete(i); refresh(); } });
+        const box = h('input', { type: 'checkbox', id, checked: picked.has(i) ? true : null, onchange: () => {
+          if (!current() || saving) { box.checked = picked.has(i); return; }
+          if (box.checked) picked.add(i); else picked.delete(i); refresh();
+        } });
         list.append(h('label', { class: 'cmp-cell', for: id }, box, h('span', { text: `${r.product}: ${defOf(r.metric)?.label ?? r.metric} ${fmt(r.value)} ${r.unit}${r.units > 1 ? ` (median of ${r.units} units)` : ''}` })));
       });
       save.addEventListener('click', async () => {
-        save.disabled = true;
-        try { finish(await api.savePack(selected(), { packId: meta.packId, createdMonth: meta.createdMonth, contributor: meta.contributor })); }
-        catch (e) { err.textContent = friendly(e); if (e?.rows?.length) err.textContent += ` ${e.rows.map(r => `Row ${r.row}: ${r.reason}.`).join(' ')}`; save.disabled = false; }
+        if (!current() || !dlg.open || saving || !ready) return;
+        const snapshot = ready;
+        saving = true; save.disabled = true;
+        for (const box of list.querySelectorAll('input')) box.disabled = true;
+        try {
+          const result = await api.savePack(structuredClone(snapshot.rows), structuredClone(snapshot.options));
+          if (current()) finish(result);
+        } catch (e) {
+          if (!current()) return;
+          err.textContent = friendly(e); if (e?.rows?.length) err.textContent += ` ${e.rows.map(r => `Row ${r.row}: ${r.reason}.`).join(' ')}`;
+          saving = false; save.disabled = !ready;
+          for (const box of list.querySelectorAll('input')) box.disabled = false;
+        }
       });
-      dlg.append(h('div', { class: 'dialog-form' }, h('h2', { id: 'cmp-exp-title', text: 'Share results anonymously' }),
+      dlg.append(h('div', { class: 'dialog-form' }, h('h2', { id: 'cmp-exp-title', text: 'Share population results' }),
         h('p', { text: 'Choose what goes into the pack. Values are rounded to three significant figures. Several units of one model are combined into their median, so you count as one contributor.' }),
         st.unitsTruncated ? h('div', { class: 'banner banner-warn', id: 'cmp-exp-truncated' }, h('span', { class: 'banner-text', text: st.unitsTruncated })) : null,
         list, h('h3', { text: 'Exactly what the file contains' }), pre, err,
-        h('div', { class: 'dialog-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', 'data-initial': '', text: 'Cancel', onclick: () => finish(null) }), save)));
+        h('div', { class: 'dialog-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', 'data-initial': '', text: 'Cancel', onclick: close }), save)));
       refresh();
     });
-    if (!saved) return;
+    if (!ownsRequest() || !saved) return;
     if (saved.cancelled) { setStatus('Export cancelled. Nothing was saved.'); return; }
     storageSet(EXPORTED_KEY, true);
     setStatus(`Saved ${saved.rows} result${saved.rows === 1 ? '' : 's'} (${saved.bytes} bytes, SHA-256 ${saved.sha256.slice(0, 12)}…).`);
@@ -481,7 +522,7 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
     } catch (e) { setStatus(friendly(e), 'error'); }
   }
   async function resetToken() {
-    try { await api.contributor({ reset: true }); setStatus('Contributor token reset. Packs you export from now on cannot be linked to earlier ones.'); }
+    try { await api.contributor({ reset: true }); setStatus('Contributor token reset. New packs use a different token. Their other contents may still allow packs to be linked.'); }
     catch (e) { setStatus(friendly(e), 'error'); }
   }
 
@@ -493,14 +534,16 @@ export function createCompareScreen(section, { api = createPackApi() } = {}) {
   render();
   return {
     onShow() {
+      if (exportDestroyed) return;
+      exportVisible = true;
       const hand = takeHandoff('compare'); // a deep link names the unit and metric to open
       if (hand?.assetId) { st.assetId = hand.assetId; if (hand.metric) st.metric = hand.metric; st.tab = 'spec'; }
       load();
     },
-    onHide() { /* keep state */ },
+    onHide() { exportVisible = false; retireExport(); /* keep comparison state */ },
     onEscape() { return false; },
     reload: load,
-    destroy() { offFlag?.(); },
+    destroy() { exportDestroyed = true; exportVisible = false; retireExport(); offFlag?.(); },
   };
 }
 

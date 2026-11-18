@@ -5,7 +5,7 @@
   "model": "DJM-S11",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,fader,eq,audio,usb,display. Software: Serato DJ Pro,rekordbox.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. Transport addendum (2026-11-18): The exact DJM-S11 product page establishes USB MIDI assignability and controller operation. This fact supplies transport evidence only; no full message map, receiving behavior or platform qualification is added.",
   "documents": [
     {
       "title": "Manufacturer feature support",
@@ -55,7 +55,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DJM-S11"
@@ -129,6 +129,15 @@
       "unit": "bool",
       "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-s11/",
+      "confidence": "confirmed",
+      "notes": "The exact DJM-S11 product page establishes USB MIDI assignability and controller operation. This fact supplies transport evidence only; no full message map, receiving behavior or platform qualification is added."
     }
   ],
   "midi": {

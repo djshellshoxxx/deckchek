@@ -235,7 +235,7 @@ async function refreshRailBadge(ctx = {}) {
 export function createStylusScreen(section, { api = createStylusApi(), usage = createUsageApi(), benchmarkIo = {} } = {}) {
   const native = isNative() && api.native;
   const st = { assets: [], assetId: null, data: null, tab: 'overview', loading: false, error: null, proposals: null, proposalNote: '', pointId: null, showTable: {}, hoursError: '', benchError: '', benchFill: null };
-  let guided = null;
+  let guided = null, loadSeq = 0;
   const disposeGuided = () => { guided?.dispose(); guided = null; };
 
   section.innerHTML = `
@@ -260,18 +260,24 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
   // ----- data -----
   async function load({ keepTab = true } = {}) {
     if (!native) { render(); return; }
+    const seq = ++loadSeq;
     st.loading = true; st.error = null; render();
     try {
       const catalogue = await loadCatalogue();
-      st.assets = await listStylusAssets();
+      const assets = await listStylusAssets();
+      if (seq !== loadSeq) return;
+      st.assets = assets;
       if (!st.assetId) st.assetId = storageGet(ACTIVE_CARTRIDGE_KEY, null);
       if (!st.assets.some(a => a.id === st.assetId)) st.assetId = st.assets[0]?.id ?? null;
       if (st.assetId) storageSet(ACTIVE_CARTRIDGE_KEY, st.assetId);
-      st.data = st.assetId ? await loadAssetState(st.assets.find(a => a.id === st.assetId), { api, usage, catalogue }) : null;
+      const assetId = st.assetId;
+      const data = assetId ? await loadAssetState(st.assets.find(a => a.id === assetId), { api, usage, catalogue }) : null;
+      if (seq !== loadSeq || assetId !== st.assetId) return;
+      st.data = data;
       if (!keepTab) st.tab = 'overview';
       badgeState = { level: st.data ? badgeLevelWith(st.data) : badgeState.level };
       paintRailBadge();
-    } catch (e) { st.error = friendly(e); st.data = null; }
+    } catch (e) { if (seq !== loadSeq) return; st.error = friendly(e); st.data = null; }
     st.loading = false;
     render();
   }
@@ -321,7 +327,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       panel.firstChild.id = 'sty-unsupported';
       return;
     }
-    if (st.loading && !st.data) { panel.append(h('p', { class: 'muted', text: 'Loading…' })); return; }
+    if (st.loading) { panel.append(h('p', { class: 'muted', text: 'Loading…' })); return; }
     if (st.error) {
       panel.append(h('div', { class: 'banner banner-fail', role: 'alert' }, h('span', { class: 'banner-text', text: `Could not load stylus data: ${st.error}` }), h('div', { class: 'banner-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Try again', onclick: () => load() }))));
       return;
@@ -700,7 +706,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     if (!st.data) return;
     const k = e.key.toLowerCase();
     if (k === 'a') { e.preventDefault(); selectTab('hours'); q('#sty-hours')?.focus(); }
-    else if (k === 'b') { e.preventDefault(); selectTab('benchmark'); q('#sty-b-thd')?.focus(); }
+    else if (k === 'b') { e.preventDefault(); selectTab('benchmark'); q('#sty-guided-record')?.focus(); }
   };
   document.addEventListener('keydown', onKey);
 
@@ -711,7 +717,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       if (hand?.assetId) { st.assetId = hand.assetId; st.tab = 'overview'; st.proposals = null; st.pointId = null; st.benchFill = null; }
       load();
     },
-    onHide() { disposeGuided(); },
+    onHide() { loadSeq += 1; st.loading = false; disposeGuided(); },
     onEscape() {
       if (guided?.cancel()) return true;
       if (st.pointId) { st.pointId = null; renderPanel(); return true; }

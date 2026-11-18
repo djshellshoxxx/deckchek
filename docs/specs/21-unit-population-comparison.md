@@ -4,7 +4,7 @@
 
 ## 1. Summary and Goals / Non-goals
 
-"Your unit vs others of the same model" in three phases. Phase 1 (implement now, fully offline) compares a measurement against the published spec and against the user's own other units and history. Phase 2 (implement now, opt-in) adds anonymous `.deckchek-pack` JSON files that can be exported, shared by hand, and merged into a local reference population with percentile display. Phase 3 (spec only, not implemented) outlines an optional shared server.
+"Your unit vs others of the same model" in three phases. Phase 1 (implement now, fully offline) compares a measurement against the published spec and against the user's own other units and history. Phase 2 (implement now, opt-in) adds population `.deckchek-pack` JSON files that can be exported, shared by hand, and merged into a local reference population with percentile display. Phase 3 (spec only, not implemented) outlines an optional shared server.
 
 Goals: context for every number ("-62 dBFS is better than 80% of known DJM-A9 units"), robust to small and dirty samples, no PII ever. Non-goals: ranking users, any network traffic in phases 1-2, judging pass/fail from percentile (spec limits stay authoritative), merging results from incompatible methods.
 
@@ -15,7 +15,7 @@ Owner of multiple units; shop tech; community member sharing packs.
 AC-1 Given a metric with a published spec in the device profile, when viewing it, then a bar shows value, spec limit, and margin, with no population needed.
 AC-2 Given the user has >= 2 assets of the same product, when viewing a metric, then sibling units' latest values are listed and the unit's rank among them shown.
 AC-3 Given history for the same asset, then a sparkline and "vs your median of N runs" delta appear.
-AC-4 Given the user exports a pack, then the file contains only product id, metric id, value, unit, method key/version, and DeckChek pack version, verified by a schema whitelist test.
+AC-4 Given the user exports a pack, then each row contains only product id, metric id, value, unit and method key/version. The existing versioned envelope contains the pack format/version, pack id, creation month, app version and contributor token. A schema whitelist test verifies both boundaries.
 AC-5 Given an imported pack, then a preview shows counts per product/metric and rejects unknown fields before merging.
 AC-6 Given fewer than N_min samples (default 20 distinct contributions), then no percentile is shown; text reads "Not enough data (7 of 20)".
 AC-7 Given reference values from method version 1 and the user's from version 2, then they are not compared unless the method's `compat` set lists both.
@@ -25,9 +25,10 @@ AC-9 Given the user removes a pack, then its rows are deleted and percentiles re
 ## 3. UX
 
 Entry points: result row "Compare" chip; device detail > "How does my unit rank?"; Settings > Data sharing (pack export/import).
-Flow: Compare drawer with three tabs: "Spec", "My units", "Population". Population tab shows a horizontal strip plot with P10/P50/P90 band, the user's marker, sample size, number of distinct contributors, and method version used. Export: "Share results anonymously" > choose products/metrics (default: all, all unchecked for first-time) > preview JSON > save `.deckchek-pack`. Import: pick files, preview, confirm.
+Flow: Compare drawer with three tabs: "Spec", "My units", "Population". Population tab shows a horizontal strip plot with P10/P50/P90 band, the user's marker, sample size, number of distinct contributors, and method version used. Export: "Share population results" > choose products/metrics (default: all, all unchecked for first-time) > preview JSON > save `.deckchek-pack`. Import: pick files, preview, confirm.
 States: empty (no reference data: "Import a pack to see how your unit compares"), loading (merge progress), success, partial (some rows skipped: lists reasons), error ("This is not a DeckChek pack"/"Pack version 3 needs a newer DeckChek"), offline (default; nothing needs the network), unsupported (metric lacks `higherIsBetter` direction: percentile hidden, distribution still shown).
-Copy: "Packs contain only model, metric values and method versions. No serial numbers, names, dates or locations." Phase 2 export is always manual and previewed.
+Copy: "Packs contain model and rounded metric values, units and method versions, plus a pack ID, creation month, app version and contributor token. Serial numbers, names, measurement timestamps and locations are not copied into the pack." Phase 2 export is always manual and previewed.
+Only the latest completed selection preview enables Save. Selection changes, dialog closure and leaving the screen retire earlier preview replies. Save uses a private snapshot of the displayed rows and metadata; duplicate presses and selection changes cannot replace an already dispatched operation. Closing the dialog does not cancel a dispatched save, and its later completion cannot take ownership of a newer dialog.
 Shortcuts: C opens Compare on a focused result row. Accessibility: strip plot has a text equivalent ("Your value 52.1 dB is at the 73rd percentile of 41 units"); marker shape plus label, not colour only.
 
 ## 4. Architecture
@@ -57,7 +58,7 @@ CREATE TABLE IF NOT EXISTS reference_pack (
 CREATE TABLE IF NOT EXISTS reference_sample (
   id TEXT PRIMARY KEY,
   pack_id TEXT NOT NULL REFERENCES reference_pack(id) ON DELETE CASCADE,
-  contributor TEXT NOT NULL,        -- random per-export contributor token, not an identity
+  contributor TEXT NOT NULL,        -- random per-install token, resettable on request; not an identity
   product_key TEXT NOT NULL,
   metric_key TEXT NOT NULL,
   method_key TEXT NOT NULL,
@@ -79,7 +80,7 @@ Selection bias caveat is displayed: contributors are self-selected and may be he
 
 ## 7. Error handling, privacy, security
 
-Pack builder uses a whitelist serialiser (not a blacklist); a test asserts no serial, asset id, session id, path, hostname, venue, nickname, or free text appears, and that `contributor` is regenerated on request ("Reset my contributor token"). Values are rounded to the metric's significant precision (3 sig. figs) to reduce fingerprinting. Import: reject files > 5 MB, depth > 8, NaN/Infinity, values outside plausible range for the metric (from profile `plausible` or reject-if-unknown), duplicate rows; strings limited to 64 chars and charset `[a-z0-9._:-]`. A malicious pack can poison percentiles; mitigation is per-pack removal, per-pack visibility, and contributor weighting. No code from packs is ever evaluated. All offline.
+Pack builder uses a whitelist serialiser (not a blacklist); a test asserts no serial, asset id, session id, path, hostname, venue, nickname, or free text appears, and that `contributor` is regenerated on request ("Reset my contributor token"). The token is stable between resets; replacing it changes token-based linkage but does not make the remaining shared models, values and month uncorrelatable. Values are rounded to the metric's significant precision (3 sig. figs) to reduce fingerprinting. Import: reject files > 5 MB, depth > 8, NaN/Infinity, values outside plausible range for the metric (from profile `plausible` or reject-if-unknown), duplicate rows; strings limited to 64 chars and charset `[a-z0-9._:-]`. A malicious pack can poison percentiles; mitigation is per-pack removal, per-pack visibility, and contributor weighting. No code from packs is ever evaluated. All offline.
 
 ## 8. Test plan
 

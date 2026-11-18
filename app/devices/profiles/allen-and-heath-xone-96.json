@@ -5,7 +5,7 @@
   "model": "Xone:96",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio,usb. Software: Traktor Pro,Mixxx.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. Research update (2026-11-18 UTC): each USB host connection has 12 inputs and 12 outputs. Dated PC notes enumerate 44.1/48/88.2/96 kHz and 16/32-bit USB formats; scalar USB bit depth stays unknown. USB MIDI is documented. macOS class compliance is not a universal host qualification.",
   "documents": [
     {
       "title": "Verified manufacturer capability reference",
@@ -51,6 +51,20 @@
       "type": "midi-message-list",
       "url": "https://support.allen-heath.com/hc/en-gb/articles/43084536824849-Xone-96-MIDI-Implementation",
       "language": "en"
+    },
+    {
+      "title": "Xone:96 PC Software Release Notes — X96_PCSRN_v4670_2",
+      "type": "driver",
+      "url": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "language": "en",
+      "notes": "Printed December 2021; checked 2026-11-18 UTC. Pages 4–5 give per-host channel routing and USB formats. Header spells v4.6.70; installer/body uses v4.67.0. These are driver/document labels, not firmware qualification."
+    },
+    {
+      "title": "Xone:96 User Guide — online exact-model guide",
+      "type": "user-manual",
+      "url": "https://support.allen-heath.com/hc/en-gb/articles/43053562464017-Xone-96-User-Guide",
+      "language": "en",
+      "notes": "Page updated 26 February 2026; checked 2026-11-18 UTC. Rear panel, internal soundcards and Master Section corroborate independent host connections and the local MIDI 1/2 switches."
     }
   ],
   "connectivity": {
@@ -61,16 +75,21 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "Xone:96"
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
-      "sampleRatesHz": [],
+      "usbChannelsIn": 12,
+      "usbChannelsOut": 12,
+      "sampleRatesHz": [
+        44100,
+        48000,
+        88200,
+        96000
+      ],
       "bitDepth": null
     }
   },
@@ -158,6 +177,51 @@
       "source": "https://www.allen-heath.com/hardware/xone-series/xone96/",
       "confidence": "confirmed",
       "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_usb_inputs_per_host",
+      "label": "USB inputs per host connection",
+      "value": 12,
+      "unit": "channels",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "confidence": "confirmed",
+      "notes": "Manufacturer documentation; no physical DeckChek qualification."
+    },
+    {
+      "key": "verified_usb_outputs_per_host",
+      "label": "USB outputs per host connection",
+      "value": 12,
+      "unit": "channels",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "confidence": "confirmed",
+      "notes": "Manufacturer documentation; no physical DeckChek qualification."
+    },
+    {
+      "key": "verified_usb_sample_rates",
+      "label": "Documented USB sample rates",
+      "value": "44100 / 48000 / 88200 / 96000",
+      "unit": "Hz",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "confidence": "confirmed",
+      "notes": "Manufacturer documentation; no physical DeckChek qualification."
+    },
+    {
+      "key": "verified_usb_audio_formats",
+      "label": "Documented USB word lengths",
+      "value": "16 / 32",
+      "unit": "bit",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "confidence": "confirmed",
+      "notes": "Manufacturer documentation; no physical DeckChek qualification."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/X96_SRN_4670_2.pdf",
+      "confidence": "confirmed",
+      "notes": "Manufacturer documentation; no physical DeckChek qualification."
     }
   ],
   "midi": {

@@ -5,7 +5,7 @@
   "model": "DJM-V10",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio,usb. Software: rekordbox.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. Transport addendum (2026-11-18): DRI1643C, p. 66 and p. 67: USB A/B connects the computer; MIDI ON enables control messages. MIDI clock and start/stop have separate behavior and may transmit with MIDI ON off. DJM-V10 feature page, DIN MIDI out: physical DIN output only is established. No DIN input is established; the transport flag does not encode direction.",
   "documents": [
     {
       "title": "Manufacturer model-specific features, guide and downloads",
@@ -44,6 +44,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Pioneer DJ DJM-V10 Instruction Manual — DRI1643C (DJM-V10 MIDI scope)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-V10/DJM-V10_DRI1643C_manual.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. DRI1643C; p. 66; p. 67. DJM-V10, retaining the existing AlphaTheta manufacturer and ID. DIN output only; no DIN input claim."
     }
   ],
   "connectivity": {
@@ -54,8 +61,8 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
-      "din": null,
+      "usbMidi": true,
+      "din": true,
       "portNamePatterns": [
         "DJM-V10"
       ]
@@ -123,6 +130,24 @@
       "unit": "bool",
       "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-V10/DJM-V10_DRI1643C_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1643C, p. 66 and p. 67: USB A/B connects the computer; MIDI ON enables control messages. MIDI clock and start/stop have separate behavior and may transmit with MIDI ON off."
+    },
+    {
+      "key": "verified_din_midi_transport",
+      "label": "Documented DIN MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.pioneerdj.com/en/product/features/mixer/djm-v10-6-channels/",
+      "confidence": "confirmed",
+      "notes": "DJM-V10 feature page, DIN MIDI out: physical DIN output only is established. No DIN input is established; the transport flag does not encode direction."
     }
   ],
   "midi": {

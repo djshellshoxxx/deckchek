@@ -44,6 +44,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "WARM2 User Manual — 50-0421-0102 WARM2 EN",
+      "type": "user-manual",
+      "url": "https://assets.ecler.com/images/downloads/user-manuals/Ecler_WARM2_User_Manual_EN.pdf",
+      "language": "en",
+      "notes": "Checked 2026-11-18 UTC. Printed p.7 specifies 2+1 mixing channels; p.8 lists controls and connectors. This does not supply an explicit negative MIDI claim or USB stream format, so existing unknown fields remain unknown."
     }
   ],
   "connectivity": {

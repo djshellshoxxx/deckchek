@@ -5,7 +5,7 @@
   "model": "SEVENTY-TWO MKII",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,fader,eq,audio,usb,display. Software: Serato DJ Pro.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. Transport addendum (2026-11-18): RANE SEVENTY-TWO MKII User Guide v1.4, p. 8: rear USB Type-B computer ports carry MIDI control. The USB-A controller-host ports have a separate role.",
   "documents": [
     {
       "title": "Manufacturer model-specific features, guide and downloads",
@@ -44,6 +44,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "RANE SEVENTY-TWO MKII User Guide — v1.4 (SEVENTY-TWO MKII MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/rane/seventy-twoMKII/Seventy-Two_MKII-UserGuide-v1.4.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v1.4; p. 8. Exact SEVENTY-TWO MKII. Use rear USB Type-B computer ports; USB-A controller-host ports are separate."
     }
   ],
   "connectivity": {
@@ -54,7 +61,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "SEVENTY-TWO MKII"
@@ -115,6 +122,15 @@
       "unit": "bool",
       "source": "https://www.rane.com/downloads/?product=Seventy-Two+MKII",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/rane/seventy-twoMKII/Seventy-Two_MKII-UserGuide-v1.4.pdf",
+      "confidence": "confirmed",
+      "notes": "RANE SEVENTY-TWO MKII User Guide v1.4, p. 8: rear USB Type-B computer ports carry MIDI control. The USB-A controller-host ports have a separate role."
     }
   ],
   "midi": {

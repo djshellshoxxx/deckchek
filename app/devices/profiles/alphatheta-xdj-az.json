@@ -5,7 +5,7 @@
   "model": "XDJ-AZ",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): rekordbox,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the manufacturer's XDJ-AZ Instruction Manual DRI1936C documents USB MIDI control (p. 129), a nominal 44.1 kHz audio section, a 32-bit MASTER D/A converter and 24-bit other A/D and D/A converters (p. 151). Nominal sampling and scoped converter resolutions do not establish a complete USB format/rate list or channel counts, which remain unknown. USB IDs, class compliance, DIN transport, receiving capability, Identity support, exact control maps, hardware/firmware revision, current OS/driver compatibility and physical performance remain unverified; no factory pass tolerances are inferred.",
   "documents": [
     {
       "title": "Manufacturer detailed product feature and specifications",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "XDJ-AZ Instruction Manual (DRI1936C)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/XDJ-AZ_DRI1936C_manual_EN.pdf",
+      "language": "en",
+      "notes": "Exact manufacturer manual checked 2026-11-18. USB MIDI control: printed/PDF p. 129; audio-section and scoped converter specifications: printed/PDF p. 151. No manual revision publication date or current-platform/hardware qualification is inferred."
     }
   ],
   "connectivity": {
@@ -55,7 +62,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "XDJ-AZ"
@@ -134,6 +141,42 @@
       "source": "https://alphatheta.com/en/product/all-in-one-dj-system/xdj-az/black/",
       "confidence": "confirmed",
       "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI control transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/XDJ-AZ_DRI1936C_manual_EN.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1936C p. 129. The manufacturer documents controlling MIDI software through USB. This does not establish a complete control map, incoming MIDI capability, Identity support, USB IDs or current host compatibility."
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Audio-section nominal sampling rate",
+      "value": 44100,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/XDJ-AZ_DRI1936C_manual_EN.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1936C p. 151. Nominal audio-section specification; not an exhaustive host USB sample-rate list. Keep connectivity.audio.sampleRatesHz unknown."
+    },
+    {
+      "key": "verified_master_da_converter_depth",
+      "label": "MASTER D/A converter resolution",
+      "value": 32,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/XDJ-AZ_DRI1936C_manual_EN.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1936C p. 151. Converter resolution in the stated scope, not an enumeration of USB PCM sample formats. Keep connectivity.audio.bitDepth unknown."
+    },
+    {
+      "key": "verified_other_ad_da_converter_depth",
+      "label": "Other A/D and D/A converter resolution",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/all-in-one-dj-systems/XDJ-AZ/XDJ-AZ_DRI1936C_manual_EN.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1936C p. 151. Converter resolution in the stated scope, not an enumeration of USB PCM sample formats. Keep connectivity.audio.bitDepth unknown."
     }
   ],
   "midi": {

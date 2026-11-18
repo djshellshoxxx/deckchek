@@ -30,6 +30,7 @@ mod media;
 mod links;
 // [FS-08] mods
 mod backup;
+mod catalog_archive;
 // [FS-10] mods
 mod pregig;
 // [FS-11] mods
@@ -42,6 +43,10 @@ mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
+mod incident_metric_evidence;
+mod support_isolation;
+mod venue_incidents;
+
 #[cfg(test)]
 mod audit_repro;
 #[cfg(any(test, feature = "fuzzing"))]
@@ -228,6 +233,10 @@ pub fn run() {
             backup::backup_settings_get,
             backup::backup_settings_set,
             backup::backup_import_workspace,
+            catalog_archive::catalog_archive_setups,
+            catalog_archive::catalog_archive_export,
+            catalog_archive::catalog_archive_preview,
+            catalog_archive::catalog_archive_import,
             // [FS-10] handlers
             pregig::pregig_processes,
             pregig::pregig_save_run,
@@ -275,6 +284,16 @@ pub fn run() {
             humrun::hum_run_list,
             humrun::hum_run_get,
             humrun::hum_run_delete,
+            venue_incidents::venue_incident_save,
+            venue_incidents::venue_incident_list,
+            venue_incidents::venue_incident_page,
+            incident_metric_evidence::venue_incident_save_with_metric_evidence,
+            incident_metric_evidence::venue_incident_metric_evidence_get,
+            incident_metric_evidence::venue_incident_metric_evidence_summaries,
+            support_isolation::support_isolation_observation_save,
+            support_isolation::support_isolation_observation_get,
+            support_isolation::support_isolation_comparison_save,
+            support_isolation::support_isolation_list,
             selftest::self_test_mode,
             selftest::self_test_report,
             // [FS-20] handlers

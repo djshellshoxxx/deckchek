@@ -1,0 +1,30 @@
+{
+  "format": "deckchek-catalog",
+  "formatVersion": 1,
+  "exportedAt": "2026-11-18T14:00:00.000Z",
+  "catalog": {
+    "manufacturer": [
+      {"id":"maker-a","name":"Custom maker 𝄞","website":null,"notes":"Original maker","createdAt":"2024-01-01","updatedAt":"2026-01-01","legacy":{"zero":0,"enabled":false}}
+    ],
+    "product": [
+      {"id":"product-a","manufacturerId":"maker-a","category":"turntable","model":"Custom deck","variant":null,"revision":"Original","releaseYear":1978,"createdAt":"2024-01-01","updatedAt":"2026-01-01","legacyRating":{"value":0,"unit":"dB"}}
+    ],
+    "asset": [
+      {"id":"asset-a","productId":"product-a","nickname":"Deck <img src=x> café","serialNumber":"unit-a","createdAt":"2024-01-01","updatedAt":"2026-01-01","deckPositionId":"position-a","notes":null},
+      {"id":"asset-retired","productId":"product-a","nickname":"Retired deck","isDeleted":true,"retiredDate":"2025-01-01","createdAt":"2024-01-01","updatedAt":"2025-01-01"}
+    ],
+    "setup": [
+      {"id":"setup-a","name":"Club rig","profile":"club","venueId":"venue-a","boothId":"booth-a","deckPositionId":"position-a","supportConfigurationId":"support-a","notes":null,"createdAt":"2024-01-01","legacyRouting":["left","right"],"components":[
+        {"id":"component-a","role":"turntable","assetId":"asset-a","position":"left","settingsSnapshotId":"settings-a","legacy":{"gain":0}},
+        {"id":"component-retired","role":"turntable","assetId":"asset-retired","position":"spare","settingsSnapshotId":null}
+      ]}
+    ],
+    "venue": [
+      {"id":"venue-a","name":"Current <img src=x> venue","city":"Montréal","createdAt":"2024-01-01","updatedAt":"2026-01-01","legacy":{"room":"𝄞"}}
+    ],
+    "supportConfiguration": [
+      {"id":"support-a","deckPositionId":"position-a","name":"Isolation platform","description":"Butcher block on isolation feet","structureJson":" [ { \"layer\": \"block\", \"legacy\": {\"zero\": 0, \"label\": \"é\\n\"} } ]\n","approximateMassKg":0,"coupledState":"operator described","notes":null}
+    ],
+    "legacyArchiveBucket": {"unknownRecords":[{"id":"opaque-a","settingsSnapshotId":"not-an-authority"}],"revision":0}
+  }
+}

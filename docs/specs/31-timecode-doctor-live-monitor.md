@@ -80,7 +80,21 @@ All AC pass; CPU/memory budget measured; tray works on Windows 10/11 and degrade
 ## 10. Dependencies, risks, questions, effort
 Depends on SPEC-02 (timecode), capture.rs. Risks: exclusive ASIO makes the headline use case impossible on some rigs (mitigated by split cable); tray icon APIs; false alarms from cuing/backspins; split cable loading the cartridge. Questions: does Audio 8 DJ expose a shared WDM endpoint concurrently with its ASIO session? Can any DJ software output raw timecode? Effort: MVP (JS analysis, window+tray, shared mode) L (~40 agent-hours); Rust port M (~16).
 
-## 11. Research notes
+## 11. Selected incident snapshot extension (2026-11-18)
+
+The native Incidents panel can explicitly select one current deck's latest
+existing frame. A passive provider reads an already-created controller; it
+cannot create, start, stop or preempt a stream. One bounded metadata copy per
+deck records a per-open generation, callback observation time, monotonic receipt
+age, actual sample rate and the settings applied to the running engine. A
+reopen/rate/settings change retires stale choices. No new DSP, threshold, raw
+audio retention or pre/post collection is introduced. The incident and snapshot
+commit in one transaction, and retries retain the exact original pair.
+The original feature defaults and capture ownership remain unchanged. See
+[the snapshot contract](../incident-metric-evidence.md) for units, explicit hum
+availability, schema 25, bounded report/download behavior and qualification.
+
+## 12. Research notes
 - https://v2.tauri.app/learn/system-tray/ (and de/fr/ko variants): tray setup, `tray_by_id("main")`, JS `setIcon` (snippet only).
 - https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording : loopback only in shared mode, not exclusive.
 - https://www.kvraudio.com/forum/viewtopic.php?p=8170423 and https://apps.microsoft.com/store/detail/koordasio-universal-driver/XP9CSS6NZBDV21 : KoordASIO shared-mode ASIO lets ASIO and Windows apps share a device (snippet only); ASIO2WASAPI opens exclusive.

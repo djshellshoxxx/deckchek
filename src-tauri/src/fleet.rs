@@ -289,12 +289,44 @@ pub fn reminders(conn: &Connection, asset: Option<&str>) -> Result<Vec<Value>, S
         confirmed_usage(conn, asset)?
     };
     let mut query = conn.prepare(REMINDERS_SQL).map_err(err)?;
-    let mut rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+    let mut rows = query
+        .query_map([asset], |r| {
+            // Row::get already owns text. Move it into the result instead of
+            // asking json! to serialize each String into another allocation.
+            let mut row = serde_json::Map::new();
+            row.insert("id".into(), Value::from(r.get::<_, String>(0)?));
+            row.insert(
+                "assetId".into(),
+                Value::from(r.get::<_, Option<String>>(1)?),
+            );
+            row.insert(
+                "productId".into(),
+                Value::from(r.get::<_, Option<String>>(2)?),
+            );
+            row.insert("title".into(), Value::from(r.get::<_, String>(3)?));
+            row.insert("basis".into(), Value::from(r.get::<_, String>(4)?));
+            row.insert("intervalValue".into(), json!(r.get::<_, f64>(5)?));
+            row.insert("warnBefore".into(), json!(r.get::<_, f64>(6)?));
+            row.insert("enabled".into(), json!(r.get::<_, bool>(7)?));
+            row.insert(
+                "snoozedUntil".into(),
+                Value::from(r.get::<_, Option<String>>(8)?),
+            );
+            row.insert("createdAt".into(), Value::from(r.get::<_, String>(9)?));
+            Ok(Value::Object(row))
+        })
+        .map_err(err)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(err)?;
     for row in &mut rows {
-        let latest = row["id"].as_str().and_then(|id| completions.get(id));
-        row["lastDoneAt"] = json!(latest.map(|c| &c.0));
-        row["hoursAtLastEvent"] = json!(latest.and_then(|c| c.1));
-        if let (Some(asset), Some(&(_, _, completed))) = (row["assetId"].as_str(), latest) {
+        // Each primary-key reminder occurs once, so its saved timestamp can
+        // move out of the lookup after copying the two optional numeric facts.
+        let latest = row["id"].as_str().and_then(|id| completions.remove(id));
+        let hours = latest.as_ref().and_then(|c| c.1);
+        let completed = latest.as_ref().map(|c| c.2);
+        row["lastDoneAt"] = Value::from(latest.map(|c| c.0));
+        row["hoursAtLastEvent"] = json!(hours);
+        if let (Some(asset), Some(completed)) = (row["assetId"].as_str(), completed) {
             let entries = usage.get(asset).map_or(&[][..], Vec::as_slice);
             row["hoursSinceCompletion"] = json!(since_completion(entries, completed));
         }
@@ -1814,6 +1846,145 @@ mod tests {
             elapsed < std::time::Duration::from_millis(200),
             "reminders for 1k assets took {elapsed:?}"
         );
+    }
+
+    #[test]
+    fn reminder_read_preserves_optional_fields_and_query_order() {
+        let conn = database();
+        conn.execute_batch("INSERT INTO product(id,category,model,created_at,updated_at) VALUES('model','turntable','Model','t','t');
+            INSERT INTO maintenance_reminder(id,asset_id,product_id,title,basis,interval_value,warn_before,enabled,snoozed_until,created_at) VALUES
+            ('r0','unit',NULL,'Alpha','days',90,14,1,NULL,'2026-01-01'),
+            ('r1','unit',NULL,'Clean','hours',2.5,0.5,0,'2026-02-01T00:00:00Z','2026-01-02'),
+            ('r2',NULL,'model','Clean','days',30,7,1,NULL,'2026-01-03'),
+            ('r3','other',NULL,'Zulu','days',1,0,1,NULL,'2026-01-04');
+            INSERT INTO maintenance_event(id,asset_id,event_type,event_at,reminder_id,hours_at_event,created_at) VALUES
+            ('a-event','unit','other','2026-01-02T00:00:00Z','r1',9,'t'),
+            ('z-event','unit','other','2026-01-02T01:00:00+01:00','r1',3.5,'t');
+            INSERT INTO asset_usage(id,asset_id,started_at,hours,source,confirmed,created_at) VALUES
+            ('past','unit','2026-01-01T00:00:00Z',1,'manual',1,'t'),
+            ('after','unit','2026-01-03T00:00:00Z',2,'manual',1,'t');").unwrap();
+        let expected = vec![
+            json!({"id":"r0","assetId":"unit","productId":null,"title":"Alpha","basis":"days",
+                "intervalValue":90.0,"warnBefore":14.0,"enabled":true,"snoozedUntil":null,"createdAt":"2026-01-01",
+                "lastDoneAt":null,"hoursAtLastEvent":null}),
+            json!({"id":"r1","assetId":"unit","productId":null,"title":"Clean","basis":"hours",
+                "intervalValue":2.5,"warnBefore":0.5,"enabled":false,"snoozedUntil":"2026-02-01T00:00:00Z","createdAt":"2026-01-02",
+                "lastDoneAt":"2026-01-02T01:00:00+01:00","hoursAtLastEvent":3.5,"hoursSinceCompletion":2.0}),
+            json!({"id":"r2","assetId":null,"productId":"model","title":"Clean","basis":"days",
+                "intervalValue":30.0,"warnBefore":7.0,"enabled":true,"snoozedUntil":null,"createdAt":"2026-01-03",
+                "lastDoneAt":null,"hoursAtLastEvent":null}),
+            json!({"id":"r3","assetId":"other","productId":null,"title":"Zulu","basis":"days",
+                "intervalValue":1.0,"warnBefore":0.0,"enabled":true,"snoozedUntil":null,"createdAt":"2026-01-04",
+                "lastDoneAt":null,"hoursAtLastEvent":null}),
+        ];
+        let all = reminders(&conn, None).unwrap();
+        assert_eq!(all, expected);
+        assert!(!all[0]
+            .as_object()
+            .unwrap()
+            .contains_key("hoursSinceCompletion"));
+        assert!(!all[2]
+            .as_object()
+            .unwrap()
+            .contains_key("hoursSinceCompletion"));
+        assert_eq!(reminders(&conn, Some("unit")).unwrap(), expected[..2]);
+        assert_eq!(reminders(&conn, Some("other")).unwrap(), expected[3..]);
+        assert!(reminders(&conn, Some("missing")).unwrap().is_empty());
+    }
+
+    #[test]
+    fn reminder_read_keeps_empty_and_unknown_usage_distinct() {
+        let conn = database();
+        assert!(reminders(&conn, None).unwrap().is_empty());
+        assert!(reminders(&conn, Some("unit")).unwrap().is_empty());
+        conn.execute_batch("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,created_at) VALUES('done','unit','Clean','hours',10,'t');
+            INSERT INTO maintenance_event(id,asset_id,event_type,event_at,reminder_id,created_at) VALUES('event','unit','other','2026-01-10T00:00:00Z','done','t');").unwrap();
+        assert_eq!(
+            reminders(&conn, None).unwrap()[0]["hoursSinceCompletion"],
+            0.0
+        );
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,started_at,hours,source,confirmed,created_at) VALUES('unknown','unit','not-a-time',1,'manual',0,'t');").unwrap();
+        assert_eq!(
+            reminders(&conn, None).unwrap()[0]["hoursSinceCompletion"],
+            0.0
+        );
+        conn.execute("UPDATE asset_usage SET confirmed=1 WHERE id='unknown'", [])
+            .unwrap();
+        let unknown = reminders(&conn, None).unwrap();
+        assert!(unknown[0]
+            .as_object()
+            .unwrap()
+            .contains_key("hoursSinceCompletion"));
+        assert!(unknown[0]["hoursSinceCompletion"].is_null());
+        conn.execute_batch(
+            "DELETE FROM asset_usage;
+            INSERT INTO asset_usage(id,asset_id,started_at,hours,source,confirmed,created_at) VALUES
+            ('backfill','unit','2026-01-01T00:00:00Z',10,'import',1,'t'),
+            ('boundary','unit','2026-01-09T22:00:00Z',2,'manual',1,'t'),
+            ('after','unit','2026-01-11T00:00:00Z',2.75,'manual',1,'t');",
+        )
+        .unwrap();
+        assert_eq!(
+            reminders(&conn, None).unwrap()[0]["hoursSinceCompletion"],
+            2.75
+        );
+        conn.execute_batch("INSERT INTO asset_usage(id,asset_id,started_at,hours,source,confirmed,created_at) VALUES('straddles','unit','2026-01-09T23:00:00Z',2,'manual',1,'t');").unwrap();
+        assert!(reminders(&conn, None).unwrap()[0]["hoursSinceCompletion"].is_null());
+        conn.execute(
+            "UPDATE asset_usage SET confirmed=0 WHERE id='straddles'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(
+            reminders(&conn, Some("unit")).unwrap()[0]["hoursSinceCompletion"],
+            2.75
+        );
+        conn.execute(
+            "UPDATE maintenance_event SET event_at='not-a-time' WHERE id='event'",
+            [],
+        )
+        .unwrap();
+        let invalid_time = reminders(&conn, None).unwrap();
+        assert_eq!(invalid_time[0]["lastDoneAt"], "not-a-time");
+        assert!(invalid_time[0]["hoursAtLastEvent"].is_null());
+        assert!(invalid_time[0]["hoursSinceCompletion"].is_null());
+    }
+
+    #[test]
+    fn reminder_read_rejects_invalid_stored_column_types() {
+        for (column, assignment) in [
+            (3, "title=X'00'"),
+            (5, "interval_value='not-a-number'"),
+            (8, "snoozed_until=X'00'"),
+            (9, "created_at=X'00'"),
+        ] {
+            let conn = database();
+            conn.execute_batch("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,created_at) VALUES('bad','unit','Clean','days',90,'t');").unwrap();
+            conn.execute(
+                &format!("UPDATE maintenance_reminder SET {assignment} WHERE id='bad'"),
+                [],
+            )
+            .unwrap();
+            let expected = conn
+                .query_row(REMINDERS_SQL, [Option::<&str>::None], |row| match column {
+                    3 | 9 => row.get::<_, String>(column).map(|_| ()),
+                    5 => row.get::<_, f64>(column).map(|_| ()),
+                    8 => row.get::<_, Option<String>>(column).map(|_| ()),
+                    _ => unreachable!(),
+                })
+                .unwrap_err()
+                .to_string();
+            assert_eq!(
+                reminders(&conn, None).unwrap_err(),
+                expected,
+                "{assignment}"
+            );
+            assert_eq!(
+                reminders(&conn, Some("unit")).unwrap_err(),
+                expected,
+                "{assignment}"
+            );
+        }
     }
 
     /// Review FS-23: templates (and reminders) could not be deleted, so a product with a template could never

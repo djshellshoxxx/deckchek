@@ -1629,20 +1629,49 @@ mod tests {
             ("processes.rs", include_str!("processes.rs")),
             ("latency.rs", include_str!("latency.rs")),
         ] {
-            let prod = src.split("#[cfg(test)]\nmod tests").next().unwrap();
-            let spawns: Vec<&str> = prod
-                .lines()
-                .filter(|l| l.contains("Command::new("))
-                .collect();
+            assert_windows_launches_use_system_exe(file, src);
+        }
+    }
+
+    fn assert_windows_launches_use_system_exe(file: &str, src: &str) {
+        // Keep the test-module boundary identical for LF and Windows CRLF.
+        let src = src.replace("\r\n", "\n");
+        let prod = src.split("#[cfg(test)]\nmod tests").next().unwrap();
+        let spawns: Vec<&str> = prod
+            .lines()
+            .filter(|l| l.contains("Command::new("))
+            .collect();
+        assert!(
+            !spawns.is_empty(),
+            "{file}: expected at least one launch to check"
+        );
+        for line in spawns {
             assert!(
-                !spawns.is_empty(),
-                "{file}: expected at least one launch to check"
+                line.contains("system_exe("),
+                "{file}: bare program name in `{}`",
+                line.trim()
             );
-            for line in spawns {
+        }
+    }
+
+    #[test]
+    fn regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches() {
+        let fixture = concat!(
+            "fn check() {\n    Command::new(system_exe(\"cmd.exe\")).output();\n}\n",
+            "#[cfg(test)]\nmod tests {\n    fn fixture() { Command::new(\"fixture.exe\"); }\n}\n",
+        );
+        for src in [fixture.to_owned(), fixture.replace('\n', "\r\n")] {
+            assert_windows_launches_use_system_exe("fixture.rs", &src);
+            for unsafe_src in [
+                src.replace("system_exe(\"cmd.exe\")", "\"cmd.exe\""),
+                src.replace("Command::new(", "other_launch("),
+            ] {
                 assert!(
-                    line.contains("system_exe("),
-                    "{file}: bare program name in `{}`",
-                    line.trim()
+                    std::panic::catch_unwind(|| {
+                        assert_windows_launches_use_system_exe("fixture.rs", &unsafe_src)
+                    })
+                    .is_err(),
+                    "bare launches or an empty scan must still be rejected"
                 );
             }
         }

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { capabilitiesOf, audioOutCapability, completePlan, auditProfile, coverageMatrix, METRICS_BY_METHOD, REQUIRED_METHOD } from '../app/devices/test-plan.js';
+import { capabilitiesOf, audioOutCapability, requiredCapabilities, completePlan, auditProfile, coverageMatrix, METRICS_BY_METHOD, REQUIRED_METHOD } from '../app/devices/test-plan.js';
 import { dispatchFor, methodLabel } from '../app/devices/dispatch.js';
 import { validateProfile } from '../app/devices/library.js';
 import { renderMarkdown, loadAll } from '../tools/check-device-coverage.mjs';
@@ -18,11 +18,11 @@ const methods = p => p.tests.map(t => t.method);
 
 test('capabilitiesOf derives capabilities from the profile', () => {
   const a9 = capabilitiesOf(byId('pioneer-djm-a9'));
-  assert.deepEqual({ ...a9 }, { physical: true, usbMidi: true, midiMap: true, audioOut: true, audioIn: false, driver: true, software: true, timecode: true, gmSource: false });
+  assert.deepEqual({ ...a9 }, { physical: true, midi: true, usbMidi: true, dinMidi: false, midiMap: true, audioOut: true, audioIn: false, driver: true, software: true, timecode: true, gmSource: false });
   const xone = capabilitiesOf(byId('allen-heath-xone-23'));
-  assert.equal(xone.usbMidi, false); assert.equal(xone.audioOut, true); assert.equal(xone.audioIn, true);
+  assert.equal(xone.usbMidi, null); assert.equal(xone.midi, null); assert.equal(xone.audioOut, true); assert.equal(xone.audioIn, true);
   const tt = capabilitiesOf(byId('technics-sl-1200mk4'));
-  assert.equal(tt.audioOut, false); assert.equal(tt.usbMidi, false);
+  assert.equal(tt.audioOut, false); assert.equal(tt.usbMidi, null); assert.equal(tt.midi, null);
   assert.equal(capabilitiesOf({ category: 'turntable', connectivity: { audio: { usbChannelsOut: 2 } } }).audioOut, true);
   assert.equal(capabilitiesOf({ category: 'controller', midi: { generalMidi: true, controls: [] } }).gmSource, true);
 });
@@ -88,7 +88,7 @@ test('every shipped profile is fully testable after completePlan (SPEC-34 AC-1)'
   for (const p of PROFILES.map(completePlan)) {
     const caps = capabilitiesOf(p);
     if (caps.audioOut) assert.ok(methods(p).includes('audio:quality'), p.id);
-    if (caps.usbMidi) assert.ok(methods(p).includes('midi:conformance'), p.id);
+    if (caps.midi) assert.ok(methods(p).includes('midi:conformance'), p.id);
     assert.ok(methods(p).includes('manual:inspection'), p.id);
   }
 });
@@ -113,4 +113,99 @@ test('metric registry covers every shipped pass criterion', () => {
 test('the committed coverage matrix matches the shipped profiles (SPEC-34 AC-4)', () => {
   const committed = fs.readFileSync(path.join(ROOT, 'docs', 'testing', 'DEVICE-TEST-COVERAGE.md'), 'utf8');
   assert.equal(committed, renderMarkdown(PROFILES), 'run: node tools/check-device-coverage.mjs --markdown');
+});
+
+test('MIDI applicability: transport facts stay boolean or unknown independently of scaffolds and USB presence', () => {
+  const scaffold = { mapSource: 'learn', controls: [] };
+  for (const [profile, expected] of [
+    [{}, { midi: null, usbMidi: null, dinMidi: null }],
+    [{ midi: null, connectivity: { midi: null } }, { midi: null, usbMidi: null, dinMidi: null }],
+    [{ midi: scaffold }, { midi: 'conditional', usbMidi: null, dinMidi: null }],
+    [{ connectivity: { usb: { present: true }, midi: {} } }, { midi: 'conditional', usbMidi: null, dinMidi: null }],
+    [{ midi: scaffold, connectivity: { usb: { present: false }, midi: { usbMidi: null, din: null } } }, { midi: 'conditional', usbMidi: null, dinMidi: null }],
+    [{ midi: scaffold, connectivity: { midi: { usbMidi: false, din: null } } }, { midi: 'conditional', usbMidi: false, dinMidi: null }],
+    [{ midi: scaffold, connectivity: { midi: { usbMidi: false, din: false } } }, { midi: false, usbMidi: false, dinMidi: false }],
+    [{ connectivity: { midi: { usbMidi: false, din: true } } }, { midi: true, usbMidi: false, dinMidi: true }],
+    [{ connectivity: { midi: { usbMidi: true, din: false } } }, { midi: true, usbMidi: true, dinMidi: false }],
+  ]) {
+    const caps = capabilitiesOf(profile);
+    assert.deepEqual({ midi: caps.midi, usbMidi: caps.usbMidi, dinMidi: caps.dinMidi }, expected, JSON.stringify(profile));
+  }
+});
+
+test('MIDI applicability: Audio 8 DJ keeps its explicit USB fact and handwritten DIN test', () => {
+  const raw = byId('traktor-audio-8-dj'), snapshot = JSON.stringify(raw);
+  const caps = capabilitiesOf(raw), done = completePlan(raw);
+  assert.equal(caps.usbMidi, false);
+  assert.equal(caps.dinMidi, true);
+  assert.equal(caps.midi, true);
+  assert.equal(done.tests.find(t => t.id === 'a8-midi-din'), raw.tests.find(t => t.id === 'a8-midi-din'));
+  assert.deepEqual(done.tests.slice(0, raw.tests.length), raw.tests);
+  assert.equal(done.tests.filter(t => t.method === 'midi:coverage').length, 1);
+  const conformance = done.tests.find(t => t.id === 'auto-midi-conformance');
+  assert.equal(conformance.params.outputSelection, 'explicit');
+  assert.match(conformance.steps.join(' '), /DIN OUT.*interface.*IN/i);
+  assert.doesNotMatch(conformance.steps.join(' '), /by USB|directly to a USB/);
+  assert.equal(JSON.stringify(raw), snapshot, 'profile facts and handwritten tests remain untouched');
+});
+
+test('MIDI applicability: Xone 92 uses DIN capture prerequisites without asserting a receiving port', () => {
+  const raw = byId('allen-and-heath-xone-92'), done = completePlan(raw);
+  const generated = done.tests.filter(t => t.auto && t.method.startsWith('midi:'));
+  assert.deepEqual(generated.map(t => t.id), ['auto-midi-conformance', 'auto-midi-coverage', 'auto-midi-timing']);
+  for (const t of generated) {
+    assert.match(t.steps.join(' '), /documented.*DIN OUT.*interface.*IN/i, t.id);
+    assert.doesNotMatch(t.steps.join(' '), /by USB|directly to a USB|every (?:control|knob)/i, t.id);
+    assert.equal(t.params.condition, undefined, 'confirmed transport is distinct from unknown applicability');
+  }
+  const conformance = generated[0];
+  assert.equal(conformance.params.outputSelection, 'explicit');
+  assert.match(conformance.steps.join(' '), /output.*only.*documented.*receiv/i);
+  assert.match(conformance.why, /optional.*Identity/i);
+  assert.match(generated[1].why, /learn mode.*does not/i);
+  assert.equal(capabilitiesOf(raw).usbMidi, null, 'DIN availability does not invent USB support or absence');
+});
+
+test('MIDI applicability: WARM2 keeps conformance, coverage and timing conditional in plans and matrix', () => {
+  const raw = byId('ecler-warm2'), before = JSON.stringify(raw), caps = requiredCapabilities(raw);
+  for (const name of ['midi', 'midiMap', 'midiTiming']) assert.equal(caps[name], 'conditional', name);
+  const generated = completePlan(raw).tests.filter(t => t.auto && t.method.startsWith('midi:'));
+  assert.equal(generated.length, 3);
+  for (const t of generated) {
+    assert.match(t.params.condition, /documentation.*MIDI.*Skip/i, t.id);
+    assert.doesNotMatch(t.steps.join(' '), /by USB|directly to a USB/i, t.id);
+  }
+  assert.equal(generated[0].params.outputSelection, 'explicit');
+  const row = coverageMatrix([raw])[0];
+  assert.deepEqual(row.gaps, []);
+  for (const name of ['midi', 'midiMap', 'midiTiming']) assert.equal(row.capabilities[name], 'conditional', name);
+  const markdown = renderMarkdown([raw]);
+  const deviceRow = markdown.split('\n').find(line => line.startsWith('| Ecler WARM2 |'));
+  assert.equal((deviceRow.match(/✓\?/g) || []).length, 3);
+  assert.match(markdown, /MIDI transport/i);
+  assert.equal(JSON.stringify(raw), before);
+});
+
+test('MIDI applicability: explicit unsupported transports suppress only automatic MIDI tests', () => {
+  const handwritten = { id: 'operator-check', method: 'midi:coverage', category: 'midi', title: 'Operator check', steps: ['Check the unit documentation.'] };
+  const raw = { id: 'unsupported', manufacturer: 'Test', model: 'Surface', category: 'controller', connectivity: { midi: { usbMidi: false, din: false }, audio: null }, midi: { mapSource: 'learn', controls: [] }, tests: [handwritten] };
+  const done = completePlan(raw), caps = requiredCapabilities(raw);
+  assert.deepEqual([caps.midi, caps.midiMap, caps.midiTiming], [false, false, false]);
+  assert.deepEqual(done.tests.filter(t => t.method.startsWith('midi:')), [handwritten]);
+  assert.equal(done.tests[0], handwritten);
+  assert.equal(completePlan(done).tests.length, done.tests.length);
+  assert.deepEqual(raw.tests, [handwritten]);
+});
+
+test('MIDI applicability: known USB plans retain ordinary conformance and explicit GM opt-in', () => {
+  const raw = byId('pioneer-djm-a9'), done = completePlan(raw), conformance = done.tests.find(t => t.id === 'auto-midi-conformance');
+  assert.equal(capabilitiesOf(raw).midi, true);
+  assert.equal(conformance.params.outputSelection, undefined);
+  assert.equal(conformance.params.condition, undefined);
+  assert.match(conformance.steps.join(' '), /directly.*USB/i);
+  assert.equal(done.tests.some(t => t.method === 'midi:gm'), false);
+  assert.deepEqual(done.tests.slice(0, raw.tests.length), raw.tests);
+  assert.equal(completePlan(done).tests.length, done.tests.length);
+  const audio = done.tests.find(t => t.method === 'audio:quality');
+  assert.equal(audio.params.levelDbfs, -12);
 });

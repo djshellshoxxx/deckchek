@@ -5,7 +5,7 @@
   "model": "Xone:92",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio. Software: analog.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. The added DIN-output evidence applies to legacy Xone:92 Mk1 in AP5345 Issue 4; it does not transfer Mk2, USB, firmware or host qualification.",
   "documents": [
     {
       "title": "Manufacturer model feature reference",
@@ -47,6 +47,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Xone:92 User Guide — AP5345 Issue 4 (legacy Mk1)",
+      "type": "user-manual",
+      "url": "https://www.allen-heath.com/content/uploads/2023/06/Xone92-User-Guide-Issue-4.pdf",
+      "language": "en",
+      "notes": "Checked 2026-11-18 UTC. Printed p.17 documents a 5-pin DIN MIDI output; pp.28–30 describe transmission. Document issue and printed 2005 copyright are not firmware qualification."
+    },
+    {
+      "title": "Official legacy Xone:92 Mk1 resources",
+      "type": "support-article",
+      "url": "https://www.allen-heath.com/hardware/legacy-products/xone92mk1/resources/",
+      "language": "en",
+      "notes": "Exact legacy-model resources link AP5345 Issue 4. Modern Mk2 material does not supply this capability decision."
     }
   ],
   "connectivity": {
@@ -58,7 +72,7 @@
     },
     "midi": {
       "usbMidi": null,
-      "din": null,
+      "din": true,
       "portNamePatterns": [
         "Xone:92"
       ]
@@ -141,6 +155,15 @@
       "notes": [
         "The legacy Xone:92 and Xone:92 Mk2 have hardware differences. Check variant and do not inherit USB test methods."
       ]
+    },
+    {
+      "key": "verified_din_midi_output",
+      "label": "DIN MIDI output",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.allen-heath.com/content/uploads/2023/06/Xone92-User-Guide-Issue-4.pdf",
+      "confidence": "confirmed",
+      "notes": "Legacy Mk1, AP5345 Issue 4, printed p.17: 5-pin DIN output. This confirms output availability, not a MIDI input, complete map or passed physical test."
     }
   ],
   "midi": {

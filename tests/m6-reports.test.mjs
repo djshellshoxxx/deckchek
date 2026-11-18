@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerPrintableKind, composePrintable, printableKinds } from '../app/report-pdf.js';
+import { createHumRunStore, HumRunError } from '../app/hum-tree.js';
 import {
   M6_KINDS, latencyPrintData, stylusPrintData, wearMapPrintData, scratchPrintData, humPrintData, venuePrintData, gatherVenueReport,
 } from '../app/ui/workflows/m6-reports.js';
@@ -11,6 +12,34 @@ for (const [kind, def] of Object.entries(M6_KINDS)) if (!printableKinds().includ
 const NOW = new Date('2026-10-10T12:00:00Z');
 const compose = (kind, data) => composePrintable(kind, data, { now: NOW, css: '', appVersion: '0.0.7' });
 const EVIL = '<img src=x onerror=alert(1)>';
+
+test('venue report reloads immutable support A/B observations separately from current support and escapes context', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { createSupportIsolationStore } = await import('../app/support-isolation.js');
+  const fixture = JSON.parse(readFileSync(new URL('./contracts/support-isolation.json', import.meta.url)));
+  const a = fixture.observationA, b = fixture.observationB;
+  b.context.support.approximateMassKg = 12.5; b.context.support.coupledState = 'Decoupled <operator>';
+  for (const row of [a,b]) {
+    row.context.setup.components[0].settingsSnapshotId = 'settings-original';
+    row.calibration = {state:'available',sourceKey:'interface a|4096',applied:false,reasons:[],profile:{version:1,deviceName:'Interface A',sampleRate:4096,createdAt:'2026-11-01T12:00:00.000Z',valid:true,issues:[],gainDb:{left:0,right:0},uncertainty:{},mismatchDb:0,clockPpm:0,latencyMs:1}};
+  }
+  const catalog = { list: async entity => structuredClone({ venue: [a.context.venue], setup: [a.context.setup], asset: [], supportConfiguration: [a.context.support,b.context.support] }[entity]) };
+  const values = new Map(), storage = { get length() { return values.size; }, key: index => [...values.keys()][index] ?? null, getItem: key => values.get(key) ?? null, setItem: (key,value) => values.set(key,value) };
+  const store = createSupportIsolationStore({ invoke: null, storage, catalog });
+  await store.saveObservation(a); await store.saveObservation(b); await store.saveComparison(fixture.comparison);
+  const data = await gatherVenueReport({ catalog, humStore: { list: async () => [] }, isolationStore: createSupportIsolationStore({ invoke: null, storage, catalog }), venueId: a.venueId });
+  const { html } = compose('venue',data);
+  assert.match(html,/Historical support A\/B observations/); assert.match(html,/20–200 Hz/); assert.match(html,/B − A/);
+  assert.match(html,/Paver &lt;img/); assert.ok(!html.includes('<img src=x>')); assert.match(html,/uncertainty is unknown/i);
+  assert.match(html,/Current support description/); assert.match(html,/No raw audio is archived/); assert.match(html,/Showing 2 of 2/);
+  assert.match(html,/12\.50* kg/); assert.match(html,/Decoupled &lt;operator&gt;/); assert.match(html,/settings-original/);
+  assert.match(html,/interface a\|4096/); assert.match(html,/2026-11-01T12:00:00/); assert.match(html,/Support position binding/);
+});
+
+test('support observation read failures abort report preparation instead of presenting an empty comparison history', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{id:'venue-a',name:'Club'}] : [] };
+  await assert.rejects(gatherVenueReport({catalog,humStore:{list:async()=>[]},isolationStore:{list:async()=>{throw new Error('Support observation history is corrupt');}},venueId:'venue-a'}),/history is corrupt/);
+});
 
 test('every M6 kind is registered with a valid file name', () => {
   for (const kind of ['latency', 'stylus', 'wearMap', 'scratch', 'hum', 'venue']) assert.ok(printableKinds().includes(kind), kind);
@@ -62,11 +91,90 @@ test('hum report and venue report (FS-15 AC-7) list the isolation steps per venu
   assert.match(html, /Ground loop/); assert.match(html, /Unplug laptop/); assert.match(html, /Skipped/); assert.ok(!html.includes(EVIL));
 
   const catalog = { list: async e => ({ venue: [{ id: 'v1', name: 'Club X', city: 'Berlin' }], setup: [{ id: 's1', venueId: 'v1', name: 'Booth A', components: [{ role: 'turntable', assetId: 'a1', position: 'left' }] }, { id: 's2', venueId: 'v2', name: 'Other' }], asset: [{ id: 'a1', nickname: 'Deck 1' }] }[e]) };
-  const humStore = { list: async ({ venueId }) => { assert.equal(venueId, 'v1'); return [{ id: 'r1' }, { id: 'gone' }]; }, get: async id => { if (id === 'gone') throw new Error('x'); return run; } };
+  const humStore = { list: async ({ venueId }) => { assert.equal(venueId, 'v1'); return [{ id: 'r1' }]; }, get: async () => run };
   const data = await gatherVenueReport({ catalog, humStore, venueId: 'v1' });
   assert.equal(data.setups.length, 1); assert.equal(data.humRuns.length, 1); assert.equal(await gatherVenueReport({ catalog, humStore, venueId: 'nope' }), null);
   ({ html } = compose('venue', data));
   assert.match(html, /Venue report — Club X/); assert.match(html, /Booth A/); assert.match(html, /turntable \(left\): Deck 1/); assert.match(html, /Hum and feedback history/); assert.match(html, /Unplug laptop/);
   ({ html } = compose('venue', venuePrintData({ venue: { id: 'v9', name: 'Empty' } })));
   assert.match(html, /No hum or feedback runs are saved for this venue/);
+});
+
+test('venue reports distinguish unavailable incident history from loaded-empty and escape operator reports with limits', async () => {
+  const venue = { id: 'v1', name: 'Club X' };
+  let { html } = compose('venue', venuePrintData({ venue }));
+  assert.match(html, /Incident history was not loaded/);
+  ({ html } = compose('venue', venuePrintData({ venue, incidents: { items: [], total: 0, limit: 300, hasMore: false } })));
+  assert.match(html, /No incidents recorded/);
+  const row = { id: 'incident-1', origin: 'operator', kind: 'booth_shock', occurredAt: '2026-11-18T10:00:00.123Z', recordedAt: '2026-11-18T10:00:01.000Z', note: EVIL,
+    context: { venue, setup: { id: 's1', name: `Left ${EVIL}` } } };
+  ({ html } = compose('venue', venuePrintData({ venue, incidents: { items: [row], total: 301, limit: 300, hasMore: true } })));
+  assert.match(html, /Operator-reported incidents/); assert.match(html, /Booth shock/);
+  assert.match(html, /Showing 1 of 301 recorded incidents/); assert.match(html, /older records remain stored/);
+  assert.ok(!html.includes(EVIL)); assert.match(html, /&lt;img/);
+  assert.match(html, /selected context/);
+});
+
+test('venue report collection propagates incident storage failure and includes the selected venue history', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club X' }] : [] };
+  const humStore = { list: async () => [], get: async () => null };
+  const incidentStore = { list: async filter => { assert.equal(filter.venueId, 'v1'); assert.equal(filter.limit, 300); throw new Error('Incident store unreadable'); } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' }), /Incident store unreadable/);
+  incidentStore.list = async () => ({ items: [], total: 0, limit: 300, hasMore: false });
+  assert.equal((await gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' })).incidents.total, 0);
+});
+
+test('venue reports identify CURRENT support descriptions, escape text and disclose missing support records', async () => {
+  const venue = { id: 'v-support', name: 'Club' }, setup = { id: 's-support', venueId: venue.id, name: 'Left', supportConfigurationId: 'support-a', components: [] };
+  const support = { id: 'support-a', name: `Paver ${EVIL}`, description: `Feet ${EVIL}`, approximateMassKg: 6, coupledState: 'Decoupled', notes: EVIL };
+  const { html } = compose('venue', venuePrintData({ venue, setups: [setup], supports: [support] }));
+  assert.match(html, /Current support description/); assert.match(html, /does not establish the support used for historical measurements/);
+  assert.match(html, /6 kg/); assert.match(html, /&lt;img/); assert.ok(!html.includes(EVIL));
+  assert.match(compose('venue', venuePrintData({ venue, setups: [setup], supports: [] })).html, /support record.*unavailable/i);
+  assert.match(compose('venue', venuePrintData({ venue, setups: [setup] })).html, /support descriptions.*not loaded/i);
+});
+
+test('venue report collection loads supports and propagates their read failure', async () => {
+  const humStore = { list: async () => [] }, calls = [];
+  const catalog = { list: async entity => { calls.push(entity); if (entity === 'supportConfiguration') throw new Error('Support catalog unreadable'); return entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : []; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), /Support catalog unreadable/);
+  assert.ok(calls.includes('supportConfiguration'));
+});
+
+for (const failure of ['failed', 'missing']) test(`venue measured history rejects ${failure} details instead of reporting an empty saved history`, async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const humStore = { list: async () => [{ id: 'run-a' }], get: async () => { if (failure === 'failed') throw new Error('Measurement read failed'); return null; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), failure === 'failed' ? /Measurement read failed/ : /run-a.*unavailable|missing.*run-a/i);
+});
+
+test('venue measured history explicitly discloses its 50-run bound without deleting older records', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const rows = Array.from({ length: 51 }, (_, i) => ({ id: `r${i}`, kind: 'hum', venueId: 'v1', createdAt: '2026-11-18T10:00:00.000Z', steps: [] }));
+  const humStore = { list: async ({ limit }) => { assert.equal(limit, 50); return rows.slice(0, limit); }, get: async id => rows.find(row => row.id === id) };
+  const data = await gatherVenueReport({ catalog, humStore, venueId: 'v1' });
+  assert.equal(data.humRuns.length, 50); assert.equal(rows.length, 51);
+  assert.match(compose('venue', data).html, /up to 50.*hum.*feedback|hum.*feedback.*up to 50/i);
+  assert.match(compose('venue', data).html, /older.*remain stored/i);
+});
+
+for (const [label, storage] of [
+  ['malformed JSON', { getItem: () => '{bad' }],
+  ['non-array data', { getItem: () => '{}' }],
+  ['literal null', { getItem: () => 'null' }],
+  ['unavailable storage', null],
+  ['throwing read', { getItem() { throw new Error('History read denied'); } }],
+]) test(`actual browser hum store: ${label} aborts venue report preparation`, async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const humStore = createHumRunStore({ invoke: null, storage });
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), error => error instanceof HumRunError && error.code === 'HUMRUN_DB');
+});
+
+test('actual browser hum store: a missing key is empty, while a failed detail reread is an error', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const empty = createHumRunStore({ invoke: null, storage: { getItem: () => null } });
+  const data = await gatherVenueReport({ catalog, humStore: empty, venueId: 'v1' });
+  assert.equal(data.humRuns.length, 0); assert.match(compose('venue', data).html, /No hum or feedback runs are saved/);
+  let reads = 0;
+  const storage = { getItem() { return ++reads === 1 ? JSON.stringify([{ id: 'r1', kind: 'hum', venueId: 'v1', createdAt: '2026-11-18T10:00:00.000Z', steps: [] }]) : '{broken after list'; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore: createHumRunStore({ invoke: null, storage }), venueId: 'v1' }), error => error instanceof HumRunError && error.code === 'HUMRUN_DB');
 });

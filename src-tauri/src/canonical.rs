@@ -88,7 +88,9 @@ fn number_text_f64(n: f64, path: &Path) -> Result<String, CanonicalError> {
 
 fn number_text(n: &serde_json::Number, path: &Path) -> Result<String, CanonicalError> {
     if let Some(i) = n.as_i64() {
-        return if i.abs() <= MAX_SAFE {
+        // Check the signed range directly: abs(i64::MIN) overflows and can
+        // otherwise admit an unsafe integer in an optimized build.
+        return if (-MAX_SAFE..=MAX_SAFE).contains(&i) {
             Ok(i.to_string())
         } else {
             err(format!("integer {i} outside the safe range"), path)
@@ -406,6 +408,29 @@ mod tests {
         assert!(canonical_json(&big).is_err());
         let ok: Value = serde_json::from_str("-9007199254740991").unwrap();
         assert_eq!(canonical_json(&ok).unwrap(), "-9007199254740991");
+    }
+
+    #[test]
+    fn raw_integer_boundaries_are_rejected_without_panics_or_hashes() {
+        for integer in [
+            "-9223372036854775808",
+            "9223372036854775807",
+            "-9223372036854775807",
+            "9007199254740992",
+            "-9007199254740992",
+        ] {
+            for (text, path) in [
+                (integer.to_owned(), "$"),
+                (format!("{{\"boundary\":[{integer}]}}"), "$.boundary[0]"),
+            ] {
+                let value = parse_json(&text).unwrap();
+                let error = canonical_json(&value).unwrap_err();
+                assert_eq!(error.path, path, "{text}");
+                assert!(error.message.contains("outside the safe range"), "{text}");
+                assert!(canonical_sha256(&value).is_err(), "{text} must not hash");
+                assert!(!is_canonical(&text), "{text} must not be canonical");
+            }
+        }
     }
 
     #[test]

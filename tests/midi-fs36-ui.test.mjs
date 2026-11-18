@@ -3,19 +3,146 @@
 // ownership (late sends, probe timers and cleanup must stay with the connection that made them).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { installDom, bridge, mount, settle, turn, deferred } from './fixtures/midi-runner-dom.mjs';
 import { IDENTITY_TIMEOUT_MS, CONFORMANCE_MAX_EVENTS } from '../app/ui/devices/midi-runner.js';
 import { IDENTITY_REQUEST, gmSteps, gmAbortCleanup } from '../app/midi-conformance.js';
 import { dispatchFor, methodLabel } from '../app/devices/dispatch.js';
 import { validateProfile, MIDI_KINDS, AUDIO_KINDS } from '../app/devices/library.js';
+import { completePlan } from '../app/devices/test-plan.js';
 
 installDom();
+
+test('conformance verifies the selected ID independently of duplicate display names', async t => {
+  for (const [ids, expected] of [[undefined, 'unknown'], [['other'], 'unknown'], [['chosen'], 'pass']]) {
+    const midi = bridge({
+      listPorts: async () => ({ inputs: [{ id: 'other', name: 'USB MIDI' }, { id: 'chosen', name: 'USB MIDI' }], outputs: [] }),
+      status: async () => ({ dropped: 0, openInputs: ['USB MIDI'], ...(ids ? { openInputIds: ids } : {}) }),
+    });
+    const m = mount({ kind: 'conformance', midi }); t.after(() => m.runner.dispose()); await settle();
+    await m.select(m.byId('midi-port').children[1].value); await settle();
+    for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'chosen', bytes: [0xb0, 1, 2], timestampUs: 1000 });
+    await m.click('midi-finish'); await settle();
+    assert.equal(m.finished[0].status, expected, `ID status ${JSON.stringify(ids)}`);
+    assert.equal(m.finished[0].extra.port, 'USB MIDI'); assert.equal(m.finished[0].extra.portId, 'chosen');
+    assert.deepEqual(midi.sends, []);
+    m.runner.dispose();
+  }
+});
 
 const REPLY = [0xf0, 0x7e, 0x00, 0x06, 0x02, 0x47, 0x12, 0x00, 0x34, 0x00, 1, 2, 3, 4, 0xf7];
 const metric = (result, id) => result.measurements.find(m => m.metricId === id);
 const finding = (result, id) => result.findings.find(f => f.id === id);
 const answerButtons = (host, value) => host.findAll(el => el.attributes?.['data-answer'] === value);
 const noteOns = sends => sends.filter(s => (s.bytes[0] & 0xf0) === 0x90 && s.bytes[2] > 0);
+const profileFromFile = id => JSON.parse(fs.readFileSync(new URL(`../app/devices/profiles/${id}.json`, import.meta.url), 'utf8'));
+const generatedConformance = profile => completePlan(profile).tests.find(t => t.id === 'auto-midi-conformance');
+
+for (const id of ['allen-and-heath-xone-92', 'ecler-warm2']) test(`MIDI prerequisites: generated ${id} conformance listens until output is selected`, async t => {
+  const profile = profileFromFile(id), test = generatedConformance(profile);
+  const midi = bridge({ listPorts: async () => ({ inputs: [{ name: 'Interface input' }], outputs: [{ name: 'Unrelated output' }] }), status: async () => ({ dropped: 0, openInputs: ['Interface input'] }) });
+  const m = mount({ kind: 'conformance', profile, test, midi }); t.after(() => m.runner.dispose()); await settle();
+  assert.deepEqual(midi.opens, ['Interface input'], 'passive input remains usable');
+  assert.deepEqual(midi.sends, [], 'a sole unrelated pair does not authorize an active probe');
+  assert.equal(m.byId('midi-output').value, '');
+  midi.emit([0xb0, 1, 2], 1000, 'Interface input');
+  await m.click('midi-finish'); await settle();
+  assert.equal(m.finished[0].extra.identityStatus, 'no-port');
+  assert.equal(metric(m.finished[0], 'midi_identity_reply'), undefined);
+});
+
+test('MIDI prerequisites: explicit generated output choice is reset on input change and refresh', async t => {
+  const m = mount({ kind: 'conformance', test: { auto: true, params: { outputSelection: 'explicit' } } }); t.after(() => m.runner.dispose()); await settle();
+  assert.deepEqual(m.midi.sends, []);
+  const output = m.byId('midi-output'); output.value = 'A'; await output.fire('change'); await settle();
+  assert.deepEqual(m.midi.sends, [{ port: 'A', bytes: [...IDENTITY_REQUEST] }]);
+  await m.select('B'); await settle();
+  assert.equal(m.byId('midi-output').value, '');
+  assert.equal(m.midi.sends.length, 1, 'input changes do not silently authorize a new output');
+  output.value = 'B'; await output.fire('change'); await settle();
+  assert.deepEqual(m.midi.sends.map(s => s.port), ['A', 'B']);
+  const refresh = m.host.findAll(el => el.attributes?.['aria-label'] === 'Refresh MIDI ports')[0];
+  await refresh.fire('click'); await settle();
+  assert.equal(m.byId('midi-output').value, '');
+  assert.equal(m.midi.sends.length, 2, 'refresh retires a manual receiving-path choice');
+});
+
+test('MIDI prerequisites: conditional reason and direct skip remain available without backend or inputs', async t => {
+  const profile = profileFromFile('ecler-warm2');
+  const condition = 'Only when documentation confirms MIDI output for this unit. Skip if the connection is not established.';
+  for (const [label, midi] of [
+    ['no backend', Object.assign(bridge(), { isAvailable: () => false, backend: () => 'none' })],
+    ['no input', bridge({ listPorts: async () => ({ inputs: [], outputs: [] }) })],
+  ]) {
+    const m = mount({ kind: 'conformance', profile, midi, test: { auto: true, params: { condition, outputSelection: 'explicit' } } }); t.after(() => m.runner.dispose()); await settle();
+    const instructions = m.host.findAll(el => el.className.split(' ').includes('dev-steps'))[0];
+    assert.ok(instructions.innerHTML.includes(condition), `${label}: condition is visible in test instructions`);
+    assert.ok(m.byId('midi-conditional-skip'), `${label}: direct run can record a skip`);
+    await m.click('midi-conditional-skip'); await settle();
+    assert.equal(m.skipped.length, 1, label);
+    assert.match(m.skipped[0], /not established/i);
+    assert.doesNotMatch(m.skipped[0], /has no MIDI|does not support/i);
+    assert.deepEqual(m.finished, []);
+    assert.deepEqual(midi.sends, []);
+    await m.click('midi-conditional-skip');
+    assert.equal(m.skipped.length, 1, 'a retired run cannot save a second skip');
+  }
+});
+
+test('MIDI prerequisites: skipping an unknown-transport run retires only its pending input claim', async t => {
+  const held = deferred();
+  const midi = bridge({ open: async port => { if (port === 'A') await held.promise; } });
+  const condition = 'Only when documentation confirms MIDI output. Skip if not established.';
+  const pending = mount({ kind: 'conformance', midi, test: { auto: true, params: { condition, outputSelection: 'explicit' } } }); t.after(() => pending.runner.dispose()); await settle();
+  assert.deepEqual(midi.opens, ['A']);
+  assert.ok(pending.byId('midi-conditional-skip'));
+  await pending.click('midi-conditional-skip');
+  const replacement = mount({ kind: 'conformance', midi }); t.after(() => replacement.runner.dispose()); await settle();
+  held.resolve(); await settle();
+  assert.equal(pending.skipped.length, 1);
+  assert.deepEqual(pending.finished, []);
+  assert.deepEqual(midi.closes, [], 'the replacement owns the same pending input');
+  assert.deepEqual(midi.sends, [{ port: 'A', bytes: [...IDENTITY_REQUEST] }], 'only the replacement may probe');
+});
+
+test('MIDI prerequisites: DIN and unknown empty states avoid assuming direct device USB', async t => {
+  for (const id of ['allen-and-heath-xone-92', 'ecler-warm2']) {
+    const profile = profileFromFile(id);
+    for (const available of [true, false]) {
+      const midi = Object.assign(bridge({ listPorts: async () => ({ inputs: [], outputs: [] }) }), { isAvailable: () => available });
+      const m = mount({ kind: 'conformance', profile, test: generatedConformance(profile), midi }); t.after(() => m.runner.dispose()); await settle();
+      const emptyMarkup = m.host.findAll(el => el.innerHTML).map(el => el.innerHTML).join(' ');
+      assert.doesNotMatch(emptyMarkup, /connected by USB|Connect [^<]* by USB/i, `${id}, available=${available}`);
+      assert.match(emptyMarkup, id === 'allen-and-heath-xone-92' ? /DIN OUT.*interface.*IN/i : /documented MIDI/i);
+      assert.deepEqual(midi.sends, []);
+    }
+  }
+});
+
+test('MIDI prerequisites: known USB generated conformance retains its ordinary output pairing', async t => {
+  const profile = profileFromFile('pioneer-djm-a9'), test = generatedConformance(profile);
+  const m = mount({ kind: 'conformance', profile, test }); t.after(() => m.runner.dispose()); await settle();
+  assert.equal(test.params.outputSelection, undefined);
+  assert.deepEqual(m.midi.sends, [{ port: 'A', bytes: [...IDENTITY_REQUEST] }]);
+  assert.equal(m.byId('midi-conditional-skip'), null);
+});
+
+test('MIDI prerequisites: explicit output policy does not change handwritten conformance', async t => {
+  const m = mount({ kind: 'conformance', test: { params: { outputSelection: 'explicit' } } }); t.after(() => m.runner.dispose()); await settle();
+  assert.deepEqual(m.midi.sends, [{ port: 'A', bytes: [...IDENTITY_REQUEST] }]);
+});
+
+test('MIDI prerequisites: conditional skip cannot replace a saved capture', async t => {
+  const profile = profileFromFile('ecler-warm2');
+  const m = mount({ kind: 'conformance', profile, test: generatedConformance(profile) }); t.after(() => m.runner.dispose()); await settle();
+  assert.ok(m.byId('midi-conditional-skip'));
+  m.midi.emit([0xb0, 1, 2], 1000);
+  await m.click('midi-finish'); await settle();
+  assert.equal(m.finished.length, 1);
+  await m.click('midi-conditional-skip'); await settle();
+  assert.deepEqual(m.skipped, []);
+  assert.equal(m.finished.length, 1);
+});
 
 test('dispatch and validation know the SPEC-36 MIDI kinds and the SPEC-35 audio kind', () => {
   assert.ok(MIDI_KINDS.includes('conformance') && MIDI_KINDS.includes('gm'));

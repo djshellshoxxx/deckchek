@@ -5,7 +5,7 @@
   "model": "DDJ-1000",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): rekordbox.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the manufacturer's DDJ-1000 Troubleshooting (Mac) article dated 2022-08-06 documents 12 input and 6 output USB audio channels in its Mac driver configuration, with MASTER/PHONES routing in rekordbox Performance mode. This source establishes audio capability; current OS/driver compatibility, hardware revision, firmware, USB IDs, class compliance, MIDI maps, sample rates, bit depth, full numbered channel maps and physical performance remain unverified. No factory tolerances or physical qualification are claimed. Transport addendum (2026-11-18): DDJ-1000 Operating Instructions DRI1516A, p. 31: USB carries control data to MIDI-compatible computer software. Set the utility for software other than rekordbox and configure the software MIDI settings. No message map or current platform qualification is imported.",
   "documents": [
     {
       "title": "Manufacturer detailed product feature and specifications",
@@ -28,11 +28,11 @@
       "notes": "Check the model-specific download page and operating system."
     },
     {
-      "title": "Manufacturer support",
+      "title": "DDJ-1000 Troubleshooting (Mac)",
       "type": "support-article",
-      "url": "https://www.pioneerdj.com/en/support/",
+      "url": "https://forums.pioneerdj.com/hc/en-us/articles/360022013031-DDJ-1000-Troubleshooting-Mac",
       "language": "en",
-      "notes": "Official source entry point."
+      "notes": "Manufacturer support article dated 2022-08-06; checked 2026-11-18. Exact DDJ-1000 Mac driver configuration: section 6 shows 12 input/6 output channels in Audio Devices; section 7 selects DDJ-1000 : MASTER and DDJ-1000 : PHONES in rekordbox Performance mode. These documented settings do not qualify another platform, driver version or physical unit."
     },
     {
       "title": "Service manual (public availability not established)",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "Pioneer DJ DDJ-1000 Operating Instructions — DRI1516A (DDJ-1000 MIDI scope)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-1000/DDJ-1000_DRI1516A_manual.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. DRI1516A; p. 31. DDJ-1000, excluding DDJ-1000SRT. Observe the utility and software MIDI settings; the previously documented Mac audio configuration keeps its original scope."
     }
   ],
   "connectivity": {
@@ -55,15 +62,15 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-1000"
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
+      "usbChannelsIn": 12,
+      "usbChannelsOut": 6,
       "sampleRatesHz": [],
       "bitDepth": null
     }
@@ -120,6 +127,33 @@
       "source": "https://www.pioneerdj.com/en/product/dj-controllers/ddj-1000/",
       "confidence": "confirmed",
       "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_audio_input_channels",
+      "label": "USB audio input channels (documented Mac driver configuration)",
+      "value": 12,
+      "unit": "count",
+      "source": "https://forums.pioneerdj.com/hc/en-us/articles/360022013031-DDJ-1000-Troubleshooting-Mac section 6",
+      "confidence": "confirmed",
+      "notes": "Manufacturer article dated 2022-08-06 specifies 12 inputs in macOS Audio Devices for the DDJ-1000 Mac driver configuration. This is not a qualification of current OS/driver compatibility or a physical unit."
+    },
+    {
+      "key": "verified_usb_audio_output_channels",
+      "label": "USB audio output channels (documented Mac driver configuration)",
+      "value": 6,
+      "unit": "count",
+      "source": "https://forums.pioneerdj.com/hc/en-us/articles/360022013031-DDJ-1000-Troubleshooting-Mac sections 6-7",
+      "confidence": "confirmed",
+      "notes": "Manufacturer article dated 2022-08-06 specifies 6 outputs for its Mac driver configuration. In rekordbox Performance mode, Master Output uses DDJ-1000 : MASTER and Headphones Output uses DDJ-1000 : PHONES. The article does not map all six numbered channels or enumerate sample rates/bit depth."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-1000/DDJ-1000_DRI1516A_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DDJ-1000 Operating Instructions DRI1516A, p. 31: USB carries control data to MIDI-compatible computer software. Set the utility for software other than rekordbox and configure the software MIDI settings. No message map or current platform qualification is imported."
     }
   ],
   "midi": {

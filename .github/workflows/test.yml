@@ -104,11 +104,17 @@ jobs:
       - name: Summarise Rust test failure
         if: failure()
         run: node tools/annotate-rust-failure.mjs "$RUNNER_TEMP/rust-tests.log" || true
-      - name: No compiler warnings in the app crate
+      - name: No compiler or Cargo warnings
         run: |
           set -o pipefail
-          cargo build --locked --manifest-path src-tauri/Cargo.toml -j 4 2>&1 | tee "$RUNNER_TEMP/build.log"
-          if grep -E '^warning' "$RUNNER_TEMP/build.log" | grep -v 'generated [0-9]* warning'; then echo '::error::compiler warnings'; exit 1; fi
+          cargo metadata --locked --no-deps --format-version 1 --manifest-path src-tauri/Cargo.toml > "$RUNNER_TEMP/build-metadata.json"
+          build_status=0
+          cargo build --locked --manifest-path src-tauri/Cargo.toml --message-format=json -j 4 2> "$RUNNER_TEMP/build-stderr.log" | tee "$RUNNER_TEMP/build-messages.jsonl" || build_status=$?
+          cat "$RUNNER_TEMP/build-stderr.log" >&2
+          warning_status=0
+          node tools/check-rust-warnings.mjs src-tauri/Cargo.toml "$RUNNER_TEMP/build-metadata.json" "$RUNNER_TEMP/build-messages.jsonl" "$RUNNER_TEMP/build-stderr.log" || warning_status=$?
+          if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
+          exit "$warning_status"
       - name: Rust type checking
         run: cargo check --locked --manifest-path src-tauri/Cargo.toml -j 4
       - name: Clippy without warnings
@@ -120,6 +126,9 @@ jobs:
           path: |
             ${{ runner.temp }}/rust-tests.log
             ${{ runner.temp }}/glib-backport-tests.log
+            ${{ runner.temp }}/build-metadata.json
+            ${{ runner.temp }}/build-messages.jsonl
+            ${{ runner.temp }}/build-stderr.log
           retention-days: 14
 
   ui-smoke:

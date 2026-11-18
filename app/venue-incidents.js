@@ -1,0 +1,302 @@
+// SPEC-05 §20: immutable operator reports, with the catalog context selected at
+// the button press. These records are not sensor detections or diagnostic scores.
+import { createCatalogStore } from './catalog-store.js';
+
+export const INCIDENT_TYPES = Object.freeze([
+  ['skip', 'Skip'], ['feedback', 'Feedback'], ['hum', 'Hum'], ['needle_jump', 'Needle jump'],
+  ['dropout', 'Dropout'], ['booth_shock', 'Booth shock'], ['other', 'Other'],
+].map(([id, label]) => Object.freeze({ id, label })));
+export const STORAGE_PREFIX = 'deckchek.venue-incidents.v1.';
+export const INCIDENT_LIST_LIMIT = 100;
+export const INCIDENT_MAX_LIMIT = 500;
+export const INCIDENT_NOTE_LIMIT = 500;
+const DRAFT_KEYS = ['schemaVersion', 'id', 'venueId', 'setupId', 'kind', 'occurredAt', 'note', 'context'];
+const RECORD_KEYS = [...DRAFT_KEYS, 'origin', 'recordedAt'];
+const typeIds = new Set(INCIDENT_TYPES.map(type => type.id));
+const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? globalThis.__TAURI__?.core?.invoke ?? null;
+const clone = value => JSON.parse(JSON.stringify(value));
+
+export class IncidentError extends Error {
+  constructor(code, message) { super(message); this.name = 'IncidentError'; this.code = code; }
+}
+const invalid = message => { throw new IncidentError('INCIDENT_INVALID', message); };
+function object(value, keys, name) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalid(`${name} must be an object`);
+  if (Object.keys(value).some(key => !keys.includes(key))) invalid(`${name} has unsupported fields`);
+}
+function text(value, name, max, { nullable = false } = {}) {
+  if (nullable && value == null) return null;
+  if (typeof value !== 'string' || !value.trim() || [...value].length > max || value.includes('\0')) invalid(`${name} must contain 1–${max} characters`);
+  return value;
+}
+function identifier(value, name, nullable = false) {
+  if (nullable && value == null) return null;
+  const result = text(value, name, 128);
+  if (result.trim() !== result || /[\u0000-\u001f\u007f]/.test(result)) invalid(`${name} contains invalid characters`);
+  return result;
+}
+function timestamp(value, name) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)
+      || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) invalid(`${name} must be a valid UTC timestamp with milliseconds`);
+  return value;
+}
+
+/** Validate and copy before awaiting a bridge, catalog lookup or storage write. */
+export function normalizeIncidentDraft(input) {
+  object(input, DRAFT_KEYS, 'Incident');
+  if (input.schemaVersion !== 1) invalid('Unsupported incident schema version');
+  const id = identifier(input.id, 'Incident ID'), venueId = identifier(input.venueId, 'Venue ID');
+  const setupId = identifier(input.setupId, 'Setup ID', true);
+  if (!typeIds.has(input.kind)) invalid('Unknown incident type');
+  const occurredAt = timestamp(input.occurredAt, 'Occurrence time');
+  let note = input.note ?? null;
+  if (note === '') note = null;
+  if (note !== null) note = text(note, 'Note', INCIDENT_NOTE_LIMIT);
+  object(input.context, ['venue', 'setup'], 'Selected context');
+  object(input.context.venue, ['id', 'name'], 'Selected venue');
+  const venue = { id: identifier(input.context.venue.id, 'Context venue ID'), name: text(input.context.venue.name, 'Venue name', 500) };
+  if (venue.id !== venueId) invalid('Selected venue does not match the incident');
+  let setup = null;
+  if (input.context.setup != null) {
+    const source = input.context.setup;
+    object(source, ['id', 'name', 'boothId', 'deckPositionId', 'supportConfigurationId'], 'Selected setup');
+    setup = { id: identifier(source.id, 'Context setup ID'), name: text(source.name, 'Setup name', 500),
+      boothId: identifier(source.boothId, 'Booth ID', true), deckPositionId: identifier(source.deckPositionId, 'Position ID', true),
+      supportConfigurationId: identifier(source.supportConfigurationId, 'Support ID', true) };
+  }
+  if ((setup?.id ?? null) !== setupId) invalid('Selected setup does not match the incident');
+  return { schemaVersion: 1, id, venueId, setupId, kind: input.kind, occurredAt, note, context: { venue, setup } };
+}
+
+/** Capture the already displayed catalog selection synchronously at the press. */
+export function createIncidentDraft({ kind, venue, setup = null, note = null }, {
+  now = () => new Date().toISOString(), newId = () => globalThis.crypto.randomUUID(),
+} = {}) {
+  if (setup && setup.venueId !== venue?.id) invalid('Choose a setup belonging to the selected venue');
+  return normalizeIncidentDraft({ schemaVersion: 1, id: newId(), venueId: venue?.id, setupId: setup?.id ?? null, kind, occurredAt: now(), note,
+    context: { venue: { id: venue?.id, name: venue?.name }, setup: setup ? { id: setup.id, name: setup.name,
+      boothId: setup.boothId ?? null, deckPositionId: setup.deckPositionId ?? null, supportConfigurationId: setup.supportConfigurationId ?? null } : null } });
+}
+
+function savedRecord(value) {
+  try {
+    object(value, RECORD_KEYS, 'Saved incident');
+    if (value.origin !== 'operator') invalid('Incident origin must be operator');
+    const draft = normalizeIncidentDraft(Object.fromEntries(DRAFT_KEYS.map(key => [key, value[key]])));
+    return { ...draft, origin: 'operator', recordedAt: timestamp(value.recordedAt, 'Recorded time') };
+  } catch (error) { throw new IncidentError('INCIDENT_STORAGE', `Saved incident is invalid: ${error.message}`); }
+}
+const sameSavedValue = (a, b) => {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a) && a.length !== b.length) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && sameSavedValue(a[key], b[key]));
+};
+
+/** Archive validation must not normalize a supplied persistence record. Ordinary
+ * save/list callers retain their existing draft normalization behavior. */
+export function validateSavedIncident(value) {
+  const record = savedRecord(value);
+  if (!sameSavedValue(record, value)) throw new IncidentError('INCIDENT_STORAGE', 'Saved incident is not in its complete saved form');
+  // The existing browser key format URI-encodes IDs. Reject an unrestorable
+  // saved ID during whole-file preflight, before any earlier row can append.
+  try { encodeURIComponent(record.id); }
+  catch { throw new IncidentError('INCIDENT_STORAGE', 'Saved incident ID contains an unencodable character'); }
+  return record;
+}
+const submission = record => Object.fromEntries(DRAFT_KEYS.map(key => [key, record[key]]));
+function retry(existing, draft) {
+  if (JSON.stringify(submission(existing)) !== JSON.stringify(draft)) throw new IncidentError('INCIDENT_CONFLICT', 'This incident ID already belongs to a different report');
+  return clone(existing);
+}
+function filterInput(input = {}, paged = false) {
+  object(input, paged ? ['venueId', 'setupId', 'limit', 'before'] : ['venueId', 'setupId', 'limit'], 'Incident filter');
+  const venueId = identifier(input.venueId, 'Venue ID', true), setupId = identifier(input.setupId, 'Setup ID', true);
+  const limit = input.limit ?? INCIDENT_LIST_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > INCIDENT_MAX_LIMIT) invalid(`Incident limit must be 1–${INCIDENT_MAX_LIMIT}`);
+  return paged ? { venueId, setupId, limit, before: input.before == null ? null : cursorInput(input.before) } : { venueId, setupId, limit };
+}
+function cursorInput(value) {
+  object(value, ['occurredAt', 'id'], 'Incident cursor');
+  const occurredAt = timestamp(value.occurredAt, 'Cursor occurrence time'), id = identifier(value.id, 'Cursor incident ID');
+  // Rust strings and SQLite UTF-8 IDs contain Unicode scalars, never lone surrogates.
+  if (Array.from(id, c => c.codePointAt(0)).some(code => code >= 0xd800 && code <= 0xdfff)) invalid('Cursor incident ID contains invalid characters');
+  return { occurredAt, id };
+}
+function resultItems(value, filter) {
+  const items = value.items.map(savedRecord);
+  if (new Set(items.map(item => item.id)).size !== items.length || items.some(item => (filter.venueId && item.venueId !== filter.venueId) || (filter.setupId && item.setupId !== filter.setupId))) {
+    throw new IncidentError('INCIDENT_STORAGE', 'Incident history does not match the requested context');
+  }
+  return items;
+}
+function listResult(value, filter) {
+  try { object(value, ['items', 'total', 'limit', 'hasMore'], 'Incident history'); }
+  catch (error) { throw new IncidentError('INCIDENT_STORAGE', error.message); }
+  if (!Array.isArray(value.items) || value.items.length > filter.limit || value.limit !== filter.limit
+      || !Number.isSafeInteger(value.total) || value.items.length !== Math.min(value.total, filter.limit) || value.hasMore !== (value.total > value.items.length)) {
+    throw new IncidentError('INCIDENT_STORAGE', 'Incident history has invalid counts or limits');
+  }
+  const items = resultItems(value, filter);
+  return { items, total: value.total, limit: filter.limit, hasMore: value.hasMore };
+}
+function pageResult(value, filter) {
+  try {
+    object(value, ['items', 'total', 'limit', 'hasMore', 'nextCursor'], 'Incident history page');
+    if (!Array.isArray(value.items) || value.items.length > filter.limit || value.limit !== filter.limit
+        || !Number.isSafeInteger(value.total) || value.total < value.items.length || typeof value.hasMore !== 'boolean'
+        || (value.hasMore && (value.items.length !== filter.limit || value.total <= value.items.length))
+        || (!filter.before && (value.items.length !== Math.min(value.total, filter.limit) || value.hasMore !== (value.total > value.items.length)))) {
+      invalid('Incident history page has invalid counts or limits');
+    }
+    const items = resultItems(value, filter);
+    if (items.some((item, index) => (filter.before && compareKeys(item, filter.before) <= 0)
+        || (index > 0 && compareKeys(items[index - 1], item) >= 0))) invalid('Incident history page has invalid cursor order');
+    let nextCursor = null;
+    if (value.hasMore) {
+      nextCursor = cursorInput(value.nextCursor);
+      if (compareKeys(items.at(-1), nextCursor) !== 0) invalid('Incident history page has an invalid next cursor');
+    } else if (value.nextCursor !== null) invalid('An exhausted incident history page must have a null next cursor');
+    return { items, total: value.total, limit: filter.limit, hasMore: value.hasMore, nextCursor };
+  } catch (error) { throw new IncidentError('INCIDENT_STORAGE', error.message); }
+}
+// Unicode scalar ordering matches SQLite's UTF-8 BINARY collation, without a locale-dependent tie-break.
+function descendingText(a, b) {
+  const left = Array.from(a, c => c.codePointAt(0)), right = Array.from(b, c => c.codePointAt(0));
+  for (let i = 0; i < Math.min(left.length, right.length); i++) if (left[i] !== right[i]) return right[i] - left[i];
+  return right.length - left.length;
+}
+const compareKeys = (a, b) => descendingText(a.occurredAt, b.occurredAt) || descendingText(a.id, b.id);
+const cursorFor = row => ({ occurredAt: row.occurredAt, id: row.id });
+function errorOf(error) {
+  if (error instanceof IncidentError) return error;
+  const message = typeof error === 'string' ? error : error?.message || String(error);
+  const match = /^(INCIDENT_[A-Z_]+):\s*([\s\S]*)$/.exec(message);
+  return new IncidentError(match?.[1] || 'INCIDENT_ERROR', match?.[2] || message);
+}
+
+/** Append/list only. Each browser record has its own key; unrelated saves never rewrite one another. */
+export function createVenueIncidentStore({ invoke, storage, catalog, now = () => new Date().toISOString() } = {}) {
+  const bridge = () => invoke === undefined ? nativeInvoke() : invoke;
+  const localStorage = () => {
+    try {
+      const value = storage === undefined ? globalThis.localStorage : storage;
+      if (!value || typeof value.key !== 'function') throw new Error('Browser storage is unavailable');
+      return value;
+    } catch (error) { throw new IncidentError('INCIDENT_STORAGE', error.message); }
+  };
+  const keyFor = id => STORAGE_PREFIX + encodeURIComponent(id);
+  const readAll = (archive = false, { maxRecords = Infinity, maxBytes = Infinity } = {}) => {
+    try {
+      const target = localStorage();
+      let keys, length, bytes = 0;
+      if (archive) {
+        if ([maxRecords, maxBytes].some(value => value !== Infinity && (!Number.isSafeInteger(value) || value < 0))) throw new Error('Invalid archive read bound');
+        length = target.length;
+        if (!Number.isSafeInteger(length) || length < 0 || typeof target.getItem !== 'function') throw new Error('Storage key enumeration is unavailable');
+        keys = []; const seen = new Set();
+        for (let index = 0; index < length; index++) {
+          const key = target.key(index);
+          if (typeof key !== 'string' || seen.has(key)) throw new Error('Storage key enumeration changed or is unavailable');
+          seen.add(key);
+          if (key.startsWith(STORAGE_PREFIX)) {
+            keys.push(key);
+            if (keys.length > maxRecords) throw new Error('Incident history exceeds the archive record bound; nothing was truncated');
+          }
+        }
+        if (target.length !== length) throw new Error('Storage key enumeration changed');
+      } else keys = Array.from({ length: target.length }, (_, index) => target.key(index)).filter(key => typeof key === 'string' && key.startsWith(STORAGE_PREFIX));
+      const records = keys.map(key => {
+        const raw = target.getItem(key);
+        if (archive) {
+          if (typeof raw !== 'string') throw new Error('An incident record could not be read');
+          bytes += new TextEncoder().encode(raw).length;
+          if (bytes > maxBytes) throw new Error('Incident history exceeds the archive byte bound; nothing was truncated');
+        }
+        const value = JSON.parse(raw);
+        const row = archive ? validateSavedIncident(value) : savedRecord(value);
+        if (key !== keyFor(row.id)) throw new Error('Incident key does not match its record');
+        return row;
+      });
+      if (archive && target.length !== length) throw new Error('Storage key enumeration changed');
+      return records;
+    } catch (error) { throw new IncidentError('INCIDENT_STORAGE', `Incident history could not be read: ${error.message}`); }
+  };
+  const call = async (fn, command, args) => {
+    try { return await fn(command, args); } catch (error) { throw errorOf(error); }
+  };
+  const matchingRows = filter => readAll()
+    .filter(row => (!filter.venueId || row.venueId === filter.venueId) && (!filter.setupId || row.setupId === filter.setupId))
+    .sort(compareKeys);
+  return {
+    get native() { return Boolean(bridge()); },
+    readArchive(limits) {
+      if (bridge()) throw new IncidentError('INCIDENT_UNSUPPORTED', 'Venue-history archives read browser storage only');
+      return readAll(true, limits);
+    },
+    /** Preflight once, then recheck each ID immediately before its synchronous
+     * append. The caller preflights both history stores before using any entry. */
+    prepareArchiveRestore(values, limits) {
+      if (bridge()) throw new IncidentError('INCIDENT_UNSUPPORTED', 'Venue-history archives restore browser storage only');
+      if (!Array.isArray(values)) invalid('Saved incidents must be an array');
+      const records = values.map(validateSavedIncident);
+      if (new Set(records.map(row => row.id)).size !== records.length) invalid('Duplicate incident ID in archive');
+      const existing = new Map(readAll(true, limits).map(row => [row.id, row]));
+      if (typeof localStorage().setItem !== 'function') throw new IncidentError('INCIDENT_STORAGE', 'Browser storage cannot write records');
+      return records.map(record => ({
+        kind: 'incident', id: record.id, present: existing.has(record.id),
+        conflict: existing.has(record.id) && !sameSavedValue(existing.get(record.id), record),
+        restore() {
+          try {
+            const target = localStorage(), key = keyFor(record.id), raw = target.getItem(key);
+            if (raw !== null) {
+              const current = validateSavedIncident(JSON.parse(raw));
+              if (!sameSavedValue(current, record)) throw new IncidentError('INCIDENT_CONFLICT', 'This incident ID has different saved evidence or persistence metadata');
+              return 'present';
+            }
+            target.setItem(key, JSON.stringify(record));
+            return 'added';
+          } catch (error) {
+            if (error instanceof IncidentError) throw error;
+            throw new IncidentError('INCIDENT_STORAGE', `Incident restore could not be confirmed: ${error.message}`);
+          }
+        },
+      }));
+    },
+    async save(input) {
+      const draft = normalizeIncidentDraft(input), fn = bridge();
+      if (fn) return retry(savedRecord(await call(fn, 'venue_incident_save', { input: draft })), draft);
+      const previous = readAll().find(row => row.id === draft.id);
+      if (previous) return retry(previous, draft);
+      const selected = catalog ?? createCatalogStore({ invoke: null, storage: localStorage() });
+      let venues, setups;
+      try { [venues, setups] = await Promise.all([selected.list('venue'), draft.setupId ? selected.list('setup') : Promise.resolve([])]); }
+      catch (error) { throw new IncidentError('INCIDENT_CONTEXT', `Could not read the selected context: ${error.message || error}`); }
+      if (!Array.isArray(venues) || !venues.some(venue => venue.id === draft.venueId)
+          || (draft.setupId && (!Array.isArray(setups) || !setups.some(setup => setup.id === draft.setupId && setup.venueId === draft.venueId)))) {
+        throw new IncidentError('INCIDENT_CONTEXT', 'Choose an existing venue and a setup belonging to that venue');
+      }
+      // Another pending request may have committed while the catalog was loading.
+      const current = readAll().find(row => row.id === draft.id);
+      if (current) return retry(current, draft);
+      const record = savedRecord({ ...draft, origin: 'operator', recordedAt: now() });
+      try { localStorage().setItem(keyFor(draft.id), JSON.stringify(record)); }
+      catch (error) { throw new IncidentError('INCIDENT_STORAGE', `Incident was not saved: ${error.message}`); }
+      return clone(record);
+    },
+    async list(input = {}) {
+      const filter = filterInput(input), fn = bridge();
+      if (fn) return listResult(await call(fn, 'venue_incident_list', { filter }), filter);
+      const rows = matchingRows(filter);
+      return { items: rows.slice(0, filter.limit), total: rows.length, limit: filter.limit, hasMore: rows.length > filter.limit };
+    },
+    async page(input = {}) {
+      const filter = filterInput(input, true), fn = bridge();
+      if (fn) return pageResult(await call(fn, 'venue_incident_page', { filter }), filter);
+      const rows = matchingRows(filter), older = filter.before ? rows.filter(row => compareKeys(row, filter.before) > 0) : rows;
+      const items = older.slice(0, filter.limit), hasMore = older.length > filter.limit;
+      return { items, total: rows.length, limit: filter.limit, hasMore, nextCursor: hasMore ? cursorFor(items.at(-1)) : null };
+    },
+  };
+}

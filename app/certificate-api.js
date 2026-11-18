@@ -29,7 +29,11 @@ export function createCertificateApi({ invoke = nativeInvoke() } = {}) {
 export function joinPath(dir, name) {
   const d = String(dir ?? '');
   const sep = d.includes('\\') && !d.includes('/') ? '\\' : '/';
-  return `${d.replace(/[\\/]+$/, '')}${sep}${name}`;
+  // A backward scan remains linear when a long separator run is followed by a
+  // directory name; an unanchored trailing-separator regex retries each start.
+  let end = d.length;
+  while (end > 0 && (d[end - 1] === '\\' || d[end - 1] === '/')) end--;
+  return `${d.slice(0, end)}${sep}${name}`;
 }
 
 const withTimeout = (promise, ms) => new Promise((resolve, reject) => {

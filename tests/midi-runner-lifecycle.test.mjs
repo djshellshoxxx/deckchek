@@ -224,3 +224,56 @@ test('LED late on completion cleans up the original output after the selected ou
   assert.deepEqual(midi.sends.at(-1), { port: 'A', bytes: [0x80, 11, 0] }, 'only an off cleanup is allowed on the old captured output');
   assert.deepEqual(m.finished, []);
 });
+
+test('logical-ID runner selection distinguishes duplicate names and keeps the chosen ID across reorder', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let inputs = [{ name: 'USB MIDI', id: 'a' }, { name: 'USB MIDI', id: 'b' }];
+  const midi = bridge({ listPorts: async () => ({ inputs, outputs: inputs }) });
+  const m = mount({ midi, profile: mapped, params: { controlIds: ['play'] }, pass: { metricId: 'midi_button_stuck', op: 'equals', value: 0 } });
+  t.after(() => m.runner.dispose()); await settle();
+  const options = m.host.querySelector('#midi-port').children;
+  assert.notEqual(options[0].value, options[1].value);
+  assert.match(options[1].textContent, /USB MIDI.*b/);
+  assert.equal(m.host.querySelector('#midi-output').value, '', 'duplicate names never imply an output pair');
+  await m.select(options[1].value);
+  assert.deepEqual(midi.opens.at(-1), { id: 'b' });
+  for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'a', timestampUs: 0, bytes: [0x90, 11, 127] });
+  for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'a', timestampUs: 1, bytes: [0x80, 11, 0] });
+  await m.finish(); assert.equal(m.finished[0].status, 'unknown', 'same-name other-ID messages are excluded');
+  inputs = [inputs[1], inputs[0]];
+  await m.host.querySelector('.btn-icon').fire('click'); await settle();
+  assert.deepEqual(midi.opens.at(-1), { id: 'b' });
+  for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'b', timestampUs: 0, bytes: [0x90, 11, 127] });
+  for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'b', timestampUs: 1, bytes: [0x80, 11, 0] });
+  await m.finish(); assert.equal(m.finished.at(-1).status, 'pass');
+  assert.equal(m.finished.at(-1).extra.port, 'USB MIDI'); assert.equal(m.finished.at(-1).extra.portId, 'b');
+  inputs = [inputs[1]];
+  const openCount = midi.opens.length;
+  await m.host.querySelector('.btn-icon').fire('click'); await settle();
+  assert.equal(midi.opens.length, openCount, 'a same-name remaining endpoint cannot replace the vanished selected ID');
+  assert.match(m.host.querySelector('.dev-port-status').innerHTML, /unavailable|select/i);
+});
+
+test('a stale same-ID runner open cannot close its replacement descriptor owner', async () => {
+  const old = deferred();
+  const midi = bridge({ listPorts: async () => ({ inputs: [{ name: 'USB MIDI', id: 'a' }], outputs: [] }), open: (_, count) => count === 1 ? old.promise : undefined });
+  const first = mount({ midi }); await settle(); first.runner.dispose();
+  const second = mount({ midi }); await settle(); old.resolve(); await settle();
+  assert.deepEqual(midi.closes, []); assert.equal(midi.listeners.size, 1);
+  second.runner.dispose(); await settle(); assert.deepEqual(midi.closes, [{ id: 'a' }]);
+});
+
+test('late LED cleanup keeps its original explicit output ID after a duplicate-name selection changes', async t => {
+  const oldOn = deferred();
+  const midi = bridge({ listPorts: async () => ({ inputs: [{ id: 'a', name: 'USB MIDI' }, { id: 'b', name: 'USB MIDI' }], outputs: [{ id: 'a', name: 'USB MIDI' }, { id: 'b', name: 'USB MIDI' }] }), send: (_, __, count) => count === 1 ? oldOn.promise : undefined });
+  const m = mount({ kind: 'led', profile: ledProfile(1), midi }); t.after(() => m.runner.dispose()); await settle();
+  assert.deepEqual(midi.sends, []);
+  const output = m.host.querySelector('#midi-output'); output.value = output.children[1].value; await output.fire('change'); await settle();
+  assert.deepEqual(midi.sends[0].port, { id: 'a' });
+  const input = m.host.querySelector('#midi-port'); await m.select(input.children[1].value);
+  assert.equal(output.value, ''); output.value = output.children[2].value; await output.fire('change'); await settle();
+  assert.deepEqual(midi.sends.at(-1).port, { id: 'b' });
+  oldOn.resolve(); await settle();
+  assert.deepEqual(midi.sends.at(-1), { port: { id: 'a' }, bytes: [0x80, 11, 0] });
+  assert.deepEqual(m.finished, []);
+});

@@ -5,7 +5,7 @@
   "model": "Mixstream Pro",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. Transport addendum (2026-11-18): Mixstream Pro User Guide v2.3.0, p. 9 and p. 25: original Mixstream Pro uses its PC USB-B connection for MIDI after the computer icon selects computer mode. This is not a Pro+ or Go variant claim.",
   "documents": [
     {
       "title": "Manufacturer model documentation and feature FAQ",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "Numark Mixstream Pro User Guide — v2.3.0 (Mixstream Pro MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/engine/Mixstream%20Pro%20-%20User%20Guide%20-%20v2.3.0.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v2.3.0; p. 9; p. 25. Original Mixstream Pro, excluding Pro+ and Go; enter computer mode with the computer icon."
     }
   ],
   "connectivity": {
@@ -55,7 +62,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "Mixstream Pro"
@@ -137,6 +144,15 @@
       "unit": "bool",
       "source": "https://www.numark.com/product/mixstream-pro",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/engine/Mixstream%20Pro%20-%20User%20Guide%20-%20v2.3.0.pdf",
+      "confidence": "confirmed",
+      "notes": "Mixstream Pro User Guide v2.3.0, p. 9 and p. 25: original Mixstream Pro uses its PC USB-B connection for MIDI after the computer icon selects computer mode. This is not a Pro+ or Go variant claim."
     }
   ],
   "midi": {

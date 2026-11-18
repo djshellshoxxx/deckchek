@@ -1,0 +1,61 @@
+{
+  "evidence": {
+    "schemaVersion": 1,
+    "method": "live-monitor-latest-frame-v1",
+    "incidentId": "incident-1",
+    "pressAt": "2026-11-18T10:00:00.123Z",
+    "association": "operator-selected",
+    "source": {
+      "generation": "generation-1",
+      "deck": "A",
+      "deviceName": "Audio interface <left>",
+      "firstChannel": 1,
+      "secondChannel": 2,
+      "format": "Traktor Scratch MK2",
+      "sessionId": "monitor-session-1"
+    },
+    "timing": {
+      "basis": "host-callback-observation",
+      "observedAt": "2026-11-18T10:00:00.000Z",
+      "sampleTimeSeconds": 0.25,
+      "ageMs": 123.125
+    },
+    "configuration": {
+      "settingsVersion": 1,
+      "sampleRateHz": 48000,
+      "hopMs": 250,
+      "analysisWindowSeconds": 0.5,
+      "baselineSeconds": 60,
+      "nominalRpm": 33.333333,
+      "thresholds": {
+        "snrDropDb": 6, "snrDropSec": 5, "snrFloorDb": 12, "snrFloorSec": 2, "healthySnrDb": 15,
+        "dropoutDb": 24, "dropoutCount": 3, "dropoutSpanSec": 10, "maxDropoutSec": 1,
+        "humRiseDb": 10, "humSec": 5, "humMinDbfs": -80, "humAboveFloorDb": 6,
+        "phaseRateDegPerSec": 5, "phaseJitterDeg": 15, "phaseSec": 5,
+        "presenceDb": -55, "idleInfoSec": 10, "minBaselineSec": 10
+      },
+      "cooldownSec": 60
+    },
+    "metrics": {
+      "levelDb": -24.123456789,
+      "snrDb": -3.125,
+      "carrierHz": 2499.123456789,
+      "speedPct": -0.03506172844,
+      "phaseDeg": 90.25,
+      "jitterDeg": 1.125,
+      "balanceDb": -0.625,
+      "driftDeg": 0.25,
+      "humDb": -240,
+      "humFloorDb": -240,
+      "mainsHz": null,
+      "dropouts": 2,
+      "locked": false,
+      "motion": "cue",
+      "direction": "forward",
+      "state": "watch"
+    },
+    "unavailable": ["humDb", "humFloorDb", "mainsHz"],
+    "loss": { "reportedDroppedBlocks": null, "monitorDroppedBlocks": 4, "logEventsDropped": 2 }
+  },
+  "recordedAt": "2026-11-18T10:00:01.000Z"
+}

@@ -19,6 +19,7 @@ import { FUNCTIONS, TARGETS, MAX_DECKS, LAYERS, RELATIVE_ENCODINGS, functionDef,
 import { createModel, sanitizeModel, parseJsonFile, midiFromBytes, addLearnedControl, updateControl, removeControl, modelStats, cleanText, LIMITS } from '../../mapper/model.js';
 import { validateModel } from '../../mapper/validate.js';
 import { learnedToModel } from '../../mapper/from-learned.js';
+import { storedMidiMapForProfile } from '../../devices/dispatch.js';
 import { exportMixxx, importMixxx, fileStem } from '../../mapper/mixxx.js';
 import { exportVdj, importVdj } from '../../mapper/vdj.js';
 import { seratoReport } from '../../mapper/serato.js';
@@ -376,6 +377,7 @@ export function createMapperScreen(section) {
     setStatus('Loading the MIDI map…');
     let row = null;
     try { row = await store.getMidiMap(assetId); } catch (e) { setStatus(`Could not read the learned map: ${e?.message || e}`, 'warn'); }
+    row = storedMidiMapForProfile(row, profile);
     const learnedControls = Array.isArray(row?.map?.controls) ? row.map.controls.length : 0;
     const published = (profile?.midi?.controls || []).filter(c => c?.message).length;
     const name = asset.nickname || [profile?.manufacturer, profile?.model].filter(Boolean).join(' ') || 'My controller';
@@ -491,18 +493,25 @@ export function createMapperScreen(section) {
   // ---------------------------------------------------------------- MIDI learn
   async function refreshPorts() {
     if (!midi.isAvailable()) { st.ports = []; return; }
-    try { st.ports = ((await midi.listPorts()).inputs || []).map(p => p.name); } catch { st.ports = []; }
-    if (!st.ports.includes(st.port)) st.port = st.ports[0] || '';
+    const previous = st.portChoice;
+    try { st.ports = midi.portChoices((await midi.listPorts()).inputs); } catch { st.ports = []; }
+    let choice = st.ports.find(p => p.key === st.port && p.available);
+    if (!choice && previous?.id == null) choice = st.ports.find(p => p.available);
+    if (choice) { st.port = choice.key; st.portChoice = choice; }
+    else if (previous?.id == null) { st.port = ''; st.portChoice = null; }
   }
 
-  // Learn opens the chosen MIDI input and closes it again when learning ends (message learned, cancel, timeout,
-  // screen hidden), unless the input was already open before Learn (another screen owns it then).
-  const releasePort = port => { if (port) midi.close(port).catch(() => { /* already closed */ }); };
+  // Claims cover pending opens as well as active Learn sessions. A cancelled open may finish after
+  // another Learn claims the same logical input; only the last released owner may close it.
+  const claimLearn = (port, owned) => midi.claimInput(midi, port, { owned });
+  const pruneLearn = midi.pruneInputClaim;
+  const releaseLearn = claim => midi.releaseInput(midi, claim);
 
   function stopLearn(message = null) {
     if (!st.learning && st.learnStart) {
       // Learn is still opening the input: cancel the start; learn() checks the token after every await.
       st.learnStart.cancelled = true;
+      releaseLearn(st.learnStart.claim);
       st.learnStart = null;
       if (message) { setStatus(message, 'info'); announce(message); }
       return true;
@@ -510,7 +519,7 @@ export function createMapperScreen(section) {
     if (!st.learning) return false;
     st.learning.unsub?.();
     clearTimeout(st.learning.timer);
-    releasePort(st.learning.ownedPort);
+    releaseLearn(st.learning.claim);
     st.learning = null;
     keepFocus(renderLeft);
     if (message) { setStatus(message, 'info'); announce(message); }
@@ -525,21 +534,28 @@ export function createMapperScreen(section) {
     if (!st.model) newModel();
     // Cancel token for the asynchronous start: Esc, stopLearn or leaving the screen set `cancelled`.
     const token = st.learnStart = { cancelled: false };
-    let port, owned;
+    let port, claim;
     try {
       await refreshPorts();
       if (token.cancelled) return;
-      port = st.port;
-      if (!port) { setStatus('No MIDI input found. Connect the controller and try again.', 'warn'); keepFocus(renderLeft); return; }
+      port = st.ports.find(p => p.key === st.port && p.available);
+      if (!port) { setStatus('The MIDI input is unavailable. Select an available input and try again.', 'warn'); keepFocus(renderLeft); return; }
       const before = await midi.status().catch(() => null);
       if (token.cancelled) return;
-      owned = !(before?.openInputs || []).includes(port);
-      try { await midi.open(port); } catch (e) { if (!token.cancelled) setStatus(`Could not open ${port}: ${e?.message || e}`, 'fail'); return; }
+      const open = port.id != null ? before?.openInputIds : before?.openInputs;
+      if (!Array.isArray(open) || !open.every(value => typeof value === 'string')) { setStatus('MIDI connection ownership could not be checked. Refresh and try again.', 'warn'); return; }
+      claim = claimLearn(port, !open.includes(port.id ?? port.name)); token.claim = claim;
+      await claim.entry.closing;
+      if (token.cancelled) { releaseLearn(claim); return; }
+      claim.entry.pending++;
+      try { await midi.open(port.selector); claim.entry.opened = true; }
+      catch (e) { if (!token.cancelled) setStatus(`Could not open ${port.name}: ${e?.message || e}`, 'fail'); releaseLearn(claim); return; }
+      finally { claim.entry.pending--; pruneLearn(claim); }
     } finally { if (st.learnStart === token) st.learnStart = null; }
     // Cancelled while the port was opening, or the screen was left: close the input again if Learn opened it.
-    if (token.cancelled || section.hidden) { if (owned) releasePort(port); return; }
+    if (token.cancelled || section.hidden || claim.entry.owner !== claim) { releaseLearn(claim); return; }
     const unsub = midi.onMessage(msg => {
-      if (!st.learning || (msg?.port && msg.port !== port)) return;
+      if (st.learning?.claim !== claim || claim.entry.owner !== claim || (port.id != null ? msg?.portId !== port.id : msg?.port && msg.port !== port.name)) return;
       const m = midiFromBytes(msg?.bytes || []);
       if (!m) return;
       stopLearn();
@@ -553,9 +569,9 @@ export function createMapperScreen(section) {
       announce(text);
       focusRow();
     });
-    st.learning = { unsub, ownedPort: owned ? port : null, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
+    st.learning = { unsub, claim, timer: setTimeout(() => stopLearn('No MIDI message arrived in 30 seconds; learning stopped.'), LEARN_TIMEOUT_MS) };
     keepFocus(renderLeft);
-    setStatus(`Listening on ${port}: move or press one control. Esc cancels.`, 'info');
+    setStatus(`Listening on ${port.label}: move or press one control. Esc cancels.`, 'info');
     announce('Listening for a MIDI message.');
   }
 
@@ -615,9 +631,12 @@ export function createMapperScreen(section) {
     const v = currentValidation();
     const flags = rowFlags(v);
     const s = st.model ? modelStats(st.model) : null;
-    const portSel = h('select', { id: 'mp-port', 'aria-label': 'MIDI input for Learn', disabled: !st.ports.length }, ...(st.ports.length ? st.ports.map(p => h('option', { value: p, text: p })) : [h('option', { value: '', text: midi.isAvailable() ? 'No MIDI input' : 'MIDI not available' })]));
+    const unavailable = st.portChoice?.id != null && !st.ports.some(p => p.key === st.port && p.available);
+    const portSel = h('select', { id: 'mp-port', 'aria-label': 'MIDI input for Learn', disabled: !st.ports.length },
+      ...(unavailable ? [h('option', { value: st.port, text: `${st.portChoice.name || '(unnamed MIDI port)'} — ID ${st.portChoice.id} (unavailable; select an input)`, disabled: true })] : []),
+      ...(st.ports.length ? st.ports.map(p => h('option', { value: p.key, text: p.label, title: p.description, disabled: !p.available })) : [h('option', { value: '', text: midi.isAvailable() ? 'No MIDI input' : 'MIDI not available' })]));
     portSel.value = st.port;
-    portSel.addEventListener('change', () => { st.port = portSel.value; });
+    portSel.addEventListener('change', () => { stopLearn(); st.port = portSel.value; st.portChoice = st.ports.find(p => p.key === st.port) || null; });
     left.append(
       h('div', { class: 'card-head' }, h('h2', { class: 'card-title', id: 'mp-controls-title', text: 'Controls' }),
         ...[s ? h('span', { id: 'mp-partial', class: 'muted small', text: partialText(s) }) : null].filter(Boolean)),

@@ -5,7 +5,7 @@
   "model": "DJM-450",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio,usb. Software: rekordbox.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed. DRI1406B p. 11 documents outgoing MIDI over USB to a computer; DRH1395C p. 13 scopes nominal audio sampling and converter depth. USB audio stream counts/formats, USB IDs/class compliance, DIN, receiving/Identity support, exact control maps, hardware/firmware revision and current driver/OS qualification remain unknown. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
       "title": "Manufacturer feature support",
@@ -45,6 +45,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "DJM-450 Operating Instructions DRI1406B",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRI1406B_manual.pdf",
+      "language": "en",
+      "notes": "Manufacturer PDF, DRI1406B p. 11: outgoing control messages and MIDI clock through a USB computer connection. This establishes transport, not an exact control map, receiving capability or Identity replies."
+    },
+    {
+      "title": "DJM-450 Quick Start Guide DRH1395C",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRH1395C_quickstart-manual.pdf",
+      "language": "en",
+      "notes": "Manufacturer PDF, DRH1395C p. 13: Audio Section nominal sampling rate and separately scoped MASTER D/A and other A/D and D/A converter depths. These do not enumerate USB stream formats or channel counts."
     }
   ],
   "connectivity": {
@@ -55,7 +69,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DJM-450"
@@ -116,6 +130,42 @@
       "unit": "bool",
       "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-450/",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI transport to a computer",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRI1406B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1406B p. 11 describes control-operation information sent in MIDI format to software on a computer connected by USB. Outgoing messages and clock do not establish receiving support, Identity replies or an exact control map."
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Audio Section nominal sampling rate",
+      "value": 48000,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRH1395C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1395C p. 13, Audio Section. Nominal sampling rate; not a verified list of host USB stream formats."
+    },
+    {
+      "key": "verified_master_da_converter_depth",
+      "label": "MASTER D/A converter resolution",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRH1395C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1395C p. 13. MASTER D/A converter resolution only; not a USB PCM bit-depth claim."
+    },
+    {
+      "key": "verified_other_ad_da_converter_depth",
+      "label": "Other A/D and D/A converter resolution",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-450/DJM-450_DRH1395C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1395C p. 13. Other A/D and D/A converter resolution only; not a USB PCM bit-depth claim."
     }
   ],
   "midi": {
