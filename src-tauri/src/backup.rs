@@ -658,9 +658,19 @@ fn reject_text_not_utf8(conn: &Connection) -> Result<(), BackupError> {
 }
 
 fn integrity_ok(conn: &Connection) -> bool {
-    conn.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
+    let pages_ok = conn
+        .query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
         .map(|s| s == "ok")
-        .unwrap_or(false)
+        .unwrap_or(false);
+    // integrity_check validates pages and CHECK constraints, but not references.
+    // A database written with foreign_keys=OFF can otherwise restore orphaned
+    // evidence even when its schema is exactly the trusted schema.
+    let references_ok = || -> rusqlite::Result<bool> {
+        let mut statement = conn.prepare("PRAGMA foreign_key_check")?;
+        let mut rows = statement.query([])?;
+        Ok(rows.next()?.is_none())
+    };
+    pages_ok && references_ok().unwrap_or(false)
 }
 
 fn sha_hex(bytes: &[u8]) -> String {
@@ -3311,12 +3321,18 @@ mod tests {
             assert_eq!(fs::read(env.live()).unwrap(), before);
             no_restore_leftovers(&env);
         }
-        // the overrun check itself (not CRC or checksum) is what stops the read
+        // ZIP 9 rejects a block that exceeds its declared size before returning it
+        // from Read. read_entry maps that error to `corrupt`; no inflated bytes may
+        // reach the sink. The application overrun check remains a second boundary.
         let p = env.out("lying-settings.deckchek-backup");
         let mut a = ZipArchive::new(File::open(&p).unwrap()).unwrap();
-        let e =
-            read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut io::sink()).unwrap_err();
-        assert_eq!(e.code, "size_mismatch");
+        let mut extracted = Vec::new();
+        let e = read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut extracted).unwrap_err();
+        assert_eq!(e.code, "corrupt");
+        assert!(
+            extracted.is_empty(),
+            "the forged first block must not reach the sink"
+        );
     }
 
     #[test]
@@ -3616,6 +3632,58 @@ mod tests {
         );
         no_restore_leftovers(env);
         assert_eq!(rows(env.live(), "session"), 3, "{label}");
+    }
+
+    #[test]
+    fn orphaned_evidence_is_refused_before_backup_or_restore() {
+        let env = Env::new("orphaned-evidence");
+        make_db(env.live(), "live", 3);
+        let before = fs::read(env.live()).unwrap();
+        let source = env.out("orphan.sqlite3");
+        make_db(&source, "source", 1);
+        {
+            let c = Connection::open(&source).unwrap();
+            c.execute_batch("PRAGMA foreign_keys=OFF; INSERT INTO service_job_log(id,job_id,kind,description,at) VALUES('orphan','missing-job','note','orphaned evidence','2026-11-17T22:00:00Z');").unwrap();
+            reject_unexpected_schema(&c).unwrap();
+            assert_eq!(
+                c.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
+                    .unwrap(),
+                "ok",
+                "SQLite's page check alone does not detect missing parents"
+            );
+            assert!(!integrity_ok(&c));
+        }
+        let source_bytes = fs::read(&source).unwrap();
+        let hostile = env.out("orphan.deckchek-backup");
+        crafted(
+            &hostile,
+            current_schema_version(),
+            &[(DB_ENTRY, &source_bytes)],
+        );
+        assert_eq!(
+            restore_backup(&env.ctx, &hostile, true, &SettingsBlob::default(), None)
+                .unwrap_err()
+                .code,
+            "corrupt_db"
+        );
+        assert_untouched(&env, &before, "orphaned evidence");
+        assert_eq!(
+            create_backup(
+                &source,
+                &env.out("rejected.deckchek-backup"),
+                Kind::Manual,
+                &SettingsBlob::default(),
+                &mut |_, _| {}
+            )
+            .unwrap_err()
+            .code,
+            "corrupt_db"
+        );
+        assert_eq!(
+            fs::read(&source).unwrap(),
+            source_bytes,
+            "validation never repairs data silently"
+        );
     }
 
     #[test]
