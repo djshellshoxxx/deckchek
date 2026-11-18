@@ -107,3 +107,69 @@ test('concurrent native opens and subscriptions install one MIDI event listener'
   assert.equal(messages.length, 1);
   assert.deepEqual(invokes, [{ command: 'midi_open_input', args: { name: 'A' } }]);
 });
+
+test('closing MIDI cancels an input still awaiting Web MIDI permission', async t => {
+  for (const all of [false, true]) {
+    const pending = deferred(), input = port('A', 'a');
+    const midi = await bridge(t, { request: () => pending.promise });
+    const opening = midi.open('A').then(() => null, error => error);
+    await settle();
+    if (all) await midi.closeAll(); else await midi.close('A');
+    pending.resolve({ inputs: new Map([['a', input]]), outputs: new Map() });
+    assert.ok(await opening, 'obsolete open reports cancellation');
+    assert.equal(input.onmidimessage, null, 'late permission cannot revive a closed input');
+  }
+});
+
+test('closeAll cancels an output send that has not yet acquired its captured port', async t => {
+  const first = port('A', 'a'), replacement = port('A', 'b');
+  const access = { inputs: new Map(), outputs: new Map([['a', first]]) };
+  const midi = await bridge(t, { access });
+  await midi.send('A', [0x90, 60, 100]);
+  const stale = midi.send('A', [0x80, 60, 0]).then(() => null, error => error);
+  const closing = midi.closeAll(); access.outputs = new Map([['b', replacement]]);
+  await closing;
+  assert.ok(await stale);
+  assert.deepEqual(replacement.sent, []);
+});
+
+test('closeAll cancels a native input waiting for event subscription', async t => {
+  const pending = deferred(), invokes = [];
+  const midi = await bridge(t, { native: { core: { invoke: async command => invokes.push(command) }, event: { listen: () => pending.promise } } });
+  const opening = midi.open('A').then(() => null, error => error);
+  await settle(); await midi.closeAll(); pending.resolve(() => {});
+  assert.ok(await opening);
+  assert.deepEqual(invokes, ['midi_close_all']);
+});
+
+test('new input operations wait for their captured close before installing a new callback', async t => {
+  const pending = deferred(), input = port('A', 'a');
+  input.close = async () => { input.closed++; await pending.promise; input.onmidimessage = null; };
+  const midi = await bridge(t, { access: { inputs: new Map([['a', input]]), outputs: new Map() } });
+  await midi.open('A'); const oldCallback = input.onmidimessage;
+  const closing = midi.close('A');
+  const opening = midi.open('A'); await settle();
+  assert.equal(input.onmidimessage, null, 'reopen waits for the old close');
+  pending.resolve(); await closing; await opening;
+  assert.equal(typeof input.onmidimessage, 'function');
+  assert.notEqual(input.onmidimessage, oldCallback);
+  const received = []; midi.onMessage(message => received.push(message));
+  oldCallback({ data: [0xb0, 1, 2], timeStamp: 1 });
+  assert.deepEqual(received, [], 'a callback queued before close cannot enter the new input session');
+});
+
+test('new output sends wait for all captured close operations, including a slower close after another rejects', async t => {
+  const pending = deferred(), first = port('A', 'a'), second = port('B', 'b');
+  first.close = async () => { throw new Error('close failed'); };
+  second.close = async () => { await pending.promise; };
+  const access = { inputs: new Map(), outputs: new Map([['a', first], ['b', second]]) };
+  const midi = await bridge(t, { access });
+  await midi.send('A', [0x90, 60, 100]); await midi.send('B', [0x90, 60, 100]);
+  const closing = midi.closeAll().then(() => null, error => error);
+  const sending = midi.send('A', [0x80, 60, 0]).then(() => null, error => error);
+  await settle();
+  assert.equal(first.sent.length, 1, 'new send waits until every old close settles');
+  pending.resolve();
+  assert.match((await closing).message, /close failed/);
+  assert.ok(await sending, 'the pending operation surfaces the failed close');
+});

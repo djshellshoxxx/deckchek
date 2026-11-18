@@ -10,6 +10,8 @@ let access = null; // Web MIDI access
 let accessPending = null;
 const webInputs = new Map(); // name -> MIDIInput
 const webOutputs = new Map(); // name -> captured MIDIOutput; cleanup must not follow a replacement name
+let closeGeneration = 0, closingAll = null;
+const inputGenerations = new Map(), closingInputs = new Map();
 let webDropped = 0;
 
 export function isAvailable() { return hasTauri() || hasWebMidi(); }
@@ -42,6 +44,20 @@ function selectWebPort(ports, name, direction) {
   return matches[0];
 }
 const presentWebPort = (ports, port) => port.state !== 'disconnected' && [...ports.values()].includes(port);
+function requireCurrent(generation, name = null, inputGeneration = null) {
+  if (generation !== closeGeneration || (inputGeneration != null && inputGeneration !== (inputGenerations.get(name) || 0))) {
+    throw new Error('MIDI operation was cancelled because its connection was closed.');
+  }
+}
+async function ready(generation, name = null, inputGeneration = null) {
+  await Promise.all([closingAll, inputGeneration == null ? null : closingInputs.get(name)]);
+  requireCurrent(generation, name, inputGeneration);
+}
+async function finishCloses(pending) {
+  const results = await Promise.allSettled(pending);
+  const failure = results.find(result => result.status === 'rejected');
+  if (failure) throw failure.reason;
+}
 
 export async function listPorts() {
   if (hasTauri()) return tauri().core.invoke('midi_list_ports');
@@ -52,27 +68,44 @@ export async function listPorts() {
 }
 
 export async function open(name) {
-  if (hasTauri()) { await ensureTauriListener(); return tauri().core.invoke('midi_open_input', { name }); }
+  const generation = closeGeneration, inputGeneration = inputGenerations.get(name) || 0;
+  await ready(generation, name, inputGeneration);
+  if (hasTauri()) {
+    await ensureTauriListener(); requireCurrent(generation, name, inputGeneration);
+    return tauri().core.invoke('midi_open_input', { name });
+  }
   const a = await webAccess();
+  requireCurrent(generation, name, inputGeneration);
   const port = selectWebPort(a.inputs, name, 'input');
   const existing = webInputs.get(name);
   if (existing) {
     if (existing !== port) throw new Error(`MIDI input changed: ${name}. Close it before opening the replacement.`);
     return;
   }
-  port.onmidimessage = (e) => emit({ port: name, timestampUs: Math.round(e.timeStamp * 1000), bytes: Array.from(e.data) });
+  const onMessage = e => {
+    if (webInputs.get(name) !== port || port.onmidimessage !== onMessage) return;
+    emit({ port: name, timestampUs: Math.round(e.timeStamp * 1000), bytes: Array.from(e.data) });
+  };
+  port.onmidimessage = onMessage;
   webInputs.set(name, port);
 }
 
 export async function close(name) {
-  if (hasTauri()) return tauri().core.invoke('midi_close_input', { name });
+  inputGenerations.set(name, (inputGenerations.get(name) || 0) + 1);
+  const native = hasTauri(), prior = [closingAll, closingInputs.get(name)];
   const p = webInputs.get(name);
-  if (p) { p.onmidimessage = null; webInputs.delete(name); await p.close?.(); }
+  if (p) { p.onmidimessage = null; webInputs.delete(name); }
+  const closing = Promise.allSettled(prior).then(() => native ? tauri().core.invoke('midi_close_input', { name }) : p?.close?.());
+  closingInputs.set(name, closing);
+  try { return await closing; } finally { if (closingInputs.get(name) === closing) closingInputs.delete(name); }
 }
 
 export async function send(name, bytes) {
+  const generation = closeGeneration;
+  await ready(generation);
   if (hasTauri()) return tauri().core.invoke('midi_send', { name, bytes: Array.from(bytes) });
   const a = await webAccess();
+  requireCurrent(generation);
   let out = webOutputs.get(name);
   if (out && !presentWebPort(a.outputs, out)) throw new Error(`MIDI output disconnected or replaced: ${name}. Close MIDI connections before selecting a replacement.`);
   if (!out) { out = selectWebPort(a.outputs, name, 'output'); webOutputs.set(name, out); }
@@ -80,11 +113,15 @@ export async function send(name, bytes) {
 }
 
 export async function closeAll() {
-  if (hasTauri()) return tauri().core.invoke('midi_close_all');
+  ++closeGeneration;
+  // Snapshot earlier closes before publishing this barrier: a later input close may wait for it.
+  const native = hasTauri(), prior = [closingAll, ...closingInputs.values()];
   const ports = new Set([...webInputs.values(), ...webOutputs.values()]);
   for (const p of webInputs.values()) p.onmidimessage = null;
   webInputs.clear(); webOutputs.clear();
-  await Promise.all([...ports].map(p => p.close?.()));
+  const closing = Promise.allSettled(prior).then(() => native ? tauri().core.invoke('midi_close_all') : finishCloses([...ports].map(p => Promise.resolve().then(() => p.close?.()))));
+  closingAll = closing;
+  try { return await closing; } finally { if (closingAll === closing) closingAll = null; }
 }
 
 export function onMessage(cb) {
