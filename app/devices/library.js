@@ -142,16 +142,26 @@ export function resultStatus(result) {
 
 /** Latest result per test id. Uncertain ordering and equal instants retain adverse evidence. */
 export function latestResults(results = []) {
-  const out = new Map();
-  const priority = result => resultStatus(result) === 'fail' ? 2 : resultStatus(result) === 'pass' ? 0 : 1;
+  const groups = new Map(), out = new Map();
+  const priority = result => {
+    const status = resultStatus(result);
+    return status === 'fail' ? 3 : status === 'pass' ? 0 : status === 'skipped' ? 1 : 2;
+  };
   for (const r of results) {
     if (!r || typeof r.testId !== 'string' || !r.testId) continue;
-    const prev = out.get(r.testId);
-    const at = resultTimestamp(r), oldAt = resultTimestamp(prev);
-    const valid = Number.isFinite(at), oldValid = Number.isFinite(oldAt);
-    if (!prev || (valid && oldValid
-      ? at > oldAt || (at === oldAt && priority(r) > priority(prev))
-      : priority(r) > priority(prev) || (priority(r) === priority(prev) && !valid && oldValid))) out.set(r.testId, r);
+    if (!groups.has(r.testId)) groups.set(r.testId, {});
+    const group = groups.get(r.testId), at = resultTimestamp(r);
+    if (Number.isFinite(at)) {
+      if (!group.latest || at > group.at || (at === group.at && priority(r) > priority(group.latest))) {
+        group.latest = r;
+        group.at = at;
+      }
+    } else if (!group.unresolved || priority(r) > priority(group.unresolved)) group.unresolved = r;
+  }
+  // Establish valid chronology first. An unorderable row cannot disappear just
+  // because an older failure was encountered before a newer passing result.
+  for (const [testId, { latest, unresolved }] of groups) {
+    out.set(testId, unresolved && (!latest || priority(unresolved) >= priority(latest)) ? unresolved : latest);
   }
   return out;
 }

@@ -171,6 +171,35 @@ test('malformed result timestamps remain reviewable without hiding known failure
   }
 });
 
+test('device result chronology is independent of input order when unresolved evidence accompanies newer valid results', () => {
+  const profile = { id: 'unit', manufacturer: 'A', model: 'B', tests: [{ id: 't', title: 'Inspect' }], specs: [] };
+  const olderFail = { profileId: 'unit', testId: 't', status: 'fail', createdAt: '2026-01-01T08:00:00Z' };
+  const newerPass = { profileId: 'unit', testId: 't', status: 'pass', createdAt: '2026-01-02T08:00:00Z' };
+  const permutations = records => records.length < 2 ? [records] : records.flatMap((record, i) =>
+    permutations(records.filter((_, j) => i !== j)).map(tail => [record, ...tail]));
+  for (const status of ['pass', 'unknown', 'skipped', 'fail']) {
+    const unresolved = { profileId: 'unit', testId: 't', status, createdAt: 'invalid', detail: { summary: 'Original observation' } };
+    const snapshot = JSON.stringify([unresolved, olderFail, newerPass]);
+    for (const results of permutations([unresolved, olderFail, newerPass])) {
+      assert.equal(latestResults(results).get('t'), unresolved, `unresolved ${status}: ${results.map(r => r.createdAt)}`);
+      const progress = progressFor(profile, results);
+      assert.equal(progress.passed, 0);
+      assert.equal(progress[status === 'fail' ? 'failed' : 'unknown'], 1);
+      assert.doesNotMatch(buildDeviceReportHtml({ profile, results }), /class="s s-pass"/);
+    }
+    assert.equal(JSON.stringify([unresolved, olderFail, newerPass]), snapshot, 'raw evidence is unchanged');
+  }
+  for (const results of permutations([olderFail, newerPass])) {
+    assert.equal(latestResults(results).get('t'), newerPass, 'valid newer evidence can resolve an older failure');
+    assert.equal(progressFor(profile, results).passed, 1);
+  }
+  const sameTimeSkipped = { ...newerPass, status: 'skipped' };
+  const sameTimeUnknown = { ...newerPass, status: 'unknown' };
+  for (const results of permutations([sameTimeSkipped, sameTimeUnknown, newerPass])) {
+    assert.equal(latestResults(results).get('t'), sameTimeUnknown, 'review outranks skipped at the same instant');
+  }
+});
+
 test('MIDI map helpers: learn, merge, port matching, findings', () => {
   const rane = byId('rane-twelve-mk2');
   const plain = effectiveMidiMap(rane.midi, null);
