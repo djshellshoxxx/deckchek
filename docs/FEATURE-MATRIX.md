@@ -32,12 +32,12 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Startup/brake | Partial | Signal-envelope timing proxy implemented; validated platter-speed transition method remains outstanding. |
 | Cartridge diagnostics | Partial | Balance/polarity and THD estimate implemented; guided L/R isolated-track channel-separation (crosstalk) workflow implemented; full alignment workflows remain. |
 | Generic DVS | Implemented foundation | Scope geometry, levels, correlation and missing-signal timeline; no vendor-specific decoding yet. |
-| Full-side vinyl scan | Implemented foundation | Transient candidates, recurrence, hum/rumble proxy, normalized positions and condition summary; mature classifiers/repeat alignment remain. |
+| Full-side vinyl scan | Implemented foundation | Transient candidates, recurrence, hum/rumble proxy, normalized positions and condition summary; mature classifiers remain. |
 | Diagnostic reasoning | Implemented foundation | Transparent hypotheses, alternatives and isolation tests; the evidence graph (hypothesis, support, contradiction) is persisted in Tauri mode. |
 | SQLite history | Implemented foundation | Sessions, method-versioned measurements and finding evidence are written in Tauri mode. |
 | Reports and portability | Implemented foundation | HTML report, CSV measurements, workspace JSON import/export and compatible-run A/B report. |
-| Native continuous capture | Not implemented | Required for live beta workflows. |
-| Hardware calibration/uncertainty | Not implemented | Required for calibrated claims. |
+| Native continuous capture | Implemented, validation-gated | Continuous stereo capture through a lock-free SPSC ring buffer (`rtrb`) with capture-quality counters (`src-tauri/src/capture.rs`); real-hardware validation pending. |
+| Hardware calibration/uncertainty | Implemented, validation-gated | Interface loopback calibration (gain, L/R mismatch, noise floor, THD+N, latency, clock ppm, coarse frequency response) with GUM-style uncertainty propagation; not yet validated against known references (SPEC-08/19). |
 | Venue/CDJ/controller/Technician advanced workflows | Not implemented | Shared measurement primitives can be reused, but category-specific workflows remain. |
 
 See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconciliation.

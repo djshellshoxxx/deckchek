@@ -47,8 +47,8 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Test-media library (FS-06), external links (FS-07), backup/restore and Data screen (FS-08).
 - [x] Feature flags, migration runner (0001-0005) and upgrade fixtures (v0.04, v0.0.5).
 - [x] Timecode facts confirmed against xwax.
-- [x] Windows CI including ui-smoke and the PDF spike.
-- Flags: `setupWizard`, `pdfExport`, `backup` default on; `diagnosticsBundle`, `testMedia` and all M6+ flags default off until the owner's hardware run passes.
+- [x] Windows CI running the Rust tests and the PDF spike (ui-smoke runs in the Linux CI job).
+- Flags: `setupWizard`, `pdfExport`, `backup`, `testMedia` default on; `diagnosticsBundle` is always on (no flag effect); all M6+ flags default off until the owner's hardware run passes.
 - Known limits: hardware runs pending (docs/testing/results/v0.0.5.md), unsigned installers, no auto-update, first PDF export slow (WebView2 warm-up).
 
 ## M7 wave 0 (foundations, done)

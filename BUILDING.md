@@ -31,8 +31,9 @@ shortcuts) and a mocked desktop mode (`window.__TAURI__` stub) that exercises
 live capture, meters, clip latch, capture-quality counters and native run
 persistence. It fails on any console error.
 
-It needs a globally installed Playwright with Chromium already present and is
-not part of CI (the Linux CI runners have no browsers configured):
+It needs a globally installed Playwright with Chromium already present. CI runs
+the same script in the `ui-smoke` job of `.github/workflows/test.yml`, which
+installs Playwright and Chromium itself. To run it locally:
 
     NODE_PATH=$(npm root -g) node tools/ui-smoke.mjs
 
