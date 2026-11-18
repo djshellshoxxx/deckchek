@@ -11,14 +11,20 @@ function day(value) {
 
 export function latestResults(results = []) {
   const latest = new Map();
+  const statusPriority = status => status === 'fail' ? 2 : status === 'pass' ? 0 : 1;
   for (const result of results) {
     const key = result.testId ?? result.test_id;
     if (typeof key !== 'string' || !key) continue;
     const previous = latest.get(key);
     const date = result.createdAt ?? result.created_at;
     const oldDate = previous?.createdAt ?? previous?.created_at;
+    const validDate = Number.isFinite(day(date)), validOldDate = Number.isFinite(day(oldDate));
+    // Optional UTC milliseconds change string order, not time order. At the same instant,
+    // keep the strongest evidence so a duplicate pass cannot hide a failure or review.
+    const timeOrder = validDate && validOldDate ? Date.parse(date) - Date.parse(oldDate) : Number.NaN;
     // Keep malformed dates visible as review evidence; do not invent a pass.
-    if (!previous || !Number.isFinite(day(date)) || (Number.isFinite(day(oldDate)) && String(date) > String(oldDate))) latest.set(key, result);
+    if (!previous || !validDate || (validOldDate &&
+      (timeOrder > 0 || (timeOrder === 0 && statusPriority(result.status) > statusPriority(previous.status))))) latest.set(key, result);
   }
   return [...latest.values()];
 }

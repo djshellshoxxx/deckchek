@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeHealth, reminderStatus, fleetToCsv, filterFleet, summarizeFleet, bannerSummary, describeReminder, nextDueReminder, reminderWhen, BANNER_CAP } from '../app/fleet.js';
+import { computeHealth, latestResults, reminderStatus, fleetToCsv, filterFleet, summarizeFleet, bannerSummary, describeReminder, nextDueReminder, reminderWhen, BANNER_CAP } from '../app/fleet.js';
 
 const now = '2026-10-22T12:00:00Z';
 test('fleet health uses the latest result per test; no readings never means healthy', () => {
@@ -12,6 +12,42 @@ test('fleet health uses the latest result per test; no readings never means heal
   for (const status of ['unknown', 'skipped']) assert.equal(computeHealth({ lastResults: [{ testId: 'a', status, createdAt: '2026-10-21' }], now }), 'review');
   assert.equal(computeHealth({ lastResults: [{ testId: 'a', status: 'pass', createdAt: '2026-01-01' }], now }), 'review');
   assert.equal(computeHealth({ lastResults: [{ testId: 'a', status: 'pass', createdAt: 'bad-date' }], now }), 'review');
+});
+
+test('regression: optional UTC milliseconds cannot hide a newer failed test', () => {
+  const older = { testId: 'a', status: 'pass', createdAt: '2026-10-22T08:00:00Z' };
+  const newer = { testId: 'a', status: 'fail', createdAt: '2026-10-22T08:00:00.500Z' };
+  for (const lastResults of [[older, newer], [newer, older]]) {
+    assert.deepEqual(latestResults(lastResults), [newer]);
+    assert.equal(computeHealth({ lastResults, now }), 'attention');
+  }
+  const repaired = { ...newer, status: 'pass' }, failedBefore = { ...older, status: 'fail' };
+  for (const lastResults of [[failedBefore, repaired], [repaired, failedBefore]]) {
+    assert.deepEqual(latestResults(lastResults), [repaired]);
+    assert.equal(computeHealth({ lastResults, now }), 'healthy');
+  }
+});
+
+test('regression: equivalent UTC timestamps retain failure and review evidence regardless of input order', () => {
+  const passed = { testId: 'a', status: 'pass', createdAt: '2026-10-22T08:00:00Z' };
+  for (const [status, health] of [['fail', 'attention'], ['unknown', 'review'], ['skipped', 'review']]) {
+    const evidence = { ...passed, status, createdAt: '2026-10-22T08:00:00.000Z' };
+    for (const lastResults of [[passed, evidence], [evidence, passed]]) {
+      assert.deepEqual(latestResults(lastResults), [evidence]);
+      assert.equal(computeHealth({ lastResults, now }), health);
+    }
+  }
+});
+
+test('regression: timestamp ordering keeps malformed and unsupported dates visible for review', () => {
+  const valid = { testId: 'a', status: 'pass', createdAt: '2026-10-22T08:00:00Z' };
+  for (const createdAt of ['bad-date', '', '2026-02-30T08:00:00Z', '2026-10-22T09:00:00+01:00', null, 0, {}, { toString: null }, []]) {
+    const unknown = { ...valid, status: 'unknown', createdAt };
+    for (const lastResults of [[valid, unknown], [unknown, valid]]) {
+      assert.deepEqual(latestResults(lastResults), [unknown]);
+      assert.equal(computeHealth({ lastResults, now }), 'review');
+    }
+  }
 });
 
 test('days reminders use UTC calendar dates across DST and reset after completion', () => {

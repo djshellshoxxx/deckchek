@@ -17,6 +17,29 @@ test('fleet adapter never infers elapsed runtime from a revised historical total
   assert.equal(decorateFleet({ rows: [uncertain] }).rows[0].reminders[0].state, 'unknown');
 });
 
+test('regression: fleet last-tested time orders UTC timestamps by instant, including optional milliseconds', () => {
+  const older = { testId: 'a', status: 'pass', createdAt: '2026-10-22T08:00:00Z' };
+  const newer = { testId: 'b', status: 'pass', createdAt: '2026-10-22T08:00:00.500Z' };
+  for (const lastResults of [[older, newer], [newer, older]]) {
+    const row = decorateFleet({ rows: [{ assetId: 'a', lastResults, lastSessionAt: 'invalid' }] }, { now: '2026-10-22T12:00:00Z' }).rows[0];
+    assert.equal(row.lastTestedAt, newer.createdAt);
+  }
+  const lastSessionAt = '2026-10-22T08:00:00.750Z';
+  const row = decorateFleet({ rows: [{ assetId: 'a', lastResults: [older, newer], lastSessionAt }] }, { now: '2026-10-22T12:00:00Z' }).rows[0];
+  assert.equal(row.lastTestedAt, lastSessionAt);
+  assert.equal(decorateFleet({ rows: [{ lastResults: [], lastSessionAt: 'invalid' }] }).rows[0].lastTestedAt, null);
+});
+
+test('regression: last-tested display accepts parseable offsets without treating unsupported evidence as healthy', () => {
+  const lastResults = [
+    { testId: 'a', status: 'pass', createdAt: '2026-10-22T09:00:00+01:00' },
+    { testId: 'b', status: 'pass', createdAt: '2026-10-22T08:30:00Z' },
+  ];
+  const row = decorateFleet({ rows: [{ assetId: 'a', lastResults }] }, { now: '2026-10-22T12:00:00Z' }).rows[0];
+  assert.equal(row.lastTestedAt, lastResults[1].createdAt);
+  assert.equal(row.health, 'review');
+});
+
 test('native fleet bridge sends exactly the registered command argument names', async () => {
   const calls = [];
   const api = createFleetApi(async (command, args) => { calls.push({ command, args }); return command === 'fleet_snapshot' ? { rows: [] } : null; });

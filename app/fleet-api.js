@@ -8,9 +8,12 @@ export function decorateFleet(snapshot, { now = new Date().toISOString(), staleD
     const reminders = (row.reminders ?? []).map(reminder => ({ ...reminder,
       ...reminderStatus({ ...reminder, installedDate: row.installedDate, createdAt: row.createdAt }, reminder.lastDoneAt,
         reminder.lastDoneAt ? reminder.hoursSinceCompletion : row.hoursTotal, now) }));
+    const lastTestedAt = [...results.map(result => result.createdAt), row.lastSessionAt]
+      .filter(date => typeof date === 'string' && Number.isFinite(Date.parse(date)))
+      .sort((a, b) => Date.parse(a) - Date.parse(b) || (a < b ? -1 : a > b ? 1 : 0)).at(-1) ?? null;
     return { ...row, health: computeHealth({ lastResults: results, lastSessionAt: row.lastSessionAt, now, staleDays }), reminders,
       failing: results.filter(result => result.status === 'fail').map(result => ({ testId: result.testId, name: result.name || result.testId })),
-      lastTestedAt: [...results.map(result => result.createdAt), row.lastSessionAt].filter(date => typeof date === 'string' && Number.isFinite(Date.parse(date))).sort().at(-1) ?? null };
+      lastTestedAt };
   });
   const selected = filterFleet(rows, filters);
   return { ...snapshot, rows: selected, tiles: summarizeFleet(selected) };
