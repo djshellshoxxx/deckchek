@@ -43,6 +43,7 @@ mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
+mod incident_metric_evidence;
 mod support_isolation;
 mod venue_incidents;
 
@@ -286,6 +287,9 @@ pub fn run() {
             venue_incidents::venue_incident_save,
             venue_incidents::venue_incident_list,
             venue_incidents::venue_incident_page,
+            incident_metric_evidence::venue_incident_save_with_metric_evidence,
+            incident_metric_evidence::venue_incident_metric_evidence_get,
+            incident_metric_evidence::venue_incident_metric_evidence_summaries,
             support_isolation::support_isolation_observation_save,
             support_isolation::support_isolation_observation_get,
             support_isolation::support_isolation_comparison_save,

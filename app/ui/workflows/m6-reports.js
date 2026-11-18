@@ -181,7 +181,7 @@ export const humPrintable = Object.freeze({
 // ------------------------------------------------------------------ venue report (FS-15 AC-7)
 
 /** Plain data: catalog, measured runs and a separately identified operator incident history. */
-export function venuePrintData({ venue, setups = [], supports = null, humRuns = [], incidents = null, isolation = null, assetName = id => id } = {}) {
+export function venuePrintData({ venue, setups = [], supports = null, humRuns = [], incidents = null, metricEvidence = null, isolation = null, assetName = id => id } = {}) {
   if (!venue) return null;
   return {
     name: venue.name || 'Venue', details: [['Type', venue.venueType], ['City', venue.city], ['Country', venue.country], ['Notes', venue.notes]].filter(([, v]) => v),
@@ -191,7 +191,7 @@ export function venuePrintData({ venue, setups = [], supports = null, humRuns = 
       support: structuredClone(supports?.find(row => row.id === s.supportConfigurationId) ?? null),
       components: (s.components || []).map(c => `${c.role || 'component'}${c.position ? ` (${c.position})` : ''}: ${assetName(c.assetId)}`) })),
     humRuns: humRuns.map(r => humPrintData(r, { venueName: venue.name })).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, VENUE_RUN_LIMIT),
-    incidents, isolation: isolation == null ? null : structuredClone(isolation),
+    incidents, metricEvidence: metricEvidence == null ? null : structuredClone(metricEvidence), isolation: isolation == null ? null : structuredClone(isolation),
   };
 }
 function currentSupportHtml(setup, loaded, esc) {
@@ -216,6 +216,25 @@ ${para(esc, 'Each entry is an operator report, not a sensor detection or diagnos
 ${table(esc, ['Occurred (UTC)', 'Incident', 'Selected venue', 'Selected setup', 'Notes', 'Saved (UTC)'], rows.map(row => [
     row.occurredAt, INCIDENT_TYPES.find(type => type.id === row.kind)?.label || row.kind, row.context?.venue?.name || '', row.context?.setup?.name || 'No setup assigned', row.note || '', row.recordedAt,
   ]))}`;
+}
+function incidentMetricHtml(history, esc) {
+  const heading = '<h2>Selected live-monitor snapshots</h2>';
+  if (!history) return `${heading}<p>Live-monitor snapshots were not loaded for this report.</p>`;
+  if (history.status === 'unsupported') return `${heading}<p>Live-monitor snapshots require the desktop app; browser incidents have no native snapshot attachment.</p>`;
+  const selected = history.items.slice(0, MAX_ROWS), attached = selected.filter(row => row.evidence);
+  const scope = para(esc, `${selected.length} selected incidents checked; ${selected.length - attached.length} have no saved snapshot. One operator-selected latest frame per attachment, with receipt age at the press. This does not establish physical source identity, a surrounding recording interval or cause.`, 'dc-note');
+  if (!attached.length) return `${heading}${scope}`;
+  return `${heading}${scope}${table(esc, ['Incident / press (UTC)', 'Operator-selected input', 'Observation / receipt age', 'Existing metrics', 'Availability / loss'], attached.map(({ incident, evidence: e }) => {
+    const value = (key, unit) => e.unavailable.includes(key) ? `${key}: unavailable` : `${key}: ${e.metrics[key]} ${unit}`;
+    const { source: s, timing: t, loss } = e;
+    return [
+      `${INCIDENT_TYPES.find(type => type.id === incident.kind)?.label || incident.kind} · ${incident.occurredAt} · ${incident.id}`,
+      `Deck ${s.deck} · ${s.deviceName || 'Device label unavailable'} · inputs ${s.firstChannel}–${s.secondChannel} · ${s.format} · generation ${s.generation} · session ${s.sessionId || 'not persisted'}`,
+      `${t.observedAt} · age at press ${t.ageMs === null ? 'unavailable' : `${t.ageMs} ms`} · ${t.basis} · sample clock ${t.sampleTimeSeconds === null ? 'unavailable' : `${t.sampleTimeSeconds} s`}`,
+      `${value('levelDb', 'dBFS')} · ${value('snrDb', 'dB')} · ${value('humDb', 'dBFS')} · dropouts ${e.metrics.dropouts} · lock ${e.metrics.locked} · ${e.metrics.motion}/${e.metrics.direction}/${e.metrics.state}`,
+      `Unavailable: ${e.unavailable.join(', ') || 'none'}${e.unavailable.length === 11 ? ' (no valid numeric metric observations)' : ''}. Dropped blocks: callback ${loss.reportedDroppedBlocks ?? 'unavailable'}, monitor ${loss.monitorDroppedBlocks ?? 'unavailable'}; log events ${loss.logEventsDropped ?? 'unavailable'}. Saved ${e.recordedAt}.`,
+    ];
+  }))}`;
 }
 function supportObservationHtml(row, esc) {
   const { context, capture, analysis, calibration } = row;
@@ -280,7 +299,7 @@ export const venuePrintable = Object.freeze({
       ? `<h2>Hum and feedback history</h2>${d.humRuns.map(r => humRunHtml(r, esc, 'h3')).join('')}`
       : '<h2>Hum and feedback history</h2><p>No hum or feedback runs are saved for this venue.</p>';
     const historyScope = para(esc, `This report includes up to ${VENUE_RUN_LIMIT} saved hum and feedback runs for this venue, newest first. Older saved records remain stored.`, 'dc-note');
-    return `${facts(esc, d.details || [])}${setups}${historyScope}${runs}${incidentHistoryHtml(d.incidents, esc)}${supportHistoryHtml(d.isolation, esc)}`;
+    return `${facts(esc, d.details || [])}${setups}${historyScope}${runs}${incidentHistoryHtml(d.incidents, esc)}${incidentMetricHtml(d.metricEvidence, esc)}${supportHistoryHtml(d.isolation, esc)}`;
   },
 });
 
@@ -288,7 +307,7 @@ export const venuePrintable = Object.freeze({
  * Each measured run is fetched in full, with at most 50 runs. Read failures or missing details abort report preparation.
  * Incident and support reads also propagate errors. Legacy callers without those records disclose them as unloaded.
  */
-export async function gatherVenueReport({ catalog, humStore, incidentStore, isolationStore, venueId }) {
+export async function gatherVenueReport({ catalog, humStore, incidentStore, metricStore, isolationStore, venueId }) {
   const venue = (await catalog.list('venue')).find(v => v.id === venueId);
   if (!venue) return null;
   const [setups, assets, summaries, incidents, supports, isolation] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: VENUE_RUN_LIMIT }),
@@ -297,13 +316,22 @@ export async function gatherVenueReport({ catalog, humStore, incidentStore, isol
   if (isolationStore && (!isolation || !Array.isArray(isolation.observations) || !Array.isArray(isolation.comparisons))) throw new Error('Support A/B history returned invalid records.');
   if (supports != null && !Array.isArray(supports)) throw new Error('Support catalog returned invalid records.');
   if (!Array.isArray(summaries)) throw new Error('Hum and feedback history returned invalid records.');
+  let metricEvidence = null;
+  if (metricStore && !metricStore.native) metricEvidence = { status: 'unsupported', items: [] };
+  else if (metricStore && incidents) {
+    if (!Array.isArray(incidents.items)) throw new Error('Incident history returned invalid records for snapshot summaries.');
+    const selected = incidents.items.slice(0, MAX_ROWS);
+    const items = selected.length ? await metricStore.summaries(selected) : [];
+    if (!Array.isArray(items) || items.length !== selected.length || items.some((row, i) => row?.incident?.id !== selected[i].id)) throw new Error('Snapshot summaries did not match the selected incident rows.');
+    metricEvidence = { status: 'loaded', items };
+  }
   const runs = await Promise.all(summaries.slice(0, VENUE_RUN_LIMIT).map(async summary => {
     const run = await humStore.get(summary.id);
     if (!run) throw new Error(`Saved hum/feedback run ${summary.id} is unavailable; the report was not generated.`);
     return run;
   }));
   const name = id => assets.find(a => a.id === id)?.nickname || 'Unknown asset';
-  return venuePrintData({ venue, setups, supports, humRuns: runs, incidents, isolation, assetName: name });
+  return venuePrintData({ venue, setups, supports, humRuns: runs, incidents, metricEvidence, isolation, assetName: name });
 }
 
 // ------------------------------------------------------------------ registration + button

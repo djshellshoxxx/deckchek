@@ -5,7 +5,7 @@
   "model": "ONE",
   "category": "controller",
   "summary": "controller profile with jog, motor, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): Serato DJ Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. Transport addendum (2026-11-18): RANE ONE User Guide v1.5, p. 5 and p. 9: original ONE rear USB-B ports carry MIDI. Deck controls send MIDI only with the deck source at USB A/B. ONE MKII behavior is not imported.",
   "documents": [
     {
       "title": "Manufacturer model feature reference",
@@ -48,6 +48,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "RANE ONE User Guide — v1.5 (ONE MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/rane/one/RANE-ONE-User-Guide-v1_5.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v1.5; p. 5; p. 9. Original ONE, excluding ONE MKII. The deck source must be USB A/B for deck-control MIDI."
     }
   ],
   "connectivity": {
@@ -58,7 +65,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "ONE"
@@ -131,6 +138,15 @@
       "notes": [
         "Original RANE ONE: motorized 7-inch platters, 16 pads, dual USB soundcards. Do not add ONE MKII exclusive internal FX, OLED or Precision Feel upgrades."
       ]
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/rane/one/RANE-ONE-User-Guide-v1_5.pdf",
+      "confidence": "confirmed",
+      "notes": "RANE ONE User Guide v1.5, p. 5 and p. 9: original ONE rear USB-B ports carry MIDI. Deck controls send MIDI only with the deck source at USB A/B. ONE MKII behavior is not imported."
     }
   ],
   "midi": {

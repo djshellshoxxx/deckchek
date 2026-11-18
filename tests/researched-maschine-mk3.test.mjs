@@ -29,7 +29,8 @@ test('MASCHINE MK3 retains research-seed status and unresolved identity and MIDI
   assert.deepEqual(profile.connectivity.usb.productIds, []);
   assert.equal(profile.connectivity.usb.classCompliant, null);
   assert.equal(profile.connectivity.midi.usbMidi, null);
-  assert.equal(profile.connectivity.midi.din, null);
+  // MASCHINE MK3 Getting Started 2.7.7, pp. 30–31: 5-pin DIN IN and OUT.
+  assert.equal(profile.connectivity.midi.din, true);
   assert.equal(profile.midi.mapSource, 'learn');
   assert.equal(profile.midi.complete, false);
   assert.deepEqual(profile.midi.controls, []);

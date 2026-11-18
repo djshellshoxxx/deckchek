@@ -29,7 +29,8 @@ test('DDJ-1000 retains the Mac source scope and unresolved identity and MIDI det
   assert.equal(profile.connectivity.usb.vendorId, null);
   assert.deepEqual(profile.connectivity.usb.productIds, []);
   assert.equal(profile.connectivity.usb.classCompliant, null);
-  assert.equal(profile.connectivity.midi.usbMidi, null);
+  // DDJ-1000 Operating Instructions DRI1516A, p. 31: USB MIDI control.
+  assert.equal(profile.connectivity.midi.usbMidi, true);
   assert.equal(profile.connectivity.midi.din, null);
   assert.equal(profile.midi.mapSource, 'learn');
   assert.equal(profile.midi.complete, false);

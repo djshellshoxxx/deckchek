@@ -31,3 +31,25 @@ unconditional. All handwritten checks remain unchanged. USB IDs, class
 compliance, MIDI transport fields and control maps, hardware revision, and
 OS/firmware compatibility retain their existing unknown status. Software 2.7.7
 is provenance for the routing instructions, not a new compatibility baseline.
+
+## MIDI transport addendum — 2026-11-18
+
+This addendum updates only the earlier note's unresolved MIDI transport status for the field below. The complete preceding audio findings and their original source scope remain intact.
+
+Profile: `native-instruments-maschine-mk3`. Exact MASCHINE MK3 DIN IN and OUT. The 2.7.7 document/software edition is not a firmware qualification. USB MIDI remains unresolved.
+
+### Documented transport
+
+`connectivity.midi.din` is `true`. MASCHINE MK3 Getting Started 2.7.7, section 2.3.5, p. 30 and p. 31: separate 5-pin DIN IN and OUT connect external MIDI equipment. Activate the ports in MIDI Preferences for standalone software, or configure the host for plug-in use. USB MIDI remains unresolved.
+
+### Exact evidence
+
+Page references identify one-based PDF pages in the pinned copy. Document versions identify the reviewed source, not a qualified hardware or firmware revision.
+
+- [Native Instruments MASCHINE MK3 Getting Started](https://docs.native-instruments.com/pdf-guides/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf), **2.7.7**; relevant locations: 2.7.7, p. 30, p. 31. Retrieved 2026-11-18. SHA-256: `8f5e90ee4bcaeb8d554eef708438aae9c1f2ea9fd70153f344bb2d5d500f9f48`.
+
+### Remaining qualification
+
+This update records manufacturer-documented transport, with the connection and mode conditions above. It adds no USB audio channel or stream-format facts and leaves `classCompliant`, USB identifiers, control maps, Identity replies, hardware revision, firmware and OS qualification at their prior scope. A transport flag does not establish a receiving connection or a complete map. No physical unit was tested. All earlier test, specification, document and software objects are retained; software `minVersion` values are unchanged.
+
+`connectivity.midi.usbMidi` remains `null`. The separate DIN IN and OUT documentation is not used to infer USB MIDI.

@@ -169,7 +169,9 @@ export default async function run({ browser, base, check, SHOTS }) {
   await p.click('#cmp-tab-population');
   await p.waitForSelector('#cmp-pop-empty');
   check('compare: empty population invites an import', /Import a pack to see how your unit compares/.test(await text(p, '#cmp-pop-empty')));
-  check('compare: privacy copy is shown', /No serial numbers, names, dates or locations/.test(await text(p, '#cmp-sharing')));
+  const privacyCopy = await text(p, '#cmp-sharing');
+  check('compare: privacy copy is shown', /Serial numbers, names, measurement timestamps and locations are not copied/.test(privacyCopy)
+    && /creation month/.test(privacyCopy) && /contributor token/.test(privacyCopy));
 
   // import with only 5 contributors -> not enough data
   await p.evaluate(() => { window.__cmp.contributors = 5; });

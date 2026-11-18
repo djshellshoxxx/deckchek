@@ -28,6 +28,7 @@
 
 import { dbfs } from './core.js';
 import { TIMECODE_FORMATS, findFormat, directionFromPhase } from './timecode.js';
+import { copyMonitorObservation, createMetricEvidence, MetricEvidenceError } from './incident-metric-evidence.js';
 
 export const MONITOR_SETTINGS_VERSION = 1;
 export const SETTINGS_KEY = 'monitor'; // app_state key (FS-00 §4.5)
@@ -767,7 +768,7 @@ const SPARK_POINTS = 300; // 5 min of SNR at one point per second
  * @param {()=>number} [d.now]
  * @param {{setTimeout:Function, clearTimeout:Function, setInterval:Function, clearInterval:Function}} [d.timers]
  */
-export function createMonitorController({ startStream, invoke = null, onFrame = () => {}, onAlert = () => {}, onState = () => {}, onTray = () => {}, settings = DEFAULT_SETTINGS, now = () => Date.now(), timers = globalThis } = {}) {
+export function createMonitorController({ startStream, invoke = null, onFrame = () => {}, onAlert = () => {}, onState = () => {}, onTray = () => {}, settings = DEFAULT_SETTINGS, now = () => Date.now(), monotonicNow = () => globalThis.performance?.now?.() ?? NaN, newGeneration = () => globalThis.crypto.randomUUID(), timers = globalThis } = {}) {
   let cfg = normalizeSettings(settings);
   let state = 'idle', info = {}, config = null, lastConfig = null;
   let stream = null, monitors = [], sessionId = null, startedAt = 0;
@@ -777,6 +778,17 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
   const decks = new Map(); // deck -> {frame, spark, sparkAcc}
   const perf = { blocks: 0, busyMs: 0, worstMs: 0 };
   const clock = () => (globalThis.performance?.now?.() ?? Date.now());
+  // A retry reuses the log session epoch, but owns a new stream generation.
+  // Only bounded metadata from a post-start callback can become evidence.
+  let activeAttempt = null, analysisSettings = null, analysisConfig = null;
+  const clearObservations = () => { for (const d of decks.values()) { d.observation = null; d.observedMonotonicMs = null; } };
+  const retireAttempt = () => { activeAttempt = null; clearObservations(); };
+  const ageAt = (d, current) => {
+    const age = current - d.observedMonotonicMs;
+    return Number.isFinite(current) && Number.isFinite(d.observedMonotonicMs) && Number.isFinite(age) && age >= 0 ? age : null;
+  };
+  const receiptClock = () => { try { return monotonicNow(); } catch { return NaN; } };
+  const sourceUnavailable = () => { throw new MetricEvidenceError('METRIC_EVIDENCE_UNAVAILABLE', 'The selected live-monitor source is unavailable. Choose its current generation or turn off the attachment to record without a reading.'); };
 
   const setState = (s, extra = {}) => { state = s; info = { ...extra }; try { onState(s, info); } catch { /* UI callback */ } };
 
@@ -816,9 +828,20 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
     if (pendingEvents.length || pendingMinutes.length) await flush();
   }
 
-  function onBlock(block, myEpoch) {
-    if (myEpoch !== epoch) return;
+  function onBlock(block, myEpoch, attempt) {
+    if (myEpoch !== epoch || activeAttempt !== attempt) return;
     const t0 = clock();
+    const receivedMonotonicMs = receiptClock();
+    let observedAt = null;
+    try { observedAt = new Date(now()).toISOString(); } catch { /* invalid host wall clock: no eligible observation */ }
+    if (observedAt?.length !== 24) observedAt = null;
+    if (!observedAt) clearObservations();
+    const rate = Math.round(Number(block.sampleRate));
+    const validRate = Number.isFinite(rate) && rate >= 4000 && rate <= 384000;
+    if (!validRate || (attempt.sampleRate !== null && attempt.sampleRate !== rate)) {
+      attempt.generation = newGeneration(); clearObservations();
+    }
+    attempt.sampleRate = validRate ? rate : null;
     droppedBlocks = Math.max(droppedBlocks, block.quality?.droppedBlocks || 0);
     const frames = [];
     const pairs = Array.isArray(block.pairs) && block.pairs.length ? block.pairs : [{ left: block.left, right: block.right }];
@@ -829,6 +852,19 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
       frames.push(frame);
       const d = decks.get(m.deck);
       d.frame = frame;
+      if (state === 'running' && validRate && observedAt && Math.min(p.left?.length || 0, p.right?.length || 0) > 0) {
+        const selected = attempt.decks[i];
+        d.observation = copyMonitorObservation(frame, {
+          source: { generation: attempt.generation, deck: m.deck, deviceName: attempt.deviceName,
+            firstChannel: selected.first, secondChannel: selected.first + 1, format: analysisConfig.format, sessionId },
+          observedAt,
+          configuration: { settingsVersion: MONITOR_SETTINGS_VERSION, sampleRateHz: rate, hopMs: analysisConfig.hopMs,
+            analysisWindowSeconds: 0.5, baselineSeconds: 60, nominalRpm: 33.333333,
+            thresholds: analysisSettings.thresholds, cooldownSec: analysisSettings.cooldownSec },
+          loss: { reportedDroppedBlocks: block.quality?.droppedBlocks ?? null, monitorDroppedBlocks: droppedBlocks, logEventsDropped: eventsDropped },
+        });
+        d.observedMonotonicMs = receivedMonotonicMs;
+      }
       d.sparkAcc.push(frame.motion === 'play' && Number.isFinite(frame.snrDb) ? frame.snrDb : NaN);
       if (d.sparkAcc.length >= Math.max(1, Math.round(1000 / config.hopMs))) {
         const v = d.sparkAcc.filter(Number.isFinite);
@@ -846,12 +882,22 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
     try { onFrame(frames); } catch { /* UI callback */ }
   }
 
-  function openStream(myEpoch) {
-    return startStream({
-      holder: HOLDER, deviceName: config.deviceName, blockMs: config.hopMs, pairs: config.decks.map(d => d.first),
-      onBlock: b => onBlock(b, myEpoch),
-      onEnd: e => onStreamEnd(e, myEpoch),
-    });
+  async function openStream(myEpoch) {
+    clearObservations();
+    const attempt = { generation: newGeneration(), sampleRate: null, deviceName: sanitizeLabel(config.deviceName), decks: structuredClone(config.decks) };
+    activeAttempt = attempt;
+    try {
+      const opened = await startStream({
+        holder: HOLDER, deviceName: config.deviceName, blockMs: config.hopMs, pairs: config.decks.map(d => d.first),
+        onBlock: b => onBlock(b, myEpoch, attempt),
+        onEnd: e => onStreamEnd(e, myEpoch, attempt),
+      });
+      attempt.deviceName = sanitizeLabel(opened?.info?.deviceName ?? config.deviceName);
+      return opened;
+    } catch (error) {
+      if (activeAttempt === attempt) retireAttempt();
+      throw error;
+    }
   }
 
   const elapsedMs = () => Math.max(0, now() - startedAt);
@@ -860,8 +906,9 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
   const sessionMs = () => Math.max(elapsedMs(), ...monitors.map(m => Math.ceil(m.t * 1000)));
   const runInfo = () => ({ sessionId, deviceName: info.deviceName ?? config?.deviceName ?? null, sampleRate: info.sampleRate ?? null, persisted: Boolean(sessionId) });
 
-  function onStreamEnd(e, myEpoch) {
-    if (myEpoch !== epoch || state === 'stopping' || state === 'idle') return;
+  function onStreamEnd(e, myEpoch, attempt) {
+    if (myEpoch !== epoch || activeAttempt !== attempt || state === 'stopping' || state === 'idle') return;
+    retireAttempt();
     stream = null;
     if (e?.reason === 'preempted') {
       finish('preempted', { message: 'Live monitor stopped: another DeckChek feature needed the audio input.' });
@@ -897,6 +944,7 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
 
   async function finish(endReason, extra = {}) {
     epoch++;
+    retireAttempt();
     timers.clearTimeout?.(retryTimer); retryTimer = null;
     if (flushTimer != null) timers.clearInterval?.(flushTimer);
     flushTimer = null;
@@ -926,7 +974,26 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
     perf: () => ({ ...perf, meanMs: perf.blocks ? perf.busyMs / perf.blocks : 0 }),
     deck(id) { const d = decks.get(id); return d ? { frame: d.frame, spark: Array.from(d.spark.values()) } : null; },
     deckIds: () => [...decks.keys()],
-    setSettings(s) { cfg = normalizeSettings(s); },
+    metricSources() {
+      if (state !== 'running' || !activeAttempt) return [];
+      const current = receiptClock();
+      return [...decks.values()].filter(d => d.observation?.source.generation === activeAttempt.generation)
+        .map(d => structuredClone({ source: d.observation.source, timing: { ...d.observation.timing, ageMs: ageAt(d, current) }, configuration: d.observation.configuration }));
+    },
+    metricSnapshot(selector, incident) {
+      if (state !== 'running' || !activeAttempt || selector?.generation !== activeAttempt.generation) sourceUnavailable();
+      const d = decks.get(selector.deck);
+      if (!d?.observation || d.observation.source.generation !== selector.generation
+          || Object.keys(d.observation.source).some(key => d.observation.source[key] !== selector[key])) sourceUnavailable();
+      return createMetricEvidence(d.observation, incident, ageAt(d, receiptClock()));
+    },
+    setSettings(s) {
+      const next = normalizeSettings(s);
+      if (activeAttempt && (JSON.stringify(next.thresholds) !== JSON.stringify(cfg.thresholds) || next.cooldownSec !== cfg.cooldownSec)) {
+        activeAttempt.generation = newGeneration(); clearObservations();
+      }
+      cfg = next;
+    },
     mute(minutes = 30) { mutedUntil = now() + minutes * 60_000; return mutedUntil; },
     unmute() { mutedUntil = 0; },
     /** Start monitoring. Resolves {ok, state, ...}; never rejects. */
@@ -936,6 +1003,8 @@ export function createMonitorController({ startStream, invoke = null, onFrame = 
       if (!v.ok) { setState('error', { code: 'CONFIG', message: v.errors.join(' ') }); return { ok: false, state, errors: v.errors }; }
       config = v.config; lastConfig = v.config;
       const myEpoch = ++epoch;
+      analysisSettings = structuredClone(cfg); // the settings actually applied to this session's engines
+      analysisConfig = structuredClone(config);
       monitors = config.decks.map(d => createMonitor({ format: config.format, deck: d.deck, hopMs: config.hopMs, thresholds: cfg.thresholds, cooldownSec: cfg.cooldownSec }));
       decks.clear();
       for (const m of monitors) decks.set(m.deck, { frame: null, spark: createRing(SPARK_POINTS), sparkAcc: [] });

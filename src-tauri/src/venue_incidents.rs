@@ -138,7 +138,7 @@ fn optional_id(value: &Option<String>, name: &str) -> Result<(), String> {
 }
 
 /// Canonical millisecond UTC timestamps, including actual calendar-day validity.
-fn valid_time(value: &str) -> bool {
+pub(crate) fn valid_time(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.len() != 24 {
         return false;
@@ -175,7 +175,7 @@ fn valid_time(value: &str) -> bool {
     day >= 1 && day <= days && number(11, 13) < 24 && number(14, 16) < 60 && number(17, 19) < 60
 }
 
-fn normalize(input: &IncidentInput) -> Result<IncidentInput, String> {
+pub(crate) fn normalize(input: &IncidentInput) -> Result<IncidentInput, String> {
     let mut input = input.clone();
     if input.schema_version != 1 || !KINDS.contains(&input.kind.as_str()) {
         return Err(invalid("Unsupported incident schema version or type"));
@@ -268,7 +268,7 @@ fn decode(stored: Stored) -> Result<Incident, String> {
         recorded_at: stored.recorded_at,
     })
 }
-fn existing(conn: &Connection, id: &str) -> Result<Option<Incident>, String> {
+pub(crate) fn existing(conn: &Connection, id: &str) -> Result<Option<Incident>, String> {
     let row = conn
         .query_row(
             &format!("SELECT {COLUMNS} FROM venue_incident WHERE id = ?1"),
@@ -283,13 +283,22 @@ fn existing(conn: &Connection, id: &str) -> Result<Option<Incident>, String> {
 pub fn save(conn: &Connection, input: &IncidentInput) -> Result<Incident, String> {
     let input = normalize(input)?;
     let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate).map_err(storage)?;
-    if let Some(saved) = existing(&tx, &input.id)? {
+    let saved = save_in_transaction(&tx, input)?;
+    tx.commit().map_err(storage)?;
+    Ok(saved)
+}
+
+/// Caller supplies normalized v1 input and owns the single commit boundary.
+pub(crate) fn save_in_transaction(
+    tx: &Transaction<'_>,
+    input: IncidentInput,
+) -> Result<Incident, String> {
+    if let Some(saved) = existing(tx, &input.id)? {
         if saved.input != input {
             return Err(
                 "INCIDENT_CONFLICT: This incident ID already belongs to a different report".into(),
             );
         }
-        tx.commit().map_err(storage)?;
         return Ok(saved);
     }
     let venue_exists: bool = tx
@@ -314,13 +323,12 @@ pub fn save(conn: &Connection, input: &IncidentInput) -> Result<Incident, String
             "INCIDENT_CONTEXT: Choose an existing venue and a setup belonging to that venue".into(),
         );
     }
-    let recorded_at = now_iso(&tx).map_err(storage)?;
+    let recorded_at = now_iso(tx).map_err(storage)?;
     if !valid_time(&recorded_at) {
         return Err(storage("Database clock returned an invalid timestamp"));
     }
     tx.execute("INSERT INTO venue_incident (id, schema_version, venue_id, setup_id, kind, occurred_at, note, context_json, origin, recorded_at) VALUES (?1, 1, ?2, ?3, ?4, ?5, ?6, ?7, 'operator', ?8)",
         params![&input.id, &input.venue_id, &input.setup_id, &input.kind, &input.occurred_at, &input.note, serde_json::to_string(&input.context).map_err(storage)?, &recorded_at]).map_err(storage)?;
-    tx.commit().map_err(storage)?;
     Ok(Incident {
         input,
         origin: "operator".into(),

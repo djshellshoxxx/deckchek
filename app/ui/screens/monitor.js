@@ -23,6 +23,7 @@ import {
   createMonitorController, normalizeSettings, trayStateFor, DECK_STATE, DEVICE_BUSY_COPY, WORKAROUNDS, SETTINGS_KEY, MAX_RETENTION_DAYS,
 } from '../../monitor.js';
 import { createEventList, createLogViewer } from '../live-monitor-log.js';
+import { registerMetricMonitor } from '../../incident-metric-evidence.js';
 
 const PREFS_KEY = 'deckchek.monitor.v1';
 const FLAG = 'liveMonitor';
@@ -58,6 +59,7 @@ function controller() {
     onState: (state, info) => view?.onState(state, info),
     onTray: tray => view?.onTray(tray),
   });
+  registerMetricMonitor(ctrl);
   return ctrl;
 }
 

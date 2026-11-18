@@ -10,6 +10,7 @@
 import { h, esc, isNative, formatDate } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { pdfButton, humPrintData, gatherVenueReport } from './m6-reports.js';
+import { createIncidentMetricStore } from '../../incident-metric-evidence.js';
 import { announce, toast } from '../live.js';
 import { confirmDialog } from '../shell.js';
 import { store as catalog } from '../state.js';
@@ -97,6 +98,7 @@ const confidenceWord = c => (c >= .7 ? 'High' : c >= .45 ? 'Medium' : 'Low');
 export function createHumScreen(section, { store = createHumRunStore(), openInput = openMonoInput, feedbackOptions = {}, incidentOptions = {}, isolationOptions = {} } = {}) {
   const native = () => isNative();
   const incidentStore = incidentOptions.store ?? createVenueIncidentStore({ catalog: incidentOptions.catalog ?? catalog });
+  const metricStore = incidentOptions.metricStore ?? createIncidentMetricStore();
   const isolationStore = isolationOptions.store ?? createSupportIsolationStore({ catalog: isolationOptions.catalog ?? catalog });
   const st = {
     tab: 'hum', venues: [],
@@ -168,7 +170,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
       if (!st.incidents) {
         st.incidentHost = h('div', { id: 'incident-host' });
         panel.append(st.incidentHost);
-        st.incidents = createVenueIncidentPanel(st.incidentHost, { catalog, ...incidentOptions, store: incidentStore });
+        st.incidents = createVenueIncidentPanel(st.incidentHost, { catalog, ...incidentOptions, store: incidentStore, metricStore });
       } else {
         panel.append(st.incidentHost);
         st.incidents.setActive(true);
@@ -474,7 +476,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
     for (const [name, rows] of groups) {
       const sec = h('section', { class: 'card hum-run-group', 'aria-label': `Runs: ${name}` }, h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: name }), h('span', { class: 'muted small', text: `${rows.length} run${rows.length > 1 ? 's' : ''}` })));
       const venueId = rows[0]?.venueId;
-      if (venueId) sec.querySelector('.card-head').append(pdfButton(h, { id: `hum-venue-pdf-${venueId}`, kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog, humStore: store, incidentStore, isolationStore, venueId }) }));
+      if (venueId) sec.querySelector('.card-head').append(pdfButton(h, { id: `hum-venue-pdf-${venueId}`, kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog, humStore: store, incidentStore, metricStore, isolationStore, venueId }) }));
       const list = h('ul', { class: 'hum-run-list' });
       for (const r of rows) {
         const open = st.runs.open === r.id;

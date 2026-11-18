@@ -19,6 +19,7 @@ import { FUNCTIONS, TARGETS, MAX_DECKS, LAYERS, RELATIVE_ENCODINGS, functionDef,
 import { createModel, sanitizeModel, parseJsonFile, midiFromBytes, addLearnedControl, updateControl, removeControl, modelStats, cleanText, LIMITS } from '../../mapper/model.js';
 import { validateModel } from '../../mapper/validate.js';
 import { learnedToModel } from '../../mapper/from-learned.js';
+import { storedMidiMapForProfile } from '../../devices/dispatch.js';
 import { exportMixxx, importMixxx, fileStem } from '../../mapper/mixxx.js';
 import { exportVdj, importVdj } from '../../mapper/vdj.js';
 import { seratoReport } from '../../mapper/serato.js';
@@ -376,6 +377,7 @@ export function createMapperScreen(section) {
     setStatus('Loading the MIDI map…');
     let row = null;
     try { row = await store.getMidiMap(assetId); } catch (e) { setStatus(`Could not read the learned map: ${e?.message || e}`, 'warn'); }
+    row = storedMidiMapForProfile(row, profile);
     const learnedControls = Array.isArray(row?.map?.controls) ? row.map.controls.length : 0;
     const published = (profile?.midi?.controls || []).filter(c => c?.message).length;
     const name = asset.nickname || [profile?.manufacturer, profile?.model].filter(Boolean).join(' ') || 'My controller';

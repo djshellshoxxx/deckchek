@@ -6,6 +6,15 @@
 
 ## 1. Summary, Goals, Non-goals
 
+**Native incident snapshot extension (2026-11-18).** The Incidents tab offers an
+optional, default-off attachment of one explicitly selected existing live-monitor
+frame. The original incident and reading save atomically, with exact retry and
+separate bounded history/report reads. It starts no capture or analysis window;
+the selected venue/setup association is operator-provided. Hum startup
+placeholders remain explicitly unavailable. See
+[the selected snapshot contract](../incident-metric-evidence.md). This extension
+does not qualify a surrounding recording interval or a feedback/shock cause.
+
 A guided finder for ground-loop hum and low-frequency/booth feedback. For hum it walks through step-by-step disconnect / ground-lift isolation, measures the 50/60 Hz family and harmonics at each step and follows a decision tree to the likely source. For feedback it runs a controlled, very-low-level step test with a safety limiter and abort. It extends SPEC-05 (venue diagnostics, s8 and s23) with a hum workflow.
 
 Goals: locate the stage at which hum appears or vanishes; distinguish ground loop vs. induced hum vs. turntable ground vs. device; safely find the level and frequency at which feedback starts; give booth monitor guidance.

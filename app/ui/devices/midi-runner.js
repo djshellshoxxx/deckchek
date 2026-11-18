@@ -8,7 +8,7 @@ import { icon, chip } from '../icons.js';
 import * as midiBridge from '../../midi.js';
 import { parseMessage, matchControl, createCoverageSession, analyzeFader, analyzeJog, analyzeButton, analyzeTiming, buildLedSequence } from '../../midi-tests.js';
 import { analyzeStream, conformanceFindings, parseIdentityReply, validateMessage, IDENTITY_REQUEST, gmSteps, gmAbortCleanup, evaluateGm } from '../../midi-conformance.js';
-import { evaluateOutcome, effectiveMidiMap, learnedControls, learnKey, inferControlType, pickMidiPort, midiFindings } from '../../devices/dispatch.js';
+import { evaluateOutcome, effectiveMidiMap, storedMidiMapForProfile, learnedControls, learnKey, inferControlType, pickMidiPort, midiFindings } from '../../devices/dispatch.js';
 import { midiPrerequisites } from '../../devices/test-plan.js';
 import { linePlot } from '../plots.js';
 import { stepsCard, readoutGrid, findingList } from './runners.js';
@@ -73,7 +73,8 @@ export function runMidi(host, ctx) {
   const prerequisites = midiPrerequisites(profile);
   const explicitOutput = test.auto === true && kind === 'conformance' && test.params?.outputSelection === 'explicit';
   let canSkip = true;
-  let eff = effectiveMidiMap(profile.midi, ctx.learned?.map);
+  let acceptedLearned = storedMidiMapForProfile(ctx.learned, profile);
+  let eff = effectiveMidiMap(profile.midi, acceptedLearned?.map);
   const st = { port: null, outPort: null, inputChoice: null, outputChoice: null, connection: null, inputs: [], outputs: [], unsub: null, panel: null, disposed: false, generation: 0, refresh: 0 };
 
   const portCard = h('section', { class: 'card dev-midi-ports', 'aria-labelledby': 'midi-port-title' });
@@ -281,11 +282,11 @@ export function runMidi(host, ctx) {
         const rep = session.report();
         const fresh = learnedControls(rep.discovered || [], labels);
         if (!fresh.length) { toast('Name at least one control first.', { type: 'warn' }); return; }
-        const keep = (ctx.learned?.map?.controls || []).filter(c => !fresh.some(f => f.id === c.id || (f.message.kind === c.message?.kind && f.message.channel === c.message?.channel && f.message.number === c.message?.number)));
+        const keep = (acceptedLearned?.map?.controls || []).filter(c => !fresh.some(f => f.id === c.id || (f.message.kind === c.message?.kind && f.message.channel === c.message?.channel && f.message.number === c.message?.number)));
         const map = { mapSource: 'learned', complete: false, port: st.inputChoice?.name, ...(st.inputChoice?.id != null ? { portId: st.inputChoice.id, midiBackend: midi.backend() } : {}), controls: [...keep, ...fresh] };
         try {
           const saved = await ctx.saveLearned(map);
-          ctx.learned = saved; eff = effectiveMidiMap(profile.midi, map); renderMapNote();
+          ctx.learned = saved; acceptedLearned = storedMidiMapForProfile(saved, profile); eff = effectiveMidiMap(profile.midi, map); renderMapNote();
           toast(`Saved ${map.controls.length} learned control${map.controls.length > 1 ? 's' : ''} for this unit.`, { type: 'success' });
           announce('Learned map saved');
         } catch (error) { toast(`Could not save the learned map: ${error?.message || error}`, { type: 'error' }); }

@@ -12,7 +12,7 @@ import { go, showInspector } from '../shell.js';
 import { verdictFor } from '../metrics.js';
 import { workflowInstance } from '../workflows/flow.js';
 import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, resultStatus, resultTimestamp, imageUrl, documentLinks } from '../../devices/library.js';
-import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, buildDeviceReportHtml } from '../../devices/dispatch.js';
+import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, storedMidiMapForProfile, buildDeviceReportHtml } from '../../devices/dispatch.js';
 import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
 import { describeMediaRef } from '../media-picker.js';
 import { takeHandoff } from '../crosslinks.js';
@@ -319,7 +319,7 @@ export function createDevicesScreen(section) {
     const host = $('#dev-midi'), sub = $('#dev-midi-sub');
     if (!p.midi && !p.tests.some(t => String(t.method).startsWith('midi:'))) { host.innerHTML = '<p class="muted">This device does not send MIDI.</p>'; return; }
     let learned = null;
-    try { learned = unit ? await store.getMidiMap(unit.id) : null; } catch { /* none */ }
+    try { learned = unit ? storedMidiMapForProfile(await store.getMidiMap(unit.id), p) : null; } catch { /* none */ }
     if (!host.isConnected) return;
     const eff = effectiveMidiMap(p.midi, learned?.map);
     const source = p.midi?.mapSource;
@@ -425,7 +425,7 @@ export function createDevicesScreen(section) {
       },
       saveLearned: map => store.saveMidiMap(unit.id, p.id, map),
     };
-    if (d.runner === 'midi') { try { ctx.learned = await store.getMidiMap(unit.id); } catch { ctx.learned = null; } }
+    if (d.runner === 'midi') { try { ctx.learned = storedMidiMapForProfile(await store.getMidiMap(unit.id), p); } catch { ctx.learned = null; } }
     if (!host.isConnected) return;
     const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi, audio: runAudio }[d.runner];
     // A method can dispatch to a runner this build does not ship: say so instead of throwing.

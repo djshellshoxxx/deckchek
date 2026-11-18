@@ -5,7 +5,7 @@
   "model": "PRIME 4+",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. Transport addendum (2026-11-18): Engine OS User Guide v5.0.0, p. 6, p. 11 and p. 61: PRIME 4+ uses USB-B in computer mode for MIDI. The base-model descriptions expressly include this plus variant.",
   "documents": [
     {
       "title": "Verified manufacturer capability reference",
@@ -46,6 +46,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "Denon DJ combined Engine OS User Guide — v5.0.0 (PRIME 4+ MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v5.0.0; p. 6; p. 11; p. 61. The existing denon-dj-prime-4 ID denotes PRIME 4+. Computer mode is required; v5.0.0 is the reviewed edition, not a latest-version claim."
     }
   ],
   "connectivity": {
@@ -56,7 +63,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "PRIME 4+"
@@ -153,6 +160,15 @@
       "source": "https://support.denondj.com/en/support/solutions/articles/69000838474-denon-dj-prime-4-frequently-asked-questions",
       "confidence": "confirmed",
       "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "confidence": "confirmed",
+      "notes": "Engine OS User Guide v5.0.0, p. 6, p. 11 and p. 61: PRIME 4+ uses USB-B in computer mode for MIDI. The base-model descriptions expressly include this plus variant."
     }
   ],
   "midi": {

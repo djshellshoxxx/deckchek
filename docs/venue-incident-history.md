@@ -84,6 +84,19 @@ limits. Venue reports continue to request up to **300** incidents. Pagination
 adds no table or migration and changes neither append-only save/retry semantics
 nor browser workspace JSON export, which still excludes incidents.
 
+## Optional native live-monitor snapshot
+
+The desktop panel separately offers a default-off **Attach latest live-monitor
+reading** choice. An explicitly selected current deck frame and the original
+incident draft are frozen before awaiting storage, then saved together in one
+native transaction. Failed acknowledgements retry the exact original pair.
+This adds migration 0025 and separate bounded companion reads; the ordinary v1
+incident save/list/page contracts and browser archive remain unchanged.
+Native history can display/download the saved pair, and venue reports include
+compact summaries for their already selected incident IDs. See
+[the snapshot contract](incident-metric-evidence.md) for receipt timing,
+generation retirement, initial hum availability, atomicity and proof boundaries.
+
 ## Complete browser history archive
 
 Data now offers a separate **Browser venue history file** containing every
@@ -111,11 +124,13 @@ shape, actual panel navigation, stale responses, retry ownership, hidden/dispose
 panels and pending original saves. The existing venue-report tests check the
 unchanged report integration.
 
-Native tests live beside the production core. The standalone verification
-harness copies that exact core and its test module, the database migration and
-clock/ID helpers, and all **23** existing migrations. The harness removes the
+Native tests live beside the production core. The original pagination
+verification harness copied that exact core and its test module, the database
+migration and clock/ID helpers, and all **23** migrations present at that
+checkpoint. The selected snapshot extension has separate schema-25 qualification
+described in its contract. The original pagination harness removed the
 Tauri import, narrows the database import to the clock helper and makes
-`include_str!` paths absolute. This proof excludes Tauri's
+`include_str!` paths absolute. That proof excludes Tauri's
 command macros/adapters, `AppHandle`, `off_main`, database-path opening, the full
 desktop build and real Chromium interaction. It does not establish hardware
 qualification or cross-tab atomic persistence.

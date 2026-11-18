@@ -5,7 +5,7 @@
   "model": "MASCHINE MK3",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,encoder,button,usb,display,audio. Software: MASCHINE.",
-  "identityNotes": "Research seed; MASCHINE MK3 has manufacturer-documented USB audio routing with two input channels, main outputs 1/2 and headphone outputs 3/4, plus 24-bit conversion. The Getting Started guide's 2.7.7 (07/2018) version refers to software, not qualified firmware. Individual sample rates, hardware revision, OS support, firmware, USB IDs, class compliance, MIDI/HID maps and physical performance remain unverified. No factory tolerances or physical qualification are claimed.",
+  "identityNotes": "Research seed; MASCHINE MK3 has manufacturer-documented USB audio routing with two input channels, main outputs 1/2 and headphone outputs 3/4, plus 24-bit conversion. The Getting Started guide's 2.7.7 (07/2018) version refers to software, not qualified firmware. Individual sample rates, hardware revision, OS support, firmware, USB IDs, class compliance, MIDI/HID maps and physical performance remain unverified. No factory tolerances or physical qualification are claimed. Transport addendum (2026-11-18): MASCHINE MK3 Getting Started 2.7.7, section 2.3.5, p. 30 and p. 31: separate 5-pin DIN IN and OUT connect external MIDI equipment. Activate the ports in MIDI Preferences for standalone software, or configure the host for plug-in use. USB MIDI remains unresolved.",
   "documents": [
     {
       "title": "MASCHINE MK3 product features and audio interface specifications",
@@ -46,6 +46,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "Native Instruments MASCHINE MK3 Getting Started — 2.7.7 (MASCHINE MK3 MIDI scope)",
+      "type": "user-manual",
+      "url": "https://docs.native-instruments.com/pdf-guides/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. 2.7.7; p. 30; p. 31. Exact MASCHINE MK3 DIN IN and OUT. The 2.7.7 document/software edition is not a firmware qualification. USB MIDI remains unresolved."
     }
   ],
   "connectivity": {
@@ -57,7 +64,7 @@
     },
     "midi": {
       "usbMidi": null,
-      "din": null,
+      "din": true,
       "portNamePatterns": [
         "MASCHINE MK3"
       ]
@@ -151,6 +158,15 @@
       "unit": "bool",
       "source": "https://www.native-instruments.com/products/maschine",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_din_midi_transport",
+      "label": "Documented DIN MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://docs.native-instruments.com/pdf-guides/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf",
+      "confidence": "confirmed",
+      "notes": "MASCHINE MK3 Getting Started 2.7.7, section 2.3.5, p. 30 and p. 31: separate 5-pin DIN IN and OUT connect external MIDI equipment. Activate the ports in MIDI Preferences for standalone software, or configure the host for plug-in use. USB MIDI remains unresolved."
     }
   ],
   "midi": {
