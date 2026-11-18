@@ -1,0 +1,29 @@
+{
+  "assetId": "asset-generic-ctl",
+  "profileId": null,
+  "updatedAt": "2026-10-20T18:00:00.000Z",
+  "map": {
+    "mapSource": "learned",
+    "complete": false,
+    "port": "Generic DJ Controller MIDI 1",
+    "controls": [
+      { "id": "deck_1_play", "label": "Deck 1 Play", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 11, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": true },
+      { "id": "deck_1_cue", "label": "Deck 1 Cue", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 12, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": true },
+      { "id": "deck_1_sync", "label": "Deck 1 Sync", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 88, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "deck_1_tempo", "label": "Deck 1 Tempo", "group": "Deck 1", "type": "fader", "message": { "kind": "cc14", "channel": 1, "number": 0, "msbNumber": 0, "lsbNumber": 32 }, "range": [0, 16383], "led": false },
+      { "id": "deck_1_jog", "label": "Deck 1 Jog", "group": "Deck 1", "type": "jog", "message": { "kind": "cc", "channel": 1, "number": 33, "msbNumber": null, "lsbNumber": null }, "range": [1, 127], "led": false },
+      { "id": "deck_1_jog_touch", "label": "Deck 1 Jog touch", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 54, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "deck_1_pad_1", "label": "Deck 1 Pad 1", "group": "Deck 1 pads", "type": "pad", "message": { "kind": "note", "channel": 8, "number": 0, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": true },
+      { "id": "deck_1_pad_2", "label": "Deck 1 Pad 2", "group": "Deck 1 pads", "type": "pad", "message": { "kind": "note", "channel": 8, "number": 1, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": true },
+      { "id": "deck_1_loop_in", "label": "Deck 1 Loop in", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 16, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "deck_2_play", "label": "Deck 2 Play", "group": "Deck 2", "type": "button", "message": { "kind": "note", "channel": 2, "number": 11, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": true },
+      { "id": "deck_2_volume", "label": "Deck 2 Channel fader", "group": "Mixer", "type": "fader", "message": { "kind": "cc", "channel": 2, "number": 19, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "shift", "label": "Shift", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 63, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "shift_sync_1", "label": "Shift + Deck 1 Sync", "group": "Deck 1", "type": "button", "message": { "kind": "note", "channel": 1, "number": 11, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "crossfader", "label": "Crossfader", "group": "Mixer", "type": "fader", "message": { "kind": "cc", "channel": 7, "number": 31, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "browse", "label": "Browse", "group": "Library", "type": "knob", "message": { "kind": "cc", "channel": 7, "number": 64, "msbNumber": null, "lsbNumber": null }, "range": [1, 127], "led": false },
+      { "id": "mystery", "label": "Mystery knob", "group": "Other", "type": "knob", "message": { "kind": "cc", "channel": 7, "number": 90, "msbNumber": null, "lsbNumber": null }, "range": [0, 127], "led": false },
+      { "id": "display", "label": "Display", "group": "Other", "type": "button", "message": { "kind": "sysex", "channel": null, "number": null }, "range": null, "led": false }
+    ]
+  }
+}

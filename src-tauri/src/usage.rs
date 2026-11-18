@@ -58,11 +58,23 @@ pub fn valid_timestamp(s: &str) -> bool {
     if !fixed.iter().all(|&(i, c)| b[i] == c) {
         return false;
     }
-    if !(0..4).chain(5..7).chain(8..10).chain(11..13).chain(14..16).chain(17..19).all(digit) {
+    if !(0..4)
+        .chain(5..7)
+        .chain(8..10)
+        .chain(11..13)
+        .chain(14..16)
+        .chain(17..19)
+        .all(digit)
+    {
         return false;
     }
     let rest = &b[19..b.len() - 1];
-    if !rest.is_empty() && !(rest[0] == b'.' && rest.len() >= 2 && rest.len() <= 4 && rest[1..].iter().all(u8::is_ascii_digit)) {
+    if !rest.is_empty()
+        && !(rest[0] == b'.'
+            && rest.len() >= 2
+            && rest.len() <= 4
+            && rest[1..].iter().all(u8::is_ascii_digit))
+    {
         return false;
     }
     let n = |r: std::ops::Range<usize>| s[r].parse::<u32>().unwrap_or(99);
@@ -89,7 +101,10 @@ pub fn validate(input: &UsageAddInput) -> Result<(), String> {
         return Err("usage entry needs an assetId".into());
     }
     if !valid_timestamp(&input.started_at) {
-        return Err(format!("startedAt must be a UTC ISO timestamp like 2026-10-10T20:00:00.000Z, got '{}'", input.started_at));
+        return Err(format!(
+            "startedAt must be a UTC ISO timestamp like 2026-10-10T20:00:00.000Z, got '{}'",
+            input.started_at
+        ));
     }
     if !input.hours.is_finite() || input.hours < 0.0 || input.hours > MAX_HOURS {
         return Err(format!("hours must be between 0 and {MAX_HOURS}"));
@@ -102,7 +117,11 @@ pub fn validate(input: &UsageAddInput) -> Result<(), String> {
             return Err(format!("kind must be one of {}", KINDS.join(", ")));
         }
     }
-    if input.note.as_ref().map_or(false, |n| n.chars().count() > MAX_NOTE_CHARS) {
+    if input
+        .note
+        .as_ref()
+        .is_some_and(|n| n.chars().count() > MAX_NOTE_CHARS)
+    {
         return Err(format!("note is limited to {MAX_NOTE_CHARS} characters"));
     }
     Ok(())
@@ -123,26 +142,38 @@ fn row(r: &rusqlite::Row) -> rusqlite::Result<UsageEntry> {
     })
 }
 
-const COLS: &str = "id, asset_id, kind, started_at, hours, source, session_id, note, confirmed, created_at";
+const COLS: &str =
+    "id, asset_id, kind, started_at, hours, source, session_id, note, confirmed, created_at";
 
 pub fn add(conn: &Connection, input: &UsageAddInput) -> Result<UsageEntry, String> {
     validate(input)?;
     let exists: Option<i64> = conn
-        .query_row("SELECT 1 FROM asset WHERE id = ?1", [&input.asset_id], |r| r.get(0))
+        .query_row(
+            "SELECT 1 FROM asset WHERE id = ?1",
+            [&input.asset_id],
+            |r| r.get(0),
+        )
         .optional()
         .map_err(e2s)?;
     if exists.is_none() {
         return Err(format!("unknown asset '{}'", input.asset_id));
     }
     if let Some(sid) = &input.session_id {
-        let s: Option<i64> = conn.query_row("SELECT 1 FROM session WHERE id = ?1", [sid], |r| r.get(0)).optional().map_err(e2s)?;
+        let s: Option<i64> = conn
+            .query_row("SELECT 1 FROM session WHERE id = ?1", [sid], |r| r.get(0))
+            .optional()
+            .map_err(e2s)?;
         if s.is_none() {
             return Err(format!("unknown session '{sid}'"));
         }
     }
     let id = new_id();
     let now = now_iso(conn)?;
-    let note = input.note.as_ref().map(|n| n.trim().to_string()).filter(|n| !n.is_empty());
+    let note = input
+        .note
+        .as_ref()
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty());
     conn.execute(
         "INSERT INTO asset_usage (id, asset_id, kind, started_at, hours, source, session_id, note, confirmed, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
@@ -160,11 +191,20 @@ pub fn add(conn: &Connection, input: &UsageAddInput) -> Result<UsageEntry, Strin
         ],
     )
     .map_err(e2s)?;
-    conn.query_row(&format!("SELECT {COLS} FROM asset_usage WHERE id = ?1"), [&id], row).map_err(e2s)
+    conn.query_row(
+        &format!("SELECT {COLS} FROM asset_usage WHERE id = ?1"),
+        [&id],
+        row,
+    )
+    .map_err(e2s)
 }
 
 /// Entries for one asset, oldest first; `since` keeps rows starting at or after it.
-pub fn list(conn: &Connection, asset_id: &str, since: Option<&str>) -> Result<Vec<UsageEntry>, String> {
+pub fn list(
+    conn: &Connection,
+    asset_id: &str,
+    since: Option<&str>,
+) -> Result<Vec<UsageEntry>, String> {
     if let Some(s) = since {
         if !valid_timestamp(s) {
             return Err(format!("since must be a UTC ISO timestamp, got '{s}'"));
@@ -183,11 +223,15 @@ pub fn list(conn: &Connection, asset_id: &str, since: Option<&str>) -> Result<Ve
 
 /// Returns whether a row was removed.
 pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute("DELETE FROM asset_usage WHERE id = ?1", [id]).map(|n| n > 0).map_err(e2s)
+    conn.execute("DELETE FROM asset_usage WHERE id = ?1", [id])
+        .map(|n| n > 0)
+        .map_err(e2s)
 }
 
 pub fn confirm(conn: &Connection, id: &str) -> Result<(), String> {
-    let n = conn.execute("UPDATE asset_usage SET confirmed = 1 WHERE id = ?1", [id]).map_err(e2s)?;
+    let n = conn
+        .execute("UPDATE asset_usage SET confirmed = 1 WHERE id = ?1", [id])
+        .map_err(e2s)?;
     if n == 0 {
         return Err(format!("unknown usage entry '{id}'"));
     }
@@ -195,36 +239,61 @@ pub fn confirm(conn: &Connection, id: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn usage_add(app: AppHandle, input: UsageAddInput) -> Result<UsageEntry, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    add(&conn, &input)
+pub async fn usage_add(app: AppHandle, input: UsageAddInput) -> Result<UsageEntry, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        add(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_list(app: AppHandle, asset_id: String, since: Option<String>) -> Result<Vec<UsageEntry>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &asset_id, since.as_deref())
+pub async fn usage_list(
+    app: AppHandle,
+    asset_id: String,
+    since: Option<String>,
+) -> Result<Vec<UsageEntry>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &asset_id, since.as_deref())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn usage_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn usage_confirm(app: AppHandle, id: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    confirm(&conn, &id)
+pub async fn usage_confirm(app: AppHandle, id: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        confirm(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn normalize_pads_and_truncates_fraction() {
-        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00Z"), "2026-10-10T20:00:00.000Z");
-        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00.5Z"), "2026-10-10T20:00:00.500Z");
-        assert_eq!(super::normalize_timestamp("2026-10-10T20:00:00.123Z"), "2026-10-10T20:00:00.123Z");
+        assert_eq!(
+            super::normalize_timestamp("2026-10-10T20:00:00Z"),
+            "2026-10-10T20:00:00.000Z"
+        );
+        assert_eq!(
+            super::normalize_timestamp("2026-10-10T20:00:00.5Z"),
+            "2026-10-10T20:00:00.500Z"
+        );
+        assert_eq!(
+            super::normalize_timestamp("2026-10-10T20:00:00.123Z"),
+            "2026-10-10T20:00:00.123Z"
+        );
         assert_eq!(super::normalize_timestamp("junk"), "junk");
     }
 
@@ -234,11 +303,18 @@ mod tests {
         c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
         crate::db::apply_migrations(&c).unwrap();
         c.execute("INSERT INTO asset (id, nickname, is_deleted, created_at, updated_at) VALUES ('a1','S',0,'x','x')", []).unwrap();
-        for (id, ts) in [("l1", "2026-10-10T20:00:00Z"), ("l2", "2026-10-10T20:00:00.500Z"), ("l3", "2026-10-10T19:59:59Z")] {
+        for (id, ts) in [
+            ("l1", "2026-10-10T20:00:00Z"),
+            ("l2", "2026-10-10T20:00:00.500Z"),
+            ("l3", "2026-10-10T19:59:59Z"),
+        ] {
             c.execute("INSERT INTO asset_usage (id, asset_id, kind, started_at, hours, source, created_at) VALUES (?1,'a1','play',?2,1,'manual','x')", params![id, ts]).unwrap();
         }
         let all = list(&c, "a1", None).unwrap();
-        assert_eq!(all.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["l3", "l1", "l2"]);
+        assert_eq!(
+            all.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+            ["l3", "l1", "l2"]
+        );
         assert_eq!(all[1].started_at, "2026-10-10T20:00:00.000Z");
         let since = list(&c, "a1", Some("2026-10-10T20:00:00Z")).unwrap();
         assert_eq!(since.len(), 2);
@@ -276,7 +352,11 @@ mod tests {
     #[test]
     fn migration_creates_table_and_is_rerunnable() {
         let c = mem();
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 6).expect("0006 registered").1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 6)
+            .expect("0006 registered")
+            .1;
         c.execute_batch(sql).unwrap(); // IF NOT EXISTS: second run is a no-op
         let cols: Vec<String> = c
             .prepare("SELECT name FROM pragma_table_info('asset_usage')")
@@ -285,7 +365,21 @@ mod tests {
             .unwrap()
             .collect::<Result<_, _>>()
             .unwrap();
-        assert_eq!(cols, ["id", "asset_id", "kind", "started_at", "hours", "source", "session_id", "note", "confirmed", "created_at"]);
+        assert_eq!(
+            cols,
+            [
+                "id",
+                "asset_id",
+                "kind",
+                "started_at",
+                "hours",
+                "source",
+                "session_id",
+                "note",
+                "confirmed",
+                "created_at"
+            ]
+        );
     }
 
     #[test]
@@ -316,13 +410,23 @@ mod tests {
     #[test]
     fn list_since_is_inclusive_and_ordered() {
         let c = mem();
-        for (t, h) in [("2026-03-01T00:00:00Z", 1.0), ("2026-01-01T00:00:00.500Z", 2.0), ("2026-02-01T00:00:00.000Z", 3.0)] {
+        for (t, h) in [
+            ("2026-03-01T00:00:00Z", 1.0),
+            ("2026-01-01T00:00:00.500Z", 2.0),
+            ("2026-02-01T00:00:00.000Z", 3.0),
+        ] {
             add(&c, &input("a1", t, h, "import")).unwrap();
         }
         let all = list(&c, "a1", None).unwrap();
-        assert_eq!(all.iter().map(|e| e.hours).collect::<Vec<_>>(), [2.0, 3.0, 1.0]);
+        assert_eq!(
+            all.iter().map(|e| e.hours).collect::<Vec<_>>(),
+            [2.0, 3.0, 1.0]
+        );
         let since = list(&c, "a1", Some("2026-02-01T00:00:00.000Z")).unwrap();
-        assert_eq!(since.iter().map(|e| e.hours).collect::<Vec<_>>(), [3.0, 1.0]);
+        assert_eq!(
+            since.iter().map(|e| e.hours).collect::<Vec<_>>(),
+            [3.0, 1.0]
+        );
         assert!(list(&c, "a1", Some("yesterday")).is_err());
         // injection-shaped ids are just data
         assert!(list(&c, "a1' OR '1'='1", None).unwrap().is_empty());
@@ -337,8 +441,12 @@ mod tests {
         for bad in [-0.001, 24.001, f64::NAN, f64::INFINITY] {
             assert!(add(&c, &input("a1", ok, bad, "manual")).is_err(), "{bad}");
         }
-        assert!(add(&c, &input("a1", ok, 1.0, "Manual")).unwrap_err().contains("source"));
-        assert!(add(&c, &input("zzz", ok, 1.0, "manual")).unwrap_err().contains("unknown asset"));
+        assert!(add(&c, &input("a1", ok, 1.0, "Manual"))
+            .unwrap_err()
+            .contains("source"));
+        assert!(add(&c, &input("zzz", ok, 1.0, "manual"))
+            .unwrap_err()
+            .contains("unknown asset"));
         assert!(add(&c, &input("", ok, 1.0, "manual")).is_err());
         let mut k = input("a1", ok, 1.0, "manual");
         k.kind = Some("sleep".into());
@@ -355,12 +463,28 @@ mod tests {
 
     #[test]
     fn timestamp_validator() {
-        for good in ["2026-10-10T20:00:00Z", "2026-10-10T20:00:00.1Z", "2026-10-10T20:00:00.123Z", "2026-02-31T00:00:00Z"] {
+        for good in [
+            "2026-10-10T20:00:00Z",
+            "2026-10-10T20:00:00.1Z",
+            "2026-10-10T20:00:00.123Z",
+            "2026-02-31T00:00:00Z",
+        ] {
             // day-of-month is only range-checked (JS Date rolls it over); shape is what matters
             assert!(valid_timestamp(good), "{good}");
         }
-        for bad in ["", "2026-10-10", "2026-10-10T20:00:00", "2026-10-10T20:00:00+02:00", "2026-13-10T20:00:00Z", "2026-10-10T24:00:00Z",
-            "2026-10-10 20:00:00Z", "2026-10-10T20:00:00.Z", "2026-10-10T20:00:00.12345Z", "２０２６-10-10T20:00:00Z", "2026-10-10T20:00:00Zé"] {
+        for bad in [
+            "",
+            "2026-10-10",
+            "2026-10-10T20:00:00",
+            "2026-10-10T20:00:00+02:00",
+            "2026-13-10T20:00:00Z",
+            "2026-10-10T24:00:00Z",
+            "2026-10-10 20:00:00Z",
+            "2026-10-10T20:00:00.Z",
+            "2026-10-10T20:00:00.12345Z",
+            "２０２６-10-10T20:00:00Z",
+            "2026-10-10T20:00:00Zé",
+        ] {
             assert!(!valid_timestamp(bad), "{bad}");
         }
     }
@@ -376,7 +500,8 @@ mod tests {
         let mut i = input("a1", "2026-10-10T20:00:00Z", 1.0, "deckchek");
         i.session_id = Some("s1".into());
         let e = add(&c, &i).unwrap();
-        c.execute("DELETE FROM session WHERE id = 's1'", []).unwrap();
+        c.execute("DELETE FROM session WHERE id = 's1'", [])
+            .unwrap();
         let after = list(&c, "a1", None).unwrap();
         assert_eq!(after.len(), 1);
         assert_eq!(after[0].id, e.id);
@@ -401,9 +526,13 @@ mod tests {
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/usage.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/usage.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
-        let input: UsageAddInput = serde_json::from_value(v["usage_add"]["request"]["input"].clone()).unwrap();
+        let input: UsageAddInput =
+            serde_json::from_value(v["usage_add"]["request"]["input"].clone()).unwrap();
         let c = mem();
         c.execute("INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('asset-1','x','t','t')", []).unwrap();
         let mut got = serde_json::to_value(add(&c, &input).unwrap()).unwrap();
@@ -415,6 +544,8 @@ mod tests {
         }
         assert_eq!(&got, want);
         let list_req = &v["usage_list"]["request"];
-        assert!(list_req["assetId"].is_string() && valid_timestamp(list_req["since"].as_str().unwrap()));
+        assert!(
+            list_req["assetId"].is_string() && valid_timestamp(list_req["since"].as_str().unwrap())
+        );
     }
 }

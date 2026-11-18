@@ -85,7 +85,7 @@ async function browserMode(browser, base, wav, wav3k, extra) {
   const errors = watchConsole(page, 'browser');
   await page.goto(base);
   await page.waitForSelector('.rail-item');
-  check('rail has 12 nav items (default flags: 11 shipped screens plus Test media)', (await page.locator('.rail-item').count()) === 12);
+  check('rail has 12 nav items (11 shipped screens plus Test media; Fleet requires opt-in)', (await page.locator('.rail-item').count()) === 12 && (await page.locator('.rail-item[data-screen="fleet"]').count()) === 0);
   check('dark theme by default', (await page.getAttribute('html', 'data-theme')) === 'dark');
   check('help button wired by ui-assistance', (await page.locator('#cdlOptionsBtn').count()) === 1);
 
@@ -450,6 +450,35 @@ async function devicesDesktop(page) {
   check('MIDI coverage (mapped): all controls seen -> PASS', cov2.status === 'pass' && cov2.detail.measurements.find(m => m.metricId === 'midi_controls_seen_percent')?.value === 100, cov2.status);
   await shot(page, 'device-midi-coverage-dark');
 
+  // SPEC-34 auto-added midi:conformance (SPEC-36) on the same port: identity probe, raw stream, saved PASS
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  check('Test plan: DJM-A9 lists the auto-added MIDI conformance test', (await page.locator('.dev-test[data-test="auto-midi-conformance"]').count()) === 1);
+  await page.click('button[data-run-test="auto-midi-conformance"]');
+  await page.waitForSelector('#conf-title');
+  await page.waitForFunction(() => window.__mockMidi.sent.some(s => s.name === 'DJM-A9 MIDI 1' && s.bytes.join() === '240,126,127,6,1,247'));
+  check('MIDI conformance: Identity Request sent to the profile output port', true);
+  await page.evaluate(() => { const e = window.__emitMidi; e([0xF0, 0x7E, 0x00, 0x06, 0x02, 0x08, 0x10, 0x00, 0x20, 0x00, 1, 0, 0, 0, 0xF7]); e([0xFE]); e([0x90, 11, 127]); e([0x80, 11, 0]); e([0xB0, 31, 64]); });
+  await page.waitForFunction(() => /IDENTIFIED/.test(document.querySelector('#dev-runner')?.innerText || ''));
+  const ca = await a11yAudit(page);
+  check('MIDI conformance: a11y names + target sizes', !ca.unnamed.length && !ca.small.length, [...ca.unnamed, ...ca.small].slice(0, 3).join(' | '));
+  await page.click('#midi-finish');
+  await page.waitForFunction(() => window.__mockDb.deviceResults.some(r => r.testId === 'auto-midi-conformance'));
+  const conf = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'auto-midi-conformance'));
+  check('MIDI conformance: clean identified stream saved as PASS', conf?.status === 'pass' && conf.detail.measurements.find(m => m.metricId === 'midi_identity_reply')?.value === 1 && conf.detail.measurements.find(m => m.metricId === 'midi_message_count')?.value === 5, conf?.status);
+  await shot(page, 'device-midi-conformance-dark');
+
+  // SPEC-34 auto-added audio:quality (SPEC-35): desktop setup view only (no playback in the mock)
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  await page.click('button[data-run-test="auto-audio-quality"]');
+  await page.waitForSelector('#aq-setup-title');
+  check('Audio quality: setup lists native outputs and keeps the -12 dBFS safety copy', (await page.locator('#aq-out option').count()) === 2 && /never plays louder than -12 dBFS/.test(await page.locator('#dev-runner').innerText()) && (await page.inputValue('#aq-level')) === '-12');
+  check('Audio quality: Run is enabled with an output and an input; no Skip on an unconditional test', await page.isEnabled('#aq-run') && (await page.locator('#aq-skip').count()) === 0);
+  const aa = await a11yAudit(page);
+  check('Audio quality: a11y names + target sizes', !aa.unnamed.length && !aa.small.length, [...aa.unnamed, ...aa.small].slice(0, 3).join(' | '));
+  await shot(page, 'device-audio-quality-dark');
+
   // no MIDI device present -> clear empty state
   await page.evaluate(() => { window.__mockMidi.ports = []; });
   await page.click('#dev-run-back');
@@ -467,7 +496,7 @@ async function devicesDesktop(page) {
 // Minimal Tauri mock: catalog/run commands in memory, synthetic live capture.
 export function tauriMock() {
   const listeners = {};
-  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
+  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [], supportConfiguration: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
   const midiState = { ports: ['Focusrite USB MIDI', 'DJM-A9 MIDI 1'], open: [], sent: [] };
   let running = false, started = 0, timer = null;
   const sr = 48000;
@@ -493,9 +522,11 @@ export function tauriMock() {
       return { payload: { deviceName: 'Focusrite USB (In 1/2)', sampleRate: sr, channels: 2, left: s, right: s, streamErrors: [] }, quality: { framesCaptured: n, overrunSamples: 0, clippedSamplesL: 0, clippedSamplesR: 3, streamErrors: 0, streamErrorMessages: [], truncated: false, callbackCount: Math.round(n / 480), maxCallbackGapMs: 11.2 } };
     },
     live_capture_status: () => ({ running, elapsedSec: (Date.now() - started) / 1000, quality: {} }),
+    fleet_snapshot: () => ({ rows: [], venues: [], booths: [], positions: [], products: [], templates: [] }),
     catalog_list: ({ entity }) => db.catalog[entity].slice(),
     catalog_upsert: ({ entity, record }) => { const r = { ...record, id: record.id || `id-${Math.random().toString(36).slice(2)}` }; db.catalog[entity] = [...db.catalog[entity].filter(x => x.id !== r.id), r]; return r; },
     catalog_delete: ({ entity, id }) => { db.catalog[entity] = db.catalog[entity].filter(x => x.id !== id); return true; },
+    support_isolation_list: ({ filter = {} }) => ({ observations: [], comparisons: [], observationTotal: 0, comparisonTotal: 0, limit: filter.limit ?? 50 }),
     save_diagnostic_run: ({ run }) => {
       if (run.measurements.some(m => typeof m.uncertainty === 'object' && m.uncertainty !== null)) throw 'uncertainty must be numeric';
       db.runs.unshift(run); return null;

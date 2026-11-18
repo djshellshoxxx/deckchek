@@ -5,7 +5,7 @@
   "model": "DJM-900NXS2",
   "category": "mixer",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,eq,audio,usb. Software: rekordbox.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed. DRH1330C pp. 9, 14 document computer USB connections and nominal audio/converter specifications. Direct USB MIDI transport evidence was not retrieved; USB MIDI and DIN remain unknown. USB audio stream counts/formats, USB IDs/class compliance, receiving/Identity support, exact control maps, hardware/firmware revision and current driver/OS qualification remain unknown. No claimed factory tolerances or MIDI identifiers.",
   "documents": [
     {
       "title": "Model specific official feature reference",
@@ -44,6 +44,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "DJM-900NXS2 Quick Start Guide DRH1330C",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf",
+      "language": "en",
+      "notes": "Manufacturer PDF, DRH1330C p. 9: computer USB terminal; p. 14: two Type-B terminals, Audio Section nominal sampling rate and separately scoped converter depths. This reference does not qualify USB MIDI transport, host USB audio formats or stream channel counts."
     }
   ],
   "connectivity": {
@@ -104,12 +111,12 @@
     },
     {
       "key": "verified_usb_host_ports",
-      "label": "usb host ports",
+      "label": "USB Type-B computer connections",
       "value": 2,
       "unit": "count",
       "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
       "confidence": "confirmed",
-      "notes": "Published manufacturer capability"
+      "notes": "DRH1330C pp. 9, 14 identify computer USB connections and two Type-B terminals. These are computer connections, not USB host ports; the original key and count are retained for compatibility. https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf"
     },
     {
       "key": "verified_sound_color_fx",
@@ -146,6 +153,33 @@
       "source": "https://www.pioneerdj.com/en/product/dj-mixers/djm-900nxs2/",
       "confidence": "confirmed",
       "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Audio Section nominal sampling rate",
+      "value": 96000,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1330C p. 14, Audio Section. Nominal sampling rate; not a verified list of host USB stream formats."
+    },
+    {
+      "key": "verified_master_da_converter_depth",
+      "label": "MASTER D/A converter resolution",
+      "value": 32,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1330C p. 14. MASTER D/A converter resolution only; not a USB PCM bit-depth claim."
+    },
+    {
+      "key": "verified_other_ad_da_converter_depth",
+      "label": "Other A/D and D/A converter resolution",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRH1330C p. 14. Other A/D and D/A converter resolution only; not a USB PCM bit-depth claim."
     }
   ],
   "midi": {

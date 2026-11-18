@@ -5,7 +5,7 @@
   "model": "PRIME GO+",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. This entry is PRIME GO+, not original PRIME GO; these units differ in Ethernet, streaming support, processor and battery life.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. This entry is PRIME GO+, not original PRIME GO; these units differ in Ethernet, streaming support, processor and battery life. Transport addendum (2026-11-18): Engine OS User Guide v5.0.0, p. 18, p. 22 and p. 63: PRIME GO+ uses USB-B in computer mode. The separate VirtualDJ setup article 69000823507 specifies Engine DJ 4.1.0 or later for GO+; existing software minimum-version fields are unchanged.",
   "documents": [
     {
       "title": "PRIME GO+ official specifications",
@@ -51,6 +51,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "Denon DJ combined Engine OS User Guide — v5.0.0 (PRIME GO+ MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v5.0.0; p. 18; p. 22; p. 63. The existing denon-dj-prime-go ID denotes PRIME GO+. Computer mode is required. The VirtualDJ setup condition is Engine DJ 4.1.0 or later; it does not qualify current platforms."
+    },
+    {
+      "title": "Engine DJ PRIME GO and PRIME GO+ Setup with Virtual DJ — article 69000823507 (PRIME GO+ MIDI scope)",
+      "type": "support-article",
+      "url": "https://support.enginedj.com/support/solutions/articles/69000823507-denon-dj-prime-go-and-prime-go-setup-with-virtual-dj",
+      "language": "en",
+      "notes": "Transport evidence only. article 69000823507; 4.1.0. The existing denon-dj-prime-go ID denotes PRIME GO+. Computer mode is required. The VirtualDJ setup condition is Engine DJ 4.1.0 or later; it does not qualify current platforms."
     }
   ],
   "connectivity": {
@@ -61,7 +75,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "PRIME GO+"
@@ -160,6 +174,15 @@
       "unit": "count",
       "confidence": "confirmed",
       "source": "https://www.denondj.com/prime-go-plus"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "confidence": "confirmed",
+      "notes": "Engine OS User Guide v5.0.0, p. 18, p. 22 and p. 63: PRIME GO+ uses USB-B in computer mode. The separate VirtualDJ setup article 69000823507 specifies Engine DJ 4.1.0 or later for GO+; existing software minimum-version fields are unchanged."
     }
   ],
   "midi": {

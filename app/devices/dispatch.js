@@ -4,13 +4,13 @@
 
 import { WORKFLOWS, paramsForTest } from '../ui/workflows/definitions.js';
 import { evaluatePass } from '../device-checks.js';
-import { parseMethod, groupTestsByCategory, latestResults, progressFor, specSummary, CATEGORY_LABELS } from './library.js';
+import { parseMethod, groupTestsByCategory, latestResults, resultStatus, resultTimestamp, progressFor, specSummary, CATEGORY_LABELS, MIDI_KINDS, AUDIO_KINDS } from './library.js';
 
 const norm = s => String(s || '').trim().toLowerCase();
 
 /**
  * Decide how a test runs.
- * Returns {runner:'workflow', workflowId, mode} | {runner:'timecode'} | {runner:'midi', kind}
+ * Returns {runner:'workflow', workflowId, mode} | {runner:'timecode'} | {runner:'midi', kind} | {runner:'audio', kind}
  * | {runner:'driver'} | {runner:'software'} | {runner:'manual'} | {runner:'unsupported', reason}.
  */
 export function dispatchFor(test, workflows = WORKFLOWS) {
@@ -23,7 +23,8 @@ export function dispatchFor(test, workflows = WORKFLOWS) {
   }
   switch (engine) {
     case 'timecode': return mode === 'format-check' ? { runner: 'timecode' } : { runner: 'unsupported', reason: `Unknown timecode test "${mode}".` };
-    case 'midi': return ['coverage', 'fader', 'jog', 'button', 'led', 'latency'].includes(mode) ? { runner: 'midi', kind: mode } : { runner: 'unsupported', reason: `Unknown MIDI test "${mode}".` };
+    case 'midi': return MIDI_KINDS.includes(mode) ? { runner: 'midi', kind: mode } : { runner: 'unsupported', reason: `Unknown MIDI test "${mode}".` };
+    case 'audio': return AUDIO_KINDS.includes(mode) ? { runner: 'audio', kind: mode } : { runner: 'unsupported', reason: `Unknown audio test "${mode}".` };
     case 'driver': return { runner: 'driver' };
     case 'software': return { runner: 'software' };
     case 'manual': return { runner: 'manual' };
@@ -37,7 +38,8 @@ export function methodLabel(test) {
   switch (d.runner) {
     case 'workflow': return `${d.workflowTitle} · ${d.modeLabel}`;
     case 'timecode': return 'Timecode check';
-    case 'midi': return `MIDI · ${d.kind[0].toUpperCase()}${d.kind.slice(1)}`;
+    case 'midi': return d.kind === 'gm' ? 'MIDI · General MIDI' : `MIDI · ${d.kind[0].toUpperCase()}${d.kind.slice(1)}`;
+    case 'audio': return 'Audio quality';
     case 'driver': return 'Driver scan';
     case 'software': return 'Software log scan';
     case 'manual': return 'Checklist';
@@ -93,10 +95,33 @@ export function evaluateOutcome(test, { measurements = [], findings = [], verdic
 }
 
 /** Compact, JSON-safe record of a completed test for device_test_result.detail. */
+/**
+ * The run's uncertainty as stored with a device result: a plain expanded U, or {standard, expanded, k} (the engine's
+ * object without its components); only finite numbers are kept, and nothing when there is no finite U.
+ */
+function storedUncertainty(u) {
+  if (Number.isFinite(u)) return u;
+  if (!u || typeof u !== 'object') return undefined;
+  const out = {};
+  for (const k of ['standard', 'expanded', 'k']) if (Number.isFinite(u[k])) out[k] = u[k];
+  return 'standard' in out || 'expanded' in out ? out : undefined;
+}
+
+/**
+ * Stored detail of a device test result. Each measurement keeps the run's uncertainty and its boolean calibrated flag so
+ * a certificate built later prints the run's exact U and calibration state (FS-20 review), not a model fallback.
+ */
 export function buildResultDetail({ test, outcome, measurements = [], findings = [], extra = {} }) {
+  const measurement = m => {
+    const out = { metricId: m.metricId, label: m.label || m.metricId, value: Number.isFinite(m.value) ? m.value : m.value ?? null, unit: m.unit || '' };
+    const u = storedUncertainty(m.uncertainty);
+    if (u !== undefined) out.uncertainty = u;
+    if (typeof m.calibrated === 'boolean') out.calibrated = m.calibrated;
+    return out;
+  };
   return {
     method: test?.method, title: test?.title, summary: outcome?.detail || '', criterion: outcome?.criterion || null, pass: test?.pass || null,
-    measurements: measurements.filter(m => m && m.metricId).map(m => ({ metricId: m.metricId, label: m.label || m.metricId, value: Number.isFinite(m.value) ? m.value : m.value ?? null, unit: m.unit || '' })),
+    measurements: measurements.filter(m => m && m.metricId).map(measurement),
     findings: findings.map(f => ({ id: f.id || f.code || null, severity: f.severity || 'info', title: f.title, meaning: f.meaning || f.detail || '', action: f.action || (f.isolationTests || []).join('; ') || '' })),
     ...extra,
   };
@@ -114,6 +139,13 @@ export function evaluateChecklist(steps = [], answers = []) {
 
 // ---------- MIDI maps ----------
 const hasMessage = c => { const m = c?.message; return !!m?.kind && (m.kind === 'pitchbend' || m.number != null); };
+
+/** Automatic stored-map use rejects a known profile mismatch; legacy unknown identity stays compatible. */
+export function storedMidiMapForProfile(row, profile) {
+  const savedId = row?.profileId, currentId = profile?.id;
+  if (typeof savedId === 'string' && savedId.length && typeof currentId === 'string' && currentId.length && savedId !== currentId) return null;
+  return row;
+}
 
 /** Profile map merged with the asset's learned map (learned controls win by id). */
 export function effectiveMidiMap(profileMidi, learned) {
@@ -209,11 +241,13 @@ export function buildDeviceReportHtml({ profile, asset = null, results = [], gen
   const spec = specSummary(profile);
   const groups = groupTestsByCategory(profile).map(g => `<h3>${esc(g.label)}</h3><table><thead><tr><th>Test</th><th>Status</th><th>Run</th><th>Result</th></tr></thead><tbody>${g.tests.map(t => {
     const r = latest.get(t.id);
+    const status = resultStatus(r), time = resultTimestamp(r);
     const d = r?.detail || {};
     const ms = (d.measurements || []).map(m => `${esc(m.label)}: <b>${esc(fmtVal(m.value))}</b> ${esc(m.unit)}`).join('<br>');
     const fs = (d.findings || []).filter(f => f.severity !== 'ok').map(f => `<li><b>${esc(f.title)}</b>${f.meaning ? ` — ${esc(f.meaning)}` : ''}${f.action ? ` <i>${esc(f.action)}</i>` : ''}</li>`).join('');
     const notes = d.notes ? `<p>Notes: ${esc(d.notes)}</p>` : '';
-    return `<tr><td><b>${esc(t.title)}</b><br><small>${esc(methodLabel(t))} · ${esc(t.severity || '')}</small></td><td class="s s-${esc(r?.status || 'none')}">${esc(r ? STATUS_WORD[r.status] || r.status : 'NOT RUN')}</td><td>${r ? esc(new Date(r.createdAt).toLocaleString()) : '—'}</td><td>${r ? `<p>${esc(d.summary || '')}</p>${ms ? `<p>${ms}</p>` : ''}${fs ? `<ul>${fs}</ul>` : ''}${notes}` : ''}</td></tr>`;
+    const timing = r && !Number.isFinite(time) ? '<p>Result timestamp could not be verified. Review the stored observation before relying on its order.</p>' : '';
+    return `<tr><td><b>${esc(t.title)}</b><br><small>${esc(methodLabel(t))} · ${esc(t.severity || '')}</small></td><td class="s s-${esc(status || 'none')}">${esc(r ? STATUS_WORD[status] || status : 'NOT RUN')}</td><td>${Number.isFinite(time) ? esc(new Date(time).toLocaleString()) : '—'}</td><td>${r ? `${timing}<p>${esc(d.summary || '')}</p>${ms ? `<p>${ms}</p>` : ''}${fs ? `<ul>${fs}</ul>` : ''}${notes}` : ''}</td></tr>`;
   }).join('')}</tbody></table>`).join('');
   const unverified = (profile.specs || []).filter(s => s.confidence !== 'confirmed');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(`DeckChek device report — ${profile.manufacturer} ${profile.model}`)}</title>

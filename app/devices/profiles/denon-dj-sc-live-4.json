@@ -5,7 +5,7 @@
   "model": "SC LIVE 4",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb, media, display diagnostic groups. Companion workflow(s): Engine DJ,standalone.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. Transport addendum (2026-11-18): Engine OS User Guide v5.0.0, p. 27 and p. 64: SC LIVE 4 has a USB-B computer connection and computer-mode MIDI. Select computer mode before host MIDI use.",
   "documents": [
     {
       "title": "Manufacturer model feature reference",
@@ -48,6 +48,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "Denon DJ combined Engine OS User Guide — v5.0.0 (SC LIVE 4 MIDI scope)",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "language": "en",
+      "notes": "Transport evidence only. v5.0.0; p. 27; p. 64. Exact SC LIVE 4 computer mode; the reviewed guide is v5.0.0."
     }
   ],
   "connectivity": {
@@ -58,7 +65,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "SC LIVE 4"
@@ -136,6 +143,15 @@
       "notes": [
         "The integrated speakers are an actual testable output path."
       ]
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/Software/ENDJ5/PRIME%204%2C%20PRIME%204%2B%2C%20PRIME%202%2C%20PRIME%20GO%2C%20PRIME%20GO%2B%2C%20SC%20LIVE%204%2C%20SC%20LIVE%202%20-%20User%20Guide%20-%20v5.0.0.pdf",
+      "confidence": "confirmed",
+      "notes": "Engine OS User Guide v5.0.0, p. 27 and p. 64: SC LIVE 4 has a USB-B computer connection and computer-mode MIDI. Select computer mode before host MIDI use."
     }
   ],
   "midi": {

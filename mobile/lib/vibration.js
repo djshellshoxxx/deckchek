@@ -98,7 +98,7 @@ export function vibrationMeasurements(m) {
   const flags = ['phone-sensor', `rate-${Math.round(m.rateHz)}hz`];
   return [
     normalizeMeasurement({ metricId: 'vibration.rmsMs2', label: 'Vibration RMS (detrended)', value: r(m.rmsMs2, 5), unit: 'm/s2', confidence: 0.6, qualityFlags: flags }),
-    normalizeMeasurement({ metricId: 'vibration.dominantHz', label: 'Dominant frequency', value: r(m.dominantHz, 2), unit: 'Hz', confidence: 0.6, uncertainty: 0.25, qualityFlags: flags }),
+    ...(Number.isFinite(m.dominantHz) ? [normalizeMeasurement({ metricId: 'vibration.dominantHz', label: 'Dominant frequency', value: r(m.dominantHz, 2), unit: 'Hz', confidence: 0.6, uncertainty: 0.25, qualityFlags: flags })] : []),
     normalizeMeasurement({ metricId: 'vibration.lowBandDb', label: 'Low-band energy (relative)', value: r(m.lowBandDb, 2), unit: 'dB re 1 m/s2', confidence: 0.5, qualityFlags: flags }),
   ];
 }

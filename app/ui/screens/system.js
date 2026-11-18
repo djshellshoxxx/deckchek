@@ -204,7 +204,7 @@ export function createSystemScreen(section) {
     const signed = d => (d.isSigned === true ? chip('pass', 'Signed', { size: 14 }) : d.isSigned === false ? chip('warn', 'Unsigned', { size: 14 }) : chip('info', 'Unknown', { size: 14 }));
     const status = d => {
       if (d.present === false) return chip('info', 'Not connected', { size: 14 });
-      if (d.problemCode) return chip('fail', `Error · code ${esc(d.problemCode)}`, { size: 14 });
+      if (d.problemCode) return chip('fail', `Error · code ${d.problemCode}`, { size: 14 });
       if (d.status === 'OK') return chip('pass', 'Working', { size: 14 });
       if (d.status === 'Error') return chip('fail', 'Error', { size: 14 });
       if (d.status === 'Degraded') return chip('warn', 'Degraded', { size: 14 });
@@ -224,7 +224,7 @@ export function createSystemScreen(section) {
     if (!asio.length) out.push(h('p', { class: 'muted', text: 'No ASIO drivers are registered. DJ software will use Windows (WASAPI) audio, which has higher latency.' }));
     else {
       const wrap = h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': 'ASIO drivers' });
-      const sig = a => (!a.signatureStatus ? chip('info', 'Unknown', { size: 14 }) : a.signatureStatus === 'Valid' ? chip('pass', 'Valid', { size: 14 }) : chip(a.signatureStatus === 'HashMismatch' ? 'fail' : 'warn', esc(a.signatureStatus === 'NotSigned' ? 'Unsigned' : a.signatureStatus), { size: 14 }));
+      const sig = a => (!a.signatureStatus ? chip('info', 'Unknown', { size: 14 }) : a.signatureStatus === 'Valid' ? chip('pass', 'Valid', { size: 14 }) : chip(a.signatureStatus === 'HashMismatch' ? 'fail' : 'warn', a.signatureStatus === 'NotSigned' ? 'Unsigned' : a.signatureStatus, { size: 14 }));
       wrap.innerHTML = `<table class="data sys-table" id="sys-asio-table"><thead><tr><th scope="col">Name</th><th scope="col">DLL</th><th scope="col">File</th><th scope="col">Signature</th></tr></thead>
         <tbody>${asio.map(a => `<tr><th scope="row">${esc(a.name)}<span class="muted small mono">${esc(a.clsid || '')}</span></th><td class="mono small sys-path">${esc(a.dllPath || '—')}</td><td>${a.dllExists ? chip('pass', 'Found', { size: 14 }) : chip('warn', 'Missing', { size: 14 })}</td><td>${sig(a)}</td></tr>`).join('')}</tbody></table>`;
       out.push(wrap);

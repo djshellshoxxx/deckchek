@@ -1,0 +1,56 @@
+/* FS-20 Certificates and Verify certificate screens. Tokens come from styles.css; nothing here hard-codes a
+   UI colour. The certificate document itself (preview, PDF, HTML file) uses CERT_CSS from app/certificate.js,
+   a fixed light palette, because it is a printed artefact. */
+.cert-status { margin: 12px 0 0; }
+.cert-status:empty { display: none; }
+#cert-body { display: grid; gap: 16px; margin-top: 16px; }
+.cert-picker { max-width: 480px; }
+.cert-count { font-size: 1.05rem; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cert-count .num { font-variant-numeric: tabular-nums; }
+.cert-list { margin: 4px 0 8px; padding-left: 20px; }
+.cert-list li { margin: 2px 0; }
+.cert-warn { color: var(--warn); font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.cert-error { color: var(--fail); font-weight: 600; min-height: 1.2em; margin: 8px 0 0; }
+.cert-error:empty { display: none; }
+.cert-fp { font: 700 1.35rem/1.2 var(--font-mono); letter-spacing: .06em; }
+.cert-form .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
+.cert-form textarea { width: 100%; }
+.cert-photo-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.cert-photos { list-style: none; display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 0; padding: 0; }
+.cert-photos li { display: grid; gap: 4px; width: 128px; }
+.cert-photos img { width: 128px; height: 96px; object-fit: cover; border: 1px solid var(--border-soft); border-radius: var(--r-sm); }
+.cert-preview { background: #fff; color: #14171c; border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 16px; overflow: auto; max-height: 70vh; }
+.cert-history-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cert-verdict { font-weight: 700; }
+.cert-verdict[data-verdict="fail"] { color: var(--fail); }
+.cert-verdict[data-verdict="pass"] { color: var(--pass); }
+.cert-verdict[data-verdict="review"], .cert-verdict[data-verdict="pass_uncalibrated"] { color: var(--warn); }
+
+/* Verify */
+.cert-drop { width: 100%; min-height: 140px; display: grid; justify-items: center; align-content: center; gap: 6px; padding: 24px;
+  border: 2px dashed var(--border); border-radius: var(--r-lg); background: var(--sunken); color: var(--text); cursor: pointer; font: inherit; }
+.cert-drop:hover, .cert-drop.is-over { border-color: var(--accent); background: var(--accent-soft); }
+.cert-drop:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cert-drop-title { font-weight: 600; font-size: 1.1rem; }
+.cert-result { margin-top: 16px; display: grid; gap: 12px; }
+.cert-result h2:focus { outline: none; }
+.cert-badges { display: flex; gap: 12px; flex-wrap: wrap; }
+.cert-badge { display: inline-flex; gap: 10px; align-items: center; padding: 10px 18px; border: 2px solid currentColor; border-radius: var(--r-md);
+  font: 700 1.6rem/1 var(--font-display); letter-spacing: .04em; }
+.cert-badge-icon { font-size: 1.4rem; }
+.cert-badge[data-status="valid"] { color: var(--pass); background: var(--pass-bg); }
+.cert-badge[data-status="modified"] { color: var(--fail); background: var(--fail-bg); }
+.cert-badge[data-status="unverifiable"] { color: var(--review); background: var(--review-bg); }
+.cert-badge[data-status="expired"] { color: var(--warn); background: var(--warn-bg); }
+.cert-reasons { margin: 0; padding-left: 20px; }
+.cert-meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.cert-meta dt { font-weight: 600; color: var(--text-muted); }
+.cert-meta dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.cert-msg { margin: 0; }
+.cert-msg-error { color: var(--fail); font-weight: 600; }
+.cert-disclaimer { margin-top: 16px; max-width: 80ch; }
+
+@media (max-width: 640px) {
+  .cert-meta { grid-template-columns: 1fr; }
+  .cert-badge { font-size: 1.25rem; }
+}

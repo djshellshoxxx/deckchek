@@ -11,13 +11,19 @@ import { onFeatureChange } from '../../features.js';
 import { go, showInspector } from '../shell.js';
 import { verdictFor } from '../metrics.js';
 import { workflowInstance } from '../workflows/flow.js';
-import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, imageUrl, documentLinks } from '../../devices/library.js';
-import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, buildDeviceReportHtml } from '../../devices/dispatch.js';
+import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, resultStatus, resultTimestamp, imageUrl, documentLinks } from '../../devices/library.js';
+import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, storedMidiMapForProfile, buildDeviceReportHtml } from '../../devices/dispatch.js';
 import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
 import { describeMediaRef } from '../media-picker.js';
+import { takeHandoff } from '../crosslinks.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
 import { runTimecode } from '../devices/timecode-runner.js';
 import { runMidi } from '../devices/midi-runner.js';
+import { runAudio } from '../devices/audio-runner.js';
+// [FS-22] job mode imports
+import { isEnabled as featureEnabled } from '../../features.js';
+import { navigateTo } from '../crosslinks.js';
+import { createPackApi } from '../../pack-api.js';
 
 const RESULT_CHIP = { pass: ['pass', 'PASS'], fail: ['fail', 'FAIL'], unknown: ['review', 'REVIEW'], skipped: ['info', 'SKIPPED'] };
 export function statusChip(status, { size = 14 } = {}) {
@@ -39,12 +45,21 @@ async function openExternal(url, event) {
   catch { toast(`Open this link in your browser: ${url}`, { type: 'info', timeout: 12000 }); }
 }
 
+// [FS-22] job mode entry point for service worksheets: opens Devices and runs `testIds` on the job's unit.
+// opts: {jobId, jobNumber, phase:'before'|'after', profileId, assetId, testIds, link(row) -> Promise, onDone()}.
+let jobRunStarter = null;
+export function beginDeviceJobRun(opts) {
+  go('devices');
+  ensureLibrary().then(() => refreshUnits()).then(() => { if (jobRunStarter) jobRunStarter(opts); else { toast('The Devices screen is not available.', { type: 'error' }); opts.onDone?.(); } });
+}
+
 export function createDevicesScreen(section) {
   const st = { view: 'grid', profileId: null, filter: 'all', search: '', queue: null, runner: null, runTestId: null, units: { ...(settings.deviceUnits || {}) } };
   const $ = sel => section.querySelector(sel);
 
   const unitFor = profile => {
     const units = unitsFor(profile.id);
+    if (st.job?.profileId === profile.id) { const u = units.find(a => a.id === st.job.assetId) || lib.assets.find(a => a.id === st.job.assetId); if (u) return u; } // [FS-22] job mode: the job's unit
     return units.find(a => a.id === st.units[profile.id]) || units[0] || null;
   };
   const selectUnit = (profile, id) => { st.units[profile.id] = id; setSetting('deviceUnits', st.units); };
@@ -134,6 +149,7 @@ export function createDevicesScreen(section) {
   }
 
   function openDevice(id, { focus = true } = {}) {
+    if (st.job) { endJobRun(); return; } // [FS-22] job mode: every way back to the device page returns to the job
     st.view = 'detail'; st.profileId = id;
     render();
     document.getElementById('main').scrollTop = 0;
@@ -193,6 +209,17 @@ export function createDevicesScreen(section) {
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', html: `${icon('edit', { size: 16 })}<span>Rename / serial</span>`, 'data-tooltip': 'Edit this unit in Equipment', onclick: () => go('equipment') }),
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export', disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export report</span>`, 'data-tooltip': 'Device report as HTML (Ctrl+E)', onclick: () => exportReport(p) }),
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export-pdf', hidden: pdfExportEnabled() ? null : true, disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export PDF</span>`, 'data-tooltip': 'Device report as PDF', onclick: e => exportPdf(p, e.currentTarget) }));
+    if (unit && featureEnabled('service')) bar.append(repairButton(unit)); // [FS-22] Devices > Repair this unit
+    if (unit && featureEnabled('population')) {
+      const compare = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-compare', disabled: true,
+        text: 'How does my unit rank?', title: 'Requires a saved, comparable measurement for this unit.',
+        onclick: () => { if (featureEnabled('population')) navigateTo('compare', { assetId: unit.id }); } });
+      bar.append(compare);
+      const api = createPackApi();
+      if (api.native) api.unitValues().then(values => {
+        if (compare.isConnected && featureEnabled('population')) compare.disabled = !values.rows?.some(r => r.assetId === unit.id);
+      }).catch(() => { /* stays disabled until comparison data is available */ });
+    }
   }
 
   function plan(p, unit, latest) {
@@ -206,10 +233,11 @@ export function createDevicesScreen(section) {
       const ul = h('ul', { class: 'dev-tests', role: 'list' });
       for (const t of g.tests) {
         const r = latest.get(t.id);
+        const status = resultStatus(r);
         const d = dispatchFor(t);
-        const li = h('li', { class: `dev-test ${r ? `dev-test-${r.status}` : ''}`, 'data-test': t.id });
-        li.innerHTML = `<span class="dev-test-status">${statusChip(r?.status)}</span>`;
-        const info = h('button', { type: 'button', class: 'dev-test-main', 'aria-label': `${t.title}. ${r ? `Last result ${r.status}` : 'Not run yet'}. Show details.` });
+        const li = h('li', { class: `dev-test ${r ? `dev-test-${status}` : ''}`, 'data-test': t.id });
+        li.innerHTML = `<span class="dev-test-status">${statusChip(status)}</span>`;
+        const info = h('button', { type: 'button', class: 'dev-test-main', 'aria-label': `${t.title}. ${r ? `Last result ${status}` : 'Not run yet'}. Show details.` });
         info.innerHTML = `<strong>${esc(t.title)}</strong><span class="muted small">${esc(methodLabel(t))} · ${esc(SEVERITY_LABEL[t.severity] || t.severity || '')}${r ? ` · ${esc(formatDate(r.createdAt))}` : ''}${t.pass ? '' : d.runner === 'manual' || (d.runner === 'midi' && d.kind === 'led') ? ' · your judgement' : ' · judged by analysis'}</span>`;
         info.addEventListener('click', () => testDetails(p, t, unit));
         const run = h('button', { type: 'button', class: `btn ${r ? 'btn-ghost' : 'btn-secondary'} btn-sm dev-run-btn`, 'data-run-test': t.id, disabled: !unit || d.runner === 'unsupported' || null, 'aria-label': `${r ? 'Run again' : 'Run'}: ${t.title}`, html: `${icon(r ? 'refresh' : 'play', { size: 14 })}<span>${r ? 'Re-run' : 'Run'}</span>` });
@@ -225,14 +253,15 @@ export function createDevicesScreen(section) {
   function testDetails(p, t, unit) {
     const history = unit ? resultsFor(unit.id).filter(r => r.profileId === p.id && r.testId === t.id) : [];
     const body = h('div', { class: 'inspect' });
-    const last = history[0];
-    body.innerHTML = `<div class="inspect-chips">${statusChip(last?.status)}<span class="small">${esc(methodLabel(t))}</span></div>
+    const last = latestResults(history).get(t.id);
+    body.innerHTML = `<div class="inspect-chips">${statusChip(resultStatus(last))}<span class="small">${esc(methodLabel(t))}</span></div>
       <p>${esc(t.why || '')}</p>
+      ${last && !Number.isFinite(resultTimestamp(last)) ? '<p>Result timestamp could not be verified. Review the stored observation before relying on its order.</p>' : ''}
       <h3>Steps</h3><ol class="dev-steplist">${(t.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
       ${(t.equipment || []).length ? `<h3>Equipment</h3><p>${esc(t.equipment.join(', '))}</p>` : ''}
       <h3>Pass criterion</h3><p>${t.pass ? esc(passText(t)) : 'None in the profile — judged from the analysis verdict or your answers.'}</p>
       ${last ? `<h3>Last result</h3><p>${esc(last.detail?.summary || '')}</p>${last.mediaId ? '<p class="small" data-media-used>Test medium: <span class="media-used"></span></p>' : ''}${(last.detail?.measurements || []).length ? `<table class="mini"><tbody>${last.detail.measurements.map(m => `<tr><th scope="row">${esc(m.label)}</th><td class="num">${esc(typeof m.value === 'number' ? +m.value.toFixed(3) : m.value ?? '—')} ${esc(m.unit === 'bool' ? '' : m.unit)}</td></tr>`).join('')}</tbody></table>` : ''}${last.detail?.notes ? `<p><strong>Notes:</strong> ${esc(last.detail.notes)}</p>` : ''}` : ''}
-      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(r.status, { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span>${r.mediaId ? `<span class="small muted media-used" data-media-id="${esc(r.mediaId)}" data-track-key="${esc(r.mediaTrackKey || '')}"></span>` : ''}</li>`).join('')}</ul>` : ''}
+      ${history.length > 1 ? `<h3>History</h3><ul class="dev-history">${history.slice(0, 8).map(r => `<li>${statusChip(resultStatus(r), { size: 12 })}<span class="small">${esc(formatDate(r.createdAt))}</span>${r.mediaId ? `<span class="small muted media-used" data-media-id="${esc(r.mediaId)}" data-track-key="${esc(r.mediaTrackKey || '')}"></span>` : ''}</li>`).join('')}</ul>` : ''}
       <p class="inspect-id mono">${esc(t.id)}</p>`;
     // Test medium used (FS-06 AC-6): resolved asynchronously so the library can load first.
     body.querySelectorAll('.dev-history .media-used').forEach(el => {
@@ -290,7 +319,7 @@ export function createDevicesScreen(section) {
     const host = $('#dev-midi'), sub = $('#dev-midi-sub');
     if (!p.midi && !p.tests.some(t => String(t.method).startsWith('midi:'))) { host.innerHTML = '<p class="muted">This device does not send MIDI.</p>'; return; }
     let learned = null;
-    try { learned = unit ? await store.getMidiMap(unit.id) : null; } catch { /* none */ }
+    try { learned = unit ? storedMidiMapForProfile(await store.getMidiMap(unit.id), p) : null; } catch { /* none */ }
     if (!host.isConnected) return;
     const eff = effectiveMidiMap(p.midi, learned?.map);
     const source = p.midi?.mapSource;
@@ -366,13 +395,14 @@ export function createDevicesScreen(section) {
     const cat = groupTestsByCategory(p).find(g => g.tests.includes(test));
     section.innerHTML = `
       <nav class="dev-crumbs" aria-label="Breadcrumb"><button type="button" class="btn btn-ghost btn-sm" id="dev-run-back">${icon('chevronLeft', { size: 18 })}<span>${esc(p.model)}</span></button></nav>
-      <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon(d.runner === 'midi' ? 'keyboard' : d.runner === 'timecode' ? 'dvs' : d.runner === 'manual' ? 'check' : 'system', { size: 24 })}</span><div>
+      <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon(d.runner === 'midi' ? 'keyboard' : d.runner === 'audio' ? 'wave' : d.runner === 'timecode' ? 'dvs' : d.runner === 'manual' ? 'check' : 'system', { size: 24 })}</span><div>
         <span class="dev-mfr">${esc(p.manufacturer)} ${esc(p.model)} · ${esc(unit.nickname)}</span><h1 tabindex="-1">${esc(test.title)}</h1>
         <p class="dev-head-tags"><span class="dev-cat">${esc(cat?.label || test.category)}</span><span class="badge">${esc(methodLabel(test).toUpperCase())}</span><span class="badge">${esc((SEVERITY_LABEL[test.severity] || '').toUpperCase())}</span></p></div></div></header>
       <div class="banner banner-device" role="status" id="dev-run-banner"><span class="banner-device-icon">${icon('devices', { size: 22 })}</span><div class="banner-text"><strong>Running ${esc(p.model)} · ${esc(test.title)}</strong><span>${st.queue ? `${esc(queueText())} · ` : ''}The result is saved to ${esc(unit.nickname)}.</span></div><div class="banner-actions" id="dev-run-actions"></div></div>
       <div id="dev-run-result" aria-live="polite"></div>
       <div id="dev-runner"></div>`;
     $('#dev-run-back').addEventListener('click', () => { st.queue = null; openDevice(p.id); });
+    if (st.job) jobBanner(); // [FS-22] job mode
     const actions = $('#dev-run-actions');
     if (st.queue) {
       actions.append(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-run-skip', text: 'Skip test', onclick: () => ctx.skip('Skipped during a category run.') }),
@@ -395,9 +425,11 @@ export function createDevicesScreen(section) {
       },
       saveLearned: map => store.saveMidiMap(unit.id, p.id, map),
     };
-    if (d.runner === 'midi') { try { ctx.learned = await store.getMidiMap(unit.id); } catch { ctx.learned = null; } }
+    if (d.runner === 'midi') { try { ctx.learned = storedMidiMapForProfile(await store.getMidiMap(unit.id), p); } catch { ctx.learned = null; } }
     if (!host.isConnected) return;
-    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi }[d.runner];
+    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi, audio: runAudio }[d.runner];
+    // A method can dispatch to a runner this build does not ship: say so instead of throwing.
+    if (!runner) { host.replaceChildren(h('div', { class: 'empty empty-sm', html: `${icon('info', { size: 32 })}<h2>This test cannot run here yet</h2><p>${esc(methodLabel(test))} has no runner in this version of DeckChek.</p>` })); st.runner = null; return; }
     st.runner = runner(host, ctx) || null;
     document.getElementById('main').scrollTop = 0;
     $('h1')?.focus();
@@ -434,6 +466,43 @@ export function createDevicesScreen(section) {
     toast('Device report exported.', { type: 'success', timeout: 3000 });
   }
 
+  // ---------- [FS-22] job mode: begin ----------
+  // A service job (ui/workflows/service-job.js) runs a subset of this unit's test plan. While st.job is set, every
+  // result saved for one of the job's tests on the job's unit is linked to the job with its phase (before|after) through
+  // st.job.link(row) (job_link_results). The run reuses the category queue; leaving it by any route that would show the
+  // device page (queue end, Stop run, Back, Esc) ends job mode and returns to the job once the links are written.
+  function beginJobRun(job) {
+    const p = profileById(job.profileId);
+    const tests = (p?.tests || []).filter(t => job.testIds.includes(t.id));
+    if (!p || !tests.length) { toast('None of the selected tests are available for this unit.', { type: 'warn' }); job.onDone?.(); return; }
+    st.job = { ...job, testIds: tests.map(t => t.id), pending: [] };
+    st.queue = { profileId: p.id, assetId: job.assetId, category: `Job ${job.jobNumber} · ${job.phase} tests`, testIds: st.job.testIds, index: 0 };
+    announce(`Running ${tests.length} ${job.phase} test${tests.length === 1 ? '' : 's'} for job ${job.jobNumber}`);
+    runTest(p, tests[0], { fromQueue: true });
+  }
+  function endJobRun() {
+    const job = st.job;
+    st.job = null; st.queue = null; st.view = 'detail'; st.profileId = job.profileId;
+    Promise.allSettled(job.pending).then(rs => {
+      const failed = rs.filter(r => r.status === 'rejected').length;
+      if (failed) toast(`${failed} result${failed === 1 ? '' : 's'} could not be linked to job ${job.jobNumber}: ${rs.find(r => r.status === 'rejected').reason?.message || ''}`, { type: 'error' });
+      job.onDone?.();
+    });
+  }
+  function jobBanner() {
+    const text = $('#dev-run-banner .banner-text');
+    if (text && st.job) text.prepend(h('span', { class: 'badge dev-job-badge', id: 'dev-job-badge', text: `Service job ${st.job.jobNumber} · ${st.job.phase === 'before' ? 'Before' : 'After'} tests` }));
+  }
+  function repairButton(unit) {
+    return h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'dev-repair', html: `${icon('edit', { size: 16 })}<span>Repair this unit</span>`, 'data-tooltip': 'Open a service job for this unit', onclick: () => navigateTo('service', { newJob: { assetId: unit.id } }) });
+  }
+  on('device-results', row => {
+    const j = st.job;
+    if (j && row?.id && row.assetId === j.assetId && j.testIds.includes(row.testId)) j.pending.push(Promise.resolve().then(() => j.link(row)));
+  });
+  jobRunStarter = beginJobRun;
+  // ---------- [FS-22] job mode: end ----------
+
   // ---------- events ----------
   onFeatureChange(({ name }) => { if (name === 'pdfExport') for (const b of section.querySelectorAll('#dev-export-pdf')) b.hidden = !pdfExportEnabled(); });
   on('devices', () => { if (st.view !== 'run' && !section.hidden) render(); });
@@ -444,7 +513,20 @@ export function createDevicesScreen(section) {
   ensureLibrary();
 
   return {
-    onShow: () => { if (st.view !== 'run') { refreshUnits().then(() => { if (st.view !== 'run') render(); }); } showGuide(); },
+    onShow: async () => {
+      if (st.view !== 'run') {
+        const handoff = takeHandoff('devices');
+        await ensureLibrary(); await refreshUnits();
+        if (handoff?.assetId) {
+          const asset = lib.assets.find(asset => asset.id === handoff.assetId);
+          const profileId = [...lib.products].find(([, productId]) => productId === asset?.productId)?.[0];
+          const profile = profileById(profileId);
+          if (profile && asset) { selectUnit(profile, asset.id); openDevice(profile.id); }
+          else { st.view = 'grid'; render(); toast('This asset has no device profile. Use a generic diagnostic workflow.', { type: 'info' }); }
+        } else if (st.view !== 'run') render();
+      }
+      showGuide();
+    },
     onHide: () => {},
     onEscape: () => {
       if (st.view === 'run') { st.queue = null; openDevice(st.profileId); return true; }

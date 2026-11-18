@@ -5,20 +5,21 @@
   "model": "Launchpad Pro MK3",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,button,usb. Software: Ableton Live,generic MIDI.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed; Launchpad Pro MK3: USB-C MIDI controller with no built-in audio interface. MIDI In, Out 1 and Out 2/Thru use TRS minijacks with supplied TRS-to-DIN adapters. USB identifiers, class compliance, firmware/OS compatibility and physical performance remain unverified.",
   "documents": [
     {
-      "title": "Manufacturer-specific capabilities and mode reference",
-      "type": "manual",
+      "title": "Launchpad Pro MK3 user guide introduction",
+      "type": "user-manual",
       "url": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
-      "language": "en"
+      "language": "en",
+      "notes": "User-guide version 6.0; page updated 2026-07-17. Document version is not a firmware qualification. Checked 2026-11-18."
     },
     {
-      "title": "Official manufacturer documentation or support entry",
-      "type": "manual",
-      "url": "https://support.novationmusic.com/",
+      "title": "Launchpad Pro MK3 hardware overview",
+      "type": "user-manual",
+      "url": "https://userguides.novationmusic.com/hc/en-gb/articles/25494505681042-Launchpad-Pro-MK3-hardware-overview",
       "language": "en",
-      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+      "notes": "Exact-model rear-panel USB-C and MIDI connector list; page updated 2025-04-23. Checked 2026-11-18."
     },
     {
       "title": "Driver and firmware support",
@@ -28,10 +29,11 @@
       "notes": "Confirm OS-specific driver and version."
     },
     {
-      "title": "Support and product help",
+      "title": "I'm not hearing sound from my Launchpad",
       "type": "support-article",
-      "url": "https://support.novationmusic.com/",
-      "language": "en"
+      "url": "https://support.novationmusic.com/hc/en-gb/articles/360001341549-I-m-not-hearing-sound-from-my-Launchpad",
+      "language": "en",
+      "notes": "Applies to all Launchpads; page updated 2024-03-15. Describes MIDI control and sound through the host's selected audio output. Checked 2026-11-18."
     },
     {
       "title": "Service manual",
@@ -40,10 +42,11 @@
       "notes": "Not found/verified as publicly available."
     },
     {
-      "title": "MIDI/HID map",
+      "title": "Launchpad Pro MK3 programmer's reference manual",
       "type": "midi-message-list",
-      "url": "",
-      "notes": "Exact implementation mapping not verified; use learn mode and capture."
+      "url": "https://fael-downloads-prod.focusrite.com/customer/prod/s3fs-public/downloads/LPP3_prog_ref_guide_200415.pdf",
+      "language": "en",
+      "notes": "Printed pages 3 and 6 document USB MIDI transport and MIDI interfaces. Filename identifier 200415 is not a firmware version; no publication date inferred. Control map remains in learn mode. Checked 2026-11-18."
     },
     {
       "title": "Novation MK3 programmer and user guide downloads",
@@ -60,18 +63,14 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "Launchpad Pro MK3"
       ]
     },
-    "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
-      "sampleRatesHz": [],
-      "bitDepth": null
-    }
+    "audio": null,
+    "analog": []
   },
   "software": [
     {
@@ -139,6 +138,33 @@
       "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3",
       "confidence": "confirmed",
       "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_audio_interface",
+      "label": "Built-in audio interface",
+      "value": "None",
+      "unit": "",
+      "source": "https://support.novationmusic.com/hc/en-gb/articles/360001341549-I-m-not-hearing-sound-from-my-Launchpad; https://userguides.novationmusic.com/hc/en-gb/articles/25494505681042-Launchpad-Pro-MK3-hardware-overview",
+      "confidence": "confirmed",
+      "notes": "MIDI control uses the host's selected audio output. The exact-model connector list contains USB-C and MIDI ports, not audio outputs."
+    },
+    {
+      "key": "verified_usb_transport",
+      "label": "USB host transport",
+      "value": "USB MIDI",
+      "unit": "",
+      "source": "https://fael-downloads-prod.focusrite.com/customer/prod/s3fs-public/downloads/LPP3_prog_ref_guide_200415.pdf, printed pages 3 and 6",
+      "confidence": "confirmed",
+      "notes": "MIDI, DIN and DAW interfaces carry MIDI data; they are not USB audio channels."
+    },
+    {
+      "key": "verified_midi_connectors",
+      "label": "Physical MIDI connectors",
+      "value": "TRS minijacks: In, Out 1, Out 2/Thru; supplied TRS-to-DIN adapters",
+      "unit": "",
+      "source": "https://userguides.novationmusic.com/hc/en-gb/articles/25494488223762-Introduction-to-the-Launchpad-Pro-MK3; https://userguides.novationmusic.com/hc/en-gb/articles/25494505681042-Launchpad-Pro-MK3-hardware-overview",
+      "confidence": "confirmed",
+      "notes": "These are MIDI connectors, not analog audio jacks."
     }
   ],
   "midi": {

@@ -1,0 +1,57 @@
+{
+  "ledger_export_record": {
+    "command": "ledger_export_record",
+    "request": {
+      "record": {
+        "revision": 3,
+        "selection": { "items": ["fs33-a"], "mode": "folder" },
+        "privacy": { "preset": "public", "serialMode": "hidden", "fields": { "nickname": false, "certificates": false } },
+        "ledgerSha256": "abababababababababababababababababababababababababababababababab"
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000033",
+      "revision": 3,
+      "createdAt": "2026-10-28T10:00:00.000Z",
+      "selection": { "items": ["fs33-a"], "mode": "folder" },
+      "privacy": { "preset": "public", "serialMode": "hidden", "fields": { "nickname": false, "certificates": false } },
+      "ledgerSha256": "abababababababababababababababababababababababababababababababab"
+    }
+  },
+  "ledger_export_list": {
+    "command": "ledger_export_list",
+    "request": { "limit": 5 }
+  },
+  "ledger_public_notes": {
+    "command": "ledger_public_notes",
+    "request": {},
+    "response": [{ "assetId": "fs33-a", "publicNotes": "All original." }]
+  },
+  "ledger_public_note_set": {
+    "command": "ledger_public_note_set",
+    "request": { "assetId": "fs33-a", "text": "All original." },
+    "response": { "assetId": "fs33-a", "publicNotes": "All original." }
+  },
+  "ledger_write_folder": {
+    "command": "ledger_write_folder",
+    "request": {
+      "dir": "/home/dj/Ledger",
+      "files": [
+        { "relPath": "ledger/index.html", "text": "<!doctype html><title>Gear ledger</title>" },
+        { "relPath": "ledger/ledger.json", "text": "{\"format\":\"deckchek-ledger\",\"revision\":3}" },
+        { "relPath": "ledger/assets/a0123456789/p1.jpg", "base64": "/9j/2Q==" }
+      ]
+    },
+    "response": { "written": 3, "removed": 2, "path": "/home/dj/Ledger" }
+  },
+  "ledger_next_revision": {
+    "command": "ledger_next_revision",
+    "request": {},
+    "response": 4
+  },
+  "ledger_customer_units": {
+    "command": "ledger_customer_units",
+    "request": {},
+    "response": ["fs33-cust"]
+  }
+}

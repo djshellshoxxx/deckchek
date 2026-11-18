@@ -8,7 +8,7 @@ import { addResult, getSettings, setSettings } from '../lib/store.js';
 export const MEASURE_SEC = 5;
 
 export default function mount(root, ctx) {
-  const st = { running: false, abort: null, lastDbfs: null, lastWeighting: null };
+  const st = { running: false, abort: null, disposed: false, lastDbfs: null, lastWeighting: null };
   const settings = getSettings();
   const weighting = el('select', { id: 'spl-weighting', 'aria-label': 'Weighting' }, el('option', { value: 'A', text: 'A-weighted (dBA)' }), el('option', { value: 'C', text: 'C-weighted (dBC)' }));
   weighting.value = settings.splWeighting === 'C' ? 'C' : 'A';
@@ -29,15 +29,18 @@ export default function mount(root, ctx) {
   }
 
   async function run() {
-    st.running = true; st.abort = new AbortController();
+    st.running = true;
+    const abort = new AbortController(); st.abort = abort;
     start.textContent = 'Stop'; result.replaceChildren();
-    let release = () => {};
+    let mic, release = () => {};
     try {
       say('loading', 'Waiting for the microphone.', 'Allow it when asked.');
-      const mic = await startMic();
+      mic = await startMic({ signal: abort.signal });
       release = await keepAwake();
+      if (abort.signal.aborted || mic.signal.aborted) throw new DOMException('Capture stopped', 'AbortError');
       say('loading', 'Measuring...', `${MEASURE_SEC} seconds.`);
-      const samples = await captureSeconds(MEASURE_SEC, { signal: st.abort.signal, onChunk: block => { let p = 0; for (let i = 0; i < block.length; i++) p = Math.max(p, Math.abs(block[i])); level.value = Math.min(1, p); } });
+      const samples = await captureSeconds(MEASURE_SEC, { mic, signal: abort.signal, onChunk: block => { let p = 0; for (let i = 0; i < block.length; i++) p = Math.max(p, Math.abs(block[i])); level.value = Math.min(1, p); } });
+      if (abort.signal.aborted || mic.signal.aborted) throw new DOMException('Capture stopped', 'AbortError');
       mic.stop();
       const kind = weighting.value;
       setSettings({ splWeighting: kind });
@@ -60,11 +63,13 @@ export default function mount(root, ctx) {
         measurementTable(measurements, { caption: 'Sound level measurements' }),
         el('div', { class: 'row' }, el('button', { type: 'button', class: 'btn btn-secondary', id: 'spl-export', text: 'Export...', onclick: () => ctx.openResult(saved.id) }))));
     } catch (error) {
+      if (st.disposed) return;
       if (error?.name === 'AbortError') say('empty', 'Stopped.', 'Tap Measure to try again.');
       else if (error instanceof MicError) say('error', error.kind === 'unsupported' ? 'Not supported.' : 'Microphone problem.', error.message);
       else say('error', 'Could not measure.', error?.message || String(error));
     } finally {
-      release(); st.running = false; start.textContent = `Measure ${MEASURE_SEC} s`; level.value = 0;
+      mic?.stop(); release();
+      if (!st.disposed && st.abort === abort) { st.running = false; st.abort = null; start.textContent = `Measure ${MEASURE_SEC} s`; level.value = 0; }
     }
   }
 
@@ -93,5 +98,5 @@ export default function mount(root, ctx) {
   paintBanner();
   if (!micSupported()) say('error', 'Not supported.', MIC_MESSAGES.unsupported);
   else say('empty', 'Ready.', 'Put the phone where you want to measure and tap Measure.');
-  return () => { st.abort?.abort(); };
+  return () => { st.disposed = true; st.abort?.abort(); };
 }

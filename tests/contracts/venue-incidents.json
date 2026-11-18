@@ -1,0 +1,16 @@
+{
+  "draft": {
+    "schemaVersion": 1,
+    "id": "incident-1",
+    "venueId": "venue-1",
+    "setupId": "setup-1",
+    "kind": "booth_shock",
+    "occurredAt": "2026-11-18T10:00:00.123Z",
+    "note": "Walking beside the left deck",
+    "context": {
+      "venue": { "id": "venue-1", "name": "Club One" },
+      "setup": { "id": "setup-1", "name": "Left deck", "boothId": "booth-1", "deckPositionId": "position-1", "supportConfigurationId": null }
+    }
+  },
+  "recordedAt": "2026-11-18T10:00:01.000Z"
+}

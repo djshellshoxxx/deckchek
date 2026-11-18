@@ -15,7 +15,9 @@
 use rusqlite::Connection;
 use serde_json::json;
 
-use crate::db::{apply_migrations, persist_run, save_scan_alignment, PersistRun, ScanAlignmentInput};
+use crate::db::{
+    apply_migrations, persist_run, save_scan_alignment, PersistRun, ScanAlignmentInput,
+};
 
 fn mem_db() -> Connection {
     let c = Connection::open_in_memory().unwrap();
@@ -66,8 +68,16 @@ fn bug01_resaving_a_run_keeps_its_repeat_scan_alignment() {
     // The user presses Ctrl+S on the second run: persistRun(run) again, same id.
     persist_run(&mut c, &run("scan-2")).unwrap();
 
-    assert_eq!(count(&c, "SELECT COUNT(*) FROM full_side_scan"), 2, "the second scan row was cascade-deleted");
-    assert_eq!(count(&c, "SELECT COUNT(*) FROM scan_alignment"), 1, "the repeat-scan alignment was cascade-deleted");
+    assert_eq!(
+        count(&c, "SELECT COUNT(*) FROM full_side_scan"),
+        2,
+        "the second scan row was cascade-deleted"
+    );
+    assert_eq!(
+        count(&c, "SELECT COUNT(*) FROM scan_alignment"),
+        1,
+        "the repeat-scan alignment was cascade-deleted"
+    );
 }
 
 /// BUG-01 (second face): links from other features (`ON DELETE SET NULL`) are cut
@@ -89,8 +99,14 @@ fn bug01_resaving_a_run_keeps_usage_links() {
 
     persist_run(&mut c, &run("live-1")).unwrap();
 
-    let sid: Option<String> = c.query_row("SELECT session_id FROM asset_usage", [], |r| r.get(0)).unwrap();
-    assert_eq!(sid.as_deref(), Some("live-1"), "re-saving the run cut the hours entry's link to it");
+    let sid: Option<String> = c
+        .query_row("SELECT session_id FROM asset_usage", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(
+        sid.as_deref(),
+        Some("live-1"),
+        "re-saving the run cut the hours entry's link to it"
+    );
 }
 
 /// BUG-11: `usage_list(since)` and its ORDER BY compare timestamps as text, but
@@ -111,7 +127,11 @@ fn bug11_since_filter_keeps_later_entries_with_milliseconds() {
     crate::usage::add(&c, &input).unwrap();
     assert!(crate::usage::valid_timestamp("2026-10-10T20:00:00Z"));
     let rows = crate::usage::list(&c, "stylus-1", Some("2026-10-10T20:00:00Z")).unwrap();
-    assert_eq!(rows.len(), 1, "an entry 0.5 s after `since` was filtered out");
+    assert_eq!(
+        rows.len(),
+        1,
+        "an entry 0.5 s after `since` was filtered out"
+    );
 }
 
 /// BUG-12: tail reads of logs larger than 2 MiB seek past the BOM, so a UTF-16LE
@@ -126,7 +146,9 @@ fn bug12_large_utf16_log_still_yields_spans() {
     while text.len() < 1_200_000 {
         text.push_str("filler line without a timestamp\n");
     }
-    text.push_str("2025-10-10T20:00:00Z open\n2025-10-10T20:25:00Z x\n2025-10-10T20:45:00Z close\n");
+    text.push_str(
+        "2025-10-10T20:00:00Z open\n2025-10-10T20:25:00Z x\n2025-10-10T20:45:00Z close\n",
+    );
     let mut bytes = vec![0xFF, 0xFE];
     for u in text.encode_utf16() {
         bytes.extend_from_slice(&u.to_le_bytes());
@@ -135,5 +157,9 @@ fn bug12_large_utf16_log_still_yields_spans() {
     std::fs::write(&path, &bytes).unwrap();
     let spans = crate::dj_sessions::spans_from_files(&[("Mixxx".into(), path)]);
     let _ = std::fs::remove_dir_all(&dir);
-    assert_eq!(spans.len(), 1, "the session at the end of a large UTF-16 log was not found");
+    assert_eq!(
+        spans.len(),
+        1,
+        "the session at the end of a large UTF-16 log was not found"
+    );
 }

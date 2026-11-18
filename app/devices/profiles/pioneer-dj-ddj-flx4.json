@@ -5,7 +5,7 @@
   "model": "DDJ-FLX4",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): rekordbox,Serato DJ Lite.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the exact DDJ-FLX4 manual documents 44.1/48 kHz audio and USB MIDI. Individual USB audio channel counts remain unresolved, and its 16-bit/24-bit converter description is not reduced to a single USB bit depth. Hardware revision, firmware, current OS support, USB IDs, exact MIDI control maps and measured tolerances remain unqualified.",
   "documents": [
     {
       "title": "Verified manufacturer capability reference",
@@ -46,6 +46,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "DDJ-FLX4 Instruction Manual DRI1804-A",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-FLX4/DDJ-FLX4_DRI1804A_manual.pdf",
+      "language": "en",
+      "notes": "Exact DDJ-FLX4; DRI1804-A, copyright 2022, checked 2026-11-18. Printed p. 159 lists 44.1/48 kHz and 16-bit/24-bit conversion; p. 161 documents USB MIDI. P. 49 names MASTER and PHONES routes without numeric USB counts. Pp. 34-35 separate power and device USB ports; pp. 157-158 distinguish USB audio from Bluetooth operation. Document revision is not qualified firmware."
     }
   ],
   "connectivity": {
@@ -56,7 +63,7 @@
       "classCompliant": true
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-FLX4"
@@ -65,7 +72,10 @@
     "audio": {
       "usbChannelsIn": null,
       "usbChannelsOut": null,
-      "sampleRatesHz": [],
+      "sampleRatesHz": [
+        44100,
+        48000
+      ],
       "bitDepth": null
     }
   },

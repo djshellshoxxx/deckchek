@@ -20,7 +20,7 @@ const { chromium } = require('playwright');
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'app');
 const SHOTS = process.env.SHOTS_DIR || '/tmp/deckchek-shots';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
-const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; script-src 'self'";
+const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; script-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`); };
@@ -46,20 +46,30 @@ async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'deckchek-smoke-'));
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch();
+  // Cloud and offline machines can reuse a verified system Chromium without
+  // downloading another browser. CI keeps Playwright's pinned default.
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
   const errors = [];
+  let activeModule = '';
   try {
     for (const file of modules) {
+      activeModule = file;
       const mod = await import(pathToFileURL(path.join(dir, file)).href);
       errors.push(...(await mod.default({ browser, base, tmp, check, SHOTS, ROOT })) || []);
     }
   } catch (error) {
-    check('smoke run completed without exceptions', false, error.message.split('\n')[0]);
+    const message = error instanceof Error ? error.message : String(error);
+    check('smoke run completed without exceptions', false, `${activeModule}: ${message.split('\n')[0]}`);
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
   } finally {
     await browser.close();
     server.close();
+    // Downloads and exported files land here; every run used to leave one behind.
+    fs.rmSync(tmp, { recursive: true, force: true });
   }
-  check('no console errors', errors.length === 0, errors.slice(0, 5).join(' | '));
+  // A flow that throws may never return its console error list; its exception
+  // above remains a failed gate, and this count covers only completed modules.
+  check('no console errors in completed smoke modules', errors.length === 0, errors.slice(0, 5).join(' | '));
   const failed = results.filter(r => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed. Screenshots: ${SHOTS}`);
   process.exit(failed.length ? 1 : 0);

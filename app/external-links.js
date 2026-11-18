@@ -167,6 +167,9 @@ export function interceptTarget(anchor, baseHref, appOrigin) {
 
 /**
  * Delegated click/auxclick handler on `root` plus a window.open override. Returns an uninstall function.
+ * A contextmenu listener also suppresses the WebView's own menu on links that leave the app, whose
+ * "Open link in new window" would skip the URL policy (AUD-08; Rust denies such popups as well).
+ * Text and in-app links keep the default menu, so copying still works.
  * deps are passed to openExternal (the shell supplies toast and the confirm dialog).
  */
 export function installLinkInterceptor(root = globalThis.document, deps = {}) {
@@ -182,14 +185,20 @@ export function installLinkInterceptor(root = globalThis.document, deps = {}) {
     event.stopImmediatePropagation(); // also keeps the opener plugin's own click script from acting
     openExternal(new URL(target, win.document?.baseURI || win.location?.href).href, deps);
   };
+  const menu = event => {
+    const a = event.target?.closest?.('a[href]');
+    if (a && interceptTarget(a, win.document?.baseURI || win.location?.href, appOrigin)) event.preventDefault();
+  };
   // Capture phase: runs before page handlers, so a handler cannot re-route a link around the policy.
   root.addEventListener('click', handler, true);
   root.addEventListener('auxclick', handler, true);
+  root.addEventListener('contextmenu', menu, true);
   const originalOpen = win.open;
   win.open = (url) => { if (url != null && url !== '' && url !== 'about:blank') openExternal(String(url), deps); return null; };
   return () => {
     root.removeEventListener('click', handler, true);
     root.removeEventListener('auxclick', handler, true);
+    root.removeEventListener('contextmenu', menu, true);
     win.open = originalOpen;
   };
 }

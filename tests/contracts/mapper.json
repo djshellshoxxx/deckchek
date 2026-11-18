@@ -1,0 +1,84 @@
+{
+  "mapper_model_save": {
+    "command": "mapper_model_save",
+    "request": {
+      "input": {
+        "id": null,
+        "assetId": "fs32-asset",
+        "profileId": null,
+        "name": "Deck controller (learned)",
+        "model": {
+          "version": 1,
+          "name": "Deck controller (learned)",
+          "manufacturer": "",
+          "decks": 2,
+          "controls": [
+            {
+              "id": "c-note-1-11",
+              "label": "Play",
+              "midi": { "type": "note", "channel": 1, "number": 11, "status": 144 },
+              "kind": "button",
+              "mode": "toggle",
+              "layer": "base",
+              "function": { "id": "play", "deck": 1, "args": {} },
+              "feedback": { "led": { "type": "note", "channel": 1, "number": 11, "on": 127, "off": 0 } }
+            }
+          ],
+          "provenance": { "source": "learned", "sourceId": "fs32-asset" }
+        }
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-000000000032",
+      "assetId": "fs32-asset",
+      "profileId": null,
+      "name": "Deck controller (learned)",
+      "model": {
+        "version": 1,
+        "name": "Deck controller (learned)",
+        "manufacturer": "",
+        "decks": 2,
+        "controls": [
+          {
+            "id": "c-note-1-11",
+            "label": "Play",
+            "midi": { "type": "note", "channel": 1, "number": 11, "status": 144 },
+            "kind": "button",
+            "mode": "toggle",
+            "layer": "base",
+            "function": { "id": "play", "deck": 1, "args": {} },
+            "feedback": { "led": { "type": "note", "channel": 1, "number": 11, "on": 127, "off": 0 } }
+          }
+        ],
+        "provenance": { "source": "learned", "sourceId": "fs32-asset" }
+      },
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "updatedAt": "2026-10-28T12:00:00.000Z"
+    }
+  },
+  "mapper_model_list": {
+    "command": "mapper_model_list",
+    "request": { "assetId": "fs32-asset" },
+    "response": [
+      {
+        "id": "00000000-0000-4000-8000-000000000032",
+        "assetId": "fs32-asset",
+        "profileId": null,
+        "name": "Deck controller (learned)",
+        "version": 1,
+        "controlCount": 1,
+        "createdAt": "2026-10-28T12:00:00.000Z",
+        "updatedAt": "2026-10-28T12:00:00.000Z"
+      }
+    ]
+  },
+  "mapper_model_get": {
+    "command": "mapper_model_get",
+    "request": { "id": "00000000-0000-4000-8000-000000000032" }
+  },
+  "mapper_model_delete": {
+    "command": "mapper_model_delete",
+    "request": { "id": "00000000-0000-4000-8000-000000000032" },
+    "response": true
+  }
+}

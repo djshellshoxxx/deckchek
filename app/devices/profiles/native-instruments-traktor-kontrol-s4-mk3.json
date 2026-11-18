@@ -5,21 +5,21 @@
   "model": "TRAKTOR KONTROL S4 MK3",
   "category": "controller",
   "summary": "controller profile with jog, motor, pad, fader, eq, audio, usb, display diagnostic groups. Companion workflow(s): Traktor Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; the exact S4 MK3 manual documents a built-in 24-bit audio interface and USB computer audio use. Its software version 3.2 (07/2019) is document provenance, not a firmware qualification. Numeric USB input/output counts and an enumerated hardware sample-rate list remain unresolved. MIDI transport/maps, USB IDs, class compliance, hardware revision, firmware, OS support and physical performance remain unverified; the current NI Windows 11 ASIO notice must be considered separately.",
   "documents": [
     {
       "title": "Verified manufacturer capability reference",
       "type": "support-article",
       "url": "https://www.native-instruments.com/products/traktor-kontrol-s4",
       "language": "en",
-      "notes": "Manufacturer-published source for specific confirmed specifications added in research pass 2."
+      "notes": "Existing manufacturer capability reference from research pass 2. Checked 2026-11-18: this URL redirects to the generic DJ-controller collection. New exact-model audio evidence uses the pinned S4 MK3 manual below."
     },
     {
-      "title": "Manufacturer manual/product documentation",
-      "type": "manual",
-      "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf",
+      "title": "TRAKTOR KONTROL S4 MK3 Manual, software 3.2 (07/2019)",
+      "type": "user-manual",
+      "url": "https://docs.native-instruments.com/pdf-guides/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf",
       "language": "en",
-      "notes": "Direct manual for some models; otherwise manufacturer's product/support landing page. Verify exact variant."
+      "notes": "Checked 2026-11-18. Printed p. 1 identifies S4 MK3 hardware and software 3.2 (07/2019); p. 2 specifies a built-in 24-bit/96 kHz interface. Section 4.1, p. 12, covers the USB computer link; section 10, p. 89, covers computer audio output/input. Numeric USB counts and a full supported-rate list are not established by these passages. The software/document version is not qualified firmware."
     },
     {
       "title": "Firmware, driver and downloads",
@@ -29,11 +29,11 @@
       "notes": "Check the model-specific download page and operating system."
     },
     {
-      "title": "Manufacturer support",
+      "title": "Kontrol S2/S4 MK3 ASIO driver block after Windows 11 update",
       "type": "support-article",
-      "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf",
+      "url": "https://support.native-instruments.com/support/solutions/articles/69000880969-kontrol-s2-s4-mk3-asio-driver-block-after-windows-11-update",
       "language": "en",
-      "notes": "Official source entry point."
+      "notes": "Checked 2026-11-18; no article revision date identified. NI describes a Windows 11 ASIO driver block and a WASAPI Exclusive alternative involving Traktor Pro 4.5. This is a compatibility notice, not qualification of a particular host, driver or firmware; existing compatibility fields remain unknown."
     },
     {
       "title": "Service manual (public availability not established)",
@@ -66,7 +66,7 @@
       "usbChannelsIn": null,
       "usbChannelsOut": null,
       "sampleRatesHz": [],
-      "bitDepth": null
+      "bitDepth": 24
     }
   },
   "software": [
@@ -130,6 +130,24 @@
       "source": "https://www.native-instruments.com/products/traktor-kontrol-s4",
       "confidence": "confirmed",
       "notes": "Manufacturer-published capability, not independent DeckChek hardware validation."
+    },
+    {
+      "key": "verified_builtin_audio_interface",
+      "label": "Built-in computer audio interface",
+      "value": true,
+      "unit": "bool",
+      "source": "https://docs.native-instruments.com/pdf-guides/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf sections 4.1 and 10, printed pp. 12 and 89",
+      "confidence": "confirmed",
+      "notes": "Exact S4 MK3 manual documents USB computer connection and system audio output/input. This does not establish numeric USB channel counts or current platform compatibility."
+    },
+    {
+      "key": "verified_audio_bit_depth",
+      "label": "Audio interface bit depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://docs.native-instruments.com/pdf-guides/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf section 2, printed p. 2",
+      "confidence": "confirmed",
+      "notes": "The manual identifies a 24-bit/96 kHz interface. Its resolution statement is not an enumerated sample-rate list, so sampleRatesHz remains empty."
     }
   ],
   "midi": {

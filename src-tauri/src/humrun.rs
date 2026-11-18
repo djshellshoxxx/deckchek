@@ -129,33 +129,48 @@ fn db_err(e: rusqlite::Error) -> String {
 /// Step ids are code identifiers from `HUM_STEPS` or generated feedback ids (`level_9`).
 pub fn valid_step_id(s: &str) -> bool {
     let b = s.as_bytes();
-    !b.is_empty() && b.len() <= 40 && b[0].is_ascii_lowercase() && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_')
+    !b.is_empty()
+        && b.len() <= 40
+        && b[0].is_ascii_lowercase()
+        && b.iter()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_')
 }
 
 fn check_text(name: &str, v: &Option<String>, max: usize) -> Result<(), String> {
     match v {
-        Some(t) if t.chars().count() > max => Err(invalid(format!("{name} is limited to {max} characters"))),
+        Some(t) if t.chars().count() > max => {
+            Err(invalid(format!("{name} is limited to {max} characters")))
+        }
         _ => Ok(()),
     }
 }
 
 fn check_num(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(invalid(format!("{name} must be a finite number between {lo} and {hi}"))),
+        Some(x) if !x.is_finite() || x < lo || x > hi => Err(invalid(format!(
+            "{name} must be a finite number between {lo} and {hi}"
+        ))),
         _ => Ok(()),
     }
 }
 
-fn check_json_array(name: &str, v: &Option<Value>, max_items: usize, max_bytes: usize) -> Result<String, String> {
+fn check_json_array(
+    name: &str,
+    v: &Option<Value>,
+    max_items: usize,
+    max_bytes: usize,
+) -> Result<String, String> {
     let Some(v) = v else { return Ok("[]".into()) };
     if v.is_null() {
         return Ok("[]".into());
     }
-    let arr = v.as_array().ok_or_else(|| invalid(format!("{name} must be an array")))?;
+    let arr = v
+        .as_array()
+        .ok_or_else(|| invalid(format!("{name} must be an array")))?;
     if arr.len() > max_items {
         return Err(invalid(format!("{name} is limited to {max_items} entries")));
     }
-    let text = serde_json::to_string(v).map_err(|e| invalid(e))?;
+    let text = serde_json::to_string(v).map_err(invalid)?;
     if text.len() > max_bytes {
         return Err(invalid(format!("{name} is limited to {max_bytes} bytes")));
     }
@@ -163,12 +178,17 @@ fn check_json_array(name: &str, v: &Option<Value>, max_items: usize, max_bytes: 
 }
 
 fn clean(v: &Option<String>) -> Option<String> {
-    v.as_ref().map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
+    v.as_ref()
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
 }
 
 pub fn validate_step(kind: &str, s: &HumStepInput) -> Result<(), String> {
     if !valid_step_id(&s.step_id) {
-        return Err(invalid(format!("stepId '{}' must match ^[a-z][a-z0-9_]{{0,39}}$", s.step_id)));
+        return Err(invalid(format!(
+            "stepId '{}' must match ^[a-z][a-z0-9_]{{0,39}}$",
+            s.step_id
+        )));
     }
     if s.label.trim().is_empty() {
         return Err(invalid(format!("step '{}' needs a label", s.step_id)));
@@ -181,10 +201,20 @@ pub fn validate_step(kind: &str, s: &HumStepInput) -> Result<(), String> {
     check_num("floorDbfs", s.floor_dbfs, lo, hi)?;
     check_num("deltaDb", s.delta_db, -400.0, 400.0)?;
     // A recorded output level above the absolute cap can only come from a bug: refuse it.
-    check_num("levelDbfs", s.level_dbfs, SILENCE_DBFS as f64, ABS_MAX_DBFS as f64)?;
+    check_num(
+        "levelDbfs",
+        s.level_dbfs,
+        SILENCE_DBFS as f64,
+        ABS_MAX_DBFS as f64,
+    )?;
     check_num("peakHz", s.peak_hz, 0.0, 100_000.0)?;
     check_num("growthDbPerS", s.growth_db_per_s, -1000.0, 1000.0)?;
-    check_json_array("harmonics", &s.harmonics, MAX_HARMONICS, MAX_HARMONICS_BYTES)?;
+    check_json_array(
+        "harmonics",
+        &s.harmonics,
+        MAX_HARMONICS,
+        MAX_HARMONICS_BYTES,
+    )?;
     if kind != "feedback" && (s.onset == Some(true) || s.level_dbfs.is_some()) {
         return Err(invalid("onset and levelDbfs belong to feedback runs only"));
     }
@@ -216,10 +246,14 @@ pub fn validate(input: &HumRunInput) -> Result<(), String> {
 
 fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
     // `table` is one of three literals below, never user input.
-    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |_| Ok(()))
-        .optional()
-        .map(|o| o.is_some())
-        .map_err(db_err)
+    conn.query_row(
+        &format!("SELECT 1 FROM {table} WHERE id = ?1"),
+        [id],
+        |_| Ok(()),
+    )
+    .optional()
+    .map(|o| o.is_some())
+    .map_err(db_err)
 }
 
 fn parse_json(text: String) -> Value {
@@ -228,8 +262,16 @@ fn parse_json(text: String) -> Value {
 
 pub fn save(conn: &Connection, input: &HumRunInput) -> Result<HumRun, String> {
     validate(input)?;
-    let (session_id, venue_id, setup_id) = (clean(&input.session_id), clean(&input.venue_id), clean(&input.setup_id));
-    for (table, id) in [("session", &session_id), ("venue", &venue_id), ("setup", &setup_id)] {
+    let (session_id, venue_id, setup_id) = (
+        clean(&input.session_id),
+        clean(&input.venue_id),
+        clean(&input.setup_id),
+    );
+    for (table, id) in [
+        ("session", &session_id),
+        ("venue", &venue_id),
+        ("setup", &setup_id),
+    ] {
         if let Some(id) = id {
             if !exists(conn, table, id)? {
                 return Err(format!("HUMRUN_NOT_FOUND: unknown {table} '{id}'"));
@@ -250,7 +292,16 @@ pub fn save(conn: &Connection, input: &HumRunInput) -> Result<HumRun, String> {
         let skipped = s.skipped.unwrap_or(false);
         // A skipped step carries no measurement, whatever the caller sent.
         let m = |v: Option<f64>| if skipped { None } else { v };
-        let harmonics = if skipped { "[]".to_string() } else { check_json_array("harmonics", &s.harmonics, MAX_HARMONICS, MAX_HARMONICS_BYTES)? };
+        let harmonics = if skipped {
+            "[]".to_string()
+        } else {
+            check_json_array(
+                "harmonics",
+                &s.harmonics,
+                MAX_HARMONICS,
+                MAX_HARMONICS_BYTES,
+            )?
+        };
         tx.execute(
             "INSERT INTO hum_step (id, run_id, idx, step_id, label, fundamental_dbfs, harmonics_json, total_dbfs, floor_dbfs,
                delta_db, level_dbfs, peak_hz, growth_db_per_s, onset, skipped, note)
@@ -328,7 +379,11 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<HumRun>, String> {
                     peak_hz, growth_db_per_s, onset, skipped, note FROM hum_step WHERE run_id = ?1 ORDER BY idx, id",
         )
         .map_err(db_err)?;
-    run.steps = stmt.query_map([id], step_row).map_err(db_err)?.collect::<rusqlite::Result<Vec<_>>>().map_err(db_err)?;
+    run.steps = stmt
+        .query_map([id], step_row)
+        .map_err(db_err)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(db_err)?;
     Ok(Some(run))
 }
 
@@ -339,7 +394,10 @@ pub fn list(conn: &Connection, f: &HumRunFilter) -> Result<Vec<HumRunSummary>, S
             return Err(invalid(format!("kind must be one of {}", KINDS.join(", "))));
         }
     }
-    let limit = f.limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, MAX_LIST_LIMIT);
+    let limit = f
+        .limit
+        .unwrap_or(DEFAULT_LIST_LIMIT)
+        .clamp(1, MAX_LIST_LIMIT);
     let mut stmt = conn
         .prepare(
             "SELECT r.id, r.session_id, r.venue_id, r.setup_id, r.kind, r.mains_hz, r.verdict, r.created_at,
@@ -351,20 +409,23 @@ pub fn list(conn: &Connection, f: &HumRunFilter) -> Result<Vec<HumRunSummary>, S
         )
         .map_err(db_err)?;
     let rows = stmt
-        .query_map(params![clean(&f.venue_id), clean(&f.session_id), f.kind, limit], |r| {
-            Ok(HumRunSummary {
-                id: r.get(0)?,
-                session_id: r.get(1)?,
-                venue_id: r.get(2)?,
-                setup_id: r.get(3)?,
-                kind: r.get(4)?,
-                mains_hz: r.get(5)?,
-                verdict: r.get(6)?,
-                created_at: r.get(7)?,
-                step_count: r.get(8)?,
-                onset: r.get::<_, i64>(9)? != 0,
-            })
-        })
+        .query_map(
+            params![clean(&f.venue_id), clean(&f.session_id), f.kind, limit],
+            |r| {
+                Ok(HumRunSummary {
+                    id: r.get(0)?,
+                    session_id: r.get(1)?,
+                    venue_id: r.get(2)?,
+                    setup_id: r.get(3)?,
+                    kind: r.get(4)?,
+                    mains_hz: r.get(5)?,
+                    verdict: r.get(6)?,
+                    created_at: r.get(7)?,
+                    step_count: r.get(8)?,
+                    onset: r.get::<_, i64>(9)? != 0,
+                })
+            },
+        )
         .map_err(db_err)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(db_err)
 }
@@ -372,34 +433,52 @@ pub fn list(conn: &Connection, f: &HumRunFilter) -> Result<Vec<HumRunSummary>, S
 /// Returns whether a run was removed (its steps go with it).
 pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
     let tx = conn.unchecked_transaction().map_err(db_err)?;
-    tx.execute("DELETE FROM hum_step WHERE run_id = ?1", [id]).map_err(db_err)?;
-    let n = tx.execute("DELETE FROM hum_run WHERE id = ?1", [id]).map_err(db_err)?;
+    tx.execute("DELETE FROM hum_step WHERE run_id = ?1", [id])
+        .map_err(db_err)?;
+    let n = tx
+        .execute("DELETE FROM hum_run WHERE id = ?1", [id])
+        .map_err(db_err)?;
     tx.commit().map_err(db_err)?;
     Ok(n > 0)
 }
 
 #[tauri::command]
-pub fn hum_run_save(app: AppHandle, input: HumRunInput) -> Result<HumRun, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    save(&conn, &input)
+pub async fn hum_run_save(app: AppHandle, input: HumRunInput) -> Result<HumRun, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        save(&conn, &input)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_list(app: AppHandle, filter: Option<HumRunFilter>) -> Result<Vec<HumRunSummary>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, &filter.unwrap_or_default())
+pub async fn hum_run_list(
+    app: AppHandle,
+    filter: Option<HumRunFilter>,
+) -> Result<Vec<HumRunSummary>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, &filter.unwrap_or_default())
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_get(app: AppHandle, id: String) -> Result<Option<HumRun>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn hum_run_get(app: AppHandle, id: String) -> Result<Option<HumRun>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn hum_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn hum_run_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -423,7 +502,12 @@ mod tests {
     }
 
     fn step(id: &str, total: f64) -> HumStepInput {
-        HumStepInput { step_id: id.into(), label: format!("Step {id}"), total_dbfs: Some(total), ..Default::default() }
+        HumStepInput {
+            step_id: id.into(),
+            label: format!("Step {id}"),
+            total_dbfs: Some(total),
+            ..Default::default()
+        }
     }
 
     fn hum_run() -> HumRunInput {
@@ -433,30 +517,73 @@ mod tests {
             mains_hz: Some(50),
             verdict: Some("Hum dropped 18 dB".into()),
             causes: Some(json!([{ "id": "tt_ground_missing", "confidence": 0.85 }])),
-            steps: vec![step("mixer_alone", -90.0), step("deck_cables", -57.0), step("tt_ground", -75.0)],
+            steps: vec![
+                step("mixer_alone", -90.0),
+                step("deck_cables", -57.0),
+                step("tt_ground", -75.0),
+            ],
             ..Default::default()
         }
     }
 
     fn contract() -> Value {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/humrun.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/humrun.json"),
+        )
+        .unwrap();
         serde_json::from_str(&raw).unwrap()
     }
 
     #[test]
     fn migration_creates_tables_and_is_rerunnable() {
         let c = mem();
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 12).expect("0012 registered").1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 12)
+            .expect("0012 registered")
+            .1;
         c.execute_batch(sql).unwrap();
         let cols = |t: &str| -> Vec<String> {
-            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')")).unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
+            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')"))
+                .unwrap()
+                .query_map([], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
         };
-        assert_eq!(cols("hum_run"), ["id", "session_id", "venue_id", "setup_id", "kind", "mains_hz", "verdict", "causes_json", "created_at"]);
+        assert_eq!(
+            cols("hum_run"),
+            [
+                "id",
+                "session_id",
+                "venue_id",
+                "setup_id",
+                "kind",
+                "mains_hz",
+                "verdict",
+                "causes_json",
+                "created_at"
+            ]
+        );
         assert_eq!(
             cols("hum_step"),
             [
-                "id", "run_id", "idx", "step_id", "label", "fundamental_dbfs", "harmonics_json", "total_dbfs", "floor_dbfs", "delta_db", "level_dbfs",
-                "peak_hz", "growth_db_per_s", "onset", "skipped", "note"
+                "id",
+                "run_id",
+                "idx",
+                "step_id",
+                "label",
+                "fundamental_dbfs",
+                "harmonics_json",
+                "total_dbfs",
+                "floor_dbfs",
+                "delta_db",
+                "level_dbfs",
+                "peak_hz",
+                "growth_db_per_s",
+                "onset",
+                "skipped",
+                "note"
             ]
         );
     }
@@ -481,10 +608,26 @@ mod tests {
         assert_eq!(saved.kind, "hum");
         assert_eq!(saved.mains_hz, Some(50));
         assert_eq!(saved.session_id.as_deref(), Some("sess-1"));
-        assert_eq!(saved.causes, json!([{ "id": "tt_ground_missing", "confidence": 0.85 }]));
-        assert_eq!(saved.steps.iter().map(|s| s.step_id.as_str()).collect::<Vec<_>>(), ["mixer_alone", "deck_cables", "tt_ground"]);
-        assert_eq!(saved.steps.iter().map(|s| s.idx).collect::<Vec<_>>(), [0, 1, 2]);
-        assert_eq!(saved.steps[1].harmonics, json!([{ "n": 1, "hz": 50, "dbfs": -58.1 }]));
+        assert_eq!(
+            saved.causes,
+            json!([{ "id": "tt_ground_missing", "confidence": 0.85 }])
+        );
+        assert_eq!(
+            saved
+                .steps
+                .iter()
+                .map(|s| s.step_id.as_str())
+                .collect::<Vec<_>>(),
+            ["mixer_alone", "deck_cables", "tt_ground"]
+        );
+        assert_eq!(
+            saved.steps.iter().map(|s| s.idx).collect::<Vec<_>>(),
+            [0, 1, 2]
+        );
+        assert_eq!(
+            saved.steps[1].harmonics,
+            json!([{ "n": 1, "hz": 50, "dbfs": -58.1 }])
+        );
         assert_eq!(saved.steps[0].harmonics, json!([]));
         assert_eq!(saved.steps[2].note.as_deref(), Some("SL-1200MK4"));
         assert_eq!(saved.steps[2].delta_db, Some(-18.0));
@@ -513,11 +656,23 @@ mod tests {
         b.peak_hz = Some(63.2);
         b.growth_db_per_s = Some(4.1);
         b.onset = Some(true);
-        let input = HumRunInput { venue_id: Some("venue-1".into()), kind: "feedback".into(), steps: vec![a, b], ..Default::default() };
+        let input = HumRunInput {
+            venue_id: Some("venue-1".into()),
+            kind: "feedback".into(),
+            steps: vec![a, b],
+            ..Default::default()
+        };
         let saved = save(&c, &input).unwrap();
         assert!(saved.steps[1].onset && !saved.steps[0].onset);
         assert_eq!(saved.steps[1].peak_hz, Some(63.2));
-        let rows = list(&c, &HumRunFilter { kind: Some("feedback".into()), ..Default::default() }).unwrap();
+        let rows = list(
+            &c,
+            &HumRunFilter {
+                kind: Some("feedback".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(rows.len(), 1);
         assert!(rows[0].onset);
         assert_eq!(rows[0].step_count, 2);
@@ -526,10 +681,21 @@ mod tests {
     #[test]
     fn output_level_above_the_absolute_cap_is_refused() {
         let c = mem();
-        for (level, ok) in [(-12.0, true), (-11.99, false), (0.0, false), (-120.0, true), (-120.01, false), (f64::NAN, false)] {
+        for (level, ok) in [
+            (-12.0, true),
+            (-11.99, false),
+            (0.0, false),
+            (-120.0, true),
+            (-120.01, false),
+            (f64::NAN, false),
+        ] {
             let mut s = step("level_1", -40.0);
             s.level_dbfs = Some(level);
-            let input = HumRunInput { kind: "feedback".into(), steps: vec![s], ..Default::default() };
+            let input = HumRunInput {
+                kind: "feedback".into(),
+                steps: vec![s],
+                ..Default::default()
+            };
             assert_eq!(save(&c, &input).is_ok(), ok, "level {level}");
         }
     }
@@ -537,24 +703,65 @@ mod tests {
     #[test]
     fn validation_rejects_bad_input_with_codes() {
         let c = mem();
-        let cases: Vec<(&str, Box<dyn Fn(&mut HumRunInput)>)> = vec![
+        type InvalidHumCase = (&'static str, Box<dyn Fn(&mut HumRunInput)>);
+        let cases: Vec<InvalidHumCase> = vec![
             ("kind", Box::new(|i| i.kind = "noise".into())),
             ("mains", Box::new(|i| i.mains_hz = Some(55))),
             ("no steps", Box::new(|i| i.steps.clear())),
-            ("too many steps", Box::new(|i| i.steps = (0..=MAX_STEPS).map(|n| step(&format!("s{n}"), -60.0)).collect())),
-            ("step id", Box::new(|i| i.steps[0].step_id = "Bad-Id".into())),
-            ("step id long", Box::new(|i| i.steps[0].step_id = "a".repeat(41))),
+            (
+                "too many steps",
+                Box::new(|i| {
+                    i.steps = (0..=MAX_STEPS)
+                        .map(|n| step(&format!("s{n}"), -60.0))
+                        .collect()
+                }),
+            ),
+            (
+                "step id",
+                Box::new(|i| i.steps[0].step_id = "Bad-Id".into()),
+            ),
+            (
+                "step id long",
+                Box::new(|i| i.steps[0].step_id = "a".repeat(41)),
+            ),
             ("label", Box::new(|i| i.steps[0].label = "  ".into())),
-            ("label long", Box::new(|i| i.steps[0].label = "x".repeat(MAX_LABEL_CHARS + 1))),
-            ("note long", Box::new(|i| i.steps[0].note = Some("x".repeat(MAX_NOTE_CHARS + 1)))),
-            ("verdict long", Box::new(|i| i.verdict = Some("x".repeat(MAX_VERDICT_CHARS + 1)))),
-            ("causes object", Box::new(|i| i.causes = Some(json!({ "a": 1 })))),
-            ("causes many", Box::new(|i| i.causes = Some(Value::Array(vec![json!(1); MAX_CAUSES + 1])))),
-            ("harmonics object", Box::new(|i| i.steps[0].harmonics = Some(json!("x")))),
-            ("total inf", Box::new(|i| i.steps[0].total_dbfs = Some(f64::INFINITY))),
-            ("peak negative", Box::new(|i| i.steps[0].peak_hz = Some(-1.0))),
+            (
+                "label long",
+                Box::new(|i| i.steps[0].label = "x".repeat(MAX_LABEL_CHARS + 1)),
+            ),
+            (
+                "note long",
+                Box::new(|i| i.steps[0].note = Some("x".repeat(MAX_NOTE_CHARS + 1))),
+            ),
+            (
+                "verdict long",
+                Box::new(|i| i.verdict = Some("x".repeat(MAX_VERDICT_CHARS + 1))),
+            ),
+            (
+                "causes object",
+                Box::new(|i| i.causes = Some(json!({ "a": 1 }))),
+            ),
+            (
+                "causes many",
+                Box::new(|i| i.causes = Some(Value::Array(vec![json!(1); MAX_CAUSES + 1]))),
+            ),
+            (
+                "harmonics object",
+                Box::new(|i| i.steps[0].harmonics = Some(json!("x"))),
+            ),
+            (
+                "total inf",
+                Box::new(|i| i.steps[0].total_dbfs = Some(f64::INFINITY)),
+            ),
+            (
+                "peak negative",
+                Box::new(|i| i.steps[0].peak_hz = Some(-1.0)),
+            ),
             ("onset on hum", Box::new(|i| i.steps[0].onset = Some(true))),
-            ("level on hum", Box::new(|i| i.steps[0].level_dbfs = Some(-40.0))),
+            (
+                "level on hum",
+                Box::new(|i| i.steps[0].level_dbfs = Some(-40.0)),
+            ),
         ];
         for (name, mutate) in cases {
             let mut input = hum_run();
@@ -562,7 +769,9 @@ mod tests {
             let err = save(&c, &input).expect_err(name);
             assert!(err.starts_with("HUMRUN_INVALID: "), "{name}: {err}");
         }
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM hum_run", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM hum_run", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(n, 0, "nothing is written for invalid input");
     }
 
@@ -570,7 +779,9 @@ mod tests {
     fn boundary_lengths_are_accepted() {
         let c = mem();
         let mut input = hum_run();
-        input.steps = (0..MAX_STEPS).map(|n| step(&format!("s{n}"), -60.0)).collect();
+        input.steps = (0..MAX_STEPS)
+            .map(|n| step(&format!("s{n}"), -60.0))
+            .collect();
         input.steps[0].step_id = format!("a{}", "b".repeat(39));
         input.steps[0].label = "x".repeat(MAX_LABEL_CHARS);
         input.steps[0].note = Some("n".repeat(MAX_NOTE_CHARS));
@@ -590,29 +801,107 @@ mod tests {
                 _ => input.setup_id = Some(val.into()),
             }
             let err = save(&c, &input).unwrap_err();
-            assert!(err.starts_with("HUMRUN_NOT_FOUND: ") && err.contains(field), "{err}");
+            assert!(
+                err.starts_with("HUMRUN_NOT_FOUND: ") && err.contains(field),
+                "{err}"
+            );
         }
-        let blank = HumRunInput { venue_id: Some("  ".into()), ..hum_run() };
-        assert_eq!(save(&c, &blank).unwrap().venue_id, None, "blank ids are treated as absent");
+        let blank = HumRunInput {
+            venue_id: Some("  ".into()),
+            ..hum_run()
+        };
+        assert_eq!(
+            save(&c, &blank).unwrap().venue_id,
+            None,
+            "blank ids are treated as absent"
+        );
     }
 
     #[test]
     fn list_filters_orders_newest_first_and_limits() {
         let c = mem();
         let a = save(&c, &hum_run()).unwrap();
-        let b = save(&c, &HumRunInput { session_id: Some("sess-1".into()), ..hum_run() }).unwrap();
-        let other = save(&c, &HumRunInput { venue_id: None, ..hum_run() }).unwrap();
-        c.execute("UPDATE hum_run SET created_at = '2026-01-01T00:00:00.000Z' WHERE id = ?1", [&a.id]).unwrap();
-        let venue = list(&c, &HumRunFilter { venue_id: Some("venue-1".into()), ..Default::default() }).unwrap();
-        assert_eq!(venue.iter().map(|r| r.id.clone()).collect::<Vec<_>>(), [b.id.clone(), a.id.clone()]);
+        let b = save(
+            &c,
+            &HumRunInput {
+                session_id: Some("sess-1".into()),
+                ..hum_run()
+            },
+        )
+        .unwrap();
+        let other = save(
+            &c,
+            &HumRunInput {
+                venue_id: None,
+                ..hum_run()
+            },
+        )
+        .unwrap();
+        c.execute(
+            "UPDATE hum_run SET created_at = '2026-01-01T00:00:00.000Z' WHERE id = ?1",
+            [&a.id],
+        )
+        .unwrap();
+        let venue = list(
+            &c,
+            &HumRunFilter {
+                venue_id: Some("venue-1".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            venue.iter().map(|r| r.id.clone()).collect::<Vec<_>>(),
+            [b.id.clone(), a.id.clone()]
+        );
         assert_eq!(venue[0].step_count, 3);
-        let sess = list(&c, &HumRunFilter { session_id: Some("sess-1".into()), ..Default::default() }).unwrap();
+        let sess = list(
+            &c,
+            &HumRunFilter {
+                session_id: Some("sess-1".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(sess.len(), 1);
         assert_eq!(list(&c, &HumRunFilter::default()).unwrap().len(), 3);
-        assert_eq!(list(&c, &HumRunFilter { limit: Some(1), ..Default::default() }).unwrap().len(), 1);
-        assert_eq!(list(&c, &HumRunFilter { limit: Some(0), ..Default::default() }).unwrap().len(), 1, "limit is at least 1");
-        assert!(list(&c, &HumRunFilter { kind: Some("x".into()), ..Default::default() }).is_err());
-        assert!(list(&c, &HumRunFilter::default()).unwrap().iter().any(|r| r.id == other.id));
+        assert_eq!(
+            list(
+                &c,
+                &HumRunFilter {
+                    limit: Some(1),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert_eq!(
+            list(
+                &c,
+                &HumRunFilter {
+                    limit: Some(0),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1,
+            "limit is at least 1"
+        );
+        assert!(list(
+            &c,
+            &HumRunFilter {
+                kind: Some("x".into()),
+                ..Default::default()
+            }
+        )
+        .is_err());
+        assert!(list(&c, &HumRunFilter::default())
+            .unwrap()
+            .iter()
+            .any(|r| r.id == other.id));
     }
 
     #[test]
@@ -622,17 +911,28 @@ mod tests {
         assert!(delete(&c, &r.id).unwrap());
         assert!(!delete(&c, &r.id).unwrap());
         assert_eq!(get(&c, &r.id).unwrap(), None);
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM hum_step", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM hum_step", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(n, 0);
     }
 
     #[test]
     fn deleting_a_venue_or_session_keeps_the_run_unlinked() {
         let c = mem();
-        let r = save(&c, &HumRunInput { session_id: Some("sess-1".into()), ..hum_run() }).unwrap();
-        c.execute("DELETE FROM session WHERE id = 'sess-1'", []).unwrap();
+        let r = save(
+            &c,
+            &HumRunInput {
+                session_id: Some("sess-1".into()),
+                ..hum_run()
+            },
+        )
+        .unwrap();
+        c.execute("DELETE FROM session WHERE id = 'sess-1'", [])
+            .unwrap();
         c.execute("UPDATE setup SET venue_id = NULL", []).unwrap();
-        c.execute("DELETE FROM venue WHERE id = 'venue-1'", []).unwrap();
+        c.execute("DELETE FROM venue WHERE id = 'venue-1'", [])
+            .unwrap();
         let after = get(&c, &r.id).unwrap().unwrap();
         assert_eq!((after.session_id, after.venue_id), (None, None));
         assert_eq!(after.steps.len(), 3);
@@ -642,8 +942,16 @@ mod tests {
     fn corrupt_json_columns_read_back_as_empty_arrays() {
         let c = mem();
         let r = save(&c, &hum_run()).unwrap();
-        c.execute("UPDATE hum_run SET causes_json = 'not json' WHERE id = ?1", [&r.id]).unwrap();
-        c.execute("UPDATE hum_step SET harmonics_json = '{' WHERE run_id = ?1", [&r.id]).unwrap();
+        c.execute(
+            "UPDATE hum_run SET causes_json = 'not json' WHERE id = ?1",
+            [&r.id],
+        )
+        .unwrap();
+        c.execute(
+            "UPDATE hum_step SET harmonics_json = '{' WHERE run_id = ?1",
+            [&r.id],
+        )
+        .unwrap();
         let g = get(&c, &r.id).unwrap().unwrap();
         assert_eq!(g.causes, json!([]));
         assert!(g.steps.iter().all(|s| s.harmonics == json!([])));
@@ -654,7 +962,8 @@ mod tests {
         let c = mem();
         let k = contract();
         for name in ["hum_run_save", "hum_run_save_feedback"] {
-            let input: HumRunInput = serde_json::from_value(k["commands"][name]["request"]["input"].clone()).unwrap();
+            let input: HumRunInput =
+                serde_json::from_value(k["commands"][name]["request"]["input"].clone()).unwrap();
             let saved = save(&c, &input).unwrap();
             let mut got = serde_json::to_value(&saved).unwrap();
             if let Some(expect) = k["commands"][name].get("response") {
@@ -666,7 +975,9 @@ mod tests {
                 assert_eq!(got, expect, "{name}");
             }
         }
-        let f: HumRunFilter = serde_json::from_value(k["commands"]["hum_run_list"]["request"]["filter"].clone()).unwrap();
+        let f: HumRunFilter =
+            serde_json::from_value(k["commands"]["hum_run_list"]["request"]["filter"].clone())
+                .unwrap();
         let rows = list(&c, &f).unwrap();
         let mut row = serde_json::to_value(rows.iter().find(|r| r.kind == "hum").unwrap()).unwrap();
         let mut expect = k["commands"]["hum_run_list"]["response"][0].clone();

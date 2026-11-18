@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "note": "FS-21 whitelist of metrics that may appear in a population pack. Anything not listed here is refused on export and import. Plausible ranges are generous sanity bounds, not specifications. higherIsBetter null means the metric has no ranking direction, so only the distribution is shown. specKeys name the device-profile spec entries related to a metric; specComparable lists, per spec key, the exact spec units that measure the same quantity DeckChek measures. Only those get an INSIDE/OUTSIDE SPEC verdict; any other related spec is refused with specNote.",
+  "metrics": {
+    "left_thd_percent": { "label": "Left THD", "unit": "%", "plausible": [0, 100], "higherIsBetter": false, "specKeys": ["thd", "thd_n"], "specLimit": "max", "specComparable": { "thd": ["%"] }, "specNote": "DeckChek estimates THD from the harmonics only; a THD+N figure also counts noise, so it is not the same quantity and no verdict is shown." },
+    "right_thd_percent": { "label": "Right THD", "unit": "%", "plausible": [0, 100], "higherIsBetter": false, "specKeys": ["thd", "thd_n"], "specLimit": "max", "specComparable": { "thd": ["%"] }, "specNote": "DeckChek estimates THD from the harmonics only; a THD+N figure also counts noise, so it is not the same quantity and no verdict is shown." },
+    "channel_separation_db": { "label": "Channel separation", "unit": "dB", "plausible": [0, 120], "higherIsBetter": true, "specKeys": ["channel_separation", "separation"], "specLimit": "min", "specComparable": { "channel_separation": ["dB"], "separation": ["dB"] } },
+    "wow_flutter_rms_percent": { "label": "Wow and flutter (RMS)", "unit": "%", "plausible": [0, 10], "higherIsBetter": false, "specKeys": ["wow_flutter"], "specLimit": "max", "specComparable": {}, "specNote": "DeckChek measures an unweighted short-term speed-variation proxy; published wow and flutter figures are weighted (WRMS, DIN or JIS), so they are not the same quantity and no verdict is shown." },
+    "left_hum_dbfs": { "label": "Left hum", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "right_hum_dbfs": { "label": "Right hum", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "vinyl_rumble_dbfs": { "label": "Rumble proxy", "unit": "dBFS", "plausible": [-160, 0], "higherIsBetter": false, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "dvs_integrity_score": { "label": "Timecode signal integrity", "unit": "/100", "plausible": [0, 100], "higherIsBetter": true, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "vinyl_condition_score": { "label": "Record condition score", "unit": "/100", "plausible": [0, 100], "higherIsBetter": true, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "dropout_count": { "label": "Dropout regions", "unit": "regions", "plausible": [0, 100000], "higherIsBetter": false, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "startup_envelope_90_sec": { "label": "Start-up time to 90%", "unit": "s", "plausible": [0, 120], "higherIsBetter": false, "specKeys": ["start_time"], "specLimit": "max", "specComparable": {}, "specNote": "DeckChek measures how long the signal envelope takes to reach 90%; a published start-up time is the time to reach rated speed, so they are not the same quantity and no verdict is shown." },
+    "quartz_speed_error_percent": { "label": "Quartz speed error", "unit": "%", "plausible": [-20, 20], "higherIsBetter": null, "specKeys": [], "specLimit": null, "specComparable": {} },
+    "channel_balance_db": { "label": "Channel balance L-R", "unit": "dB", "plausible": [-40, 40], "higherIsBetter": null, "specKeys": [], "specLimit": null, "specComparable": {} }
+  }
+}

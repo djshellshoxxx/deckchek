@@ -15,54 +15,58 @@ export const TEST_CATEGORY_LABELS = {
 export const PASS_OPS = ['abs<=', '<=', '>=', 'between', 'equals', 'all-seen'];
 export const SEVERITIES = ['critical', 'major', 'minor'];
 /** Engines a test method can name, as `<engine>:<mode>`. */
-export const METHOD_ENGINES = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'timecode', 'midi', 'driver', 'software', 'manual'];
-export const MIDI_KINDS = ['coverage', 'fader', 'jog', 'button', 'led', 'latency'];
+export const METHOD_ENGINES = ['quick', 'speed', 'cartridge', 'dvs', 'vinyl', 'timecode', 'midi', 'audio', 'driver', 'software', 'manual'];
+export const MIDI_KINDS = ['coverage', 'fader', 'jog', 'button', 'led', 'latency', 'conformance', 'gm'];
+export const AUDIO_KINDS = ['quality'];
 
 /** Split "speed:Pitch map" into {engine:'speed', mode:'Pitch map'}. */
 export function parseMethod(method) {
-  const s = String(method || '');
+  const s = typeof method === 'string' ? method : '';
   const i = s.indexOf(':');
   if (i < 0) return { engine: s.trim(), mode: '' };
   return { engine: s.slice(0, i).trim(), mode: s.slice(i + 1).trim() };
 }
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+// Profile values in messages: a parsed object such as {"toString": 0} throws when turned into a string.
+const show = v => (v !== null && typeof v === 'object' ? (Array.isArray(v) ? '[array]' : '[object]') : String(v).slice(0, 80));
 
 /** Validate a profile against the schema contract. Errors make it unusable; warnings are shown but tolerated. */
 export function validateProfile(p) {
   const errors = [], warnings = [];
   if (!isObj(p)) return { ok: false, errors: ['profile is not an object'], warnings };
-  if (p.schemaVersion !== 1) errors.push(`unsupported schemaVersion ${p.schemaVersion}`);
+  if (p.schemaVersion !== 1) errors.push(`unsupported schemaVersion ${show(p.schemaVersion)}`);
   if (typeof p.id !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.id)) errors.push('id must be kebab-case');
   for (const k of ['manufacturer', 'model', 'summary']) if (typeof p[k] !== 'string' || !p[k].trim()) errors.push(`${k} is required`);
-  if (!CATEGORIES.includes(p.category)) errors.push(`unknown category "${p.category}"`);
+  if (!CATEGORIES.includes(p.category)) errors.push(`unknown category "${show(p.category)}"`);
   if (p.image != null && (!isObj(p.image) || typeof p.image.file !== 'string')) errors.push('image.file is required when image is set');
   if (!Array.isArray(p.documents)) warnings.push('documents missing');
   if (!Array.isArray(p.specs)) errors.push('specs must be an array');
   else p.specs.forEach((s, i) => {
     if (!s?.key) errors.push(`specs[${i}].key is required`);
-    if (!['confirmed', 'unverified'].includes(s?.confidence)) warnings.push(`spec ${s?.key || i}: confidence should be confirmed|unverified`);
-    if (!s?.source) warnings.push(`spec ${s?.key || i}: no source`);
+    if (!['confirmed', 'unverified'].includes(s?.confidence)) warnings.push(`spec ${show(s?.key || i)}: confidence should be confirmed|unverified`);
+    if (!s?.source) warnings.push(`spec ${show(s?.key || i)}: no source`);
   });
   if (!Array.isArray(p.tests) || !p.tests.length) errors.push('tests must be a non-empty array');
   else {
     const seen = new Set();
     p.tests.forEach((t, i) => {
-      const where = `test ${t?.id || i}`;
+      const where = `test ${show(t?.id || i)}`;
       if (!t?.id) errors.push(`tests[${i}].id is required`);
-      else if (seen.has(t.id)) errors.push(`duplicate test id ${t.id}`);
+      else if (seen.has(t.id)) errors.push(`duplicate test id ${show(t.id)}`);
       else seen.add(t.id);
       if (!t?.title) errors.push(`${where}: title is required`);
       const { engine, mode } = parseMethod(t?.method);
-      if (!METHOD_ENGINES.includes(engine)) errors.push(`${where}: unknown method "${t?.method}"`);
+      if (!METHOD_ENGINES.includes(engine)) errors.push(`${where}: unknown method "${show(t?.method)}"`);
       else if (engine === 'midi' && !MIDI_KINDS.includes(mode)) errors.push(`${where}: unknown MIDI test "${mode}"`);
-      if (!TEST_CATEGORIES.includes(t?.category)) warnings.push(`${where}: unknown category "${t?.category}"`);
+      else if (engine === 'audio' && !AUDIO_KINDS.includes(mode)) errors.push(`${where}: unknown audio test "${mode}"`);
+      if (!TEST_CATEGORIES.includes(t?.category)) warnings.push(`${where}: unknown category "${show(t?.category)}"`);
       if (!Array.isArray(t?.steps) || !t.steps.length) warnings.push(`${where}: no steps`);
       if (t?.pass != null) {
-        if (!PASS_OPS.includes(t.pass.op)) errors.push(`${where}: unknown pass op "${t.pass.op}"`);
+        if (!PASS_OPS.includes(t.pass.op)) errors.push(`${where}: unknown pass op "${show(t.pass.op)}"`);
         if (!t.pass.metricId) errors.push(`${where}: pass.metricId is required`);
       }
-      if (t?.severity && !SEVERITIES.includes(t.severity)) warnings.push(`${where}: unknown severity "${t.severity}"`);
+      if (t?.severity && !SEVERITIES.includes(t.severity)) warnings.push(`${where}: unknown severity "${show(t.severity)}"`);
     });
   }
   if (p.midi != null && !Array.isArray(p.midi.controls)) errors.push('midi.controls must be an array');
@@ -120,12 +124,44 @@ export function specSummary(profile) {
   };
 }
 
-/** Latest result per test id (results may be in any order). */
+/** A validated observation time; legacy date-only results retain their UTC-day ordering. */
+export function resultTimestamp(result) {
+  const text = result?.createdAt;
+  const match = typeof text === 'string' && /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2}))?$/.exec(text);
+  if (!match || +match[2] > 23 || +match[3] > 59 || +match[4] > 59) return NaN;
+  const calendar = Date.parse(`${match[1]}T00:00:00Z`);
+  if (!Number.isFinite(calendar) || new Date(calendar).toISOString().slice(0, 10) !== match[1]) return NaN;
+  return Date.parse(text);
+}
+
+/** Display uncertainty without overwriting the stored observation or hiding a recorded failure. */
+export function resultStatus(result) {
+  if (!result) return undefined;
+  return result.status !== 'fail' && !Number.isFinite(resultTimestamp(result)) ? 'unknown' : result.status;
+}
+
+/** Latest result per test id. Uncertain ordering and equal instants retain adverse evidence. */
 export function latestResults(results = []) {
-  const out = new Map();
+  const groups = new Map(), out = new Map();
+  const priority = result => {
+    const status = resultStatus(result);
+    return status === 'fail' ? 3 : status === 'pass' ? 0 : status === 'skipped' ? 1 : 2;
+  };
   for (const r of results) {
-    const prev = out.get(r.testId);
-    if (!prev || String(r.createdAt) > String(prev.createdAt)) out.set(r.testId, r);
+    if (!r || typeof r.testId !== 'string' || !r.testId) continue;
+    if (!groups.has(r.testId)) groups.set(r.testId, {});
+    const group = groups.get(r.testId), at = resultTimestamp(r);
+    if (Number.isFinite(at)) {
+      if (!group.latest || at > group.at || (at === group.at && priority(r) > priority(group.latest))) {
+        group.latest = r;
+        group.at = at;
+      }
+    } else if (!group.unresolved || priority(r) > priority(group.unresolved)) group.unresolved = r;
+  }
+  // Establish valid chronology first. An unorderable row cannot disappear just
+  // because an older failure was encountered before a newer passing result.
+  for (const [testId, { latest, unresolved }] of groups) {
+    out.set(testId, unresolved && (!latest || priority(unresolved) >= priority(latest)) ? unresolved : latest);
   }
   return out;
 }
@@ -136,7 +172,7 @@ export function progressFor(profile, results = []) {
   const p = { total: 0, passed: 0, failed: 0, unknown: 0, skipped: 0, untested: 0 };
   for (const t of profile?.tests || []) {
     p.total++;
-    const s = latest.get(t.id)?.status;
+    const s = resultStatus(latest.get(t.id));
     if (s === 'pass') p.passed++;
     else if (s === 'fail') p.failed++;
     else if (s === 'unknown') p.unknown++;

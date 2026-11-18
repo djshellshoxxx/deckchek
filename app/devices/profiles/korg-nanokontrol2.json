@@ -5,7 +5,7 @@
   "model": "nanoKONTROL2",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,encoder,button,usb. Software: generic MIDI.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. The exact nanoKONTROL2 Owner's Manual documents USB MIDI IN/OUT. Its Windows XP USB audio device name labels MIDI ports and does not establish audio capability. The 2015-06-01 download-entry date is not firmware; audio capability remains unresolved.",
   "documents": [
     {
       "title": "Manufacturer controls and technical specifications",
@@ -44,6 +44,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "nanoKONTROL2 Owner's Manual, nanoKONTROL2_OM_EFGSCJ2",
+      "type": "user-manual",
+      "url": "https://cdn.korg.com/us/support/download/files/b61f4da2e9b32e7825edc729e7d71a0d.pdf?response-content-disposition=inline%3Bfilename%2A%3DUTF-8%27%27nanoKONTROL2_OM_EFGSCJ2.pdf&response-content-type=application%2Fpdf%3B",
+      "language": "en",
+      "notes": "Checked 2026-11-18. English sheet (PDF p. 3), Connections/driver ports/Specifications: USB mini-B and MIDI IN/OUT. The Windows XP USB audio device label belongs to that MIDI-port table. The filename code is document provenance, not firmware."
+    },
+    {
+      "title": "nanoKONTROL2 Owner's Manual download entry",
+      "type": "support-article",
+      "url": "https://www.korg.com/us/support/download/manual/0/159/1912/",
+      "language": "en",
+      "notes": "Official entry dated 2015-06-01; checked 2026-11-18. This is the download listing date, not a verified publication date or a hardware or firmware revision."
     }
   ],
   "connectivity": {
@@ -54,7 +68,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "nanoKONTROL2"
@@ -115,6 +129,15 @@
       "unit": "bool",
       "source": "https://www.korg.com/us/products/computergear/nanokontrol2/page_1.php",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.korg.com/us/support/download/files/b61f4da2e9b32e7825edc729e7d71a0d.pdf?response-content-disposition=inline%3Bfilename%2A%3DUTF-8%27%27nanoKONTROL2_OM_EFGSCJ2.pdf&response-content-type=application%2Fpdf%3B",
+      "confidence": "confirmed",
+      "notes": "English sheet, driver-port table and USB connection instructions: MIDI IN/OUT over USB. The Windows XP port name is not an audio specification."
     }
   ],
   "midi": {

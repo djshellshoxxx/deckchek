@@ -31,24 +31,33 @@ pub fn validate_key(key: &str) -> Result<(), String> {
     let ok = !bytes.is_empty()
         && bytes.len() <= MAX_KEY_LEN
         && bytes[0].is_ascii_lowercase()
-        && bytes.iter().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || *b == b'_' || *b == b'.');
+        && bytes
+            .iter()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || *b == b'_' || *b == b'.');
     if ok {
         Ok(())
     } else {
-        Err(format!("invalid app_state key '{key}': expected ^[a-z][a-z0-9_.]{{0,63}}$"))
+        Err(format!(
+            "invalid app_state key '{key}': expected ^[a-z][a-z0-9_.]{{0,63}}$"
+        ))
     }
 }
 
 pub fn get(conn: &Connection, key: &str) -> Result<Option<AppStateEntry>, String> {
     validate_key(key)?;
     let row: Option<(String, String)> = conn
-        .query_row("SELECT value_json, updated_at FROM app_state WHERE key = ?1", [key], |r| Ok((r.get(0)?, r.get(1)?)))
+        .query_row(
+            "SELECT value_json, updated_at FROM app_state WHERE key = ?1",
+            [key],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .optional()
         .map_err(e2s)?;
     match row {
         None => Ok(None),
         Some((json, updated_at)) => {
-            let value = serde_json::from_str(&json).map_err(|e| format!("app_state '{key}' holds invalid JSON: {e}"))?;
+            let value = serde_json::from_str(&json)
+                .map_err(|e| format!("app_state '{key}' holds invalid JSON: {e}"))?;
             Ok(Some(AppStateEntry { value, updated_at }))
         }
     }
@@ -58,7 +67,10 @@ pub fn set(conn: &Connection, key: &str, value: &Value) -> Result<(), String> {
     validate_key(key)?;
     let json = serde_json::to_string(value).map_err(|e| e.to_string())?;
     if json.len() > MAX_VALUE_BYTES {
-        return Err(format!("app_state '{key}' value is {} bytes; the limit is {MAX_VALUE_BYTES}", json.len()));
+        return Err(format!(
+            "app_state '{key}' value is {} bytes; the limit is {MAX_VALUE_BYTES}",
+            json.len()
+        ));
     }
     let now = now_iso(conn)?;
     conn.execute(
@@ -73,25 +85,36 @@ pub fn set(conn: &Connection, key: &str, value: &Value) -> Result<(), String> {
 /// Removes the key; returns whether it existed.
 pub fn delete(conn: &Connection, key: &str) -> Result<bool, String> {
     validate_key(key)?;
-    conn.execute("DELETE FROM app_state WHERE key = ?1", [key]).map(|n| n > 0).map_err(e2s)
+    conn.execute("DELETE FROM app_state WHERE key = ?1", [key])
+        .map(|n| n > 0)
+        .map_err(e2s)
 }
 
 #[tauri::command]
-pub fn app_state_get(app: AppHandle, key: String) -> Result<Option<AppStateEntry>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &key)
+pub async fn app_state_get(app: AppHandle, key: String) -> Result<Option<AppStateEntry>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &key)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn app_state_set(app: AppHandle, key: String, value: Value) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    set(&conn, &key, &value)
+pub async fn app_state_set(app: AppHandle, key: String, value: Value) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        set(&conn, &key, &value)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn app_state_delete(app: AppHandle, key: String) -> Result<(), String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &key).map(|_| ())
+pub async fn app_state_delete(app: AppHandle, key: String) -> Result<(), String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &key).map(|_| ())
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -115,11 +138,17 @@ mod tests {
         set(&c, "wizard", &v).unwrap();
         let got = get(&c, "wizard").unwrap().unwrap();
         assert_eq!(got.value, v);
-        assert!(got.updated_at.ends_with('Z') && got.updated_at.contains('T'), "{}", got.updated_at);
+        assert!(
+            got.updated_at.ends_with('Z') && got.updated_at.contains('T'),
+            "{}",
+            got.updated_at
+        );
         set(&c, "wizard", &json!(null)).unwrap();
         assert_eq!(get(&c, "wizard").unwrap().unwrap().value, Value::Null);
         set(&c, "backup.last", &json!("2026-10-10")).unwrap();
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM app_state", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM app_state", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(n, 2, "overwrite must not add a row");
         assert!(delete(&c, "wizard").unwrap());
         assert!(!delete(&c, "wizard").unwrap());
@@ -129,16 +158,41 @@ mod tests {
 
     #[test]
     fn entry_serializes_camel_case() {
-        let e = AppStateEntry { value: json!({"a": 1}), updated_at: "2026-10-10T00:00:00.000Z".into() };
-        assert_eq!(serde_json::to_value(&e).unwrap(), json!({"value": {"a": 1}, "updatedAt": "2026-10-10T00:00:00.000Z"}));
+        let e = AppStateEntry {
+            value: json!({"a": 1}),
+            updated_at: "2026-10-10T00:00:00.000Z".into(),
+        };
+        assert_eq!(
+            serde_json::to_value(&e).unwrap(),
+            json!({"value": {"a": 1}, "updatedAt": "2026-10-10T00:00:00.000Z"})
+        );
     }
 
     #[test]
     fn key_rules_at_the_boundaries() {
-        for ok in ["a", "wizard", "backup.last_run", "monitor.v2", "z9._", &format!("a{}", "b".repeat(63))] {
+        for ok in [
+            "a",
+            "wizard",
+            "backup.last_run",
+            "monitor.v2",
+            "z9._",
+            &format!("a{}", "b".repeat(63)),
+        ] {
             assert!(validate_key(ok).is_ok(), "{ok}");
         }
-        for bad in ["", "Wizard", "9lives", "_x", ".x", "a-b", "a b", "a/b", "ä", "wizard\n", &format!("a{}", "b".repeat(64))] {
+        for bad in [
+            "",
+            "Wizard",
+            "9lives",
+            "_x",
+            ".x",
+            "a-b",
+            "a b",
+            "a/b",
+            "ä",
+            "wizard\n",
+            &format!("a{}", "b".repeat(64)),
+        ] {
             assert!(validate_key(bad).is_err(), "{bad:?}");
         }
         let c = mem();
@@ -157,7 +211,11 @@ mod tests {
         let over = Value::String("x".repeat(MAX_VALUE_BYTES - 1));
         let err = set(&c, "big", &over).unwrap_err();
         assert!(err.contains("limit"), "{err}");
-        assert_eq!(get(&c, "big").unwrap().unwrap().value, at_cap, "rejected write leaves the old value");
+        assert_eq!(
+            get(&c, "big").unwrap().unwrap().value,
+            at_cap,
+            "rejected write leaves the old value"
+        );
         // multi-byte characters count as UTF-8 bytes
         let wide = Value::String("é".repeat(MAX_VALUE_BYTES / 2));
         assert!(set(&c, "wide", &wide).is_err());
@@ -166,7 +224,11 @@ mod tests {
     #[test]
     fn corrupt_stored_json_is_reported_not_hidden() {
         let c = mem();
-        c.execute("INSERT INTO app_state (key, value_json, updated_at) VALUES ('wizard', '{oops', 'now')", []).unwrap();
+        c.execute(
+            "INSERT INTO app_state (key, value_json, updated_at) VALUES ('wizard', '{oops', 'now')",
+            [],
+        )
+        .unwrap();
         let err = get(&c, "wizard").unwrap_err();
         assert!(err.contains("invalid JSON"), "{err}");
     }

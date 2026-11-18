@@ -47,8 +47,21 @@ pub struct CpuUse {
 /// Known DJ programs: display name, canonical exe, lowercase exe names that map to it.
 const KNOWN: &[(&str, &str, &[&str])] = &[
     ("Serato DJ Pro", "Serato DJ Pro.exe", &["serato dj pro.exe"]),
-    ("Serato DJ Lite", "Serato DJ Lite.exe", &["serato dj lite.exe"]),
-    ("Traktor Pro", "Traktor.exe", &["traktor.exe", "traktor pro 4.exe", "traktor pro 3.exe", "traktor pro 2.exe"]),
+    (
+        "Serato DJ Lite",
+        "Serato DJ Lite.exe",
+        &["serato dj lite.exe"],
+    ),
+    (
+        "Traktor Pro",
+        "Traktor.exe",
+        &[
+            "traktor.exe",
+            "traktor pro 4.exe",
+            "traktor pro 3.exe",
+            "traktor pro 2.exe",
+        ],
+    ),
     ("rekordbox", "rekordbox.exe", &["rekordbox.exe"]),
     ("VirtualDJ", "VirtualDJ.exe", &["virtualdj.exe"]),
     ("Mixxx", "mixxx.exe", &["mixxx.exe"]),
@@ -57,7 +70,10 @@ const KNOWN: &[(&str, &str, &[&str])] = &[
 ];
 
 /// Background helpers of DJ programs (updaters, agents) must not count as "the app is running".
-const HELPER_WORDS: &[&str] = &["agent", "helper", "updater", "update", "service", "crash", "setup", "install", "uninst", "launcher", "daemon"];
+const HELPER_WORDS: &[&str] = &[
+    "agent", "helper", "updater", "update", "service", "crash", "setup", "install", "uninst",
+    "launcher", "daemon",
+];
 
 // ---------------------------------------------------------------- CSV parsing
 
@@ -143,13 +159,23 @@ pub fn dj_apps_from(rows: &[(String, u32)]) -> Vec<DjApp> {
     let mut apps: Vec<DjApp> = Vec::new();
     for (image, pid) in rows {
         if let Some((app, exe)) = classify_exe(image) {
-            apps.push(DjApp { app, exe, pid: Some(*pid), running: true });
+            apps.push(DjApp {
+                app,
+                exe,
+                pid: Some(*pid),
+                running: true,
+            });
         }
     }
     apps.sort_by(|a, b| a.app.cmp(&b.app).then(a.pid.cmp(&b.pid)));
     for (app, canon, _) in KNOWN {
         if !apps.iter().any(|a| a.app == *app) {
-            apps.push(DjApp { app: (*app).to_string(), exe: (*canon).to_string(), pid: None, running: false });
+            apps.push(DjApp {
+                app: (*app).to_string(),
+                exe: (*canon).to_string(),
+                pid: None,
+                running: false,
+            });
         }
     }
     apps
@@ -162,14 +188,22 @@ pub fn dj_apps_from(rows: &[(String, u32)]) -> Vec<DjApp> {
 pub fn exe_from_instance(instance: &str) -> Option<String> {
     let name = instance.trim();
     let base = match name.rfind('#') {
-        Some(i) if i > 0 && name[i + 1..].chars().all(|c| c.is_ascii_digit()) && i + 1 < name.len() => &name[..i],
+        Some(i)
+            if i > 0 && name[i + 1..].chars().all(|c| c.is_ascii_digit()) && i + 1 < name.len() =>
+        {
+            &name[..i]
+        }
         _ => name,
     };
     let lower = base.to_lowercase();
     if base.is_empty() || lower == "_total" || lower == "idle" {
         return None;
     }
-    Some(if lower.ends_with(".exe") { base.to_string() } else { format!("{base}.exe") })
+    Some(if lower.ends_with(".exe") {
+        base.to_string()
+    } else {
+        format!("{base}.exe")
+    })
 }
 
 /// Parse `ConvertTo-Csv` output with header `Name,Cpu` (the script is fixed). Instances
@@ -183,24 +217,37 @@ pub fn parse_top_cpu(text: &str, logical_cpus: usize, n: usize) -> Vec<CpuUse> {
             continue;
         }
         // Decimal commas in localized output arrive quoted ("12,5"): accept both separators.
-        let Ok(v) = r[1].trim().replace(',', ".").parse::<f64>() else { continue };
+        let Ok(v) = r[1].trim().replace(',', ".").parse::<f64>() else {
+            continue;
+        };
         if !v.is_finite() || v < 0.0 {
             continue;
         }
-        let Some(exe) = exe_from_instance(&r[0]) else { continue };
+        let Some(exe) = exe_from_instance(&r[0]) else {
+            continue;
+        };
         let e = sums.entry(exe.to_lowercase()).or_insert((exe, 0.0));
         e.1 += v;
     }
     let mut out: Vec<CpuUse> = sums
         .into_values()
-        .map(|(exe, v)| CpuUse { exe, cpu_pct: (v / cpus * 10.0).round() / 10.0 })
+        .map(|(exe, v)| CpuUse {
+            exe,
+            cpu_pct: (v / cpus * 10.0).round() / 10.0,
+        })
         .collect();
-    out.sort_by(|a, b| b.cpu_pct.partial_cmp(&a.cpu_pct).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.exe.to_lowercase().cmp(&b.exe.to_lowercase())));
+    out.sort_by(|a, b| {
+        b.cpu_pct
+            .partial_cmp(&a.cpu_pct)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.exe.to_lowercase().cmp(&b.exe.to_lowercase()))
+    });
     out.truncate(n.min(MAX_TOP_N));
     out
 }
 
-pub const CPU_UNAVAILABLE: &str = "CPU usage counters are unavailable on this PC (no samples were returned).";
+pub const CPU_UNAVAILABLE: &str =
+    "CPU usage counters are unavailable on this PC (no samples were returned).";
 
 /// Like [`parse_top_cpu`], but no samples at all is "unavailable", not an
 /// empty (and therefore passing) list.
@@ -220,7 +267,7 @@ fn tasklist_output() -> Result<String, String> {
     use std::os::windows::process::CommandExt;
     use std::process::Command;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let mut cmd = Command::new("tasklist.exe");
+    let mut cmd = Command::new(crate::system_check::system_exe("tasklist.exe"));
     cmd.args(["/FO", "CSV", "/NH"]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     crate::system_check::run_with_timeout(cmd, TIMEOUT)
@@ -246,37 +293,56 @@ fn cpu_output() -> Result<String, String> {
             $dt=[double]$_.Timestamp_Sys100NS - [double]$x.Timestamp_Sys100NS; \
             if ($dt -gt 0) { [pscustomobject]@{ Name=$_.Name; Cpu=[math]::Round(100.0*([double]$_.PercentProcessorTime - [double]$x.PercentProcessorTime)/$dt, 2).ToString($inv) } } } } | \
         ConvertTo-Csv -NoTypeInformation";
-    let mut cmd = Command::new("powershell.exe");
-    cmd.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", SCRIPT]);
+    let mut cmd = Command::new(crate::system_check::system_exe("powershell.exe"));
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        SCRIPT,
+    ]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     crate::system_check::run_with_timeout(cmd, TIMEOUT)
 }
 
 #[cfg(windows)]
 fn logical_cpus() -> usize {
-    std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+    std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1)
 }
 
 #[tauri::command]
 pub async fn dj_processes() -> Result<DjProcesses, String> {
-    tauri::async_runtime::spawn_blocking(dj_processes_blocking).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(dj_processes_blocking)
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[cfg(windows)]
 fn dj_processes_blocking() -> Result<DjProcesses, String> {
     let out = tasklist_output()?;
-    Ok(DjProcesses { supported: true, apps: dj_apps_from(&parse_tasklist(&out)) })
+    Ok(DjProcesses {
+        supported: true,
+        apps: dj_apps_from(&parse_tasklist(&out)),
+    })
 }
 
 #[cfg(not(windows))]
 fn dj_processes_blocking() -> Result<DjProcesses, String> {
-    Ok(DjProcesses { supported: false, apps: Vec::new() })
+    Ok(DjProcesses {
+        supported: false,
+        apps: Vec::new(),
+    })
 }
 
 #[tauri::command]
 pub async fn top_cpu(n: Option<usize>) -> Result<Vec<CpuUse>, String> {
     let n = n.unwrap_or(5).clamp(1, MAX_TOP_N);
-    tauri::async_runtime::spawn_blocking(move || top_cpu_blocking(n)).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || top_cpu_blocking(n))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[cfg(windows)]
@@ -306,10 +372,22 @@ mod tests {
         let apps = dj_apps_from(&rows);
         let running: Vec<_> = apps.iter().filter(|a| a.running).collect();
         assert_eq!(running.len(), 2);
-        assert_eq!((running[0].app.as_str(), running[0].exe.as_str(), running[0].pid), ("Serato DJ Pro", "Serato DJ Pro.exe", Some(7312)));
-        assert_eq!((running[1].app.as_str(), running[1].pid), ("rekordbox", Some(9020)));
+        assert_eq!(
+            (
+                running[0].app.as_str(),
+                running[0].exe.as_str(),
+                running[0].pid
+            ),
+            ("Serato DJ Pro", "Serato DJ Pro.exe", Some(7312))
+        );
+        assert_eq!(
+            (running[1].app.as_str(), running[1].pid),
+            ("rekordbox", Some(9020))
+        );
         // rekordboxAgent.exe and Traktor updater are helpers, not the app
-        assert!(apps.iter().any(|a| a.app == "Traktor Pro" && !a.running && a.pid.is_none()));
+        assert!(apps
+            .iter()
+            .any(|a| a.app == "Traktor Pro" && !a.running && a.pid.is_none()));
         assert_eq!(apps.len(), running.len() + KNOWN.len() - 2);
     }
 
@@ -340,11 +418,17 @@ mod tests {
         assert!(!names.contains(&"badpid.exe"));
         assert!(!names.contains(&"short.exe"));
         // CRLF endings and a BOM do not leak into names
-        assert!(rows.iter().all(|(n, _)| !n.contains('\r') && !n.starts_with('\u{feff}')));
+        assert!(rows
+            .iter()
+            .all(|(n, _)| !n.contains('\r') && !n.starts_with('\u{feff}')));
         let apps = dj_apps_from(&rows);
         // "Serato DJ Pro 4.exe" is an unknown build: accepted via is_dj_program, helper rejected
-        assert!(apps.iter().any(|a| a.running && a.app == "Serato DJ Pro 4" && a.exe == "Serato DJ Pro 4.exe"));
-        assert!(!apps.iter().any(|a| a.exe.to_lowercase().contains("updater")));
+        assert!(apps
+            .iter()
+            .any(|a| a.running && a.app == "Serato DJ Pro 4" && a.exe == "Serato DJ Pro 4.exe"));
+        assert!(!apps
+            .iter()
+            .any(|a| a.exe.to_lowercase().contains("updater")));
         // a process merely named like a DJ stem in the middle of a different file is still classified by stem rule only for .exe
         assert!(!apps.iter().any(|a| a.exe.ends_with(".dll")));
     }
@@ -362,7 +446,10 @@ mod tests {
     #[test]
     fn empty_and_garbage_input() {
         assert!(parse_tasklist("").is_empty());
-        assert!(parse_tasklist("INFO: No tasks are running which match the specified criteria.\r\n").is_empty());
+        assert!(parse_tasklist(
+            "INFO: No tasks are running which match the specified criteria.\r\n"
+        )
+        .is_empty());
         assert!(parse_tasklist("\"unterminated,12").is_empty());
         let apps = dj_apps_from(&[]);
         assert_eq!(apps.len(), KNOWN.len());
@@ -372,14 +459,20 @@ mod tests {
     #[test]
     fn csv_parser_edge_cases() {
         assert_eq!(parse_csv("\"a\",\"b\"\n"), vec![vec!["a", "b"]]);
-        assert_eq!(parse_csv("\"a,b\",c\r\n\r\n\"x\"\"y\",\"\""), vec![vec!["a,b", "c"], vec!["x\"y", ""]]);
+        assert_eq!(
+            parse_csv("\"a,b\",c\r\n\r\n\"x\"\"y\",\"\""),
+            vec![vec!["a,b", "c"], vec!["x\"y", ""]]
+        );
         assert_eq!(parse_csv("\u{feff}a,b"), vec![vec!["a", "b"]]);
     }
 
     #[test]
     fn instance_names() {
         assert_eq!(exe_from_instance("chrome#2").as_deref(), Some("chrome.exe"));
-        assert_eq!(exe_from_instance("Serato DJ Pro").as_deref(), Some("Serato DJ Pro.exe"));
+        assert_eq!(
+            exe_from_instance("Serato DJ Pro").as_deref(),
+            Some("Serato DJ Pro.exe")
+        );
         assert_eq!(exe_from_instance("name.exe#3").as_deref(), Some("name.exe"));
         assert_eq!(exe_from_instance("C#").as_deref(), Some("C#.exe"));
         assert_eq!(exe_from_instance("#1").as_deref(), Some("#1.exe"));
@@ -393,7 +486,16 @@ mod tests {
         let csv = "\"Name\",\"Cpu\"\r\n\"_Total\",\"800\"\r\n\"Idle\",\"700\"\r\n\"chrome\",\"40\"\r\n\"chrome#1\",\"40\"\r\n\"Serato DJ Pro\",\"60.04\"\r\n\"System\",\"3\"\r\n\"odd, name#2\",\"4\"\r\n\"bad\",\"abc\"\r\n\"neg\",\"-5\"\r\n\"german\",\"12,5\"\r\n";
         let top = parse_top_cpu(csv, 8, 10);
         let got: Vec<(&str, f64)> = top.iter().map(|c| (c.exe.as_str(), c.cpu_pct)).collect();
-        assert_eq!(got, [("chrome.exe", 10.0), ("Serato DJ Pro.exe", 7.5), ("german.exe", 1.6), ("odd, name.exe", 0.5), ("System.exe", 0.4)]);
+        assert_eq!(
+            got,
+            [
+                ("chrome.exe", 10.0),
+                ("Serato DJ Pro.exe", 7.5),
+                ("german.exe", 1.6),
+                ("odd, name.exe", 0.5),
+                ("System.exe", 0.4)
+            ]
+        );
         assert_eq!(parse_top_cpu(csv, 8, 2).len(), 2);
         assert_eq!(parse_top_cpu(csv, 8, 1000).len(), 5);
         assert_eq!(parse_top_cpu(csv, 0, 1)[0].cpu_pct, 80.0); // zero cpus clamps to 1
@@ -405,25 +507,60 @@ mod tests {
     #[test]
     fn no_cpu_samples_is_unavailable_not_an_empty_list() {
         assert_eq!(top_cpu_from("", 8, 5).unwrap_err(), CPU_UNAVAILABLE);
-        assert_eq!(top_cpu_from("\"Name\",\"Cpu\"\r\n\"_Total\",\"800\"\r\n", 8, 5).unwrap_err(), CPU_UNAVAILABLE);
+        assert_eq!(
+            top_cpu_from("\"Name\",\"Cpu\"\r\n\"_Total\",\"800\"\r\n", 8, 5).unwrap_err(),
+            CPU_UNAVAILABLE
+        );
         let idle = top_cpu_from("\"Name\",\"Cpu\"\r\n\"svchost#4\",\"0\"\r\n", 8, 5).unwrap();
-        assert_eq!((idle[0].exe.as_str(), idle[0].cpu_pct), ("svchost.exe", 0.0), "a quiet PC still has samples");
+        assert_eq!(
+            (idle[0].exe.as_str(), idle[0].cpu_pct),
+            ("svchost.exe", 0.0),
+            "a quiet PC still has samples"
+        );
     }
 
     #[test]
     fn serialises_to_the_contract() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/usage.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/usage.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
         let dj = DjProcesses {
             supported: true,
             apps: vec![
-                DjApp { app: "Serato DJ Pro".into(), exe: "Serato DJ Pro.exe".into(), pid: Some(4242), running: true },
-                DjApp { app: "Traktor Pro".into(), exe: "Traktor.exe".into(), pid: None, running: false },
+                DjApp {
+                    app: "Serato DJ Pro".into(),
+                    exe: "Serato DJ Pro.exe".into(),
+                    pid: Some(4242),
+                    running: true,
+                },
+                DjApp {
+                    app: "Traktor Pro".into(),
+                    exe: "Traktor.exe".into(),
+                    pid: None,
+                    running: false,
+                },
             ],
         };
-        assert_eq!(serde_json::to_value(&dj).unwrap(), v["dj_processes"]["response"]);
-        let cpu = vec![CpuUse { exe: "chrome.exe".into(), cpu_pct: 12.5 }, CpuUse { exe: "System".into(), cpu_pct: 0.4 }];
-        assert_eq!(serde_json::to_value(&cpu).unwrap(), v["top_cpu"]["response"]);
+        assert_eq!(
+            serde_json::to_value(&dj).unwrap(),
+            v["dj_processes"]["response"]
+        );
+        let cpu = vec![
+            CpuUse {
+                exe: "chrome.exe".into(),
+                cpu_pct: 12.5,
+            },
+            CpuUse {
+                exe: "System".into(),
+                cpu_pct: 0.4,
+            },
+        ];
+        assert_eq!(
+            serde_json::to_value(&cpu).unwrap(),
+            v["top_cpu"]["response"]
+        );
     }
 
     #[cfg(not(windows))]
@@ -440,7 +577,10 @@ mod tests {
     fn live_tasklist_parses() {
         let rows = parse_tasklist(&tasklist_output().unwrap());
         assert!(rows.len() > 10);
-        assert!(rows.iter().any(|(n, _)| n.eq_ignore_ascii_case("explorer.exe") || n.eq_ignore_ascii_case("svchost.exe")));
+        assert!(rows
+            .iter()
+            .any(|(n, _)| n.eq_ignore_ascii_case("explorer.exe")
+                || n.eq_ignore_ascii_case("svchost.exe")));
         let d = dj_processes_blocking().unwrap();
         assert!(d.supported && d.apps.len() >= KNOWN.len());
         let top = top_cpu_blocking(5).unwrap();

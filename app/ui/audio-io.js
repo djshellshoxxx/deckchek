@@ -73,6 +73,27 @@ export { inputPairs, parsePairSelection, resolvePairs } from '../capture.js';
  * (pairs[0] shares left/right). Payloads from before pair support yield one pair, 1-2 (or mono 1).
  */
 export function payloadToAudio(payload) {
+  // Preserve whether native observations existed before the compatibility
+  // defaults below. Guided comparisons must not treat a duplicated/missing
+  // channel or inferred routing/rate as measured evidence. Other callers keep
+  // the existing audio fallback behavior.
+  const present = key => payload != null && Object.hasOwn(payload, key);
+  const field = (key, valid) => ({ present: present(key), valid: Boolean(valid), value: payload?.[key] ?? null });
+  const channel = key => {
+    const value = payload?.[key];
+    const array = Array.isArray(value) || value instanceof Float32Array || value instanceof Float64Array;
+    return { present: present(key), valid: array && value.length > 0 && value.every(Number.isFinite), samples: array ? value.length : null };
+  };
+  const pairValid = pair => Number.isSafeInteger(pair?.first) && pair.first > 0 && pair.first < 65535 && pair.first % 2 === 1 && typeof pair.mono === 'boolean' && pair.second === pair.first + (pair.mono ? 0 : 1);
+  const nativeFields = {
+    left: channel('left'), right: channel('right'),
+    sampleRate: field('sampleRate', Number.isSafeInteger(payload?.sampleRate) && payload.sampleRate > 0),
+    channels: field('channels', Number.isSafeInteger(payload?.channels) && payload.channels > 0),
+    deviceName: field('deviceName', typeof payload?.deviceName === 'string' && payload.deviceName.trim()),
+    pairs: field('pairs', Array.isArray(payload?.pairs) && payload.pairs.length > 0 && payload.pairs.every(pairValid)),
+    streamErrors: field('streamErrors', Array.isArray(payload?.streamErrors) && payload.streamErrors.every(value => typeof value === 'string')),
+  };
+  if (Array.isArray(nativeFields.pairs.value)) nativeFields.pairs.value = nativeFields.pairs.value.map(pair => pair && typeof pair === 'object' ? { ...pair } : pair);
   const left = Float32Array.from(payload?.left || []);
   const right = payload?.right?.length ? Float32Array.from(payload.right) : Float32Array.from(left);
   const sampleRate = payload?.sampleRate || 48000;
@@ -82,7 +103,7 @@ export function payloadToAudio(payload) {
     const l = Float32Array.from(x?.left || []);
     return { pair: { label: x.label, first: x.first, second: x.second, mono: Boolean(x.mono) }, left: l, right: x?.right?.length ? Float32Array.from(x.right) : Float32Array.from(l) };
   });
-  return { left, right, sampleRate, channels, durationSec: left.length / sampleRate, pairs: [{ pair: firstPair, left, right }, ...extra] };
+  return { left, right, sampleRate, channels, durationSec: left.length / sampleRate, pairs: [{ pair: firstPair, left, right }, ...extra], nativeFields };
 }
 
 export const liveAvailable = () => capture.isNativeAvailable();

@@ -51,16 +51,32 @@ pub struct PregigProcesses {
 pub fn from_dj_processes(d: crate::processes::DjProcesses, scanned_at: String) -> PregigProcesses {
     PregigProcesses {
         supported: d.supported,
-        apps: d.apps.into_iter().map(|a| PregigApp { app: a.app, running: a.running, exe: a.exe, pid: a.pid, version: None }).collect(),
+        apps: d
+            .apps
+            .into_iter()
+            .map(|a| PregigApp {
+                app: a.app,
+                running: a.running,
+                exe: a.exe,
+                pid: a.pid,
+                version: None,
+            })
+            .collect(),
         scanned_at,
     }
 }
 
 #[tauri::command]
 pub async fn pregig_processes() -> Result<PregigProcesses, String> {
-    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
     let dj = crate::processes::dj_processes().await?;
-    Ok(from_dj_processes(dj, crate::system_check::iso_from_unix(secs)))
+    Ok(from_dj_processes(
+        dj,
+        crate::system_check::iso_from_unix(secs),
+    ))
 }
 
 // ---------------------------------------------------------------- types
@@ -160,7 +176,11 @@ pub struct Preset {
 
 fn valid_step_id(s: &str) -> bool {
     let b = s.as_bytes();
-    !b.is_empty() && b.len() <= 40 && b[0].is_ascii_lowercase() && b.iter().all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b':'))
+    !b.is_empty()
+        && b.len() <= 40
+        && b[0].is_ascii_lowercase()
+        && b.iter()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-' | b':'))
 }
 
 fn json_len(name: &str, v: &Value, max: usize) -> Result<String, String> {
@@ -174,8 +194,18 @@ fn json_len(name: &str, v: &Value, max: usize) -> Result<String, String> {
 fn check_timestamp(name: &str, s: &str) -> Result<(), String> {
     // Shape check only: YYYY-MM-DDTHH:MM... (the JS side writes ISO-8601 UTC).
     let b = s.as_bytes();
-    let ok = b.len() >= 16 && b.len() <= 40 && b[4] == b'-' && b[7] == b'-' && b[10] == b'T' && b[13] == b':' && b[..4].iter().all(u8::is_ascii_digit);
-    if ok { Ok(()) } else { Err(format!("{name} must be an ISO-8601 timestamp")) }
+    let ok = b.len() >= 16
+        && b.len() <= 40
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b[10] == b'T'
+        && b[13] == b':'
+        && b[..4].iter().all(u8::is_ascii_digit);
+    if ok {
+        Ok(())
+    } else {
+        Err(format!("{name} must be an ISO-8601 timestamp"))
+    }
 }
 
 pub fn validate_run(i: &RunInput) -> Result<(), String> {
@@ -186,14 +216,19 @@ pub fn validate_run(i: &RunInput) -> Result<(), String> {
     if let Some(f) = &i.finished_at {
         check_timestamp("finishedAt", f)?;
     }
-    if i.duration_ms.map_or(false, |d| !(0..=86_400_000).contains(&d)) {
+    if i.duration_ms
+        .is_some_and(|d| !(0..=86_400_000).contains(&d))
+    {
         return Err("durationMs must be between 0 and 86400000".into());
     }
     let v = i.app_version.trim();
     if v.is_empty() || v.chars().count() > 40 {
         return Err("appVersion must be 1 to 40 characters".into());
     }
-    if i.notes.as_ref().map_or(false, |n| n.chars().count() > MAX_NOTES_CHARS) {
+    if i.notes
+        .as_ref()
+        .is_some_and(|n| n.chars().count() > MAX_NOTES_CHARS)
+    {
         return Err(format!("notes are limited to {MAX_NOTES_CHARS} characters"));
     }
     if i.steps.len() > MAX_STEPS {
@@ -201,16 +236,26 @@ pub fn validate_run(i: &RunInput) -> Result<(), String> {
     }
     for (n, s) in i.steps.iter().enumerate() {
         if !valid_step_id(&s.step_id) {
-            return Err(format!("step {n}: stepId must match [a-z][A-Za-z0-9_:-]{{0,39}}"));
+            return Err(format!(
+                "step {n}: stepId must match [a-z][A-Za-z0-9_:-]{{0,39}}"
+            ));
         }
         if !STEP_STATES.contains(&s.state.as_str()) {
-            return Err(format!("step {n}: state must be one of {}", STEP_STATES.join(", ")));
+            return Err(format!(
+                "step {n}: state must be one of {}",
+                STEP_STATES.join(", ")
+            ));
         }
-        if s.deck.as_ref().map_or(false, |d| d.is_empty() || d.chars().count() > 8) {
+        if s.deck
+            .as_ref()
+            .is_some_and(|d| d.is_empty() || d.chars().count() > 8)
+        {
             return Err(format!("step {n}: deck must be 1 to 8 characters"));
         }
         if s.summary.trim().is_empty() || s.summary.chars().count() > MAX_SUMMARY_CHARS {
-            return Err(format!("step {n}: summary must be 1 to {MAX_SUMMARY_CHARS} characters"));
+            return Err(format!(
+                "step {n}: summary must be 1 to {MAX_SUMMARY_CHARS} characters"
+            ));
         }
         match &s.evidence {
             None | Some(Value::Null) => {}
@@ -238,7 +283,7 @@ pub fn validate_preset(i: &PresetInput) -> Result<(), String> {
     if !i.json.is_object() {
         return Err("preset json must be an object".into());
     }
-    if !i.json.get("v").map_or(false, |v| v.is_u64()) {
+    if !i.json.get("v").is_some_and(|v| v.is_u64()) {
         return Err("preset json needs an integer version field 'v'".into());
     }
     json_len("preset json", &i.json, MAX_PRESET_BYTES)?;
@@ -247,7 +292,12 @@ pub fn validate_preset(i: &PresetInput) -> Result<(), String> {
 
 fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
     // `table` is one of the fixed names below, never user input.
-    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| r.get::<_, i64>(0)).optional().map(|o| o.is_some()).map_err(e2s)
+    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| {
+        r.get::<_, i64>(0)
+    })
+    .optional()
+    .map(|o| o.is_some())
+    .map_err(e2s)
 }
 
 // ---------------------------------------------------------------- runs
@@ -255,7 +305,11 @@ fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
 /// Validate and store a run with its step results in one transaction.
 pub fn save_run(conn: &mut Connection, input: &RunInput) -> Result<IdResult, String> {
     validate_run(input)?;
-    for (table, label, id) in [("pregig_preset", "preset", &input.preset_id), ("session", "session", &input.session_id), ("venue", "venue", &input.venue_id)] {
+    for (table, label, id) in [
+        ("pregig_preset", "preset", &input.preset_id),
+        ("session", "session", &input.session_id),
+        ("venue", "venue", &input.venue_id),
+    ] {
         if let Some(id) = id {
             if !exists(conn, table, id)? {
                 return Err(format!("unknown {label} '{id}'"));
@@ -263,7 +317,11 @@ pub fn save_run(conn: &mut Connection, input: &RunInput) -> Result<IdResult, Str
         }
     }
     let id = new_id();
-    let notes = input.notes.as_ref().map(|n| n.trim().to_string()).filter(|n| !n.is_empty());
+    let notes = input
+        .notes
+        .as_ref()
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty());
     let tx = conn.transaction().map_err(e2s)?;
     tx.execute(
         "INSERT INTO pregig_run (id, preset_id, session_id, started_at, finished_at, verdict, duration_ms, app_version, venue_id, notes)
@@ -284,7 +342,17 @@ pub fn save_run(conn: &mut Connection, input: &RunInput) -> Result<IdResult, Str
                 Some(v @ Value::Array(_)) => json_len("fix", v, MAX_FIX_BYTES)?,
                 _ => "[]".to_string(),
             };
-            stmt.execute(params![new_id(), id, s.step_id, s.deck, s.state, s.summary.trim(), evidence, fix]).map_err(e2s)?;
+            stmt.execute(params![
+                new_id(),
+                id,
+                s.step_id,
+                s.deck,
+                s.state,
+                s.summary.trim(),
+                evidence,
+                fix
+            ])
+            .map_err(e2s)?;
         }
     }
     tx.commit().map_err(e2s)?;
@@ -315,17 +383,31 @@ fn run_row(r: &rusqlite::Row) -> rusqlite::Result<RunSummary> {
 }
 
 /// Runs newest first, optionally only those of one preset; steps are not included.
-pub fn list_runs(conn: &Connection, preset_id: Option<&str>, limit: Option<u32>) -> Result<Vec<RunSummary>, String> {
+pub fn list_runs(
+    conn: &Connection,
+    preset_id: Option<&str>,
+    limit: Option<u32>,
+) -> Result<Vec<RunSummary>, String> {
     let limit = limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, MAX_LIST_LIMIT);
     let mut stmt = conn
         .prepare(&format!("SELECT {RUN_COLS} FROM pregig_run r WHERE (?1 IS NULL OR r.preset_id = ?1) ORDER BY r.started_at DESC, r.id DESC LIMIT ?2"))
         .map_err(e2s)?;
-    let rows = stmt.query_map(params![preset_id, limit], run_row).map_err(e2s)?;
+    let rows = stmt
+        .query_map(params![preset_id, limit], run_row)
+        .map_err(e2s)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
 }
 
 pub fn get_run(conn: &Connection, id: &str) -> Result<Option<RunDetail>, String> {
-    let Some(run) = conn.query_row(&format!("SELECT {RUN_COLS} FROM pregig_run r WHERE r.id = ?1"), [id], run_row).optional().map_err(e2s)? else {
+    let Some(run) = conn
+        .query_row(
+            &format!("SELECT {RUN_COLS} FROM pregig_run r WHERE r.id = ?1"),
+            [id],
+            run_row,
+        )
+        .optional()
+        .map_err(e2s)?
+    else {
         return Ok(None);
     };
     let mut stmt = conn
@@ -342,7 +424,8 @@ pub fn get_run(conn: &Connection, id: &str) -> Result<Option<RunDetail>, String>
                 deck: r.get(3)?,
                 state: r.get(4)?,
                 summary: r.get(5)?,
-                evidence: serde_json::from_str(&evidence).unwrap_or(Value::Object(Default::default())),
+                evidence: serde_json::from_str(&evidence)
+                    .unwrap_or(Value::Object(Default::default())),
                 fix: serde_json::from_str(&fix).unwrap_or(Value::Array(Vec::new())),
             })
         })
@@ -370,7 +453,13 @@ fn preset_row(r: &rusqlite::Row) -> rusqlite::Result<Preset> {
 const PRESET_COLS: &str = "id, name, builtin, setup_id, json, created_at, updated_at";
 
 fn get_preset(conn: &Connection, id: &str) -> Result<Option<Preset>, String> {
-    conn.query_row(&format!("SELECT {PRESET_COLS} FROM pregig_preset WHERE id = ?1"), [id], preset_row).optional().map_err(e2s)
+    conn.query_row(
+        &format!("SELECT {PRESET_COLS} FROM pregig_preset WHERE id = ?1"),
+        [id],
+        preset_row,
+    )
+    .optional()
+    .map_err(e2s)
 }
 
 /// Insert a new user preset, or update an existing one in place (keeps its id and created_at).
@@ -389,7 +478,9 @@ pub fn preset_upsert(conn: &Connection, input: &PresetInput) -> Result<Preset, S
         Some(id) => {
             let existing = get_preset(conn, id)?;
             match existing {
-                Some(p) if p.builtin => return Err("built-in presets cannot be changed; duplicate it instead".into()),
+                Some(p) if p.builtin => {
+                    return Err("built-in presets cannot be changed; duplicate it instead".into())
+                }
                 Some(_) => {
                     conn.execute("UPDATE pregig_preset SET name = ?2, setup_id = ?3, json = ?4, updated_at = ?5 WHERE id = ?1", params![id, name, input.setup_id, json, now]).map_err(e2s)?;
                 }
@@ -417,50 +508,81 @@ pub fn preset_upsert(conn: &Connection, input: &PresetInput) -> Result<Preset, S
 }
 
 pub fn preset_list(conn: &Connection) -> Result<Vec<Preset>, String> {
-    let mut stmt = conn.prepare(&format!("SELECT {PRESET_COLS} FROM pregig_preset ORDER BY name COLLATE NOCASE, id")).map_err(e2s)?;
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {PRESET_COLS} FROM pregig_preset ORDER BY name COLLATE NOCASE, id"
+        ))
+        .map_err(e2s)?;
     let rows = stmt.query_map([], preset_row).map_err(e2s)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
 }
 
 /// Returns whether a preset was removed; its runs stay (preset_id becomes NULL).
 pub fn preset_delete(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute("DELETE FROM pregig_preset WHERE id = ?1 AND builtin = 0", [id]).map(|n| n > 0).map_err(e2s)
+    conn.execute(
+        "DELETE FROM pregig_preset WHERE id = ?1 AND builtin = 0",
+        [id],
+    )
+    .map(|n| n > 0)
+    .map_err(e2s)
 }
 
 #[tauri::command]
-pub fn pregig_save_run(app: AppHandle, run: RunInput) -> Result<IdResult, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save_run(&mut conn, &run)
+pub async fn pregig_save_run(app: AppHandle, run: RunInput) -> Result<IdResult, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save_run(&mut conn, &run)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_list_runs(app: AppHandle, preset_id: Option<String>, limit: Option<u32>) -> Result<Vec<RunSummary>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_runs(&conn, preset_id.as_deref(), limit)
+pub async fn pregig_list_runs(
+    app: AppHandle,
+    preset_id: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<RunSummary>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_runs(&conn, preset_id.as_deref(), limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_get_run(app: AppHandle, id: String) -> Result<Option<RunDetail>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get_run(&conn, &id)
+pub async fn pregig_get_run(app: AppHandle, id: String) -> Result<Option<RunDetail>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get_run(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_upsert(app: AppHandle, preset: PresetInput) -> Result<Preset, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_upsert(&conn, &preset)
+pub async fn pregig_preset_upsert(app: AppHandle, preset: PresetInput) -> Result<Preset, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_upsert(&conn, &preset)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_list(app: AppHandle) -> Result<Vec<Preset>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_list(&conn)
+pub async fn pregig_preset_list(app: AppHandle) -> Result<Vec<Preset>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_list(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn pregig_preset_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    preset_delete(&conn, &id)
+pub async fn pregig_preset_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        preset_delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -483,11 +605,23 @@ mod tests {
     }
 
     fn preset_in(name: &str) -> PresetInput {
-        PresetInput { id: None, name: name.into(), setup_id: None, json: json!({"v": 1, "name": name, "decks": []}) }
+        PresetInput {
+            id: None,
+            name: name.into(),
+            setup_id: None,
+            json: json!({"v": 1, "name": name, "decks": []}),
+        }
     }
 
     fn step(id: &str, state: &str) -> StepInput {
-        StepInput { step_id: id.into(), deck: None, state: state.into(), summary: "ok".into(), evidence: Some(json!({"snrDb": 31.5})), fix: Some(json!([{"label": "Clean stylus"}])) }
+        StepInput {
+            step_id: id.into(),
+            deck: None,
+            state: state.into(),
+            summary: "ok".into(),
+            evidence: Some(json!({"snrDb": 31.5})),
+            fix: Some(json!([{"label": "Clean stylus"}])),
+        }
     }
 
     fn run_in(preset: Option<&str>, started: &str) -> RunInput {
@@ -501,7 +635,12 @@ mod tests {
             duration_ms: Some(71_000),
             app_version: "0.0.6".into(),
             notes: None,
-            steps: vec![step("audio", "pass"), step("timecode:A", "warn"), step("signal:A", "fail"), step("midi", "skipped")],
+            steps: vec![
+                step("audio", "pass"),
+                step("timecode:A", "warn"),
+                step("signal:A", "fail"),
+                step("midi", "skipped"),
+            ],
         }
     }
 
@@ -510,7 +649,13 @@ mod tests {
         let c = mem();
         apply_migrations(&c).unwrap();
         for t in ["pregig_preset", "pregig_run", "pregig_step_result"] {
-            let n: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0)).unwrap();
+            let n: i64 = c
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    [t],
+                    |r| r.get(0),
+                )
+                .unwrap();
             assert_eq!(n, 1, "{t}");
         }
     }
@@ -522,17 +667,35 @@ mod tests {
         let a = save_run(&mut c, &run_in(Some(&p.id), "2026-10-10T18:00:00.000Z")).unwrap();
         let b = save_run(&mut c, &run_in(None, "2026-10-11T18:00:00.000Z")).unwrap();
         let all = list_runs(&c, None, None).unwrap();
-        assert_eq!(all.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), [b.id.as_str(), a.id.as_str()], "newest first");
-        assert_eq!((all[1].step_count, all[1].fail_count, all[1].warn_count), (4, 1, 1));
+        assert_eq!(
+            all.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+            [b.id.as_str(), a.id.as_str()],
+            "newest first"
+        );
+        assert_eq!(
+            (all[1].step_count, all[1].fail_count, all[1].warn_count),
+            (4, 1, 1)
+        );
         let only = list_runs(&c, Some(&p.id), Some(5)).unwrap();
         assert_eq!(only.len(), 1);
         assert_eq!(only[0].id, a.id);
         let d = get_run(&c, &a.id).unwrap().unwrap();
-        assert_eq!(d.steps.iter().map(|s| s.step_id.as_str()).collect::<Vec<_>>(), ["audio", "timecode:A", "signal:A", "midi"], "insertion order");
+        assert_eq!(
+            d.steps
+                .iter()
+                .map(|s| s.step_id.as_str())
+                .collect::<Vec<_>>(),
+            ["audio", "timecode:A", "signal:A", "midi"],
+            "insertion order"
+        );
         assert_eq!(d.steps[0].evidence, json!({"snrDb": 31.5}));
         assert_eq!(d.steps[0].fix, json!([{"label": "Clean stylus"}]));
         assert!(get_run(&c, "nope").unwrap().is_none());
-        assert_eq!(list_runs(&c, None, Some(0)).unwrap().len(), 1, "limit clamps to at least 1 and is not an error");
+        assert_eq!(
+            list_runs(&c, None, Some(0)).unwrap().len(),
+            1,
+            "limit clamps to at least 1 and is not an error"
+        );
     }
 
     #[test]
@@ -552,11 +715,19 @@ mod tests {
         ok.venue_id = Some("v1".into());
         let r = save_run(&mut c, &ok).unwrap();
         assert!(preset_delete(&c, &p.id).unwrap());
-        c.execute("DELETE FROM session WHERE id = 's1'", []).unwrap();
+        c.execute("DELETE FROM session WHERE id = 's1'", [])
+            .unwrap();
         let d = get_run(&c, &r.id).unwrap().unwrap();
-        assert_eq!((d.run.preset_id, d.run.session_id), (None, None), "runs outlive their preset and session");
-        c.execute("DELETE FROM pregig_run WHERE id = ?1", [&r.id]).unwrap();
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM pregig_step_result", [], |x| x.get(0)).unwrap();
+        assert_eq!(
+            (d.run.preset_id, d.run.session_id),
+            (None, None),
+            "runs outlive their preset and session"
+        );
+        c.execute("DELETE FROM pregig_run WHERE id = ?1", [&r.id])
+            .unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM pregig_step_result", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 0, "step results cascade with the run");
     }
 
@@ -578,17 +749,27 @@ mod tests {
         assert!(ok(&|i| i.duration_ms = Some(86_400_001)).is_err());
         assert!(ok(&|i| i.app_version = " ".into()).is_err());
         assert!(ok(&|i| i.notes = Some("x".repeat(1001))).is_err());
-        assert!(ok(&|i| i.steps = (0..=MAX_STEPS).map(|k| step(&format!("s{k}"), "pass")).collect()).is_err());
-        assert!(ok(&|i| i.steps[0].step_id = "Audio".into()).unwrap_err().contains("stepId"));
+        assert!(ok(&|i| i.steps = (0..=MAX_STEPS)
+            .map(|k| step(&format!("s{k}"), "pass"))
+            .collect())
+        .is_err());
+        assert!(ok(&|i| i.steps[0].step_id = "Audio".into())
+            .unwrap_err()
+            .contains("stepId"));
         assert!(ok(&|i| i.steps[0].step_id = "a'; DROP TABLE x".into()).is_err());
         for s in STEP_STATES {
             assert!(ok(&|i| i.steps[0].state = s.to_string()).is_ok(), "{s}");
         }
-        assert!(ok(&|i| i.steps[0].state = "green".into()).unwrap_err().contains("state"));
+        assert!(ok(&|i| i.steps[0].state = "green".into())
+            .unwrap_err()
+            .contains("state"));
         assert!(ok(&|i| i.steps[0].summary = "  ".into()).is_err());
         assert!(ok(&|i| i.steps[0].summary = "x".repeat(501)).is_err());
         assert!(ok(&|i| i.steps[0].evidence = Some(json!([1]))).is_err());
-        assert!(ok(&|i| i.steps[0].evidence = Some(json!({"x": "y".repeat(MAX_EVIDENCE_BYTES)}))).is_err());
+        assert!(
+            ok(&|i| i.steps[0].evidence = Some(json!({"x": "y".repeat(MAX_EVIDENCE_BYTES)})))
+                .is_err()
+        );
         assert!(ok(&|i| i.steps[0].fix = Some(json!({"a": 1}))).is_err());
         assert!(ok(&|i| i.steps[0].fix = Some(json!(["y".repeat(MAX_FIX_BYTES)]))).is_err());
         assert!(ok(&|i| i.steps[0].deck = Some(String::new())).is_err());
@@ -596,7 +777,9 @@ mod tests {
         let mut bad = run_in(None, "2026-10-10T18:00:00.000Z");
         bad.steps[3].state = "bogus".into();
         assert!(save_run(&mut c, &bad).is_err());
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM pregig_run", [], |x| x.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM pregig_run", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 0, "a rejected run writes nothing");
     }
 
@@ -604,7 +787,12 @@ mod tests {
     fn table_constraints_hold_below_the_api() {
         let mut c = mem();
         let r = save_run(&mut c, &run_in(None, "2026-10-10T18:00:00.000Z")).unwrap();
-        assert!(c.execute("UPDATE pregig_run SET verdict = 'purple' WHERE id = ?1", [&r.id]).is_err());
+        assert!(c
+            .execute(
+                "UPDATE pregig_run SET verdict = 'purple' WHERE id = ?1",
+                [&r.id]
+            )
+            .is_err());
         assert!(c.execute("INSERT INTO pregig_step_result (id, run_id, step_id, state, summary) VALUES ('x', ?1, 'a', 'maybe', 's')", [&r.id]).is_err());
         assert!(c.execute("INSERT INTO pregig_step_result (id, run_id, step_id, state, summary) VALUES ('y', 'missing', 'a', 'pass', 's')", []).is_err());
     }
@@ -615,12 +803,33 @@ mod tests {
         let a = preset_upsert(&c, &preset_in("zeta rig")).unwrap();
         let b = preset_upsert(&c, &preset_in("Alpha rig")).unwrap();
         assert!(!a.builtin);
-        assert_eq!(preset_list(&c).unwrap().iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), ["Alpha rig", "zeta rig"], "case-insensitive name order");
+        assert_eq!(
+            preset_list(&c)
+                .unwrap()
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Alpha rig", "zeta rig"],
+            "case-insensitive name order"
+        );
         let mut edit = preset_in("Alpha renamed");
         edit.id = Some(b.id.clone());
         edit.setup_id = Some("setup-1".into());
         let e = preset_upsert(&c, &edit).unwrap();
-        assert_eq!((e.id.as_str(), e.name.as_str(), e.setup_id.as_deref(), e.created_at.as_str()), (b.id.as_str(), "Alpha renamed", Some("setup-1"), b.created_at.as_str()));
+        assert_eq!(
+            (
+                e.id.as_str(),
+                e.name.as_str(),
+                e.setup_id.as_deref(),
+                e.created_at.as_str()
+            ),
+            (
+                b.id.as_str(),
+                "Alpha renamed",
+                Some("setup-1"),
+                b.created_at.as_str()
+            )
+        );
         // import with a caller-chosen id creates it
         let mut imp = preset_in("Imported");
         imp.id = Some("user-chosen".into());
@@ -651,8 +860,15 @@ mod tests {
         assert!(ok(&|i| i.json = json!([1])).is_err());
         assert!(ok(&|i| i.json = json!({"name": "no version"})).is_err());
         assert!(ok(&|i| i.json = json!({"v": "1"})).is_err());
-        assert!(ok(&|i| i.json = json!({"v": 1, "pad": "x".repeat(MAX_PRESET_BYTES)})).unwrap_err().contains("limited"));
-        assert!(ok(&|i| i.json = json!({"v": 99, "future": true})).is_ok(), "unknown higher versions are stored; JS shows them read-only");
+        assert!(
+            ok(&|i| i.json = json!({"v": 1, "pad": "x".repeat(MAX_PRESET_BYTES)}))
+                .unwrap_err()
+                .contains("limited")
+        );
+        assert!(
+            ok(&|i| i.json = json!({"v": 99, "future": true})).is_ok(),
+            "unknown higher versions are stored; JS shows them read-only"
+        );
     }
 
     #[test]
@@ -662,24 +878,51 @@ mod tests {
             DjProcesses {
                 supported: true,
                 apps: vec![
-                    DjApp { app: "Serato DJ Pro".into(), exe: "Serato DJ Pro.exe".into(), pid: Some(4242), running: true },
-                    DjApp { app: "Traktor Pro".into(), exe: "Traktor.exe".into(), pid: None, running: false },
+                    DjApp {
+                        app: "Serato DJ Pro".into(),
+                        exe: "Serato DJ Pro.exe".into(),
+                        pid: Some(4242),
+                        running: true,
+                    },
+                    DjApp {
+                        app: "Traktor Pro".into(),
+                        exe: "Traktor.exe".into(),
+                        pid: None,
+                        running: false,
+                    },
                 ],
             },
             "2026-10-10T18:00:00Z".into(),
         );
         assert_eq!(got.apps.len(), 2);
-        assert_eq!((got.apps[0].running, got.apps[0].pid, got.apps[0].version.clone()), (true, Some(4242), None));
-        let off = from_dj_processes(DjProcesses { supported: false, apps: vec![] }, "t".into());
+        assert_eq!(
+            (
+                got.apps[0].running,
+                got.apps[0].pid,
+                got.apps[0].version.clone()
+            ),
+            (true, Some(4242), None)
+        );
+        let off = from_dj_processes(
+            DjProcesses {
+                supported: false,
+                apps: vec![],
+            },
+            "t".into(),
+        );
         assert!(!off.supported && off.apps.is_empty());
     }
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/pregig.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/pregig.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
         let mut c = mem();
-        let preset_in: PresetInput = serde_json::from_value(v["pregig_preset_upsert"]["request"]["preset"].clone()).unwrap();
+        let preset_in: PresetInput =
+            serde_json::from_value(v["pregig_preset_upsert"]["request"]["preset"].clone()).unwrap();
         let mut got = serde_json::to_value(preset_upsert(&c, &preset_in).unwrap()).unwrap();
         let want = &v["pregig_preset_upsert"]["response"];
         for k in ["createdAt", "updatedAt"] {
@@ -687,10 +930,21 @@ mod tests {
             got[k] = want[k].clone();
         }
         assert_eq!(&got, want);
-        let run: RunInput = serde_json::from_value(v["pregig_save_run"]["request"]["run"].clone()).unwrap();
+        let run: RunInput =
+            serde_json::from_value(v["pregig_save_run"]["request"]["run"].clone()).unwrap();
         let saved = save_run(&mut c, &run).unwrap();
-        assert_eq!(serde_json::to_value(&saved).unwrap().as_object().unwrap().keys().collect::<Vec<_>>(), ["id"]);
-        let mut list = serde_json::to_value(list_runs(&c, Some("preset-contract"), Some(10)).unwrap()).unwrap();
+        assert_eq!(
+            serde_json::to_value(&saved)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .keys()
+                .collect::<Vec<_>>(),
+            ["id"]
+        );
+        let mut list =
+            serde_json::to_value(list_runs(&c, Some("preset-contract"), Some(10)).unwrap())
+                .unwrap();
         list[0]["id"] = v["pregig_list_runs"]["response"][0]["id"].clone();
         assert_eq!(list, v["pregig_list_runs"]["response"]);
         let mut detail = serde_json::to_value(get_run(&c, &saved.id).unwrap().unwrap()).unwrap();
@@ -704,12 +958,25 @@ mod tests {
             crate::processes::DjProcesses {
                 supported: true,
                 apps: vec![
-                    crate::processes::DjApp { app: "Traktor Pro".into(), exe: "Traktor.exe".into(), pid: Some(4242), running: true },
-                    crate::processes::DjApp { app: "Serato DJ Pro".into(), exe: "Serato DJ Pro.exe".into(), pid: None, running: false },
+                    crate::processes::DjApp {
+                        app: "Traktor Pro".into(),
+                        exe: "Traktor.exe".into(),
+                        pid: Some(4242),
+                        running: true,
+                    },
+                    crate::processes::DjApp {
+                        app: "Serato DJ Pro".into(),
+                        exe: "Serato DJ Pro.exe".into(),
+                        pid: None,
+                        running: false,
+                    },
                 ],
             },
             "2026-10-10T18:00:00Z".into(),
         );
-        assert_eq!(serde_json::to_value(&procs).unwrap(), v["pregig_processes"]["response"]);
+        assert_eq!(
+            serde_json::to_value(&procs).unwrap(),
+            v["pregig_processes"]["response"]
+        );
     }
 }

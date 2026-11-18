@@ -13,7 +13,7 @@ Non-goals: proving the seller is honest or the tester is independent; third-part
 
 - Seller (DJ selling a deck/mixer), Buyer (verifies a PDF/JSON received), Shop tech (certifies many units).
 
-AC-1 Given a device with a certificate-capable plan, when all required tests have a result, then "Create certificate" is enabled; otherwise it lists the missing tests.
+AC-1 Given a device with a certificate-capable plan, when all required tests have a result, then "Create certificate" is enabled; otherwise it lists the missing tests. Required tests are the researched profile's tests; FS-34 baseline tests (`auto: true`) shown on the Devices screen are not part of the certificate plan, so the signed plan stays tied to profile id + version (2026-11-18, `certificatePlan`).
 AC-2 Given the dialog is completed (tester name, optional photos, validity), when the user confirms, then a PDF, a `.deckchek-cert.json`, and a stored record are produced within 5 s.
 AC-3 Given a `.deckchek-cert.json` or DeckChek certificate `.html` file, when opened in "Verify certificate", then status is VALID (hash and signature match), MODIFIED (hash mismatch), or UNVERIFIABLE (unknown format/version), and the signer key fingerprint is shown. Given a `.pdf`, the screen explains that PDFs carry only the printed hash/QR and asks for the sidecar JSON (WebView2 `PrintToPdf` cannot embed attachments — FS-03 §10); optional phase 2: embed via `lopdf` (MIT).
 AC-4 Given any value was edited in the JSON by one byte, then verification reports MODIFIED and names "content hash mismatch".

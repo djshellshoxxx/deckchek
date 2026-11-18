@@ -1,4 +1,5 @@
-//! THROWAWAY spike (M6-latency-spike, FS-11 section 7). Not part of the app, not in CI.
+//! THROWAWAY spike (M6-latency-spike, FS-11 section 7). Not run by the app or CI.
+//! CI's all-target Clippy check still compiles this example.
 //!
 //! Question: does cpal 0.16 (WASAPI, shared mode) honour `BufferSize::Fixed(n)`, and what
 //! period does the driver actually use? For each requested size it opens an input and an
@@ -10,7 +11,9 @@
 //!   cargo run --release --example spike_wasapi_buffers -- --input "Audio 8" --output "Audio 8" --json audio8.json
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BufferSize, Device, SampleFormat, SampleRate, SizedSample, StreamConfig, SupportedBufferSize};
+use cpal::{
+    BufferSize, Device, SampleFormat, SampleRate, SizedSample, StreamConfig, SupportedBufferSize,
+};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -25,13 +28,18 @@ struct Probe {
 
 impl Probe {
     fn with_capacity(n: usize) -> Self {
-        Probe { last: None, frames: Vec::with_capacity(n), gaps_us: Vec::with_capacity(n) }
+        Probe {
+            last: None,
+            frames: Vec::with_capacity(n),
+            gaps_us: Vec::with_capacity(n),
+        }
     }
     fn tick(&mut self, frames: usize) {
         let now = Instant::now();
         if let Some(prev) = self.last {
             if self.gaps_us.len() < self.gaps_us.capacity() {
-                self.gaps_us.push(now.duration_since(prev).as_micros().min(u32::MAX as u128) as u32);
+                self.gaps_us
+                    .push(now.duration_since(prev).as_micros().min(u32::MAX as u128) as u32);
             }
         }
         self.last = Some(now);
@@ -92,7 +100,8 @@ fn pick(devs: Vec<Device>, want: &Option<String>, default: Option<Device>) -> Op
     match want {
         Some(w) => {
             let w = w.to_lowercase();
-            devs.into_iter().find(|d| dev_name(d).to_lowercase().contains(&w))
+            devs.into_iter()
+                .find(|d| dev_name(d).to_lowercase().contains(&w))
         }
         None => default,
     }
@@ -110,21 +119,33 @@ fn list(host: &cpal::Host) {
     for (label, is_in) in [("INPUT", true), ("OUTPUT", false)] {
         println!("\n{label} devices:");
         let devs: Vec<Device> = if is_in {
-            host.input_devices().map(|i| i.collect()).unwrap_or_default()
+            host.input_devices()
+                .map(|i| i.collect())
+                .unwrap_or_default()
         } else {
-            host.output_devices().map(|i| i.collect()).unwrap_or_default()
+            host.output_devices()
+                .map(|i| i.collect())
+                .unwrap_or_default()
         };
         for d in devs {
             println!("  {}", dev_name(&d));
             let cfgs: Vec<_> = if is_in {
-                d.supported_input_configs().map(|i| i.collect()).unwrap_or_default()
+                d.supported_input_configs()
+                    .map(|i| i.collect())
+                    .unwrap_or_default()
             } else {
-                d.supported_output_configs().map(|i| i.collect()).unwrap_or_default()
+                d.supported_output_configs()
+                    .map(|i| i.collect())
+                    .unwrap_or_default()
             };
             for c in cfgs {
                 println!(
                     "     ch={} rate={}..{} fmt={:?} buffer={}",
-                    c.channels(), c.min_sample_rate().0, c.max_sample_rate().0, c.sample_format(), describe_buf(c.buffer_size())
+                    c.channels(),
+                    c.min_sample_rate().0,
+                    c.max_sample_rate().0,
+                    c.sample_format(),
+                    describe_buf(c.buffer_size())
                 );
             }
         }
@@ -132,7 +153,11 @@ fn list(host: &cpal::Host) {
 }
 
 fn build_in<T: SizedSample + Send + 'static>(
-    dev: &Device, cfg: &StreamConfig, probe: Arc<Mutex<Probe>>, errs: Arc<AtomicU64>, errlog: Arc<Mutex<Vec<String>>>,
+    dev: &Device,
+    cfg: &StreamConfig,
+    probe: Arc<Mutex<Probe>>,
+    errs: Arc<AtomicU64>,
+    errlog: Arc<Mutex<Vec<String>>>,
 ) -> Result<cpal::Stream, cpal::BuildStreamError> {
     let ch = cfg.channels as usize;
     dev.build_input_stream(
@@ -155,7 +180,11 @@ fn build_in<T: SizedSample + Send + 'static>(
 }
 
 fn build_out<T: SizedSample + Send + 'static>(
-    dev: &Device, cfg: &StreamConfig, probe: Arc<Mutex<Probe>>, errs: Arc<AtomicU64>, errlog: Arc<Mutex<Vec<String>>>,
+    dev: &Device,
+    cfg: &StreamConfig,
+    probe: Arc<Mutex<Probe>>,
+    errs: Arc<AtomicU64>,
+    errlog: Arc<Mutex<Vec<String>>>,
 ) -> Result<cpal::Stream, cpal::BuildStreamError> {
     let ch = cfg.channels as usize;
     dev.build_output_stream(
@@ -212,7 +241,15 @@ fn summarise(p: &Probe, requested: u32, rate: u32) -> Value {
     })
 }
 
-fn run_one(inp: &Device, out: &Device, ic: &StreamConfig, oc: &StreamConfig, ifmt: SampleFormat, ofmt: SampleFormat, size: u32, secs: u64) -> Value {
+struct ProbeDevice<'a> {
+    device: &'a Device,
+    config: &'a StreamConfig,
+    format: SampleFormat,
+}
+
+fn run_one(input: &ProbeDevice<'_>, output: &ProbeDevice<'_>, size: u32, secs: u64) -> Value {
+    let (inp, ic, ifmt) = (input.device, input.config, input.format);
+    let (out, oc, ofmt) = (output.device, output.config, output.format);
     let rate = ic.sample_rate.0;
     let cap = (secs as usize + 2) * (rate as usize / size.max(16) as usize + 100) * 2;
     let ip = Arc::new(Mutex::new(Probe::with_capacity(cap)));
@@ -228,18 +265,26 @@ fn run_one(inp: &Device, out: &Device, ic: &StreamConfig, oc: &StreamConfig, ifm
         SampleFormat::F32 => build_in::<f32>(inp, &ic, ip.clone(), errs.clone(), errlog.clone()),
         SampleFormat::I16 => build_in::<i16>(inp, &ic, ip.clone(), errs.clone(), errlog.clone()),
         SampleFormat::I32 => build_in::<i32>(inp, &ic, ip.clone(), errs.clone(), errlog.clone()),
-        f => return json!({ "requested": size, "status": format!("unsupported input format {f:?}") }),
+        f => {
+            return json!({ "requested": size, "status": format!("unsupported input format {f:?}") })
+        }
     };
     let outs = match ofmt {
         SampleFormat::F32 => build_out::<f32>(out, &oc, op.clone(), errs.clone(), errlog.clone()),
         SampleFormat::I16 => build_out::<i16>(out, &oc, op.clone(), errs.clone(), errlog.clone()),
         SampleFormat::I32 => build_out::<i32>(out, &oc, op.clone(), errs.clone(), errlog.clone()),
-        f => return json!({ "requested": size, "status": format!("unsupported output format {f:?}") }),
+        f => {
+            return json!({ "requested": size, "status": format!("unsupported output format {f:?}") })
+        }
     };
     let (ins, outs) = match (ins, outs) {
         (Ok(a), Ok(b)) => (a, b),
         (a, b) => {
-            let msg = format!("build failed: in={:?} out={:?}", a.err().map(|e| e.to_string()), b.err().map(|e| e.to_string()));
+            let msg = format!(
+                "build failed: in={:?} out={:?}",
+                a.err().map(|e| e.to_string()),
+                b.err().map(|e| e.to_string())
+            );
             return json!({ "requested": size, "status": msg });
         }
     };
@@ -263,7 +308,11 @@ fn run_one(inp: &Device, out: &Device, ic: &StreamConfig, oc: &StreamConfig, ifm
 
 fn row(r: &Value) -> String {
     if r["status"] != "ok" {
-        return format!("{:>6} | {}", r["requested"], r["status"].as_str().unwrap_or("?"));
+        return format!(
+            "{:>6} | {}",
+            r["requested"],
+            r["status"].as_str().unwrap_or("?")
+        );
     }
     let f = |d: &str, k: &str| r[d][k].clone();
     format!(
@@ -284,8 +333,20 @@ fn main() {
         list(&host);
         return;
     }
-    let inp = pick(host.input_devices().map(|i| i.collect()).unwrap_or_default(), &a.input, host.default_input_device());
-    let out = pick(host.output_devices().map(|i| i.collect()).unwrap_or_default(), &a.output, host.default_output_device());
+    let inp = pick(
+        host.input_devices()
+            .map(|i| i.collect())
+            .unwrap_or_default(),
+        &a.input,
+        host.default_input_device(),
+    );
+    let out = pick(
+        host.output_devices()
+            .map(|i| i.collect())
+            .unwrap_or_default(),
+        &a.output,
+        host.default_output_device(),
+    );
     let (Some(inp), Some(out)) = (inp, out) else {
         eprintln!("device not found; run with --list and pass a substring of the name");
         std::process::exit(1);
@@ -302,9 +363,19 @@ fn main() {
         host.id(), ic.channels, idef.sample_format(), describe_buf(idef.buffer_size()),
         oc.channels, odef.sample_format(), describe_buf(odef.buffer_size()), a.seconds);
 
+    let input = ProbeDevice {
+        device: &inp,
+        config: &ic,
+        format: idef.sample_format(),
+    };
+    let output = ProbeDevice {
+        device: &out,
+        config: &oc,
+        format: odef.sample_format(),
+    };
     let mut rows = Vec::new();
     for &size in &a.sizes {
-        let r = run_one(&inp, &out, &ic, &oc, idef.sample_format(), odef.sample_format(), size, a.seconds);
+        let r = run_one(&input, &output, size, a.seconds);
         println!("{}", row(&r));
         rows.push(r);
     }

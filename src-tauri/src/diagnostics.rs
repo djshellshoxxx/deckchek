@@ -81,10 +81,15 @@ impl RedactCtx {
             return;
         }
         self.literals.push((folded, placeholder));
-        self.literals.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        self.literals.sort_by_key(|a| std::cmp::Reverse(a.0.len()));
     }
 
-    pub fn from_parts(user: Option<&str>, profile: Option<&str>, host: Option<&str>, serials: &[String]) -> Self {
+    pub fn from_parts(
+        user: Option<&str>,
+        profile: Option<&str>,
+        host: Option<&str>,
+        serials: &[String],
+    ) -> Self {
         let mut c = Self::new();
         if let Some(p) = profile {
             c.add(p, "<profile>");
@@ -103,9 +108,16 @@ impl RedactCtx {
 
     /// User name, profile dir and machine name from the process environment.
     pub fn from_env(serials: &[String]) -> Self {
-        let env = |keys: &[&str]| keys.iter().find_map(|k| std::env::var(k).ok()).filter(|v| !v.trim().is_empty());
+        let env = |keys: &[&str]| {
+            keys.iter()
+                .find_map(|k| std::env::var(k).ok())
+                .filter(|v| !v.trim().is_empty())
+        };
         let host = env(&["COMPUTERNAME", "HOSTNAME"]).or_else(|| {
-            fs::read_to_string("/etc/hostname").ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+            fs::read_to_string("/etc/hostname")
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
         });
         Self::from_parts(
             env(&["USERNAME", "USER", "LOGNAME"]).as_deref(),
@@ -151,7 +163,7 @@ fn redact_emails(text: &[char]) -> Vec<char> {
             let tld_ok = domain
                 .iter()
                 .rposition(|&c| c == '.')
-                .map(|p| domain.len() - p - 1 >= 2 && domain[p + 1..].iter().all(|c| c.is_alphabetic()))
+                .map(|p| domain.len() - p > 2 && domain[p + 1..].iter().all(|c| c.is_alphabetic()))
                 .unwrap_or(false);
             let mut ls = out.len();
             while ls > 0 && is_local_char(out[ls - 1]) {
@@ -210,7 +222,27 @@ fn is_sep(c: char) -> bool {
 
 /// Characters that end a profile-folder name (Windows-illegal ones, whitespace, quotes, brackets).
 fn ends_segment(c: char) -> bool {
-    c.is_whitespace() || matches!(c, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\'' | ',' | ';' | '(' | ')' | '[' | ']' | '{' | '}')
+    c.is_whitespace()
+        || matches!(
+            c,
+            '\\' | '/'
+                | ':'
+                | '*'
+                | '?'
+                | '"'
+                | '<'
+                | '>'
+                | '|'
+                | '\''
+                | ','
+                | ';'
+                | '('
+                | ')'
+                | '['
+                | ']'
+                | '{'
+                | '}'
+        )
 }
 
 fn eq_ci_ascii(text: &[char], i: usize, word: &str) -> bool {
@@ -240,11 +272,21 @@ fn redact_paths(text: &[char]) -> Vec<char> {
                     matched_prefix = Some(j);
                 }
             }
-        } else if text[i] == '/' && (i == 0 || matches!(text[i - 1], '"' | '\'' | '=' | '(' | '[' | '{' | ',' | ';' | ':') || text[i - 1].is_whitespace()) {
+        } else if text[i] == '/'
+            && (i == 0
+                || matches!(
+                    text[i - 1],
+                    '"' | '\'' | '=' | '(' | '[' | '{' | ',' | ';' | ':'
+                )
+                || text[i - 1].is_whitespace())
+        {
             // Unix-style homes (/home/<name>, /Users/<name>) for logs from non-Windows builds.
             for word in ["home", "Users"] {
                 let w: Vec<char> = word.chars().collect();
-                if text.len() > i + 1 + w.len() && text[i + 1..i + 1 + w.len()] == w[..] && text[i + 1 + w.len()] == '/' {
+                if text.len() > i + 1 + w.len()
+                    && text[i + 1..i + 1 + w.len()] == w[..]
+                    && text[i + 1 + w.len()] == '/'
+                {
                     matched_prefix = Some(i + 2 + w.len());
                     break;
                 }
@@ -312,7 +354,10 @@ fn redact_serial_tokens(text: &[char]) -> Vec<char> {
         }
         if let Some(mut j) = after {
             out.extend_from_slice(&text[i..j]);
-            while j < text.len() && (text[j].is_whitespace() || matches!(text[j], ':' | '=' | '#' | '"' | '\'' | '-' | '.')) {
+            while j < text.len()
+                && (text[j].is_whitespace()
+                    || matches!(text[j], ':' | '=' | '#' | '"' | '\'' | '-' | '.'))
+            {
                 out.push(text[j]);
                 j += 1;
             }
@@ -367,7 +412,16 @@ pub fn redact_value(v: &Value, ctx: &RedactCtx) -> Value {
         Value::Array(a) => Value::Array(a.iter().map(|x| redact_value(x, ctx)).collect()),
         Value::Object(m) => Value::Object(
             m.iter()
-                .map(|(k, x)| (redact_text(k, ctx), if is_serial_key(k) { serial_value(x, ctx) } else { redact_value(x, ctx) }))
+                .map(|(k, x)| {
+                    (
+                        redact_text(k, ctx),
+                        if is_serial_key(k) {
+                            serial_value(x, ctx)
+                        } else {
+                            redact_value(x, ctx)
+                        },
+                    )
+                })
                 .collect(),
         ),
         other => other.clone(),
@@ -377,7 +431,11 @@ pub fn redact_value(v: &Value, ctx: &RedactCtx) -> Value {
 // ------------------------------------------------------------------ log files
 
 pub fn log_file_name(index: usize) -> String {
-    if index == 0 { "deckchek.log".into() } else { format!("deckchek.{index}.log") }
+    if index == 0 {
+        "deckchek.log".into()
+    } else {
+        format!("deckchek.{index}.log")
+    }
 }
 
 fn is_log_file_name(name: &str) -> bool {
@@ -408,7 +466,10 @@ pub fn sanitize_log_text(s: &str, max_chars: usize) -> String {
 }
 
 pub fn format_line(ts: &str, level: &str, target: &str, thread: &str, msg: &str) -> String {
-    format!("{ts} {level} {target} [{thread}] {}", sanitize_log_text(msg, MAX_LINE_CHARS))
+    format!(
+        "{ts} {level} {target} [{thread}] {}",
+        sanitize_log_text(msg, MAX_LINE_CHARS)
+    )
 }
 
 pub struct Logger {
@@ -421,14 +482,24 @@ pub struct Logger {
 
 impl Logger {
     pub fn new(dir: &Path, max_bytes: u64, keep: usize) -> Logger {
-        let mut l = Logger { dir: dir.to_path_buf(), max_bytes, keep: keep.max(1), file: None, size: 0 };
+        let mut l = Logger {
+            dir: dir.to_path_buf(),
+            max_bytes,
+            keep: keep.max(1),
+            file: None,
+            size: 0,
+        };
         l.open_current();
         l
     }
 
     fn open_current(&mut self) {
         let path = self.dir.join(log_file_name(0));
-        self.file = OpenOptions::new().create(true).append(true).open(&path).ok();
+        self.file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .ok();
         self.size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
     }
 
@@ -484,7 +555,12 @@ pub fn read_marker(dir: &Path) -> Option<Marker> {
         return None;
     }
     // A corrupt marker still means "the last run did not exit cleanly".
-    Some(fs::read_to_string(path).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default())
+    Some(
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default(),
+    )
 }
 
 // ------------------------------------------------------------------ rate limiter
@@ -499,12 +575,21 @@ pub struct RateLimiter {
 
 impl RateLimiter {
     pub fn new(max: usize, window_ms: u64) -> Self {
-        Self { max, window_ms, stamps: VecDeque::new(), dropped: 0 }
+        Self {
+            max,
+            window_ms,
+            stamps: VecDeque::new(),
+            dropped: 0,
+        }
     }
 
     /// `(allowed, dropped_since_last_allowed)`
     pub fn check(&mut self, now_ms: u64) -> (bool, u64) {
-        while self.stamps.front().is_some_and(|&t| now_ms.saturating_sub(t) >= self.window_ms) {
+        while self
+            .stamps
+            .front()
+            .is_some_and(|&t| now_ms.saturating_sub(t) >= self.window_ms)
+        {
             self.stamps.pop_front();
         }
         if self.stamps.len() >= self.max {
@@ -556,8 +641,19 @@ impl DiagState {
             limiter: Mutex::new(RateLimiter::new(CLIENT_ERRORS_PER_MIN, 60_000)),
             enabled: AtomicBool::new(true),
         }));
-        let note = if previous.is_some() { "previous run did not exit cleanly" } else { "previous run exited cleanly" };
-        state.log("INFO", "app", &format!("start version={app_version} pid={} ({note})", std::process::id()));
+        let note = if previous.is_some() {
+            "previous run did not exit cleanly"
+        } else {
+            "previous run exited cleanly"
+        };
+        state.log(
+            "INFO",
+            "app",
+            &format!(
+                "start version={app_version} pid={} ({note})",
+                std::process::id()
+            ),
+        );
         state
     }
 
@@ -567,7 +663,13 @@ impl DiagState {
 
     pub fn log(&self, level: &str, target: &str, msg: &str) {
         let thread = std::thread::current();
-        let line = format_line(&iso_from_ms(now_ms()), level, target, thread.name().unwrap_or("?"), msg);
+        let line = format_line(
+            &iso_from_ms(now_ms()),
+            level,
+            target,
+            thread.name().unwrap_or("?"),
+            msg,
+        );
         if let Ok(mut g) = self.0.logger.lock() {
             if let Some(l) = g.as_mut() {
                 l.append(&line);
@@ -611,9 +713,18 @@ impl DiagState {
     }
 
     pub fn client_error(&self, e: &ClientError, now: u64) {
-        let (allowed, dropped) = self.0.limiter.lock().map(|mut l| l.check(now)).unwrap_or((true, 0));
+        let (allowed, dropped) = self
+            .0
+            .limiter
+            .lock()
+            .map(|mut l| l.check(now))
+            .unwrap_or((true, 0));
         if dropped > 0 {
-            self.log("WARN", "js", &format!("rate limit: dropped {dropped} client error(s)"));
+            self.log(
+                "WARN",
+                "js",
+                &format!("rate limit: dropped {dropped} client error(s)"),
+            );
         }
         if !allowed {
             return;
@@ -643,11 +754,23 @@ pub fn install_panic_hook(state: &DiagState) {
         crate::audio_out::emergency_silence();
         if st.0.enabled.load(Ordering::SeqCst) && !IN_HOOK.with(|c| c.replace(true)) {
             let thread = std::thread::current();
-            let loc = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown".into());
+            let loc = info
+                .location()
+                .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+                .unwrap_or_else(|| "unknown".into());
             let msg = sanitize_log_text(&panic_message(info.payload()), 2000);
             let bt = std::backtrace::Backtrace::force_capture().to_string();
-            let full = format!("panic at {loc}: {msg} | backtrace: {}", sanitize_log_text(&bt, 8000));
-            let line = format_line(&iso_from_ms(now_ms()), "ERROR", "panic", thread.name().unwrap_or("?"), &full);
+            let full = format!(
+                "panic at {loc}: {msg} | backtrace: {}",
+                sanitize_log_text(&bt, 8000)
+            );
+            let line = format_line(
+                &iso_from_ms(now_ms()),
+                "ERROR",
+                "panic",
+                thread.name().unwrap_or("?"),
+                &full,
+            );
             st.log_try(&line, &format!("{msg} ({loc})"));
             IN_HOOK.with(|c| c.set(false));
         }
@@ -678,7 +801,13 @@ impl ClientError {
         };
         let f = |o: &Option<String>, n: usize| sanitize_log_text(o.as_deref().unwrap_or(""), n);
         let num = |o: Option<i64>| o.map(|n| n.to_string()).unwrap_or_else(|| "?".into());
-        let mut s = format!("{kind}: {} @ {}:{}:{}", f(&self.message, 1500), f(&self.source, 400), num(self.line), num(self.col));
+        let mut s = format!(
+            "{kind}: {} @ {}:{}:{}",
+            f(&self.message, 1500),
+            f(&self.source, 400),
+            num(self.line),
+            num(self.col)
+        );
         if self.screen.is_some() {
             s.push_str(&format!(" screen={}", f(&self.screen, 64)));
         }
@@ -731,11 +860,27 @@ pub struct PartData {
 }
 
 fn ok_part(name: &str, bytes: Vec<u8>) -> PartData {
-    PartData { info: PartInfo { name: name.into(), size_bytes: bytes.len(), status: "ok", note: None }, bytes }
+    PartData {
+        info: PartInfo {
+            name: name.into(),
+            size_bytes: bytes.len(),
+            status: "ok",
+            note: None,
+        },
+        bytes,
+    }
 }
 
 fn missing_part(name: &str, status: &'static str, note: &str) -> PartData {
-    PartData { info: PartInfo { name: name.into(), size_bytes: 0, status, note: Some(note.into()) }, bytes: Vec::new() }
+    PartData {
+        info: PartInfo {
+            name: name.into(),
+            size_bytes: 0,
+            status,
+            note: Some(note.into()),
+        },
+        bytes: Vec::new(),
+    }
 }
 
 pub struct BundleInputs<'a> {
@@ -753,7 +898,11 @@ fn pretty(v: &Value) -> Vec<u8> {
 }
 
 fn json_part(name: &str, v: &Value, inp: &BundleInputs) -> PartData {
-    let v = if inp.opts.redact { redact_value(v, inp.ctx) } else { v.clone() };
+    let v = if inp.opts.redact {
+        redact_value(v, inp.ctx)
+    } else {
+        v.clone()
+    };
     let bytes = pretty(&v);
     if bytes.len() > JSON_PART_CAP {
         return missing_part(name, "skipped", "too large");
@@ -762,14 +911,29 @@ fn json_part(name: &str, v: &Value, inp: &BundleInputs) -> PartData {
 }
 
 fn text_part(name: &str, text: &str, inp: &BundleInputs) -> PartData {
-    let t = if inp.opts.redact { redact_text(text, inp.ctx) } else { text.to_string() };
+    let t = if inp.opts.redact {
+        redact_text(text, inp.ctx)
+    } else {
+        text.to_string()
+    };
     ok_part(name, t.into_bytes())
 }
 
 fn system_json(inp: &BundleInputs) -> Value {
     let client = inp.opts.context.as_ref().and_then(|c| c.system.as_ref());
-    let pick = |k: &str| client.and_then(|c| c.get(k)).filter(|v| v.is_string() || v.is_number()).cloned().unwrap_or(Value::Null);
-    let os_version = client.and_then(|c| c.get("os")).and_then(|o| o.get("version")).filter(|v| v.is_string()).cloned().unwrap_or(Value::Null);
+    let pick = |k: &str| {
+        client
+            .and_then(|c| c.get(k))
+            .filter(|v| v.is_string() || v.is_number())
+            .cloned()
+            .unwrap_or(Value::Null)
+    };
+    let os_version = client
+        .and_then(|c| c.get("os"))
+        .and_then(|o| o.get("version"))
+        .filter(|v| v.is_string())
+        .cloned()
+        .unwrap_or(Value::Null);
     json!({
         "os": { "name": std::env::consts::OS, "version": os_version, "arch": std::env::consts::ARCH },
         "webview2Version": pick("webview2Version"),
@@ -780,8 +944,11 @@ fn system_json(inp: &BundleInputs) -> Value {
 }
 
 fn schema_json(conn: &rusqlite::Connection) -> Result<Value, rusqlite::Error> {
-    let mut stmt = conn.prepare("SELECT version FROM schema_migration WHERE version < 1000 ORDER BY version")?;
-    let applied = stmt.query_map([], |r| r.get::<_, i64>(0))?.collect::<Result<Vec<_>, _>>()?;
+    let mut stmt =
+        conn.prepare("SELECT version FROM schema_migration WHERE version < 1000 ORDER BY version")?;
+    let applied = stmt
+        .query_map([], |r| r.get::<_, i64>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(json!({ "schemaVersion": applied.iter().max().copied().unwrap_or(0), "applied": applied }))
 }
 
@@ -792,13 +959,24 @@ fn runs_json(conn: &rusqlite::Connection, n: u32) -> Result<Value, rusqlite::Err
     )?;
     let rows = stmt
         .query_map([n as i64], |r| {
-            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?, r.get::<_, String>(3)?, r.get::<_, String>(4)?, r.get::<_, Option<f64>>(5)?))
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, String>(4)?,
+                r.get::<_, Option<f64>>(5)?,
+            ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    let mut find = conn.prepare("SELECT summary FROM hypothesis WHERE session_id = ?1 ORDER BY created_at, id LIMIT 20")?;
+    let mut find = conn.prepare(
+        "SELECT summary FROM hypothesis WHERE session_id = ?1 ORDER BY created_at, id LIMIT 20",
+    )?;
     let mut runs = Vec::new();
     for (id, kind, test, started, status, quality) in rows {
-        let titles = find.query_map([&id], |r| r.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>()?;
+        let titles = find
+            .query_map([&id], |r| r.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
         runs.push(json!({
             "id": id, "sessionType": kind, "test": test, "startedAt": started, "status": status,
             "score": quality.map(|q| (q * 1000.0).round() / 10.0),
@@ -823,23 +1001,47 @@ fn log_parts(inp: &BundleInputs) -> (Vec<PartData>, usize, usize) {
     let mut found_bytes = 0usize;
     for i in 0..LOG_KEEP_FILES {
         let name = log_file_name(i);
-        let Ok(mut f) = File::open(inp.dir.join(&name)) else { continue };
+        let Ok(mut f) = File::open(inp.dir.join(&name)) else {
+            continue;
+        };
         let len = f.metadata().map(|m| m.len()).unwrap_or(0) as usize;
         found += 1;
         found_bytes += len;
         let want = len.min(budget);
         if want == 0 {
-            parts.push(missing_part(&format!("logs/{name}"), "skipped", if len == 0 { "empty" } else { "size cap reached" }));
+            parts.push(missing_part(
+                &format!("logs/{name}"),
+                "skipped",
+                if len == 0 {
+                    "empty"
+                } else {
+                    "size cap reached"
+                },
+            ));
             continue;
         }
         let mut buf = Vec::with_capacity(want);
-        if f.seek(SeekFrom::Start((len - want) as u64)).is_err() || f.take(want as u64).read_to_end(&mut buf).is_err() {
-            parts.push(missing_part(&format!("logs/{name}"), "error", "could not read"));
+        if f.seek(SeekFrom::Start((len - want) as u64)).is_err()
+            || f.take(want as u64).read_to_end(&mut buf).is_err()
+        {
+            parts.push(missing_part(
+                &format!("logs/{name}"),
+                "error",
+                "could not read",
+            ));
             continue;
         }
-        let buf = if len > want { drop_partial_first_line(buf) } else { buf };
+        let buf = if len > want {
+            drop_partial_first_line(buf)
+        } else {
+            buf
+        };
         let text = String::from_utf8_lossy(&buf).into_owned();
-        let text = if inp.opts.redact { redact_text(&text, inp.ctx) } else { text };
+        let text = if inp.opts.redact {
+            redact_text(&text, inp.ctx)
+        } else {
+            text
+        };
         budget = budget.saturating_sub(buf.len());
         let mut p = ok_part(&format!("logs/{name}"), text.into_bytes());
         if len > want {
@@ -850,23 +1052,46 @@ fn log_parts(inp: &BundleInputs) -> (Vec<PartData>, usize, usize) {
     (parts, found, found_bytes)
 }
 
-fn build_summary(inp: &BundleInputs, schema: Option<&Value>, runs: Option<&Value>, log_files: usize, log_bytes: usize) -> String {
+fn build_summary(
+    inp: &BundleInputs,
+    schema: Option<&Value>,
+    runs: Option<&Value>,
+    log_files: usize,
+    log_bytes: usize,
+) -> String {
     let mut s = String::new();
     s.push_str("DeckChek diagnostics summary\n");
     s.push_str(&format!("App version: {}\n", inp.app_version));
-    s.push_str(&format!("OS: {} ({})\n", std::env::consts::OS, std::env::consts::ARCH));
+    s.push_str(&format!(
+        "OS: {} ({})\n",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    ));
     s.push_str(&format!("Created: {}\n", inp.now_iso));
-    s.push_str(&format!("Personal info redacted: {}\n", if inp.opts.redact { "yes (best effort)" } else { "no" }));
+    s.push_str(&format!(
+        "Personal info redacted: {}\n",
+        if inp.opts.redact {
+            "yes (best effort)"
+        } else {
+            "no"
+        }
+    ));
     match &inp.previous_marker {
         Some(m) => {
-            s.push_str(&format!("Previous run closed unexpectedly: yes (started {})\n", m.started_at.as_deref().unwrap_or("unknown")));
+            s.push_str(&format!(
+                "Previous run closed unexpectedly: yes (started {})\n",
+                m.started_at.as_deref().unwrap_or("unknown")
+            ));
             if let Some(p) = &m.last_panic {
                 s.push_str(&format!("Last panic: {}\n", sanitize_log_text(p, 500)));
             }
         }
         None => s.push_str("Previous run closed unexpectedly: no\n"),
     }
-    if let Some(v) = schema.and_then(|v| v.get("schemaVersion")).and_then(|v| v.as_i64()) {
+    if let Some(v) = schema
+        .and_then(|v| v.get("schemaVersion"))
+        .and_then(|v| v.as_i64())
+    {
         s.push_str(&format!("Database schema version: {v}\n"));
     }
     if let Some(r) = runs.and_then(|v| v.get("runs")).and_then(|v| v.as_array()) {
@@ -877,25 +1102,37 @@ fn build_summary(inp: &BundleInputs, schema: Option<&Value>, runs: Option<&Value
                 l["startedAt"].as_str().unwrap_or("?"),
                 l["test"].as_str().unwrap_or("-"),
                 l["status"].as_str().unwrap_or("?"),
-                l["score"].as_f64().map(|x| x.to_string()).unwrap_or_else(|| "-".into()),
+                l["score"]
+                    .as_f64()
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "-".into()),
             ));
         }
     }
     if log_files == 0 {
         s.push_str("Log files: none found (nothing has been logged yet)\n");
     } else {
-        s.push_str(&format!("Log files: {log_files} ({} KiB)\n", log_bytes / 1024));
+        s.push_str(&format!(
+            "Log files: {log_files} ({} KiB)\n",
+            log_bytes / 1024
+        ));
     }
     s.push_str("\nThis bundle contains no audio. Nothing is sent automatically.\n");
     sanitize_multiline(&s, SUMMARY_CAP_CHARS)
 }
 
 fn sanitize_multiline(s: &str, max: usize) -> String {
-    s.chars().take(max).filter(|c| *c == '\n' || !c.is_control()).collect()
+    s.chars()
+        .take(max)
+        .filter(|c| *c == '\n' || !c.is_control())
+        .collect()
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// Builds every part of the bundle; `manifest.json` is first. Used by both preview and create.
@@ -904,18 +1141,34 @@ pub fn build_parts(inp: &BundleInputs) -> Vec<PartData> {
     let ctx = inp.opts.context.as_ref();
 
     let (schema, schema_part) = match inp.conn {
-        None => (None, missing_part("schema.json", "skipped", "database not available")),
+        None => (
+            None,
+            missing_part("schema.json", "skipped", "database not available"),
+        ),
         Some(c) => match schema_json(c) {
             Ok(v) => (Some(v.clone()), json_part("schema.json", &v, inp)),
-            Err(_) => (None, missing_part("schema.json", "error", "schema query failed")),
+            Err(_) => (
+                None,
+                missing_part("schema.json", "error", "schema query failed"),
+            ),
         },
     };
-    let n = if inp.opts.run_count == 0 { 1 } else { inp.opts.run_count.min(50) };
+    let n = if inp.opts.run_count == 0 {
+        1
+    } else {
+        inp.opts.run_count.min(50)
+    };
     let (runs, runs_part) = match inp.conn {
-        None => (None, missing_part("runs-summary.json", "skipped", "database not available")),
+        None => (
+            None,
+            missing_part("runs-summary.json", "skipped", "database not available"),
+        ),
         Some(c) => match runs_json(c, n) {
             Ok(v) => (Some(v.clone()), json_part("runs-summary.json", &v, inp)),
-            Err(_) => (None, missing_part("runs-summary.json", "error", "run query failed")),
+            Err(_) => (
+                None,
+                missing_part("runs-summary.json", "error", "run query failed"),
+            ),
         },
     };
     let (logs, log_files, log_bytes) = log_parts(inp);
@@ -931,14 +1184,21 @@ pub fn build_parts(inp: &BundleInputs) -> Vec<PartData> {
     parts.push(runs_part);
     parts.push(match ctx.and_then(|c| c.system_health.as_ref()) {
         Some(v) => json_part("system-health.json", v, inp),
-        None => missing_part("system-health.json", "skipped", "System Health scan unsupported or not run"),
+        None => missing_part(
+            "system-health.json",
+            "skipped",
+            "System Health scan unsupported or not run",
+        ),
     });
     parts.extend(logs);
 
     // Whole-bundle cap: drop the oldest logs first.
     let mut total: usize = parts.iter().map(|p| p.bytes.len()).sum();
     while total > BUNDLE_CAP {
-        match parts.iter().rposition(|p| p.info.name.starts_with("logs/") && p.info.status == "ok") {
+        match parts
+            .iter()
+            .rposition(|p| p.info.name.starts_with("logs/") && p.info.status == "ok")
+        {
             Some(i) => {
                 total -= parts[i].bytes.len();
                 let name = parts[i].info.name.clone();
@@ -971,13 +1231,22 @@ pub fn write_zip(parts: &[PartData], dest: &Path) -> Result<u64, String> {
     let result = (|| -> Result<(), String> {
         for p in parts.iter().filter(|p| p.info.status == "ok") {
             let n = &p.info.name;
-            let fixed = matches!(n.as_str(), "manifest.json" | "summary.txt" | "system.json" | "settings.json" | "schema.json" | "runs-summary.json" | "system-health.json")
-                || n.strip_prefix("logs/").is_some_and(is_log_file_name);
+            let fixed = matches!(
+                n.as_str(),
+                "manifest.json"
+                    | "summary.txt"
+                    | "system.json"
+                    | "settings.json"
+                    | "schema.json"
+                    | "runs-summary.json"
+                    | "system-health.json"
+            ) || n.strip_prefix("logs/").is_some_and(is_log_file_name);
             if !fixed {
                 return Err("unexpected bundle entry".into());
             }
             zw.start_file(n.as_str(), opts).map_err(|e| e.to_string())?;
-            zw.write_all(&p.bytes).map_err(|e| format!("write failed: {:?}", e.kind()))?;
+            zw.write_all(&p.bytes)
+                .map_err(|e| format!("write failed: {:?}", e.kind()))?;
         }
         zw.finish().map(|_| ()).map_err(|e| e.to_string())
     })();
@@ -1041,11 +1310,15 @@ impl std::ops::Deref for GatedReadOnly {
 }
 
 fn open_db_readonly_at(path: &Path) -> Option<GatedReadOnly> {
-    let gate = crate::db::gate().read().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let gate = crate::db::gate()
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if !path.is_file() {
         return None;
     }
-    let conn = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()?;
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .ok()?;
     Some(GatedReadOnly { conn, _gate: gate })
 }
 
@@ -1056,7 +1329,9 @@ fn open_db_readonly(app: &tauri::AppHandle) -> Option<GatedReadOnly> {
 fn serials_from(conn: Option<&rusqlite::Connection>) -> Vec<String> {
     let Some(c) = conn else { return Vec::new() };
     let Ok(mut stmt) = c.prepare("SELECT serial_number FROM asset WHERE serial_number IS NOT NULL AND trim(serial_number) <> ''") else { return Vec::new() };
-    stmt.query_map([], |r| r.get::<_, String>(0)).map(|rows| rows.flatten().collect()).unwrap_or_default()
+    stmt.query_map([], |r| r.get::<_, String>(0))
+        .map(|rows| rows.flatten().collect())
+        .unwrap_or_default()
 }
 
 fn run_parts(app: &tauri::AppHandle, state: &DiagState, opts: &BundleOpts) -> Vec<PartData> {
@@ -1103,7 +1378,11 @@ pub enum DebugCrash {
 
 /// Pure decision for `--debug-crash`: honoured in debug builds, or in release builds with `DECKCHEK_ALLOW_DEBUG_CRASH=1`.
 /// `args` is the full argument list (the program name is skipped).
-pub fn debug_crash_decision(args: &[String], debug_build: bool, env_value: Option<&str>) -> DebugCrash {
+pub fn debug_crash_decision(
+    args: &[String],
+    debug_build: bool,
+    env_value: Option<&str>,
+) -> DebugCrash {
     if !args.iter().skip(1).any(|a| a == DEBUG_CRASH_ARG) {
         DebugCrash::NotRequested
     } else if debug_build || env_value == Some("1") {
@@ -1122,7 +1401,11 @@ pub fn raise_debug_crash() -> ! {
 /// Call at the end of `lib.rs` setup, after every panic hook is installed, so the crash goes through the real hook chain.
 pub fn debug_crash_if_requested(app: &tauri::App) {
     let args: Vec<String> = std::env::args().collect();
-    match debug_crash_decision(&args, cfg!(debug_assertions), std::env::var(DEBUG_CRASH_ENV).ok().as_deref()) {
+    match debug_crash_decision(
+        &args,
+        cfg!(debug_assertions),
+        std::env::var(DEBUG_CRASH_ENV).ok().as_deref(),
+    ) {
         DebugCrash::NotRequested => {}
         DebugCrash::Refused => {
             if let Some(state) = app.try_state::<DiagState>() {
@@ -1131,7 +1414,11 @@ pub fn debug_crash_if_requested(app: &tauri::App) {
         }
         DebugCrash::Crash => {
             if let Some(state) = app.try_state::<DiagState>() {
-                state.log("WARN", "app", &format!("{DEBUG_CRASH_ARG}: raising a controlled panic"));
+                state.log(
+                    "WARN",
+                    "app",
+                    &format!("{DEBUG_CRASH_ARG}: raising a controlled panic"),
+                );
             }
             raise_debug_crash()
         }
@@ -1165,14 +1452,24 @@ pub fn diagnostics_status(state: tauri::State<'_, DiagState>) -> Status {
     for i in 0..LOG_KEEP_FILES {
         let name = log_file_name(i);
         if let Ok(m) = fs::metadata(state.dir().join(&name)) {
-            let modified = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| iso_from_ms(d.as_millis() as u64));
-            files.push(LogFileInfo { name, size_bytes: m.len(), modified_at: modified });
+            let modified = m
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| iso_from_ms(d.as_millis() as u64));
+            files.push(LogFileInfo {
+                name,
+                size_bytes: m.len(),
+                modified_at: modified,
+            });
         }
     }
     Status {
         crashed_last_run: prev.is_some(),
         marker_at: prev.as_ref().and_then(|m| m.started_at.clone()),
-        last_panic: prev.and_then(|m| m.last_panic).map(|p| redact_text(&p, &ctx)),
+        last_panic: prev
+            .and_then(|m| m.last_panic)
+            .map(|p| redact_text(&p, &ctx)),
         log_dir: state.dir().to_string_lossy().into_owned(),
         log_files: files,
     }
@@ -1183,22 +1480,57 @@ pub fn diagnostics_ack_crash(state: tauri::State<'_, DiagState>) {
     state.ack_crash();
 }
 
+/// Off the main thread (AUD-03): reads the database and redacts up to 2 MiB of logs.
+/// `Err` only if the body panicked.
 #[tauri::command]
-pub fn diagnostics_preview(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, opts: BundleOpts) -> PreviewResult {
-    let parts = run_parts(&app, &state, &opts);
-    let summary_text = parts.iter().find(|p| p.info.name == "summary.txt").map(|p| String::from_utf8_lossy(&p.bytes).into_owned()).unwrap_or_default();
-    PreviewResult { summary_text, parts: parts.into_iter().map(|p| p.info).collect() }
+pub async fn diagnostics_preview(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DiagState>,
+    opts: BundleOpts,
+) -> Result<PreviewResult, String> {
+    let state = state.inner().clone();
+    crate::db::off_main(move || {
+        let parts = run_parts(&app, &state, &opts);
+        let summary_text = parts
+            .iter()
+            .find(|p| p.info.name == "summary.txt")
+            .map(|p| String::from_utf8_lossy(&p.bytes).into_owned())
+            .unwrap_or_default();
+        PreviewResult {
+            summary_text,
+            parts: parts.into_iter().map(|p| p.info).collect(),
+        }
+    })
+    .await
 }
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub fn diagnostics_create_bundle(app: tauri::AppHandle, state: tauri::State<'_, DiagState>, destPath: String, opts: BundleOpts) -> Result<BundleResult, String> {
-    let dest = crate::userfiles::validate_save_path(&destPath, &["zip"]).map_err(|e| format!("{}: {}", e.code(), e))?;
-    let parts = run_parts(&app, &state, &opts);
-    let size = write_zip(&parts, &dest)?;
-    crate::userfiles::record_written(&dest);
-    state.log("INFO", "diagnostics", &format!("bundle written ({size} bytes, redact={})", opts.redact));
-    Ok(BundleResult { path: dest.to_string_lossy().into_owned(), size_bytes: size, parts: parts.into_iter().map(|p| p.info).collect() })
+pub async fn diagnostics_create_bundle(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DiagState>,
+    destPath: String,
+    opts: BundleOpts,
+) -> Result<BundleResult, String> {
+    let state = state.inner().clone();
+    crate::db::off_main(move || {
+        let dest = crate::userfiles::validate_save_path(&destPath, &["zip"])
+            .map_err(|e| format!("{}: {}", e.code(), e))?;
+        let parts = run_parts(&app, &state, &opts);
+        let size = write_zip(&parts, &dest)?;
+        crate::userfiles::record_written(&dest);
+        state.log(
+            "INFO",
+            "diagnostics",
+            &format!("bundle written ({size} bytes, redact={})", opts.redact),
+        );
+        Ok(BundleResult {
+            path: dest.to_string_lossy().into_owned(),
+            size_bytes: size,
+            parts: parts.into_iter().map(|p| p.info).collect(),
+        })
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -1212,22 +1544,41 @@ mod tests {
     }
 
     fn ctx_from_json(c: &Value) -> RedactCtx {
-        let serials: Vec<String> = c["serials"].as_array().map(|a| a.iter().filter_map(|s| s.as_str().map(String::from)).collect()).unwrap_or_default();
-        RedactCtx::from_parts(c["user"].as_str(), c["profile"].as_str(), c["host"].as_str(), &serials)
+        let serials: Vec<String> = c["serials"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|s| s.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+        RedactCtx::from_parts(
+            c["user"].as_str(),
+            c["profile"].as_str(),
+            c["host"].as_str(),
+            &serials,
+        )
     }
 
     // ---- redaction
 
     #[test]
     fn shared_redaction_vectors_match_the_js_implementation() {
-        let vectors: Vec<Value> = serde_json::from_str(include_str!("../../tests/fixtures/redaction-vectors.json")).unwrap();
+        let vectors: Vec<Value> =
+            serde_json::from_str(include_str!("../../tests/fixtures/redaction-vectors.json"))
+                .unwrap();
         assert!(vectors.len() >= 15);
         for v in vectors {
             let ctx = ctx_from_json(&v["ctx"]);
             let input = v["input"].as_str().unwrap();
             let expected = v["expected"].as_str().unwrap();
             assert_eq!(redact_text(input, &ctx), expected, "vector {}", v["name"]);
-            assert_eq!(redact_text(expected, &ctx), expected, "idempotent {}", v["name"]);
+            assert_eq!(
+                redact_text(expected, &ctx),
+                expected,
+                "idempotent {}",
+                v["name"]
+            );
         }
     }
 
@@ -1244,17 +1595,33 @@ mod tests {
             a[self.below(a.len())]
         }
         fn case(&mut self, s: &str) -> String {
-            s.chars().map(|c| if self.next() & 0x100 != 0 { c.to_uppercase().next().unwrap() } else { c.to_lowercase().next().unwrap() }).collect()
+            s.chars()
+                .map(|c| {
+                    if self.next() & 0x100 != 0 {
+                        c.to_uppercase().next().unwrap()
+                    } else {
+                        c.to_lowercase().next().unwrap()
+                    }
+                })
+                .collect()
         }
     }
 
     #[test]
     fn fuzz_no_seeded_secret_survives_and_output_is_idempotent() {
         let mut r = Lcg(0xdec4c3);
-        let noise = ["", " ", "\n", "\\", "/", "\"", "'", ":", "abc", "Users", "<", ">", "@", ".", "-", "_", "😀", "é", "serial", "S/N", "{", "}", "COM3", "1234", "x\ty"];
+        let noise = [
+            "", " ", "\n", "\\", "/", "\"", "'", ":", "abc", "Users", "<", ">", "@", ".", "-", "_",
+            "😀", "é", "serial", "S/N", "{", "}", "COM3", "1234", "x\ty",
+        ];
         let (user, host) = ("zqxjordan", "zqxhost-77");
         let serials = ["zqx00ab9917", "ZQXSN-424242"];
-        let ctx = RedactCtx::from_parts(Some(user), Some("C:\\Users\\zqxjordan"), Some(host), &serials.map(String::from));
+        let ctx = RedactCtx::from_parts(
+            Some(user),
+            Some("C:\\Users\\zqxjordan"),
+            Some(host),
+            &serials.map(String::from),
+        );
         for _ in 0..1500 {
             let mut parts: Vec<String> = Vec::new();
             for _ in 0..1 + r.below(8) {
@@ -1265,14 +1632,30 @@ mod tests {
                 let s = match r.below(7) {
                     0 => r.case(user),
                     1 => format!("C:\\Users\\{}\\AppData", r.case(user)),
-                    2 => format!("{}:{}Users{}zqx{}name{}", r.pick(&["c", "D", "E"]), r.pick(&["\\", "/", "\\\\"]), r.pick(&["\\", "/", "\\\\"]), r.below(1_000_000), r.pick(&["\\", "/", " ", "\""])),
+                    2 => format!(
+                        "{}:{}Users{}zqx{}name{}",
+                        r.pick(&["c", "D", "E"]),
+                        r.pick(&["\\", "/", "\\\\"]),
+                        r.pick(&["\\", "/", "\\\\"]),
+                        r.below(1_000_000),
+                        r.pick(&["\\", "/", " ", "\""])
+                    ),
                     3 => r.case(host),
                     4 => {
                         let k = r.below(2);
                         r.case(serials[k])
                     }
-                    5 => format!("zqx{}@{}", r.below(100_000), r.pick(&["example.com", "mail.example.co.uk"])),
-                    _ => format!("{}{}ZQ{}", r.pick(&["serial", "Serial Number", "S/N", "serial_number"]), r.pick(&[": ", "=", " ", "\":\""]), r.below(100_000_000)),
+                    5 => format!(
+                        "zqx{}@{}",
+                        r.below(100_000),
+                        r.pick(&["example.com", "mail.example.co.uk"])
+                    ),
+                    _ => format!(
+                        "{}{}ZQ{}",
+                        r.pick(&["serial", "Serial Number", "S/N", "serial_number"]),
+                        r.pick(&[": ", "=", " ", "\":\""]),
+                        r.below(100_000_000)
+                    ),
                 };
                 parts.push(s);
             }
@@ -1280,15 +1663,40 @@ mod tests {
             let out = redact_text(&input, &ctx);
             let low = out.to_lowercase();
             for lit in [user, host, serials[0], serials[1]] {
-                assert!(!low.contains(&lit.to_lowercase()), "leaked {lit} in {out:?} from {input:?}");
+                assert!(
+                    !low.contains(&lit.to_lowercase()),
+                    "leaked {lit} in {out:?} from {input:?}"
+                );
             }
-            assert!(!low.contains("users\\zqx") && !low.contains("users/zqx") && !low.contains("users\\\\zqx"), "profile name left: {out:?}");
-            assert!(!low.contains("@example.com") && !low.contains("@mail.example"), "email left: {out:?}");
+            assert!(
+                !low.contains("users\\zqx")
+                    && !low.contains("users/zqx")
+                    && !low.contains("users\\\\zqx"),
+                "profile name left: {out:?}"
+            );
+            assert!(
+                !low.contains("@example.com") && !low.contains("@mail.example"),
+                "email left: {out:?}"
+            );
             assert_eq!(redact_text(&out, &ctx), out, "not idempotent for {input:?}");
         }
         for _ in 0..300 {
-            let words = ["The", "deck", "capture", "ok", "12.5 dB", "Rane", "MK2", "-3", "C:\\Program Files\\DeckChek", "wow & flutter"];
-            let s = (0..12).map(|_| r.pick(&words)).collect::<Vec<_>>().join(" ");
+            let words = [
+                "The",
+                "deck",
+                "capture",
+                "ok",
+                "12.5 dB",
+                "Rane",
+                "MK2",
+                "-3",
+                "C:\\Program Files\\DeckChek",
+                "wow & flutter",
+            ];
+            let s = (0..12)
+                .map(|_| r.pick(&words))
+                .collect::<Vec<_>>()
+                .join(" ");
             assert_eq!(redact_text(&s, &ctx), s);
         }
     }
@@ -1298,7 +1706,10 @@ mod tests {
         let ctx = RedactCtx::from_parts(Some("zed99"), None, None, &[]);
         let v = json!({"a": ["C:\\Users\\zed99\\x", {"serial_number": "ZZ12345678", "serialNo": 5, "n": 4, "ok": true}], "zed99": null});
         let out = redact_value(&v, &ctx);
-        assert_eq!(out, json!({"a": ["C:\\Users\\<user>\\x", {"serial_number": "<serial>", "serialNo": "<serial>", "n": 4, "ok": true}], "<user>": null}));
+        assert_eq!(
+            out,
+            json!({"a": ["C:\\Users\\<user>\\x", {"serial_number": "<serial>", "serialNo": "<serial>", "n": 4, "ok": true}], "<user>": null})
+        );
     }
 
     // ---- logger / rotation (AC-8)
@@ -1310,12 +1721,16 @@ mod tests {
         for i in 0..60 {
             l.append(&format!("line-{i:03}-{}", "x".repeat(20)));
         }
-        let names: Vec<_> = (0..7).map(|i| dir.join(log_file_name(i)).exists()).collect();
+        let names: Vec<_> = (0..7)
+            .map(|i| dir.join(log_file_name(i)).exists())
+            .collect();
         assert_eq!(names, vec![true, true, true, true, true, false, false]);
         for i in 0..5 {
             assert!(fs::metadata(dir.join(log_file_name(i))).unwrap().len() <= 100);
         }
-        let all: String = (0..5).map(|i| fs::read_to_string(dir.join(log_file_name(i))).unwrap()).collect();
+        let all: String = (0..5)
+            .map(|i| fs::read_to_string(dir.join(log_file_name(i))).unwrap())
+            .collect();
         assert!(!all.contains("line-000-"), "oldest content must be gone");
         assert!(all.contains("line-059-"));
         // newest lines are in deckchek.log, older ones in higher indexes
@@ -1338,8 +1753,17 @@ mod tests {
 
     #[test]
     fn log_line_format_and_injection_safety() {
-        let line = format_line("2026-10-10T12:34:56.789Z", "ERROR", "js", "main", "a\nINFO fake line\r\x07");
-        assert_eq!(line, "2026-10-10T12:34:56.789Z ERROR js [main] a | INFO fake line |  ");
+        let line = format_line(
+            "2026-10-10T12:34:56.789Z",
+            "ERROR",
+            "js",
+            "main",
+            "a\nINFO fake line\r\x07",
+        );
+        assert_eq!(
+            line,
+            "2026-10-10T12:34:56.789Z ERROR js [main] a | INFO fake line |  "
+        );
         assert!(!line.contains('\n'));
         assert_eq!(iso_from_ms(1_760_099_696_789), "2025-10-10T12:34:56.789Z");
         assert!(sanitize_log_text(&"é".repeat(100), 10).chars().count() <= 11);
@@ -1381,9 +1805,17 @@ mod tests {
     fn bundle_db_connection_holds_the_restore_gate() {
         let dir = tmp("gate");
         let path = dir.join("deckchek.sqlite3");
-        rusqlite::Connection::open(&path).unwrap().execute_batch("CREATE TABLE asset (serial_number TEXT); INSERT INTO asset VALUES ('SER-1');").unwrap();
+        rusqlite::Connection::open(&path)
+            .unwrap()
+            .execute_batch(
+                "CREATE TABLE asset (serial_number TEXT); INSERT INTO asset VALUES ('SER-1');",
+            )
+            .unwrap();
         let conn = open_db_readonly_at(&path).expect("opens");
-        assert!(crate::db::gate().try_write().is_err(), "restore must wait while the bundle reads");
+        assert!(
+            crate::db::gate().try_write().is_err(),
+            "restore must wait while the bundle reads"
+        );
         assert_eq!(serials_from(Some(&conn)), vec!["SER-1".to_string()]);
         drop(conn);
         assert!(open_db_readonly_at(&dir.join("missing.sqlite3")).is_none());
@@ -1402,15 +1834,21 @@ mod tests {
         let st = DiagState::open(&dir, "0.0.5");
         let output = crate::audio_out::output_group();
         install_panic_hook(&st);
-        let h = std::thread::Builder::new().name("worker-xyz".into()).spawn(|| {
-            panic!("kaboom\nsecond line");
-        }).unwrap();
+        let h = std::thread::Builder::new()
+            .name("worker-xyz".into())
+            .spawn(|| {
+                panic!("kaboom\nsecond line");
+            })
+            .unwrap();
         assert!(h.join().is_err());
         st.disable();
         // BUG-03: the logging hook silences output first, whatever the hook order.
         assert!(output.is_killed());
         let log = fs::read_to_string(dir.join("deckchek.log")).unwrap();
-        let line = log.lines().find(|l| l.contains(" ERROR panic ")).expect("panic line");
+        let line = log
+            .lines()
+            .find(|l| l.contains(" ERROR panic "))
+            .expect("panic line");
         assert!(line.contains("[worker-xyz]"), "{line}");
         assert!(line.contains("kaboom | second line"), "{line}");
         assert!(line.contains("diagnostics.rs:"), "location: {line}");
@@ -1428,15 +1866,47 @@ mod tests {
         let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
         let plain = a(&["deckchek"]);
         let flagged = a(&["deckchek", "--debug-crash"]);
-        assert_eq!(debug_crash_decision(&plain, true, Some("1")), DebugCrash::NotRequested);
-        assert_eq!(debug_crash_decision(&flagged, true, None), DebugCrash::Crash, "debug build");
-        assert_eq!(debug_crash_decision(&flagged, false, None), DebugCrash::Refused, "release build without the variable");
-        assert_eq!(debug_crash_decision(&flagged, false, Some("0")), DebugCrash::Refused);
-        assert_eq!(debug_crash_decision(&flagged, false, Some("true")), DebugCrash::Refused, "only the exact value 1 counts");
-        assert_eq!(debug_crash_decision(&flagged, false, Some("1")), DebugCrash::Crash, "release build with the variable");
+        assert_eq!(
+            debug_crash_decision(&plain, true, Some("1")),
+            DebugCrash::NotRequested
+        );
+        assert_eq!(
+            debug_crash_decision(&flagged, true, None),
+            DebugCrash::Crash,
+            "debug build"
+        );
+        assert_eq!(
+            debug_crash_decision(&flagged, false, None),
+            DebugCrash::Refused,
+            "release build without the variable"
+        );
+        assert_eq!(
+            debug_crash_decision(&flagged, false, Some("0")),
+            DebugCrash::Refused
+        );
+        assert_eq!(
+            debug_crash_decision(&flagged, false, Some("true")),
+            DebugCrash::Refused,
+            "only the exact value 1 counts"
+        );
+        assert_eq!(
+            debug_crash_decision(&flagged, false, Some("1")),
+            DebugCrash::Crash,
+            "release build with the variable"
+        );
         // the program name is never mistaken for the flag, and partial matches do not count
-        assert_eq!(debug_crash_decision(&a(&["--debug-crash"]), true, None), DebugCrash::NotRequested);
-        assert_eq!(debug_crash_decision(&a(&["deckchek", "--debug-crash=1", "debug-crash"]), true, None), DebugCrash::NotRequested);
+        assert_eq!(
+            debug_crash_decision(&a(&["--debug-crash"]), true, None),
+            DebugCrash::NotRequested
+        );
+        assert_eq!(
+            debug_crash_decision(
+                &a(&["deckchek", "--debug-crash=1", "debug-crash"]),
+                true,
+                None
+            ),
+            DebugCrash::NotRequested
+        );
     }
 
     #[test]
@@ -1444,14 +1914,23 @@ mod tests {
         let dir = tmp("debug-crash");
         let st = DiagState::open(&dir, "0.0.7");
         install_panic_hook(&st);
-        let h = std::thread::Builder::new().name("main-ish".into()).spawn(|| raise_debug_crash()).unwrap();
+        let h = std::thread::Builder::new()
+            .name("main-ish".into())
+            .spawn(|| raise_debug_crash())
+            .unwrap();
         assert!(h.join().is_err());
         st.disable();
         let m = read_marker(&dir).expect("marker exists after the controlled panic");
-        assert!(m.last_panic.as_deref().unwrap_or("").contains("controlled test crash requested with --debug-crash"));
+        assert!(m
+            .last_panic
+            .as_deref()
+            .unwrap_or("")
+            .contains("controlled test crash requested with --debug-crash"));
         // The process died without a clean exit: the next start finds the marker (the prompt reads crashed_last_run).
         let next = DiagState::open(&dir, "0.0.7");
-        let prev = next.crashed_last_run().expect("stale marker detected on the next start");
+        let prev = next
+            .crashed_last_run()
+            .expect("stale marker detected on the next start");
         assert!(prev.last_panic.unwrap().contains("controlled test crash"));
         next.ack_crash();
         assert!(next.crashed_last_run().is_none());
@@ -1474,16 +1953,37 @@ mod tests {
         let dir = tmp("client");
         let st = DiagState::open(&dir, "0.0.5");
         for i in 0..25u64 {
-            let e = ClientError { kind: Some("unhandledrejection".into()), message: Some(format!("bad {i}\nINFO forged")), source: Some("app.js".into()), line: Some(3), col: Some(9), stack: Some("a\nb".into()), screen: Some("quick".into()) };
+            let e = ClientError {
+                kind: Some("unhandledrejection".into()),
+                message: Some(format!("bad {i}\nINFO forged")),
+                source: Some("app.js".into()),
+                line: Some(3),
+                col: Some(9),
+                stack: Some("a\nb".into()),
+                screen: Some("quick".into()),
+            };
             st.client_error(&e, 5_000 + i);
         }
-        st.client_error(&ClientError { message: Some("later".into()), ..Default::default() }, 70_000);
+        st.client_error(
+            &ClientError {
+                message: Some("later".into()),
+                ..Default::default()
+            },
+            70_000,
+        );
         let log = fs::read_to_string(dir.join("deckchek.log")).unwrap();
         assert_eq!(log.lines().filter(|l| l.contains(" ERROR js ")).count(), 21);
-        assert!(log.contains("unhandledrejection: bad 0 | INFO forged @ app.js:3:9 screen=quick stack=a | b"));
+        assert!(log.contains(
+            "unhandledrejection: bad 0 | INFO forged @ app.js:3:9 screen=quick stack=a | b"
+        ));
         assert!(log.contains("WARN js [") && log.contains("dropped 5 client error(s)"));
         assert!(log.lines().all(|l| l.starts_with("20")), "no forged lines");
-        let big = ClientError { message: Some("m".repeat(50_000)), source: Some("s".repeat(50_000)), stack: Some("k".repeat(50_000)), ..Default::default() };
+        let big = ClientError {
+            message: Some("m".repeat(50_000)),
+            source: Some("s".repeat(50_000)),
+            stack: Some("k".repeat(50_000)),
+            ..Default::default()
+        };
         assert!(big.to_message().len() < 4096);
     }
 
@@ -1504,29 +2004,46 @@ mod tests {
     }
 
     fn opts(redact: bool, n: u32, context: Option<ClientContext>) -> BundleOpts {
-        BundleOpts { redact, run_count: n, context }
+        BundleOpts {
+            redact,
+            run_count: n,
+            context,
+        }
     }
 
     fn secret_ctx() -> RedactCtx {
-        RedactCtx::from_parts(Some("tmpuser42"), Some("C:\\Users\\tmpuser42"), Some("BOOTH-PC-9"), &["SER-ABC-9988".to_string()])
+        RedactCtx::from_parts(
+            Some("tmpuser42"),
+            Some("C:\\Users\\tmpuser42"),
+            Some("BOOTH-PC-9"),
+            &["SER-ABC-9988".to_string()],
+        )
     }
 
     fn client_ctx() -> ClientContext {
         ClientContext {
-            system: Some(json!({"os": {"version": "10.0.22631"}, "webview2Version": "126.0.1", "locale": "en-GB", "memoryMb": 16000, "evil": "x"})),
-            settings: Some(json!({"deviceName": "Rane Twelve", "exportDir": "C:\\Users\\tmpuser42\\Music", "owner": "dj@booth.example.com", "machine": "booth-pc-9"})),
-            system_health: Some(json!({"findings": [{"id": "f1", "title": "Driver on BOOTH-PC-9"}]})),
+            system: Some(
+                json!({"os": {"version": "10.0.22631"}, "webview2Version": "126.0.1", "locale": "en-GB", "memoryMb": 16000, "evil": "x"}),
+            ),
+            settings: Some(
+                json!({"deviceName": "Rane Twelve", "exportDir": "C:\\Users\\tmpuser42\\Music", "owner": "dj@booth.example.com", "machine": "booth-pc-9"}),
+            ),
+            system_health: Some(
+                json!({"findings": [{"id": "f1", "title": "Driver on BOOTH-PC-9"}]}),
+            ),
         }
     }
 
     fn read_zip(path: &Path) -> Vec<(String, Vec<u8>)> {
         let mut z = zip::ZipArchive::new(File::open(path).unwrap()).unwrap();
-        (0..z.len()).map(|i| {
-            let mut f = z.by_index(i).unwrap();
-            let mut b = Vec::new();
-            f.read_to_end(&mut b).unwrap();
-            (f.name().to_string(), b)
-        }).collect()
+        (0..z.len())
+            .map(|i| {
+                let mut f = z.by_index(i).unwrap();
+                let mut b = Vec::new();
+                f.read_to_end(&mut b).unwrap();
+                (f.name().unwrap().into_owned(), b)
+            })
+            .collect()
     }
 
     #[test]
@@ -1540,14 +2057,43 @@ mod tests {
         let conn = seeded_db(&dir.join("db.sqlite3"));
         let ctx = secret_ctx();
         let o = opts(true, 10, Some(client_ctx()));
-        let inp = BundleInputs { dir: &logs, app_version: "0.0.5", conn: Some(&conn), ctx: &ctx, opts: &o, previous_marker: Some(Marker { started_at: Some("2026-10-09T09:00:00.000Z".into()), last_panic: Some("x at C:\\Users\\tmpuser42\\y".into()), ..Default::default() }), now_iso: "2026-10-10T12:00:00.000Z".into() };
+        let inp = BundleInputs {
+            dir: &logs,
+            app_version: "0.0.5",
+            conn: Some(&conn),
+            ctx: &ctx,
+            opts: &o,
+            previous_marker: Some(Marker {
+                started_at: Some("2026-10-09T09:00:00.000Z".into()),
+                last_panic: Some("x at C:\\Users\\tmpuser42\\y".into()),
+                ..Default::default()
+            }),
+            now_iso: "2026-10-10T12:00:00.000Z".into(),
+        };
         let parts = build_parts(&inp);
-        assert!(parts.iter().all(|p| p.info.status == "ok"), "{:?}", parts.iter().map(|p| &p.info).collect::<Vec<_>>());
+        assert!(
+            parts.iter().all(|p| p.info.status == "ok"),
+            "{:?}",
+            parts.iter().map(|p| &p.info).collect::<Vec<_>>()
+        );
         let dest = dir.join("out.zip");
         write_zip(&parts, &dest).unwrap();
         let entries = read_zip(&dest);
         let names: Vec<&str> = entries.iter().map(|(n, _)| n.as_str()).collect();
-        assert_eq!(names, vec!["manifest.json", "summary.txt", "system.json", "settings.json", "schema.json", "runs-summary.json", "system-health.json", "logs/deckchek.log", "logs/deckchek.1.log"]);
+        assert_eq!(
+            names,
+            vec![
+                "manifest.json",
+                "summary.txt",
+                "system.json",
+                "settings.json",
+                "schema.json",
+                "runs-summary.json",
+                "system-health.json",
+                "logs/deckchek.log",
+                "logs/deckchek.1.log"
+            ]
+        );
         for n in &names {
             assert!(!n.contains("..") && !n.starts_with('/') && !n.contains('\\'));
             assert!(!n.ends_with(".wav") && !n.ends_with(".f32"));
@@ -1575,9 +2121,14 @@ mod tests {
                 serde_json::from_str::<Value>(&text).unwrap();
             }
         }
-        let by = |n: &str| String::from_utf8(entries.iter().find(|(m, _)| m == n).unwrap().1.clone()).unwrap();
+        let by = |n: &str| {
+            String::from_utf8(entries.iter().find(|(m, _)| m == n).unwrap().1.clone()).unwrap()
+        };
         assert!(by("logs/deckchek.log").contains("<profile>\\src"));
-        assert!(by("settings.json").contains("Rane Twelve"), "device names are kept");
+        assert!(
+            by("settings.json").contains("Rane Twelve"),
+            "device names are kept"
+        );
         let schema: Value = serde_json::from_str(&by("schema.json")).unwrap();
         assert!(schema["schemaVersion"].as_i64().unwrap() >= 2);
         let runs: Value = serde_json::from_str(&by("runs-summary.json")).unwrap();
@@ -1589,7 +2140,10 @@ mod tests {
         assert_eq!(sys["os"]["version"], "10.0.22631");
         assert!(sys.get("evil").is_none());
         let summary = by("summary.txt");
-        assert!(summary.contains("Previous run closed unexpectedly: yes") && summary.contains("Last panic: x at <profile>\\y"));
+        assert!(
+            summary.contains("Previous run closed unexpectedly: yes")
+                && summary.contains("Last panic: x at <profile>\\y")
+        );
         assert!(summary.chars().count() < 6000);
     }
 
@@ -1602,12 +2156,35 @@ mod tests {
         let conn = seeded_db(&dir.join("db.sqlite3"));
         let ctx = secret_ctx();
         let o = opts(false, 0, None);
-        let parts = build_parts(&BundleInputs { dir: &logs, app_version: "0.0.5", conn: Some(&conn), ctx: &ctx, opts: &o, previous_marker: None, now_iso: "t".into() });
-        let log = parts.iter().find(|p| p.info.name == "logs/deckchek.log").unwrap();
+        let parts = build_parts(&BundleInputs {
+            dir: &logs,
+            app_version: "0.0.5",
+            conn: Some(&conn),
+            ctx: &ctx,
+            opts: &o,
+            previous_marker: None,
+            now_iso: "t".into(),
+        });
+        let log = parts
+            .iter()
+            .find(|p| p.info.name == "logs/deckchek.log")
+            .unwrap();
         assert!(String::from_utf8_lossy(&log.bytes).contains("tmpuser42"));
-        let runs = parts.iter().find(|p| p.info.name == "runs-summary.json").unwrap();
-        assert_eq!(serde_json::from_slice::<Value>(&runs.bytes).unwrap()["runs"].as_array().unwrap().len(), 1);
-        assert_eq!(serde_json::from_slice::<Value>(&parts[0].bytes).unwrap()["redacted"], false);
+        let runs = parts
+            .iter()
+            .find(|p| p.info.name == "runs-summary.json")
+            .unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&runs.bytes).unwrap()["runs"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&parts[0].bytes).unwrap()["redacted"],
+            false
+        );
     }
 
     #[test]
@@ -1616,14 +2193,34 @@ mod tests {
         let logs = dir.join("none");
         let ctx = RedactCtx::new();
         let o = opts(true, 10, None);
-        let parts = build_parts(&BundleInputs { dir: &logs, app_version: "0.0.5", conn: None, ctx: &ctx, opts: &o, previous_marker: None, now_iso: "t".into() });
-        let status = |n: &str| parts.iter().find(|p| p.info.name == n).map(|p| (p.info.status, p.info.note.clone()));
+        let parts = build_parts(&BundleInputs {
+            dir: &logs,
+            app_version: "0.0.5",
+            conn: None,
+            ctx: &ctx,
+            opts: &o,
+            previous_marker: None,
+            now_iso: "t".into(),
+        });
+        let status = |n: &str| {
+            parts
+                .iter()
+                .find(|p| p.info.name == n)
+                .map(|p| (p.info.status, p.info.note.clone()))
+        };
         assert_eq!(status("schema.json").unwrap().0, "skipped");
         assert_eq!(status("runs-summary.json").unwrap().0, "skipped");
         assert_eq!(status("system-health.json").unwrap().0, "skipped");
         assert_eq!(status("settings.json").unwrap().0, "skipped");
         assert_eq!(status("summary.txt").unwrap().0, "ok");
-        assert!(String::from_utf8_lossy(&parts.iter().find(|p| p.info.name == "summary.txt").unwrap().bytes).contains("none found"));
+        assert!(String::from_utf8_lossy(
+            &parts
+                .iter()
+                .find(|p| p.info.name == "summary.txt")
+                .unwrap()
+                .bytes
+        )
+        .contains("none found"));
         let dest = dir.join("e.zip");
         write_zip(&parts, &dest).unwrap();
         let names: Vec<String> = read_zip(&dest).into_iter().map(|(n, _)| n).collect();
@@ -1637,24 +2234,61 @@ mod tests {
         fs::create_dir_all(&logs).unwrap();
         let line = format!("{}\n", "x".repeat(99));
         for i in 0..3 {
-            fs::write(logs.join(log_file_name(i)), line.repeat(10_000)).unwrap(); // ~1 MB each
+            fs::write(logs.join(log_file_name(i)), line.repeat(10_000)).unwrap();
+            // ~1 MB each
         }
         let ctx = RedactCtx::new();
         let o = opts(true, 1, None);
-        let parts = build_parts(&BundleInputs { dir: &logs, app_version: "v", conn: None, ctx: &ctx, opts: &o, previous_marker: None, now_iso: "t".into() });
-        let total: usize = parts.iter().filter(|p| p.info.name.starts_with("logs/")).map(|p| p.bytes.len()).sum();
+        let parts = build_parts(&BundleInputs {
+            dir: &logs,
+            app_version: "v",
+            conn: None,
+            ctx: &ctx,
+            opts: &o,
+            previous_marker: None,
+            now_iso: "t".into(),
+        });
+        let total: usize = parts
+            .iter()
+            .filter(|p| p.info.name.starts_with("logs/"))
+            .map(|p| p.bytes.len())
+            .sum();
         assert!(total <= LOGS_BUNDLE_CAP, "{total}");
-        let full = parts.iter().find(|p| p.info.name == "logs/deckchek.1.log").unwrap();
+        let full = parts
+            .iter()
+            .find(|p| p.info.name == "logs/deckchek.1.log")
+            .unwrap();
         assert!(full.info.note.is_none());
-        let truncated = parts.iter().find(|p| p.info.name == "logs/deckchek.2.log").unwrap();
-        assert!(truncated.info.note.as_deref().unwrap_or("").contains("truncated"));
-        assert!(String::from_utf8_lossy(&truncated.bytes).lines().all(|l| l.len() == 99), "cut at a line start");
+        let truncated = parts
+            .iter()
+            .find(|p| p.info.name == "logs/deckchek.2.log")
+            .unwrap();
+        assert!(truncated
+            .info
+            .note
+            .as_deref()
+            .unwrap_or("")
+            .contains("truncated"));
+        assert!(
+            String::from_utf8_lossy(&truncated.bytes)
+                .lines()
+                .all(|l| l.len() == 99),
+            "cut at a line start"
+        );
     }
 
     #[test]
     fn write_zip_refuses_unexpected_entry_names() {
         let dir = tmp("badname");
-        let bad = PartData { info: PartInfo { name: "../evil.txt".into(), size_bytes: 1, status: "ok", note: None }, bytes: b"x".to_vec() };
+        let bad = PartData {
+            info: PartInfo {
+                name: "../evil.txt".into(),
+                size_bytes: 1,
+                status: "ok",
+                note: None,
+            },
+            bytes: b"x".to_vec(),
+        };
         let dest = dir.join("x.zip");
         assert!(write_zip(&[bad], &dest).is_err());
         assert!(!dest.exists(), "partial file removed");

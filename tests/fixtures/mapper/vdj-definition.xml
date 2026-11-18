@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Self-authored DeckChek test fixture in the VirtualDJ controller definition layout described on the VirtualDJ wiki. -->
+<device name="Fixture VDJ Controller" author="Fixture Author" type="MIDI" decks="2" version="800">
+  <button note="0x0B" channel="0" name="PLAY" deck="1"/>
+  <button note="0x0B" channel="1" name="PLAY_B" deck="2"/>
+  <button note="0x0C" channel="0" name="CUE" deck="1"/>
+  <button note="0x3F" channel="0" name="SHIFT"/>
+  <button note="0x00" channel="7" name="PAD1" deck="1"/>
+  <slider cc="0x13" channel="0" name="VOLUME" deck="1"/>
+  <encoder cc="0x21" channel="0" name="JOG" deck="1"/>
+  <slider cc="0x1F" channel="6" name="CROSSFADER"/>
+  <button note="0x50" channel="6" name="WEIRD"/>
+  <led note="0x0B" channel="0" name="LED_PLAY" deck="1"/>
+  <unknown thing="1"/>
+</device>

@@ -110,17 +110,29 @@ DeckChek should prefer repeatable measurements over opaque scores. Scores exist 
 
 ## Status
 
-DeckChek is a beta (desktop version 0.0.8 in `src-tauri/tauri.conf.json`). The Windows desktop shell supports continuous native audio capture, live meters, loopback calibration with uncertainty propagation, SQLite catalog persistence, a device library with per-unit test plans, and deterministic evidence-first diagnostics. Files can also be analyzed in a plain browser; results export as HTML, PDF, CSV and JSON. Shipped milestones include the first-run wizard, diagnostics bundle, PDF export, test-media library and backup/restore (M5), plus M6 features (pre-gig check, latency/buffer tuner, stylus wear, control-vinyl wear map, scratch stress test, hum/feedback hunter) that are behind experimental feature flags, and a mobile companion PWA in `mobile/`. Real-hardware validation is still pending, installers are unsigned and there is no auto-update.
+The source41 continuation adds profile-bound learned MIDI maps, an optional native incident attachment containing a selected running monitor's latest reading, and manufacturer-backed MIDI transport facts for fourteen profiles plus Push3's 16-in/16-out USB audio counts. The matrix retains 45 profiles, 506 handwritten checks, 187 generated checks and zero gaps, with 22 conditional audio profiles and 3 conditional MIDI profiles / 9 requirements. The pack preview candidate has passing regression/probe evidence; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+The [source41 report](docs/DECKCHEK-CONTINUATION-41.md) identifies code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`, and its completed local qualification: **1,975/0/1** across 162 test files, all 11 static/performance/syntax gates, and source-bound carry of the prior bounded 45/45 native proof. All 1,480 source hashes/tree matched before/after every executed gate. Source39's complete primary/platform/nightly checks and source40's primary checks belong to their preceding exact trees. [Release readiness](docs/DECKCHEK-RELEASE-READINESS.md) records the remaining source41, hardware and distribution gates. Fleet remains OFF.
+
+DeckChek is a beta (desktop version 0.1.0 in `src-tauri/tauri.conf.json`). The Windows desktop shell supports continuous native audio capture, live meters, loopback calibration with uncertainty propagation, SQLite catalog persistence, a device library with per-unit test plans, and deterministic evidence-first diagnostics. Files can also be analyzed in a plain browser; results export as HTML, PDF, CSV and JSON. Shipped milestones include the first-run wizard, diagnostics bundle, PDF export, test-media library and backup/restore (M5), plus M6 features (pre-gig check, latency/buffer tuner, stylus wear, control-vinyl wear map, scratch stress test, hum/feedback hunter) that are behind experimental feature flags, and a mobile companion PWA in `mobile/`. Real-hardware validation is still pending, installers are unsigned and there is no auto-update.
+
+Milestone 5 adds a first-run setup wizard, a local diagnostics bundle with crash prompt, allowlisted support links, a test-media library, and verified backup and restore of your data (see [BUILDING.md](BUILDING.md#backup-and-restore)). PDF reports are implemented.
+
+Milestones 7 and 8 are implemented behind feature flags: used-gear certificates, unit-versus-population comparison, service worksheets, the venue fleet dashboard (off by default pending qualification), the live timecode monitor, the MIDI mapper studio and the gear ledger, alongside an October audit pass, fuzzing and first-party CI. None of it is validated on hardware yet; the owner's hardware scripts (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) are still open.
 
 See [Implementation Status](docs/IMPLEMENTATION-STATUS.md) for the current code/spec reconciliation and [TODO.md](TODO.md) for the build queue.
 
 ## Run and test
 
 ```
-npm test                      # 830 node:test checks (tests/*.test.mjs)
+npm test                      # JavaScript tests (tests/*.test.mjs)
 ```
 
 To try the UI without Tauri, serve `app/` over HTTP (for example `python3 -m http.server -d app 8080`) and open it in a browser. For the desktop shell, Rust checks and the Playwright smoke test see [BUILDING.md](BUILDING.md).
+
+## Wiki
+
+Repository wiki pages: [Home](docs/wiki/Home.md), [Developer Guide](docs/wiki/Developer-Guide.md), [Architecture and Design Rationale](docs/wiki/Architecture-and-Design-Rationale.md), and [Codebase Map](docs/wiki/Codebase-Map.md). The guide records revision-specific test evidence and current workflow responsibilities. See [CHECKPOINT](CHECKPOINT.md) for live-check prerequisites and unresolved gates.
 
 ## Project layout
 

@@ -95,7 +95,9 @@ fn e2s(e: rusqlite::Error) -> String {
 
 fn check_opt(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(format!("{name} must be between {lo} and {hi}")),
+        Some(x) if !x.is_finite() || x < lo || x > hi => {
+            Err(format!("{name} must be between {lo} and {hi}"))
+        }
         _ => Ok(()),
     }
 }
@@ -123,7 +125,9 @@ pub fn validate(input: &WearScanInput) -> Result<(), String> {
         return Err("recordSideId is required".into());
     }
     if !input.bin_sec.is_finite() || input.bin_sec < MIN_BIN_SEC || input.bin_sec > MAX_BIN_SEC {
-        return Err(format!("binSec must be between {MIN_BIN_SEC} and {MAX_BIN_SEC}"));
+        return Err(format!(
+            "binSec must be between {MIN_BIN_SEC} and {MAX_BIN_SEC}"
+        ));
     }
     if !input.coverage.is_finite() || !(0.0..=1.0).contains(&input.coverage) {
         return Err("coverage must be between 0 and 1".into());
@@ -150,11 +154,18 @@ pub fn validate(input: &WearScanInput) -> Result<(), String> {
             return Err(format!("bin {i}: tSec must be between 0 and {MAX_T_SEC}"));
         }
         check_opt(&format!("bin {i}: snrDb"), b.snr_db, -100.0, 200.0)?;
-        check_opt(&format!("bin {i}: phaseErrDeg"), b.phase_err_deg, 0.0, 180.0)?;
+        check_opt(
+            &format!("bin {i}: phaseErrDeg"),
+            b.phase_err_deg,
+            0.0,
+            180.0,
+        )?;
         check_opt(&format!("bin {i}: balanceDb"), b.balance_db, -120.0, 120.0)?;
         check_opt(&format!("bin {i}: levelDbfs"), b.level_dbfs, -400.0, 40.0)?;
         if !(0..=1_000_000).contains(&b.dropouts) {
-            return Err(format!("bin {i}: dropouts must be a count between 0 and 1000000"));
+            return Err(format!(
+                "bin {i}: dropouts must be a count between 0 and 1000000"
+            ));
         }
         if !(0..=MAX_FLAGS).contains(&b.flags) {
             return Err(format!("bin {i}: flags must be between 0 and {MAX_FLAGS}"));
@@ -165,10 +176,12 @@ pub fn validate(input: &WearScanInput) -> Result<(), String> {
 
 fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
     // `table` is one of the fixed names below, never user input.
-    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| r.get::<_, i64>(0))
-        .optional()
-        .map(|o| o.is_some())
-        .map_err(e2s)
+    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| {
+        r.get::<_, i64>(0)
+    })
+    .optional()
+    .map(|o| o.is_some())
+    .map_err(e2s)
 }
 
 const SCAN_COLS: &str = "s.id, s.full_side_scan_id, s.record_side_id, s.session_id, s.stylus_asset_id, s.format, s.bin_sec, s.coverage, \
@@ -198,7 +211,13 @@ fn scan_row(r: &rusqlite::Row) -> rusqlite::Result<WearScan> {
 }
 
 fn get_scan(conn: &Connection, id: &str) -> Result<Option<WearScan>, String> {
-    conn.query_row(&format!("SELECT {SCAN_COLS} FROM wear_scan s WHERE s.id = ?1"), [id], scan_row).optional().map_err(e2s)
+    conn.query_row(
+        &format!("SELECT {SCAN_COLS} FROM wear_scan s WHERE s.id = ?1"),
+        [id],
+        scan_row,
+    )
+    .optional()
+    .map_err(e2s)
 }
 
 /// Validate and store a scan with its bins in one transaction.
@@ -252,8 +271,18 @@ pub fn save(conn: &mut Connection, input: &WearScanInput) -> Result<WearScan, St
             )
             .map_err(e2s)?;
         for b in &input.bins {
-            stmt.execute(params![id, b.idx, b.t_sec, b.snr_db, b.phase_err_deg, b.balance_db, b.level_dbfs, b.dropouts, b.flags])
-                .map_err(e2s)?;
+            stmt.execute(params![
+                id,
+                b.idx,
+                b.t_sec,
+                b.snr_db,
+                b.phase_err_deg,
+                b.balance_db,
+                b.level_dbfs,
+                b.dropouts,
+                b.flags
+            ])
+            .map_err(e2s)?;
         }
     }
     tx.commit().map_err(e2s)?;
@@ -261,7 +290,11 @@ pub fn save(conn: &mut Connection, input: &WearScanInput) -> Result<WearScan, St
 }
 
 /// Scans, newest first, without their bins; only those of `record_side_id` when given.
-pub fn list(conn: &Connection, record_side_id: Option<&str>, limit: Option<u32>) -> Result<Vec<WearScan>, String> {
+pub fn list(
+    conn: &Connection,
+    record_side_id: Option<&str>,
+    limit: Option<u32>,
+) -> Result<Vec<WearScan>, String> {
     let limit = limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, MAX_LIST_LIMIT);
     let mut stmt = conn
         .prepare(&format!(
@@ -269,13 +302,17 @@ pub fn list(conn: &Connection, record_side_id: Option<&str>, limit: Option<u32>)
              ORDER BY s.created_at DESC, s.rowid DESC LIMIT ?2"
         ))
         .map_err(e2s)?;
-    let rows = stmt.query_map(params![record_side_id, limit], scan_row).map_err(e2s)?;
+    let rows = stmt
+        .query_map(params![record_side_id, limit], scan_row)
+        .map_err(e2s)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
 }
 
 /// One scan with its bins in idx order; `None` for an unknown id.
 pub fn get(conn: &Connection, id: &str) -> Result<Option<WearScanDetail>, String> {
-    let Some(scan) = get_scan(conn, id)? else { return Ok(None) };
+    let Some(scan) = get_scan(conn, id)? else {
+        return Ok(None);
+    };
     let mut stmt = conn
         .prepare("SELECT idx, t_sec, snr_db, phase_err_deg, balance_db, level_dbfs, dropouts, flags FROM wear_bin WHERE scan_id = ?1 ORDER BY idx")
         .map_err(e2s)?;
@@ -300,7 +337,9 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<WearScanDetail>, String
 
 /// Returns whether a scan was removed; its bins go with it (ON DELETE CASCADE).
 pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute("DELETE FROM wear_scan WHERE id = ?1", [id]).map(|n| n > 0).map_err(e2s)
+    conn.execute("DELETE FROM wear_scan WHERE id = ?1", [id])
+        .map(|n| n > 0)
+        .map_err(e2s)
 }
 
 // ------------------------------------------------------------------ control-vinyl copies and sides
@@ -360,7 +399,10 @@ pub struct RecordCopyInput {
 fn text_field(name: &str, v: &str, required: bool, max: usize) -> Result<(), String> {
     let n = v.trim().chars().count();
     if (required && n == 0) || n > max {
-        return Err(format!("{name} must be {} to {max} characters", if required { 1 } else { 0 }));
+        return Err(format!(
+            "{name} must be {} to {max} characters",
+            if required { 1 } else { 0 }
+        ));
     }
     Ok(())
 }
@@ -368,8 +410,18 @@ fn text_field(name: &str, v: &str, required: bool, max: usize) -> Result<(), Str
 pub fn validate_record(input: &RecordCopyInput) -> Result<(), String> {
     text_field("title", &input.title, true, MAX_RECORD_TEXT)?;
     text_field("format", &input.format, true, MAX_FORMAT_CHARS)?;
-    text_field("nickname", input.nickname.as_deref().unwrap_or(""), false, MAX_RECORD_TEXT)?;
-    text_field("cleaningState", input.cleaning_state.as_deref().unwrap_or(""), false, 40)?;
+    text_field(
+        "nickname",
+        input.nickname.as_deref().unwrap_or(""),
+        false,
+        MAX_RECORD_TEXT,
+    )?;
+    text_field(
+        "cleaningState",
+        input.cleaning_state.as_deref().unwrap_or(""),
+        false,
+        40,
+    )?;
     if input.sides.is_empty() || input.sides.len() > MAX_SIDES {
         return Err(format!("a record copy has 1 to {MAX_SIDES} sides"));
     }
@@ -380,13 +432,21 @@ pub fn validate_record(input: &RecordCopyInput) -> Result<(), String> {
             return Err(format!("side '{}' appears twice", s.side_label.trim()));
         }
         check_opt("nominalRpm", s.nominal_rpm, 1.0, 100.0)?;
-        check_opt("expectedDurationSec", s.expected_duration_sec, 1.0, MAX_T_SEC)?;
+        check_opt(
+            "expectedDurationSec",
+            s.expected_duration_sec,
+            1.0,
+            MAX_T_SEC,
+        )?;
     }
     Ok(())
 }
 
 fn opt_text(v: &Option<String>) -> Option<String> {
-    v.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
+    v.as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
 }
 
 fn get_record(conn: &Connection, copy_id: &str) -> Result<Option<RecordCopy>, String> {
@@ -416,7 +476,14 @@ fn get_record(conn: &Connection, copy_id: &str) -> Result<Option<RecordCopy>, St
         .prepare("SELECT id, side_label, nominal_rpm, expected_duration_sec FROM record_side WHERE record_copy_id = ?1 ORDER BY side_label COLLATE NOCASE, rowid")
         .map_err(e2s)?;
     copy.sides = stmt
-        .query_map([copy_id], |r| Ok(RecordSide { id: r.get(0)?, side_label: r.get(1)?, nominal_rpm: r.get(2)?, expected_duration_sec: r.get(3)? }))
+        .query_map([copy_id], |r| {
+            Ok(RecordSide {
+                id: r.get(0)?,
+                side_label: r.get(1)?,
+                nominal_rpm: r.get(2)?,
+                expected_duration_sec: r.get(3)?,
+            })
+        })
         .map_err(e2s)?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(e2s)?;
@@ -432,7 +499,9 @@ pub fn list_records(conn: &Connection) -> Result<Vec<RecordCopy>, String> {
                  WHERE r.external_reference_type = ?1 ORDER BY c.retired, r.title COLLATE NOCASE, c.nickname COLLATE NOCASE, c.rowid",
             )
             .map_err(e2s)?;
-        let rows = stmt.query_map([RECORD_REF_TYPE], |r| r.get::<_, String>(0)).map_err(e2s)?;
+        let rows = stmt
+            .query_map([RECORD_REF_TYPE], |r| r.get::<_, String>(0))
+            .map_err(e2s)?;
         rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
     };
     let mut out = Vec::with_capacity(ids.len());
@@ -522,39 +591,64 @@ pub fn save_record(conn: &mut Connection, input: &RecordCopyInput) -> Result<Rec
 }
 
 #[tauri::command]
-pub fn wearmap_records_list(app: AppHandle) -> Result<Vec<RecordCopy>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list_records(&conn)
+pub async fn wearmap_records_list(app: AppHandle) -> Result<Vec<RecordCopy>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list_records(&conn)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_record_save(app: AppHandle, record: RecordCopyInput) -> Result<RecordCopy, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save_record(&mut conn, &record)
+pub async fn wearmap_record_save(
+    app: AppHandle,
+    record: RecordCopyInput,
+) -> Result<RecordCopy, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save_record(&mut conn, &record)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_save(app: AppHandle, scan: WearScanInput) -> Result<WearScan, String> {
-    let mut conn = open_database(&database_path(&app)?)?;
-    save(&mut conn, &scan)
+pub async fn wearmap_save(app: AppHandle, scan: WearScanInput) -> Result<WearScan, String> {
+    crate::db::off_main(move || {
+        let mut conn = open_database(&database_path(&app)?)?;
+        save(&mut conn, &scan)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_list(app: AppHandle, record_side_id: Option<String>, limit: Option<u32>) -> Result<Vec<WearScan>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    list(&conn, record_side_id.as_deref(), limit)
+pub async fn wearmap_list(
+    app: AppHandle,
+    record_side_id: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<WearScan>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        list(&conn, record_side_id.as_deref(), limit)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_get(app: AppHandle, id: String) -> Result<Option<WearScanDetail>, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    get(&conn, &id)
+pub async fn wearmap_get(app: AppHandle, id: String) -> Result<Option<WearScanDetail>, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        get(&conn, &id)
+    })
+    .await?
 }
 
 #[tauri::command]
-pub fn wearmap_delete(app: AppHandle, id: String) -> Result<bool, String> {
-    let conn = open_database(&database_path(&app)?)?;
-    delete(&conn, &id)
+pub async fn wearmap_delete(app: AppHandle, id: String) -> Result<bool, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        delete(&conn, &id)
+    })
+    .await?
 }
 
 #[cfg(test)]
@@ -604,7 +698,9 @@ mod tests {
             verdict: "watch".into(),
             score: Some(91.5),
             summary: Some(json!({"badPct": 1.5, "envelope": {"hz": 1, "db": [-18.0, -18.5]}})),
-            geometry: Some(json!({"v": 1, "outerMm": 146, "innerMm": 58, "grooveModel": "linear-radius"})),
+            geometry: Some(
+                json!({"v": 1, "outerMm": 146, "innerMm": 58, "grooveModel": "linear-radius"}),
+            ),
             bins: (0..n).map(bin).collect(),
         }
     }
@@ -612,19 +708,52 @@ mod tests {
     #[test]
     fn migration_creates_tables_and_is_rerunnable() {
         let c = mem();
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 10).expect("0010 registered").1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 10)
+            .expect("0010 registered")
+            .1;
         c.execute_batch(sql).unwrap();
         let cols = |t: &str| -> Vec<String> {
-            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')")).unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
+            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')"))
+                .unwrap()
+                .query_map([], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
         };
         assert_eq!(
             cols("wear_scan"),
             [
-                "id", "full_side_scan_id", "record_side_id", "session_id", "stylus_asset_id", "format", "bin_sec", "coverage", "verdict", "score",
-                "summary_json", "geometry_json", "created_at"
+                "id",
+                "full_side_scan_id",
+                "record_side_id",
+                "session_id",
+                "stylus_asset_id",
+                "format",
+                "bin_sec",
+                "coverage",
+                "verdict",
+                "score",
+                "summary_json",
+                "geometry_json",
+                "created_at"
             ]
         );
-        assert_eq!(cols("wear_bin"), ["scan_id", "idx", "t_sec", "snr_db", "phase_err_deg", "balance_db", "level_dbfs", "dropouts", "flags"]);
+        assert_eq!(
+            cols("wear_bin"),
+            [
+                "scan_id",
+                "idx",
+                "t_sec",
+                "snr_db",
+                "phase_err_deg",
+                "balance_db",
+                "level_dbfs",
+                "dropouts",
+                "flags"
+            ]
+        );
         let idx: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name = 'idx_wear_scan_side'", [], |r| r.get(0)).unwrap();
         assert_eq!(idx, 1);
     }
@@ -637,7 +766,10 @@ mod tests {
         i.stylus_asset_id = Some("stylus-1".into());
         i.full_side_scan_id = Some("fss-1".into());
         let s = save(&mut c, &i).unwrap();
-        assert_eq!((s.bin_count, s.format.as_str(), s.verdict.as_str(), s.score), (600, "Serato CV02.5", "watch", Some(91.5)));
+        assert_eq!(
+            (s.bin_count, s.format.as_str(), s.verdict.as_str(), s.score),
+            (600, "Serato CV02.5", "watch", Some(91.5))
+        );
         assert_eq!(s.geometry["outerMm"], 146);
         assert_eq!(s.summary["envelope"]["db"][1], -18.5);
         let d = get(&c, &s.id).unwrap().unwrap();
@@ -647,7 +779,9 @@ mod tests {
         assert!(get(&c, "nope").unwrap().is_none());
         assert!(delete(&c, &s.id).unwrap());
         assert!(!delete(&c, &s.id).unwrap());
-        let left: i64 = c.query_row("SELECT COUNT(*) FROM wear_bin", [], |x| x.get(0)).unwrap();
+        let left: i64 = c
+            .query_row("SELECT COUNT(*) FROM wear_bin", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(left, 0, "bins cascade with the scan");
     }
 
@@ -656,13 +790,25 @@ mod tests {
         let mut c = mem();
         let mut i = scan("side-a", 0);
         i.bins = vec![
-            WearBin { idx: 3, t_sec: 6.0, snr_db: None, phase_err_deg: None, balance_db: None, level_dbfs: None, dropouts: 0, flags: 1 },
+            WearBin {
+                idx: 3,
+                t_sec: 6.0,
+                snr_db: None,
+                phase_err_deg: None,
+                balance_db: None,
+                level_dbfs: None,
+                dropouts: 0,
+                flags: 1,
+            },
             WearBin { idx: 1, ..bin(1) },
         ];
         i.summary = None;
         i.geometry = Some(Value::Null);
         let s = save(&mut c, &i).unwrap();
-        assert_eq!((s.summary.clone(), s.geometry.clone()), (json!({}), json!({})));
+        assert_eq!(
+            (s.summary.clone(), s.geometry.clone()),
+            (json!({}), json!({}))
+        );
         let d = get(&c, &s.id).unwrap().unwrap();
         assert_eq!(d.bins.iter().map(|b| b.idx).collect::<Vec<_>>(), [1, 3]);
         assert_eq!(d.bins[1].snr_db, None);
@@ -674,20 +820,40 @@ mod tests {
         let a1 = save(&mut c, &scan("side-a", 2)).unwrap();
         let a2 = save(&mut c, &scan("side-a", 2)).unwrap();
         let b = save(&mut c, &scan("side-b", 2)).unwrap();
-        let ids = |side: Option<&str>, lim: Option<u32>| list(&c, side, lim).unwrap().into_iter().map(|s| s.id).collect::<Vec<_>>();
-        assert_eq!(ids(Some("side-a"), None), vec![a2.id.clone(), a1.id.clone()], "same created_at falls back to insertion order");
+        let ids = |side: Option<&str>, lim: Option<u32>| {
+            list(&c, side, lim)
+                .unwrap()
+                .into_iter()
+                .map(|s| s.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            ids(Some("side-a"), None),
+            vec![a2.id.clone(), a1.id.clone()],
+            "same created_at falls back to insertion order"
+        );
         assert_eq!(ids(Some("side-b"), None), vec![b.id.clone()]);
         assert_eq!(ids(None, None).len(), 3);
         assert_eq!(ids(None, Some(1)), vec![b.id.clone()]);
-        assert_eq!(ids(None, Some(0)).len(), 1, "limit is clamped to at least 1");
+        assert_eq!(
+            ids(None, Some(0)).len(),
+            1,
+            "limit is clamped to at least 1"
+        );
         assert!(ids(Some("side-a' OR '1'='1"), None).is_empty());
     }
 
     #[test]
     fn references_are_checked_and_cleaned_up() {
         let mut c = mem();
-        assert!(save(&mut c, &scan("side-x", 1)).unwrap_err().contains("unknown record side"));
-        for (field, msg) in [("fss", "unknown full side scan"), ("session", "unknown session"), ("stylus", "unknown stylus asset")] {
+        assert!(save(&mut c, &scan("side-x", 1))
+            .unwrap_err()
+            .contains("unknown record side"));
+        for (field, msg) in [
+            ("fss", "unknown full side scan"),
+            ("session", "unknown session"),
+            ("stylus", "unknown stylus asset"),
+        ] {
             let mut i = scan("side-a", 1);
             match field {
                 "fss" => i.full_side_scan_id = Some("x".into()),
@@ -703,10 +869,20 @@ mod tests {
         with_fss.full_side_scan_id = Some("fss-1".into());
         let f = save(&mut c, &with_fss).unwrap();
         // deleting the session cascades its full_side_scan (and the wear scan built on it) and nulls the plain link
-        c.execute("DELETE FROM session WHERE id = 's1'", []).unwrap();
-        assert_eq!(get(&c, &s.id).unwrap().unwrap().scan.session_id, None, "session delete nulls the link");
-        assert!(get(&c, &f.id).unwrap().is_none(), "full side scan delete cascades");
-        let bins: i64 = c.query_row("SELECT COUNT(*) FROM wear_bin", [], |x| x.get(0)).unwrap();
+        c.execute("DELETE FROM session WHERE id = 's1'", [])
+            .unwrap();
+        assert_eq!(
+            get(&c, &s.id).unwrap().unwrap().scan.session_id,
+            None,
+            "session delete nulls the link"
+        );
+        assert!(
+            get(&c, &f.id).unwrap().is_none(),
+            "full side scan delete cascades"
+        );
+        let bins: i64 = c
+            .query_row("SELECT COUNT(*) FROM wear_bin", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(bins, 3);
     }
 
@@ -734,17 +910,37 @@ mod tests {
         for v in VERDICTS {
             assert!(ok(&|i| i.verdict = (*v).into()).is_ok());
         }
-        assert!(ok(&|i| i.verdict = "fine".into()).unwrap_err().contains("verdict"));
+        assert!(ok(&|i| i.verdict = "fine".into())
+            .unwrap_err()
+            .contains("verdict"));
         assert!(ok(&|i| i.score = Some(100.01)).is_err());
         assert!(ok(&|i| i.score = None).is_ok());
         assert!(ok(&|i| i.format = "  ".into()).is_err());
         assert!(ok(&|i| i.format = "x".repeat(81)).is_err());
         assert!(ok(&|i| i.record_side_id = " ".into()).is_err());
-        assert!(ok(&|i| i.summary = Some(json!([1]))).unwrap_err().contains("object"));
+        assert!(ok(&|i| i.summary = Some(json!([1])))
+            .unwrap_err()
+            .contains("object"));
         assert!(ok(&|i| i.summary = Some(json!({"x": "y".repeat(MAX_SUMMARY_BYTES)}))).is_err());
         assert!(ok(&|i| i.geometry = Some(json!({"x": "y".repeat(MAX_GEOMETRY_BYTES)}))).is_err());
-        assert!(ok(&|i| i.bins = (0..MAX_BINS as i64).map(|k| WearBin { t_sec: k as f64, ..bin(k) }).collect()).is_ok(), "5000 one-second bins");
-        assert!(ok(&|i| i.bins = (0..=MAX_BINS as i64).map(|k| WearBin { t_sec: k as f64, ..bin(k) }).collect()).unwrap_err().contains("at most"));
+        assert!(
+            ok(&|i| i.bins = (0..MAX_BINS as i64)
+                .map(|k| WearBin {
+                    t_sec: k as f64,
+                    ..bin(k)
+                })
+                .collect())
+            .is_ok(),
+            "5000 one-second bins"
+        );
+        assert!(ok(&|i| i.bins = (0..=MAX_BINS as i64)
+            .map(|k| WearBin {
+                t_sec: k as f64,
+                ..bin(k)
+            })
+            .collect())
+        .unwrap_err()
+        .contains("at most"));
         assert!(ok(&|i| i.bins[1].idx = 0).unwrap_err().contains("twice"));
         assert!(ok(&|i| i.bins[0].idx = -1).is_err());
         assert!(ok(&|i| i.bins[0].t_sec = -0.1).is_err());
@@ -760,7 +956,9 @@ mod tests {
         let mut bad = scan("side-a", 3);
         bad.bins[2].flags = 99;
         assert!(save(&mut c, &bad).is_err());
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM wear_scan", [], |x| x.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM wear_scan", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 0);
     }
 
@@ -777,7 +975,14 @@ mod tests {
             assert!(ins(v).is_ok(), "{v}");
         }
         assert!(ins("fine").is_err());
-        assert!(c.execute("INSERT INTO wear_bin (scan_id, idx, t_sec) VALUES ('missing', 0, 0)", []).is_err(), "bin needs its scan");
+        assert!(
+            c.execute(
+                "INSERT INTO wear_bin (scan_id, idx, t_sec) VALUES ('missing', 0, 0)",
+                []
+            )
+            .is_err(),
+            "bin needs its scan"
+        );
         assert!(c
             .execute("INSERT INTO wear_scan (id, record_side_id, format, bin_sec, coverage, verdict, created_at) VALUES ('z', 'no-side', 'x', 2, 1, 'keep', 't')", [])
             .is_err());
@@ -791,7 +996,15 @@ mod tests {
             nickname: Some(" Deck 1 ".into()),
             cleaning_state: None,
             retired: false,
-            sides: sides.iter().map(|l| RecordSideInput { id: None, side_label: (*l).into(), nominal_rpm: Some(33.333333), expected_duration_sec: Some(712.0) }).collect(),
+            sides: sides
+                .iter()
+                .map(|l| RecordSideInput {
+                    id: None,
+                    side_label: (*l).into(),
+                    nominal_rpm: Some(33.333333),
+                    expected_duration_sec: Some(712.0),
+                })
+                .collect(),
         }
     }
 
@@ -799,10 +1012,31 @@ mod tests {
     fn record_copies_create_update_list_and_take_scans() {
         let mut c = mem();
         let a = save_record(&mut c, &rec("Serato CV02.5", &["A", "B"])).unwrap();
-        assert_eq!((a.title.as_str(), a.format.as_str(), a.nickname.as_deref(), a.sides.len()), ("Serato CV02.5", "Serato CV02.5", Some("Deck 1"), 2));
-        assert_eq!(a.sides.iter().map(|s| s.side_label.as_str()).collect::<Vec<_>>(), ["A", "B"]);
+        assert_eq!(
+            (
+                a.title.as_str(),
+                a.format.as_str(),
+                a.nickname.as_deref(),
+                a.sides.len()
+            ),
+            ("Serato CV02.5", "Serato CV02.5", Some("Deck 1"), 2)
+        );
+        assert_eq!(
+            a.sides
+                .iter()
+                .map(|s| s.side_label.as_str())
+                .collect::<Vec<_>>(),
+            ["A", "B"]
+        );
         // music records from the side scan (fixture copy-1) are not control vinyl
-        assert_eq!(list_records(&c).unwrap().iter().map(|r| r.id.clone()).collect::<Vec<_>>(), vec![a.id.clone()]);
+        assert_eq!(
+            list_records(&c)
+                .unwrap()
+                .iter()
+                .map(|r| r.id.clone())
+                .collect::<Vec<_>>(),
+            vec![a.id.clone()]
+        );
         // a scan can be saved against the new side
         save(&mut c, &scan(&a.sides[0].id, 3)).unwrap();
         // update: rename, mark cleaned, edit side A, add side C
@@ -810,14 +1044,34 @@ mod tests {
         u.id = Some(a.id.clone());
         u.cleaning_state = Some("cleaned".into());
         u.sides = vec![
-            RecordSideInput { id: Some(a.sides[0].id.clone()), side_label: "A".into(), nominal_rpm: Some(45.0), expected_duration_sec: None },
-            RecordSideInput { id: None, side_label: "C".into(), nominal_rpm: None, expected_duration_sec: None },
+            RecordSideInput {
+                id: Some(a.sides[0].id.clone()),
+                side_label: "A".into(),
+                nominal_rpm: Some(45.0),
+                expected_duration_sec: None,
+            },
+            RecordSideInput {
+                id: None,
+                side_label: "C".into(),
+                nominal_rpm: None,
+                expected_duration_sec: None,
+            },
         ];
         let b = save_record(&mut c, &u).unwrap();
         assert_eq!(b.id, a.id);
-        assert_eq!((b.title.as_str(), b.cleaning_state.as_deref(), b.sides.len()), ("Serato CV02.5 (2nd)", Some("cleaned"), 3));
-        assert_eq!((b.sides[0].nominal_rpm, b.sides[0].expected_duration_sec), (Some(45.0), None));
-        assert_eq!(list(&c, Some(&a.sides[0].id), None).unwrap().len(), 1, "scans stay on the edited side");
+        assert_eq!(
+            (b.title.as_str(), b.cleaning_state.as_deref(), b.sides.len()),
+            ("Serato CV02.5 (2nd)", Some("cleaned"), 3)
+        );
+        assert_eq!(
+            (b.sides[0].nominal_rpm, b.sides[0].expected_duration_sec),
+            (Some(45.0), None)
+        );
+        assert_eq!(
+            list(&c, Some(&a.sides[0].id), None).unwrap().len(),
+            1,
+            "scans stay on the edited side"
+        );
     }
 
     #[test]
@@ -834,30 +1088,53 @@ mod tests {
         assert!(v(&|i| i.format = "".into()).is_err());
         assert!(v(&|i| i.sides.clear()).unwrap_err().contains("sides"));
         assert!(v(&|i| i.sides = rec("x", &["A", "B", "C", "D", "E"]).sides).is_err());
-        assert!(v(&|i| i.sides = rec("x", &["A", " a "]).sides).unwrap_err().contains("twice"));
+        assert!(v(&|i| i.sides = rec("x", &["A", " a "]).sides)
+            .unwrap_err()
+            .contains("twice"));
         assert!(v(&|i| i.sides[0].nominal_rpm = Some(0.5)).is_err());
         assert!(v(&|i| i.sides[0].expected_duration_sec = Some(MAX_T_SEC + 1.0)).is_err());
         // unknown copy, a side from another copy, a duplicate label added later: nothing written
         let mut u = rec("CV", &["A"]);
         u.id = Some("copy-1".into());
-        assert!(save_record(&mut c, &u).unwrap_err().contains("unknown control-vinyl copy"), "music copies are not editable here");
+        assert!(
+            save_record(&mut c, &u)
+                .unwrap_err()
+                .contains("unknown control-vinyl copy"),
+            "music copies are not editable here"
+        );
         let a = save_record(&mut c, &rec("CV", &["A"])).unwrap();
         let b = save_record(&mut c, &rec("CV", &["A"])).unwrap();
         let mut steal = rec("CV", &["A"]);
         steal.id = Some(b.id.clone());
         steal.sides[0].id = Some(a.sides[0].id.clone());
-        assert!(save_record(&mut c, &steal).unwrap_err().contains("does not belong"));
+        assert!(save_record(&mut c, &steal)
+            .unwrap_err()
+            .contains("does not belong"));
         let mut dup = rec("CV", &["a"]);
         dup.id = Some(a.id.clone());
         assert!(save_record(&mut c, &dup).unwrap_err().contains("unique"));
-        assert_eq!(list_records(&c).unwrap().iter().find(|r| r.id == a.id).unwrap().sides.len(), 1);
+        assert_eq!(
+            list_records(&c)
+                .unwrap()
+                .iter()
+                .find(|r| r.id == a.id)
+                .unwrap()
+                .sides
+                .len(),
+            1
+        );
     }
 
     #[test]
     fn record_contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/wearmap.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/contracts/wearmap.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
-        let input: RecordCopyInput = serde_json::from_value(v["wearmap_record_save"]["request"]["record"].clone()).unwrap();
+        let input: RecordCopyInput =
+            serde_json::from_value(v["wearmap_record_save"]["request"]["record"].clone()).unwrap();
         let mut c = mem();
         let saved = save_record(&mut c, &input).unwrap();
         let mut got = serde_json::to_value(&saved).unwrap();
@@ -872,7 +1149,9 @@ mod tests {
             match v {
                 Value::Number(n) => json!(n.as_f64()),
                 Value::Array(a) => Value::Array(a.iter().map(norm).collect()),
-                Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect()),
+                Value::Object(o) => {
+                    Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect())
+                }
                 x => x.clone(),
             }
         }
@@ -884,9 +1163,14 @@ mod tests {
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/wearmap.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/contracts/wearmap.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
-        let input: WearScanInput = serde_json::from_value(v["wearmap_save"]["request"]["scan"].clone()).unwrap();
+        let input: WearScanInput =
+            serde_json::from_value(v["wearmap_save"]["request"]["scan"].clone()).unwrap();
         let mut c = mem();
         let saved = save(&mut c, &input).unwrap();
         let mut got = serde_json::to_value(&saved).unwrap();
@@ -900,19 +1184,41 @@ mod tests {
             match v {
                 Value::Number(n) => json!(n.as_f64()),
                 Value::Array(a) => Value::Array(a.iter().map(norm).collect()),
-                Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect()),
+                Value::Object(o) => {
+                    Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect())
+                }
                 x => x.clone(),
             }
         }
         assert_eq!(norm(&got), norm(want));
-        let side = v["wearmap_list"]["request"]["recordSideId"].as_str().unwrap();
-        assert_eq!(list(&c, Some(side), v["wearmap_list"]["request"]["limit"].as_u64().map(|n| n as u32)).unwrap().len(), 1);
-        assert!(v["wearmap_get"]["request"]["id"].is_string() && v["wearmap_delete"]["request"]["id"].is_string());
+        let side = v["wearmap_list"]["request"]["recordSideId"]
+            .as_str()
+            .unwrap();
+        assert_eq!(
+            list(
+                &c,
+                Some(side),
+                v["wearmap_list"]["request"]["limit"]
+                    .as_u64()
+                    .map(|n| n as u32)
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert!(
+            v["wearmap_get"]["request"]["id"].is_string()
+                && v["wearmap_delete"]["request"]["id"].is_string()
+        );
         let mut detail = serde_json::to_value(get(&c, &saved.id).unwrap().unwrap()).unwrap();
         let want_detail = &v["wearmap_get"]["response"];
         for k in ["id", "createdAt"] {
             detail[k] = want_detail[k].clone();
         }
-        assert_eq!(norm(&detail), norm(want_detail), "get returns the scan fields flattened next to its bins");
+        assert_eq!(
+            norm(&detail),
+            norm(want_detail),
+            "get returns the scan fields flattened next to its bins"
+        );
     }
 }

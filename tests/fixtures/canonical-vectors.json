@@ -176,6 +176,12 @@
    "inputJson": "{\"v\":1,\"product\":\"pioneer-plx-crss12\",\"results\":[{\"key\":\"wow_flutter\",\"value\":\"0.123\",\"unit\":\"%\"},{\"key\":\"speed_rpm\",\"value\":\"33.331\",\"unit\":\"rpm\"}],\"issued\":\"2026-10-14T10:00:00Z\",\"n\":42}",
    "canonical": "{\"issued\":\"2026-10-14T10:00:00Z\",\"n\":42,\"product\":\"pioneer-plx-crss12\",\"results\":[{\"key\":\"wow_flutter\",\"unit\":\"%\",\"value\":\"0.123\"},{\"key\":\"speed_rpm\",\"unit\":\"rpm\",\"value\":\"33.331\"}],\"v\":1}",
    "sha256": "847574af18c721d4bb5f4318b405ad0b31320e471ca3a3afc2b194fd0e0ecaa5"
+  },
+  {
+   "name": "safe-integer-boundaries-and-neighbors-nested",
+   "inputJson": "{\"bounds\":[-9007199254740991,-9007199254740990,9007199254740990,9007199254740991]}",
+   "canonical": "{\"bounds\":[-9007199254740991,-9007199254740990,9007199254740990,9007199254740991]}",
+   "sha256": "5798c47ddc1cadebf596b2fa3e787fc6fddb9a4eb8007de0eeb042a56dc7104c"
   }
  ],
  "rejectJson": [
@@ -250,6 +256,34 @@
   {
    "name": "depth-65-rejected",
    "json": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"
+  },
+  {
+   "name": "i64-min",
+   "json": "-9223372036854775808"
+  },
+  {
+   "name": "i64-max",
+   "json": "9223372036854775807"
+  },
+  {
+   "name": "i64-min-neighbor",
+   "json": "-9223372036854775807"
+  },
+  {
+   "name": "i64-min-nested",
+   "json": "{\"boundary\":[-9223372036854775808]}"
+  },
+  {
+   "name": "i64-max-nested",
+   "json": "{\"boundary\":[9223372036854775807]}"
+  },
+  {
+   "name": "unsafe-positive-nested",
+   "json": "{\"boundary\":[9007199254740992]}"
+  },
+  {
+   "name": "unsafe-negative-nested",
+   "json": "{\"boundary\":[-9007199254740992]}"
   }
  ],
  "rejectNumbers": [

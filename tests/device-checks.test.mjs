@@ -73,3 +73,33 @@ test('evaluatePass ops',()=>{
   assert.equal(ev('<=',1,null,'missing'),'unknown');
   assert.equal(evaluatePass(null,ms).status,'unknown');
 });
+
+test('numeric pass criteria require finite numeric evidence and bounds',()=>{
+  for(const op of ['abs<=','<=','>=','between','equals','all-seen']){
+    const pass={metricId:'a',op,value:0,value2:100};
+    for(const value of [NaN,Infinity,-Infinity,'0','',false,[],{},null,undefined]){
+      assert.equal(evaluatePass(pass,[{metricId:'a',value}]).status,'unknown',`${op}: ${String(value)}`);
+    }
+    for(const value of [NaN,Infinity,-Infinity,{},false]){
+      assert.equal(evaluatePass({...pass,value},[{metricId:'a',value:0}]).status,'unknown',`${op} invalid bound`);
+    }
+  }
+  for(const value2 of [null,undefined,NaN,Infinity,-Infinity,'100',false]){
+    assert.equal(evaluatePass({metricId:'a',op:'between',value:0,value2},[{metricId:'a',value:50}]).status,'unknown');
+  }
+  assert.equal(evaluatePass({metricId:'a',op:'all-seen'},[{metricId:'a',value:100}]).status,'pass','the documented default remains 100%');
+  assert.equal(evaluatePass({metricId:'a',op:'all-seen'},[{metricId:'a',value:99}]).status,'fail');
+});
+
+test('the latest unavailable measurement cannot fall back to an earlier passing value',()=>{
+  for(const value of [null,undefined,NaN,Infinity]){
+    assert.equal(evaluatePass({metricId:'a',op:'equals',value:0},[{metricId:'a',value:0},{metricId:'a',value}]).status,'unknown');
+  }
+  assert.equal(evaluatePass({metricId:'a',op:'equals',value:0},[{metricId:'a',value:null},{metricId:'a',value:0}]).status,'pass');
+});
+
+test('categorical equality keeps exact string evidence without numeric coercion',()=>{
+  assert.equal(evaluatePass({metricId:'a',op:'equals',value:'yes'},[{metricId:'a',value:'yes'}]).status,'pass');
+  assert.equal(evaluatePass({metricId:'a',op:'equals',value:'yes'},[{metricId:'a',value:'no'}]).status,'fail');
+  for(const value of [0,false,[],{},null]) assert.equal(evaluatePass({metricId:'a',op:'equals',value:'0'},[{metricId:'a',value}]).status,'unknown');
+});

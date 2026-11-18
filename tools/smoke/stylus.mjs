@@ -35,7 +35,7 @@ export function stylusMock() {
       if (cmd === 'stylus_rated_life_get') return sty.rated;
       if (cmd === 'stylus_rated_life_set') { sty.rated = args.hours; return null; }
       if (cmd === 'stylus_benchmark_list') return sty.bench.filter(b => b.assetId === args.assetId);
-      if (cmd === 'stylus_benchmark_save') { const r = args.result; const row = { id: id('b'), createdAt: new Date(Date.now() - (6 - sty.bench.length) * 7 * 864e5).toISOString(), valid: r.valid !== false, sessionId: null, setupId: null, detail: r.detail || {}, ...r }; sty.bench.push(row); return { id: row.id }; }
+      if (cmd === 'stylus_benchmark_save') { const r = args.result; const row = { id: id('b'), createdAt: new Date().toISOString(), valid: r.valid !== false, sessionId: null, setupId: null, detail: r.detail || {}, ...r }; sty.bench.push(row); return { id: row.id }; }
       if (cmd === 'stylus_alert_list') return sty.snoozes.filter(s => s.assetId === args.assetId);
       if (cmd === 'stylus_alert_snooze') { sty.snoozes.push({ id: id('s'), assetId: args.assetId, kind: args.kind, severity: 'amber', snoozedUntil: args.until, createdAt: new Date().toISOString() }); return { id: id('s') }; }
       if (cmd === 'dj_session_spans') return sty.spans;
@@ -53,7 +53,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'stylus-off'));
+  errors.push(watchConsole(po, 'stylus-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('stylus: flag off hides the Stylus wear screen', (await po.locator('.rail-item[data-screen="stylus"]').count()) === 0);
@@ -63,7 +63,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await bctx.addInitScript(FLAG_ON);
   const pb = await bctx.newPage();
-  errors.push(...watchConsole(pb, 'stylus-browser'));
+  errors.push(watchConsole(pb, 'stylus-browser'));
   await pb.goto(base);
   await pb.waitForSelector('.rail-item[data-screen="stylus"]');
   await pb.click('.rail-item[data-screen="stylus"]');
@@ -76,7 +76,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await ectx.addInitScript(tauriMock); await ectx.addInitScript(stylusMock); await ectx.addInitScript(FLAG_ON);
   await ectx.addInitScript(() => { window.__sty.cartridges = false; });
   const pe = await ectx.newPage();
-  errors.push(...watchConsole(pe, 'stylus-empty'));
+  errors.push(watchConsole(pe, 'stylus-empty'));
   await pe.goto(base);
   await pe.waitForSelector('.rail-item[data-screen="stylus"]');
   await pe.click('.rail-item[data-screen="stylus"]');
@@ -88,7 +88,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(tauriMock); await ctx.addInitScript(stylusMock); await ctx.addInitScript(FLAG_ON);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'stylus'));
+  errors.push(watchConsole(page, 'stylus'));
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="stylus"]');
   await page.click('.rail-item[data-screen="stylus"]');
@@ -163,7 +163,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.locator('#main').focus().catch(() => {});
   await page.keyboard.press('b');
   await page.waitForSelector('#sty-bench-form');
-  check('stylus: B opens the benchmark form', await page.evaluate(() => document.activeElement?.id === 'sty-b-thd'));
+  check('stylus: B opens guided preparation without starting capture', await page.evaluate(() => document.activeElement?.id === 'sty-guided-record' && Boolean(document.querySelector('#sty-guided-config'))));
   const bench = async (hours, thd, sep, valid = true) => {
     await page.fill('#sty-b-hours', String(hours)); await page.fill('#sty-b-thd', String(thd)); await page.fill('#sty-b-sep', String(sep));
     if (!valid) await page.uncheck('#sty-bench-valid'); else if (!(await page.isChecked('#sty-bench-valid'))) await page.check('#sty-bench-valid');
@@ -230,6 +230,15 @@ export default async function run({ browser, base, check, SHOTS }) {
     check(`stylus: no horizontal page scroll at phone width (${tab})`, over === '', over);
   }
   await shot(page, 'stylus-phone');
+  // A replacement resets measured trends too. Native benchmark_list retains all rows;
+  // the screen excludes pre-replacement evidence while keeping its history visible.
+  await page.evaluate(() => { window.__sty.baseline = new Date(Date.now() + 1000).toISOString(); });
+  await page.click('.rail-item[data-screen="history"]'); await page.click('.rail-item[data-screen="stylus"]');
+  await page.click('#sty-tab-trends');
+  await page.waitForFunction(() => /No benchmarks yet/.test(document.querySelector('#sty-panel')?.textContent || ''));
+  check('stylus: replacement excludes earlier benchmarks from new trends', (await page.locator('.sty-chart').count()) === 0 && /No benchmarks yet/.test(await text('#sty-panel')));
+  await page.click('#sty-tab-benchmark');
+  check('stylus: replacement preserves all historical benchmark rows', (await page.locator('#sty-bench-table tbody tr').count()) === 6 && /Before replacement/.test(await text('#sty-bench-table')));
   await ctx.close();
-  return errors;
+  return errors.flat();
 }

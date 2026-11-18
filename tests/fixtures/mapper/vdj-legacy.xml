@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Self-authored DeckChek test fixture in the older single-file VirtualDJ mapper layout. -->
+<mapper>
+  <note note="22" chan="0" action="loop" value="4"/>
+  <note note="23" chan="0" action="play_pause"/>
+</mapper>

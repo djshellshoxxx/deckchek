@@ -1,0 +1,4 @@
+Version=1
+EventType=APPCRASH
+Sig[0].Name=Application Name
+Sig[0].Value=Serato DJ Pro.exe

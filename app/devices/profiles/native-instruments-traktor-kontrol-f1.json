@@ -5,7 +5,7 @@
   "model": "TRAKTOR KONTROL F1",
   "category": "controller",
   "summary": "controller profile with pad, fader, usb diagnostic groups. Companion workflow(s): Traktor Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications. Manual 2.11 (10/2016), a document version rather than firmware, establishes USB MIDI mode. With the documented TRAKTOR setup, select MIDI Mode in F1 Preferences before SHIFT + BROWSE; User Map uses NHL instead. Audio capability remains unresolved.",
   "documents": [
     {
       "title": "Manufacturer controls and technical specifications",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "TRAKTOR KONTROL F1 Manual 2.11 (10/2016)",
+      "type": "user-manual",
+      "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/traktor_kontrol_f1_manual_english.pdf",
+      "language": "en",
+      "notes": "Checked 2026-11-18. Printed p. 20, section 2.2.2: USB connection. Sections 4.12 (pp. 118-121) and 5.1.4 (p. 128): select MIDI Mode in F1 Preferences, then SHIFT + BROWSE for ordinary MIDI; User Map uses NHL. Document version is not firmware qualification."
     }
   ],
   "connectivity": {
@@ -55,7 +62,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "TRAKTOR KONTROL F1"
@@ -116,6 +123,15 @@
       "unit": "count",
       "source": "https://www.native-instruments.com/en/support/downloads/",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/traktor/traktor_kontrol_f1_manual_english.pdf",
+      "confidence": "confirmed",
+      "notes": "Manual 2.11, sections 2.2.2, 4.12 and 5.1.4. Ordinary MIDI requires the documented MIDI Mode preference; NHL/User Map is distinct."
     }
   ],
   "midi": {

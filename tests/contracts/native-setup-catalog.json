@@ -1,0 +1,221 @@
+{
+  "format": "deckchek-native-setup-catalog",
+  "formatVersion": 1,
+  "exportedAt": "2026-11-18T00:00:00.000Z",
+  "setupIds": [
+    "setup-a",
+    "setup-b"
+  ],
+  "tables": {
+    "manufacturer": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "name": "Technics",
+        "website": "https://www.technics.com",
+        "notes": null,
+        "created_at": "2026-11-01 12:34:56",
+        "updated_at": "2026-11-01 12:34:56"
+      }
+    ],
+    "product": [
+      {
+        "id": "10000000-0000-4000-8000-000000000001",
+        "manufacturer_id": "00000000-0000-4000-8000-000000000001",
+        "category": "TURNTABLE",
+        "model": "SL-1200GR2",
+        "variant": null,
+        "revision": null,
+        "release_year": null,
+        "discontinued_year": null,
+        "region": null,
+        "description": "Direct-drive turntable",
+        "source_url": "https://us.technics.com/products/direct-drive-turntable-system-ii-sl-1200gr2",
+        "created_at": "2026-11-01 12:34:56",
+        "updated_at": "2026-11-01 12:34:56"
+      },
+      {
+        "id": "product-big",
+        "manufacturer_id": "00000000-0000-4000-8000-000000000001",
+        "category": "TEST_FIXTURE",
+        "model": "Literal integer preservation",
+        "variant": "",
+        "revision": "rev 𝄞",
+        "release_year": 9007199254740993,
+        "discontinued_year": null,
+        "region": "ÉU",
+        "description": "Synthetic legal SQLite value; not a hardware fact",
+        "source_url": null,
+        "created_at": "legacy time spelling",
+        "updated_at": "2026-11-02T00:00:00+00:00"
+      }
+    ],
+    "asset": [
+      {
+        "id": "asset-hidden",
+        "product_id": "10000000-0000-4000-8000-000000000001",
+        "nickname": "Hidden deck <img src=x> café",
+        "serial_number": "serial-private",
+        "purchase_date": "2020-01-02",
+        "installed_date": "2020-02-03",
+        "retired_date": "2026-01-02",
+        "firmware": "v1",
+        "condition": "retired",
+        "notes": "private\nnotes",
+        "is_deleted": 1,
+        "created_at": "2020-01-02 03:04:05",
+        "updated_at": "2026-01-02 04:05:06",
+        "rated_life_hours": 900.5,
+        "deck_position_id": "position-a",
+        "public_notes": "public notes 𝄞"
+      },
+      {
+        "id": "asset-b",
+        "product_id": "product-big",
+        "nickname": "Second deck",
+        "serial_number": null,
+        "purchase_date": null,
+        "installed_date": null,
+        "retired_date": null,
+        "firmware": "",
+        "condition": null,
+        "notes": "",
+        "is_deleted": 0,
+        "created_at": "legacy-created",
+        "updated_at": "legacy-updated",
+        "rated_life_hours": 0.0,
+        "deck_position_id": null,
+        "public_notes": null
+      }
+    ],
+    "venue": [
+      {
+        "id": "venue-a",
+        "name": "Venue café",
+        "venue_type": "club",
+        "city": "Montréal",
+        "region": "QC",
+        "country": "CA",
+        "notes": "room notes",
+        "created_at": "legacy venue created",
+        "updated_at": "legacy venue updated"
+      }
+    ],
+    "booth": [
+      {
+        "id": "booth-a",
+        "venue_id": "venue-a",
+        "name": "Booth 𝄞",
+        "indoor_outdoor": "indoor",
+        "floor_type": "wood",
+        "stage_type": "riser",
+        "notes": "booth description"
+      }
+    ],
+    "deck_position": [
+      {
+        "id": "position-a",
+        "booth_id": "booth-a",
+        "name": "Left",
+        "orientation": "portrait",
+        "distance_to_monitor_m": 0.0,
+        "distance_to_sub_m": 2.75,
+        "height_m": 1.1,
+        "notes": "position detail"
+      }
+    ],
+    "support_configuration": [
+      {
+        "id": "support-a",
+        "deck_position_id": "position-a",
+        "name": "Support",
+        "description": "layered support",
+        "structure_json": "[ { \"layer\": \"rubber\", \"thickness\": 0 } ]\n",
+        "approximate_mass_kg": 18.25,
+        "coupled_state": "isolated",
+        "notes": ""
+      }
+    ],
+    "asset_settings_snapshot": [
+      {
+        "id": "snapshot-a",
+        "asset_id": "asset-hidden",
+        "captured_at": "2026-01-02 03:04:05",
+        "tracking_force_g": 2.25,
+        "anti_skate": 0.0,
+        "arm_height": 3.5,
+        "pitch_range": 8.0,
+        "brake_setting": "slow",
+        "torque_setting": "medium",
+        "cartridge_alignment": "aligned",
+        "input_gain": -3.25,
+        "firmware": "v1",
+        "custom_json": "{\n \"number\": 9007199254740993, \"note\": \"𝄞\"\n}\n"
+      },
+      {
+        "id": "snapshot-b",
+        "asset_id": "asset-b",
+        "captured_at": "legacy capture",
+        "tracking_force_g": null,
+        "anti_skate": null,
+        "arm_height": null,
+        "pitch_range": null,
+        "brake_setting": "",
+        "torque_setting": null,
+        "cartridge_alignment": "",
+        "input_gain": 0.0,
+        "firmware": null,
+        "custom_json": null
+      }
+    ],
+    "setup": [
+      {
+        "id": "setup-a",
+        "name": "Complete setup",
+        "profile": "CLUB",
+        "venue_id": "venue-a",
+        "booth_id": "booth-a",
+        "deck_position_id": "position-a",
+        "support_configuration_id": "support-a",
+        "notes": "setup notes",
+        "created_at": "2026-01-02 03:04:05"
+      },
+      {
+        "id": "setup-b",
+        "name": "Nullable context",
+        "profile": null,
+        "venue_id": "venue-a",
+        "booth_id": null,
+        "deck_position_id": null,
+        "support_configuration_id": null,
+        "notes": "",
+        "created_at": "legacy setup created"
+      }
+    ],
+    "setup_component": [
+      {
+        "id": "component-a",
+        "setup_id": "setup-a",
+        "role": "deck",
+        "asset_id": "asset-hidden",
+        "position": "left",
+        "settings_snapshot_id": "snapshot-a"
+      },
+      {
+        "id": "component-b",
+        "setup_id": "setup-a",
+        "role": "deck",
+        "asset_id": "asset-b",
+        "position": "right",
+        "settings_snapshot_id": "snapshot-b"
+      },
+      {
+        "id": "component-c",
+        "setup_id": "setup-b",
+        "role": "deck",
+        "asset_id": "asset-b",
+        "position": null,
+        "settings_snapshot_id": null
+      }
+    ]
+  }
+}

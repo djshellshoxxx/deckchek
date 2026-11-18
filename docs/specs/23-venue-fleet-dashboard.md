@@ -79,7 +79,7 @@ Unit: health matrix, stale boundary, reminder day and hour boundaries, snooze, l
 
 ## 9. Definition of done
 
-All ACs pass; migration idempotent and tested on a copy of a real DB; flag `features.fleet` default on; docs: README, SPEC-05 cross-reference (venue hierarchy now has UI), IMPLEMENTATION-STATUS.
+Qualification gate: the current implementation remains opt-in (default off) until the following evidence is recorded. All ACs pass; migration idempotent and tested on a copy of a real DB; flag `features.fleet` default on; docs: README, SPEC-05 cross-reference (venue hierarchy now has UI), IMPLEMENTATION-STATUS.
 
 ## 10. Dependencies, risks, open questions, effort
 

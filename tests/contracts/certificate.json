@@ -1,0 +1,144 @@
+{
+  "_comment": "FS-20 command contracts (FS-00 §8). Checked by src-tauri/src/certificate_tests.rs (serde shapes) and tests/certificate.test.mjs (bridge field names). \"$fixture\" = the text of tests/fixtures/certificate/valid-v1.deckchek-cert.json, \"$fixture.payload\" = its payload object. Errors are {code, message}.",
+  "signing_get_identity": {
+    "command": "signing_get_identity",
+    "request": {},
+    "response": {
+      "fingerprint": "3097e2dee2cb4a34",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "publicKeyB64": "IVL40Zt5HSRFMkLhXy6rbLfP+ntqXtMAl5YOBpiB2xI=",
+      "protection": "dpapi"
+    }
+  },
+  "signing_create_identity": {
+    "command": "signing_create_identity",
+    "request": {
+      "confirm": true
+    },
+    "response": {
+      "fingerprint": "3097e2dee2cb4a34",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "publicKeyB64": "IVL40Zt5HSRFMkLhXy6rbLfP+ntqXtMAl5YOBpiB2xI=",
+      "protection": "dpapi"
+    }
+  },
+  "certificate_sign": {
+    "command": "certificate_sign",
+    "request": {
+      "payload": "$fixture.payload"
+    },
+    "response": {
+      "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+      "signatureB64": "ma+LNq9uFxI1XcQ8JaaCkiYpivsJztF+FvSqvdjoF3DeVwxRdZ6cPf/nT3W8gHF/yP0gAtY4Wo8P4UtWok6xDQ==",
+      "publicKeyB64": "IVL40Zt5HSRFMkLhXy6rbLfP+ntqXtMAl5YOBpiB2xI=",
+      "fingerprint": "3097e2dee2cb4a34",
+      "protection": "dpapi"
+    }
+  },
+  "certificate_verify": {
+    "command": "certificate_verify",
+    "request": {
+      "json": "$fixture"
+    },
+    "now": "2026-10-28T12:00:00.000Z",
+    "response": {
+      "status": "valid",
+      "reasons": [],
+      "fingerprint": "3097e2dee2cb4a34",
+      "expired": false,
+      "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+      "declaredHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+      "issuedAt": "2026-10-01T09:30:00.000Z",
+      "validUntil": "2099-12-31T00:00:00.000Z",
+      "tester": "Alex Tester",
+      "model": "Pioneer DJ PLX-CRSS12",
+      "serial": "SN <001> & \"x\"",
+      "verdict": "pass",
+      "issuedByThisInstall": true
+    }
+  },
+  "certificate_extract_json": {
+    "command": "certificate_extract_json",
+    "request": {
+      "path": "C:\\Users\\dj\\Downloads\\unit.deckchek-cert.json"
+    },
+    "response": "$fixture",
+    "errorCodes": [
+      "bad_path",
+      "too_large",
+      "not_utf8",
+      "io",
+      "pdf_has_no_attachment",
+      "no_certificate_data"
+    ]
+  },
+  "certificate_store": {
+    "command": "certificate_store",
+    "request": {
+      "record": {
+        "assetId": "asset-1",
+        "profileId": "pioneer-plx-crss12",
+        "fileJson": "$fixture",
+        "pdfPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.pdf",
+        "jsonPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.deckchek-cert.json"
+      }
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-0000000000c1",
+      "assetId": "asset-1",
+      "profileId": "pioneer-plx-crss12",
+      "signingKeyId": "3097e2dee2cb4a34",
+      "serialNumber": "SN <001> & \"x\"",
+      "testerName": "Alex Tester",
+      "verdict": "pass",
+      "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+      "issuedAt": "2026-10-01T09:30:00.000Z",
+      "validUntil": "2099-12-31T00:00:00.000Z",
+      "pdfPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.pdf",
+      "jsonPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.deckchek-cert.json"
+    }
+  },
+  "certificate_list": {
+    "command": "certificate_list",
+    "request": {
+      "assetId": "asset-1"
+    },
+    "response": [
+      {
+        "id": "00000000-0000-4000-8000-0000000000c1",
+        "assetId": "asset-1",
+        "profileId": "pioneer-plx-crss12",
+        "signingKeyId": "3097e2dee2cb4a34",
+        "serialNumber": "SN <001> & \"x\"",
+        "testerName": "Alex Tester",
+        "verdict": "pass",
+        "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+        "issuedAt": "2026-10-01T09:30:00.000Z",
+        "validUntil": "2099-12-31T00:00:00.000Z",
+        "pdfPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.pdf",
+        "jsonPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.deckchek-cert.json"
+      }
+    ]
+  },
+  "certificate_get": {
+    "command": "certificate_get",
+    "request": {
+      "id": "00000000-0000-4000-8000-0000000000c1"
+    },
+    "response": {
+      "id": "00000000-0000-4000-8000-0000000000c1",
+      "assetId": "asset-1",
+      "profileId": "pioneer-plx-crss12",
+      "signingKeyId": "3097e2dee2cb4a34",
+      "serialNumber": "SN <001> & \"x\"",
+      "testerName": "Alex Tester",
+      "verdict": "pass",
+      "contentHash": "1caa4be5aff4cb0ec681e1023f7d872094239abc015d681b456f9567414a4fdf",
+      "issuedAt": "2026-10-01T09:30:00.000Z",
+      "validUntil": "2099-12-31T00:00:00.000Z",
+      "pdfPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.pdf",
+      "jsonPath": "C:\\Users\\dj\\Documents\\DeckChek certificates\\Pioneer_DJ_PLX-CRSS12-SN__001_____x_-2026-10-01.deckchek-cert.json",
+      "fileJson": "<canonical JSON of the stored file>"
+    }
+  }
+}

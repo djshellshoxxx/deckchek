@@ -112,7 +112,7 @@ test('loadFeatureRuns isolates failures and survives a missing backend', async (
   const res = await loadFeatureRuns(invoke, { limit: 7 });
   assert.deepEqual(res.rows.map(r => r.id), ['latency:l', 'hum:h']);
   assert.deepEqual(res.errors, [{ type: 'scratch', message: 'SCRATCH_DB' }]);
-  assert.deepEqual(calls.map(c => c[0]).sort(), ['hum_run_list', 'latency_run_list', 'pregig_list_runs', 'scratch_list', 'wearmap_list']);
+  assert.deepEqual(calls.map(c => c[0]).sort(), ['hum_run_list', 'latency_run_list', 'monitor_session_list', 'pregig_list_runs', 'scratch_list', 'wearmap_list']);
   assert.deepEqual(calls.find(c => c[0] === 'wearmap_list')[1], { limit: 7 });
   assert.deepEqual(calls.find(c => c[0] === 'hum_run_list')[1], { filter: { limit: 7 } });
   assert.deepEqual((await loadFeatureRuns(invoke, { only: ['hum'] })).rows.map(r => r.id), ['hum:h']);
@@ -125,7 +125,7 @@ test('merge and filter the feed by type, newest first', () => {
   assert.deepEqual(mergeFeed(diag, feat, 'diagnostic').map(r => r.id), ['d1', 'd0']);
   assert.deepEqual(mergeFeed(diag, feat, 'latency').map(r => r.id), ['latency:l']);
   assert.deepEqual(mergeFeed(diag, feat, 'scratch'), []);
-  assert.deepEqual(typeCounts(diag, feat), { diagnostic: 2, hum: 1, latency: 1, scratch: 0, wearmap: 0, pregig: 0 });
+  assert.deepEqual(typeCounts(diag, feat), { diagnostic: 2, hum: 1, latency: 1, scratch: 0, wearmap: 0, pregig: 0, monitor: 0 });
   assert.deepEqual(RUN_TYPES.map(t => t.id), Object.keys(typeCounts([], [])));
 });
 

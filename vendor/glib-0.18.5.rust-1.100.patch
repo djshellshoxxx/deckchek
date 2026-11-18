@@ -1,0 +1,126 @@
+--- a/src/collections/list.rs
++++ b/src/collections/list.rs
+@@ -104 +104 @@
+-    pub fn iter(&self) -> Iter<T> {
++    pub fn iter(&self) -> Iter<'_, T> {
+@@ -111 +111 @@
+-    pub fn iter_mut(&mut self) -> IterMut<T> {
++    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+--- a/src/collections/slist.rs
++++ b/src/collections/slist.rs
+@@ -104 +104 @@
+-    pub fn iter(&self) -> Iter<T> {
++    pub fn iter(&self) -> Iter<'_, T> {
+@@ -111 +111 @@
+-    pub fn iter_mut(&mut self) -> IterMut<T> {
++    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+--- a/src/enums.rs
++++ b/src/enums.rs
+@@ -682 +682 @@
+-    pub fn builder(&self) -> FlagsBuilder {
++    pub fn builder(&self) -> FlagsBuilder<'_> {
+@@ -689 +689 @@
+-    pub fn builder_with_value(&self, value: Value) -> Option<FlagsBuilder> {
++    pub fn builder_with_value(&self, value: Value) -> Option<FlagsBuilder<'_>> {
+@@ -830 +830 @@
+-    fn new(flags_class: &FlagsClass) -> FlagsBuilder {
++    fn new(flags_class: &FlagsClass) -> FlagsBuilder<'_> {
+@@ -835 +835 @@
+-    fn with_value(flags_class: &FlagsClass, value: Value) -> FlagsBuilder {
++    fn with_value(flags_class: &FlagsClass, value: Value) -> FlagsBuilder<'_> {
+--- a/src/main_context.rs
++++ b/src/main_context.rs
+@@ -164 +164 @@
+-    pub fn acquire(&self) -> Result<MainContextAcquireGuard, crate::BoolError> {
++    pub fn acquire(&self) -> Result<MainContextAcquireGuard<'_>, crate::BoolError> {
+@@ -192 +192 @@
+-    fn new(ctx: &MainContext) -> ThreadDefaultContext {
++    fn new(ctx: &MainContext) -> ThreadDefaultContext<'_> {
+--- a/src/object.rs
++++ b/src/object.rs
+@@ -1606 +1606 @@
+-    fn interface<T: IsInterface>(&self) -> Option<InterfaceRef<T>>;
++    fn interface<T: IsInterface>(&self) -> Option<InterfaceRef<'_, T>>;
+@@ -2223 +2223 @@
+-    fn interface<U: IsInterface>(&self) -> Option<InterfaceRef<U>> {
++    fn interface<U: IsInterface>(&self) -> Option<InterfaceRef<'_, U>> {
+@@ -3961 +3961 @@
+-    pub fn parent(&self) -> Option<ClassRef<T>> {
++    pub fn parent(&self) -> Option<ClassRef<'_, T>> {
+@@ -4100 +4100 @@
+-    pub fn from_class<U: IsClass>(klass: &Class<U>) -> Option<InterfaceRef<T>> {
++    pub fn from_class<U: IsClass>(klass: &Class<U>) -> Option<InterfaceRef<'_, T>> {
+@@ -4170 +4170 @@
+-    pub fn parent(&self) -> Option<InterfaceRef<T>> {
++    pub fn parent(&self) -> Option<InterfaceRef<'_, T>> {
+--- a/src/param_spec.rs
++++ b/src/param_spec.rs
+@@ -1062 +1062 @@
+-    ) -> ParamSpecEnumBuilder<T> {
++    ) -> ParamSpecEnumBuilder<'_, T> {
+@@ -1068 +1068 @@
+-    ) -> ParamSpecEnumBuilder<T> {
++    ) -> ParamSpecEnumBuilder<'_, T> {
+@@ -1209 +1209 @@
+-    ) -> ParamSpecFlagsBuilder<T> {
++    ) -> ParamSpecFlagsBuilder<'_, T> {
+@@ -1350 +1350 @@
+-    pub fn builder(name: &str) -> ParamSpecStringBuilder {
++    pub fn builder(name: &str) -> ParamSpecStringBuilder<'_> {
+@@ -1492 +1492 @@
+-    pub fn builder<T: StaticType>(name: &str) -> ParamSpecBoxedBuilder<T> {
++    pub fn builder<T: StaticType>(name: &str) -> ParamSpecBoxedBuilder<'_, T> {
+@@ -1645 +1645 @@
+-    pub fn builder(name: &str) -> ParamSpecValueArrayBuilder {
++    pub fn builder(name: &str) -> ParamSpecValueArrayBuilder<'_> {
+@@ -1743 +1743 @@
+-    pub fn builder<T: StaticType + IsA<Object>>(name: &str) -> ParamSpecObjectBuilder<T> {
++    pub fn builder<T: StaticType + IsA<Object>>(name: &str) -> ParamSpecObjectBuilder<'_, T> {
+--- a/src/subclass/types.rs
++++ b/src/subclass/types.rs
+@@ -710 +710 @@
+-    fn instance(&self) -> crate::BorrowedObject<Self::Type>;
++    fn instance(&self) -> crate::BorrowedObject<'_, Self::Type>;
+@@ -722 +722 @@
+-    fn obj(&self) -> crate::BorrowedObject<Self::Type>;
++    fn obj(&self) -> crate::BorrowedObject<'_, Self::Type>;
+@@ -744 +744 @@
+-    fn instance(&self) -> crate::BorrowedObject<Self::Type> {
++    fn instance(&self) -> crate::BorrowedObject<'_, Self::Type> {
+@@ -754 +754 @@
+-    fn obj(&self) -> crate::BorrowedObject<Self::Type> {
++    fn obj(&self) -> crate::BorrowedObject<'_, Self::Type> {
+--- a/src/translate.rs
++++ b/src/translate.rs
+@@ -467 +467 @@
+-    fn to_glib_none_mut(&'a mut self) -> StashMut<P, Self>;
++    fn to_glib_none_mut(&'a mut self) -> StashMut<'a, P, Self>;
+--- a/src/value.rs
++++ b/src/value.rs
+@@ -545 +545 @@
+-    pub fn get<'a, T>(&'a self) -> Result<T, <<T as FromValue>::Checker as ValueTypeChecker>::Error>
++    pub fn get<'a, T>(&'a self) -> Result<T, <<T as FromValue<'a>>::Checker as ValueTypeChecker>::Error>
+@@ -558 +558 @@
+-    pub fn get_owned<T>(&self) -> Result<T, <<T as FromValue>::Checker as ValueTypeChecker>::Error>
++    pub fn get_owned<T>(&self) -> Result<T, <<T as FromValue<'_>>::Checker as ValueTypeChecker>::Error>
+--- a/src/value_array.rs
++++ b/src/value_array.rs
+@@ -90 +90 @@
+-            let func = func as *mut &mut (dyn FnMut(&Value, &Value) -> Ordering);
++            let func = func as *mut &mut dyn FnMut(&Value, &Value) -> Ordering;
+@@ -99 +99 @@
+-            let func_obj: &mut (dyn FnMut(&Value, &Value) -> Ordering) = &mut func;
++            let func_obj: &mut dyn FnMut(&Value, &Value) -> Ordering = &mut func;
+@@ -101 +101 @@
+-                &func_obj as *const &mut (dyn FnMut(&Value, &Value) -> Ordering) as ffi::gpointer;
++                &func_obj as *const &mut dyn FnMut(&Value, &Value) -> Ordering as ffi::gpointer;
+--- a/src/variant.rs
++++ b/src/variant.rs
+@@ -843 +843 @@
+-    pub fn array_iter_str(&self) -> Result<VariantStrIter, VariantTypeMismatchError> {
++    pub fn array_iter_str(&self) -> Result<VariantStrIter<'_>, VariantTypeMismatchError> {
+--- a/src/variant_type.rs
++++ b/src/variant_type.rs
+@@ -592 +592 @@
+-    pub fn tuple_types(&self) -> VariantTyIterator {
++    pub fn tuple_types(&self) -> VariantTyIterator<'_> {

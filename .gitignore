@@ -1,3 +1,8 @@
 src-tauri/target/
 src-tauri/gen/
 node_modules/
+.claude/worktrees/
+
+# Python bytecode (created by py_compile / import)
+__pycache__/
+*.pyc

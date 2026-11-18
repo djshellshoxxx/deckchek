@@ -1,5 +1,6 @@
-// FS-08 smoke: Data & backup screen. Browser mode shows only the JSON workspace actions; desktop mode (mocked
-// invoke + dialogs) covers back up, the restore confirmation, the capture_running error and workspace import.
+// FS-08 smoke: Data & backup screen. Browser mode keeps the JSON workspace actions;
+// separate catalog/history smoke modules cover their archives. Mocked desktop mode
+// covers backup, restore confirmation, capture_running and workspace import.
 import { watchConsole, tauriMock } from './core.mjs';
 
 function backupMock() {
@@ -12,7 +13,7 @@ function backupMock() {
     if (cmd === 'backup_list') return entries.slice();
     if (cmd === 'backup_settings_get') return { mode: 'off', keep: 7, lastAutoAt: null, lastAutoMs: null };
     if (cmd === 'backup_settings_set') return { ...args.settings, lastAutoAt: null, lastAutoMs: null };
-    if (cmd === 'backup_create') { const e = { name: 'x.deckchek-backup', path: args.destPath, kind: 'manual', createdAt: '2026-03-04T10:20:00Z', bytes: 3200000 }; entries.unshift(e); return { path: args.destPath, bytes: 3200000, createdAt: e.createdAt, kind: 'manual', counts: { runs: 12, assets: 4, profiles: 2, midiMaps: 1 }, schemaVersion: 3 }; }
+    if (cmd === 'backup_create') { const e = { name: 'x.deckchek-backup', path: args.destPath, kind: 'manual', createdAt: '2026-03-04T10:20:00Z', bytes: 3200000 }; entries.unshift(e); return { path: args.destPath, bytes: 3200000, createdAt: e.createdAt, kind: 'manual', counts: { runs: 12, assets: 4, profiles: 2, midiMaps: 1 }, schemaVersion: 3, warnings: window.__createWarnings || [] }; }
     if (cmd === 'backup_inspect') return { valid: true, errors: [], errorCode: null, manifest, counts: manifest.counts, needsMigration: false, tooNew: false, currentSchemaVersion: 3 };
     if (cmd === 'backup_restore') {
       if (!args.confirm) throw { code: 'not_confirmed', message: 'no' };
@@ -34,13 +35,15 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   // ----- browser mode -----
   const bctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const b = await bctx.newPage();
-  errors.push(...watchConsole(b, 'backup-browser'));
+  errors.push(watchConsole(b, 'backup-browser'));
   await b.goto(base);
   await b.waitForSelector('.rail-item');
   await b.click('.rail-item[data-screen="data"]');
   await b.waitForSelector('#screen-data:not([hidden]) #data-export-json');
   check('backup: browser mode explains backup files need the desktop app', /desktop app/.test(await b.locator('#data-unsupported').innerText()));
-  check('backup: browser mode shows only the JSON actions', (await b.locator('#data-backup-now, #data-restore').count()) === 0 && (await b.locator('#data-import-json').count()) === 1);
+  check('backup: browser mode hides native restore and keeps workspace import', (await b.locator('#data-backup-now, #data-restore').count()) === 0 && (await b.locator('#data-import-json').count()) === 1);
+  check('backup: browser mode offers separate catalog and venue-history files',
+    await b.locator('#catalog-archive-export').count() === 1 && await b.locator('#venue-history-export').count() === 1);
   await shot(b, 'backup-browser');
   await bctx.close();
 
@@ -49,7 +52,7 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await ctx.addInitScript(tauriMock);
   await ctx.addInitScript(backupMock);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'backup'));
+  errors.push(watchConsole(page, 'backup'));
   await page.goto(base);
   await page.waitForSelector('.rail-item');
   await page.click('.rail-item[data-screen="data"]');
@@ -63,6 +66,16 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   const create = await page.evaluate(() => window.__backupCalls.find(c => c.cmd === 'backup_create'));
   check('backup: create passes the chosen path, manual kind and settings blob', create.args.destPath.endsWith('.deckchek-backup') && create.args.kind === 'manual' && create.args.settings && 'ui' in create.args.settings && 'calibration' in create.args.settings);
   check('backup: list shows the new backup', (await page.locator('#data-backups li').count()) === 1);
+
+  await page.evaluate(() => { window.__createWarnings = ['1 missing or damaged photo was not included. <img id="backup-warning-injection">']; });
+  await page.click('#data-backup-now');
+  await page.waitForFunction(() => /Warnings:.*photo was not included/.test(document.querySelector('#data-status')?.innerText || ''));
+  check('backup: incomplete photo backup is visibly warned, with details rendered as text',
+    (await page.locator('#data-status .banner-warn').count()) === 1
+    && /<img id="backup-warning-injection">/.test(await page.locator('#data-status').innerText())
+    && (await page.locator('#backup-warning-injection').count()) === 0);
+  await page.evaluate(() => { window.__createWarnings = []; });
+
 
   // restore confirmation
   await page.click('#data-restore');
@@ -93,7 +106,7 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await ctx2.addInitScript(tauriMock);
   await ctx2.addInitScript(backupMock);
   const p2 = await ctx2.newPage();
-  errors.push(...watchConsole(p2, 'backup-ws'));
+  errors.push(watchConsole(p2, 'backup-ws'));
   await p2.goto(base);
   await p2.waitForSelector('.rail-item');
   await p2.click('.rail-item[data-screen="data"]');
@@ -109,5 +122,5 @@ export default async function run({ browser, base, check, SHOTS, tmp }) {
   await p2.waitForFunction(() => /Imported 1 run/.test(document.querySelector('#data-status')?.innerText || ''));
   check('workspace: import calls Rust once with the mapped payload', await p2.evaluate(() => window.__backupCalls.filter(c => c.cmd === 'backup_import_workspace').length === 1));
   await ctx2.close();
-  return errors;
+  return errors.flat();
 }

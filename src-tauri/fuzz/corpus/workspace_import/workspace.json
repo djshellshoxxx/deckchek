@@ -1,0 +1,1 @@
+{"version":1,"runs":[{"id":"r1","workflow":"quick","label":"Quick","createdAt":"2026-01-01T00:00:00Z","metrics":[{"id":"rms_l","label":"RMS L","value":-12.5,"unit":"dBFS"}],"findings":[]}],"equipment":[{"id":"e1","type":"turntable","make":"Technics","model":"SL-1200MK7"}]}

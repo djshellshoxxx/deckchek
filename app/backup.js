@@ -4,6 +4,7 @@
 // reports `supported: false` there and every call rejects with code `unsupported`.
 
 import { toPersistRun } from './ui/persistence.js';
+import { sanitizeImportedRun } from './export.js';
 
 export const BACKUP_EXT = 'deckchek-backup';
 export const FORMAT = 'deckchek-backup';
@@ -125,6 +126,8 @@ export function progressPercent(p) {
  * `backup_import_workspace`: runs shaped by `toPersistRun`, runs without an id dropped,
  * duplicate ids kept once (the first wins; Rust also skips ids already in the DB).
  */
+export { sanitizeImportedRun };
+
 export function workspaceToImportPayload(parsed) {
   if (parsed?.version !== 1 || !Array.isArray(parsed.runs) || !Array.isArray(parsed.equipment)) {
     throw new Error('Unsupported or invalid DeckChek workspace file.');
@@ -134,7 +137,7 @@ export function workspaceToImportPayload(parsed) {
   for (const run of parsed.runs) {
     if (!run || typeof run.id !== 'string' || !run.id.trim() || seen.has(run.id)) continue;
     seen.add(run.id);
-    runs.push(toPersistRun(run));
+    runs.push(toPersistRun(sanitizeImportedRun(run)));
   }
   const equipment = parsed.equipment.filter(e => e && typeof e === 'object' && !Array.isArray(e));
   return { version: 1, runs, equipment };

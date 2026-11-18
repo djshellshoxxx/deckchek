@@ -5,7 +5,7 @@
   "model": "Push 3",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,encoder,button,usb,display,audio. Software: Ableton Live.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. Transport addendum (2026-11-18): Push 3 USB power FAQ, article 9109387410716: USB-C carries MIDI on the computer/device connection. The USB-A host role is separate; no DIN connector conclusion is drawn from TRS sockets. USB audio addendum (2026-11-18): The 2025-09-17 Reference Manual, section 3.1, pp. 20–21, documents 16 input and 16 output USB-C host channels in the Live/CoreAudio example. These are host-visible counts, not physical sockets or a route map. USB formats, exact firmware/macOS versions, Windows and current OS behavior remain unqualified.",
   "documents": [
     {
       "title": "Manufacturer feature support",
@@ -58,6 +58,20 @@
       "type": "support-article",
       "url": "https://help.ableton.com/hc/en-us/articles/8483166334748-Push-3-Technical-FAQ",
       "language": "en"
+    },
+    {
+      "title": "Ableton Push 3 USB power FAQ — article 9109387410716 (Push 3 MIDI scope)",
+      "type": "support-article",
+      "url": "https://help.ableton.com/hc/en-us/articles/9109387410716-Push-3-USB-power-FAQ",
+      "language": "en",
+      "notes": "Transport evidence only. article 9109387410716. Push 3 computer/device USB-C connection; USB-A host operation and TRS MIDI sockets are separate."
+    },
+    {
+      "title": "Ableton Push 3 Reference Manual (2025-09-17)",
+      "type": "user-manual",
+      "url": "https://cdn-resources.ableton.com/resources/pdfs/push-manual/3/2025-09-17/push3-manual-en.pdf",
+      "language": "en",
+      "notes": "2025-09-17 Reference Manual, section 3.1, printed/PDF pp. 20–21: USB-C host audio in Live; the CoreAudio device lists 16 input and 16 output channels. Host count only, not physical sockets or individual routes. Exact firmware and macOS versions are unspecified; Windows and current OS compatibility are not qualified."
     }
   ],
   "connectivity": {
@@ -68,15 +82,15 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "Push 3"
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
+      "usbChannelsIn": 16,
+      "usbChannelsOut": 16,
       "sampleRatesHz": [],
       "bitDepth": null
     }
@@ -159,6 +173,33 @@
       "unit": "bool",
       "source": "https://help.ableton.com/hc/en-us/articles/8831904851740-Getting-Started-with-MPE-on-Push-3",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "Documented USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://help.ableton.com/hc/en-us/articles/9109387410716-Push-3-USB-power-FAQ",
+      "confidence": "confirmed",
+      "notes": "Push 3 USB power FAQ, article 9109387410716: USB-C carries MIDI on the computer/device connection. The USB-A host role is separate; no DIN connector conclusion is drawn from TRS sockets."
+    },
+    {
+      "key": "verified_usb_audio_input_channels",
+      "label": "USB audio input channels (documented CoreAudio configuration)",
+      "value": 16,
+      "unit": "count",
+      "source": "https://cdn-resources.ableton.com/resources/pdfs/push-manual/3/2025-09-17/push3-manual-en.pdf",
+      "confidence": "confirmed",
+      "notes": "2025-09-17 Reference Manual, section 3.1, printed/PDF pp. 20–21: USB-C host audio in Live; the CoreAudio device lists 16 input and 16 output channels. Host count only, not physical sockets or individual routes. Exact firmware and macOS versions are unspecified; Windows and current OS compatibility are not qualified."
+    },
+    {
+      "key": "verified_usb_audio_output_channels",
+      "label": "USB audio output channels (documented CoreAudio configuration)",
+      "value": 16,
+      "unit": "count",
+      "source": "https://cdn-resources.ableton.com/resources/pdfs/push-manual/3/2025-09-17/push3-manual-en.pdf",
+      "confidence": "confirmed",
+      "notes": "2025-09-17 Reference Manual, section 3.1, printed/PDF pp. 20–21: USB-C host audio in Live; the CoreAudio device lists 16 input and 16 output channels. Host count only, not physical sockets or individual routes. Exact firmware and macOS versions are unspecified; Windows and current OS compatibility are not qualified."
     }
   ],
   "midi": {

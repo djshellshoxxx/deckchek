@@ -23,7 +23,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   // ----- flag off -----
   const off = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const po = await off.newPage();
-  errors.push(...watchConsole(po, 'phone-off'));
+  errors.push(watchConsole(po, 'phone-off'));
   await po.goto(base);
   await po.waitForSelector('.rail-item');
   check('phone import: flag off hides the screen', (await po.locator('.rail-item[data-screen="phoneimport"]').count()) === 0);
@@ -33,7 +33,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'dark' });
   await ctx.addInitScript(FLAG_ON);
   const page = await ctx.newPage();
-  errors.push(...watchConsole(page, 'phone-browser'));
+  errors.push(watchConsole(page, 'phone-browser'));
   await page.goto(base);
   await page.waitForSelector('.rail-item[data-screen="phoneimport"]');
   await page.click('.rail-item[data-screen="phoneimport"]');
@@ -83,7 +83,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   const lctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
   await lctx.addInitScript(FLAG_ON);
   const lp = await lctx.newPage();
-  errors.push(...watchConsole(lp, 'phone-light'));
+  errors.push(watchConsole(lp, 'phone-light'));
   await lp.goto(base);
   await lp.click('.rail-item[data-screen="phoneimport"]');
   await lp.fill('#pi-text', good);
@@ -97,7 +97,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await dctx.addInitScript(tauriMock);
   await dctx.addInitScript(FLAG_ON);
   const dp = await dctx.newPage();
-  errors.push(...watchConsole(dp, 'phone-desktop'));
+  errors.push(watchConsole(dp, 'phone-desktop'));
   await dp.goto(base);
   await dp.waitForSelector('.rail-item[data-screen="phoneimport"]');
   await dp.evaluate(() => window.__TAURI__.core.invoke('catalog_upsert', { entity: 'asset', record: { id: 'asset-deck1', nickname: 'Deck 1', productId: null } }).catch(() => {}));
@@ -115,5 +115,5 @@ export default async function run({ browser, base, check, SHOTS }) {
   check('phone import (desktop): measurements are tagged phone with numeric uncertainty', saved?.measurements.length === 2 && saved.measurements.every(m => m.origin === 'phone' && typeof m.uncertainty === 'number'));
   if (hasDeck) check('phone import (desktop): the chosen asset is saved with the run', saved?.assetId === 'asset-deck1');
   await dctx.close();
-  return errors;
+  return errors.flat();
 }

@@ -20,7 +20,10 @@ struct BitReader<'a> {
 impl<'a> BitReader<'a> {
     fn bits(&mut self, need: u32) -> Result<u32, String> {
         while self.bit_cnt < need {
-            let b = *self.data.get(self.pos).ok_or("inflate: unexpected end of data")?;
+            let b = *self
+                .data
+                .get(self.pos)
+                .ok_or("inflate: unexpected end of data")?;
             self.pos += 1;
             self.bit_buf |= (b as u32) << self.bit_cnt;
             self.bit_cnt += 8;
@@ -64,7 +67,11 @@ impl Huffman {
             code |= br.bits(1)? as i32;
             let count = self.count[len] as i32;
             if code - count < first {
-                return self.symbol.get((index + (code - first)) as usize).copied().ok_or_else(|| "inflate: bad code".into());
+                return self
+                    .symbol
+                    .get((index + (code - first)) as usize)
+                    .copied()
+                    .ok_or_else(|| "inflate: bad code".into());
             }
             index += count;
             first = (first + count) << 1;
@@ -74,12 +81,28 @@ impl Huffman {
     }
 }
 
-const LEN_BASE: [u16; 29] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
-const LEN_EXTRA: [u8; 29] = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
-const DIST_BASE: [u16; 30] = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
-const DIST_EXTRA: [u8; 30] = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+const LEN_BASE: [u16; 29] = [
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131,
+    163, 195, 227, 258,
+];
+const LEN_EXTRA: [u8; 29] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+];
+const DIST_BASE: [u16; 30] = [
+    1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
+    2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+];
+const DIST_EXTRA: [u8; 30] = [
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+    13,
+];
 
-fn inflate_block(br: &mut BitReader, out: &mut Vec<u8>, lit: &Huffman, dist: &Huffman) -> Result<(), String> {
+fn inflate_block(
+    br: &mut BitReader,
+    out: &mut Vec<u8>,
+    lit: &Huffman,
+    dist: &Huffman,
+) -> Result<(), String> {
     loop {
         let sym = lit.decode(br)?;
         match sym {
@@ -110,7 +133,12 @@ fn inflate_block(br: &mut BitReader, out: &mut Vec<u8>, lit: &Huffman, dist: &Hu
 
 /// Raw DEFLATE decoder (stored, fixed and dynamic Huffman blocks).
 pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
-    let mut br = BitReader { data, pos: 0, bit_buf: 0, bit_cnt: 0 };
+    let mut br = BitReader {
+        data,
+        pos: 0,
+        bit_buf: 0,
+        bit_cnt: 0,
+    };
     let mut out = Vec::with_capacity(data.len() * 4);
     loop {
         let last = br.bits(1)?;
@@ -118,13 +146,18 @@ pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
             0 => {
                 br.bit_buf = 0;
                 br.bit_cnt = 0;
-                let hdr = data.get(br.pos..br.pos + 4).ok_or("inflate: truncated stored block")?;
+                let hdr = data
+                    .get(br.pos..br.pos + 4)
+                    .ok_or("inflate: truncated stored block")?;
                 let len = u16::from_le_bytes([hdr[0], hdr[1]]) as usize;
                 if len != !u16::from_le_bytes([hdr[2], hdr[3]]) as usize {
                     return Err("inflate: stored length mismatch".into());
                 }
                 br.pos += 4;
-                out.extend_from_slice(data.get(br.pos..br.pos + len).ok_or("inflate: truncated stored data")?);
+                out.extend_from_slice(
+                    data.get(br.pos..br.pos + len)
+                        .ok_or("inflate: truncated stored data")?,
+                );
                 br.pos += len;
             }
             1 => {
@@ -133,13 +166,20 @@ pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
                 l[144..256].fill(9);
                 l[256..280].fill(7);
                 l[280..].fill(8);
-                inflate_block(&mut br, &mut out, &Huffman::new(&l), &Huffman::new(&[5u8; 30]))?;
+                inflate_block(
+                    &mut br,
+                    &mut out,
+                    &Huffman::new(&l),
+                    &Huffman::new(&[5u8; 30]),
+                )?;
             }
             2 => {
                 let nlen = br.bits(5)? as usize + 257;
                 let ndist = br.bits(5)? as usize + 1;
                 let ncode = br.bits(4)? as usize + 4;
-                const ORDER: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+                const ORDER: [usize; 19] = [
+                    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+                ];
                 let mut cl = [0u8; 19];
                 for &o in ORDER.iter().take(ncode) {
                     cl[o] = br.bits(3)? as u8;
@@ -150,7 +190,10 @@ pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
                     let sym = clh.decode(&mut br)?;
                     let (val, rep) = match sym {
                         0..=15 => (sym as u8, 1),
-                        16 => (*lengths.last().ok_or("inflate: repeat without length")?, 3 + br.bits(2)? as usize),
+                        16 => (
+                            *lengths.last().ok_or("inflate: repeat without length")?,
+                            3 + br.bits(2)? as usize,
+                        ),
                         17 => (0, 3 + br.bits(3)? as usize),
                         _ => (0, 11 + br.bits(7)? as usize),
                     };
@@ -159,7 +202,12 @@ pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
                 if lengths.len() > nlen + ndist {
                     return Err("inflate: too many lengths".into());
                 }
-                inflate_block(&mut br, &mut out, &Huffman::new(&lengths[..nlen]), &Huffman::new(&lengths[nlen..]))?;
+                inflate_block(
+                    &mut br,
+                    &mut out,
+                    &Huffman::new(&lengths[..nlen]),
+                    &Huffman::new(&lengths[nlen..]),
+                )?;
             }
             _ => return Err("inflate: bad block type".into()),
         }
@@ -171,7 +219,10 @@ pub fn inflate(data: &[u8]) -> Result<Vec<u8>, String> {
 
 /// zlib wrapper (RFC 1950) around [`inflate`]; the Adler-32 trailer is not checked.
 pub fn zlib_decompress(data: &[u8]) -> Result<Vec<u8>, String> {
-    if data.len() < 2 || data[0] & 0x0f != 8 || !((data[0] as u16) << 8 | data[1] as u16).is_multiple_of(31) {
+    if data.len() < 2
+        || data[0] & 0x0f != 8
+        || !((data[0] as u16) << 8 | data[1] as u16).is_multiple_of(31)
+    {
         return Err("zlib: bad header".into());
     }
     if data[1] & 0x20 != 0 {
@@ -221,7 +272,10 @@ fn is_ws(b: u8) -> bool {
     matches!(b, b' ' | b'\n' | b'\r' | b'\t' | b'\x0c' | b'\0')
 }
 fn is_delim(b: u8) -> bool {
-    matches!(b, b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%')
+    matches!(
+        b,
+        b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%'
+    )
 }
 
 struct Lexer<'a> {
@@ -302,7 +356,10 @@ impl<'a> Lexer<'a> {
                 let mut i = 0;
                 while i < raw.len() {
                     if raw[i] == b'#' && i + 2 < raw.len() {
-                        if let Ok(v) = u8::from_str_radix(std::str::from_utf8(&raw[i + 1..i + 3]).unwrap_or("x"), 16) {
+                        if let Ok(v) = u8::from_str_radix(
+                            std::str::from_utf8(&raw[i + 1..i + 3]).unwrap_or("x"),
+                            16,
+                        ) {
                             name.push(v);
                             i += 3;
                             continue;
@@ -321,7 +378,13 @@ impl<'a> Lexer<'a> {
                 let raw = self.regular();
                 let s = String::from_utf8_lossy(raw).into_owned();
                 match s.parse::<f64>() {
-                    Ok(n) if raw.first().is_some_and(|c| c.is_ascii_digit() || matches!(c, b'+' | b'-' | b'.')) => Tok::Val(Val::Num(n)),
+                    Ok(n)
+                        if raw.first().is_some_and(|c| {
+                            c.is_ascii_digit() || matches!(c, b'+' | b'-' | b'.')
+                        }) =>
+                    {
+                        Tok::Val(Val::Num(n))
+                    }
                     _ => Tok::Val(Val::Kw(s)),
                 }
             }
@@ -347,7 +410,9 @@ impl<'a> Lexer<'a> {
                     out.push(c);
                 }
                 b'\\' => {
-                    let Some(&e) = self.d.get(self.pos) else { break };
+                    let Some(&e) = self.d.get(self.pos) else {
+                        break;
+                    };
                     self.pos += 1;
                     match e {
                         b'n' => out.push(b'\n'),
@@ -443,7 +508,10 @@ pub struct PdfDoc {
 }
 
 fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
-    hay.get(from..)?.windows(needle.len()).position(|w| w == needle).map(|p| p + from)
+    hay.get(from..)?
+        .windows(needle.len())
+        .position(|w| w == needle)
+        .map(|p| p + from)
 }
 
 /// Undoes `/Filter /FlateDecode` (other filters are returned unchanged; predictors unsupported).
@@ -496,7 +564,12 @@ impl PdfDoc {
             if j == num_end {
                 continue;
             }
-            let Ok(num) = std::str::from_utf8(&bytes[j..num_end]).unwrap_or("x").parse::<u32>() else { continue };
+            let Ok(num) = std::str::from_utf8(&bytes[j..num_end])
+                .unwrap_or("x")
+                .parse::<u32>()
+            else {
+                continue;
+            };
             let mut lx = Lexer::new(bytes, p + 3);
             let Some(dict) = lx.value() else { break };
             let after = lx.pos;
@@ -517,7 +590,10 @@ impl PdfDoc {
                             while k2 < bytes.len() && is_ws(bytes[k2]) {
                                 k2 += 1;
                             }
-                            bytes.get(k2..).filter(|r| r.starts_with(b"endstream")).map(|_| e)
+                            bytes
+                                .get(k2..)
+                                .filter(|r| r.starts_with(b"endstream"))
+                                .map(|_| e)
                         }
                         _ => None,
                     };
@@ -554,18 +630,30 @@ impl PdfDoc {
             if o.dict.get("Type").and_then(Val::name) != Some("ObjStm") {
                 continue;
             }
-            let (Some(data), Some(Val::Num(n)), Some(Val::Num(first))) = (&o.stream, o.dict.get("N"), o.dict.get("First")) else { continue };
+            let (Some(data), Some(Val::Num(n)), Some(Val::Num(first))) =
+                (&o.stream, o.dict.get("N"), o.dict.get("First"))
+            else {
+                continue;
+            };
             let mut lx = Lexer::new(data, 0);
             let mut hdr = Vec::new();
             for _ in 0..(*n as usize) {
-                if let (Some(Tok::Val(Val::Num(num))), Some(Tok::Val(Val::Num(off)))) = (lx.next(), lx.next()) {
+                if let (Some(Tok::Val(Val::Num(num))), Some(Tok::Val(Val::Num(off)))) =
+                    (lx.next(), lx.next())
+                {
                     hdr.push((num as u32, off as usize));
                 }
             }
             for (num, off) in hdr {
                 let mut vl = Lexer::new(data, *first as usize + off);
                 if let Some(v) = vl.value() {
-                    extra.push((num, Obj { dict: v, stream: None }));
+                    extra.push((
+                        num,
+                        Obj {
+                            dict: v,
+                            stream: None,
+                        },
+                    ));
                 }
             }
         }
@@ -583,7 +671,15 @@ impl PdfDoc {
 
     /// Page object numbers in document order (walks the page tree from its root).
     pub fn pages(&self) -> Vec<u32> {
-        let root = self.objs.iter().filter(|(_, o)| o.dict.get("Type").and_then(Val::name) == Some("Pages") && o.dict.get("Parent").is_none()).map(|(n, _)| *n).min();
+        let root = self
+            .objs
+            .iter()
+            .filter(|(_, o)| {
+                o.dict.get("Type").and_then(Val::name) == Some("Pages")
+                    && o.dict.get("Parent").is_none()
+            })
+            .map(|(n, _)| *n)
+            .min();
         let mut out = Vec::new();
         if let Some(r) = root {
             self.walk(r, &mut out, 0);
@@ -627,10 +723,19 @@ impl PdfDoc {
     }
 
     fn font(&self, resources: &Val, name: &str) -> Font {
-        let fdict = resources.get("Font").map(|f| self.resolve(f)).and_then(|f| f.get(name)).map(|f| self.resolve(f));
-        let Some(fd) = fdict else { return Font::default() };
+        let fdict = resources
+            .get("Font")
+            .map(|f| self.resolve(f))
+            .and_then(|f| f.get(name))
+            .map(|f| self.resolve(f));
+        let Some(fd) = fdict else {
+            return Font::default();
+        };
         let two_byte = fd.get("Subtype").and_then(Val::name) == Some("Type0");
-        let mut font = Font { width: if two_byte { 2 } else { 1 }, map: HashMap::new() };
+        let mut font = Font {
+            width: if two_byte { 2 } else { 1 },
+            map: HashMap::new(),
+        };
         if let Some(Val::Ref(tu)) = fd.get("ToUnicode") {
             if let Some(data) = self.objs.get(tu).and_then(|o| o.stream.as_ref()) {
                 parse_cmap(data, &mut font);
@@ -642,14 +747,25 @@ impl PdfDoc {
     /// Text of one page: every shown string decoded through its font's ToUnicode map.
     pub fn page_text(&self, page: u32) -> String {
         let mut out = String::new();
-        let Some(o) = self.objs.get(&page) else { return out };
-        let res = self.resources(page).cloned().unwrap_or(Val::Dict(Vec::new()));
+        let Some(o) = self.objs.get(&page) else {
+            return out;
+        };
+        let res = self
+            .resources(page)
+            .cloned()
+            .unwrap_or(Val::Dict(Vec::new()));
         let contents: Vec<u32> = match o.dict.get("Contents") {
             Some(Val::Ref(c)) => match self.objs.get(c).map(|x| &x.dict) {
-                Some(Val::Arr(a)) => a.iter().filter_map(|v| if let Val::Ref(r) = v { Some(*r) } else { None }).collect(),
+                Some(Val::Arr(a)) => a
+                    .iter()
+                    .filter_map(|v| if let Val::Ref(r) = v { Some(*r) } else { None })
+                    .collect(),
                 _ => vec![*c],
             },
-            Some(Val::Arr(a)) => a.iter().filter_map(|v| if let Val::Ref(r) = v { Some(*r) } else { None }).collect(),
+            Some(Val::Arr(a)) => a
+                .iter()
+                .filter_map(|v| if let Val::Ref(r) = v { Some(*r) } else { None })
+                .collect(),
             _ => vec![],
         };
         let mut data = Vec::new();
@@ -664,7 +780,10 @@ impl PdfDoc {
     }
 
     pub fn page_texts(&self) -> Vec<String> {
-        self.pages().into_iter().map(|p| self.page_text(p)).collect()
+        self.pages()
+            .into_iter()
+            .map(|p| self.page_text(p))
+            .collect()
     }
 
     fn run_content(&self, data: &[u8], res: &Val, out: &mut String, depth: u32) {
@@ -720,12 +839,16 @@ impl PdfDoc {
                     }
                 }
                 "Tj" | "'" | "\"" => {
-                    if let (Some(Val::Str(s)), Some(f)) = (ops.last(), cur.as_ref().and_then(|c| fonts.get(c))) {
+                    if let (Some(Val::Str(s)), Some(f)) =
+                        (ops.last(), cur.as_ref().and_then(|c| fonts.get(c)))
+                    {
                         out.push_str(&f.decode(s));
                     }
                 }
                 "TJ" => {
-                    if let (Some(Val::Arr(a)), Some(f)) = (ops.last(), cur.as_ref().and_then(|c| fonts.get(c))) {
+                    if let (Some(Val::Arr(a)), Some(f)) =
+                        (ops.last(), cur.as_ref().and_then(|c| fonts.get(c)))
+                    {
                         for item in a {
                             match item {
                                 Val::Str(s) => out.push_str(&f.decode(s)),
@@ -738,11 +861,19 @@ impl PdfDoc {
                 "Td" | "TD" | "T*" | "Tm" | "ET" => out.push(' '),
                 "Do" => {
                     if let Some(Val::Name(n)) = ops.last() {
-                        let xo = res.get("XObject").map(|x| self.resolve(x)).and_then(|x| x.get(n)).cloned();
+                        let xo = res
+                            .get("XObject")
+                            .map(|x| self.resolve(x))
+                            .and_then(|x| x.get(n))
+                            .cloned();
                         if let Some(Val::Ref(r)) = xo {
                             if let Some(x) = self.objs.get(&r) {
                                 if x.dict.get("Subtype").and_then(Val::name) == Some("Form") {
-                                    let sub = x.dict.get("Resources").map(|r| self.resolve(r).clone()).unwrap_or_else(|| res.clone());
+                                    let sub = x
+                                        .dict
+                                        .get("Resources")
+                                        .map(|r| self.resolve(r).clone())
+                                        .unwrap_or_else(|| res.clone());
                                     if let Some(s) = &x.stream {
                                         self.run_content(s, &sub, out, depth + 1);
                                     }
@@ -776,15 +907,23 @@ impl Font {
             return s.iter().map(|&b| b as char).collect();
         }
         let w = self.width.max(1);
-        s.chunks(w).map(|c| {
-            let code = c.iter().fold(0u32, |a, &b| a << 8 | b as u32);
-            self.map.get(&code).cloned().unwrap_or_else(|| '\u{fffd}'.to_string())
-        }).collect()
+        s.chunks(w)
+            .map(|c| {
+                let code = c.iter().fold(0u32, |a, &b| a << 8 | b as u32);
+                self.map
+                    .get(&code)
+                    .cloned()
+                    .unwrap_or_else(|| '\u{fffd}'.to_string())
+            })
+            .collect()
     }
 }
 
 fn utf16be(b: &[u8]) -> String {
-    let units: Vec<u16> = b.chunks(2).map(|c| (c[0] as u16) << 8 | *c.get(1).unwrap_or(&0) as u16).collect();
+    let units: Vec<u16> = b
+        .chunks(2)
+        .map(|c| (c[0] as u16) << 8 | *c.get(1).unwrap_or(&0) as u16)
+        .collect();
     String::from_utf16_lossy(&units)
 }
 
@@ -835,7 +974,10 @@ fn parse_cmap(data: &[u8], font: &mut Font) {
                     let (lo, hi) = (code_of(lo), code_of(hi));
                     match &toks[i + 2] {
                         Val::Str(dst) if hi >= lo && hi - lo <= 0xffff => {
-                            let mut units: Vec<u16> = dst.chunks(2).map(|c| (c[0] as u16) << 8 | *c.get(1).unwrap_or(&0) as u16).collect();
+                            let mut units: Vec<u16> = dst
+                                .chunks(2)
+                                .map(|c| (c[0] as u16) << 8 | *c.get(1).unwrap_or(&0) as u16)
+                                .collect();
                             for code in lo..=hi {
                                 font.map.insert(code, String::from_utf16_lossy(&units));
                                 if let Some(last) = units.last_mut() {
@@ -877,13 +1019,21 @@ mod tests {
     fn fixture_text() -> Vec<u8> {
         let mut s = String::from("BT /F1 9 Tf <0001000200030004> Tj ET\n");
         for i in 0..12 {
-            s.push_str(&format!("% row {i}: wow {:.3} flutter {:.3} speed {:+.2}\n", i as f64 * 0.013, i as f64 * 0.007, ((i % 7) - 3) as f64));
+            s.push_str(&format!(
+                "% row {i}: wow {:.3} flutter {:.3} speed {:+.2}\n",
+                i as f64 * 0.013,
+                i as f64 * 0.007,
+                ((i % 7) - 3) as f64
+            ));
         }
         s.into_bytes()
     }
 
     fn hex(s: &str) -> Vec<u8> {
-        (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect()
     }
 
     #[test]
@@ -899,7 +1049,11 @@ mod tests {
 
     #[test]
     fn inflate_dynamic_block_with_back_references() {
-        assert_eq!(zlib_fixture()[2] >> 1 & 3, 2, "fixture uses a dynamic block");
+        assert_eq!(
+            zlib_fixture()[2] >> 1 & 3,
+            2,
+            "fixture uses a dynamic block"
+        );
         assert_eq!(zlib_decompress(&zlib_fixture()).unwrap(), fixture_text());
     }
 
@@ -907,24 +1061,39 @@ mod tests {
         let cmap = b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n1 begincodespacerange <0000> <ffff> endcodespacerange\n\
             2 beginbfchar\n<0001> <0050>\n<0002> <0061>\nendbfchar\n1 beginbfrange\n<0003> <0004> <0067>\nendbfrange\nendcmap end end\n";
         let content = zlib_fixture();
-        let page2 = b"BT /F2 8 Tf (Page 2 of 2 ) Tj /Span <</ActualText <FEFF2014>>> BDC (X) Tj EMC ET";
+        let page2 =
+            b"BT /F2 8 Tf (Page 2 of 2 ) Tj /Span <</ActualText <FEFF2014>>> BDC (X) Tj EMC ET";
         let mut pdf = Vec::new();
         pdf.extend_from_slice(b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-        pdf.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R 8 0 R] /Count 2 >>\nendobj\n");
+        pdf.extend_from_slice(
+            b"2 0 obj\n<< /Type /Pages /Kids [3 0 R 8 0 R] /Count 2 >>\nendobj\n",
+        );
         pdf.extend_from_slice(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
-        pdf.extend_from_slice(format!("4 0 obj\n<< /Length {} /Filter /FlateDecode >>\nstream\n", content.len()).as_bytes());
+        pdf.extend_from_slice(
+            format!(
+                "4 0 obj\n<< /Length {} /Filter /FlateDecode >>\nstream\n",
+                content.len()
+            )
+            .as_bytes(),
+        );
         pdf.extend_from_slice(&content);
         pdf.extend_from_slice(b"\nendstream\nendobj\n");
         pdf.extend_from_slice(b"5 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /X /Encoding /Identity-H /ToUnicode 6 0 R >>\nendobj\n");
-        pdf.extend_from_slice(format!("6 0 obj\n<< /Length {} >>\nstream\n", cmap.len()).as_bytes());
+        pdf.extend_from_slice(
+            format!("6 0 obj\n<< /Length {} >>\nstream\n", cmap.len()).as_bytes(),
+        );
         pdf.extend_from_slice(cmap);
         pdf.extend_from_slice(b"\nendstream\nendobj\n");
-        pdf.extend_from_slice(b"7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        pdf.extend_from_slice(
+            b"7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+        );
         pdf.extend_from_slice(b"8 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F2 7 0 R >> >> /Contents [9 0 R] >>\nendobj\n");
         // Indirect /Length (resolved by scanning for endstream).
         pdf.extend_from_slice(b"9 0 obj\n<< /Length 10 0 R >>\nstream\n");
         pdf.extend_from_slice(page2);
-        pdf.extend_from_slice(b"\nendstream\nendobj\n10 0 obj\n80\nendobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+        pdf.extend_from_slice(
+            b"\nendstream\nendobj\n10 0 obj\n80\nendobj\ntrailer << /Root 1 0 R >>\n%%EOF\n",
+        );
         pdf
     }
 
@@ -934,17 +1103,27 @@ mod tests {
         assert_eq!(doc.pages(), vec![3, 8]);
         let texts = doc.page_texts();
         assert_eq!(squash(&texts[0]), "Pagh");
-        assert_eq!(squash(&texts[1]), "Page2of2\u{2014}", "ActualText replaces the marked glyphs");
+        assert_eq!(
+            squash(&texts[1]),
+            "Page2of2\u{2014}",
+            "ActualText replaces the marked glyphs"
+        );
         assert!(squash(&texts[1]).contains("Page2of"));
     }
 
     #[test]
     fn literal_string_escapes() {
         let mut lx = Lexer::new(br"(a\(b\)c\\d\101\nx (nested))", 0);
-        assert_eq!(lx.next(), Some(Tok::Val(Val::Str(b"a(b)c\\dA\nx (nested)".to_vec()))));
+        assert_eq!(
+            lx.next(),
+            Some(Tok::Val(Val::Str(b"a(b)c\\dA\nx (nested)".to_vec())))
+        );
         let mut lx = Lexer::new(b"<< /A [1 0 R 2] /B#20C /N >>", 0);
         let v = lx.value().unwrap();
-        assert_eq!(v.get("A"), Some(&Val::Arr(vec![Val::Ref(1), Val::Num(2.0)])));
+        assert_eq!(
+            v.get("A"),
+            Some(&Val::Arr(vec![Val::Ref(1), Val::Num(2.0)]))
+        );
         assert_eq!(v.get("B C"), Some(&Val::Name("N".into())));
     }
 
@@ -953,7 +1132,9 @@ mod tests {
     #[test]
     #[ignore = "reads a PDF named by DECKCHEK_PDF_TEXT"]
     fn dump_pdf_text_from_env() {
-        let Some(p) = std::env::var_os("DECKCHEK_PDF_TEXT") else { return };
+        let Some(p) = std::env::var_os("DECKCHEK_PDF_TEXT") else {
+            return;
+        };
         let bytes = std::fs::read(p).unwrap();
         let doc = PdfDoc::parse(&bytes).unwrap();
         for (i, t) in doc.page_texts().iter().enumerate() {

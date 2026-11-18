@@ -131,6 +131,75 @@ test('groupTestsByCategory, specSummary and progressFor', () => {
   assert.equal(docs.missing.length, p.documents.filter(doc => !doc.url).length);
 });
 
+test('device latest results compare actual instants and preserve adverse evidence on timestamp ties', () => {
+  const profile = { id: 'unit', tests: [{ id: 't', method: 'manual:inspection', category: 'mechanical', title: 'Inspect' }], specs: [] };
+  for (const [earlierAt, laterAt] of [
+    ['2026-11-17T08:00:00Z', '2026-11-17T08:00:00.500Z'],
+    ['2026-11-17T09:00:00+02:00', '2026-11-17T08:00:00Z'],
+    ['2026-11-16', '2026-11-17'],
+  ]) {
+    const earlier = { profileId: 'unit', testId: 't', status: 'pass', createdAt: earlierAt };
+    const later = { profileId: 'unit', testId: 't', status: 'fail', createdAt: laterAt };
+    for (const results of [[earlier, later], [later, earlier]]) {
+      assert.equal(latestResults(results).get('t'), later);
+      const progress = progressFor(profile, results);
+      assert.equal(progress.failed, 1);
+      assert.equal(progress.passed, 0);
+    }
+  }
+  const pass = { testId: 't', status: 'pass', createdAt: '2026-11-17T08:00:00Z' };
+  for (const status of ['fail', 'unknown', 'skipped']) {
+    const adverse = { testId: 't', status, createdAt: '2026-11-17T10:00:00.000+02:00' };
+    for (const results of [[pass, adverse], [adverse, pass]]) assert.equal(latestResults(results).get('t'), adverse);
+  }
+});
+
+test('malformed result timestamps remain reviewable without hiding known failure or changing stored evidence', () => {
+  const profile = { id: 'unit', manufacturer: 'A', model: 'B', tests: [{ id: 't', method: 'manual:inspection', category: 'mechanical', title: 'Inspect' }], specs: [] };
+  for (const createdAt of [undefined, '', 'bad', '2026-02-30T08:00:00Z', '2026-11-17T24:00:00Z', '2026-11-17T08:00:00', '2026-11-17T08:00:00+99:00']) {
+    const undated = { profileId: 'unit', testId: 't', status: 'pass', createdAt, detail: { summary: 'Original observation' } };
+    assert.equal(latestResults([undated]).get('t'), undated, 'the raw stored result is retained');
+    assert.equal(progressFor(profile, [undated]).passed, 0, String(createdAt));
+    assert.equal(progressFor(profile, [undated]).unknown, 1);
+    const html = buildDeviceReportHtml({ profile, results: [undated] });
+    assert.match(html, /class="s s-unknown">REVIEW/);
+    assert.match(html, /timestamp.*could not be verified/i);
+    assert.equal(undated.status, 'pass');
+    assert.equal(undated.detail.summary, 'Original observation');
+    const knownFailure = { ...undated, status: 'fail', createdAt: '2026-11-17T08:00:00Z' };
+    for (const results of [[undated, knownFailure], [knownFailure, undated]]) assert.equal(latestResults(results).get('t'), knownFailure);
+  }
+});
+
+test('device result chronology is independent of input order when unresolved evidence accompanies newer valid results', () => {
+  const profile = { id: 'unit', manufacturer: 'A', model: 'B', tests: [{ id: 't', title: 'Inspect' }], specs: [] };
+  const olderFail = { profileId: 'unit', testId: 't', status: 'fail', createdAt: '2026-01-01T08:00:00Z' };
+  const newerPass = { profileId: 'unit', testId: 't', status: 'pass', createdAt: '2026-01-02T08:00:00Z' };
+  const permutations = records => records.length < 2 ? [records] : records.flatMap((record, i) =>
+    permutations(records.filter((_, j) => i !== j)).map(tail => [record, ...tail]));
+  for (const status of ['pass', 'unknown', 'skipped', 'fail']) {
+    const unresolved = { profileId: 'unit', testId: 't', status, createdAt: 'invalid', detail: { summary: 'Original observation' } };
+    const snapshot = JSON.stringify([unresolved, olderFail, newerPass]);
+    for (const results of permutations([unresolved, olderFail, newerPass])) {
+      assert.equal(latestResults(results).get('t'), unresolved, `unresolved ${status}: ${results.map(r => r.createdAt)}`);
+      const progress = progressFor(profile, results);
+      assert.equal(progress.passed, 0);
+      assert.equal(progress[status === 'fail' ? 'failed' : 'unknown'], 1);
+      assert.doesNotMatch(buildDeviceReportHtml({ profile, results }), /class="s s-pass"/);
+    }
+    assert.equal(JSON.stringify([unresolved, olderFail, newerPass]), snapshot, 'raw evidence is unchanged');
+  }
+  for (const results of permutations([olderFail, newerPass])) {
+    assert.equal(latestResults(results).get('t'), newerPass, 'valid newer evidence can resolve an older failure');
+    assert.equal(progressFor(profile, results).passed, 1);
+  }
+  const sameTimeSkipped = { ...newerPass, status: 'skipped' };
+  const sameTimeUnknown = { ...newerPass, status: 'unknown' };
+  for (const results of permutations([sameTimeSkipped, sameTimeUnknown, newerPass])) {
+    assert.equal(latestResults(results).get('t'), sameTimeUnknown, 'review outranks skipped at the same instant');
+  }
+});
+
 test('MIDI map helpers: learn, merge, port matching, findings', () => {
   const rane = byId('rane-twelve-mk2');
   const plain = effectiveMidiMap(rane.midi, null);
@@ -245,4 +314,19 @@ test('catalog-store native bridge calls the device commands', async () => {
   assert.deepEqual(calls.map(c => c[0]), ['wizard_has_user_data', 'device_profiles_sync', 'device_test_result_save', 'device_test_results', 'device_midi_map_save', 'device_midi_map_get']);
   assert.deepEqual(calls[3][1], { assetId: 'a' });
   assert.equal(calls[1][1].createAssets, false, 'the setup wizard owns gear creation while it is enabled');
+});
+
+test('regression: validateProfile reports values that cannot become strings instead of throwing (JS fuzz, FUZZ-06)', () => {
+  // JSON.parse gives plain objects; {"toString": 0} has no usable toString/valueOf, so interpolating it throws.
+  const odd = JSON.parse('{"toString": 0}');
+  const p = JSON.parse(fs.readFileSync(path.join(DEV, 'profiles', JSON.parse(fs.readFileSync(path.join(DEV, 'index.json'), 'utf8')).profiles[0] + '.json'), 'utf8'));
+  p.schemaVersion = odd;
+  p.category = [odd];
+  p.specs = [{ key: [odd], confidence: odd }];
+  p.tests = [{ id: [odd], title: 'x', method: [odd], category: odd, pass: { op: odd, metricId: 'm' }, severity: odd }, { id: odd, title: 'y', method: 'midi:' }];
+  const r = validateProfile(p);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some(e => /schemaVersion/.test(e)), r.errors.join('\n'));
+  assert.ok(r.errors.some(e => /unknown method/.test(e)), r.errors.join('\n'));
+  assert.ok([...r.errors, ...r.warnings].every(m => typeof m === 'string' && m.length < 400));
 });

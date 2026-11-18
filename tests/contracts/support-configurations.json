@@ -1,0 +1,34 @@
+{
+  "input": {
+    "id": "support-new",
+    "name": "Paver and isolation feet",
+    "description": "Turntable feet → paver → isolation feet → booth shelf",
+    "approximateMassKg": 8.5,
+    "coupledState": "Decoupled (operator description)",
+    "notes": "Recheck placement before each use"
+  },
+  "legacy": {
+    "id": "support-legacy",
+    "deckPositionId": "position-a",
+    "name": "Isolation platform",
+    "description": "Butcher block on sorbothane feet",
+    "structureJson": "[ {\"layer\":\"butcher block\",\"mass_kg\":6,\"legacy\":{\"revision\":\"A\"}}, {\"layer\":\"sorbothane\",\"count\":4} ]\n",
+    "approximateMassKg": 6,
+    "coupledState": "decoupled",
+    "notes": null
+  },
+  "setup": {
+    "id": "setup-a",
+    "name": "Club rig",
+    "profile": "club",
+    "venueId": "venue-a",
+    "boothId": "booth-a",
+    "deckPositionId": "position-a",
+    "supportConfigurationId": "support-legacy",
+    "notes": "Keep this chain",
+    "createdAt": "2026-11-18T10:00:00.000Z",
+    "components": [
+      {"id":"component-a","role":"turntable","assetId":"asset-a","position":"left","settingsSnapshotId":"settings-a"}
+    ]
+  }
+}

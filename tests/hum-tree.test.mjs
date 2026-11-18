@@ -264,5 +264,55 @@ test('store browser fallback keeps the Rust shapes in localStorage', async () =>
   assert.ok(mem.has(STORAGE_KEY));
   await assert.rejects(store.save({ kind: 'x', steps: [] }), e => e.code === 'HUMRUN_INVALID');
   mem.set(STORAGE_KEY, 'not json');
-  assert.deepEqual(await store.list(), []);
+  await assert.rejects(store.list(), e => e instanceof HumRunError && e.code === 'HUMRUN_DB');
+  assert.equal(mem.get(STORAGE_KEY), 'not json');
+});
+
+const isDatabaseError = error => error instanceof HumRunError && error.code === 'HUMRUN_DB';
+
+test('hum storage integrity: malformed retained history fails every operation without replacing its bytes', async () => {
+  for (const raw of ['not json', '', 'null', '{}', '"history"', '[null]', '[{"id":"broken","kind":"hum","steps":null}]']) {
+    let bytes = raw, writes = 0;
+    const storage = { getItem: () => bytes, setItem: (key, value) => { writes++; bytes = value; } };
+    const store = createHumRunStore({ invoke: null, storage });
+    for (const operation of [() => store.list(), () => store.get('old'), () => store.save(CONTRACT.commands.hum_run_save.request.input), () => store.delete('old')]) {
+      await assert.rejects(operation(), isDatabaseError, raw);
+      assert.equal(bytes, raw); assert.equal(writes, 0);
+    }
+  }
+});
+
+test('hum storage integrity: unavailable or throwing reads cannot claim empty history, missing records or successful writes', async () => {
+  let writes = 0;
+  for (const storage of [null, {}, { getItem() { throw new Error('Read permission denied'); }, setItem() { writes++; } }]) {
+    const store = createHumRunStore({ invoke: null, storage });
+    for (const operation of [() => store.list(), () => store.get('old'), () => store.save(CONTRACT.commands.hum_run_save.request.input), () => store.delete('old')]) await assert.rejects(operation(), isDatabaseError);
+  }
+  assert.equal(writes, 0);
+});
+
+test('hum storage integrity: failed append and deletion writes carry HUMRUN_DB and retain the original history', async () => {
+  const old = CONTRACT.commands.hum_run_save.response, bytes = JSON.stringify([old]);
+  const storage = { getItem: () => bytes, setItem() { throw new Error('Quota exceeded'); } };
+  const store = createHumRunStore({ invoke: null, storage });
+  for (const operation of [() => store.save(CONTRACT.commands.hum_run_save_feedback.request.input), () => store.delete(old.id)]) {
+    await assert.rejects(operation(), error => isDatabaseError(error) && /Quota exceeded/.test(error.message));
+    assert.equal(storage.getItem(STORAGE_KEY), bytes);
+  }
+  const readOnly = createHumRunStore({ invoke: null, storage: { getItem: () => bytes } });
+  await assert.rejects(readOnly.delete(old.id), isDatabaseError);
+});
+
+test('hum storage integrity: missing key is valid empty history and legacy metadata survives append and valid deletion', async () => {
+  let bytes = null;
+  const storage = { getItem: () => bytes, setItem: (key, value) => { bytes = value; } };
+  const store = createHumRunStore({ invoke: null, storage, newId: () => 'new-run' });
+  assert.deepEqual(await store.list(), []); assert.equal(await store.get('absent'), null); assert.equal(await store.delete('absent'), false); assert.equal(bytes, null);
+  const legacy = { ...structuredClone(CONTRACT.commands.hum_run_save.response), unknownLegacy: { retained: [1, 'old'] } };
+  legacy.steps[0].legacyMethod = { revision: 'A' }; bytes = JSON.stringify([legacy]);
+  assert.deepEqual(await store.get(legacy.id), legacy);
+  await store.save(CONTRACT.commands.hum_run_save_feedback.request.input);
+  assert.deepEqual(JSON.parse(bytes)[0], legacy); assert.deepEqual((await store.list()).find(run => run.id === legacy.id).unknownLegacy, legacy.unknownLegacy);
+  assert.equal(await store.delete('new-run'), true); assert.deepEqual(JSON.parse(bytes), [legacy]);
+  assert.equal(await store.delete('new-run'), false);
 });

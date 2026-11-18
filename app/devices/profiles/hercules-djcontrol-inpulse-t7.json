@@ -5,20 +5,20 @@
   "model": "DJControl Inpulse T7",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: jog,motor,pad,fader,eq,audio,usb. Software: DJUCED,Serato DJ Lite.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed; DJControl Inpulse T7 output routing and USB Audio/MIDI transport are manufacturer-documented. USB input-channel count, USB identifiers, class compliance, firmware/OS compatibility and physical performance remain unverified; no factory tolerances or control mappings are claimed.",
   "documents": [
     {
-      "title": "Manufacturer-specific capabilities and mode reference",
-      "type": "manual",
+      "title": "DJControl Inpulse T7 product specifications",
+      "type": "spec-sheet",
       "url": "https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/",
       "language": "en"
     },
     {
-      "title": "Official manufacturer documentation or support entry",
-      "type": "manual",
-      "url": "https://support.hercules.com/en/",
+      "title": "DJControl Inpulse T7 English user manual",
+      "type": "user-manual",
+      "url": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse_T7/HERCULES_DJC_INPULSE_T7_-_USER_MANUAL_EN.pdf",
       "language": "en",
-      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+      "notes": "Checked 2026-11-18. Printed pages 8, 41–42, 48–49 and 75 document output routing, connectors and USB transport. No document revision or publication date identified; screenshot firmware versions are not qualification baselines."
     },
     {
       "title": "Driver and firmware support",
@@ -54,7 +54,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DJControl Inpulse T7"
@@ -62,10 +62,17 @@
     },
     "audio": {
       "usbChannelsIn": null,
-      "usbChannelsOut": null,
-      "sampleRatesHz": [],
-      "bitDepth": null
-    }
+      "usbChannelsOut": 4,
+      "sampleRatesHz": [
+        44100
+      ],
+      "bitDepth": 24
+    },
+    "analog": [
+      "MASTER stereo output: balanced XLR L/R and unbalanced RCA L/R; both connector pairs carry channels 1–2",
+      "Headphones stereo output: 6.35 mm and 3.5 mm jacks; channels 3–4",
+      "MIC input: balanced 6.35 mm jack"
+    ]
   },
   "software": [
     {
@@ -151,6 +158,24 @@
       "source": "https://www.hercules.com/en-us/product/djcontrol-inpulse-t7/",
       "confidence": "confirmed",
       "notes": "Manufacturer-documented capability, not a measured baseline."
+    },
+    {
+      "key": "verified_usb_audio_output_channels",
+      "label": "USB audio output channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse_T7/HERCULES_DJC_INPULSE_T7_-_USER_MANUAL_EN.pdf, sections 2 and 4 (printed pages 8 and 48–49)",
+      "confidence": "confirmed",
+      "notes": "Master uses channels 1–2; headphones use channels 3–4. Connector alternatives do not add USB channels."
+    },
+    {
+      "key": "verified_usb_transport",
+      "label": "USB host transport",
+      "value": "USB Audio and USB MIDI via USB-B 2.0",
+      "unit": "",
+      "source": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse_T7/HERCULES_DJC_INPULSE_T7_-_USER_MANUAL_EN.pdf, sections 3 and 7 (printed pages 41–42 and 75)",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented transport; exact USB identifiers and control messages remain unverified."
     }
   ],
   "midi": {

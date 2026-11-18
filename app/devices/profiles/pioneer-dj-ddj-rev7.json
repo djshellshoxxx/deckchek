@@ -5,7 +5,7 @@
   "model": "DDJ-REV7",
   "category": "controller",
   "summary": "controller profile with jog, motor, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): Serato DJ Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed; DDJ-REV7 manufacturer documentation establishes PC/Mac USB audio routing with 10 inputs and 10 outputs per host connection, 48 kHz/24-bit audio format and USB MIDI. Hardware revision, firmware, current OS support, USB IDs, class compliance, exact MIDI control maps and measured tolerances remain unqualified.",
   "documents": [
     {
       "title": "Specific manufacturer product specifications",
@@ -45,6 +45,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "DDJ-REV7 Instruction Manual DRI1713-D",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV7/DDJ-REV7_DRI1713D_manual.pdf",
+      "language": "en",
+      "notes": "Exact DDJ-REV7; DRI1713-D, copyright 2021, checked 2026-11-18. Printed pp. 21-24 and 30 document PC/Mac driver/utility routing: five USB pairs in each direction per host connection, including FX sends/returns. P. 106 specifies 48 kHz and 24-bit conversion; p. 105 documents USB MIDI. Document revision is not qualified firmware."
+    },
+    {
+      "title": "Manufacturer controller comparison: DDJ-REV7 audio interface",
+      "type": "spec-sheet",
+      "url": "https://www.pioneerdj.com/en/landing/comparison/dj-controller/",
+      "language": "en",
+      "notes": "Checked 2026-11-18; no document revision date identified. Audio Spec / Audio IF - Sampling Rate: DDJ-REV7 column states 48k/24bit. Numeric USB channel counts instead use the manual's numbered routing screenshots."
     }
   ],
   "connectivity": {
@@ -55,17 +69,19 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-REV7"
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
-      "sampleRatesHz": [],
-      "bitDepth": null
+      "usbChannelsIn": 10,
+      "usbChannelsOut": 10,
+      "sampleRatesHz": [
+        48000
+      ],
+      "bitDepth": 24
     }
   },
   "software": [

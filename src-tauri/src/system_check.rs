@@ -140,7 +140,10 @@ pub struct DjLogScan {
 // ---------------------------------------------------------------- time helpers
 
 fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 /// Unix seconds -> `YYYY-MM-DDTHH:MM:SSZ`.
@@ -159,11 +162,21 @@ pub fn iso_from_unix(secs: u64) -> String {
     if m <= 2 {
         y += 1;
     }
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", y, m, d, rem / 3600, (rem % 3600) / 60, rem % 60)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        y,
+        m,
+        d,
+        rem / 3600,
+        (rem % 3600) / 60,
+        rem % 60
+    )
 }
 
 fn system_time_secs(t: SystemTime) -> u64 {
-    t.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    t.duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 pub fn clamp_days(days: Option<i64>) -> u32 {
@@ -175,8 +188,12 @@ pub fn clamp_days(days: Option<i64>) -> u32 {
 /// Run a command, capturing stdout, killing it after `timeout`.
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn run_with_timeout(mut cmd: Command, timeout: Duration) -> Result<String, String> {
-    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = cmd.spawn().map_err(|e| format!("failed to start process: {e}"))?;
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("failed to start process: {e}"))?;
     let mut out = child.stdout.take();
     let mut err = child.stderr.take();
     let t_out = std::thread::spawn(move || {
@@ -201,7 +218,10 @@ pub fn run_with_timeout(mut cmd: Command, timeout: Duration) -> Result<String, S
                 if start.elapsed() >= timeout {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err(format!("scan timed out after {} seconds", timeout.as_secs()));
+                    return Err(format!(
+                        "scan timed out after {} seconds",
+                        timeout.as_secs()
+                    ));
                 }
                 std::thread::sleep(Duration::from_millis(50));
             }
@@ -213,16 +233,57 @@ pub fn run_with_timeout(mut cmd: Command, timeout: Duration) -> Result<String, S
     if success || !stdout.trim().is_empty() {
         Ok(stdout)
     } else {
-        Err(format!("process failed: {}", truncate_chars(stderr.trim(), 400)))
+        Err(format!(
+            "process failed: {}",
+            truncate_chars(stderr.trim(), 400)
+        ))
     }
+}
+
+/// Absolute path of a Windows system tool (AUD-13), so a same-named binary in the working
+/// directory or an earlier PATH entry is never launched instead. `system_root` is `%SystemRoot%`;
+/// anything but an absolute drive path (`X:\...`) falls back to `C:\Windows`. Built as a string
+/// with `\` separators so it is testable on every OS.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub(crate) fn windows_system_exe(
+    system_root: Option<&std::ffi::OsStr>,
+    exe: &str,
+) -> std::ffi::OsString {
+    let root = system_root
+        .and_then(|r| r.to_str())
+        .map(|r| r.trim_end_matches('\\'))
+        .filter(|r| {
+            let b = r.as_bytes();
+            b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && b[2] == b'\\'
+        })
+        .unwrap_or(r"C:\Windows");
+    let dir = if exe.eq_ignore_ascii_case("powershell.exe") {
+        r"System32\WindowsPowerShell\v1.0"
+    } else {
+        "System32"
+    };
+    format!(r"{root}\{dir}\{exe}").into()
+}
+
+/// [`windows_system_exe`] for this machine's `%SystemRoot%`.
+#[cfg(windows)]
+pub(crate) fn system_exe(exe: &str) -> std::ffi::OsString {
+    windows_system_exe(std::env::var_os("SystemRoot").as_deref(), exe)
 }
 
 #[cfg(windows)]
 fn run_ps(script: &str, timeout: Duration) -> Result<String, String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let mut cmd = Command::new("powershell.exe");
-    cmd.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]);
+    let mut cmd = Command::new(system_exe("powershell.exe"));
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        script,
+    ]);
     cmd.creation_flags(CREATE_NO_WINDOW);
     run_with_timeout(cmd, timeout)
 }
@@ -237,14 +298,28 @@ fn run_ps(_script: &str, _timeout: Duration) -> Result<String, String> {
 /// Decode bytes: UTF-16 LE/BE with BOM, otherwise lossy UTF-8; strips a BOM.
 pub fn decode_text(bytes: &[u8]) -> String {
     if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        let u: Vec<u16> = bytes[2..].chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+        let u: Vec<u16> = bytes[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
         return String::from_utf16_lossy(&u);
     }
     if bytes.len() >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF {
-        let u: Vec<u16> = bytes[2..].chunks_exact(2).map(|c| u16::from_be_bytes([c[0], c[1]])).collect();
+        let u: Vec<u16> = bytes[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_be_bytes([c[0], c[1]]))
+            .collect();
         return String::from_utf16_lossy(&u);
     }
-    let b = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) { &bytes[3..] } else { bytes };
+    let b = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        &bytes[3..]
+    } else {
+        bytes
+    };
     String::from_utf8_lossy(b).into_owned()
 }
 
@@ -287,8 +362,14 @@ fn contains_word(hay_lower: &str, needle_lower: &str) -> bool {
     while let Some(i) = hay_lower[from..].find(needle_lower) {
         let s = from + i;
         let e = s + needle_lower.len();
-        let before_ok = hay_lower[..s].chars().next_back().map_or(true, |c| !c.is_alphanumeric());
-        let after_ok = hay_lower[e..].chars().next().map_or(true, |c| !c.is_alphanumeric());
+        let before_ok = hay_lower[..s]
+            .chars()
+            .next_back()
+            .is_none_or(|c| !c.is_alphanumeric());
+        let after_ok = hay_lower[e..]
+            .chars()
+            .next()
+            .is_none_or(|c| !c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }
@@ -301,10 +382,32 @@ fn contains_word(hay_lower: &str, needle_lower: &str) -> bool {
 }
 
 const VENDORS: &[&str] = &[
-    "pioneer", "alphatheta", "denon", "inmusic", "native instruments", "serato", "rane", "numark",
-    "reloop", "hercules", "allen & heath", "focusrite", "rme", "behringer", "roland", "steinberg",
-    "yamaha", "audient", "motu", "presonus", "universal audio", "ecler", "mixars", "technics",
-    "audio-technica", "rekordbox",
+    "pioneer",
+    "alphatheta",
+    "denon",
+    "inmusic",
+    "native instruments",
+    "serato",
+    "rane",
+    "numark",
+    "reloop",
+    "hercules",
+    "allen & heath",
+    "focusrite",
+    "rme",
+    "behringer",
+    "roland",
+    "steinberg",
+    "yamaha",
+    "audient",
+    "motu",
+    "presonus",
+    "universal audio",
+    "ecler",
+    "mixars",
+    "technics",
+    "audio-technica",
+    "rekordbox",
 ];
 
 pub fn is_audio_vendor(text: &str) -> bool {
@@ -313,7 +416,15 @@ pub fn is_audio_vendor(text: &str) -> bool {
 }
 
 /// Lowercased name stems used to recognise DJ programs in app names/messages.
-const DJ_STEMS: &[&str] = &["serato dj", "traktor", "rekordbox", "virtualdj", "mixxx", "djay", "engine dj"];
+const DJ_STEMS: &[&str] = &[
+    "serato dj",
+    "traktor",
+    "rekordbox",
+    "virtualdj",
+    "mixxx",
+    "djay",
+    "engine dj",
+];
 
 pub fn is_dj_program(text: &str) -> bool {
     let l = text.to_lowercase();
@@ -324,13 +435,25 @@ fn s_opt(v: &Value, key: &str) -> Option<String> {
     match v.get(key)? {
         Value::String(s) => {
             let t = s.trim();
-            if t.is_empty() { None } else { Some(t.to_string()) }
+            if t.is_empty() {
+                None
+            } else {
+                Some(t.to_string())
+            }
         }
         Value::Number(n) => Some(n.to_string()),
         Value::Bool(b) => Some(b.to_string()),
         Value::Array(a) => {
-            let parts: Vec<String> = a.iter().filter_map(|x| x.as_str().map(|s| s.trim().to_string())).filter(|s| !s.is_empty()).collect();
-            if parts.is_empty() { None } else { Some(parts.join(";")) }
+            let parts: Vec<String> = a
+                .iter()
+                .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+                .filter(|s| !s.is_empty())
+                .collect();
+            if parts.is_empty() {
+                None
+            } else {
+                Some(parts.join(";"))
+            }
         }
         _ => None,
     }
@@ -431,7 +554,9 @@ pub fn is_audio_relevant_driver(class: &str, name: &str, manufacturer: &str) -> 
     let c = class.trim().to_lowercase();
     match c.as_str() {
         "media" | "audioendpoint" => true,
-        "usb" | "usbdevice" | "hidclass" | "hid" => is_audio_vendor(name) || is_audio_vendor(manufacturer),
+        "usb" | "usbdevice" | "hidclass" | "hid" => {
+            is_audio_vendor(name) || is_audio_vendor(manufacturer)
+        }
         _ => false,
     }
 }
@@ -449,7 +574,9 @@ fn driver_status(problem: Option<i64>, status: Option<&str>) -> String {
     .into()
 }
 
-pub fn parse_drivers_output(raw: &str) -> Result<(Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>), String> {
+pub type ParsedDriverOutput = (Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>);
+
+pub fn parse_drivers_output(raw: &str) -> Result<ParsedDriverOutput, String> {
     let v = parse_json_lenient(raw)?;
     let mut drivers = Vec::new();
     for d in as_items(v.get("drivers").unwrap_or(&Value::Null)) {
@@ -485,7 +612,10 @@ pub fn parse_drivers_output(raw: &str) -> Result<(Vec<DriverInfo>, Vec<AsioDrive
     for a in as_items(v.get("asio").unwrap_or(&Value::Null)) {
         let name = s_opt(a, "name").unwrap_or_default();
         let clsid = s_opt(a, "clsid").unwrap_or_default();
-        if asio.iter().any(|x| x.name.eq_ignore_ascii_case(&name) && x.clsid.eq_ignore_ascii_case(&clsid)) {
+        if asio
+            .iter()
+            .any(|x| x.name.eq_ignore_ascii_case(&name) && x.clsid.eq_ignore_ascii_case(&clsid))
+        {
             continue; // same driver registered in both registry views
         }
         asio.push(AsioDriver {
@@ -505,7 +635,13 @@ pub fn parse_drivers_output(raw: &str) -> Result<(Vec<DriverInfo>, Vec<AsioDrive
 }
 
 pub fn scan_drivers() -> DriverScan {
-    let mut scan = DriverScan { supported: cfg!(windows), scanned_at: iso_from_unix(now_secs()), drivers: vec![], asio_drivers: vec![], errors: vec![] };
+    let mut scan = DriverScan {
+        supported: cfg!(windows),
+        scanned_at: iso_from_unix(now_secs()),
+        drivers: vec![],
+        asio_drivers: vec![],
+        errors: vec![],
+    };
     if !cfg!(windows) {
         scan.errors.push(UNSUPPORTED.into());
         return scan;
@@ -553,7 +689,9 @@ pub fn build_events_script(days: u32) -> String {
 }
 
 fn is_audio_service_text(lower: &str) -> bool {
-    lower.contains("audiosrv") || lower.contains("audioendpointbuilder") || lower.contains("windows audio")
+    lower.contains("audiosrv")
+        || lower.contains("audioendpointbuilder")
+        || lower.contains("windows audio")
 }
 
 /// Service Control Manager entries are only kept when they concern audio services or audio vendors.
@@ -568,7 +706,11 @@ pub fn categorize_event(log: &str, provider: &str, message: &str) -> &'static st
     }
     let p = provider.to_lowercase();
     if p == "service control manager" {
-        return if is_audio_service_text(&message.to_lowercase()) { "audio" } else { "driver" };
+        return if is_audio_service_text(&message.to_lowercase()) {
+            "audio"
+        } else {
+            "driver"
+        };
     }
     if p.contains("usbaudio") || p.contains("usbhub") || p.contains("usbxhci") {
         "usb"
@@ -588,7 +730,11 @@ fn label_value(message: &str, label: &str) -> Option<String> {
     let rest = message.get(i + label.len()..)?;
     let line = rest.lines().next()?;
     let v = line.split(',').next()?.trim();
-    if v.is_empty() { None } else { Some(v.to_string()) }
+    if v.is_empty() {
+        None
+    } else {
+        Some(v.to_string())
+    }
 }
 
 fn normalize_exception_code(raw: &str) -> String {
@@ -603,11 +749,18 @@ fn normalize_exception_code(raw: &str) -> String {
 }
 
 fn prop(props: &[String], i: usize) -> Option<String> {
-    props.get(i).map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+    props
+        .get(i)
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 /// (appName, faultingModule, exceptionCode) for Application Error/Hang/WER events.
-pub fn extract_app_info(event_id: i64, props: &[String], message: &str) -> (Option<String>, Option<String>, Option<String>) {
+pub fn extract_app_info(
+    event_id: i64,
+    props: &[String],
+    message: &str,
+) -> (Option<String>, Option<String>, Option<String>) {
     let (mut app, mut module, mut code) = (None, None, None);
     match event_id {
         1000 => {
@@ -622,17 +775,36 @@ pub fn extract_app_info(event_id: i64, props: &[String], message: &str) -> (Opti
         app = label_value(message, "Faulting application name:")
             .or_else(|| {
                 let m = label_value(message, "The program ")?;
-                m.split(" version ").next().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+                m.split(" version ")
+                    .next()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
             })
-            .or_else(|| if message.contains("APPCRASH") || message.contains("APPHANG") { label_value(message, "P1:") } else { None });
+            .or_else(|| {
+                if message.contains("APPCRASH") || message.contains("APPHANG") {
+                    label_value(message, "P1:")
+                } else {
+                    None
+                }
+            });
     }
     if module.is_none() {
-        module = label_value(message, "Faulting module name:")
-            .or_else(|| if message.contains("APPCRASH") { label_value(message, "P4:") } else { None });
+        module = label_value(message, "Faulting module name:").or_else(|| {
+            if message.contains("APPCRASH") {
+                label_value(message, "P4:")
+            } else {
+                None
+            }
+        });
     }
     if code.is_none() {
-        code = label_value(message, "Exception code:")
-            .or_else(|| if message.contains("APPCRASH") { label_value(message, "P7:") } else { None });
+        code = label_value(message, "Exception code:").or_else(|| {
+            if message.contains("APPCRASH") {
+                label_value(message, "P7:")
+            } else {
+                None
+            }
+        });
     }
     (app, module, code.map(|c| normalize_exception_code(&c)))
 }
@@ -644,19 +816,33 @@ pub fn parse_events_output(raw: &str) -> Result<Vec<EventRecord>, String> {
         let log = s_opt(e, "log").unwrap_or_default();
         let provider = s_opt(e, "provider").unwrap_or_default();
         let event_id = i_opt(e, "eventId").unwrap_or(0);
-        let message = e.get("message").and_then(|m| m.as_str()).unwrap_or("").to_string();
+        let message = e
+            .get("message")
+            .and_then(|m| m.as_str())
+            .unwrap_or("")
+            .to_string();
         let props: Vec<String> = as_items(e.get("props").unwrap_or(&Value::Null))
             .into_iter()
-            .map(|p| p.as_str().map(|s| s.to_string()).unwrap_or_else(|| p.to_string()))
+            .map(|p| {
+                p.as_str()
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| p.to_string())
+            })
             .collect();
         let is_app = log.eq_ignore_ascii_case("Application");
-        let (app, module, code) = if is_app { extract_app_info(event_id, &props, &message) } else { (None, None, None) };
+        let (app, module, code) = if is_app {
+            extract_app_info(event_id, &props, &message)
+        } else {
+            (None, None, None)
+        };
         if is_app {
             let hay = format!("{} {}", app.as_deref().unwrap_or(""), message);
             if !is_dj_program(&hay) {
                 continue;
             }
-        } else if provider.eq_ignore_ascii_case("Service Control Manager") && !is_scm_relevant(&message) {
+        } else if provider.eq_ignore_ascii_case("Service Control Manager")
+            && !is_scm_relevant(&message)
+        {
             continue;
         }
         let level = match i_opt(e, "level").unwrap_or(3) {
@@ -684,12 +870,20 @@ pub fn parse_events_output(raw: &str) -> Result<Vec<EventRecord>, String> {
 
 pub fn scan_events(days: Option<i64>) -> EventScan {
     let days = clamp_days(days);
-    let mut scan = EventScan { supported: cfg!(windows), scanned_at: iso_from_unix(now_secs()), days, events: vec![], errors: vec![] };
+    let mut scan = EventScan {
+        supported: cfg!(windows),
+        scanned_at: iso_from_unix(now_secs()),
+        days,
+        events: vec![],
+        errors: vec![],
+    };
     if !cfg!(windows) {
         scan.errors.push(UNSUPPORTED.into());
         return scan;
     }
-    match run_ps(&build_events_script(days), PS_EVENTS_TIMEOUT).and_then(|o| parse_events_output(&o)) {
+    match run_ps(&build_events_script(days), PS_EVENTS_TIMEOUT)
+        .and_then(|o| parse_events_output(&o))
+    {
         Ok(e) => scan.events = e,
         Err(e) => scan.errors.push(e),
     }
@@ -701,8 +895,27 @@ pub fn scan_events(days: Option<i64>) -> EventScan {
 /// Case-insensitive keyword classification of one log line.
 pub fn classify_line(line: &str) -> Option<&'static str> {
     let l = line.to_lowercase();
-    const CRASH: &[&str] = &["crash", "fatal", "unhandled exception", "access violation", "segfault", "abort"];
-    const ERROR: &[&str] = &["error", "failed", "exception", "timeout", "dropout", "underrun", "overrun", "buffer", "disconnected", "not responding", "asio"];
+    const CRASH: &[&str] = &[
+        "crash",
+        "fatal",
+        "unhandled exception",
+        "access violation",
+        "segfault",
+        "abort",
+    ];
+    const ERROR: &[&str] = &[
+        "error",
+        "failed",
+        "exception",
+        "timeout",
+        "dropout",
+        "underrun",
+        "overrun",
+        "buffer",
+        "disconnected",
+        "not responding",
+        "asio",
+    ];
     if CRASH.iter().any(|k| l.contains(k)) {
         Some("crash")
     } else if ERROR.iter().any(|k| l.contains(k)) {
@@ -721,14 +934,21 @@ pub fn analyze_text(text: &str) -> (Vec<LogMatch>, Vec<String>) {
         .iter()
         .enumerate()
         .filter_map(|(i, l)| {
-            classify_line(l).map(|sev| LogMatch { line_no: i + 1, line: truncate_chars(l.trim(), MAX_LINE_CHARS), severity: sev.into() })
+            classify_line(l).map(|sev| LogMatch {
+                line_no: i + 1,
+                line: truncate_chars(l.trim(), MAX_LINE_CHARS),
+                severity: sev.into(),
+            })
         })
         .collect();
     if matches.len() > MAX_MATCHES {
         matches.drain(..matches.len() - MAX_MATCHES);
     }
     let start = lines.len().saturating_sub(TAIL_LINES);
-    let tail = lines[start..].iter().map(|l| truncate_chars(l, MAX_LINE_CHARS)).collect();
+    let tail = lines[start..]
+        .iter()
+        .map(|l| truncate_chars(l, MAX_LINE_CHARS))
+        .collect();
     (matches, tail)
 }
 
@@ -767,7 +987,10 @@ pub fn parse_wer(text: &str) -> WerInfo {
             .cloned()
     };
     let app = find("Application Name").or_else(|| {
-        app_path.as_ref().and_then(|p| p.rsplit(['\\', '/']).next().map(|s| s.to_string())).filter(|s| !s.is_empty())
+        app_path
+            .as_ref()
+            .and_then(|p| p.rsplit(['\\', '/']).next().map(|s| s.to_string()))
+            .filter(|s| !s.is_empty())
     });
     WerInfo {
         app,
@@ -782,12 +1005,20 @@ pub fn wer_match(info: &WerInfo, is_hang: bool) -> Option<LogMatch> {
     }
     let line = format!(
         "{}: {}, faulting module: {}, exception code: {}",
-        if is_hang { "Application hang" } else { "Application crash" },
+        if is_hang {
+            "Application hang"
+        } else {
+            "Application crash"
+        },
         info.app.as_deref().unwrap_or("unknown"),
         info.module.as_deref().unwrap_or("unknown"),
         info.exception_code.as_deref().unwrap_or("unknown"),
     );
-    Some(LogMatch { line_no: 1, line, severity: if is_hang { "error" } else { "crash" }.into() })
+    Some(LogMatch {
+        line_no: 1,
+        line,
+        severity: if is_hang { "error" } else { "crash" }.into(),
+    })
 }
 
 // ---------------------------------------------------------------- DJ logs: paths and files
@@ -804,14 +1035,83 @@ pub struct AppSpec {
 }
 
 pub const APPS: &[AppSpec] = &[
-    AppSpec { name: "Serato DJ Pro", exes: &["Serato DJ Pro.exe"], install: &["%PROGRAMFILES%\\Serato\\Serato DJ Pro"], data: &[], logs: &["%MUSIC%\\_Serato_\\Logs", "%LOCALAPPDATA%\\Serato"] },
-    AppSpec { name: "Serato DJ Lite", exes: &["Serato DJ Lite.exe"], install: &["%PROGRAMFILES%\\Serato\\Serato DJ Lite"], data: &[], logs: &["%MUSIC%\\_Serato_\\Logs", "%LOCALAPPDATA%\\Serato"] },
-    AppSpec { name: "Traktor Pro", exes: &["Traktor.exe", "Traktor Pro 3.exe", "Traktor Pro 4.exe"], install: &["%PROGRAMFILES%\\Native Instruments\\Traktor Pro*"], data: &["%DOCUMENTS%\\Native Instruments\\Traktor *"], logs: &["%LOCALAPPDATA%\\Native Instruments\\Traktor*", "%APPDATA%\\Native Instruments\\Traktor*"] },
-    AppSpec { name: "rekordbox", exes: &["rekordbox.exe", "rekordboxAgent.exe"], install: &["%PROGRAMFILES%\\rekordbox\\rekordbox*", "%PROGRAMFILES%\\Pioneer\\rekordbox*"], data: &["%APPDATA%\\Pioneer\\rekordbox*"], logs: &["%LOCALAPPDATA%\\Pioneer"] },
-    AppSpec { name: "VirtualDJ", exes: &["VirtualDJ.exe"], install: &["%PROGRAMFILES%\\VirtualDJ", "%LOCALAPPDATA%\\VirtualDJ"], data: &["%DOCUMENTS%\\VirtualDJ"], logs: &[] },
-    AppSpec { name: "Mixxx", exes: &["mixxx.exe"], install: &["%PROGRAMFILES%\\Mixxx*"], data: &["%LOCALAPPDATA%\\Mixxx"], logs: &[] },
-    AppSpec { name: "djay Pro", exes: &["djay.exe", "djay Pro AI.exe", "djay Pro.exe"], install: &["%PROGRAMFILES%\\Algoriddim\\*"], data: &["%LOCALAPPDATA%\\Algoriddim", "%APPDATA%\\Algoriddim", "%DOCUMENTS%\\Algoriddim", "%LOCALAPPDATA%\\Packages\\Algoriddim*"], logs: &[] },
-    AppSpec { name: "Engine DJ", exes: &["Engine DJ.exe"], install: &["%PROGRAMFILES%\\inMusic\\Engine DJ*", "%PROGRAMFILES%\\Denon DJ\\Engine*"], data: &["%LOCALAPPDATA%\\Engine DJ", "%APPDATA%\\Engine DJ", "%APPDATA%\\inMusic", "%LOCALAPPDATA%\\inMusic", "%APPDATA%\\Denon DJ", "%DOCUMENTS%\\Engine DJ"], logs: &[] },
+    AppSpec {
+        name: "Serato DJ Pro",
+        exes: &["Serato DJ Pro.exe"],
+        install: &["%PROGRAMFILES%\\Serato\\Serato DJ Pro"],
+        data: &[],
+        logs: &["%MUSIC%\\_Serato_\\Logs", "%LOCALAPPDATA%\\Serato"],
+    },
+    AppSpec {
+        name: "Serato DJ Lite",
+        exes: &["Serato DJ Lite.exe"],
+        install: &["%PROGRAMFILES%\\Serato\\Serato DJ Lite"],
+        data: &[],
+        logs: &["%MUSIC%\\_Serato_\\Logs", "%LOCALAPPDATA%\\Serato"],
+    },
+    AppSpec {
+        name: "Traktor Pro",
+        exes: &["Traktor.exe", "Traktor Pro 3.exe", "Traktor Pro 4.exe"],
+        install: &["%PROGRAMFILES%\\Native Instruments\\Traktor Pro*"],
+        data: &["%DOCUMENTS%\\Native Instruments\\Traktor *"],
+        logs: &[
+            "%LOCALAPPDATA%\\Native Instruments\\Traktor*",
+            "%APPDATA%\\Native Instruments\\Traktor*",
+        ],
+    },
+    AppSpec {
+        name: "rekordbox",
+        exes: &["rekordbox.exe", "rekordboxAgent.exe"],
+        install: &[
+            "%PROGRAMFILES%\\rekordbox\\rekordbox*",
+            "%PROGRAMFILES%\\Pioneer\\rekordbox*",
+        ],
+        data: &["%APPDATA%\\Pioneer\\rekordbox*"],
+        logs: &["%LOCALAPPDATA%\\Pioneer"],
+    },
+    AppSpec {
+        name: "VirtualDJ",
+        exes: &["VirtualDJ.exe"],
+        install: &["%PROGRAMFILES%\\VirtualDJ", "%LOCALAPPDATA%\\VirtualDJ"],
+        data: &["%DOCUMENTS%\\VirtualDJ"],
+        logs: &[],
+    },
+    AppSpec {
+        name: "Mixxx",
+        exes: &["mixxx.exe"],
+        install: &["%PROGRAMFILES%\\Mixxx*"],
+        data: &["%LOCALAPPDATA%\\Mixxx"],
+        logs: &[],
+    },
+    AppSpec {
+        name: "djay Pro",
+        exes: &["djay.exe", "djay Pro AI.exe", "djay Pro.exe"],
+        install: &["%PROGRAMFILES%\\Algoriddim\\*"],
+        data: &[
+            "%LOCALAPPDATA%\\Algoriddim",
+            "%APPDATA%\\Algoriddim",
+            "%DOCUMENTS%\\Algoriddim",
+            "%LOCALAPPDATA%\\Packages\\Algoriddim*",
+        ],
+        logs: &[],
+    },
+    AppSpec {
+        name: "Engine DJ",
+        exes: &["Engine DJ.exe"],
+        install: &[
+            "%PROGRAMFILES%\\inMusic\\Engine DJ*",
+            "%PROGRAMFILES%\\Denon DJ\\Engine*",
+        ],
+        data: &[
+            "%LOCALAPPDATA%\\Engine DJ",
+            "%APPDATA%\\Engine DJ",
+            "%APPDATA%\\inMusic",
+            "%LOCALAPPDATA%\\inMusic",
+            "%APPDATA%\\Denon DJ",
+            "%DOCUMENTS%\\Engine DJ",
+        ],
+        logs: &[],
+    },
 ];
 
 pub type EnvMap = HashMap<String, String>;
@@ -820,7 +1120,15 @@ pub type EnvMap = HashMap<String, String>;
 /// DOCUMENTS/MUSIC (profile folders) and *_OD variants for OneDrive redirection.
 pub fn env_from_process() -> EnvMap {
     let mut m = EnvMap::new();
-    for k in ["USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "ONEDRIVE"] {
+    for k in [
+        "USERPROFILE",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "PROGRAMDATA",
+        "PROGRAMFILES",
+        "PROGRAMFILES(X86)",
+        "ONEDRIVE",
+    ] {
         if let Ok(v) = std::env::var(k) {
             if !v.is_empty() {
                 m.insert(k.to_string(), v);
@@ -833,12 +1141,27 @@ pub fn env_from_process() -> EnvMap {
 
 pub fn add_known_folders(m: &mut EnvMap) {
     if let Some(up) = m.get("USERPROFILE").cloned() {
-        m.entry("DOCUMENTS".into()).or_insert_with(|| Path::new(&up).join("Documents").to_string_lossy().into_owned());
-        m.entry("MUSIC".into()).or_insert_with(|| Path::new(&up).join("Music").to_string_lossy().into_owned());
+        m.entry("DOCUMENTS".into()).or_insert_with(|| {
+            Path::new(&up)
+                .join("Documents")
+                .to_string_lossy()
+                .into_owned()
+        });
+        m.entry("MUSIC".into())
+            .or_insert_with(|| Path::new(&up).join("Music").to_string_lossy().into_owned());
     }
     if let Some(od) = m.get("ONEDRIVE").cloned() {
-        m.insert("DOCUMENTS_OD".into(), Path::new(&od).join("Documents").to_string_lossy().into_owned());
-        m.insert("MUSIC_OD".into(), Path::new(&od).join("Music").to_string_lossy().into_owned());
+        m.insert(
+            "DOCUMENTS_OD".into(),
+            Path::new(&od)
+                .join("Documents")
+                .to_string_lossy()
+                .into_owned(),
+        );
+        m.insert(
+            "MUSIC_OD".into(),
+            Path::new(&od).join("Music").to_string_lossy().into_owned(),
+        );
     }
 }
 
@@ -868,17 +1191,30 @@ pub fn template_variants(t: &str) -> Vec<String> {
     v
 }
 
+/// Case-insensitive `*` wildcard match. Iterative with single-star backtracking, so the cost is
+/// O(pattern x text) at worst; the earlier recursive form was exponential in the number of `*`
+/// (found by fuzzing: `regression_glob_match_many_stars_is_fast`).
 pub fn glob_match(pattern: &str, text: &str) -> bool {
-    fn go(p: &[char], t: &[char]) -> bool {
-        match p.split_first() {
-            None => t.is_empty(),
-            Some(('*', rest)) => (0..=t.len()).any(|i| go(rest, &t[i..])),
-            Some((c, rest)) => t.first().map_or(false, |x| x == c) && go(rest, &t[1..]),
-        }
-    }
     let p: Vec<char> = pattern.to_lowercase().chars().collect();
     let t: Vec<char> = text.to_lowercase().chars().collect();
-    go(&p, &t)
+    let (mut pi, mut ti) = (0usize, 0usize);
+    let mut star: Option<(usize, usize)> = None; // (pattern index after '*', text index it matched up to)
+    while ti < t.len() {
+        if pi < p.len() && p[pi] == '*' {
+            star = Some((pi + 1, ti));
+            pi += 1;
+        } else if pi < p.len() && p[pi] == t[ti] {
+            pi += 1;
+            ti += 1;
+        } else if let Some((sp, st)) = star {
+            pi = sp;
+            ti = st + 1;
+            star = Some((sp, st + 1));
+        } else {
+            return false;
+        }
+    }
+    p[pi..].iter().all(|&c| c == '*')
 }
 
 /// Resolve `*` wildcards in path segments against the file system.
@@ -913,7 +1249,11 @@ fn resolve_templates(templates: &[&str], env: &EnvMap) -> Vec<PathBuf> {
             if let Some(p) = expand_template(&v, env) {
                 let resolved = resolve_glob(&p);
                 // keep an unresolved literal (no wildcard) so "exists: false" is reported
-                let list = if resolved.is_empty() && !v.contains('*') { vec![p] } else { resolved };
+                let list = if resolved.is_empty() && !v.contains('*') {
+                    vec![p]
+                } else {
+                    resolved
+                };
                 for r in list {
                     if !out.contains(&r) {
                         out.push(r);
@@ -969,11 +1309,18 @@ fn candidate_for(path: &Path, kind: FileKind) -> Option<Candidate> {
     if !md.is_file() {
         return None;
     }
-    Some(Candidate { path: path.to_path_buf(), kind, modified_secs: md.modified().map(system_time_secs).unwrap_or(0), size: md.len() })
+    Some(Candidate {
+        path: path.to_path_buf(),
+        kind,
+        modified_secs: md.modified().map(system_time_secs).unwrap_or(0),
+        size: md.len(),
+    })
 }
 
 fn walk(dir: &Path, depth: usize, budget: &mut usize, out: &mut Vec<Candidate>) {
-    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return;
+    };
     for e in rd.flatten() {
         if *budget == 0 {
             return;
@@ -1007,7 +1354,9 @@ pub fn collect_under_root(root: &Path) -> Vec<Candidate> {
 /// `<CrashDumps>/<exe>*.dmp`
 pub fn collect_crash_dumps(dir: &Path, exes: &[&str]) -> Vec<Candidate> {
     let mut out = Vec::new();
-    let Ok(rd) = std::fs::read_dir(dir) else { return out };
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return out;
+    };
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().to_lowercase();
         if name.ends_with(".dmp") && exes.iter().any(|x| name.starts_with(&x.to_lowercase())) {
@@ -1022,7 +1371,9 @@ pub fn collect_crash_dumps(dir: &Path, exes: &[&str]) -> Vec<Candidate> {
 /// WER `AppCrash_<exe>*` / `AppHang_<exe>*` folders -> their Report.wer.
 pub fn collect_wer(dir: &Path, exes: &[&str]) -> Vec<Candidate> {
     let mut out = Vec::new();
-    let Ok(rd) = std::fs::read_dir(dir) else { return out };
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return out;
+    };
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().to_lowercase();
         let hit = exes.iter().any(|x| {
@@ -1039,10 +1390,19 @@ pub fn collect_wer(dir: &Path, exes: &[&str]) -> Vec<Candidate> {
 }
 
 /// Keep recent files only (<= `max_age_days`), dedupe, newest first, at most `limit`.
-pub fn select_files(mut cands: Vec<Candidate>, now: u64, max_age_days: u64, limit: usize) -> Vec<Candidate> {
+pub fn select_files(
+    mut cands: Vec<Candidate>,
+    now: u64,
+    max_age_days: u64,
+    limit: usize,
+) -> Vec<Candidate> {
     let cutoff = now.saturating_sub(max_age_days * 86_400);
     cands.retain(|c| c.modified_secs >= cutoff);
-    cands.sort_by(|a, b| b.modified_secs.cmp(&a.modified_secs).then_with(|| a.path.cmp(&b.path)));
+    cands.sort_by(|a, b| {
+        b.modified_secs
+            .cmp(&a.modified_secs)
+            .then_with(|| a.path.cmp(&b.path))
+    });
     let mut seen: Vec<PathBuf> = Vec::new();
     cands.retain(|c| {
         if seen.contains(&c.path) {
@@ -1079,10 +1439,20 @@ fn analyze_candidate(c: &Candidate) -> Result<DjFile, String> {
         FileKind::Log => analyze_text(&read_tail_text(&c.path, MAX_READ_BYTES)?),
         FileKind::CrashReport => {
             let text = read_tail_text(&c.path, MAX_READ_BYTES)?;
-            let is_wer = c.path.file_name().map_or(false, |n| n.to_string_lossy().eq_ignore_ascii_case("Report.wer"));
+            let is_wer = c
+                .path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Report.wer"));
             if is_wer {
-                let hang = c.path.parent().and_then(|p| p.file_name()).map_or(false, |n| n.to_string_lossy().to_lowercase().starts_with("apphang_"));
-                (wer_match(&parse_wer(&text), hang).into_iter().collect(), vec![])
+                let hang = c
+                    .path
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .is_some_and(|n| n.to_string_lossy().to_lowercase().starts_with("apphang_"));
+                (
+                    wer_match(&parse_wer(&text), hang).into_iter().collect(),
+                    vec![],
+                )
             } else {
                 (analyze_text(&text).0, vec![])
             }
@@ -1118,7 +1488,10 @@ pub fn scan_dj_logs_with(env: &EnvMap, now: u64) -> DjLogScan {
         let installed = installs.iter().any(|p| p.is_dir()) || data.iter().any(|p| p.is_dir());
         let mut locations: Vec<Location> = Vec::new();
         for p in data.iter().chain(logs.iter()) {
-            locations.push(Location { path: p.to_string_lossy().into_owned(), exists: p.exists() });
+            locations.push(Location {
+                path: p.to_string_lossy().into_owned(),
+                exists: p.exists(),
+            });
         }
         let mut cands = Vec::new();
         for root in data.iter().chain(logs.iter()).filter(|p| p.is_dir()) {
@@ -1137,14 +1510,30 @@ pub fn scan_dj_logs_with(env: &EnvMap, now: u64) -> DjLogScan {
                 Err(e) => errors.push(e),
             }
         }
-        apps.push(DjApp { app: spec.name.into(), exe_names: spec.exes.iter().map(|s| s.to_string()).collect(), installed, locations, files });
+        apps.push(DjApp {
+            app: spec.name.into(),
+            exe_names: spec.exes.iter().map(|s| s.to_string()).collect(),
+            installed,
+            locations,
+            files,
+        });
     }
-    DjLogScan { supported: true, scanned_at: iso_from_unix(now), apps, errors }
+    DjLogScan {
+        supported: true,
+        scanned_at: iso_from_unix(now),
+        apps,
+        errors,
+    }
 }
 
 pub fn scan_dj_logs() -> DjLogScan {
     if !cfg!(windows) {
-        return DjLogScan { supported: false, scanned_at: iso_from_unix(now_secs()), apps: vec![], errors: vec![UNSUPPORTED.into()] };
+        return DjLogScan {
+            supported: false,
+            scanned_at: iso_from_unix(now_secs()),
+            apps: vec![],
+            errors: vec![UNSUPPORTED.into()],
+        };
     }
     scan_dj_logs_with(&env_from_process(), now_secs())
 }
@@ -1153,17 +1542,23 @@ pub fn scan_dj_logs() -> DjLogScan {
 
 #[tauri::command]
 pub async fn system_scan_drivers() -> Result<DriverScan, String> {
-    tauri::async_runtime::spawn_blocking(scan_drivers).await.map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(scan_drivers)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn system_scan_events(days: Option<i64>) -> Result<EventScan, String> {
-    tauri::async_runtime::spawn_blocking(move || scan_events(days)).await.map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || scan_events(days))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn system_scan_dj_logs() -> Result<DjLogScan, String> {
-    tauri::async_runtime::spawn_blocking(scan_dj_logs).await.map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(scan_dj_logs)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 // ---------------------------------------------------------------- tests
@@ -1173,10 +1568,127 @@ mod tests {
     use super::*;
 
     fn tmp(name: &str) -> PathBuf {
-        let p = std::env::temp_dir().join(format!("deckchek-sc-{}-{}-{}", name, std::process::id(), now_secs()));
+        let p = std::env::temp_dir().join(format!(
+            "deckchek-sc-{}-{}-{}",
+            name,
+            std::process::id(),
+            now_secs()
+        ));
         let _ = std::fs::remove_dir_all(&p);
         std::fs::create_dir_all(&p).unwrap();
         p
+    }
+
+    /// AUD-13: Windows tools are launched by absolute path under %SystemRoot%, so a same-named
+    /// binary in the working directory or an earlier PATH entry is never picked up.
+    #[test]
+    fn regression_aud_13_windows_tools_resolve_to_absolute_system32_paths() {
+        use std::ffi::{OsStr, OsString};
+        let at = |root: Option<&str>, exe| windows_system_exe(root.map(OsStr::new), exe);
+        let root = Some(r"C:\Windows");
+        assert_eq!(
+            at(root, "tasklist.exe"),
+            OsString::from(r"C:\Windows\System32\tasklist.exe")
+        );
+        assert_eq!(
+            at(root, "powercfg.exe"),
+            OsString::from(r"C:\Windows\System32\powercfg.exe")
+        );
+        assert_eq!(
+            at(root, "powershell.exe"),
+            OsString::from(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
+        );
+        assert_eq!(
+            at(Some(r"D:\WINNT\"), "tasklist.exe"),
+            OsString::from(r"D:\WINNT\System32\tasklist.exe"),
+            "trailing separator"
+        );
+        // Missing, empty, relative or UNC SystemRoot: fall back to the default install folder.
+        for bad in [
+            None,
+            Some(""),
+            Some("Windows"),
+            Some(r".\evil"),
+            Some(r"\\host\share"),
+            Some("C:"),
+            Some("C:evil"),
+        ] {
+            assert_eq!(
+                at(bad, "tasklist.exe"),
+                OsString::from(r"C:\Windows\System32\tasklist.exe"),
+                "{bad:?}"
+            );
+        }
+    }
+
+    /// AUD-13: every production launch goes through `system_exe`, never a bare program name.
+    #[test]
+    fn regression_aud_13_no_windows_tool_is_spawned_by_bare_name() {
+        for (file, src) in [
+            ("system_check.rs", include_str!("system_check.rs")),
+            ("processes.rs", include_str!("processes.rs")),
+            ("latency.rs", include_str!("latency.rs")),
+        ] {
+            assert_windows_launches_use_system_exe(file, src);
+        }
+    }
+
+    fn assert_windows_launches_use_system_exe(file: &str, src: &str) {
+        // Keep the test-module boundary identical for LF and Windows CRLF.
+        let src = src.replace("\r\n", "\n");
+        let prod = src.split("#[cfg(test)]\nmod tests").next().unwrap();
+        let spawns: Vec<&str> = prod
+            .lines()
+            .filter(|l| l.contains("Command::new("))
+            .collect();
+        assert!(
+            !spawns.is_empty(),
+            "{file}: expected at least one launch to check"
+        );
+        for line in spawns {
+            assert!(
+                line.contains("system_exe("),
+                "{file}: bare program name in `{}`",
+                line.trim()
+            );
+        }
+    }
+
+    #[test]
+    fn regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches() {
+        let fixture = concat!(
+            "fn check() {\n    Command::new(system_exe(\"cmd.exe\")).output();\n}\n",
+            "#[cfg(test)]\nmod tests {\n    fn fixture() { Command::new(\"fixture.exe\"); }\n}\n",
+        );
+        for src in [fixture.to_owned(), fixture.replace('\n', "\r\n")] {
+            assert_windows_launches_use_system_exe("fixture.rs", &src);
+            for unsafe_src in [
+                src.replace("system_exe(\"cmd.exe\")", "\"cmd.exe\""),
+                src.replace("Command::new(", "other_launch("),
+            ] {
+                assert!(
+                    std::panic::catch_unwind(|| {
+                        assert_windows_launches_use_system_exe("fixture.rs", &unsafe_src)
+                    })
+                    .is_err(),
+                    "bare launches or an empty scan must still be rejected"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn regression_glob_match_many_stars_is_fast() {
+        // Fuzz timeout (cargo-fuzz system_check): 30 stars against 3000 non-matching chars took >15 s.
+        let pattern = format!("{}b", "a*".repeat(30));
+        let text = "a".repeat(3000);
+        let t0 = std::time::Instant::now();
+        assert!(!glob_match(&pattern, &text));
+        assert!(
+            t0.elapsed() < std::time::Duration::from_millis(500),
+            "{:?}",
+            t0.elapsed()
+        );
     }
 
     #[test]
@@ -1203,7 +1715,10 @@ mod tests {
     fn runner_captures_and_times_out() {
         let mut c = Command::new("sh");
         c.args(["-c", "echo hi"]);
-        assert_eq!(run_with_timeout(c, Duration::from_secs(5)).unwrap().trim(), "hi");
+        assert_eq!(
+            run_with_timeout(c, Duration::from_secs(5)).unwrap().trim(),
+            "hi"
+        );
         let mut c = Command::new("sh");
         c.args(["-c", "sleep 5"]);
         let t = Instant::now();
@@ -1245,7 +1760,10 @@ mod tests {
         assert_eq!(d[0].is_signed, Some(true));
         assert_eq!(d[1].status, "Error");
         assert_eq!(d[1].problem_code, Some(28));
-        assert_eq!(d[1].hardware_id.as_deref(), Some("USB\\VID_2B73;USB\\VID_2B73&PID_1"));
+        assert_eq!(
+            d[1].hardware_id.as_deref(),
+            Some("USB\\VID_2B73;USB\\VID_2B73&PID_1")
+        );
         assert_eq!(a.len(), 1);
         assert!(a[0].dll_exists);
         assert_eq!(a[0].signature_status.as_deref(), Some("NotSigned"));
@@ -1259,10 +1777,25 @@ mod tests {
 
     #[test]
     fn driver_serializes_camel_case() {
-        let json = r#"{"drivers":[{"deviceName":"A","deviceClass":"MEDIA"}],"asio":[],"errors":[]}"#;
+        let json =
+            r#"{"drivers":[{"deviceName":"A","deviceClass":"MEDIA"}],"asio":[],"errors":[]}"#;
         let (d, _, _) = parse_drivers_output(json).unwrap();
         let v = serde_json::to_value(&d[0]).unwrap();
-        for k in ["deviceName", "deviceClass", "manufacturer", "driverProvider", "driverVersion", "driverDate", "infName", "hardwareId", "isSigned", "signer", "status", "problemCode", "present"] {
+        for k in [
+            "deviceName",
+            "deviceClass",
+            "manufacturer",
+            "driverProvider",
+            "driverVersion",
+            "driverDate",
+            "infName",
+            "hardwareId",
+            "isSigned",
+            "signer",
+            "status",
+            "problemCode",
+            "present",
+        ] {
             assert!(v.get(k).is_some(), "missing {k}");
         }
         assert_eq!(v["status"], "Unknown");
@@ -1270,21 +1803,55 @@ mod tests {
 
     #[test]
     fn event_categories() {
-        assert_eq!(categorize_event("System", "Microsoft-Windows-Audio", ""), "audio");
+        assert_eq!(
+            categorize_event("System", "Microsoft-Windows-Audio", ""),
+            "audio"
+        );
         assert_eq!(categorize_event("System", "AudioSrv", ""), "audio");
         assert_eq!(categorize_event("System", "portcls", ""), "audio");
         assert_eq!(categorize_event("System", "USBHUB3", ""), "usb");
         assert_eq!(categorize_event("System", "usbaudio2", ""), "usb");
-        assert_eq!(categorize_event("System", "Microsoft-Windows-Kernel-PnP", ""), "driver");
-        assert_eq!(categorize_event("System", "Service Control Manager", "The Windows Audio service terminated"), "audio");
-        assert_eq!(categorize_event("System", "Service Control Manager", "The Focusrite service failed"), "driver");
-        assert_eq!(categorize_event("Application", "Application Error", ""), "djApp");
+        assert_eq!(
+            categorize_event("System", "Microsoft-Windows-Kernel-PnP", ""),
+            "driver"
+        );
+        assert_eq!(
+            categorize_event(
+                "System",
+                "Service Control Manager",
+                "The Windows Audio service terminated"
+            ),
+            "audio"
+        );
+        assert_eq!(
+            categorize_event(
+                "System",
+                "Service Control Manager",
+                "The Focusrite service failed"
+            ),
+            "driver"
+        );
+        assert_eq!(
+            categorize_event("Application", "Application Error", ""),
+            "djApp"
+        );
         assert_eq!(categorize_event("System", "Foo", ""), "other");
     }
 
     #[test]
     fn app_info_from_props_and_message() {
-        let props: Vec<String> = ["Traktor.exe", "4.0", "5f", "asio_xyz.dll", "1.0", "5e", "c0000005"].iter().map(|s| s.to_string()).collect();
+        let props: Vec<String> = [
+            "Traktor.exe",
+            "4.0",
+            "5f",
+            "asio_xyz.dll",
+            "1.0",
+            "5e",
+            "c0000005",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
         let (a, m, c) = extract_app_info(1000, &props, "");
         assert_eq!(a.as_deref(), Some("Traktor.exe"));
         assert_eq!(m.as_deref(), Some("asio_xyz.dll"));
@@ -1294,11 +1861,18 @@ mod tests {
         assert_eq!(a.as_deref(), Some("rekordbox.exe"));
         assert_eq!(m.as_deref(), Some("ntdll.dll"));
         assert_eq!(c.as_deref(), Some("0xc0000374"));
-        let (a, _, _) = extract_app_info(1002, &[], "The program VirtualDJ.exe version 8.5 stopped interacting with Windows");
+        let (a, _, _) = extract_app_info(
+            1002,
+            &[],
+            "The program VirtualDJ.exe version 8.5 stopped interacting with Windows",
+        );
         assert_eq!(a.as_deref(), Some("VirtualDJ.exe"));
         let wer = "Fault bucket 1, type 5\nEvent Name: APPCRASH\nProblem signature:\nP1: mixxx.exe\nP2: 2.4\nP3: x\nP4: Qt6Core.dll\nP5: 1\nP6: 2\nP7: c0000005\n";
         let (a, m, c) = extract_app_info(1001, &[], wer);
-        assert_eq!((a.as_deref(), m.as_deref(), c.as_deref()), (Some("mixxx.exe"), Some("Qt6Core.dll"), Some("0xc0000005")));
+        assert_eq!(
+            (a.as_deref(), m.as_deref(), c.as_deref()),
+            (Some("mixxx.exe"), Some("Qt6Core.dll"), Some("0xc0000005"))
+        );
     }
 
     #[test]
@@ -1341,7 +1915,15 @@ mod tests {
         assert_eq!(classify_line("ASIO buffer underrun"), Some("error"));
         assert_eq!(classify_line("WARN: low disk"), Some("warning"));
         assert_eq!(classify_line("all good"), None);
-        let text: String = (0..100).map(|i| if i % 2 == 0 { format!("error {i}\n") } else { format!("ok {i}\n") }).collect();
+        let text: String = (0..100)
+            .map(|i| {
+                if i % 2 == 0 {
+                    format!("error {i}\n")
+                } else {
+                    format!("ok {i}\n")
+                }
+            })
+            .collect();
         let (m, tail) = analyze_text(&text);
         assert_eq!(m.len(), 50);
         assert_eq!(m.last().unwrap().line_no, 99);
@@ -1355,13 +1937,23 @@ mod tests {
     fn wer_parsing() {
         let wer = "Version=1\nEventType=APPCRASH\nSig[0].Name=Application Name\nSig[0].Value=Traktor.exe\nSig[3].Name=Fault Module Name\nSig[3].Value=asio_x.dll\nSig[6].Name=Exception Code\nSig[6].Value=c0000005\nAppPath=C:\\Program Files\\NI\\Traktor.exe\n";
         let info = parse_wer(wer);
-        assert_eq!(info, WerInfo { app: Some("Traktor.exe".into()), module: Some("asio_x.dll".into()), exception_code: Some("0xc0000005".into()) });
+        assert_eq!(
+            info,
+            WerInfo {
+                app: Some("Traktor.exe".into()),
+                module: Some("asio_x.dll".into()),
+                exception_code: Some("0xc0000005".into())
+            }
+        );
         let m = wer_match(&info, false).unwrap();
         assert_eq!(m.severity, "crash");
         assert!(m.line.contains("asio_x.dll") && m.line.contains("0xc0000005"));
         assert_eq!(wer_match(&info, true).unwrap().severity, "error");
         assert!(wer_match(&WerInfo::default(), false).is_none());
-        assert_eq!(parse_wer("AppPath=C:\\a\\b\\mixxx.exe").app.as_deref(), Some("mixxx.exe"));
+        assert_eq!(
+            parse_wer("AppPath=C:\\a\\b\\mixxx.exe").app.as_deref(),
+            Some("mixxx.exe")
+        );
     }
 
     #[test]
@@ -1371,14 +1963,35 @@ mod tests {
         env.insert("LOCALAPPDATA".into(), "/u/local".into());
         env.insert("ONEDRIVE".into(), "/u/od".into());
         add_known_folders(&mut env);
-        assert_eq!(expand_template("%MUSIC%\\_Serato_\\Logs", &env).unwrap(), PathBuf::from("/u/Music/_Serato_/Logs"));
-        assert_eq!(expand_template("%localappdata%\\Mixxx", &env).unwrap(), PathBuf::from("/u/local/Mixxx"));
+        assert_eq!(
+            expand_template("%MUSIC%\\_Serato_\\Logs", &env).unwrap(),
+            PathBuf::from("/u/Music/_Serato_/Logs")
+        );
+        assert_eq!(
+            expand_template("%localappdata%\\Mixxx", &env).unwrap(),
+            PathBuf::from("/u/local/Mixxx")
+        );
         assert!(expand_template("%APPDATA%\\x", &env).is_none());
         assert_eq!(template_variants("%DOCUMENTS%\\VirtualDJ").len(), 2);
-        assert_eq!(expand_template("%DOCUMENTS_OD%\\V", &env).unwrap(), PathBuf::from("/u/od/Documents/V"));
+        assert_eq!(
+            expand_template("%DOCUMENTS_OD%\\V", &env).unwrap(),
+            PathBuf::from("/u/od/Documents/V")
+        );
         assert!(glob_match("Traktor *", "traktor 3.11.0"));
         assert!(!glob_match("Traktor *", "Traktor"));
         assert!(glob_match("rekordbox*", "rekordbox6"));
+        assert!(
+            glob_match("*", "")
+                && glob_match("**", "x")
+                && glob_match("a*b*c", "aXXbYYc")
+                && !glob_match("a*b*c", "aXXbYY")
+        );
+        assert!(
+            glob_match("*.log", "Serato.LOG")
+                && !glob_match("*.log", "serato.log.bak")
+                && glob_match("?", "?")
+                && !glob_match("", "x")
+        );
         let root = tmp("glob");
         std::fs::create_dir_all(root.join("NI/Traktor 3.11.0")).unwrap();
         std::fs::create_dir_all(root.join("NI/Traktor 4.0.1")).unwrap();
@@ -1391,21 +2004,32 @@ mod tests {
 
     #[test]
     fn file_classification_and_selection() {
-        assert_eq!(classify_file_name("Traktor.exe.123.dmp"), Some(FileKind::CrashDump));
-        assert_eq!(classify_file_name("crash_report.txt"), Some(FileKind::CrashReport));
+        assert_eq!(
+            classify_file_name("Traktor.exe.123.dmp"),
+            Some(FileKind::CrashDump)
+        );
+        assert_eq!(
+            classify_file_name("crash_report.txt"),
+            Some(FileKind::CrashReport)
+        );
         assert_eq!(classify_file_name("mixxx.log"), Some(FileKind::Log));
         assert_eq!(classify_file_name("Log 2024.txt"), Some(FileKind::Log));
         assert_eq!(classify_file_name("collection.nml"), None);
         let now = 100 * 86_400;
-        let mk = |n: &str, age_days: u64| Candidate { path: PathBuf::from(n), kind: FileKind::Log, modified_secs: now - age_days * 86_400, size: 1 };
+        let mk = |n: &str, age_days: u64| Candidate {
+            path: PathBuf::from(n),
+            kind: FileKind::Log,
+            modified_secs: now - age_days * 86_400,
+            size: 1,
+        };
         let mut c: Vec<Candidate> = (0..15).map(|i| mk(&format!("f{i}"), i)).collect();
         c.push(mk("old", 91));
         c.push(mk("f3", 3)); // duplicate
         let sel = select_files(c, now, 90, 10);
         assert_eq!(sel.len(), 10);
         assert_eq!(sel[0].path, PathBuf::from("f0"));
-        assert!(!sel.iter().any(|x| x.path == PathBuf::from("old")));
-        assert_eq!(sel.iter().filter(|x| x.path == PathBuf::from("f3")).count(), 1);
+        assert!(!sel.iter().any(|x| x.path == Path::new("old")));
+        assert_eq!(sel.iter().filter(|x| x.path == Path::new("f3")).count(), 1);
     }
 
     #[test]
@@ -1414,15 +2038,35 @@ mod tests {
         let p = |s: &str| root.join(s);
         let mut env = EnvMap::new();
         env.insert("USERPROFILE".into(), root.to_string_lossy().into_owned());
-        env.insert("APPDATA".into(), p("AppData/Roaming").to_string_lossy().into_owned());
-        env.insert("LOCALAPPDATA".into(), p("AppData/Local").to_string_lossy().into_owned());
-        env.insert("PROGRAMDATA".into(), p("ProgramData").to_string_lossy().into_owned());
-        env.insert("PROGRAMFILES".into(), p("PF").to_string_lossy().into_owned());
+        env.insert(
+            "APPDATA".into(),
+            p("AppData/Roaming").to_string_lossy().into_owned(),
+        );
+        env.insert(
+            "LOCALAPPDATA".into(),
+            p("AppData/Local").to_string_lossy().into_owned(),
+        );
+        env.insert(
+            "PROGRAMDATA".into(),
+            p("ProgramData").to_string_lossy().into_owned(),
+        );
+        env.insert(
+            "PROGRAMFILES".into(),
+            p("PF").to_string_lossy().into_owned(),
+        );
         add_known_folders(&mut env);
         std::fs::create_dir_all(p("Music/_Serato_/Logs")).unwrap();
-        std::fs::write(p("Music/_Serato_/Logs/session.log"), "start\nERROR: buffer underrun\nok\nwarn x\n").unwrap();
+        std::fs::write(
+            p("Music/_Serato_/Logs/session.log"),
+            "start\nERROR: buffer underrun\nok\nwarn x\n",
+        )
+        .unwrap();
         std::fs::create_dir_all(p("AppData/Local/Mixxx")).unwrap();
-        std::fs::write(p("AppData/Local/Mixxx/mixxx.log"), "Debug [Main] hi\nCritical: crash in engine\n").unwrap();
+        std::fs::write(
+            p("AppData/Local/Mixxx/mixxx.log"),
+            "Debug [Main] hi\nCritical: crash in engine\n",
+        )
+        .unwrap();
         std::fs::create_dir_all(p("AppData/Local/CrashDumps")).unwrap();
         std::fs::write(p("AppData/Local/CrashDumps/Traktor.exe.42.dmp"), b"MDMP").unwrap();
         let wer = p("ProgramData/Microsoft/Windows/WER/ReportArchive/AppCrash_rekordbox.exe_abc");
@@ -1482,6 +2126,15 @@ mod windows_tests {
         let l = scan_dj_logs();
         assert!(l.supported, "{:?}", l.errors);
         assert!(t.elapsed() < Duration::from_secs(120));
-        println!("drivers={} asio={} events={} apps={} errors={:?}{:?}{:?}", d.drivers.len(), d.asio_drivers.len(), e.events.len(), l.apps.len(), d.errors, e.errors, l.errors);
+        println!(
+            "drivers={} asio={} events={} apps={} errors={:?}{:?}{:?}",
+            d.drivers.len(),
+            d.asio_drivers.len(),
+            e.events.len(),
+            l.apps.len(),
+            d.errors,
+            e.errors,
+            l.errors
+        );
     }
 }

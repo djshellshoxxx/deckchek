@@ -18,6 +18,8 @@ import {
 } from '../../stylus-wear.js';
 import { createUsageApi, MAX_ENTRY_HOURS, totalHours } from '../../usage-hours.js';
 import { takeHandoff, ACTIVE_CARTRIDGE_KEY } from '../crosslinks.js';
+import { benchmarksSinceReplacement } from '../../stylus-benchmark.js';
+import { mountGuidedBenchmark } from '../workflows/stylus-benchmark.js';
 
 const THRESHOLD_KEY = 'deckchek.stylus.thresholds.v1';
 const TABS = [['overview', 'Overview'], ['hours', 'Hours'], ['benchmark', 'Benchmark'], ['trends', 'Trends'], ['settings', 'Settings']];
@@ -184,10 +186,11 @@ export async function listStylusAssets() {
 
 /** Everything the page needs for one asset. */
 export async function loadAssetState(asset, { api, usage, catalogue }) {
-  const [entries, baseline, benchmarks, snoozes, assetRated] = await Promise.all([
+  const [entries, baseline, allBenchmarks, snoozes, assetRated] = await Promise.all([
     usage.list(asset.id), api.baseline(asset.id), api.benchmarkList(asset.id), api.alertList(asset.id), api.ratedLifeGet(asset.id),
   ]);
   const events = baseline ? [{ eventType: 'stylus_replaced', eventAt: baseline }] : [];
+  const benchmarks = benchmarksSinceReplacement(allBenchmarks, baseline);
   const rated = resolveRatedHours({ assetRatedHours: assetRated, catalogue, modelText: asset.modelText });
   const thresholds = loadThresholds();
   const hours = hoursSinceInstall(entries, events);
@@ -196,7 +199,7 @@ export async function loadAssetState(asset, { api, usage, catalogue }) {
   const rows = benchmarks.map(normalizeBenchmark);
   const verdict = benchmarkVerdict(benchmarks);
   const alerts = stylusAlerts({ hours, ratedHours: rated.hours, history: benchmarks, snoozes, thresholds });
-  return { asset, entries, baseline, events, benchmarks, rows, snoozes, rated, assetRated, hours, life, projection, verdict, alerts, thresholds, ratePerDay: usageRatePerDay(entries, { since: baseline }) };
+  return { asset, entries, baseline, events, benchmarks, allBenchmarks, rows, allRows: allBenchmarks.map(normalizeBenchmark), snoozes, rated, assetRated, hours, life, projection, verdict, alerts, thresholds, ratePerDay: usageRatePerDay(entries, { since: baseline }) };
 }
 
 // ------------------------------------------------------------------ rail badge
@@ -229,9 +232,11 @@ async function refreshRailBadge(ctx = {}) {
 
 // ------------------------------------------------------------------ screen
 
-export function createStylusScreen(section, { api = createStylusApi(), usage = createUsageApi() } = {}) {
+export function createStylusScreen(section, { api = createStylusApi(), usage = createUsageApi(), benchmarkIo = {} } = {}) {
   const native = isNative() && api.native;
   const st = { assets: [], assetId: null, data: null, tab: 'overview', loading: false, error: null, proposals: null, proposalNote: '', pointId: null, showTable: {}, hoursError: '', benchError: '', benchFill: null };
+  let guided = null, loadSeq = 0;
+  const disposeGuided = () => { guided?.dispose(); guided = null; };
 
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('cartridge', { size: 24 })}</span><div><h1 tabindex="-1">Stylus wear</h1>
@@ -255,18 +260,24 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
   // ----- data -----
   async function load({ keepTab = true } = {}) {
     if (!native) { render(); return; }
+    const seq = ++loadSeq;
     st.loading = true; st.error = null; render();
     try {
       const catalogue = await loadCatalogue();
-      st.assets = await listStylusAssets();
+      const assets = await listStylusAssets();
+      if (seq !== loadSeq) return;
+      st.assets = assets;
       if (!st.assetId) st.assetId = storageGet(ACTIVE_CARTRIDGE_KEY, null);
       if (!st.assets.some(a => a.id === st.assetId)) st.assetId = st.assets[0]?.id ?? null;
       if (st.assetId) storageSet(ACTIVE_CARTRIDGE_KEY, st.assetId);
-      st.data = st.assetId ? await loadAssetState(st.assets.find(a => a.id === st.assetId), { api, usage, catalogue }) : null;
+      const assetId = st.assetId;
+      const data = assetId ? await loadAssetState(st.assets.find(a => a.id === assetId), { api, usage, catalogue }) : null;
+      if (seq !== loadSeq || assetId !== st.assetId) return;
+      st.data = data;
       if (!keepTab) st.tab = 'overview';
       badgeState = { level: st.data ? badgeLevelWith(st.data) : badgeState.level };
       paintRailBadge();
-    } catch (e) { st.error = friendly(e); st.data = null; }
+    } catch (e) { if (seq !== loadSeq) return; st.error = friendly(e); st.data = null; }
     st.loading = false;
     render();
   }
@@ -308,6 +319,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
   }
 
   function renderPanel() {
+    disposeGuided();
     panel.replaceChildren();
     q('#sty-tabs').hidden = !(native && st.data);
     if (!native) {
@@ -315,7 +327,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       panel.firstChild.id = 'sty-unsupported';
       return;
     }
-    if (st.loading && !st.data) { panel.append(h('p', { class: 'muted', text: 'Loading…' })); return; }
+    if (st.loading) { panel.append(h('p', { class: 'muted', text: 'Loading…' })); return; }
     if (st.error) {
       panel.append(h('div', { class: 'banner banner-fail', role: 'alert' }, h('span', { class: 'banner-text', text: `Could not load stylus data: ${st.error}` }), h('div', { class: 'banner-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Try again', onclick: () => load() }))));
       return;
@@ -489,6 +501,16 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
   // ----- benchmark -----
   function renderBenchmark(d) {
     const wrap = h('div', { class: 'sty-bench' });
+    const guideHost = h('div', { id: 'sty-guided' });
+    wrap.append(guideHost);
+    guided = mountGuidedBenchmark(guideHost, {
+      asset: d.asset, hoursAt: d.hours, history: d.benchmarks, api, io: benchmarkIo,
+      onSaved: result => {
+        if (st.assetId !== result.assetId || section.hidden || st.tab !== 'benchmark') return;
+        setStatus(result.valid ? 'Guided benchmark saved.' : 'Guided benchmark saved, but excluded from trends because its evidence or conditions need review.');
+        load(); refreshRailBadge({ api, usage });
+      },
+    });
     const f = st.benchFill || {};
     const field = (id, label, opts = {}) => h('div', { class: 'field' }, h('label', { class: 'field-label', for: id, text: label }),
       h('input', { type: 'number', id, step: opts.step || 'any', min: opts.min ?? null, value: opts.value ?? '', inputmode: 'decimal', 'aria-describedby': opts.help ? `${id}-help` : null }), opts.help ? h('span', { class: 'field-help', id: `${id}-help`, text: opts.help }) : null);
@@ -496,7 +518,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     const valid = h('input', { type: 'checkbox', id: 'sty-bench-valid', checked: true });
     const err = h('p', { class: 'form-error', id: 'sty-bench-error', role: 'alert', text: st.benchError });
     form.append(
-      h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: 'Record a benchmark' }),
+      h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: 'Enter a benchmark manually' }),
         h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'sty-fill', text: 'Fill from latest runs', onclick: () => fillFromRuns(d) })),
       h('p', { class: 'muted', text: 'Play the 1 kHz and isolated-channel tracks, run the Cartridge and Channel separation tests, then bring the results here. Use the same record, side, tracking force, VTA and calibration each time, or the comparison means little.' }),
       h('div', { class: 'field-grid' },
@@ -533,12 +555,14 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     wrap.append(form);
 
     const hist = h('section', { class: 'card', 'aria-label': 'Benchmarks' }, h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: 'Benchmarks' })));
-    if (!d.rows.length) hist.append(h('p', { class: 'muted', id: 'sty-no-bench', text: 'No benchmarks yet. Record at least three, ideally a week or more apart, to see a trend.' }));
+    const historyRows = d.allRows || d.rows;
+    const currentIds = new Set(d.rows.map(row => row.id));
+    if (!historyRows.length) hist.append(h('p', { class: 'muted', id: 'sty-no-bench', text: 'No benchmarks yet. Record at least three, ideally a week or more apart, to see a trend.' }));
     else {
       const body = h('tbody');
-      [...d.rows].sort((a, b) => b.hoursAt - a.hoursAt).forEach(b => body.append(h('tr', {},
+      [...historyRows].sort((a, b) => b.hoursAt - a.hoursAt).forEach(b => body.append(h('tr', {},
         h('td', { text: formatDate(b.createdAt) }), h('td', { class: 'r', text: fmt(b.hoursAt, 1) }), h('td', { class: 'r', text: fmt(b.thdPercent, 2) }), h('td', { class: 'r', text: fmt(b.separationDb, 1) }),
-        h('td', { class: 'r', text: fmt(b.tcSnrDb, 1) }), h('td', { class: 'r', text: fmt(b.tcPhaseErrorDeg, 1) }), h('td', { class: 'r', text: b.tcDropouts === null ? '—' : String(b.tcDropouts) }), h('td', { text: b.valid ? 'Used' : 'Excluded' }))));
+        h('td', { class: 'r', text: fmt(b.tcSnrDb, 1) }), h('td', { class: 'r', text: fmt(b.tcPhaseErrorDeg, 1) }), h('td', { class: 'r', text: b.tcDropouts === null ? '—' : String(b.tcDropouts) }), h('td', { text: !currentIds.has(b.id) ? 'Before replacement / date unverified' : b.valid ? 'Used' : 'Excluded' }))));
       hist.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data sty-table', id: 'sty-bench-table' }, h('caption', { class: 'sr-only', text: 'Benchmark history' }),
         h('thead', {}, h('tr', {}, ...['Date', 'Hours', 'THD %', 'Sep. dB', 'SNR dB', 'Phase °', 'Dropouts', 'In trend'].map((t, i) => h('th', { scope: 'col', class: i > 0 && i < 7 ? 'r' : '', text: t })))), body)));
     }
@@ -682,7 +706,7 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
     if (!st.data) return;
     const k = e.key.toLowerCase();
     if (k === 'a') { e.preventDefault(); selectTab('hours'); q('#sty-hours')?.focus(); }
-    else if (k === 'b') { e.preventDefault(); selectTab('benchmark'); q('#sty-b-thd')?.focus(); }
+    else if (k === 'b') { e.preventDefault(); selectTab('benchmark'); q('#sty-guided-record')?.focus(); }
   };
   document.addEventListener('keydown', onKey);
 
@@ -693,8 +717,9 @@ export function createStylusScreen(section, { api = createStylusApi(), usage = c
       if (hand?.assetId) { st.assetId = hand.assetId; st.tab = 'overview'; st.proposals = null; st.pointId = null; st.benchFill = null; }
       load();
     },
-    onHide() { /* keep state */ },
+    onHide() { loadSeq += 1; st.loading = false; disposeGuided(); },
     onEscape() {
+      if (guided?.cancel()) return true;
       if (st.pointId) { st.pointId = null; renderPanel(); return true; }
       if (st.proposals) { st.proposals = null; renderPanel(); return true; }
       return false;

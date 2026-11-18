@@ -3,7 +3,7 @@
 // problem, single-step re-run, and a history that shows what changed since the last check. Pass / warn / fail
 // decisions come from pre-gig.js; wording and run state come from workflows/pregig.js. Flag: features.pregig.
 
-import { h, esc, isNative, storageGet, storageSet, download, pickFile } from '../dom.js';
+import { h, isNative, storageGet, storageSet, download, pickFile } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
@@ -44,7 +44,7 @@ function stateBadge(view) {
     return h('span', { class: `pg-live pg-live-${view.state}` }, h('span', { class: 'pg-dot', 'aria-hidden': 'true' }), h('span', { class: 'pg-live-word', text: view.word }));
   }
   const el = document.createElement('span');
-  el.innerHTML = chip(view.tone, esc(view.word));
+  el.innerHTML = chip(view.tone, view.word);
   return el.firstElementChild;
 }
 
@@ -555,7 +555,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     panel.append(h('ul', { class: 'pg-history', id: 'pg-history' }, ...st.history.map((r, i) => {
       const [tone, word] = VERDICT_CHIP[r.verdict] || ['info', r.verdict];
       const detail = st.historyOpen.get(r.id);
-      const badge = document.createElement('span'); badge.innerHTML = chip(tone, esc(word));
+      const badge = document.createElement('span'); badge.innerHTML = chip(tone, word);
       return h('li', { class: 'card pg-hist', 'data-run': r.id },
         h('div', { class: 'pg-hist-main' }, badge.firstElementChild,
           h('div', { class: 'pg-hist-body' }, h('strong', { text: (r.notes || '').replace(/^Preset: /, '') || 'Pre-gig check' }),

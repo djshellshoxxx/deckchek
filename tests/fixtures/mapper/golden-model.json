@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "name": "Golden Two-Deck",
+  "manufacturer": "DeckChek fixtures",
+  "decks": 2,
+  "controls": [
+    { "label": "Shift", "midi": { "type": "note", "channel": 1, "number": 63 }, "kind": "button", "layer": "base", "function": { "id": "shift", "deck": null, "args": {} } },
+    { "label": "Deck 1 Play", "midi": { "type": "note", "channel": 1, "number": 11 }, "kind": "button", "layer": "base", "function": { "id": "play", "deck": 1, "args": {} }, "feedback": { "led": { "type": "note", "channel": 1, "number": 11, "on": 127, "off": 0 } } },
+    { "label": "Deck 1 Play", "midi": { "type": "note", "channel": 1, "number": 11 }, "kind": "button", "layer": "shift", "function": { "id": "sync", "deck": 1, "args": {} } },
+    { "label": "Deck 1 Cue", "midi": { "type": "note", "channel": 1, "number": 12 }, "kind": "button", "layer": "base", "function": { "id": "cue", "deck": 1, "args": {} }, "feedback": { "led": { "type": "note", "channel": 1, "number": 12, "on": 127, "off": 0 } } },
+    { "label": "Deck 1 Tempo", "midi": { "type": "cc14", "channel": 1, "number": 0, "lsbNumber": 32 }, "kind": "absolute", "layer": "base", "function": { "id": "pitch", "deck": 1, "args": {} } },
+    { "label": "Deck 1 Jog", "midi": { "type": "cc", "channel": 1, "number": 33, "encoding": "relative-two-complement" }, "kind": "relative", "layer": "base", "function": { "id": "jog", "deck": 1, "args": { "action": "rotate" } } },
+    { "label": "Deck 1 Jog touch", "midi": { "type": "note", "channel": 1, "number": 54 }, "kind": "button", "layer": "base", "function": { "id": "jog", "deck": 1, "args": { "action": "touch" } } },
+    { "label": "Deck 1 Pad 1", "midi": { "type": "note", "channel": 8, "number": 0 }, "kind": "button", "layer": "base", "function": { "id": "hotcue", "deck": 1, "args": { "action": "activate", "n": 1 } }, "feedback": { "led": { "type": "note", "channel": 8, "number": 0, "on": 127, "off": 0 } } },
+    { "label": "Deck 1 Pad 1", "midi": { "type": "note", "channel": 8, "number": 0 }, "kind": "button", "layer": "shift", "function": { "id": "hotcue", "deck": 1, "args": { "action": "clear", "n": 1 } } },
+    { "label": "Deck 1 Loop in", "midi": { "type": "note", "channel": 1, "number": 16 }, "kind": "button", "layer": "base", "function": { "id": "loop", "deck": 1, "args": { "action": "in" } } },
+    { "label": "Deck 1 Loop 4", "midi": { "type": "note", "channel": 1, "number": 20 }, "kind": "button", "layer": "base", "function": { "id": "loop", "deck": 1, "args": { "action": "auto", "n": 4 } }, "feedback": { "led": { "type": "note", "channel": 1, "number": 20, "on": 127, "off": 0 } } },
+    { "label": "FX 1 on", "midi": { "type": "note", "channel": 5, "number": 71 }, "kind": "button", "layer": "base", "function": { "id": "fx", "deck": 1, "args": { "action": "enable", "unit": 1 } } },
+    { "label": "Deck 2 Play", "midi": { "type": "note", "channel": 2, "number": 11 }, "kind": "button", "layer": "base", "function": { "id": "play", "deck": 2, "args": {} } },
+    { "label": "Deck 2 Volume", "midi": { "type": "cc", "channel": 2, "number": 19 }, "kind": "absolute", "layer": "base", "function": { "id": "volume", "deck": 2, "args": {} } },
+    { "label": "Deck 2 EQ hi", "midi": { "type": "cc", "channel": 2, "number": 7 }, "kind": "absolute", "layer": "base", "function": { "id": "eq", "deck": 2, "args": { "band": "hi" } } },
+    { "label": "Crossfader", "midi": { "type": "cc", "channel": 7, "number": 31 }, "kind": "absolute", "layer": "base", "function": { "id": "crossfader", "deck": null, "args": {} } },
+    { "label": "Browse", "midi": { "type": "cc", "channel": 7, "number": 64, "encoding": "relative-two-complement" }, "kind": "relative", "layer": "base", "function": { "id": "browse", "deck": null, "args": { "action": "rotate" } } },
+    { "label": "Browse press", "midi": { "type": "note", "channel": 7, "number": 65 }, "kind": "button", "layer": "base", "function": { "id": "browse", "deck": null, "args": { "action": "press" } } }
+  ],
+  "provenance": { "source": "manual", "sourceId": null }
+}

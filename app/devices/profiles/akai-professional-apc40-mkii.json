@@ -5,7 +5,7 @@
   "model": "APC40 MKII",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: fader,encoder,button,pad,usb. Software: Ableton Live.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers. USB MIDI transport is documented in User Guide v1.0 and Communications Protocol v1.2 (2015-01-19). Protocol MIDI identifiers do not establish USB IDs. These are document revisions, not firmware; audio capability remains unresolved.",
   "documents": [
     {
       "title": "Manufacturer controls and technical specifications",
@@ -44,6 +44,20 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Exact implementation mapping not verified; use learn mode and capture."
+    },
+    {
+      "title": "APC40 mkII User Guide v1.0",
+      "type": "user-manual",
+      "url": "https://cdn.inmusicbrands.com/akai/attachments/apc40II/APC40%20mkII%20-%20User%20Guide%20-%20v1.0.pdf",
+      "language": "en",
+      "notes": "Checked 2026-11-18. Printed pp. 2 and 4 describe USB MIDI input/output; p. 27 identifies the TS socket as a footswitch input. Manual v1.0 has no verified publication date here and does not establish audio absence."
+    },
+    {
+      "title": "APC40 Mk2 Communications Protocol v1.2",
+      "type": "midi-message-list",
+      "url": "https://cdn.inmusicbrands.com/akai/attachments/apc40II/APC40Mk2_Communications_Protocol_v1.2.pdf",
+      "language": "en",
+      "notes": "Dated 2015-01-19; checked 2026-11-18. Printed pp. 3-4 describe the USB port and MIDI SysEx format. MIDI manufacturer/model bytes are not USB VID/PID values. Existing learned maps remain unqualified."
     }
   ],
   "connectivity": {
@@ -54,7 +68,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "APC40 MKII"
@@ -115,6 +129,15 @@
       "unit": "count",
       "source": "https://www.akaipro.com/apc40-mk2/",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://cdn.inmusicbrands.com/akai/attachments/apc40II/APC40%20mkII%20-%20User%20Guide%20-%20v1.0.pdf",
+      "confidence": "confirmed",
+      "notes": "User Guide v1.0, printed p. 4: the USB connection sends and receives MIDI. Audio capability remains unresolved."
     }
   ],
   "midi": {

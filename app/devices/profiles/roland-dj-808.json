@@ -5,7 +5,7 @@
   "model": "DJ-808",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: jog,pad,fader,eq,audio,usb. Software: Serato DJ Pro.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed; the exact DJ-808 manual and Roland's 2024-03-29 rate-setting article enumerate 44.1, 48 and 96 kHz. The manual documents USB PC audio playback and controller MIDI through the PC port in standalone mode. Numeric USB audio input/output counts and USB stream bit depth remain unresolved: the manual distinguishes 24-bit A/D from 32-bit D/A conversion. Manual footer code 03 and copyright 2016 are document provenance, not firmware qualification. MIDI maps, USB IDs, class compliance, hardware revision, OS/firmware compatibility and physical performance remain unverified.",
   "documents": [
     {
       "title": "Model specific official feature reference",
@@ -14,11 +14,11 @@
       "language": "en"
     },
     {
-      "title": "Official manufacturer documentation or support entry",
-      "type": "manual",
-      "url": "https://www.roland.com/global/support/",
+      "title": "DJ-808 Owner's Manual, English footer code 03",
+      "type": "user-manual",
+      "url": "https://static.roland.com/assets/media/pdf/DJ-808_eng03_W.pdf",
       "language": "en",
-      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+      "notes": "Checked 2026-11-18. Copyright 2016; footer code 03; no exact release date identified. Printed p. 3 describes USB computer audio playback; p. 21 describes PC-port MIDI in standalone mode; p. 22 enumerates 44.1/48/96 kHz. Main Specifications, p. 32, distinguish 24-bit A/D and 32-bit D/A; no generic USB stream bit depth or channel count is established. Document code is not firmware."
     },
     {
       "title": "Driver and firmware support",
@@ -28,10 +28,11 @@
       "notes": "Confirm OS-specific driver and version."
     },
     {
-      "title": "Support and product help",
+      "title": "DJ-808 Sampling Rate (System Setting), pad 1",
       "type": "support-article",
-      "url": "https://www.roland.com/global/support/",
-      "language": "en"
+      "url": "https://support.roland.com/hc/en-us/articles/115002781883-DJ-808-Sampling-Rate-System-Setting-PAD-1",
+      "language": "en",
+      "notes": "Updated 2024-03-29; checked 2026-11-18. The exact-model sampling-rate setting lists 44.1, 48 and 96 kHz. This support-document date is not a firmware revision or physical qualification."
     },
     {
       "title": "Service manual",
@@ -54,7 +55,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DJ-808"
@@ -63,7 +64,11 @@
     "audio": {
       "usbChannelsIn": null,
       "usbChannelsOut": null,
-      "sampleRatesHz": [],
+      "sampleRatesHz": [
+        44100,
+        48000,
+        96000
+      ],
       "bitDepth": null
     }
   },
@@ -137,6 +142,24 @@
       "source": "https://www.roland.com/global/products/dj-808/support/",
       "confidence": "confirmed",
       "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_audio_sample_rates",
+      "label": "Selectable audio sample rates",
+      "value": "44100, 48000, 96000",
+      "unit": "Hz",
+      "source": "https://support.roland.com/hc/en-us/articles/115002781883-DJ-808-Sampling-Rate-System-Setting-PAD-1",
+      "confidence": "confirmed",
+      "notes": "Exact-model rate-setting article updated 2024-03-29; also enumerated in the Owner's Manual, printed pp. 22 and 32. Numeric USB channel counts remain unknown."
+    },
+    {
+      "key": "verified_usb_midi",
+      "label": "USB PC MIDI control in standalone mode",
+      "value": true,
+      "unit": "bool",
+      "source": "https://static.roland.com/assets/media/pdf/DJ-808_eng03_W.pdf standalone-mode section, printed p. 21",
+      "confidence": "confirmed",
+      "notes": "Controller MIDI messages use the USB PC port in the documented standalone mode; the physical MIDI OUT carries synchronization messages. Control maps, IDs and physical qualification remain unverified."
     }
   ],
   "midi": {
