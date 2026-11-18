@@ -574,9 +574,9 @@ fn driver_status(problem: Option<i64>, status: Option<&str>) -> String {
     .into()
 }
 
-pub type DriverScan = (Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>);
+pub type ParsedDriverOutput = (Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>);
 
-pub fn parse_drivers_output(raw: &str) -> Result<DriverScan, String> {
+pub fn parse_drivers_output(raw: &str) -> Result<ParsedDriverOutput, String> {
     let v = parse_json_lenient(raw)?;
     let mut drivers = Vec::new();
     for d in as_items(v.get("drivers").unwrap_or(&Value::Null)) {
