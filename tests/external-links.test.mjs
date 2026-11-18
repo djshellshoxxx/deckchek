@@ -290,7 +290,7 @@ test('guard: CSP is unchanged and has no connect-src/frame-src', () => {
 
 test('guard: Rust commands are registered and the navigation guard is installed', () => {
   const lib = read('src-tauri/src/lib.rs');
-  assert.match(lib, /links::open_external_url, links::open_path, links::reveal_path/);
+  assert.match(lib, /links::open_external_url,\s*links::open_path,\s*links::reveal_path/);
   assert.match(lib, /plugin\(links::navigation_guard\(\)\)/);
   assert.match(lib, /^mod links;$/m);
 });
