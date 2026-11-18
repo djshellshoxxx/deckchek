@@ -22,7 +22,6 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | Crate | Version | Licence | Repository |
 |---|---|---|---|
 | adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | https://github.com/oyvindln/adler2 |
-| ahash | 0.8.12 | MIT OR Apache-2.0 | https://github.com/tkaitchuck/ahash |
 | aho-corasick | 1.1.5 | Unlicense OR MIT | https://github.com/BurntSushi/aho-corasick |
 | alloc-no-stdlib | 3.0.0 | BSD-3-Clause | https://github.com/dropbox/rust-alloc-no-stdlib |
 | alloc-stdlib | 0.3.0 | BSD-3-Clause | https://github.com/dropbox/rust-alloc-no-stdlib |
@@ -31,7 +30,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | https://github.com/dtolnay/anyhow |
 | async-broadcast | 0.7.2 | MIT OR Apache-2.0 | https://github.com/smol-rs/async-broadcast |
 | async-channel | 2.5.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-channel |
-| async-executor | 1.14.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-executor |
+| async-executor | 1.14.1 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-executor |
 | async-io | 2.6.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-io |
 | async-lock | 3.4.2 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-lock |
 | async-process | 2.5.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/async-process |
@@ -70,6 +69,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | cargo-platform | 0.1.9 | MIT OR Apache-2.0 | https://github.com/rust-lang/cargo |
 | cc | 1.6.0 | MIT OR Apache-2.0 | https://github.com/rust-lang/cc-rs |
 | cfb | 0.14.0 | MIT | https://github.com/mdsteele/rust-cfb |
+| cfg_aliases | 0.2.2 | MIT | https://github.com/katharostech/cfg_aliases |
 | cfg-expr | 0.15.8 | MIT OR Apache-2.0 | https://github.com/EmbarkStudios/cfg-expr |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 | https://github.com/rust-lang/cfg-if |
 | chrono | 0.4.45 | MIT OR Apache-2.0 | https://github.com/chronotope/chrono |
@@ -175,9 +175,8 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | gtk-sys | 0.18.2 | MIT | https://github.com/gtk-rs/gtk3-rs |
 | gtk3-macros | 0.18.2 | MIT | https://github.com/gtk-rs/gtk3-rs |
 | hashbrown | 0.12.3 | MIT OR Apache-2.0 | https://github.com/rust-lang/hashbrown |
-| hashbrown | 0.14.5 | MIT OR Apache-2.0 | https://github.com/rust-lang/hashbrown |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | https://github.com/rust-lang/hashbrown |
-| hashlink | 0.9.1 | MIT OR Apache-2.0 | https://github.com/kyren/hashlink |
+| hashlink | 0.12.2 | MIT OR Apache-2.0 | https://github.com/djc/hashlink |
 | heck | 0.4.1 | MIT OR Apache-2.0 | https://github.com/withoutboats/heck |
 | heck | 0.5.0 | MIT OR Apache-2.0 | https://github.com/withoutboats/heck |
 | hex | 0.4.3 | MIT OR Apache-2.0 | https://github.com/KokaKiwi/rust-hex |
@@ -216,7 +215,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | libc | 0.2.190 | MIT OR Apache-2.0 | https://github.com/rust-lang/libc |
 | libdbus-sys | 0.2.7 | Apache-2.0/MIT | https://github.com/diwic/dbus-rs |
 | libloading | 0.7.4 | ISC | https://github.com/nagisa/rust_libloading/ |
-| libsqlite3-sys | 0.30.1 | MIT | https://github.com/rusqlite/rusqlite |
+| libsqlite3-sys | 0.39.1 | MIT | https://github.com/rusqlite/rusqlite |
 | linux-raw-sys | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | https://github.com/sunfishcode/linux-raw-sys |
 | litemap | 0.8.3 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | lock_api | 0.4.14 | MIT OR Apache-2.0 | https://github.com/Amanieu/parking_lot |
@@ -233,6 +232,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | moxcms | 0.8.1 | BSD-3-Clause OR Apache-2.0 | https://github.com/awxkee/moxcms.git |
 | muda | 0.20.0 | Apache-2.0 OR MIT | https://github.com/tauri-apps/muda |
 | new_debug_unreachable | 1.0.6 | MIT | https://github.com/mbrubeck/rust-debug-unreachable |
+| nix | 0.31.4 | MIT | https://github.com/nix-rust/nix |
 | num-conv | 0.2.2 | MIT OR Apache-2.0 | https://github.com/jhpratt/num-conv |
 | num-traits | 0.2.19 | MIT OR Apache-2.0 | https://github.com/rust-num/num-traits |
 | objc2 | 0.6.5 | MIT | https://github.com/madsmtm/objc2 |
@@ -292,10 +292,10 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | regex-syntax | 0.8.11 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
 | rfd | 0.16.0 | MIT | https://github.com/PolyMeilex/rfd |
 | rtrb | 0.3.5 | MIT OR Apache-2.0 | https://github.com/mgeier/rtrb |
-| rusqlite | 0.32.1 | MIT | https://github.com/rusqlite/rusqlite |
+| rusqlite | 0.41.1 | MIT | https://github.com/rusqlite/rusqlite |
 | rustc_version | 0.4.1 | MIT OR Apache-2.0 | https://github.com/djc/rustc-version-rs |
 | rustc-hash | 2.1.3 | Apache-2.0 OR MIT | https://github.com/rust-lang/rustc-hash |
-| rustix | 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | https://github.com/bytecodealliance/rustix |
+| rustix | 1.1.6 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | https://github.com/bytecodealliance/rustix |
 | same-file | 1.0.6 | Unlicense/MIT | https://github.com/BurntSushi/same-file |
 | schemars | 0.8.22 | MIT | https://github.com/GREsau/schemars |
 | schemars | 0.9.0 | MIT | https://github.com/GREsau/schemars |
@@ -366,7 +366,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | time-macros | 0.2.32 | MIT OR Apache-2.0 | https://github.com/time-rs/time |
 | tinystr | 0.8.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | tinyvec | 1.13.3 | Zlib OR Apache-2.0 OR MIT | https://github.com/Lokathor/tinyvec |
-| tokio | 1.53.2 | MIT | https://github.com/tokio-rs/tokio |
+| tokio | 1.53.3 | MIT | https://github.com/tokio-rs/tokio |
 | toml | 0.8.2 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
 | toml | 1.1.6+spec-1.1.0 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
 | toml_datetime | 0.6.3 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
@@ -380,6 +380,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | tracing-attributes | 0.1.31 | MIT | https://github.com/tokio-rs/tracing |
 | tracing-core | 0.1.36 | MIT | https://github.com/tokio-rs/tracing |
 | tray-icon | 0.25.1 | MIT OR Apache-2.0 | https://github.com/tauri-apps/tray-icon |
+| typed-path | 0.12.4 | MIT OR Apache-2.0 | https://github.com/chipsenkbeil/typed-path |
 | typeid | 1.0.3 | MIT OR Apache-2.0 | https://github.com/dtolnay/typeid |
 | typenum | 1.20.1 | MIT OR Apache-2.0 | https://github.com/paholg/typenum |
 | unicode-ident | 1.0.26 | (MIT OR Apache-2.0) AND Unicode-3.0 | https://github.com/dtolnay/unicode-ident |
@@ -441,14 +442,13 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | zbus_macros | 5.19.0 | MIT | https://github.com/z-galaxy/zbus/ |
 | zbus_names | 4.3.4 | MIT | https://github.com/z-galaxy/zbus/ |
 | zcheapstr | 1.1.0 | MIT | https://github.com/z-galaxy/zcheapstr/ |
-| zerocopy | 0.8.60 | BSD-2-Clause OR Apache-2.0 OR MIT | https://github.com/google/zerocopy |
 | zerofrom | 0.1.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zerofrom-derive | 0.1.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zeroize | 1.9.1 | Apache-2.0 OR MIT | https://github.com/RustCrypto/utils |
 | zerotrie | 0.2.5 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zerovec | 0.11.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zerovec-derive | 0.11.6 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
-| zip | 2.4.2 | MIT | https://github.com/zip-rs/zip2.git |
+| zip | 9.0.5 | MIT | https://github.com/zip-rs/zip2 |
 | zlib-rs | 0.6.8 | Zlib | https://github.com/trifectatechfoundation/zlib-rs |
 | zmij | 1.0.23 | MIT | https://github.com/dtolnay/zmij |
 | zopfli | 0.8.3 | Apache-2.0 | https://github.com/zopfli-rs/zopfli |

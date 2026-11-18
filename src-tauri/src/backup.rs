@@ -756,11 +756,14 @@ fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupErr
             "The backup holds too many entries and was refused.",
         ));
     }
-    if archive.file_names().any(|n| !entry_name_safe(n)) {
-        return Err(BackupError::new(
-            "unsafe_entry",
-            "The backup contains an unsafe file name (absolute path or '..') and was refused.",
-        ));
+    for name in archive.file_names() {
+        let name = name.map_err(|_| bad_zip())?;
+        if !entry_name_safe(&name) {
+            return Err(BackupError::new(
+                "unsafe_entry",
+                "The backup contains an unsafe file name (absolute path or '..') and was refused.",
+            ));
+        }
     }
     let mut archive = archive;
     let mut declared = 0u64;
@@ -2671,11 +2674,14 @@ mod tests {
 
         let mut a = ZipArchive::new(File::open(&dest).unwrap()).unwrap();
         assert_eq!(
-            a.by_index(0).unwrap().name(),
+            a.by_index(0).unwrap().name().unwrap(),
             MANIFEST,
             "manifest is the first entry"
         );
-        let names: Vec<String> = a.file_names().map(String::from).collect();
+        let names: Vec<String> = a
+            .file_names()
+            .map(|name| name.unwrap().into_owned())
+            .collect();
         for n in [MANIFEST, DB_ENTRY, UI_ENTRY, CAL_ENTRY, MIDI_ENTRY] {
             assert!(names.iter().any(|x| x == n), "{n}");
         }

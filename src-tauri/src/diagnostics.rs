@@ -2043,7 +2043,7 @@ mod tests {
                 let mut f = z.by_index(i).unwrap();
                 let mut b = Vec::new();
                 f.read_to_end(&mut b).unwrap();
-                (f.name().to_string(), b)
+                (f.name().unwrap().into_owned(), b)
             })
             .collect()
     }
