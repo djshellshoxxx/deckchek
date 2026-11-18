@@ -27,7 +27,6 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 base64 = "0.22"
 ed25519-dalek = "2"
 getrandom = "0.3"
-tauri-plugin-notification = "2"
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39"

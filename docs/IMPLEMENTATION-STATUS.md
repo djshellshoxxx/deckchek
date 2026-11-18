@@ -124,9 +124,9 @@ The UI and reports identify these as evidence/proxies where appropriate.
 
 - Canonical JSON (FS-00 §6.1) in Rust and JS with shared vectors, SHA-256 (`crypto.subtle` with a pure-JS fallback), vendored QR generator (qrcode-generator 1.4.4, MIT) with `qrSvg`, and `metric-compat` (`methodCompatible`, `combinedUncertainty`, `deltaVerdict`).
 - Photo store: migration 0013, `photo_attach` / `photo_list` / `photo_unlink` / `photo_read`, `preparePhoto` (canvas re-encode, 1600 px, JPEG 0.82) and an in-memory browser-mode twin. The backup archive carries `photos/<sha256>.jpg`. Nothing in the UI uses the store until FS-20, FS-22 and FS-33 land, so there is no photo screen and no browser smoke flow.
-- Crates for all of M7/M8 added once: `ed25519-dalek`, `getrandom`, `tauri-plugin-notification` (unregistered), DPAPI `windows` feature (cfg(windows), unused until FS-20/FS-33), tauri `tray-icon` and `image-png`. `ed25519-dalek` is BSD-3-Clause (permissive); all other additions are MIT and/or Apache-2.0.
+- Crates for all of M7/M8 added once: `ed25519-dalek`, `getrandom`, `tauri-plugin-notification` (never registered; removed 2026-11-18 because cargo's `unused_dependencies` lint failed the warning gate — re-add together with its registration and capability when FS-31 OS notifications are implemented), DPAPI `windows` feature (cfg(windows), unused until FS-20/FS-33), tauri `tray-icon` and `image-png`. `ed25519-dalek` is BSD-3-Clause (permissive); all other additions are MIT and/or Apache-2.0.
 - DB upgrade fixture `tests/fixtures/db/v0.0.7.sql` (schema 0001-0013, rows in every table). The v0.0.6 fixture was never added.
-- Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there), and the notification plugin is not exercised.
+- Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there). FS-31 alerts are in-window only; no OS notification plugin is linked.
 
 ## M8 additions: FS-30 Mobile companion (implemented and test-covered, hardware-unvalidated)
 

@@ -15,7 +15,7 @@ SQLite is compiled into the app through `libsqlite3-sys` (bundled feature). SQLi
 
 MPL-2.0 crates are linked unmodified (Tauri pulls them in for HTML/CSS parsing). If DeckChek ever changes one of their files, that file must be published under MPL-2.0.
 
-## Rust crates linked into the app (442)
+## Rust crates linked into the app (434)
 
 Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI tools are not shipped and are not listed.
 
@@ -221,7 +221,6 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | litemap | 0.8.3 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | lock_api | 0.4.14 | MIT OR Apache-2.0 | https://github.com/Amanieu/parking_lot |
 | log | 0.4.34 | MIT OR Apache-2.0 | https://github.com/rust-lang/log |
-| mac-notification-sys | 0.6.15 | MIT/Apache-2.0 | https://github.com/h4llow3En/mac-notification-sys |
 | mach2 | 0.4.3 | BSD-2-Clause OR MIT OR Apache-2.0 | https://github.com/JohnTitor/mach2 |
 | markup5ever | 0.39.0 | MIT OR Apache-2.0 | https://github.com/servo/html5ever |
 | memchr | 2.8.3 | Unlicense OR MIT | https://github.com/BurntSushi/memchr |
@@ -234,7 +233,6 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | moxcms | 0.8.1 | BSD-3-Clause OR Apache-2.0 | https://github.com/awxkee/moxcms.git |
 | muda | 0.20.0 | Apache-2.0 OR MIT | https://github.com/tauri-apps/muda |
 | new_debug_unreachable | 1.0.6 | MIT | https://github.com/mbrubeck/rust-debug-unreachable |
-| notify-rust | 4.18.2 | MIT OR Apache-2.0 | https://github.com/hoodie/notify-rust |
 | num-conv | 0.2.2 | MIT OR Apache-2.0 | https://github.com/jhpratt/num-conv |
 | num-traits | 0.2.19 | MIT OR Apache-2.0 | https://github.com/rust-num/num-traits |
 | objc2 | 0.6.5 | MIT | https://github.com/madsmtm/objc2 |
@@ -275,7 +273,6 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | polling | 3.11.0 | Apache-2.0 OR MIT | https://github.com/smol-rs/polling |
 | potential_utf | 0.1.6 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | powerfmt | 0.2.1 | MIT OR Apache-2.0 | https://github.com/jhpratt/powerfmt |
-| ppv-lite86 | 0.2.21 | MIT OR Apache-2.0 | https://github.com/cryptocorrosion/cryptocorrosion |
 | precomputed-hash | 0.1.1 | MIT | https://github.com/emilio/precomputed-hash |
 | proc-macro-crate | 1.3.1 | MIT OR Apache-2.0 | https://github.com/bkchr/proc-macro-crate |
 | proc-macro-crate | 2.0.2 | MIT OR Apache-2.0 | https://github.com/bkchr/proc-macro-crate |
@@ -286,10 +283,7 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | pxfm | 0.1.30 | BSD-3-Clause OR Apache-2.0 | https://github.com/awxkee/pxfm |
 | quick-xml | 0.42.0 | MIT | https://github.com/tafia/quick-xml |
 | quote | 1.0.47 | MIT OR Apache-2.0 | https://github.com/dtolnay/quote |
-| rand | 0.9.5 | MIT OR Apache-2.0 | https://github.com/rust-random/rand |
-| rand_chacha | 0.9.0 | MIT OR Apache-2.0 | https://github.com/rust-random/rand |
 | rand_core | 0.6.4 | MIT OR Apache-2.0 | https://github.com/rust-random/rand |
-| rand_core | 0.9.5 | MIT OR Apache-2.0 | https://github.com/rust-random/rand |
 | raw-window-handle | 0.6.2 | MIT OR Apache-2.0 OR Zlib | https://github.com/rust-windowing/raw-window-handle |
 | ref-cast | 1.0.27 | MIT OR Apache-2.0 | https://github.com/dtolnay/ref-cast |
 | ref-cast-impl | 1.0.27 | MIT OR Apache-2.0 | https://github.com/dtolnay/ref-cast |
@@ -357,13 +351,11 @@ Normal and build dependencies on Windows, macOS and Linux. Test, fuzz and CI too
 | tauri-plugin | 2.7.1 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
 | tauri-plugin-dialog | 2.8.1 | Apache-2.0 OR MIT | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-fs | 2.6.0 | Apache-2.0 OR MIT | https://github.com/tauri-apps/plugins-workspace |
-| tauri-plugin-notification | 2.6.0 | Apache-2.0 OR MIT | https://github.com/tauri-apps/plugins-workspace |
 | tauri-plugin-opener | 2.7.0 | Apache-2.0 OR MIT | https://github.com/tauri-apps/plugins-workspace |
 | tauri-runtime | 2.12.1 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
 | tauri-runtime-wry | 2.12.1 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
 | tauri-utils | 2.10.1 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
 | tauri-winres | 0.3.6 | MIT | https://github.com/tauri-apps/winres |
-| tauri-winrt-notification | 0.8.1 | MIT OR Apache-2.0 | https://github.com/tauri-apps/winrt-notification |
 | tendril | 0.5.1 | MIT OR Apache-2.0 | https://github.com/servo/html5ever |
 | thiserror | 1.0.69 | MIT OR Apache-2.0 | https://github.com/dtolnay/thiserror |
 | thiserror | 2.0.21 | MIT OR Apache-2.0 | https://github.com/dtolnay/thiserror |
