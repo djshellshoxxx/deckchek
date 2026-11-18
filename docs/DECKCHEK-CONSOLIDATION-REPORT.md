@@ -1,8 +1,26 @@
 # DeckChek consolidation report
 
-> Current source39 correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+## Current source40 native catalog and controller provenance
 
-## Current source39 contribution
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+## Native selected-setup catalog integration
+
+Source40 integrates exactly 13 accepted catalog paths, five REV1/REV5 paths and two regenerated MIDI matrix rows within the single matrix path. The [native contract](native-catalog-archive.md) preserves all columns of the ten-table selected aggregate, large native integers and literal text, exact existing rows, complete components and timestamp-only matching dependencies. Import reparses and revalidates under one immediate transaction; malformed graphs, substantive conflicts, schema drift and damaged destination foreign keys refuse the whole operation.
+
+Independent review reproduced the Data chooser cancellation regression on v1 and accepted the two-file correction in v2. The [failure and qualification account](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#catalog-findings-and-retained-qualification) retains the 2/2 baseline versus 0/2 candidate, persistent 32/4 then 36/0, unchanged probe 2/2 and final related 146/146, alongside exact native 18/18 and its exclusions. The complete combined suite passed 1,835/0/1 with all 1,447 files unchanged. Browser formats, history, device-profile bindings, migrations, locked dependencies, thresholds and default flags retain their existing scope.
+
+## REV1 and REV5 integration
+
+[Exact-model manufacturer notes](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#rev1-and-rev5-manufacturer-provenance) confirm USB MIDI and nominal Audio Section 48 kHz / 24-bit conversion, without inventing USB stream counts/formats, receiving support or maps. All 16 original handwritten test objects and the 37-member research group remain. The retained 49/1 stale-matrix filtering mistake is separate from root's successful one-time regeneration. Coverage now has 17 conditional MIDI profiles / 51 requirements, with all 23 audio conditions and all test totals unchanged.
+
+> Historical source39 prepublication correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+
+<a id="current-source39-contribution"></a>
+
+## Historical source39 contribution
 
 The [logical MIDI report](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) covers ten accepted MIDI paths, five mixer-provenance paths, the generated matrix and three smoke repairs. It retains lifecycle review failures, the initial combined research-group failure, the exact note/anchor amendments and separately scoped hosted outcomes. Existing browser archives, support-history memory behavior, default flags, hardware gates and historical results are preserved. Software logical IDs now exist; physical identity/continuity and actual MIDItest consumer integration remain open.
 
@@ -12,7 +30,9 @@ The [logical MIDI report](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) covers ten accepted
 
 > Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
 
-## Current native history integration
+<a id="current-native-history-integration"></a>
+
+## Historical source38 native history integration
 
 Source38 adds exactly the accepted native support-history module change and its contract note to source37. Streaming validation and indexed lookups preserve original data, same-transaction consistency, global corruption/error ordering and all public limits; returned comparisons retain their full source observations. [Current qualification](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) separates the 23/23 native harness, allocator tradeoff and byte-identical parity artifact from the complete Node/static gates. The earlier MIDI/profile report remains byte-identical.
 

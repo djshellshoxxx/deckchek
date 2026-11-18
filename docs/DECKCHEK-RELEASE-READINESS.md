@@ -1,8 +1,22 @@
 # DeckChek release readiness
 
-> Current source39 correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+## Current source40 native catalog and controller provenance
 
-## Source39 release boundary
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+## Source40 qualification and release boundary
+
+Source `20a8c342` passed the complete 151-file Node suite **1,835/0/1**, 253,593.508232 ms TAP, with all 1,447 source files unchanged. Local static/proxy gates passed: device index, timecode, 24 migrations, mobile output, notices, coverage, GLib provenance metadata, application/GLib formatting and 411 syntax checks. The separate monitor passed 1/1 over 2,400 hops at 0.351 ms mean / 1.96 ms worst and 0.06 MB heap growth; unchanged budgets apply. [Exact native/profile scope and preserved failures](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#combined-source40-qualification) remain distinct from full application and hardware qualification.
+
+The published preceding `cc15026a` tree now has a full primary browser **1,338/1,338** pass, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** with leak detection disabled. The browser's deterministic native mocks and uninspected screenshot artifacts are not real desktop or hardware evidence. Those passes resolve the applicable source39 primary browser failure, while old raw failures remain intact. They do not qualify new source40 native catalog/chooser bytes, the queued second browser/native/Windows scopes, packaged-platform or broader security gates. Source40 is not release-ready; no release, tag or deployment is authorized.
+
+> Historical source39 prepublication correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+
+<a id="source39-release-boundary"></a>
+
+## Historical source39 prepublication release boundary
 
 The [current qualification record](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#combined-source39-qualification) retains the initial complete 1,779/1/1 failure and accepted note/anchor corrections; corrected source `04bbc714` passed 1,780/0/1 across 148 files in 249.818975973 TAP seconds, with all 1,434 files unchanged. Static gates passed, including 404 JS/MJS syntax files and 24 migrations. The separate monitor passed 1/1 in 1,056.991961 ms, with mean 0.363 ms/hop, worst 3.68 ms and heap growth 0.06 MB over 2,400 hops; unchanged budgets apply. The bounded native MIDI harness and retained JS scope are not full Tauri or physical qualification. Published PR32 has real Linux/Windows/JavaScript and limited persistence-stress passes, but both browser jobs failed 522/524 reached checks. The different PR30 cross-browser navigation failure reached 365/366 and remains separately unresolved. New smoke repairs have no browser pass. Source39 hosted/native-platform/browser, extended/security and hardware gates remain open; no release, tag or deployment is authorized.
 
@@ -14,7 +28,9 @@ The [current qualification record](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#combined-so
 
 The [checkpoint 35 integrity account](DECKCHEK-CONTINUATION-35.md#concurrent-integrity-and-warning-repairs) supersedes earlier narrative assurances that the Cargo warning policy was unchanged: source `057d42f` reproduced and corrected the dependency/stderr-warning gap. Original job outcomes and failure rows below remain historical observations, not evidence that the earlier gate enforced the corrected policy.
 
-## Current source38 qualification boundary
+<a id="current-source38-qualification-boundary"></a>
+
+## Historical source38 qualification boundary
 
 Source `fe936f7d` passed the complete serial Node suite **1,747/0/1**, applicable local static gates and the separately reviewed exact native-core/harness proof. The [current report](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#combined-source38-qualification) records timings, unchanged source hashes, the allocator tradeoff and five harness/application transitive-lock differences. Full native application, current-source hosted/platform/Chromium, broad Sonar, hardware and packaging qualification remain open. The previous Windows pass remains scoped to published checkpoint35.
 

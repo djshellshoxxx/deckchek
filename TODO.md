@@ -1,6 +1,14 @@
 # DeckChek build queue
 
-## Current source39 correction
+## Current source40 native catalog and controller provenance
+
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+<a id="current-source39-correction"></a>
+
+## Historical source39 prepublication correction
 
 The [logical MIDI and mixer follow-up](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) records the accepted logical-ID/Runner/Mapper contract, DJM-450/DJM-900NXS2 provenance and browser-smoke repairs. Source `04bbc714` passed the complete serial Node 22.23.5 suite **1,780/0/1** (1,781 total, 148 files, **249.818975973 TAP seconds**) and all local static gates; all **1,434** frozen files remained unchanged. The initial full **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. Existing draft PR32 is at `61e265f`; publication of the new source is pending. Published-head native/JavaScript successes and unresolved browser failures do not qualify the new bytes. Physical identity/continuity, MIDItest consumer integration, broad Sonar and hardware remain open; Fleet stays OFF.
 
@@ -145,14 +153,16 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Passive support A/B: retained original observations, versioned 20–200 Hz digital power comparison, explicit context/PA/procedure/calibration comparability and history/report integration. No output or physical isolation-efficiency claim; see [the bounded contract](docs/DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons).
 - [x] Source38 native support-history validation streams all records and retains bounded result pages, preserving original values, error precedence and exact retries. [Allocator proof and tradeoff](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#memory-measurement-and-tradeoff) are separate from full-application qualification.
 - [x] Record published source38 full Linux/Windows application and limited persistence-stress passes with the native history refactor; [exact hosted scope](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#published-head-hosted-observations) retains browser failures and other open jobs.
-- [ ] Qualify the corrected source39 native/browser/platform and extended gates without transferring older results or changing validation, API limits, transaction semantics or budgets.
+- [ ] Complete published source39 native/platform/extended gates and qualify the new source40 native/browser/platform source independently. The source39 primary browser pass is established; no result transfers to changed catalog bytes. Keep validation, API limits, transaction semantics and budgets unchanged.
 - [x] Separate browser venue-history archive: complete saved incidents/observations/comparisons, strict preflight/conflicts, explicit Data import and resumable recovery; see [implementation and limits](docs/DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive).
 - [x] Separate browser Equipment catalog archive: all six collections and components, strict known graph, exact conflicts and one staged write; [bounds and startup limitations](docs/catalog-archive.md) remain explicit.
-- [ ] Native-only booth/deck-position/settings-snapshot portability and device-profile association remain distinct from the transferred browser catalog.
+- [x] Native selected-setup portability now carries complete booth/deck-position/settings-snapshot and parent/component graphs through explicit Data preview and atomic insert-missing import; [source40 qualification and chooser correction](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md).
+- [ ] Device-profile association remains outside both browser and native selected-catalog transfer; imported assets retain their IDs without invented bindings.
 - [x] Correct MIDI transport inference, conditional prerequisites/Skip and generated non-USB output selection; source37 combined qualification passed. [Behavior and preserved limits](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior).
 - [x] Record exact-model USB MIDI and scoped nominal audio/converter provenance for DDJ-GRV6 and XDJ-AZ; complete audio objects remain unknown and conditional.
 - [x] Record exact DJM-450 USB MIDI and scoped DJM-900NXS2 computer-port/converter provenance, preserving both unknown USB audio objects and all handwritten checks. Retain the combined research-marker failure and prefix-only correction.
-- [ ] Resolve the remaining 19 conditional MIDI profiles / 57 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
+- [x] Record exact DDJ-REV1/REV5 USB MIDI and separately scoped nominal 48 kHz / 24-bit converter provenance, preserving all 16 handwritten tests and the same 37 research-seed IDs.
+- [ ] Resolve the remaining 17 conditional MIDI profiles / 51 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.

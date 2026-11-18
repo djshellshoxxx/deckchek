@@ -1,6 +1,14 @@
 # DeckChek spec status (work list)
 
-## Current source39 correction
+## Current source40 native catalog and controller provenance
+
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+<a id="current-source39-correction"></a>
+
+## Historical source39 prepublication correction
 
 The [logical MIDI and mixer follow-up](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) records the accepted logical-ID/Runner/Mapper contract, DJM-450/DJM-900NXS2 provenance and browser-smoke repairs. Source `04bbc714` passed the complete serial Node 22.23.5 suite **1,780/0/1** (1,781 total, 148 files, **249.818975973 TAP seconds**) and all local static gates; all **1,434** frozen files remained unchanged. The initial full **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. Existing draft PR32 is at `61e265f`; publication of the new source is pending. Published-head native/JavaScript successes and unresolved browser failures do not qualify the new bytes. Physical identity/continuity, MIDItest consumer integration, broad Sonar and hardware remain open; Fleet stays OFF.
 
@@ -38,13 +46,13 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-03 | PDF reports | DONE (Windows PrintToPdf; print fallback elsewhere) | `src-tauri/src/pdf.rs`, `app/report-pdf.js` | `tests/report-pdf.test.mjs`, Windows spike test |
 | FS-06 | Test-media library | DONE | `src-tauri/src/media.rs`, `app/media-library.js` | `tests/media-library.test.mjs` |
 | FS-07 | External links / reveal | DONE | `src-tauri/src/links.rs`, `app/external-links.js` | `tests/external-links.test.mjs`, Rust URL-policy tests |
-| FS-08 | Backup and restore | DONE software; current-source hosted qualification pending | Native backup, workspace JSON, `app/{venue-history-archive,catalog-archive}.js` and Data panels | Original native regressions plus accepted browser archive/model/handler proof; separate file guarantees retained |
+| FS-08 | Backup and restore | Selected native setup transfer and existing backup/browser archives implemented; new-source hosted qualification pending | Native backup, `src-tauri/src/catalog_archive.rs`, workspace JSON, `app/{venue-history-archive,catalog-archive,native-catalog-archive}.js` and Data panels | Source40 full 1,835/0/1; bounded exact native 18/18 and related Node 146/146; real Tauri/restore/dialog/platform gates remain open |
 | FS-10 | Pre-gig check | DONE (HW: H-10) | `app/pre-gig.js`, `src-tauri/src/pregig.rs` | `tests/pre-gig.test.mjs`, `tests/pregig-ui.test.mjs` |
 | FS-11 | DVS latency and buffer tuner | DONE (HW: H-11, WASAPI spike) | `app/latency.js`, `src-tauri/src/latency.rs` | `tests/latency.test.mjs` |
 | FS-12 | Stylus wear tracker | IMPLEMENTED: guided capture and replacement trend reset; browser/platform CI and physical repeatability pending | `app/stylus-wear.js`, `app/stylus-benchmark.js`, `app/ui/workflows/stylus-benchmark.js`, `src-tauri/src/stylus.rs` | `tests/stylus-{benchmark,ui,wear}.test.mjs`, `tests/capture-sessions.test.mjs`; smoke `stylus`, `stylus-benchmark` |
 | FS-13 | Control-vinyl wear map | DONE (HW: H-13) | `app/wear-map.js`, `src-tauri/src/wearmap.rs` | `tests/wear-map*.test.mjs` |
 | FS-14 | Scratch stress test | DONE (HW: skip thresholds need a sacrificial record) | `app/scratch.js`, `src-tauri/src/scratch.rs` | `tests/scratch*.test.mjs` |
-| FS-15 | Booth feedback, hum hunter, incidents and passive support A/B | Bounded incident/pagination/support/A/B and both browser archives implemented; hosted/hardware H-15 and broader SPEC-05 pending; no aggregate percentage | Hum, incident/support stores and UI, Equipment/Data archives, native incident/support cores | Actual store/UI/report tests, numerical references, exact native-core and differential proof; authored browser smoke |
+| FS-15 | Booth feedback, hum hunter, incidents and passive support A/B | Bounded incident/pagination/support/A/B, browser archives and native selected-setup transfer implemented; broader SPEC-05/H-15 pending; no aggregate percentage | Hum, incident/support stores and UI, Equipment/Data archives, native incident/support/catalog cores | Existing numerical/store/report proof and source40 catalog qualification; no surrounding-metric, physical-isolation or hardware claim |
 | FS-20 | Used-gear test certificate | DONE (HW: H-20; known gap: no PDF-embedded JSON, verify the sidecar `.deckchek-cert.json`) | `src-tauri/src/{signing,certificate}.rs`, `database/migrations/0014_certificate.sql`, `app/{certificate,certificate-api}.js`, `app/ui/screens/{certificate,verify}.js` | `tests/certificate*.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8) |
 | FS-21 | Unit vs population (phases 1-2) | DONE (HW: H-21; manual privacy review of an exported pack is the owner's) | `src-tauri/src/pack.rs`, `database/migrations/{0015_unit_population,0022_unit_population_ext}.sql`, `app/{population,pack,pack-api}.js`, `app/population-metrics.json`, `app/ui/screens/compare.js` | `tests/{pack,population}*.test.mjs`, `tests/compare-entrypoints.test.mjs`, Rust pack tests, smoke `compare` (real Results/History/Devices entry points), fuzz target `pack` (AC-1..AC-9) |
 | FS-22 | Service worksheets | DONE (HW: H-22) | `src-tauri/src/service.rs`, `database/migrations/0016_service_worksheets.sql`, `app/{service,service-api}.js`, `app/ui/screens/service.js`, `app/ui/workflows/service-job.js`, `app/report-kinds/jobsheet.js` | `tests/service*.test.mjs` (incl. PII leak), smoke `service` (AC-1..AC-8) |
@@ -56,7 +64,7 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 
 ### Current logical MIDI endpoint selection
 
-[FS-36 §7](docs/specs/36-general-midi-test.md#7-explicit-logical-endpoint-selection) now supports backend/direction-scoped opaque IDs, legacy exact unique names, input-only close, captured outputs and shared pending Runner/Mapper input claims. ID selection survives reorder without silently choosing a replacement. The [review record](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#retained-review-findings-and-proof) preserves all three lifecycle findings and the bounded final native proof. Physical identity, hot-plug continuity, actual MIDItest consumer integration and hardware remain unresolved. Reviewed provenance covers 23 existing profiles; current MIDI prerequisites remain conditional for 19 profiles / 57 requirements.
+[FS-36 §7](docs/specs/36-general-midi-test.md#7-explicit-logical-endpoint-selection) now supports backend/direction-scoped opaque IDs, legacy exact unique names, input-only close, captured outputs and shared pending Runner/Mapper input claims. ID selection survives reorder without silently choosing a replacement. The [review record](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#retained-review-findings-and-proof) preserves all three lifecycle findings and the bounded final native proof. Physical identity, hot-plug continuity, actual MIDItest consumer integration and hardware remain unresolved. Current [source40 provenance](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#rev1-and-rev5-manufacturer-provenance) covers 25 existing profiles; MIDI prerequisites remain conditional for 17 profiles / 51 requirements. USB audio, receiving/Identity and hardware limits remain explicit.
 
 ### Native support-history working memory
 
@@ -97,7 +105,7 @@ These describe the long-term product. Items that need physical hardware or vendo
 | SPEC-01 RPM/pitch/THD accuracy claims | PARTIAL (implemented, labelled as proxies) | HW validation against known references (SPEC-08/19) |
 | SPEC-02 vendor DVS decoders (Serato/Traktor/rekordbox) | MISSING (generic decoder only) | Legal/licence feasibility; out of scope for this run |
 | SPEC-03 skip/locked-groove/warp/non-fill classifiers | PARTIAL | Needs a labelled false-positive corpus |
-| SPEC-05 venue hierarchy, feedback, support isolation and incidents | PARTIAL: incidents/pagination, saved supports, passive LF A/B and separate history/current-catalog archives implemented | Native-only booth/position/settings authorities, surrounding metrics, broader isolation outcomes and physical qualification remain open |
+| SPEC-05 venue hierarchy, feedback, support isolation and incidents | PARTIAL: incidents/pagination, saved supports, passive LF A/B, browser archives and native selected-setup transfer implemented | Device-profile association, surrounding metrics, broader isolation outcomes and physical qualification remain open |
 | SPEC-10 CDJ transport/media/digital-output | MISSING (consideration backlog, not committed) | Not a release commitment |
 | SPEC-17 code signing and auto-update | MISSING | Signing certificates (owner) |
 | Controller HID diagnostics | MISSING | Not specified as a job |
@@ -107,3 +115,16 @@ These describe the long-term product. Items that need physical hardware or vendo
 - [ ] Owner hardware runs H-00..H-33 (cannot run in CI).
 - [ ] Full automated suite green on the release commit (npm test, cargo test Linux+Windows, ui-smoke, fuzz smoke).
 - [ ] Owner checks left open by M7/M8: FS-31 WASAPI-shared spike (H-31 steps 1-6), FS-32 VirtualDJ format (H-32 step 7), FS-33 GitHub Pages wording (H-33), FS-21 pack privacy review, FS-23 H-23 hardware and real-database qualification before enabling fleet by default (currently off; manual opt-in available).
+
+## Historical source39 feature-row snapshot
+
+The following rows are retained verbatim from published `cc15026a`, before source40 updated the current tables above. They preserve the earlier scope and pending states; they do not describe source40 completion.
+
+| Spec | Title | Status | Code | Acceptance check |
+|---|---|---|---|---|
+| FS-08 | Backup and restore | DONE software; current-source hosted qualification pending | Native backup, workspace JSON, `app/{venue-history-archive,catalog-archive}.js` and Data panels | Original native regressions plus accepted browser archive/model/handler proof; separate file guarantees retained |
+| FS-15 | Booth feedback, hum hunter, incidents and passive support A/B | Bounded incident/pagination/support/A/B and both browser archives implemented; hosted/hardware H-15 and broader SPEC-05 pending; no aggregate percentage | Hum, incident/support stores and UI, Equipment/Data archives, native incident/support cores | Actual store/UI/report tests, numerical references, exact native-core and differential proof; authored browser smoke |
+
+| Area | Status | Blocker |
+|---|---|---|
+| SPEC-05 venue hierarchy, feedback, support isolation and incidents | PARTIAL: incidents/pagination, saved supports, passive LF A/B and separate history/current-catalog archives implemented | Native-only booth/position/settings authorities, surrounding metrics, broader isolation outcomes and physical qualification remain open |

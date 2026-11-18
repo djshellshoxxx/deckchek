@@ -1,8 +1,20 @@
 # DeckChek branch and pull request audit
 
-> Current source39 correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+## Current source40 native catalog and controller provenance
 
-## Current branch disposition
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+## Source40 branch disposition
+
+The source commit `20a8c34261d2aa801335a812fbc3c5987cf28587` exists and is fetched locally, with parent published `cc15026a`; no remote branch has moved for this source. The **19:03:44 UTC** ref preflight verified unchanged main `ee5aa511`, integration `0acb612` and the PR32 branch at `cc15026a`. PR30 retains its separately observed `72dd38c` head. Existing [PR32](https://github.com/djshellshoxxx/deckchek/pull/32) stays an open draft at `cc15026a`. Root intends a distinct draft catalog/profile follow-up against the integration base after this overlay is independently reviewed, retaining PR32's running gates. No branch name or PR number is assumed. The verified merge tree and source-specific hosted outcomes are in [the current report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#published-source39-and-integration-state). No superseded PR is closed before its replacement reaches main, and PR27 metadata remains untouched. Historical branch/PR inventories below retain their dated counts and dispositions.
+
+> Historical source39 prepublication correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+
+<a id="current-branch-disposition"></a>
+
+## Historical source39 branch disposition
 
 The existing [PR32](https://github.com/djshellshoxxx/deckchek/pull/32) is an open draft from `review/deckchek-midi-profile-20261118` at `61e265f536f9e5c5a2b78175eff6d3fdac62dd47` into integration `0acb612aa796f7f459172932868ff7e787d83399`. Prepare its source39 advance after corrected qualification and independent documentation review; no duplicate PR or merge is implied. Preserve stable PR30 `72dd38c`, PR27 metadata, main `ee5aa511` and all contributed history. The [current report](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#published-head-hosted-observations) separates actual published-head outcomes from the unpublished correction. At **18:17:57 UTC on 2026-11-18**, the current inventory contained **29 branches / 26 PRs: 11 open, 14 merged and one closed unmerged**. PR32 had no reviews or inline comments. Qualified source `04bbc7146f09dc2d1ebd0a6b403d4549d4d6f26b` descends from `61e265f`; its documentation child is not yet published. Dated inventories below retain their original scope and counts.
 
@@ -12,7 +24,9 @@ The existing [PR32](https://github.com/djshellshoxxx/deckchek/pull/32) is an ope
 
 > Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
 
-## Current source38 publication plan
+<a id="current-source38-publication-plan"></a>
+
+## Historical source38 publication plan
 
 Latest locally qualified source `fe936f7d` descends from source37 `2ec083c4` and published PR30 head `72dd38c`, retaining those contributions. The intended draft head remains `review/deckchek-midi-profile-20261118`, targeting `integration/deckchek-consolidation-20261118` at `0acb612`. This keeps existing nightly/platform pull-request gates applicable and preserves PR30’s stable head/checks and PR27 metadata. No follow-up branch or PR number exists in this snapshot. The integration → PR27 → main path remains subject to qualification; no supersession or future merge order is committed. [Current source and boundaries](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md).
 
