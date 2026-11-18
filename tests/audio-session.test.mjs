@@ -24,7 +24,7 @@ function recording(buffer, levelDbfs, { gain = 1, silent = false, rate = SR } = 
  * single capture lease (a second start while one is held is CAPTURE_BUSY). Hooks run inside the
  * session's waits: hooks.lead / hooks.play receive the capture options (onPreempted, onStatus, ...).
  */
-function fakes({ gain = 1, silent = false, failPlay = false, rate = SR, startError = null, play = null, start = null, hooks = {}, lease = { held: false } } = {}) {
+function fakes({ gain = 1, silent = false, failPlay = false, rate = SR, startError = null, play = null, start = null, hooks = {}, lease = { held: false }, quality = {}, streamErrors = [], deviceName = 'Interface' } = {}) {
   const calls = { play: [], stop: [], stopAll: 0, capture: [], captureStops: 0, cancels: 0, order: [], waits: [] };
   let recorded = null, options = null;
   const out = {
@@ -39,8 +39,15 @@ function fakes({ gain = 1, silent = false, failPlay = false, rate = SR, startErr
     async stopAll() { calls.stopAll++; return 3; },
   };
   const session = () => ({
-    info: { sampleRate: rate, leaseId: 1 },
-    async stop() { calls.captureStops++; calls.order.push('capture-stop'); lease.held = false; return { audio: recorded || recording({ left: [], right: [] }, -12, { silent: true }) }; },
+    info: { sampleRate: rate, leaseId: 1, deviceName },
+    async stop() {
+      calls.captureStops++; calls.order.push('capture-stop'); lease.held = false;
+      const audio = recorded || recording({ left: [], right: [] }, -12, { silent: true });
+      return { audio, deviceName, streamErrors, quality: quality == null ? null : {
+        framesCaptured: audio.left.length, overrunSamples: 0, clippedSamplesL: 0, clippedSamplesR: 0,
+        streamErrors: 0, streamErrorMessages: [], truncated: false, callbackCount: 1, maxCallbackGapMs: 1, pairs: [], ...quality,
+      } };
+    },
     async cancel() { calls.cancels++; calls.order.push('capture-cancel'); lease.held = false; },
   });
   const startCapture = async args => {
@@ -85,6 +92,71 @@ test('session clamps the level to the -12 dBFS cap and honours a lower level', a
   const quiet = fakes(); const r = await run(quiet, { playLevelDbfs: -30 });
   assert.equal(quiet.calls.play[0].opts.levelDbfs, -30);
   assert.ok(Math.abs(r.measurements.find(m => m.metricId === 'aq_gain_db').value) < 0.1, 'gain is relative to the played level');
+});
+
+test('regression: loss, stream errors and truncated capture retain evidence but cannot certify the device', async () => {
+  for (const [quality, streamErrors] of [
+    [{ overrunSamples: 10000 }, []],
+    [{ streamErrors: 1 }, []],
+    [{ streamErrorMessages: ['Device disconnected'] }, []],
+    [{}, ['Device disconnected']],
+    [{ truncated: true }, []],
+  ]) {
+    const r = await run(fakes({ quality, streamErrors }));
+    assert.equal(r.status, 'unknown', JSON.stringify({ quality, streamErrors }));
+    assert.equal(r.extra.captureIntegrity.state, 'incomplete');
+    assert.ok(r.measurements.length > 0, 'raw measured values remain available');
+    assert.ok(r.measurements.every(m => m.qualityFlags.includes('capture-incomplete')));
+    assert.ok(r.findings.some(f => f.id === 'aq-capture-incomplete'));
+    for (const [key, value] of Object.entries(quality)) assert.deepEqual(r.extra.captureQuality[key], value);
+    assert.deepEqual(r.extra.streamErrors, streamErrors);
+  }
+});
+
+test('regression: missing or invalid capture integrity is unknown, never measured zero', async () => {
+  for (const quality of [null, { overrunSamples: undefined }, { overrunSamples: -1 }, { streamErrors: 0.5 }, { truncated: undefined }, { streamErrorMessages: null }, { callbackCount: Number.NaN }]) {
+    const r = await run(fakes({ quality }));
+    assert.equal(r.status, 'unknown');
+    assert.equal(r.extra.captureIntegrity.state, 'unavailable');
+    assert.ok(r.findings.some(f => f.id === 'aq-capture-unverified'));
+    assert.ok(r.measurements.every(m => m.qualityFlags.includes('capture-unverified')));
+    if (quality == null) assert.equal(r.extra.captureQuality, null);
+  }
+  const clean = await run(fakes());
+  assert.equal(clean.status, 'pass');
+  assert.equal(clean.extra.captureIntegrity.state, 'observed');
+  assert.equal(clean.extra.captureQuality.overrunSamples, 0);
+});
+
+const calibrationProfile = (over = {}) => ({
+  version: 1, valid: true, issues: [], gainDb: { left: 0, right: 0 }, uncertainty: {},
+  mismatchDb: 0, clockPpm: 0, latencyMs: 0, sampleRate: SR, deviceName: 'Interface',
+  createdAt: '2026-11-17T00:00:00Z', thdnPercent: 1, ...over,
+});
+
+test('regression: calibration applies only to the actual captured device and sample rate', async () => {
+  const matching = await run(fakes(), { calibrationProfile: calibrationProfile() });
+  assert.equal(matching.extra.calibrated, true);
+  assert.equal(matching.extra.calibration.state, 'applied');
+  assert.ok(matching.measurements.find(m => m.metricId === 'aq_thdn_percent').qualityFlags.includes('chain-corrected'));
+  for (const [options, selected] of [
+    [{ rate: 44100 }, calibrationProfile()],
+    [{ deviceName: 'Different interface' }, calibrationProfile()],
+    [{}, calibrationProfile({ valid: false })],
+    ...[undefined, null, '', '   ', 123, {}, []].map(deviceName => [{}, calibrationProfile({ deviceName })]),
+  ]) {
+    const r = await run(fakes(options), { calibrationProfile: selected, calibrated: true, chainFloor: { thdnPercent: 1 } });
+    assert.equal(r.extra.calibrated, false);
+    assert.equal(r.extra.calibration.state, 'inapplicable');
+    const flags = r.measurements.find(m => m.metricId === 'aq_thdn_percent').qualityFlags;
+    assert.ok(flags.includes('uncalibrated-chain'));
+    assert.ok(!flags.includes('chain-corrected'));
+    assert.ok(r.findings.some(f => f.id === 'aq-calibration-inapplicable'));
+  }
+  const anonymous = await run(fakes(), { calibrated: true, chainFloor: { thdnPercent: 1 } });
+  assert.equal(anonymous.extra.calibrated, false, 'a boolean cannot establish calibration applicability');
+  assert.ok(!anonymous.measurements.find(m => m.metricId === 'aq_thdn_percent').qualityFlags.includes('chain-corrected'));
+  assert.equal(matching.extra.analysisVersion, 2, 'saved evidence identifies the corrected analysis revision');
 });
 
 test('session handles a capture at a different sample rate, silence, and playback failure', async () => {

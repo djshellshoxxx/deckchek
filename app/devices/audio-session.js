@@ -12,6 +12,7 @@
 //   out.stopAll() is never called: it would silence other screens' playback.
 import { buildStimulus, analyzeAudioQuality, evaluateAudioQuality, issueFindings, profileSpecNotes, safePlayLevel } from '../audio-quality.js';
 import { ABS_MAX_DBFS } from '../audio-out.js';
+import { profileInapplicableReasons } from '../calibration.js';
 
 export const AQ_LEAD_MS = 300;  // recording runs this long before the stimulus starts
 export const AQ_TAIL_MS = 500;  // and this long after it ends (output latency)
@@ -31,19 +32,40 @@ const handleOf = info => info?.handle ?? null;
 /** When a start resolves after the run ended, release what it started (errors are already moot). */
 const releaseLate = (pending, release) => { pending.then(v => Promise.resolve().then(() => release(v)).catch(() => {}), () => {}); };
 
+/** Native continuity evidence is separate from the waveform's numerical threshold results. */
+function captureEvidence(cap, audio) {
+  const quality = cap?.quality ?? null, streamErrors = cap?.streamErrors ?? null;
+  const counters = ['framesCaptured', 'overrunSamples', 'clippedSamplesL', 'clippedSamplesR', 'streamErrors', 'callbackCount'];
+  const validCounter = n => Number.isSafeInteger(n) && n >= 0;
+  const messages = value => Array.isArray(value) && value.every(v => typeof v === 'string');
+  const valid = quality && typeof quality === 'object' && !Array.isArray(quality) &&
+    counters.every(k => validCounter(quality[k])) && typeof quality.truncated === 'boolean' &&
+    Number.isFinite(quality.maxCallbackGapMs) && quality.maxCallbackGapMs >= 0 &&
+    messages(quality.streamErrorMessages) && messages(streamErrors) &&
+    quality.framesCaptured === audio.left?.length && quality.callbackCount > 0;
+  const reasons = [];
+  if (validCounter(quality?.overrunSamples) && quality.overrunSamples > 0) reasons.push('capture buffer overruns');
+  if (validCounter(quality?.streamErrors) && quality.streamErrors > 0) reasons.push('audio stream errors');
+  if (messages(quality?.streamErrorMessages) && quality.streamErrorMessages.length) reasons.push('reported stream error messages');
+  if (messages(streamErrors) && streamErrors.length) reasons.push('reported device errors');
+  if (quality?.truncated === true) reasons.push('capture length limit reached');
+  return { quality, streamErrors, integrity: { source: 'live', state: reasons.length ? 'incomplete' : valid ? 'observed' : 'unavailable', reasons } };
+}
+
 /**
  * Session result for an analysis: {analysis, evaluation, measurements, findings, status, detail, extra}.
  * An invalid analysis has no measurements: there is nothing to save.
  */
 export function qualityResult(analysis, { profile = null, extra = {} } = {}) {
+  const evidence = { ...extra, analysisVersion: analysis?.version ?? null };
   if (!analysis?.valid) {
     const issues = analysis?.issues || [];
-    return { analysis, evaluation: null, measurements: [], findings: issueFindings(issues), status: 'unknown', detail: issues[0]?.message || 'The recording could not be analysed.', extra: { issues, ...extra } };
+    return { analysis, evaluation: null, measurements: [], findings: issueFindings(issues), status: 'unknown', detail: issues[0]?.message || 'The recording could not be analysed.', extra: { issues, ...evidence } };
   }
   const evaluation = evaluateAudioQuality(analysis.measurements);
   return {
     analysis, evaluation, measurements: analysis.measurements, findings: [...evaluation.findings, ...issueFindings(analysis.issues), ...(profile ? profileSpecNotes(profile) : [])], status: evaluation.status, detail: evaluation.detail,
-    extra: { response: analysis.response, separation: analysis.separation, thresholds: evaluation.results.map(r => ({ id: r.threshold.id, status: r.status, detail: r.detail })), ...extra },
+    extra: { response: analysis.response, separation: analysis.separation, thresholds: evaluation.results.map(r => ({ id: r.threshold.id, status: r.status, detail: r.detail })), ...evidence },
   };
 }
 
@@ -53,7 +75,7 @@ export function qualityResult(analysis, { profile = null, extra = {} } = {}) {
  * `signal` (AbortSignal) cancels the run; it then rejects with AudioSessionError code 'cancelled'
  * ('preempted' / 'capture-lost' when the capture ended it). Returns qualityResult(...).
  */
-export async function runQualitySession({ out, startCapture, outputDevice = null, inputDevice = null, pairs = null, playLevelDbfs = ABS_MAX_DBFS, sampleRate = 48000, chainFloor = null, calibrated = false, profile = null, onPhase = () => {}, leadMs = AQ_LEAD_MS, tailMs = AQ_TAIL_MS, wait = sleep, signal = null } = {}) {
+export async function runQualitySession({ out, startCapture, outputDevice = null, inputDevice = null, pairs = null, playLevelDbfs = ABS_MAX_DBFS, sampleRate = 48000, calibrationProfile = null, profile = null, onPhase = () => {}, leadMs = AQ_LEAD_MS, tailMs = AQ_TAIL_MS, wait = sleep, signal = null } = {}) {
   if (!out?.supported) throw new AudioSessionError('unsupported', 'The output-quality test needs the DeckChek desktop app.');
   if (typeof startCapture !== 'function') throw new AudioSessionError('unsupported', 'Recording the output needs the DeckChek desktop app.');
   const level = Math.min(ABS_MAX_DBFS, safePlayLevel(playLevelDbfs));
@@ -101,12 +123,42 @@ export async function runQualitySession({ out, startCapture, outputDevice = null
     const cap = await guard(Promise.resolve().then(() => own.stop()));
     if (cap?.preempted) throw sessionError('preempted');
     const audio = cap?.audio || cap || {};
-    const rate = audio.sampleRate || sampleRate;
+    const rate = audio.sampleRate;
     let meta = stim.meta;
     if (rate !== sampleRate) { try { meta = buildStimulus({ sampleRate: rate, playLevelDbfs: level }).meta; } catch { /* unsupported rate: analysis reports BAD_INPUT */ } }
+    const capturedDevice = [cap?.deviceName, own.info?.deviceName].find(name => typeof name === 'string' && name.trim()) || null;
+    const identifiedProfile = typeof calibrationProfile?.deviceName === 'string' && calibrationProfile.deviceName.trim().length > 0;
+    const calibrationReasons = calibrationProfile
+      ? [...profileInapplicableReasons(calibrationProfile, { deviceName: identifiedProfile ? capturedDevice : null, sampleRate: rate }), ...(identifiedProfile ? [] : ['profile device identity is unavailable']), ...(capturedDevice ? [] : ['captured device is unavailable'])]
+      : [];
+    const calibrated = Boolean(calibrationProfile && !calibrationReasons.length);
+    const chainFloor = calibrated && Number.isFinite(calibrationProfile.thdnPercent) && calibrationProfile.thdnPercent > 0
+      ? { thdnPercent: calibrationProfile.thdnPercent } : null;
+    const calibration = {
+      state: !calibrationProfile ? 'none' : calibrated ? 'applied' : 'inapplicable', reasons: calibrationReasons,
+      profileId: calibrationProfile?.id ?? null, profileCreatedAt: calibrationProfile?.createdAt ?? null,
+      profileDevice: calibrationProfile?.deviceName ?? null, profileSampleRate: calibrationProfile?.sampleRate ?? null,
+      capturedDevice, capturedSampleRate: rate,
+    };
     const analysis = analyzeAudioQuality({ left: audio.left, right: audio.right, sampleRate: rate }, meta, { chainFloor, calibrated });
     if (reason) throw sessionError(reason);
-    return qualityResult(analysis, { profile, extra: { outputDevice, inputDevice, playLevelDbfs: level, sampleRate: rate, calibrated } });
+    const evidence = captureEvidence(cap, audio);
+    const result = qualityResult(analysis, { profile, extra: {
+      outputDevice, inputDevice, playLevelDbfs: level, sampleRate: rate, calibrated, calibration,
+      captureQuality: evidence.quality, streamErrors: evidence.streamErrors, captureIntegrity: evidence.integrity,
+    } });
+    if (calibrationReasons.length) result.findings.push({ id: 'aq-calibration-inapplicable', severity: 'info', title: 'The selected calibration was not applied', meaning: `The recorded device or format does not match the calibration: ${calibrationReasons.join('; ')}. Values include the recording chain.`, action: 'Calibrate this input at its actual sample rate, then repeat the test.' });
+    if (evidence.integrity.state !== 'observed') {
+      const incomplete = evidence.integrity.state === 'incomplete';
+      const flag = incomplete ? 'capture-incomplete' : 'capture-unverified';
+      result.measurements = result.measurements.map(m => ({ ...m, qualityFlags: [...(m.qualityFlags || []), flag] }));
+      result.findings.unshift({ id: incomplete ? 'aq-capture-incomplete' : 'aq-capture-unverified', severity: 'review', title: incomplete ? 'The recording has capture faults' : 'Capture continuity could not be verified', meaning: incomplete ? `The capture reports ${evidence.integrity.reasons.join('; ')}. The recorded values remain available, but they cannot establish the device's output quality.` : 'Complete valid native capture counters were unavailable. Missing evidence is not a measured zero-loss recording.', action: 'Check the input connection and audio driver, then repeat the measurement.' });
+      if (result.measurements.length) {
+        result.status = 'unknown';
+        result.detail = incomplete ? 'Review the recording: capture faults prevent a device verdict.' : 'Review the recording: capture continuity could not be verified.';
+      }
+    }
+    return result;
   } finally {
     signal?.removeEventListener?.('abort', onAbort);
     const voice = handle, own = session; handle = null; session = null;

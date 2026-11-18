@@ -20,9 +20,10 @@ class Element {
   set value(value) { this.selectedValue = value; }
   get value() { return this.selectedValue ?? ''; }
   addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); }
+  removeEventListener(name, callback) { this.listeners[name] = (this.listeners[name] || []).filter(fn => fn !== callback); }
   dispatchEvent() { return true; }
   remove() {}
-  async fire(name) { for (const callback of this.listeners[name] || []) await callback({ target: this, currentTarget: this }); }
+  async fire(name, extra = {}) { for (const callback of this.listeners[name] || []) await callback({ target: this, currentTarget: this, ...extra }); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   querySelectorAll(selector) {
     const match = el => selector.startsWith('#') ? el.id === selector.slice(1) : el.tagName === selector.toUpperCase();
@@ -30,7 +31,7 @@ class Element {
   }
   get text() { return [this.textContent || '', this.html || '', ...this.children.map(c => c.text)].join(' '); }
   get classList() { return { add() {}, remove() {}, toggle() {} }; }
-  focus() {}
+  focus() { this.focusRequests = (this.focusRequests || 0) + 1; }
 }
 const previous = { document: globalThis.document, Node: globalThis.Node };
 let toastHost = null;
@@ -74,8 +75,14 @@ function io(plan = {}) {
     const error = plan.startError?.(attempt);
     if (error) throw error;
     return {
-      info: { sampleRate: SR, leaseId: attempt },
-      async stop() { calls.captureStops++; const held = plan.stopCapture?.(attempt); if (held) await held; return { audio: recorded }; },
+      info: { sampleRate: SR, leaseId: attempt, deviceName: 'Interface' },
+      async stop() {
+        calls.captureStops++; const held = plan.stopCapture?.(attempt); if (held) await held;
+        return { audio: recorded, deviceName: 'Interface', streamErrors: [], quality: {
+          framesCaptured: recorded.left.length, overrunSamples: 0, clippedSamplesL: 0, clippedSamplesR: 0,
+          streamErrors: 0, streamErrorMessages: [], truncated: false, callbackCount: 1, maxCallbackGapMs: 1, pairs: [],
+        } };
+      },
       async cancel() { calls.cancels++; },
     };
   };
@@ -105,9 +112,56 @@ test('setup and measuring keep the safety copy visible; the level field never go
   assert.equal(level.value, '-12');
   const running = m.click('aq-run'); await settle();
   assert.ok(m.host.querySelector('#aq-stop'), 'measuring view');
+  assert.equal(m.host.querySelector('#aq-stop').focusRequests, 1, 'focus follows the replacement view, so Escape reaches the runner');
   assert.ok(m.host.text.includes(SAFETY_COPY), 'the safety copy stays visible while the signal plays');
   assert.equal(m.calls.play[0].opts.levelDbfs, -12);
   hold.resolve(); await running; await settle();
+  m.runner.dispose();
+});
+
+test('keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run', async () => {
+  const hold = deferred(), m = mount(io({ waitPlay: () => hold.promise })); await settle();
+  const prevented = [];
+  const key = (key, extra = {}) => m.host.fire('keydown', { key, preventDefault: () => prevented.push(key), ...extra });
+  await key('Enter', { target: m.host.querySelector('#aq-level') });
+  await key('Enter', { target: m.host.querySelector('#aq-run') });
+  await key('Enter', { repeat: true });
+  await key('Enter', { ctrlKey: true });
+  assert.equal(m.calls.starts, 0, 'editing or default button activation must not trigger a second run');
+  const running = key('Enter'); await settle();
+  assert.equal(m.calls.starts, 1);
+  assert.equal(m.calls.play.length, 1);
+  const progress = m.host.querySelector('#aq-progress');
+  assert.ok(progress, 'the current test stage is visible while measuring');
+  assert.equal(Number(progress.value), 1, 'recording preparation completed, playback is current');
+  assert.match(progress.attributes['aria-valuetext'], /Stage 2 of 3/);
+  await key('Enter'); await settle();
+  assert.equal(m.calls.starts, 1, 'Enter cannot start a concurrent measurement');
+  await key('Escape'); await settle();
+  assert.deepEqual(m.calls.stop, [7]);
+  assert.equal(m.calls.stopAll, 0);
+  assert.equal(m.calls.cancels, 1);
+  assert.deepEqual(m.finished, []);
+  assert.deepEqual(prevented, ['Enter', 'Escape']);
+  assert.equal(m.host.querySelector('#aq-progress'), null);
+  assert.equal(m.host.querySelector('#aq-run').focusRequests, 1, 'Stop returns focus to the new Run button');
+  hold.resolve(); await running; await settle();
+  m.runner.dispose();
+  await key('Enter'); await settle();
+  assert.equal(m.calls.starts, 1, 'dispose removes the keyboard listener');
+});
+
+test('progress reserves the final stage until analysis completes and disappears with results', async () => {
+  const stop = deferred(), m = mount(io({ stopCapture: () => stop.promise })); await settle();
+  const running = m.click('aq-run'); await settle();
+  const progress = m.host.querySelector('#aq-progress');
+  assert.ok(progress);
+  assert.equal(Number(progress.value), 2, 'the pending analysis is not represented as complete');
+  assert.match(progress.attributes['aria-valuetext'], /Stage 3 of 3/);
+  stop.resolve(); await running; await settle();
+  assert.equal(m.host.querySelector('#aq-progress'), null);
+  assert.equal(m.finished.length, 1);
+  assert.equal(m.host.querySelector('section').focusRequests, 1, 'the result summary receives focus');
   m.runner.dispose();
 });
 
@@ -120,10 +174,13 @@ test('bug 1: a capture that cannot start plays nothing, saves nothing, and Try a
   assert.match(m.host.text, /Live monitor is using the audio input/);
   assert.match(m.host.text, /Nothing was saved for this attempt/);
   assert.match(m.host.querySelector('#aq-run').innerHTML, /Try again/);
+  assert.equal(m.host.querySelector('#aq-run').focusRequests, 1, 'a failed attempt focuses Try again');
   await m.click('aq-run'); await settle();
   assert.equal(m.calls.play.length, 1);
   assert.equal(m.finished.length, 1, 'the retry is saved once');
   assert.equal(m.finished[0].status, 'pass', m.finished[0].detail);
+  assert.equal(m.finished[0].extra.captureIntegrity.source, 'live');
+  assert.equal(m.finished[0].extra.captureIntegrity.state, 'observed');
   assert.ok(m.finished[0].measurements.length > 0);
   assert.equal(m.calls.stopAll, 0);
   m.runner.dispose();
@@ -231,6 +288,27 @@ test('bug 5: the saved test signal WAV peaks at -12 dBFS', async () => {
   m.runner.dispose();
 });
 
+test('native capture faults are displayed and saved as REVIEW with their original quality evidence', async () => {
+  const deps = io(), start = deps.startCapture;
+  deps.startCapture = async options => {
+    const session = await start(options);
+    return { ...session, stop: async () => {
+      const cap = await session.stop();
+      return { ...cap, quality: { ...cap.quality, overrunSamples: 1024 }, streamErrors: ['Device disconnected'] };
+    } };
+  };
+  const m = mount(deps); await settle();
+  await m.click('aq-run'); await settle();
+  assert.equal(m.finished.length, 1);
+  assert.equal(m.finished[0].status, 'unknown');
+  assert.equal(m.finished[0].extra.captureQuality.overrunSamples, 1024);
+  assert.deepEqual(m.finished[0].extra.streamErrors, ['Device disconnected']);
+  assert.equal(m.finished[0].extra.captureIntegrity.state, 'incomplete');
+  assert.match(m.host.text, /Output quality · REVIEW/);
+  assert.match(m.host.text, /capture faults prevent a device verdict/);
+  m.runner.dispose();
+});
+
 function fileDeps(plan) {
   const deps = io();
   const st = exportStimulus({ sampleRate: SR });
@@ -238,6 +316,24 @@ function fileDeps(plan) {
   good.left.set(st.left, 500); good.right.set(st.right, 500);
   return { ...deps, good, pickFile: async () => plan.pick(), decodeAudioFile: file => plan.decode(file, good) };
 }
+
+test('stereo response plots expose opposite channel errors instead of displaying a flat average', async () => {
+  const segment = exportStimulus().meta.segments.find(s => s.name === 'resp' && s.hz === 10000);
+  const deps = fileDeps({ pick: () => ({ name: 'stereo-response.wav' }), decode: async (_, good) => {
+    for (let i = segment.start + 500; i < segment.end + 500; i++) {
+      good.left[i] *= 10 ** (3 / 20);
+      good.right[i] *= 10 ** (-3 / 20);
+    }
+    return good;
+  } });
+  const m = mount(deps); await settle();
+  await m.click('aq-file'); await settle();
+  assert.equal(m.finished[0].status, 'fail');
+  assert.match(m.host.text, /Left channel: level relative to 1 kHz/);
+  assert.match(m.host.text, /Right channel: level relative to 1 kHz/);
+  assert.match(m.host.text, /10k Hz: L \+3\.00 dB \/ R −3\.00 dB/);
+  m.runner.dispose();
+});
 
 test('bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves', async () => {
   toastHost = new Element('div'); // error toasts only from here on
@@ -265,6 +361,8 @@ test('bug 3: a file decode that completes after dispose or after a newer pick ne
   assert.equal(m.finished.length, 1);
   assert.equal(m.finished[0].extra.source, 'b.wav');
   assert.equal(m.finished[0].status, 'pass', m.finished[0].detail);
+  assert.equal(m.finished[0].extra.captureIntegrity.source, 'file');
+  assert.equal(m.finished[0].extra.captureIntegrity.state, 'unobserved');
   const view = m.host.text;
   first.resolve(deps.good); await a; await settle();
   assert.equal(m.finished.length, 1, 'the superseded decode is not saved');

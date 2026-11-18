@@ -6,8 +6,10 @@ import { markerSignal, detectMarkerLag, fitTone, refineToneFrequency } from './c
 import { evaluatePass } from './device-checks.js';
 
 export const AQ_VERSION = 1;
+export const AQ_ANALYSIS_VERSION = 2; // v2 judges response flatness by the worst channel, not the signed mean
 export const DEFAULT_PLAY_LEVEL_DBFS = -12; // audio_out absolute cap (audio-out.js ABS_MAX_DBFS)
 export const MIN_PLAY_LEVEL_DBFS = -60;
+const MAX_SAMPLE_RATE = 384000; // native audio_out's supported upper bound
 export const RESPONSE_HZ = Object.freeze([20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 15000, 20000]);
 const TONE_REL_DB = -8;          // -20 dBFS at the default -12 dBFS play level
 const LIN_LOW_REL_DB = -28;      // -40 dBFS
@@ -29,7 +31,7 @@ export function safePlayLevel(levelDbfs) {
 // ---------- stimulus ----------
 /** Stereo stimulus program. Peak amplitude is exactly 1.0 (the -12 dB linearity step). */
 export function buildStimulus({ sampleRate = 48000, playLevelDbfs = DEFAULT_PLAY_LEVEL_DBFS } = {}) {
-  if (!Number.isInteger(sampleRate) || sampleRate < 22050) throw new RangeError('sampleRate must be an integer >= 22050');
+  if (!Number.isInteger(sampleRate) || sampleRate < 22050 || sampleRate > MAX_SAMPLE_RATE) throw new RangeError('sampleRate must be an integer between 22050 and 384000');
   const sr = sampleRate, S = s => Math.round(s * sr);
   const defs = [{ name: 'silence', channels: '', hz: 0, relDb: -Infinity, sec: SILENCE_SEC },
     { name: 'tone', channels: 'LR', hz: 1000, relDb: TONE_REL_DB, sec: TONE_SEC },
@@ -145,10 +147,15 @@ function detectDropouts(x, fit, sr, w) {
  * Returns {valid, issues, measurements, response[], channels, clockPpm, lagSamples}.
  */
 export function analyzeAudioQuality(captured, meta, { chainFloor = null, calibrated = false, trimSec = 0.05, maxLagSec = 2 } = {}) {
-  const out = { valid: false, issues: [], measurements: [], response: [], channels: {}, clockPpm: null, lagSamples: null };
+  const out = { version: AQ_ANALYSIS_VERSION, valid: false, issues: [], measurements: [], response: [], channels: {}, clockPpm: null, lagSamples: null };
   const sr = meta?.sampleRate;
   const L = captured?.left, R = captured?.right;
-  if (!L || !R || !L.length || captured.sampleRate !== sr) { out.issues.push(issue('BAD_INPUT', 'Capture is missing or its sample rate differs from the stimulus.')); return out; }
+  const samples = data => ArrayBuffer.isView(data) && typeof data.subarray === 'function' && data.length > 0;
+  if (!samples(L) || !samples(R) || L.length !== R.length || !Number.isInteger(sr) || sr < 22050 || sr > MAX_SAMPLE_RATE || captured.sampleRate !== sr ||
+      !Number.isFinite(trimSec) || trimSec < 0 || !Number.isFinite(maxLagSec) || maxLagSec < 0) {
+    out.issues.push(issue('BAD_INPUT', 'Capture buffers, sample rate or analysis options are invalid.')); return out;
+  }
+  if (!L.every(Number.isFinite) || !R.every(Number.isFinite)) { out.issues.push(issue('BAD_INPUT', 'The recording contains non-finite samples. No measurements were produced.')); return out; }
   const marker = markerSignal(sr, 1);
   const eL = rms(L), eR = rms(R);
   if (Math.max(eL, eR) < db2amp(-80)) { out.issues.push(issue('NO_SIGNAL', 'The capture is silent. Check the cable, the output selection and the input gain.')); return out; }
@@ -212,7 +219,7 @@ export function analyzeAudioQuality(captured, meta, { chainFloor = null, calibra
   out.channels = per;
   for (const c of ['L', 'R']) if (dbfs(per[c].fit.amplitude) < -70) out.issues.push(issue('CHANNEL_DEAD', `The ${c === 'L' ? 'left' : 'right'} channel is below −70 dBFS during the tone.`, 'warning'));
 
-  // frequency response (levels relative to the 1 kHz tone, mean of both channels)
+  // Frequency response retains the signed stereo mean and both channel deviations.
   const ref1k = Object.fromEntries(Object.keys(chans).map(c => [c, per[c].fit.amplitude]));
   for (const s of seg('resp').filter(x => !x.skipped)) {
     const devs = Object.entries(chans).map(([c, x]) => 20 * Math.log10(Math.max(fitAt(x, s).amplitude, 1e-12) / Math.max(ref1k[c], 1e-12)));
@@ -224,7 +231,8 @@ export function analyzeAudioQuality(captured, meta, { chainFloor = null, calibra
 
   const w = c => per[c];
   const worst = k => Math.max(w('L')[k], w('R')[k]);
-  const flat = out.response.filter(r => r.hz >= 100 && r.hz <= 10000).map(r => Math.abs(r.devDb));
+  // Judge the worst channel: opposite left/right errors must never cancel into a pass.
+  const flat = out.response.filter(r => r.hz >= 100 && r.hz <= 10000).flatMap(r => [Math.abs(r.devLeftDb), Math.abs(r.devRightDb)]);
   const lowR = out.response[0], highR = out.response[out.response.length - 1];
   const bal = w('L').gainDb - w('R').gainDb;
   const flags = per.L.flags;

@@ -22,7 +22,7 @@ function simulate({ gainDb = 0, delay = 137, cubic = 0, noiseRms = 0, lowpassHz 
   if (x > 0) { const l2 = L.map((v, i) => v + x * R[i]), r2 = R.map((v, i) => v + x * L[i]); L = l2; R = r2; }
   if (invertR) R = R.map(v => -v);
   if (dropout) for (const c of [L, R]) c.fill(0, dropout[0], dropout[1]);
-  if (ppm) { const warp = c => { const o = new Float64Array(c.length), k = 1 + ppm * 1e-6; for (let i = 2; i < c.length - 3; i++) { const p = i * k, j = Math.floor(p), f = p - j, [y0, y1, y2, y3] = [c[j - 1], c[j], c[j + 1], c[j + 2]]; o[i] = y1 + 0.5 * f * (y2 - y0 + f * (2 * y0 - 5 * y1 + 4 * y2 - y3 + f * (3 * (y1 - y2) + y3 - y0))); } return o; }; L = warp(L); R = warp(R); }
+  if (ppm) { const warp = c => { const o = new Float64Array(c.length), k = 1 + ppm * 1e-6; for (let i = 2; i < c.length - 3; i++) { const p = i * k, j = Math.floor(p), f = p - j; if (j < 1 || j + 2 >= c.length) continue; const [y0, y1, y2, y3] = [c[j - 1], c[j], c[j + 1], c[j + 2]]; o[i] = y1 + 0.5 * f * (y2 - y0 + f * (2 * y0 - 5 * y1 + 4 * y2 - y3 + f * (3 * (y1 - y2) + y3 - y0))); } return o; }; L = warp(L); R = warp(R); }
   if (noiseRms) { const gn = gauss(rng(seed)); for (const c of [L, R]) for (let i = 0; i < c.length; i++) c[i] += noiseRms * gn(); }
   return { left: Float32Array.from(L), right: Float32Array.from(R), sampleRate: SR };
 }
@@ -124,6 +124,26 @@ test('frequency response roll-off, crosstalk, polarity, dropout and clock offset
   assert.ok(mv(clk, 'aq_thdn_percent') < 0.2, String(mv(clk, 'aq_thdn_percent')));
 });
 
+test('regression: opposite stereo response errors cannot cancel into a clean flatness result', () => {
+  for (const [leftDb, rightDb] of [[3, -3], [2, 0], [0, -2]]) {
+    const capture = exportStimulus();
+    const segment = capture.meta.segments.find(s => s.name === 'resp' && s.hz === 10000);
+    for (let i = segment.start; i < segment.end; i++) {
+      capture.left[i] *= 10 ** (leftDb / 20);
+      capture.right[i] *= 10 ** (rightDb / 20);
+    }
+    const analysis = analyzeAudioQuality(capture, capture.meta);
+    assert.equal(analysis.version, 2, 'the corrected worst-channel definition has a distinct analysis revision');
+    const point = analysis.response.find(p => p.hz === 10000);
+    assert.ok(Math.abs(point.devLeftDb - leftDb) < 0.01);
+    assert.ok(Math.abs(point.devRightDb - rightDb) < 0.01);
+    assert.ok(Math.abs(point.devDb - (leftDb + rightDb) / 2) < 0.01, 'the signed mean remains available as raw evidence');
+    assert.ok(Math.abs(mv(analysis, 'aq_response_flatness_db') - Math.max(Math.abs(leftDb), Math.abs(rightDb))) < 0.01);
+    assert.equal(evaluateAudioQuality(analysis.measurements).status, 'fail');
+    assert.ok(evaluateAudioQuality(analysis.measurements).findings.some(f => f.id === 'aq-response'));
+  }
+});
+
 test('bad captures give an issue, never a crash', () => {
   const sil = { left: new Float32Array(st.left.length + SR), right: new Float32Array(st.left.length + SR), sampleRate: SR };
   assert.equal(analyzeAudioQuality(sil, st.meta).issues[0].code, 'NO_SIGNAL');
@@ -145,6 +165,30 @@ test('thresholds and spec notes', () => {
   assert.equal(notes.length, 1);
   assert.match(notes[0].title, /THD\+N/);
   assert.equal(evaluateAudioQuality([]).status, 'unknown');
+});
+
+test('non-finite samples and malformed capture formats cannot become numerical evidence', () => {
+  for (const value of [NaN, Infinity, -Infinity]) {
+    const s = exportStimulus();
+    const silence = s.meta.segments.find(segment => segment.name === 'silence');
+    s.left[silence.start + 10000] = value;
+    const analysis = analyzeAudioQuality(s, s.meta);
+    assert.equal(analysis.valid, false);
+    assert.equal(analysis.issues[0].code, 'BAD_INPUT');
+    assert.deepEqual(analysis.measurements, [], 'invalid noise samples must not be reported as a -140 dBFS floor');
+  }
+  const s = exportStimulus();
+  for (const sampleRate of [0, 22049, 384001, NaN, Infinity, 48000.5, undefined]) {
+    const analysis = analyzeAudioQuality({ ...s, sampleRate }, { ...s.meta, sampleRate });
+    assert.equal(analysis.valid, false);
+    assert.equal(analysis.issues[0].code, 'BAD_INPUT');
+  }
+  for (const left of [[0, 1], { length: s.left.length }]) {
+    assert.equal(analyzeAudioQuality({ ...s, left }, s.meta).issues[0].code, 'BAD_INPUT');
+  }
+  for (const sampleRate of [384001, Number.MAX_SAFE_INTEGER]) {
+    assert.throws(() => buildStimulus({ sampleRate }), /sampleRate/);
+  }
 });
 
 // ---------- additions to the PR9 suite ----------
