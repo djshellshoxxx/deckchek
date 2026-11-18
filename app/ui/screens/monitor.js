@@ -39,6 +39,7 @@ const fmt1 = v => (Number.isFinite(v) ? v.toFixed(1).replace('-', '−') : '—'
 let ctrl = null;            // one controller per page: the monitor keeps running while other screens are shown
 let view = null;            // the screen's render hooks, when created
 let monitorSettings = normalizeSettings(null);
+let settingsRevision = 0;   // a successful save supersedes an earlier initial read
 
 function controller() {
   if (ctrl) return ctrl;
@@ -61,7 +62,11 @@ function controller() {
 }
 
 async function loadSettings() {
-  try { monitorSettings = normalizeSettings((await appState.get(SETTINGS_KEY))?.value); } catch { monitorSettings = normalizeSettings(null); }
+  const revision = settingsRevision;
+  let loaded;
+  try { loaded = normalizeSettings((await appState.get(SETTINGS_KEY))?.value); } catch { loaded = normalizeSettings(null); }
+  if (revision !== settingsRevision) return null;
+  monitorSettings = loaded;
   ctrl?.setSettings(monitorSettings);
   return monitorSettings;
 }
@@ -255,8 +260,10 @@ export function createMonitorScreen(section) {
       retentionValid(true);
       try {
         await appState.set(SETTINGS_KEY, next);
+        settingsRevision++;
         monitorSettings = next; c.setSettings(next);
         retention.value = String(next.retentionDays);
+        toastsOn.checked = next.toastsEnabled;
         // prune only with a value that passed validation unchanged (never an implausible 0/1-day fallback)
         const r = await invoke('monitor_prune', { retentionDays: days });
         settingsMsg.textContent = `Saved. Logs are kept for ${next.retentionDays} days${r?.deleted ? `; ${r.deleted} older log${r.deleted === 1 ? '' : 's'} removed` : ''}.`;
@@ -418,7 +425,10 @@ export function createMonitorScreen(section) {
   events.set(c.events.list());
   renderControls();
   render();
-  loadSettings().then(s => { retention.value = String(s.retentionDays); toastsOn.checked = s.toastsEnabled; });
+  loadSettings().then(s => {
+    if (s !== monitorSettings) return; // a save may also finish between the read and this callback
+    retention.value = String(s.retentionDays); toastsOn.checked = s.toastsEnabled;
+  });
   logs.refresh();
 
   return {

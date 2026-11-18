@@ -55,7 +55,7 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     <p class="small muted cert-disclaimer">${esc(DISCLAIMER)}</p>`;
   const q = s => section.querySelector(s);
   const drop = q('#verify-drop'), input = q('#verify-file'), status = q('#verify-status'), result = q('#verify-result');
-  let token = 0, unlisten = null, listening = false;
+  let token = 0, unlisten = null, listening = false, listenToken = 0;
 
   // Each pick takes a token when it starts; only the latest pick may change the result (an earlier, slower file is dropped).
   const showMessage = (title, text, kind, my = ++token) => {
@@ -167,11 +167,17 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     onShow: () => {
       // Desktop: the webview does not receive dropped files (Tauri handles OS drops), so listen for its drop event while visible.
       if (native && events?.listen && !listening) {
+        const current = ++listenToken;
         listening = true;
-        Promise.resolve(events.listen('tauri://drag-drop', e => { const p = e?.payload?.paths?.[0]; if (p) handlePath(p); })).then(u => { if (listening) unlisten = u; else u?.(); }).catch(() => { listening = false; /* drops unavailable: the picker still works */ });
+        Promise.resolve(events.listen('tauri://drag-drop', e => {
+          if (!listening || current !== listenToken) return;
+          const p = e?.payload?.paths?.[0]; if (p) handlePath(p);
+        })).then(u => { if (listening && current === listenToken) unlisten = u; else u?.(); }).catch(() => {
+          if (current === listenToken) listening = false; // drops unavailable: the picker still works
+        });
       }
     },
-    onHide: () => { try { unlisten?.(); } catch { /* ignore */ } unlisten = null; listening = false; },
+    onHide: () => { listening = false; listenToken++; try { unlisten?.(); } catch { /* ignore */ } unlisten = null; },
     onEscape: () => { if (result.hidden) return false; result.hidden = true; status.textContent = ''; token++; drop.focus(); return true; },
   };
 }

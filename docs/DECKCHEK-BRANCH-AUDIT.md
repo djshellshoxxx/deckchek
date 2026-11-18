@@ -145,3 +145,7 @@ git diff MERGE_BASE_SHA SQUASHED_BRANCH_SHA | git patch-id --stable
 ```
 
 Patch identity answers whether a change was retained; it does not validate the resulting behavior. PR links provide review history, frozen commit links provide source evidence, and the integration review must supply current functional acceptance.
+
+## Current continuation disposition
+
+PR #27 is now ready for review. The next reviewed corrective source is `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98`, preserving the same integration ancestry. The preceding `1b1db16` CI passed JavaScript/browser checks but failed one native ZIP regression assertion after successful compilation; the reviewed follow-up retains archive refusal and adds independent stream-bound coverage. Exact evidence is in the handoff. No replacement has merged into `main`, so none of the superseded PRs or historical branches has been closed or removed.

@@ -113,12 +113,12 @@ No physical device or loopback qualification was performed in this session. Curr
 
 **Specification:** [12-stylus-wear-tracker.md](specs/12-stylus-wear-tracker.md)
 **Implementation:** `app/stylus-wear.js`, `src-tauri/src/stylus.rs`
-**Status:** PARTIAL: guided benchmark capture not built (spec gap noted in IMPLEMENTATION-STATUS)
+**Status:** PARTIAL: guided benchmark capture implementation in progress; no completed or qualified capture claim yet
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Guided benchmark capture is not built. Reuse existing tone, separated-channel and timecode workflows; preserve calibration/setup provenance. Physical repeatability and rated-life research also remain.
+**Remaining work / blocking dependencies:** A dedicated worker is implementing guided tone, separated-channel and optional timecode capture with calibration/setup provenance. Its source is excluded from the current frozen candidate until independent review. Physical repeatability and rated-life research also remain.
 **Tests and evidence:** `tests/stylus-wear.test.mjs`
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** stylus_guided_capture implementation; a separate independent reviewer will be assigned. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
 
 ## FS-13 — Control-vinyl wear map
 
@@ -159,10 +159,11 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/{signing,certificate}.rs`, `database/migrations/0014_certificate.sql`, `app/{certificate,certificate-api}.js`, `app/ui/screens/{certificate,verify}.js`
 **Status:** Implemented in baseline (HW: H-20; known gap: no PDF-embedded JSON, verify the sidecar `.deckchek-cert.json`)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Certificate chronology correction is implemented and independently reviewed. Reconcile undated stored results explicitly; perform current native signing/PDF and H-20 qualification. PDF JSON remains a sidecar.
-**Tests and evidence:** `tests/certificate*.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8)
+**Remaining work / blocking dependencies:** Chronology, history/identity request ownership and Verify listener lifecycle corrections are independently reviewed. Reconcile undated stored results explicitly; perform current native signing/PDF and H-20 qualification. PDF JSON remains a sidecar.
+**Tests and evidence:** `tests/certificate*.test.mjs`, `tests/verify-screen-lifecycle.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8). Eighteen new lifecycle cases; independent review passed 55 overlapping focused tests plus eight probe groups. Complete combined JavaScript source passed 1,367 tests/one optional skip.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root implementation; ci_audit independent review. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** certificate_async_review implementation; ci_audit independent review. **Verification commit:** `eba99f37e85b002b91a7073d33f326782fe46e47`; final CI is identified in the handoff.
+
 
 ## FS-21 — Unit vs population (phases 1-2)
 
@@ -214,10 +215,11 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/{monitor,tray}.rs`, `database/migrations/0019_monitor_log.sql`, `app/monitor.js`, `app/ui/screens/monitor.js`
 **Status:** Implemented in baseline (HW: H-31; WASAPI-shared capture beside DJ software unverified; negative-SNR floor supported for an acquired coherent carrier; cold-start/changing-pitch noise remains limited)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Shared capture alongside real DJ software, cold-start/changing-pitch negative-SNR limitations, and H-31 remain. Existing monitor performance budget passed locally.
-**Tests and evidence:** `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8)
+**Remaining work / blocking dependencies:** Saved-setting ownership is corrected and independently reviewed; failed writes and background cached-screen behavior remain supported. Shared capture alongside real DJ software, cold-start/changing-pitch negative-SNR limitations, and H-31 remain. Existing monitor performance budget passed locally.
+**Tests and evidence:** `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8). Eleven new lifecycle tests cover effective controller preferences, failed persistence and pruning; independent review passed 58 focused checks and a negative control proving the read-to-DOM identity guard.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** monitor_settings_review implementation; mapper_async_review independent review. **Verification commit:** `6127377ede9178c575293757c8f89be91cb1bddf`; final CI is identified in the handoff.
+
 
 ## FS-32 — MIDI mapper studio
 

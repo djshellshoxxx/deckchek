@@ -1,5 +1,9 @@
 # DeckChek implementation status
 
+## Current continuation snapshot
+
+Reviewed code `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98` includes certificate history/identity ownership, Verify OS-drop listener ownership, saved monitor-setting ownership and the ZIP 9 regression correction. The complete local Node 22 suite passed **1,367 tests, zero failures, one optional skip**; Rust formatting passed. Preceding `1b1db16` CI passed 1,338 JavaScript tests and 1,283 browser checks, but native CI had 662 passes, one ZIP assertion failure and eight ignored tests. The corrected candidate still requires new native check/Clippy and browser CI. Long local fuzz/stress attempts are incomplete; physical/platform qualification and broad Sonar remain open. The guided FS-12 implementation is active work, excluded from this frozen candidate. See the current continuation handoff and release-readiness report for exact source, failures and ownership.
+
 Updated: 2026-11-18 (reviewed native MIDI and service lifecycle corrections; final native/platform qualification and all hardware gates remain open)
 
 This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
