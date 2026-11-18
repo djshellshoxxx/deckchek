@@ -442,12 +442,111 @@ fn reject_schema_code(conn: &Connection) -> Result<(), BackupError> {
     Ok(())
 }
 
+// Official migration definitions are below 1 KiB. Bound untrusted comment/literal padding before
+// copying complete schema rows or allocating the tokenizer's UTF-32 character buffer.
+const MAX_SCHEMA_SQL_BYTES: usize = 64 * 1024;
+
+/// Normalizes schema SQL without collapsing token boundaries or changing literals. SQLite keeps
+/// the original spelling in sqlite_master, so harmless whitespace, comments and unquoted ASCII
+/// case may differ across a backup. Quoted identifiers, strings and blob contents stay exact.
+fn schema_sql_tokens(sql: &str) -> rusqlite::Result<Vec<(char, String)>> {
+    if sql.len() > MAX_SCHEMA_SQL_BYTES {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
+    let chars: Vec<char> = sql.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c.is_ascii_whitespace() {
+            i += 1;
+            continue;
+        }
+        if c == '-' && chars.get(i + 1) == Some(&'-') {
+            i += 2;
+            while i < chars.len() && chars[i] != '\n' {
+                i += 1;
+            }
+            continue;
+        }
+        if c == '/' && chars.get(i + 1) == Some(&'*') {
+            i += 2;
+            while i + 1 < chars.len() && !(chars[i] == '*' && chars[i + 1] == '/') {
+                i += 1;
+            }
+            if i + 1 >= chars.len() {
+                return Err(rusqlite::Error::InvalidQuery);
+            }
+            i += 2;
+            continue;
+        }
+        let blob = matches!(c, 'x' | 'X') && chars.get(i + 1) == Some(&'\'');
+        let start = i;
+        if blob {
+            i += 1;
+        }
+        let quote = chars[i];
+        if matches!(quote, '\'' | '"' | '`' | '[') {
+            let close = if quote == '[' { ']' } else { quote };
+            i += 1;
+            loop {
+                if i >= chars.len() {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                if chars[i] == close {
+                    i += 1;
+                    if quote != '[' && chars.get(i) == Some(&close) {
+                        i += 1;
+                        continue;
+                    }
+                    break;
+                }
+                i += 1;
+            }
+            out.push((
+                if blob { 'b' } else { 'q' },
+                chars[start + usize::from(blob)..i].iter().collect(),
+            ));
+        } else if c.is_ascii_alphanumeric() || c == '_' || c == '$' || !c.is_ascii() {
+            i += 1;
+            while i < chars.len()
+                && (chars[i].is_ascii_alphanumeric()
+                    || chars[i] == '_'
+                    || chars[i] == '$'
+                    || !chars[i].is_ascii())
+            {
+                i += 1;
+            }
+            out.push((
+                'w',
+                chars[start..i]
+                    .iter()
+                    .collect::<String>()
+                    .to_ascii_lowercase(),
+            ));
+        } else {
+            out.push(('p', c.to_string()));
+            i += 1;
+        }
+    }
+    Ok(out)
+}
+
 /// Structural fingerprint of every schema object except SQLite's own (`sqlite_*`): each object's
 /// type, name and table, every table's columns (`table_xinfo` shows generated columns and default
 /// expressions) and indexes (`index_list` + `index_xinfo` show expression and partial indexes).
-/// CHECK constraint bodies are not part of it.
+/// Normalized SQL additionally preserves CHECK bodies, conflict policies and collations; foreign
+/// key metadata includes their actions. Column/index metadata alone cannot validate those rules.
 fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
     use rusqlite::types::Value as Sql;
+    let oversized: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE substr(name, 1, 7) <> 'sqlite_' AND length(CAST(sql AS BLOB)) > ?1)",
+        [MAX_SCHEMA_SQL_BYTES as i64],
+        |r| r.get(0),
+    )?;
+    if oversized {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
     let rows = |sql: &str, arg: &str| -> rusqlite::Result<Vec<Vec<Sql>>> {
         let mut st = conn.prepare(sql)?;
         let n = st.column_count();
@@ -458,10 +557,14 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
         })?;
         it.collect()
     };
-    let objects = rows("SELECT type, name, tbl_name FROM sqlite_master WHERE substr(name, 1, 7) <> ?1 ORDER BY type, name", "sqlite_")?;
+    let objects = rows("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE substr(name, 1, 7) <> ?1 ORDER BY type, name", "sqlite_")?;
     let mut out = Vec::new();
     for o in objects {
-        out.push(format!("{o:?}"));
+        out.push(format!("{:?}", &o[..3]));
+        match &o[3] {
+            Sql::Text(sql) => out.push(format!("  sql {:?}", schema_sql_tokens(sql)?)),
+            other => out.push(format!("  sql {other:?}")),
+        }
         let (Sql::Text(ty), Sql::Text(name)) = (&o[0], &o[1]) else {
             continue;
         };
@@ -470,6 +573,12 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
         }
         for c in rows("SELECT * FROM pragma_table_xinfo(?1)", name)? {
             out.push(format!("  column {c:?}"));
+        }
+        for f in rows(
+            "SELECT * FROM pragma_foreign_key_list(?1) ORDER BY id, seq",
+            name,
+        )? {
+            out.push(format!("  foreign key {f:?}"));
         }
         for i in rows(
             "SELECT name, \"unique\", origin, partial FROM pragma_index_list(?1) ORDER BY name",
@@ -486,22 +595,36 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
     Ok(out)
 }
 
-/// After migration the restored copy must have exactly the schema objects, columns and indexes a
-/// freshly migrated database has: anything else (generated columns, expression or partial indexes,
-/// extra tables) was not made by DeckChek and could run expressions on every later write (AUD-04).
-fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
+/// Validate against the authoritative migrations for the declared version before any integrity
+/// check or migration can evaluate untrusted schema expressions. The current version is checked
+/// again after migration. No restored data is rewritten to make an unexpected schema acceptable.
+fn reject_unexpected_schema_at(conn: &Connection, version: i64) -> Result<(), BackupError> {
     let unreadable = |_| BackupError::new("corrupt_db", "The backup's database cannot be read.");
+    if !db::MIGRATIONS.iter().any(|(v, _)| *v == version) {
+        return Err(BackupError::new(
+            "unsafe_db",
+            "The backup's schema version is not supported. Your current data was not changed.",
+        ));
+    }
     let template = Connection::open_in_memory().map_err(unreadable)?;
-    db::apply_migrations(&template).map_err(|e| {
-        BackupError::new(
-            "migration_failed",
-            format!("Preparing the schema check failed: {e}. Your current data was not changed."),
-        )
-    })?;
+    for (_, sql) in db::MIGRATIONS.iter().filter(|(v, _)| *v <= version) {
+        template.execute_batch(sql).map_err(|e| {
+            BackupError::new(
+                "migration_failed",
+                format!(
+                    "Preparing the schema check failed: {e}. Your current data was not changed."
+                ),
+            )
+        })?;
+    }
     if schema_shape(conn).map_err(unreadable)? != schema_shape(&template).map_err(unreadable)? {
-        return Err(BackupError::new("unsafe_db", "The backup's database has tables, columns or indexes that DeckChek never creates, so it was refused. Your current data was not changed."));
+        return Err(BackupError::new("unsafe_db", "The backup's database has schema objects or constraints that DeckChek never creates, so it was refused. Your current data was not changed."));
     }
     Ok(())
+}
+
+fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
+    reject_unexpected_schema_at(conn, current_schema_version())
 }
 
 /// DeckChek only ever writes UTF-8 TEXT. A backup whose rows hold other bytes was edited by hand
@@ -1439,13 +1562,14 @@ pub fn restore_backup(
                 BackupError::new("corrupt_db", "The backup's database cannot be opened.")
             })?;
         harden_untrusted(&conn)?;
-        if !integrity_ok(&conn) {
-            return Err(BackupError::new("corrupt_db", "The backup's database is damaged (integrity check failed). Your current data was not changed."));
-        }
         reject_schema_code(&conn)?;
         let from = schema_version(&conn)?;
         if from > current_v {
             return Err(BackupError::new("too_new", too_new_message(from)));
+        }
+        reject_unexpected_schema_at(&conn, from)?;
+        if !integrity_ok(&conn) {
+            return Err(BackupError::new("corrupt_db", "The backup's database is damaged (integrity check failed). Your current data was not changed."));
         }
         if fail == Some(FailPoint::Migration) {
             return Err(BackupError::new(
@@ -3538,9 +3662,9 @@ mod tests {
         assert!(restore_backup(&env.ctx, &truncated, true, &none, None).is_err());
         assert_untouched(&env, &before, "truncated db");
 
-        // a real migration error inside the backup's own data: a v2 DB that already has the
-        // column migration 0004 adds, so its ALTER TABLE fails (triggers are refused earlier, see
-        // regression_restore_refuses_backup_with_triggers_or_views)
+        // A v2 DB that already has a column from migration 0004 has an unexpected schema.
+        // Refuse it before attempting ALTER TABLE; injected migration failure above still
+        // exercises the separate rollback path for a valid schema.
         let v2 = env.out("v2.sqlite3");
         {
             let c = Connection::open(&v2).unwrap();
@@ -3553,9 +3677,9 @@ mod tests {
             restore_backup(&env.ctx, &blocked, true, &none, None)
                 .unwrap_err()
                 .code,
-            "migration_failed"
+            "unsafe_db"
         );
-        assert_untouched(&env, &before, "migration error");
+        assert_untouched(&env, &before, "unexpected legacy schema");
 
         // DB inside says a newer schema than the manifest claims
         let newer_db = env.out("newer.sqlite3");
@@ -4425,6 +4549,8 @@ mod tests {
             let c = Connection::open_in_memory().unwrap();
             c.execute_batch(&fs::read_to_string(e.path()).unwrap())
                 .unwrap();
+            reject_unexpected_schema_at(&c, schema_version(&c).unwrap())
+                .unwrap_or_else(|err| panic!("{name} before migration: {}", err.message));
             apply_migrations(&c).unwrap();
             reject_unexpected_schema(&c).unwrap_or_else(|err| panic!("{name}: {}", err.message));
             n += 1;
@@ -4471,6 +4597,201 @@ mod tests {
             &other,
             &format!("schema-{}.deckchek-backup", db::new_id()),
         )
+    }
+
+    fn change_table_sql(conn: &Connection, table: &str, change: impl FnOnce(&str) -> String) {
+        let sql: String = conn
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |r| r.get(0),
+            )
+            .unwrap();
+        conn.execute_batch("PRAGMA writable_schema=ON;").unwrap();
+        conn.execute(
+            "UPDATE sqlite_master SET sql=?1 WHERE type='table' AND name=?2",
+            params![change(&sql), table],
+        )
+        .unwrap();
+        // Force the next statement to reload the changed schema, as reopening a supplied file does.
+        conn.execute_batch("PRAGMA writable_schema=OFF; PRAGMA schema_version=1000;")
+            .unwrap();
+    }
+
+    #[test]
+    fn regression_schema_sql_tokens_ignore_layout_but_preserve_meaning() {
+        assert_eq!(
+            schema_sql_tokens("CREATE TABLE t(a TEXT CHECK(a IN ('Pass','a''b')))"),
+            schema_sql_tokens("create /* layout */ table t ( a text -- next line\n check (a in('Pass', 'a''b')) )")
+        );
+        assert_eq!(schema_sql_tokens("X'AB'"), schema_sql_tokens("x'AB'"));
+        for (a, b) in [
+            ("CHECK(a='Pass')", "CHECK(a='pass')"),
+            ("CHECK(a='a b')", "CHECK(a='ab')"),
+            ("CHECK(a='a''b')", "CHECK(a='a' 'b')"),
+            ("CHECK(a=ab)", "CHECK(a=a b)"),
+            ("CHECK(a=x'AB')", "CHECK(a=x 'AB')"),
+            ("CHECK(a=\"NULL\")", "CHECK(a=NULL)"),
+            ("CHECK(a=`A`)", "CHECK(a=[A])"),
+            ("CHECK(é=1)", "CHECK(É=1)"),
+        ] {
+            assert_ne!(
+                schema_sql_tokens(a).unwrap(),
+                schema_sql_tokens(b).unwrap(),
+                "{a} vs {b}"
+            );
+        }
+        for bad in [
+            "'unfinished",
+            "\"unfinished",
+            "`unfinished",
+            "[unfinished",
+            "/* unfinished",
+        ] {
+            assert!(schema_sql_tokens(bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn regression_schema_sql_size_is_bounded_before_tokenization_and_collection() {
+        let clean = "CREATE TABLE t(a TEXT CHECK(a IN ('pass','fail')))";
+        let padded = clean.replace(
+            "a TEXT",
+            &format!(
+                "a TEXT /*{}*/",
+                "x".repeat(MAX_SCHEMA_SQL_BYTES - clean.len() - 5)
+            ),
+        );
+        assert_eq!(padded.len(), MAX_SCHEMA_SQL_BYTES);
+        assert_eq!(
+            schema_sql_tokens(&padded).unwrap(),
+            schema_sql_tokens(clean).unwrap()
+        );
+        let c = Connection::open_in_memory().unwrap();
+        c.execute_batch(&padded).unwrap();
+        assert!(
+            schema_shape(&c).is_ok(),
+            "the inclusive byte boundary is accepted"
+        );
+        for oversized in [
+            padded.replace("/*", "/*x"),
+            clean.replace(
+                "a TEXT",
+                &format!("a TEXT /*{}*/", "é".repeat(MAX_SCHEMA_SQL_BYTES / 2)),
+            ),
+        ] {
+            assert!(oversized.len() > MAX_SCHEMA_SQL_BYTES);
+            assert!(schema_sql_tokens(&oversized).is_err());
+            let c = Connection::open_in_memory().unwrap();
+            c.execute_batch(&oversized).unwrap();
+            assert!(
+                schema_shape(&c).is_err(),
+                "SQL preflight rejects oversized byte lengths, including multibyte comments"
+            );
+        }
+    }
+
+    #[test]
+    fn regression_schema_constraints_and_foreign_key_actions_are_checked() {
+        for (table, from, to) in [
+            (
+                "asset",
+                "nickname TEXT NOT NULL",
+                "nickname TEXT NOT NULL CHECK(length(nickname)=0)",
+            ),
+            (
+                "device_test_result",
+                "CHECK (status IN ('pass', 'fail', 'unknown', 'skipped'))",
+                "CHECK (status = 'pass')",
+            ),
+            (
+                "device_test_result",
+                "CHECK (status IN ('pass', 'fail', 'unknown', 'skipped'))",
+                "",
+            ),
+            (
+                "asset",
+                "REFERENCES product(id)",
+                "REFERENCES product(id) ON DELETE CASCADE",
+            ),
+            (
+                "asset",
+                "nickname TEXT NOT NULL",
+                "nickname TEXT COLLATE NOCASE NOT NULL",
+            ),
+            (
+                "asset",
+                "id TEXT PRIMARY KEY",
+                "id TEXT PRIMARY KEY ON CONFLICT REPLACE",
+            ),
+        ] {
+            let c = mem_db();
+            change_table_sql(&c, table, |sql| {
+                assert!(sql.contains(from), "mutation must alter {table}");
+                sql.replace(from, to)
+            });
+            assert!(
+                integrity_ok(&c),
+                "empty fixture passes SQLite integrity checks"
+            );
+            assert_eq!(
+                reject_unexpected_schema(&c).unwrap_err().code,
+                "unsafe_db",
+                "{table}: {to}"
+            );
+        }
+        let c = mem_db();
+        change_table_sql(&c, "asset", |sql| {
+            sql.replace("CREATE TABLE", "create /* layout */ table")
+        });
+        reject_unexpected_schema(&c).unwrap();
+    }
+
+    #[test]
+    fn regression_restore_checks_schema_before_evaluating_constraints_or_migrating() {
+        let env = Env::new("schema-before-migration");
+        make_db(env.live(), "live", 2);
+        let before = fs::read(env.live()).unwrap();
+        for old in [false, true] {
+            let db = env.out(if old {
+                "old.sqlite3"
+            } else {
+                "current.sqlite3"
+            });
+            let c = Connection::open(&db).unwrap();
+            if old {
+                c.execute_batch(&fixture_sql()).unwrap();
+            } else {
+                apply_migrations(&c).unwrap();
+                c.execute("INSERT INTO asset(id,nickname,created_at,updated_at)VALUES('a','Unit','x','x')", []).unwrap();
+            }
+            let version = schema_version(&c).unwrap();
+            change_table_sql(&c, "asset", |sql| {
+                sql.replace(
+                    "nickname TEXT NOT NULL",
+                    "nickname TEXT NOT NULL CHECK(abs(-9223372036854775808)>0)",
+                )
+            });
+            // Evaluating this unexpected CHECK over the fixture's asset would overflow. The
+            // restore must reject its schema before integrity_check or any migration can do so.
+            assert!(!integrity_ok(&c));
+            drop(c);
+            let bytes = fs::read(&db).unwrap();
+            let archive = env.out(if old {
+                "old.deckchek-backup"
+            } else {
+                "current.deckchek-backup"
+            });
+            crafted(&archive, version, &[(DB_ENTRY, &bytes)]);
+            let err = restore_backup(&env.ctx, &archive, true, &settings(), None).unwrap_err();
+            assert_eq!(err.code, "unsafe_db", "{}", err.message);
+            assert_eq!(
+                fs::read(env.live()).unwrap(),
+                before,
+                "live evidence is unchanged"
+            );
+            no_restore_leftovers(&env);
+        }
     }
 
     #[test]
