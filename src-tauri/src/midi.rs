@@ -231,10 +231,27 @@ fn list_ports_blocking(state: &MidiState) -> Result<PortList, String> {
     Ok(PortList { inputs, outputs })
 }
 
+/// Count only batches accepted by Tauri as emitted. A known event-delivery failure is
+/// transport loss, just like a full host queue; the capture verdict reads `dropped`.
+/// Acceptance by Tauri is not an acknowledgement that a renderer consumed the event.
+fn emit_batch<E>(
+    batch: Vec<MidiMessage>,
+    emitted: &AtomicU64,
+    dropped: &AtomicU64,
+    emit: impl FnOnce(Vec<MidiMessage>) -> Result<(), E>,
+) {
+    let count = batch.len() as u64;
+    match emit(batch) {
+        Ok(()) => emitted.fetch_add(count, Ordering::Relaxed),
+        Err(_) => dropped.fetch_add(count, Ordering::Relaxed),
+    };
+}
+
 fn ensure_pump(
     inner: &mut Inner,
     app: AppHandle,
     emitted: Arc<AtomicU64>,
+    dropped: Arc<AtomicU64>,
 ) -> SyncSender<MidiMessage> {
     if let Some(tx) = &inner.tx {
         return tx.clone();
@@ -247,8 +264,9 @@ fn ensure_pump(
             if batch.is_empty() {
                 continue;
             }
-            emitted.fetch_add(batch.len() as u64, Ordering::Relaxed);
-            let _ = app.emit("midi-message", batch);
+            emit_batch(batch, &emitted, &dropped, |messages| {
+                app.emit("midi-message", messages)
+            });
         }
     });
     inner.tx = Some(tx.clone());
@@ -284,7 +302,12 @@ fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Resu
         }
     }
     let port = unique_named_port(mi.ports(), &name, "input", |p| mi.port_name(p).ok())?;
-    let tx = ensure_pump(&mut inner, app.clone(), state.emitted.clone());
+    let tx = ensure_pump(
+        &mut inner,
+        app.clone(),
+        state.emitted.clone(),
+        state.dropped.clone(),
+    );
     let dropped = state.dropped.clone();
     let port_name = name.clone();
     let conn = mi
@@ -469,6 +492,30 @@ mod tests {
             timestamp_us: i,
             bytes: vec![0x90, 1, 127],
         }
+    }
+
+    #[test]
+    fn failed_event_delivery_counts_every_message_as_dropped() {
+        let emitted = AtomicU64::new(7);
+        let dropped = AtomicU64::new(11);
+        emit_batch(vec![msg(1), msg(2)], &emitted, &dropped, |batch| {
+            assert_eq!(batch, vec![msg(1), msg(2)]);
+            Err("event delivery failed")
+        });
+        assert_eq!(emitted.load(Ordering::Relaxed), 7);
+        assert_eq!(dropped.load(Ordering::Relaxed), 13);
+    }
+
+    #[test]
+    fn accepted_event_delivery_preserves_existing_drop_count() {
+        let emitted = AtomicU64::new(7);
+        let dropped = AtomicU64::new(11);
+        emit_batch(vec![msg(1), msg(2)], &emitted, &dropped, |batch| {
+            assert_eq!(batch, vec![msg(1), msg(2)]);
+            Ok::<(), &str>(())
+        });
+        assert_eq!(emitted.load(Ordering::Relaxed), 9);
+        assert_eq!(dropped.load(Ordering::Relaxed), 11);
     }
 
     #[test]
