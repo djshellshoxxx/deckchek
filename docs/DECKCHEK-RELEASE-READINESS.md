@@ -1,135 +1,116 @@
 # DeckChek release readiness
 
-Audit session: 2026-11-17, America/Los_Angeles. GitHub evidence timestamps are UTC. This report distinguishes the retrieved PR #26 baseline from subsequent local corrections.
+Session date: 2026-11-17, America/Los_Angeles. GitHub event/run timestamps are UTC. Every result below names its source or explicitly bounded scope.
 
 ## Decision
 
-**Release readiness is not established.** The reviewed follow-up source has 1,338 passing local JavaScript tests and passing formatting. Earlier report commit `730d71d` passed 1,325 JavaScript tests and 1,283 browser checks in CI, but failed native compilation on a tuple-alias collision. That collision and the new service/mapper/native-MIDI fixes are independently reviewed and require fresh CI. Broad Sonar analysis, the remaining GLib warning, current cross-platform qualification and physical hardware acceptance remain open. No release, release tag, or deployment is authorized by this session.
+**The consolidated source is prepared for continued qualification, but main integration and release readiness are not established.** The current reviewed source is `5960099ed4094172025dad9129dc38b148dabedf`, preserved in [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). Main remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. Final-source application/native/platform checks and a fresh broad Sonar result remain gates. Physical hardware acceptance is separate; no hardware result is inferred from generated data or mock ports.
 
-| Revision | Role |
+No release, release tag, deployment, branch deletion, force-push, approval bypass or remote history rewrite was performed. Release-only signing and publication requirements do not authorize a release in this session.
+
+## Current software verification
+
+| Scope / command | Observed result | Source and practical limit |
+|---|---|---|
+| `node --test --test-concurrency=1 tests/*.test.mjs` on Node 22.23.5 | **1,428 passed, zero failed, one optional skip (1,429 total)** | Combined source `5960099ed4094172025dad9129dc38b148dabedf`. Serial execution changes neither assertions nor test discovery. This run completed in 125.033 seconds. |
+| `node --expose-gc --test tests/perf/*.test.mjs` | 1/1 passed; 2,400 generated hops, mean 0.349 ms/hop, 0.06 MB heap growth | Live-monitor performance budget on this host; not a real-time OS guarantee. |
+| Device index and coverage | Passed: current index and coverage for all 45 profiles | Includes 45 checked hardware profiles; conditional hardware capabilities still require primary-source research. |
+| Timecode facts, migration names and mobile copies | Passed: consistent timecode facts, all 22 migration names, mobile vendor copies and precache list | Migration numbering/history preserved; no schema renumbering or device-data fabrication. |
+| Syntax of app/mobile/tools/tests modules, excluding vendor copies | 336 modules checked; zero failures | Parse checking, not execution or type qualification. |
+| `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` | Passed | Full application source formatting. |
+| GLib regression harness formatting and provenance/metadata selection | Passed: harness formatting, 121 source files, two separately verified patches and all three Cargo metadata roots | All three Cargo roots select the vendored source; source integrity does not prove the actual crate/platform tests passed. |
+| `node tools/third-party-notices.mjs --check` | Passed | 434 resolved crates, including identified vendored GLib provenance. |
+| App and fuzz lockfile RustSec audit | Zero vulnerability records; five maintenance notices | Both rerun against the available 1,527-advisory database. The GLib path-source omission is not clearance; see below. |
+| Full native app tests/check/strict Clippy locally | Blocked before application execution | Missing `glib-2.0.pc` and required GTK/WebKitGTK/ALSA development metadata. Existing runtime shared libraries do not supply build prerequisites. |
+| Local Playwright Chromium | Blocked at launch | Host socket permission failure. Browser CI supplies a supported environment; local failure is not a passing check. |
+
+The project uses Node's built-in test runner; `package.json` contains no npm dependency set and has no lockfile requiring `npm ci`. CI retains its full test discovery and JUnit/spec reporters. The current local run uses supported Node 22. The last source additions are the exact 34 compiler suggestions and separately reviewed GLib provenance/guard updates, including four new guard tests. All 1,428 tests passed on that final source. Application/harness formatting, Cargo metadata selection, provenance, notices and the three changed JavaScript modules' syntax were checked again after integration. The earlier index, coverage, mobile, migration, timecode, performance and unchanged-module syntax inputs remain byte-identical to their verified versions.
+
+A prior unrestricted-concurrency baseline attempt terminated a monitor worker with SIGKILL; its focused rerun passed. On preceding source `e43be06`, a four-worker repeat reported 1,340 passed, nine failed and one skip (1,350 total): eight test-file workers received SIGKILL and the existing certificate hostile-payload timing assertion took 1,707 ms against its unchanged one-second limit. The cause of the terminations was not proven; available host memory was observed at roughly 1.5–1.9 GB. A complete serial run on `e43be06` then passed 1,424 tests with one optional skip in 132.083 seconds. The final serial result above includes the four added guard tests and preserves all original assertions and timing limits. The failed attempt remains evidence and is not counted as a pass. An inherited intermittent numerical anomaly on Node 24 was not labelled a proven V8 defect and did not justify changing measurement tolerances.
+
+Rust tooling in the task environment is `rustc 1.100.0` / `cargo 1.100.0`, with rustfmt and Clippy installed. The runtime-prescribed system-package helper is unavailable. No sandbox, sudo, repository package sources or permission policy was altered to fabricate a native build environment.
+
+## Current hosted CI
+
+At the report checkpoint before the combined-source publication, [platform run 44265442094](https://github.com/djshellshoxxx/deckchek/actions/runs/44265442094) on `ef49ed6cfd08e94651a1536b4e4509efdccdbedb` had a completed browser job: **1,293/1,293 checks passed, no console errors**, including eight new guided-stylus browser checks and the updated existing stylus coverage. The reusable JavaScript job subsequently completed successfully: **1,391 passed, zero failed, one optional skip** (1,392 total), plus its performance and metadata gates. [Native job 134668697815](https://github.com/djshellshoxxx/deckchek/actions/runs/44265442094/job/134668697815) passed all **six optimized GLib tests** with real prerequisites and **670 application Rust tests**, with zero failures and eight ignored. The compiler-warning step then failed on **34 warnings from the locally vendored GLib** (three unnecessary parentheses and 31 lifetime-path spellings); check and strict Clippy were skipped, and package/self-test jobs did not run. The regression-only Cargo manifest also emitted an unused normal-dependency warning. These are reproduced compiler-compatibility findings. The final source applies all 34 exact compiler suggestions with separate provenance, and moves the regression harness dependency into `[dev-dependencies]`; independent review accepted both changes. No warning suppression or gate weakening was introduced. [Standalone run 44265441929](https://github.com/djshellshoxxx/deckchek/actions/runs/44265441929) also completed: JavaScript and browser jobs passed; native job 134668814299 passed six actual-GLib tests and 670 application Rust tests (zero failures, eight ignored), then failed the same 34-warning gate, skipping check/Clippy.
+
+Those results precede PR #29, the monitor follow-up and the GLib compatibility corrections. The guarded combined-source/report publication starts fresh PR runs. Their exact IDs and latest observed states belong in the [live PR body](https://github.com/djshellshoxxx/deckchek/pull/27); no final-source native/platform/Sonar success is claimed here. The stable source anchor is `5960099ed4094172025dad9129dc38b148dabedf`, whose tree was locally verified before report-only commits.
+
+Pending, queued, cancelled and skipped jobs are not passes. A new source head supersedes older qualification. Reports identify the source SHA separately from later documentation commits; before any main merge, use the live PR head and applicable exact-head check results, not an earlier badge.
+
+The platform workflow now triggers on pull requests into main as well as its existing main/tag/manual paths. It runs the reusable full test gate, then builds Windows x64/x86, macOS Intel/ARM64 and Linux x64/x86 packages. Five supported packaged-runtime self-tests download and execute the built artifacts; the configured Linux x86 runtime-smoke limitation remains explicit. A successful build is not automatically a successful installed application, and a package self-test is not hardware qualification.
+
+The tag-only `release-checks` and publication jobs remain conditional on release tags. Their being skipped on a PR is expected and does not mean their release checks passed. No tag was created. Applicable Windows/PDF, sanitizer, long-fuzz and stress checks remain in `nightly.yml`; current invocation/evidence is still required where applicable. The connector has no workflow-dispatch capability and native `gh` has no login. The observed GitHub browser session was signed out. The platform PR trigger removes the earlier dispatch limitation for that workflow, but does not create nightly evidence.
+
+The reusable test concurrency group was corrected to distinguish `github.workflow`, event and ref from standalone PR tests and the platform caller's outer group. The earlier standalone run at `1d2b488` was cancelled before steps because of the prior collision. Superseded runs after subsequent source pushes were cancelled by the configured policy; none is recorded as passing.
+
+## Focused implementation and independent review
+
+These checks isolate meaningful boundaries. They overlap with the full suite and must not be summed into a larger test total.
+
+| Scope | Evidence | Limit |
+|---|---|---|
+| Guided stylus acquisition/trend eligibility | 64/64 independently rerun: 55 stylus workflow/UI/wear tests plus nine capture-session tests | Generated captures and injected dependencies; physical repeatability unverified. |
+| Numeric/audio criteria | 70/70 focused checks, plus 1,350 finite-value comparison cases retaining prior outcomes | Native loopback/reference measurements remain required. |
+| Device chronology / plans / Fleet / certificates | 73/73 focused checks, including unresolved-record permutation cases | Historical records are retained; no automatic reconciliation of unknown dates. |
+| MIDI/bridge/action ownership | 92/92 focused checks plus independent late close/listener/retry probes | Mock APIs do not prove physical identity through all OS substitutions. |
+| Native MIDI emission | Exact production body, 2/2 after a before-fix failure | Event API acceptance is not end-to-end renderer acknowledgment. |
+| Native queued opens | 22/22 independent exact-module cases, including mutex contention | Hardware drivers were not exercised. |
+| Native failed-output ownership | 26/26 independent exact-module cases, including duplicate/replacement/reset cases | Observed handle ownership, not a new stable physical identifier system. |
+| Backup foreign keys | Exact-helper before/after reproduction and independent historical-fixture checks | Application backup/restore tests still require the native runner. |
+| PR #29 ZIP/application streaming bound | Six root exact-source tests with actual ZIP 9; unchanged streaming body checked byte-for-byte | The production archive tests also cover database and settings refusal and live-state preservation; their full app execution remains CI work. |
+| Certificate/Verify lifecycle | Ten of 18 new cases fail before; 55 focused tests plus six extra independent probes pass after | Native signing/PDF and operating-system drag/drop qualification remain separate. |
+| Monitor settings save/prune operation ownership | Four regression groups failed before; 54/54 focused checks and 3/3 independent probes passed after (the independent probes had two failures before). | Persisted-setting/controller/status ownership is tested; hardware monitoring remains separate. |
+| Latest PR #29 audio probe grouping | Two independent source reviews confirm identical device/config/format values and unchanged run body; application formatting passes | Structural Clippy repair only; actual native/Windows compilation remains required. |
+| GLib optimized exact-module FFI probe | Original process SIGSEGV; patched module 4/4 passed against real system GLib | This is not the actual compiled GLib crate. |
+| GLib source selection and checkout integrity | Ten JS guards pass; independently applying/reversing both patches reproduces all 121 final/original files; all source files and both patch artifacts survive an actual `core.autocrlf=true` checkout | The actual-crate step passed in CI at `ef49ed6`; final combined native and package execution remain gates. |
+
+A `git diff --check` over the whole vendor import reports two preserved upstream/patch whitespace diagnostics: the original LICENSE's terminal blank line and a standard blank context line in the patch artifact. No whitespace waiver was added. Authored source formatting passes; exact upstream source provenance was not modified to make this unrelated checker quiet.
+
+## GLib and supply-chain disposition
+
+The earlier lockfile update corrected the seven original vulnerability records using compatible dependency changes and reviewed ZIP API adaptations. Historical migration/backup compatibility checks and old-reader/new-archive checks remain recorded in [the security audit](DECKCHEK-SECURITY-AUDIT.md). PR #28's useful audit correction verifies the current `rusqlite 0.41.1` / `libsqlite3-sys 0.39.1` archive bundles SQLite 3.54.1. It does not claim all current native tests passed.
+
+[RUSTSEC-2024-0429](https://rustsec.org/advisories/RUSTSEC-2024-0429.html) concerns the GLib string-variant iterator's mutable C output pointer. Upstream fixed it in the GLib 0.20 family; the selected GTK/Tauri/WebKit family still requires 0.18. The candidate includes the exact official two-line source backport, plus a separate compatibility patch containing 34 compiler-suggested syntax changes across 12 other files. The verifier requires the approved patch hashes and exact reconstruction of the full original source/license and all archive/file hashes. The version remains 0.18.5. Both application and fuzz roots use the patched source; the isolated optimized actual-crate harness uses the same selection.
+
+The required CI step runs six actual-crate release-profile tests after installing real development dependencies. The step completed successfully in the `ef49ed6` native job after installation of real development prerequisites; the final combined native/platform gates still need completed evidence. The official iterator fix and Cargo source selection remain unchanged. The final combined source adds the independently reviewed compiler-compatibility patch and test-only dependency declaration; its actual-crate/native/Clippy gates require fresh execution. A source scan with no observed caller is not reachability proof, and a path dependency disappearing from the RustSec report is not a security verdict. No advisory suppression or acceptance waiver is used.
+
+The five retained maintenance notices are `chrono` RUSTSEC-2026-0543, `proc-macro-error` RUSTSEC-2024-0370, `zbus_names` RUSTSEC-2026-0371, `zvariant` RUSTSEC-2026-0370 and `zvariant_derive` RUSTSEC-2026-0372. Their actual statuses are recorded without reclassifying them as fixed vulnerabilities.
+
+The workflows retain their current first-party Actions configuration and least-privilege job permissions. This session did not silently add an advisory ignore, broaden a Tauri command, lower diagnostics thresholds, remove negative tests or bypass warning gates.
+
+## Sonar and required approvals
+
+Historical Sonar checks were retrieved: PR #14 had D reliability/D security with 50 annotations; PR #16 had C reliability with four annotations. Those findings were triaged against current source. Narrower or older successful checks do not establish a fresh consolidated quality-gate result.
+
+The public Sonar issue API/dashboard route returns HTTP 403, and this session has no authenticated Sonar capability. No finding was accepted, hidden or suppressed in Sonar. Current broad analysis and any real blocking findings remain outstanding. Intentional SHA-256 modular arithmetic and canonical UTF-16 ordering must not be altered mechanically to silence a stylistic finding.
+
+Branch inventory reports `protected: false` and the accessible ruleset collection is empty. The integration connection receives HTTP 403 for the administration-only branch-protection endpoint. These are access observations, not proof that every possible policy or approval requirement is absent. Refresh repository/PR checks and approvals before merging; never bypass a requirement because its detailed endpoint is inaccessible.
+
+## Historical CI evidence retained
+
+| Source / run | Observed result | Later disposition |
+|---|---|---|
+| PR #26 `4466cc0`, [44228369554](https://github.com/djshellshoxxx/deckchek/actions/runs/44228369554) | 1,299 JS passed/one optional skip; 654 Rust passed/eight ignored; 1,276 browser checks passed; performance passed | Baseline only. Snyk's “No manifest changes detected in 5 projects” status was not a fresh comprehensive audit. |
+| `ed512a1`, [44250832064](https://github.com/djshellshoxxx/deckchek/actions/runs/44250832064) | Native compiled; 653 Rust passed, one source-whitespace assertion failed, eight ignored | Assertion repaired without removing its security check. |
+| `742c67a`, [44251830325](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325) | 654 Rust passed/eight ignored; build warning and type checks passed; strict Clippy found 57 diagnostics; browser 1,283/1,283 with no console errors | All 57 diagnostics received reviewed source repairs. Current full Clippy remains a gate. Seven new FS-35 browser cases passed at this source. |
+| `730d71d`, [44256004004](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004) | 1,325 JS passed/one optional skip; browser 1,283/1,283; native E0428 before tests | `DriverScan` parser alias collision corrected in `8acaa7a`, public IPC structure retained. |
+| Initial PR #27 `1b1db16`, [44258246462](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462) | JS job passed; browser 1,283/1,283 with no console errors; native 662 passed, one ZIP assertion failure, eight ignored | Confirms alias repair compiled. ZIP 9 assertion corrected and stronger independent application-bound coverage added; later native changes need new CI. |
+| `3e85ab5`, [44263620351](https://github.com/djshellshoxxx/deckchek/actions/runs/44263620351) and [44263620354](https://github.com/djshellshoxxx/deckchek/actions/runs/44263620354) | Superseded/cancelled | No qualification claim. |
+| `ef49ed6` local supported runtime | 1,391 passed, zero failures, one optional skip, 1,392 total | Superseded by current combined local result above; later lifecycle source requires its own checks. |
+
+Ignored tests and optional skips are never counted as passes. Isolated native harness counts are never added to full application totals.
+
+## Remaining acceptance by category
+
+| Category | Required next evidence |
 |---|---|
-| `ee5aa511fb49fc56e299d5b5c262e815ab420d0d` | Retrieved canonical `main` |
-| `4466cc0bb9951a98528f576726e01dd9cecc388e` | Retrieved PR #26 head, `nodata/practical-ptolemy-wu3ekp` |
-| `integration/deckchek-consolidation-20261118` | Remote integration branch in [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27), initially at the PR #26 head; subsequent corrections require their own verification |
+| Software merge gates | Current application JS/browser/Rust, compiler-warning gate, check, strict Clippy, selected GLib actual-crate regression, relevant platform packages and broad Sonar. |
+| Platform behavior | Windows x64/x86, macOS Intel/ARM64 and Linux x64/x86 artifacts; applicable packaged self-tests; current Windows/PDF, sanitizers, fuzz/stress evidence. Diagnose actual failures rather than extending timeouts blindly. |
+| Diagnostic hardware | Audio loopback/reference levels and calibration; MIDI timing/drop/disconnect/duplicate-device handling on real drivers; actual stylus/control-vinyl repeatability; monitor capture alongside DJ software. |
+| Device research | Manufacturer evidence per exact model/revision/firmware for 29 conditional audio profiles and remaining issues #3–#7. No guessed MIDI/HID mappings or unsupported device claims. |
+| Product/manual workflows | Real Fleet database walkthrough with default OFF, actual phones/PWA, VirtualDJ import/export, exported-pack privacy review and physical certificate use. |
+| Remaining code/product scope | Stable physical MIDI identity; broader booth isolation A/B and incident history; PDF-embedded certificate JSON; conditional MIDItest consumer integration and explicitly unresolved design/licensing choices. |
+| Release only | Owner signing certificates, installers/distribution acceptance, version/tag/license gates and separately authorized publication. |
 
-## Verified baseline evidence
-
-These results were retrieved from GitHub job logs, not inferred from a green PR badge. They apply to `4466cc0bb9951a98528f576726e01dd9cecc388e`.
-
-| Check | Observed result | Evidence |
-|---|---|---|
-| JavaScript unit/property/regression/fuzz-smoke | 1,300 total; 1,299 passed; one optional skip; zero failures | [Job 134547155889](https://github.com/djshellshoxxx/deckchek/actions/runs/44228369554/job/134547155889) |
-| JavaScript performance budget | One test passed, zero failures | Same JavaScript job |
-| Linux Rust unit/migration/fuzz-smoke | 654 passed; eight ignored; zero failures | [Job 134547155655](https://github.com/djshellshoxxx/deckchek/actions/runs/44228369554/job/134547155655) |
-| Compiler-warning gate | Passed | Same Rust job |
-| Browser smoke | 1,276/1,276 checks passed; no console errors | [Job 134547155903](https://github.com/djshellshoxxx/deckchek/actions/runs/44228369554/job/134547155903) |
-| Snyk status | Success with the description “No manifest changes detected in 5 projects” | [Commit status](https://api.github.com/repos/djshellshoxxx/deckchek/commits/4466cc0bb9951a98528f576726e01dd9cecc388e/status) |
-
-The Snyk status does not establish a fresh comprehensive dependency audit. Ignored Rust cases and the optional JavaScript skip remain visible; they are not counted as passes.
-
-## Current local verification and environment
-
-A task-local Rust toolchain was installed without changing system permissions: `rustc 1.100.0 (0ef1bc386 2026-11-09)` and `cargo 1.100.0 (3acc79c0c 2026-11-05)`, including rustfmt and Clippy.
-
-| Command or scope | Observed result |
-|---|---|
-| `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` | Passed after dedicated mechanical formatting of 47 Rust files. The original baseline had 2,318 formatting diff blocks. CI at `ed512a1` also passed formatting. |
-| `cargo test --locked --manifest-path src-tauri/Cargo.toml -j 2` | Blocked, exit 101, while building `glib-sys 0.18.1`: `glib-2.0.pc` was not found. No application Rust tests ran locally. |
-| `cargo check --locked` and `cargo clippy --locked --all-targets -- -D warnings` | Not retried locally after the concrete native dependency blocker. CI results and the final candidate's remaining gates are distinguished below. |
-| Fleet timestamp regression, before correction | 21 passed, four failed. An earlier PASS could hide a later FAIL when UTC timestamps used different fractional-second precision. |
-| Fleet timestamp regression, after correction | 25/25 tests passed with `node --test tests/fleet.test.mjs tests/fleet-api.test.mjs`. Independent integration review accepted the change pending the full suite. |
-| Population pack privacy, independent review | 13/13 focused tests passed with `node --test tests/pack-randomness.test.mjs tests/pack-population.test.mjs`. Additional direct assertions confirmed native UUID generation, preservation of supplied IDs without crypto, and rejection when secure randomness is unavailable. |
-| Compiler-build pipeline correction | An isolated shell reproduction showed the previous `cargo build` pipeline converted exit 23 to exit 0. Adding `set -o pipefail` preserves exit 23; the warning check remains intact. This proves error propagation, not successful native compilation. |
-
-The host also lacks the WebKitGTK, GTK, and ALSA development metadata required by the Tauri build. The runtime-prescribed system package helper is unavailable. The task user did not alter sudo, sandbox policy, repository package sources, or system package configuration. Installing Rust alone does not satisfy these native prerequisites.
-
-The repository's JavaScript tests use Node's built-in runner and `package.json` declares no npm dependencies. No `package-lock.json` exists at the baseline, so `npm ci` is not an applicable dependency installation gate there. Run the actual `npm test` script.
-
-The local population-pack correction generates new identifiers with `crypto.randomUUID()` or 16 bytes from `crypto.getRandomValues()`. It removes timestamp/`Math.random` fallback generation. Existing valid contributor identifiers and supplied pack IDs remain unchanged. Missing secure randomness rejects fresh generation before contributor state is written; a failed reset retains the previous identifier. The correction passed independent source review and the focused tests above; complete final-head verification remains a separate gate.
-
-## Security and analysis gates
-
-The retrieved PR #26 head has only the three application check runs above. No current Sonar result was attached to it.
-
-| Historical Sonar scope | Observed result | Disposition |
-|---|---|---|
-| PR #14, `9f4928a00a44b62529429d1f14ad104b65db28c6`, check `123949755970` | Failed: D reliability and D security; 50 annotations | Findings retrieved and triaged against current source; the broad hold is not waived. |
-| PR #16, `6bd93e2d1ceb2ff878521de58188cb39d5833c36`, check `124031174223` | Failed: C reliability; four annotations | Findings retrieved; later child checks do not clear the consolidated scope. |
-
-The public GitHub annotations were readable. The public Sonar issues API returned HTTP 403, so no complete current Sonar issue export was available through that route. No authenticated analysis result was fabricated, no finding was accepted in Sonar, and no quality-gate rule was disabled.
-
-Some historical annotations describe intentional behavior: SHA-256 uses modular 32-bit arithmetic, canonical JSON needs locale-independent UTF-16 ordering, and JSON round-trip fixtures test exact preservation. Replacing those operations mechanically would introduce defects. Genuine findings require a reproducing test and a correction; each false-positive disposition needs its rationale. See `DECKCHEK-SECURITY-AUDIT.md` for the integration findings and remaining work.
-
-## Cross-platform status
-
-| Target | Older `main` evidence | PR #26 and later corrections |
-|---|---|---|
-| Windows x64 | Packaging succeeded in [run 41046292289](https://github.com/djshellshoxxx/deckchek/actions/runs/41046292289) | Current package and packaged-app smoke not established |
-| Windows x86 | Same older run succeeded | Current package and packaged-app smoke not established |
-| macOS Apple silicon | Same older run succeeded | Current package and packaged-app smoke not established |
-| macOS Intel | Same older run succeeded | Current package and packaged-app smoke not established |
-| Linux x64 | Same older run succeeded | Current package and packaged-app smoke not established |
-| Linux x86 | Same older run succeeded | Current package not established; configured workflow explicitly lacks runtime smoke on an i386 WebKitGTK stack |
-
-These older successes must not be reused as proof that the consolidated head is qualified. The current cross-platform workflow triggers on main pushes, release tags, and manual dispatch. Its manual branch execution builds artifacts without publishing a release; release publication is conditional on a `v*` tag. The current nightly workflow adds Windows Rust/PDF tests, AddressSanitizer, longer fuzzing, and stress tests. No run of that complete workflow on this candidate was observed during this audit.
-
-### Historical failures distinguished from application regressions
-
-- **Windows:** [job 124018903070](https://github.com/djshellshoxxx/deckchek/actions/runs/41042631169/job/124018903070) failed `processes::tests::live_tasklist_parses` with `scan timed out after 20 seconds`; 424 tests passed, one failed, five were ignored. The failing command was process enumeration through `tasklist.exe`, while `system_check::windows_tests::real_scans_run_within_timeout` passed. Runner contention is a hypothesis, not a proven root cause. The failure cannot be cleared by weakening the timeout or deleting the test.
-- **macOS ARM:** [job 123985120862](https://github.com/djshellshoxxx/deckchek/actions/runs/41032319845/job/123985120862) failed in `taiki-e/install-action` before application compilation. Its fallback attempted to remove a nonexistent `cargo-binstall` binary. The candidate workflow already replaces that installation route with pinned `@tauri-apps/cli@2.12.1`; a current successful platform run is still required.
-
-## Hardware and distribution acceptance
-
-No physical MIDI Identity Reply, audible General MIDI source, FS-35 loopback, native input/output device, controller mapping, driver, or reference-media measurement was exercised in this environment. Deterministic fixtures and mocked browser IPC do not satisfy hardware qualification. Follow `docs/testing/HARDWARE-TEST-SCRIPTS.md` and retain measured provenance.
-
-Windows installers and macOS packages remain unsigned; macOS notarization is not established. Auto-update, installation/upgrade/uninstallation checks, real-database restore rehearsals, and platform privacy prompts require their documented acceptance evidence. Fleet remains opt-in and default OFF (`app/features.js`).
-
-## Required next gates
-
-1. Complete focused integration fixes and rerun the JavaScript/browser suites on the final source commit.
-2. Resolve and recheck the broad Sonar findings for the consolidated scope.
-3. Formatting is corrected; pass the explicit native test, check and Clippy gates on the final source using supported Tauri prerequisites. Resolve current dependency findings without suppressing the audit.
-4. Obtain cross-platform packages and packaged-app smoke results for that same candidate, plus the applicable Windows/native reliability, fuzz, and stress checks.
-5. Complete the physical hardware and distribution acceptance tasks separately. Record anything still unqualified instead of converting it to a pass.
-
-This report does not authorize a tag, release, deployment, branch deletion, force-push, or gate bypass.
-
-## Continuation verification
-
-The reviewed source through `742c67ab93ab52baafa278cc48c6ca7c6d0a8df7` includes FS-35/36, fleet, certificate and population-identifier corrections. FS-35 focused tests passed **51/51 on Node 22.23.5**, and the independent reviewer also passed 51/51 on Node 24.22.1. MIDI focused suites passed **75/75**, fleet **25/25**, certificate **37/37**, and pack **13/13**. These overlapping focused counts are not added into a new total.
-
-[Initial integration CI 44250832064](https://github.com/djshellshoxxx/deckchek/actions/runs/44250832064), at `ed512a17b24c3d678a405e728660ad64e75aa225`, compiled the native app and ran **653 Rust tests successfully, with one failure and eight ignored**. The failure was an existing source-string check that assumed the guarded window-builder call occupied one line. The correction retains that security relationship and ignores whitespace; a mutation check rejects guard removal. A subsequent full Node 22 run found a second whitespace-sensitive source assertion for registered link commands: **1,324 passed, one failed, one skipped**. Its regex was corrected to allow Rustfmt line breaks while retaining all three required commands and the navigation guard. These failed runs are retained as evidence, not relabeled as passes.
-
-The new FS-35 browser smoke uses injected I/O to exercise actual browser focus, keyboard cancellation, capture-integrity verdicts and separate channel plots. It does not establish physical audio accuracy. See the handoff for the latest source SHA and completed CI results.
-
-### Runtime and workflow-access limits
-
-An intermittent cubic-distortion failure reproduces on the untouched `4466cc0` baseline under Node 24.22.1. Immediate reanalysis of identical samples produces the expected result. Its root cause is unconfirmed; it must not be reported as a proven JIT defect. The unchanged tolerances pass the focused Node 22.23.5 run, matching CI's major runtime version. Broader runtime qualification remains open.
-
-The GitHub connector can create commits/PRs and read checks but exposes no workflow-dispatch operation. Local `gh`/Git have no authenticated push/dispatch session. An attempted UI fallback reached the actual platform workflow page but showed a signed-out session with no Run workflow control. Platform validation was not dispatched. No credentials, permissions or workflow triggers were changed to bypass this boundary.
-
-### Current dependency analysis
-
-The targeted dependency update removes all seven original vulnerability records from both application and fuzz lockfiles without ignoring advisory IDs. Both audits exit zero, with one GLib unsoundness warning and five maintenance notices remaining. SQLite/ZIP compatibility checks cover the actual 22 migrations, rollback, legacy data, online backup and archives in both old/new reader directions. The existing third-party notice generator and check pass. These focused checks do not replace the final native application, fuzz or platform gates; the unresolved GLib warning remains explicit in the security audit.
-
-### Explicit Clippy gate
-
-At `742c67a`, [native job 134624238498](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624238498) passed **654 Rust tests** (eight ignored), the compiler-warning check and `cargo check`. The new strict Clippy gate then failed with **57 diagnostics** across production and test targets. Commit `2243bbb34e21c198390ef32806f813329a5e3dc1` contains independently reviewed corrections, with no lint allowances or changed thresholds. Differential checks cover numeric boundaries, 512 UTF-16 decoder byte vectors and stable sorting. The gate remains open until the complete application passes current CI; a unit-test pass or isolated differential test does not override it.
-
-### Browser verification at the audio correction
-
-[Browser job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913) at `742c67a` passed **1,283/1,283 checks**, with no console errors. All seven new FS-35 checks passed: focus/progress, Escape ownership, Enter/Stop behavior, unsaved cancellation, clean evidence and output cap, fault evidence requiring REVIEW, and opposite response errors with file provenance. This resolves the new browser-test execution gap for that source. It does not establish native device or physical-loopback qualification.
-
-### First reviewed native candidate
-
-The first native code candidate was `2243bbb34e21c198390ef32806f813329a5e3dc1`, comprising dependency correction `1ad6a34`, restore-schema correction `c387ae9` and the strict Clippy cleanup. On its working-tree source, Node 22.23.5 again passed **1,325 tests, zero failures, one optional skip** (1,326 total), and Rust formatting passed. The schema fix passed an independently rerun seven-test exact-validator harness, including the 64 KiB allocation guard and historical database fixtures. The dependency fix passed a separate seven-test migration/backup/archive compatibility harness and an old ZIP reader/new archive check. These focused results do not count as a full native build.
-
-### CI at `730d71d` and reviewed follow-ups
-
-[Run 44256004004](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004) on report commit `730d71d83c911317abba2fa205962cdbd15aa8db` completed with:
-
-- [JavaScript job 134637728702](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728702): **1,325 passed, zero failures, one optional skip**, plus a passing performance check, migration/profile/mobile checks and syntax checking.
-- [Browser job 134637728622](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622): **1,283/1,283 passed**, no console errors.
-- [Native job 134637728404](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404): formatting passed; compilation failed with **E0428**, because a new tuple alias reused the existing `DriverScan` struct name. No application Rust tests ran, and check/Clippy were not reached. Commit `8acaa7a` corrects only the alias and parser return annotation, preserving the IPC struct; independent review accepted it.
-
-The next complete code candidate is **`00f1f3cc8d96527f436ee28958ed23201b60a01b`**. It also includes independently reviewed service request/navigation ownership, native duplicate-name selection and mapper save-association corrections. The complete local Node 22.23.5 suite passed **1,338 tests, zero failures, one optional skip** (1,339 total), and full Rust formatting passed. Independent focused evidence includes 48 service checks, 47 mapper checks and 19 actual-body native MIDI harness checks, with additional reviewer edge probes. Those overlapping counts are not added to the full-suite count. Fresh complete application CI is required before this candidate can be treated as passing.
+See [the completion ledger](DECKCHEK-COMPLETION-LEDGER.md) for all 24 feature scopes. Existing thresholds, the -12 dBFS output cap, migration history, stored evidence and Fleet OFF default remain intact.
