@@ -4,7 +4,7 @@ Audit session: 2026-11-17, America/Los_Angeles. GitHub evidence timestamps are U
 
 ## Decision
 
-**Release readiness is not established.** The reviewed follow-up source has 1,338 passing local JavaScript tests and passing formatting. Earlier report commit `730d71d` passed 1,325 JavaScript tests and 1,283 browser checks in CI, but failed native compilation on a tuple-alias collision. That collision and the new service/mapper/native-MIDI fixes are independently reviewed and require fresh CI. Broad Sonar analysis, the remaining GLib warning, current cross-platform qualification and physical hardware acceptance remain open. No release, release tag, or deployment is authorized by this session.
+**Release readiness is not established.** Reviewed code `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98` has 1,367 passing local JavaScript tests and passing formatting. Preceding published source `1b1db16` passed 1,338 JavaScript tests and all 1,283 browser checks in CI; native compilation succeeded with 662 tests passed, one lying-ZIP error-code assertion failed, and eight ignored. The independently reviewed ZIP correction and latest UI lifecycle fixes require fresh CI. Long local fuzz/stress attempts remain incomplete, with timing failures and process termination under investigation. Broad Sonar analysis, the remaining GLib warning, current cross-platform qualification and physical hardware acceptance remain open. No release, release tag, or deployment is authorized by this session.
 
 | Revision | Role |
 |---|---|
@@ -133,3 +133,23 @@ The first native code candidate was `2243bbb34e21c198390ef32806f813329a5e3dc1`, 
 - [Native job 134637728404](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404): formatting passed; compilation failed with **E0428**, because a new tuple alias reused the existing `DriverScan` struct name. No application Rust tests ran, and check/Clippy were not reached. Commit `8acaa7a` corrects only the alias and parser return annotation, preserving the IPC struct; independent review accepted it.
 
 The next complete code candidate is **`00f1f3cc8d96527f436ee28958ed23201b60a01b`**. It also includes independently reviewed service request/navigation ownership, native duplicate-name selection and mapper save-association corrections. The complete local Node 22.23.5 suite passed **1,338 tests, zero failures, one optional skip** (1,339 total), and full Rust formatting passed. Independent focused evidence includes 48 service checks, 47 mapper checks and 19 actual-body native MIDI harness checks, with additional reviewer edge probes. Those overlapping counts are not added to the full-suite count. Fresh complete application CI is required before this candidate can be treated as passing.
+
+### CI at `1b1db16` and next reviewed source
+
+[Run 44258246462](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462) completed with:
+
+| Check | Observed result |
+|---|---|
+| [JavaScript job 134645034742](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462/job/134645034742) | **1,338 passed, zero failures, one optional skip**; performance, migration/profile/mobile and syntax checks passed |
+| [Browser job 134645035183](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462/job/134645035183) | **1,283/1,283 passed**, no console errors |
+| [Native job 134645035196](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462/job/134645035196) | Formatting and compilation passed; **662 tests passed, one failed, eight ignored**. The lying-header ZIP test expected the application's overrun code, but ZIP 9 now refuses the chunk earlier as `corrupt`. Compiler-warning/check/Clippy steps were not reached. |
+
+The next reviewed source is `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98`. Certificate/Verify and monitor lifecycle corrections add 29 behavioral cases. The full local Node 22.23.5 suite passed **1,367 tests, zero failures, one optional skip** (1,368 total); full Rust formatting passed. The ZIP streaming body is unchanged and has direct guard tests plus four independently killed mutations. The preserved full archive/restore checks require new native CI.
+
+### Long local verification: incomplete, retained for investigation
+
+The repository's long-fuzz command used seed `20261118`, 120 seconds per target and the unchanged 2,000 ms per-input limit. Phone-run failed a wall-time check after 189,189 executions (5,995 ms); backup-manifest failed after 1,585,164 executions (3,052 ms). Workspace, media-import, media-state and catalog-state each completed 120 seconds without a reported failure. The process then exited 137 before canonical reported a result; later targets were not reached. The saved files are 469 and 292 bytes, and repeated exact-input replays did not reproduce the 2-second failures. The backup case exits at invalid JSON parsing. No validator exception or confirmed root cause is established.
+
+`DECKCHEK_STRESS=full` with the existing stress/performance suites passed the monitor performance case, then the stress child received SIGKILL after about 13.5 seconds. No full stress acceptance result was produced. Kernel OOM evidence is unavailable; memory pressure, scheduling, runtime behavior and other causes have not been established. The initially concurrent runs are retained as failed/incomplete evidence. No time or memory budget, assertion or production validator was relaxed.
+
+Standalone canonical replay subsequently completed the unchanged 120-second budget and 2,000 ms input gate on Node 22.23.5: 501,593 executions, no error, exit 0, maximum RSS 152,500 KiB. Both saved slow inputs passed 30,003 exact replays each. These results do not establish why the original process was killed. The remaining and previously timed-out targets are being run sequentially in fresh processes with unchanged budgets; no full long-fuzz pass is claimed yet.

@@ -136,3 +136,40 @@ The untouched `4466cc0` baseline intermittently produces an erroneous cubic-dist
 - [Release readiness](DECKCHEK-RELEASE-READINESS.md): exact evidence, failed/blocked checks and platform/hardware limits.
 
 The session used the available OpenAI agents with Caveman guidance. Claude Opus 5.5 was not available in this environment and was not represented as having performed the work.
+
+## Latest reviewed continuation: `eb45ab8`
+
+This section supersedes earlier candidate pointers without erasing their failed-run history. The complete reviewed code candidate is **`eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98`**; any following report-only commit must be checked against its actual source tree.
+
+| Commit | Change | Implementation / independent review |
+|---|---|---|
+| `b8fb70e73c34531b0825c952661b730de34b154e` | Certificate history and signing-identity refresh ownership | certificate_async_review / ci_audit; seven new behavioral cases |
+| `eba99f37e85b002b91a7073d33f326782fe46e47` | Verify listener registration/callback/cleanup ownership | certificate_async_review / ci_audit; eleven new cases, 55 overlapping focused tests across both screens/core and eight extra probe groups |
+| `6127377ede9178c575293757c8f89be91cb1bddf` | Successful monitor saves supersede initial settings reads | monitor_settings_review / mapper_async_review; eleven new cases, 58 focused checks and completion-order/pruning/normalization probes; identity-guard negative control reproduces stale repaint |
+| `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98` | Real ZIP rejection plus independently tested application stream bounds | zip_boundaries / zip_stream_independent; six exact-source checks and strict harness Clippy; all four deliberate guard mutations rejected |
+
+Complete local Node 22.23.5 verification passed **1,367 tests, zero failures, one optional skip** (1,368 total), and full Rust formatting passed. The source includes no changed measurement thresholds or evidence policy. New native CI is required after publication.
+
+Preceding published `1b1db168288389e755b598a47eb6bb82697f0cab` received [CI 44258246462](https://github.com/djshellshoxxx/deckchek/actions/runs/44258246462): JavaScript 1,338 passed/one optional skip plus performance, browser 1,283/1,283 passed/no console errors, and native 662 passed/one failed/eight ignored. Native compilation now succeeds. The sole failure was the ZIP 9 early-rejection error-code assertion addressed above; check/Clippy were not reached. Do not describe that native job as passing.
+
+### Long-run evidence and reproducible follow-up
+
+Original local long fuzz exited 137 after two slow-input failures and four 120-second target passes; canonical and later targets did not finish. Full stress exited 1 because its stress child received SIGKILL. Exact-input replay did not reproduce the two 2-second failures. No cause or full-gate clearance is established. Preserve `verification/js-fuzz-long.log`, its two saved input files and `verification/js-stress-full.log`; standalone canonical passed with unchanged budgets, and a read-only worker is completing the remaining individual target budgets.
+
+```sh
+FUZZ_SEED=20261118 node tools/fuzz-js.mjs 120 /path/to/evidence/js-fuzz-long
+DECKCHEK_STRESS=full node --expose-gc --test --test-concurrency=1 tests/stress/*.test.mjs tests/perf/*.test.mjs
+```
+
+Use separate preserved output directories for retries, record concurrency/resource observations, and reproduce a failing input before proposing parser changes. A narrower test result cannot substitute for the required full run.
+
+### Active ownership after this snapshot
+
+- Root: integration branch, exact-source CI, six reports and focused status synchronization.
+- `stylus_guided_capture`: dedicated FS-12 implementation worker; owns stylus UI/style, a focused new benchmark controller, its tests/fixture and browser smoke. Work is in progress and excluded from this candidate until independent review.
+- `mapper_async_review`: read-only long-fuzz timing/termination triage and remaining sequential target budgets; no repository edits authorized for that investigation.
+- Reviewed lifecycle/ZIP source is frozen. Preserve in-progress owned files when synchronizing the local branch after connector publication.
+
+PR #27 is ready for review, not merged. Canonical main and superseded PRs remain unchanged. The platform workflow browser is signed out; the connector has no dispatch tool. Continue unblocked feature work while seeking concrete current-source CI and authorized workflow access; do not alter triggers, policies or credentials to bypass a gate.
+
+Standalone canonical replay subsequently completed the unchanged 120-second budget and 2,000 ms input gate on Node 22.23.5: 501,593 executions, no error, exit 0, maximum RSS 152,500 KiB. Both saved slow inputs passed 30,003 exact replays each. These results do not establish why the original process was killed. The remaining and previously timed-out targets are being run sequentially in fresh processes with unchanged budgets; no full long-fuzz pass is claimed yet.
