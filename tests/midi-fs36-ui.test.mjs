@@ -103,8 +103,8 @@ test('conformance: no output port or a failed send never fabricates an identity 
   assert.ok(finding(failing.finished[0], 'midi-identity-unsent'));
 });
 
-test('conformance: host-side drops during the capture block a clean pass; an unknown counter does not', async t => {
-  const dropping = mount({ kind: 'conformance', midi: bridge({ status: async call => ({ dropped: call === 1 ? 5 : 9 }) }) }); await settle();
+test('conformance: host-side drops and unavailable counters both require review', async t => {
+  const dropping = mount({ kind: 'conformance', midi: bridge({ status: async call => ({ dropped: call === 1 ? 5 : 9, openInputs: ['A'] }) }) }); await settle();
   dropping.midi.emit(REPLY); dropping.midi.emit([0xb0, 1, 2]);
   await dropping.click('midi-finish'); await settle();
   assert.equal(dropping.finished[0].status, 'unknown');
@@ -115,8 +115,90 @@ test('conformance: host-side drops during the capture block a clean pass; an unk
   const unknownCounter = mount({ kind: 'conformance', midi: bridge({ status: async () => { throw new Error('no status'); } }) }); t.after(() => unknownCounter.runner.dispose()); await settle();
   unknownCounter.midi.emit(REPLY); unknownCounter.midi.emit([0xb0, 1, 2]);
   await unknownCounter.click('midi-finish'); await settle();
-  assert.equal(unknownCounter.finished[0].status, 'pass');
+  assert.equal(unknownCounter.finished[0].status, 'unknown');
   assert.equal(unknownCounter.finished[0].extra.droppedDuringCapture, null);
+  assert.equal(unknownCounter.finished[0].extra.captureIntegrity.counterState, 'unavailable');
+  assert.ok(finding(unknownCounter.finished[0], 'midi-capture-unverified'));
+});
+
+test('conformance: reset or invalid counters never establish a clean capture', async () => {
+  for (const [before, after, expected] of [[5, 2, 'reset'], [0, -1, 'unavailable'], [0, 0.5, 'unavailable'], [NaN, 0, 'unavailable'], [0, Infinity, 'unavailable'], [0, Number.MAX_SAFE_INTEGER + 1, 'unavailable']]) {
+    const m = mount({ kind: 'conformance', midi: bridge({ status: async call => ({ dropped: call === 1 ? before : after, openInputs: ['A'] }) }) }); await settle();
+    m.midi.emit([0xb0, 1, 2]);
+    await m.click('midi-finish'); await settle();
+    const r = m.finished[0];
+    assert.equal(r.status, 'unknown', `${before} -> ${after}`);
+    assert.equal(r.extra.droppedDuringCapture, null);
+    assert.equal(r.extra.captureIntegrity.counterState, expected);
+    assert.equal(metric(r, 'midi_message_count').value, 1, 'observed evidence remains available');
+    m.runner.dispose();
+  }
+});
+
+test('conformance: a disconnected or unobservable selected input cannot pass', async () => {
+  for (const [openInputs, expected] of [[[], false], [['B'], false], [undefined, null]]) {
+    const m = mount({ kind: 'conformance', midi: bridge({ status: async call => ({ dropped: 0, openInputs: call === 1 ? ['A'] : openInputs }) }) }); await settle();
+    m.midi.emit([0xb0, 1, 2]);
+    await m.click('midi-finish'); await settle();
+    const r = m.finished[0];
+    assert.equal(r.status, 'unknown');
+    assert.equal(r.extra.droppedDuringCapture, 0, 'a zero counter is distinct from input continuity');
+    assert.equal(r.extra.captureIntegrity.inputOpenAtEnd, expected);
+    assert.ok(finding(r, expected === false ? 'midi-input-disconnected' : 'midi-capture-unverified'));
+    m.runner.dispose();
+  }
+});
+
+test('conformance: browser MIDI cannot claim a measured zero-loss counter', async t => {
+  const midi = bridge(); midi.backend = () => 'webmidi';
+  const m = mount({ kind: 'conformance', midi }); t.after(() => m.runner.dispose()); await settle();
+  m.midi.emit([0xb0, 1, 2]);
+  await m.click('midi-finish'); await settle();
+  assert.equal(m.finished[0].status, 'unknown');
+  assert.equal(m.finished[0].extra.droppedDuringCapture, null);
+});
+
+test('MIDI routing: changing the input pairs its matching output, even against the profile hint', async t => {
+  const m = mount({ kind: 'conformance', profile: { model: 'A', midi: { controls: [] }, connectivity: { midi: { portNamePatterns: ['A'] } } } }); t.after(() => m.runner.dispose()); await settle();
+  await m.select('B'); await settle();
+  assert.deepEqual(m.midi.sends.map(s => s.port), ['A', 'B']);
+  assert.equal(m.byId('midi-output').value, 'B');
+});
+
+test('MIDI routing: ambiguous outputs require explicit selection before sending', async t => {
+  const midi = bridge({ listPorts: async () => ({ inputs: [{ name: 'Input 1' }, { name: 'Input 2' }], outputs: [{ name: 'Output 1' }, { name: 'Output 2' }] }) });
+  const m = mount({ kind: 'conformance', midi }); t.after(() => m.runner.dispose()); await settle();
+  assert.deepEqual(midi.sends, [], 'an arbitrary first output must not receive SysEx');
+  assert.equal(m.byId('midi-output').value, '');
+  const output = m.byId('midi-output'); output.value = 'Output 2'; await output.fire('change'); await settle();
+  assert.deepEqual(midi.sends.map(s => s.port), ['Output 2']);
+  await m.select('Input 2'); await settle();
+  assert.equal(m.byId('midi-output').value, '', 'changing inputs clears an unverified manual pairing');
+  assert.equal(midi.sends.length, 1);
+});
+
+test('MIDI routing: duplicate names cannot silently select the first device', async () => {
+  const duplicateInput = mount({ kind: 'conformance', midi: bridge({ listPorts: async () => ({ inputs: [{ name: 'A' }, { name: 'A' }], outputs: [{ name: 'A' }] }) }) }); await settle();
+  assert.deepEqual(duplicateInput.midi.opens, []);
+  assert.deepEqual(duplicateInput.midi.sends, []);
+  duplicateInput.runner.dispose();
+
+  const duplicateOutput = mount({ kind: 'conformance', midi: bridge({ listPorts: async () => ({ inputs: [{ name: 'A' }], outputs: [{ name: 'A' }, { name: 'A' }] }) }) }); await settle();
+  assert.deepEqual(duplicateOutput.midi.sends, []);
+  const output = duplicateOutput.byId('midi-output'); output.value = 'A'; await output.fire('change'); await settle();
+  assert.deepEqual(duplicateOutput.midi.sends, [], 'the operation boundary rejects an ambiguous choice even if a change event supplies it');
+  duplicateOutput.runner.dispose();
+});
+
+test('MIDI routing: the sole input/output pair and a unique profile pair remain usable', async () => {
+  for (const [ports, profile, expected] of [
+    [{ inputs: [{ name: 'Input' }], outputs: [{ name: 'Output' }] }, { model: 'Unit', midi: { controls: [] } }, 'Output'],
+    [{ inputs: [{ name: 'Unit In' }, { name: 'Other' }], outputs: [{ name: 'Unit Out' }, { name: 'Other' }] }, { model: 'Unit', midi: { controls: [] }, connectivity: { midi: { portNamePatterns: ['Unit'] } } }, 'Unit Out'],
+  ]) {
+    const m = mount({ kind: 'conformance', midi: bridge({ listPorts: async () => ports }), profile }); await settle();
+    assert.deepEqual(m.midi.sends.map(s => s.port), [expected]);
+    m.runner.dispose();
+  }
 });
 
 test('conformance: an old probe or a Finish awaiting the drop counter cannot affect a replacement port', async t => {

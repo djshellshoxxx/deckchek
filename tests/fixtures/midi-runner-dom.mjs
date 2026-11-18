@@ -40,7 +40,7 @@ export const settle = async () => { await turn(); await turn(); await turn(); };
 export const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 
 /** Injected bridge; `send`/`status` hooks may return a promise to hold a call open. */
-export function bridge({ open = async () => {}, close = async () => {}, send = async () => {}, status = async () => ({ dropped: 0 }), listPorts = async () => ({ inputs: [{ name: 'A' }, { name: 'B' }], outputs: [{ name: 'A' }, { name: 'B' }] }) } = {}) {
+export function bridge({ open = async () => {}, close = async () => {}, send = async () => {}, status = async () => ({ dropped: 0, openInputs: ['A', 'B'] }), listPorts = async () => ({ inputs: [{ name: 'A' }, { name: 'B' }], outputs: [{ name: 'A' }, { name: 'B' }] }) } = {}) {
   const listeners = new Set();
   const midi = {
     opens: [], closes: [], sends: [], statusCalls: 0, listeners,

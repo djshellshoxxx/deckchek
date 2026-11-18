@@ -22,9 +22,28 @@ export const IDENTITY_TIMEOUT_MS = 1500;
 /** Conformance capture bound: past this the end-of-session note state is unknown, so the run is not judged. */
 export const CONFORMANCE_MAX_EVENTS = 100000;
 const errText = error => String(error?.message || error);
-/** Bridge drop counter, or null when the backend cannot report one (never treated as zero). */
-async function droppedCount(midi) {
-  try { const s = await midi.status?.(); return Number.isFinite(s?.dropped) ? s.dropped : null; } catch { return null; }
+/** Observe the shared transport counter and this input; unavailable evidence stays unknown. */
+async function captureStatus(midi, port) {
+  try {
+    const s = await midi.status?.();
+    // Web MIDI does not expose a measured host-loss counter. Its legacy bridge zero is not evidence.
+    const measured = (s?.backend || midi.backend?.()) !== 'webmidi';
+    return {
+      dropped: measured && Number.isSafeInteger(s?.dropped) && s.dropped >= 0 ? s.dropped : null,
+      inputOpen: Array.isArray(s?.openInputs) && s.openInputs.every(n => typeof n === 'string') ? s.openInputs.includes(port) : null,
+    };
+  } catch { return { dropped: null, inputOpen: null }; }
+}
+
+/** Pair only an unambiguous name/profile match, or the sole input/output pair. */
+function pairedOutput(inputs, outputs, port, profile) {
+  const exact = outputs.filter(n => n === port);
+  if (exact.length) return exact.length === 1 ? exact[0] : null;
+  if (pickMidiPort([port], profile) === port) {
+    const matching = outputs.filter(n => pickMidiPort([n], profile) === n);
+    if (matching.length === 1) return matching[0];
+  }
+  return inputs.length === 1 && outputs.length === 1 ? outputs[0] : null;
 }
 
 // Opens are idempotent by port name in both bridges. A replacement runner can claim the same pending
@@ -119,14 +138,25 @@ export function runMidi(host, ctx) {
     const auto = pickMidiPort(st.inputs, profile);
     st.port ||= auto || st.inputs[0];
     if (!st.inputs.includes(st.port)) st.port = auto || st.inputs[0];
-    st.outPort = pickMidiPort(st.outputs, profile) || st.outputs.find(n => n === st.port) || st.outputs[0] || null;
+    st.outPort = pairedOutput(st.inputs, st.outputs, st.port, profile);
     const sel = h('select', { id: 'midi-port' });
     st.inputs.forEach(n => sel.append(h('option', { value: n, text: `${n}${n === auto ? ' (matches profile)' : ''}`, selected: n === st.port ? true : null })));
-    sel.addEventListener('change', async () => { st.port = sel.value; await connect(); });
+    const outSel = h('select', { id: 'midi-output' });
+    outSel.append(h('option', { value: '', text: st.outputs.length ? 'No output selected' : 'No output available', selected: !st.outPort || null }));
+    st.outputs.forEach(n => outSel.append(h('option', { value: n, text: n, selected: n === st.outPort || null, disabled: st.outputs.filter(x => x === n).length > 1 || null })));
+    sel.addEventListener('change', async () => {
+      st.port = sel.value;
+      st.outPort = pairedOutput(st.inputs, st.outputs, st.port, profile);
+      outSel.value = st.outPort || '';
+      await connect();
+    });
+    outSel.addEventListener('change', async () => { st.outPort = outSel.value || null; await connect(); });
     const row = h('div', { class: 'dev-port-row' },
       h('label', { class: 'field', for: 'midi-port' }, h('span', { class: 'field-label', text: 'Input port' }), sel),
+      h('label', { class: 'field', for: 'midi-output' }, h('span', { class: 'field-label', text: 'Output port' }), outSel),
       h('button', { type: 'button', class: 'btn btn-ghost btn-icon', 'aria-label': 'Refresh MIDI ports', 'data-tooltip': 'Refresh MIDI ports', html: icon('refresh', { size: 18 }), onclick: refreshPorts }));
     portCard.append(row);
+    portCard.append(h('p', { class: 'hint', text: 'Choose the matching output for Identity, LED and General MIDI tests. When no output is selected, DeckChek only listens.' }));
     if (!auto) portCard.append(h('p', { class: 'hint hint-warn', html: `${icon('warn', { size: 16 })}<span>No port name matches ${esc((profile.connectivity?.midi?.portNamePatterns || []).map(p => `“${p}”`).join(', ') || 'this device')}. Pick the port for your ${esc(profile.model)}.</span>` }));
     st.status = h('p', { class: 'muted small dev-port-status', role: 'status' });
     portCard.append(st.status);
@@ -146,6 +176,11 @@ export function runMidi(host, ctx) {
     if (st.disposed) return;
     const generation = ++st.generation, port = st.port, status = st.status;
     const previous = disconnect();
+    if (st.inputs.filter(n => n === port).length !== 1) {
+      status.innerHTML = `${chip('review', 'AMBIGUOUS INPUT', { size: 14 })} <span>This input name appears more than once. Disconnect duplicate devices and refresh before testing.</span>`;
+      return;
+    }
+    if (st.outputs.filter(n => n === st.outPort).length !== 1) st.outPort = null;
     const claim = claimPort(midi, port); st.connection = claim;
     const current = () => !st.disposed && generation === st.generation && st.connection === claim && claim.entry.owner === claim;
     await previous;
@@ -493,7 +528,7 @@ export function runMidi(host, ctx) {
       const current = () => !disposed && !finished && connection.current();
       const events = [];
       let lastT = null, lastR = null, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
-      const dropBase = droppedCount(midi);
+      const statusBase = captureStatus(midi, connection.port);
       const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
       card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek asks the device to identify itself, then checks every message it sends while you use the controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing.' }));
       const idLine = h('p', { class: 'dev-target', role: 'status' });
@@ -502,7 +537,7 @@ export function runMidi(host, ctx) {
         const i = identity.info;
         idLine.innerHTML = identity.status === 'ok' ? `${chip('pass', 'IDENTIFIED', { size: 14 })} <span>Manufacturer id <strong class="num">${esc(i.manufacturerHex)}</strong> · family ${esc(i.family)} · model ${esc(i.member)} · version ${esc(i.versionText)}</span>`
           : identity.status === 'none' ? `${chip('review', 'NO ANSWER', { size: 14 })} <span>No reply to the Identity Request within ${IDENTITY_TIMEOUT_MS / 1000} s. Many DJ controllers do not implement it.</span>`
-          : identity.status === 'no-port' ? `${chip('info', 'SKIPPED', { size: 14 })} <span>No MIDI output port was found, so the Identity Request was not sent.</span>`
+          : identity.status === 'no-port' ? `${chip('info', 'SKIPPED', { size: 14 })} <span>No MIDI output port is selected, so the Identity Request was not sent.</span>`
           : identity.status === 'send-failed' ? `${chip('warn', 'NOT SENT', { size: 14 })} <span>The Identity Request could not be sent: ${esc(identity.error)}</span>`
           : `${chip('review', 'ASKING', { size: 14 })} <span>Sending the Identity Request…</span>`;
       };
@@ -532,9 +567,16 @@ export function runMidi(host, ctx) {
         finished = true; ++probeToken; clearTimeout(probeTimer); probeTimer = null;
         again.disabled = true; finish.disabled = true;
         const endUs = lastT == null ? null : lastT + (nowUs() - lastR);
-        const [before, after] = await Promise.all([dropBase, droppedCount(midi)]);
+        const [before, after] = await Promise.all([statusBase, captureStatus(midi, connection.port)]);
         if (disposed || !connection.current()) return;
-        const dropped = before == null || after == null ? null : Math.max(0, after - before);
+        const counterState = before.dropped == null || after.dropped == null ? 'unavailable' : after.dropped < before.dropped ? 'reset' : 'observed';
+        const dropped = counterState === 'observed' ? after.dropped - before.dropped : null;
+        const disconnected = before.inputOpen === false || after.inputOpen === false;
+        const unverified = counterState !== 'observed' || before.inputOpen == null || after.inputOpen == null;
+        const captureIntegrity = {
+          counterState, counterScope: 'all-inputs', droppedBefore: before.dropped, droppedAfter: after.dropped,
+          inputOpenAtStart: before.inputOpen, inputOpenAtEnd: after.inputOpen,
+        };
         const a = analyzeStream(events, { endUs });
         // A reply only counts inside the window; an unsent or unanswered-yet request is not a "no".
         const asked = identity.status === 'ok' || identity.status === 'none';
@@ -543,13 +585,17 @@ export function runMidi(host, ctx) {
         if (identity.status === 'ok') findings.push({ id: 'midi-identified', severity: 'info', title: `Device identified (manufacturer id ${identity.info.manufacturerHex})`, meaning: `Family ${identity.info.family}, model ${identity.info.member}, version ${identity.info.versionText}. Look the manufacturer id up in the MIDI Association SysEx ID list.`, action: '' });
         if (identity.status === 'pending') findings.push({ id: 'midi-identity-unfinished', severity: 'info', title: 'Identity Request not awaited', meaning: `The test finished before the ${IDENTITY_TIMEOUT_MS / 1000} s reply window closed, so no identity result is recorded.`, action: 'Run the test for longer to include the identity check.' });
         if (identity.status === 'send-failed') findings.push({ id: 'midi-identity-unsent', severity: 'info', title: 'Identity Request was not sent', meaning: `Sending to ${outPort} failed (${identity.error}), so no identity result is recorded.`, action: 'Check the output port, then run the test again.' });
-        if (dropped) findings.push({ id: 'midi-transport-drops', severity: 'warning', title: `${dropped} MIDI message${dropped > 1 ? 's' : ''} dropped by DeckChek during the capture`, meaning: 'The host MIDI queue overflowed, so missing messages can look like stuck or orphan notes. This is a capture problem, not a device fault.', action: 'Close other MIDI apps, plug in directly and repeat the test.' });
+        if (dropped) findings.push({ id: 'midi-transport-drops', severity: 'warning', title: `${dropped} MIDI message${dropped > 1 ? 's' : ''} dropped by DeckChek during the capture`, meaning: 'The shared host MIDI queue lost messages during this window. The counter covers all inputs, so it does not prove loss from this device. Missing messages can look like stuck or orphan notes.', action: 'Close other MIDI apps, plug in directly and repeat the test.' });
+        if (disconnected) findings.push({ id: 'midi-input-disconnected', severity: 'review', title: 'The selected MIDI input did not stay open', meaning: 'The input was missing from a capture status check. Recorded messages remain available, but the stream cannot be judged as complete.', action: 'Reconnect the device, refresh the ports and repeat the test.' });
+        if (unverified) findings.push({ id: 'midi-capture-unverified', severity: 'review', title: 'Capture continuity could not be verified', meaning: counterState === 'reset' ? 'The shared transport counter decreased during capture, so a reliable loss delta is unavailable.' : 'A measured transport counter or selected-input status was unavailable. Unobserved capture loss is not a measured zero.', action: 'Use the desktop MIDI backend, check the device connection and repeat the test.' });
         if (truncated) findings.push({ id: 'midi-capture-full', severity: 'review', title: 'Capture limit reached', meaning: `Recording stopped after ${CONFORMANCE_MAX_EVENTS} messages, so later note releases were not seen.`, action: 'Repeat the test and finish after about 15 seconds.' });
         const bad = a.invalid.length + a.sysexBad.length + a.stuck.length;
         const exercised = live.channel > 0;
         const unknown = detail => ({ status: 'unknown', detail, criterion: 'conformance' });
         const override = truncated ? unknown(`Capture limit of ${CONFORMANCE_MAX_EVENTS} messages reached; the end-of-session note state is unknown.`)
           : !a.total ? unknown('No MIDI messages were received, so nothing could be checked.')
+          : disconnected ? unknown('The selected MIDI input did not stay open, so capture continuity is unknown.')
+          : unverified ? unknown('Capture continuity could not be verified, so the stream cannot be judged complete.')
           : dropped ? unknown(`${dropped} message(s) were dropped by the host during capture, so the stream cannot be judged.`)
           : bad ? { status: 'fail', detail: `${a.invalid.length} invalid, ${a.sysexBad.length} malformed SysEx and ${a.stuck.length} stuck note(s) in ${a.total} messages.`, criterion: 'conformance' }
           : !exercised ? unknown(`${a.total} message(s) received but no control messages; use the controls during the test.`)
@@ -557,7 +603,7 @@ export function runMidi(host, ctx) {
           : a.orphans ? unknown(`${a.total} messages are well formed, but ${a.orphans} note-off(s) had no note-on — review.`)
           : { status: 'pass', detail: `All ${a.total} messages are valid MIDI; no stuck notes.`, criterion: 'conformance' };
         card.append(resultBlock(measurements, findings));
-        complete(measurements, findings, { kinds: a.kinds, channels: a.channels, identity: identity.info, identityStatus: identity.status, clock: a.clock, sensing: a.sensing, burst: a.burst, droppedDuringCapture: dropped, truncated }, override, connection);
+        complete(measurements, findings, { kinds: a.kinds, channels: a.channels, identity: identity.info, identityStatus: identity.status, clock: a.clock, sensing: a.sensing, burst: a.burst, droppedDuringCapture: dropped, captureIntegrity, truncated }, override, connection);
       });
       card.append(idLine, stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Use every kind of control for about 15 seconds, hold one pad for a second, release everything, then finish.' }), again, finish));
       body.replaceChildren(card);
@@ -588,7 +634,7 @@ export function runMidi(host, ctx) {
       const card = h('section', { class: 'card', 'aria-labelledby': 'gm-title' });
       card.append(h('h2', { class: 'card-title', id: 'gm-title', text: 'General MIDI sound check' }), h('p', { class: 'muted small', text: 'For devices with a built-in General MIDI sound source. DeckChek sends GM System On, then ten short musical checks. Turn the unit’s output up a little, listen, and answer for each.' }));
       if (!outPort) {
-        card.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>No MIDI output port</h2><p>The test needs to send notes to the device. Connect it and refresh the ports, or skip this test if it has no General MIDI sound source.</p>` }),
+        card.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>No MIDI output selected</h2><p>Select the matching output port above to send notes to the device. Connect it and refresh the ports if needed, or skip this test if it has no General MIDI sound source.</p>` }),
           h('div', { class: 'step-footer' }, h('button', { type: 'button', class: 'btn btn-secondary', id: 'gm-skip', text: 'Skip test', onclick: () => { if (current()) ctx.skip('No MIDI output port, or the device has no General MIDI sound source.'); } })));
         body.replaceChildren(card);
         return { onMessage() {} };
