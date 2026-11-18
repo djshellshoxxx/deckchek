@@ -82,8 +82,34 @@ pub fn collect_batch(
 
 pub struct MidiState {
     inner: Mutex<Inner>,
+    input_generations: Mutex<InputGenerations>,
     dropped: Arc<AtomicU64>,
     emitted: Arc<AtomicU64>,
+}
+
+/// Short-lived request bookkeeping is separate from the lock held while drivers open.
+/// A close invalidates work already dispatched to the blocking pool, even if that
+/// work has not acquired the connection lock yet.
+#[derive(Default)]
+struct InputGenerations {
+    all: u64,
+    ports: HashMap<String, u64>,
+}
+
+impl InputGenerations {
+    fn for_port(&self, name: &str) -> (u64, u64) {
+        (self.all, self.ports.get(name).copied().unwrap_or(0))
+    }
+
+    fn close_input(&mut self, name: &str) {
+        let generation = self.ports.entry(name.to_owned()).or_default();
+        *generation = generation.wrapping_add(1);
+    }
+
+    fn close_all(&mut self) {
+        self.all = self.all.wrapping_add(1);
+        self.ports.clear();
+    }
 }
 
 struct Inner {
@@ -100,6 +126,7 @@ impl Default for MidiState {
                 outputs: HashMap::new(),
                 tx: None,
             }),
+            input_generations: Mutex::new(InputGenerations::default()),
             dropped: Arc::new(AtomicU64::new(0)),
             emitted: Arc::new(AtomicU64::new(0)),
         }
@@ -111,6 +138,15 @@ fn lock(state: &MidiState) -> Result<std::sync::MutexGuard<'_, Inner>, String> {
         .inner
         .lock()
         .map_err(|_| "MIDI state poisoned".to_string())
+}
+
+fn input_generations(
+    state: &MidiState,
+) -> Result<std::sync::MutexGuard<'_, InputGenerations>, String> {
+    state
+        .input_generations
+        .lock()
+        .map_err(|_| "MIDI request state poisoned".to_string())
 }
 
 /// Names in `open` that no longer appear among the ports the OS reports (device unplugged).
@@ -275,15 +311,26 @@ fn ensure_pump(
 
 #[tauri::command]
 pub async fn midi_open_input(app: AppHandle, name: String) -> Result<(), String> {
+    let generation = input_generations(&app.state::<MidiState>())?.for_port(&name);
     tauri::async_runtime::spawn_blocking(move || {
-        open_input_blocking(&app, &app.state::<MidiState>(), name)
+        open_input_blocking(&app, &app.state::<MidiState>(), name, generation)
     })
     .await
     .map_err(background_failed)?
 }
 
-fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Result<(), String> {
+fn open_input_blocking(
+    app: &AppHandle,
+    state: &MidiState,
+    name: String,
+    generation: (u64, u64),
+) -> Result<(), String> {
     let mut inner = lock(state)?;
+    if input_generations(state)?.for_port(&name) != generation {
+        return Err(format!(
+            "MIDI input open was cancelled because its connection was closed: {name}"
+        ));
+    }
     let mut mi = MidiInput::new("deckchek-in").map_err(|e| e.to_string())?;
     mi.ignore(midir::Ignore::None);
     // A cached connection whose port vanished is dead: close it and reconnect (or report not found).
@@ -334,6 +381,7 @@ fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Resu
 
 #[tauri::command]
 pub fn midi_close_input(state: State<'_, MidiState>, name: String) -> Result<(), String> {
+    input_generations(&state)?.close_input(&name);
     let mut inner = lock(&state)?;
     if let Some(c) = inner.inputs.remove(&name) {
         c.close();
@@ -374,6 +422,7 @@ fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
 
 #[tauri::command]
 pub fn midi_close_all(state: State<'_, MidiState>) -> Result<(), String> {
+    input_generations(&state)?.close_all();
     let mut inner = lock(&state)?;
     for (_, c) in inner.inputs.drain() {
         c.close();
@@ -413,6 +462,39 @@ mod tests {
     }
 
     use super::*;
+
+    #[test]
+    fn input_close_invalidates_pending_requests_only_for_its_port() {
+        let mut generations = InputGenerations::default();
+        let first_a = generations.for_port("A");
+        let second_a = generations.for_port("A");
+        let other_b = generations.for_port("B");
+        generations.close_input("A");
+        assert_ne!(generations.for_port("A"), first_a);
+        assert_ne!(generations.for_port("A"), second_a);
+        assert_eq!(generations.for_port("B"), other_b);
+        let replacement_a = generations.for_port("A");
+        generations.close_input("B");
+        assert_eq!(generations.for_port("A"), replacement_a);
+        assert_ne!(generations.for_port("B"), other_b);
+    }
+
+    #[test]
+    fn close_all_invalidates_pending_requests_and_permits_new_generations() {
+        let mut generations = InputGenerations::default();
+        generations.close_input("A");
+        let old_a = generations.for_port("A");
+        let old_b = generations.for_port("B");
+        generations.close_all();
+        let new_a = generations.for_port("A");
+        let new_b = generations.for_port("B");
+        assert_ne!(new_a, old_a);
+        assert_ne!(new_b, old_b);
+        generations.close_input("A");
+        assert_ne!(generations.for_port("A"), old_a);
+        assert_ne!(generations.for_port("A"), new_a);
+        assert_eq!(generations.for_port("B"), new_b);
+    }
 
     fn select_test_port(
         ports: &[(u8, Option<&str>)],
