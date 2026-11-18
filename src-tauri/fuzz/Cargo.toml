@@ -15,6 +15,10 @@ deckchek = { path = "..", features = ["fuzzing"] }
 [workspace]
 members = ["."]
 
+# This standalone workspace must select the same reviewed backport as the app.
+[patch.crates-io]
+glib = { path = "../../vendor/glib-0.18.5" }
+
 [profile.release]
 debug = 1
 

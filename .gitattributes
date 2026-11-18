@@ -1,0 +1,2 @@
+vendor/glib-0.18.5/** -text
+vendor/glib-0.18.5.patch -text

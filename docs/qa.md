@@ -57,6 +57,15 @@ interface mid-capture).
 
 ## 4. Stress budgets
 
+The JavaScript workloads live in separate `tests/stress/*.test.mjs` files and share
+`tests/stress/helpers.mjs`. Run the full sizes with
+`DECKCHEK_STRESS=full node --expose-gc --test --test-concurrency=1 tests/stress/*.test.mjs tests/perf/*.test.mjs`.
+Each file runs in a fresh Node test process, so its process-lifetime peak RSS includes its
+own fixture and workload without carrying another case's peak into its budget. The synchronous
+workloads use the kernel RSS high-water mark; an interval cannot sample while their JavaScript
+is running. Each process prints its own `STRESS-SUMMARY`. Omitting `DECKCHEK_STRESS=full`
+selects the existing smaller local sizes; that run does not qualify the full budgets below.
+
 | Case | Size (nightly full) | Budget |
 |---|---|---|
 | Vinyl side analysis | 20 min stereo 48 kHz (460 MB samples) | <= 240 s, <= 2.6 GB RSS |

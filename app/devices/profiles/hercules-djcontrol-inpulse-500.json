@@ -5,20 +5,20 @@
   "model": "DJControl Inpulse 500",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: jog,pad,fader,eq,audio,usb. Software: DJUCED,Serato DJ Lite.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed; DJControl Inpulse 500: manufacturer-documented USB Audio/MIDI and audio routing. USB identifiers, class compliance, firmware/OS compatibility and physical performance remain unverified; no factory tolerances or control mappings are claimed.",
   "documents": [
     {
-      "title": "Model specific official feature reference",
-      "type": "manual",
+      "title": "DJControl Inpulse 500 product specifications",
+      "type": "spec-sheet",
       "url": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
       "language": "en"
     },
     {
-      "title": "Official manufacturer documentation or support entry",
-      "type": "manual",
-      "url": "https://support.hercules.com/en/",
+      "title": "DJControl Inpulse 500 English user manual",
+      "type": "user-manual",
+      "url": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse500/DJControl_Inpulse_500_User_Manual_EN.pdf",
       "language": "en",
-      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+      "notes": "Checked 2026-11-18. Sections 3.2, 4.3, 5.5 and 6 document audio channels and USB transport. No document revision or firmware baseline was identified."
     },
     {
       "title": "Driver and firmware support",
@@ -54,18 +54,26 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DJControl Inpulse 500"
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
-      "sampleRatesHz": [],
-      "bitDepth": null
-    }
+      "usbChannelsIn": 2,
+      "usbChannelsOut": 4,
+      "sampleRatesHz": [
+        44100
+      ],
+      "bitDepth": 24
+    },
+    "analog": [
+      "MASTER stereo output: RCA L/R and 6.35 mm mono jack L/R; both connector pairs carry channels 1–2",
+      "Headphones stereo output: 3.5 mm and 6.35 mm jacks; channels 3–4",
+      "AUX stereo input: RCA L/R and 3.5 mm stereo jack",
+      "MIC input: balanced 6.35 mm jack"
+    ]
   },
   "software": [
     {
@@ -142,6 +150,33 @@
       "source": "https://www.hercules.com/en/product/djcontrol-inpulse-500/",
       "confidence": "confirmed",
       "notes": "Published manufacturer capability"
+    },
+    {
+      "key": "verified_usb_audio_input_channels",
+      "label": "USB audio input channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse500/DJControl_Inpulse_500_User_Manual_EN.pdf, section 4.3 (PDF page 11)",
+      "confidence": "confirmed",
+      "notes": "Aux and Mic are mixed in hardware and available to software on input channels 1–2."
+    },
+    {
+      "key": "verified_usb_audio_output_channels",
+      "label": "USB audio output channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse500/DJControl_Inpulse_500_User_Manual_EN.pdf, sections 3.2 and 4.3 (PDF pages 6 and 10–11)",
+      "confidence": "confirmed",
+      "notes": "Master uses channels 1–2; headphones use channels 3–4. Connector alternatives do not add USB channels."
+    },
+    {
+      "key": "verified_usb_transport",
+      "label": "USB host transport",
+      "value": "USB Audio and USB MIDI",
+      "unit": "",
+      "source": "https://ts.hercules.com/download/sound/manuals/DJC_Inpulse500/DJControl_Inpulse_500_User_Manual_EN.pdf, section 6 (PDF page 24)",
+      "confidence": "confirmed",
+      "notes": "Manufacturer-documented transport; USB identifiers and exact control messages remain unverified."
     }
   ],
   "midi": {

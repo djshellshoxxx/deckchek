@@ -2,12 +2,16 @@ name: DeckChek nightly
 
 # Expensive checks that do not gate every push: Windows Rust tests (second OS) and the PDF
 # spike, AddressSanitizer test run, long coverage-guided fuzzing (cargo-fuzz) and JS fuzzing,
-# and the stress/performance suite. Runs on main, nightly, and by hand.
+# and the stress/performance suite. Runs on main, nightly, by hand, and on pull
+# requests into main or integration branches so substantial changes can qualify before merge.
 # First-party actions only.
 
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
+  pull_request:
+    branches: [main, 'integration/**']
     paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
   schedule:
     - cron: '17 3 * * *'
