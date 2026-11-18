@@ -104,7 +104,7 @@ jobs:
       - name: Summarise Rust test failure
         if: failure()
         run: node tools/annotate-rust-failure.mjs "$RUNNER_TEMP/rust-tests.log" || true
-      - name: No compiler warnings in the app crate
+      - name: No compiler or Cargo warnings
         run: |
           set -o pipefail
           cargo metadata --locked --no-deps --format-version 1 --manifest-path src-tauri/Cargo.toml > "$RUNNER_TEMP/build-metadata.json"
@@ -112,7 +112,7 @@ jobs:
           cargo build --locked --manifest-path src-tauri/Cargo.toml --message-format=json -j 4 2> "$RUNNER_TEMP/build-stderr.log" | tee "$RUNNER_TEMP/build-messages.jsonl" || build_status=$?
           cat "$RUNNER_TEMP/build-stderr.log" >&2
           warning_status=0
-          node tools/check-rust-warnings.mjs src-tauri/Cargo.toml "$RUNNER_TEMP/build-metadata.json" "$RUNNER_TEMP/build-messages.jsonl" || warning_status=$?
+          node tools/check-rust-warnings.mjs src-tauri/Cargo.toml "$RUNNER_TEMP/build-metadata.json" "$RUNNER_TEMP/build-messages.jsonl" "$RUNNER_TEMP/build-stderr.log" || warning_status=$?
           if [ "$build_status" -ne 0 ]; then exit "$build_status"; fi
           exit "$warning_status"
       - name: Rust type checking
