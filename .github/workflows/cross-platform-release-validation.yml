@@ -1,6 +1,6 @@
 name: Cross-platform desktop release
 
-# Slow platform builds: main, tags and manual dispatch only (the per-push gate is test.yml).
+# Platform builds also validate pull requests into main before integration.
 # Each platform is built once and uploaded; the smoke jobs download those exact files and run
 # the packaged app's `--self-test` (real WebView, bundled UI, known-tone analysis, clean exit).
 # A tag publishes a prerelease only after the full test gate, every build and every smoke pass.
@@ -10,6 +10,9 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
+  pull_request:
+    branches: [main]
     paths-ignore: ['docs/**', '**/*.md', '**/*.png', '**/*.jpg', '**/*.svg', 'skills/**', 'LICENSE']
   workflow_dispatch:
 
