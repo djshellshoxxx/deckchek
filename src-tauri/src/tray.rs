@@ -88,7 +88,7 @@ fn inside(state: TrayState, x: f32, y: f32) -> bool {
         TrayState::Ok => dx * dx + dy * dy <= 13.0 * 13.0,
         TrayState::Off => {
             let r2 = dx * dx + dy * dy;
-            r2 <= 13.0 * 13.0 && r2 >= 8.5 * 8.5
+            (8.5 * 8.5..=13.0 * 13.0).contains(&r2)
         }
         // triangle with apex at (16, 3) and base on y = 28 from x = 2 to 30
         TrayState::Watch => (3.0..=28.0).contains(&y) && dx.abs() <= (y - 3.0) * 14.0 / 25.0,
@@ -356,7 +356,7 @@ mod tests {
             }
         }
         // the ring (off) is hollow, the disc (ok) is not
-        let centre = (16 * ICON_SIZE as usize + 16) as usize;
+        let centre = 16 * ICON_SIZE as usize + 16;
         assert!(shapes[0][centre] && !shapes[3][centre]);
         // RGBA with transparent corners
         let ok = icon_rgba(TrayState::Ok);

@@ -813,12 +813,12 @@ fn photo_entry_sha(name: &str) -> Option<&str> {
     .then_some(sha)
 }
 
+type SnapshotPhoto = (String, PathBuf, ManifestFile);
+type SnapshotPhotos = (Vec<SnapshotPhoto>, usize);
+
 /// Photos referenced by the snapshot's `photo` table whose file is present and still matches its
 /// hash: (archive entry name, file path, bytes). Missing or damaged files are left out, not fatal.
-fn photo_files(
-    snap: &Path,
-    photos_dir: &Path,
-) -> Result<(Vec<(String, PathBuf, ManifestFile)>, usize), BackupError> {
+fn photo_files(snap: &Path, photos_dir: &Path) -> Result<SnapshotPhotos, BackupError> {
     let c = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|e| sql_err("read snapshot photos", e))?;
     // Migration 0013 introduced the photo store. Old snapshots legitimately
@@ -4216,7 +4216,7 @@ mod tests {
             .map(|f| f.name.as_str())
             .filter(|n| n.starts_with("photos/"))
             .collect();
-        let mut want = vec![
+        let mut want = [
             format!("photos/{}.jpg", a.sha256),
             format!("photos/{}.jpg", b.sha256),
         ];

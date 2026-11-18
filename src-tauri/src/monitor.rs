@@ -289,7 +289,7 @@ pub fn validate_minute(m: &MinuteInput) -> Result<(), String> {
     ] {
         check_num(n, v, -1000.0, 1000.0)?;
     }
-    if m.dropouts.map_or(false, |d| !(0..=100_000).contains(&d)) {
+    if m.dropouts.is_some_and(|d| !(0..=100_000).contains(&d)) {
         return Err("dropouts must be between 0 and 100000".into());
     }
     Ok(())
@@ -1100,7 +1100,10 @@ mod tests {
             },
         ];
         for e in bad_events {
-            assert!(log_append(&mut c, &id, &[e.clone()], &[]).is_err(), "{e:?}");
+            assert!(
+                log_append(&mut c, &id, std::slice::from_ref(&e), &[]).is_err(),
+                "{e:?}"
+            );
         }
         for m in [
             MinuteInput {

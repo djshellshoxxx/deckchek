@@ -532,8 +532,8 @@ mod tests {
         assert!(c.punycode_host.starts_with("xn--"), "{}", c.punycode_host);
         let direct = classify("https://xn--githb-3bd.com/", &al());
         assert!(direct.ok && !direct.allowlisted);
-        assert_eq!(classify("https://sub.serato.com/", &al()).allowlisted, true);
-        assert_eq!(classify("https://notserato.com/", &al()).allowlisted, false);
+        assert!(classify("https://sub.serato.com/", &al()).allowlisted);
+        assert!(!classify("https://notserato.com/", &al()).allowlisted);
     }
 
     #[test]
@@ -845,7 +845,7 @@ mod tests {
         std::os::unix::fs::symlink(other.join("t.txt"), root.join("link.txt")).unwrap();
         let r = check_path(
             root.join("link.txt").to_str().unwrap(),
-            &[root.clone()],
+            std::slice::from_ref(&root),
             &|_| false,
         );
         assert_eq!(r, Err("not_app_path"));

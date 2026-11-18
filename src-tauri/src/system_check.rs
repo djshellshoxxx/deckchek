@@ -299,14 +299,18 @@ fn run_ps(_script: &str, _timeout: Duration) -> Result<String, String> {
 pub fn decode_text(bytes: &[u8]) -> String {
     if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
         let u: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| u16::from_le_bytes([c[0], c[1]]))
             .collect();
         return String::from_utf16_lossy(&u);
     }
     if bytes.len() >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF {
         let u: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| u16::from_be_bytes([c[0], c[1]]))
             .collect();
         return String::from_utf16_lossy(&u);
@@ -361,11 +365,11 @@ fn contains_word(hay_lower: &str, needle_lower: &str) -> bool {
         let before_ok = hay_lower[..s]
             .chars()
             .next_back()
-            .map_or(true, |c| !c.is_alphanumeric());
+            .is_none_or(|c| !c.is_alphanumeric());
         let after_ok = hay_lower[e..]
             .chars()
             .next()
-            .map_or(true, |c| !c.is_alphanumeric());
+            .is_none_or(|c| !c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }
@@ -570,9 +574,9 @@ fn driver_status(problem: Option<i64>, status: Option<&str>) -> String {
     .into()
 }
 
-pub fn parse_drivers_output(
-    raw: &str,
-) -> Result<(Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>), String> {
+pub type DriverScan = (Vec<DriverInfo>, Vec<AsioDriver>, Vec<String>);
+
+pub fn parse_drivers_output(raw: &str) -> Result<DriverScan, String> {
     let v = parse_json_lenient(raw)?;
     let mut drivers = Vec::new();
     for d in as_items(v.get("drivers").unwrap_or(&Value::Null)) {
@@ -1435,17 +1439,16 @@ fn analyze_candidate(c: &Candidate) -> Result<DjFile, String> {
         FileKind::Log => analyze_text(&read_tail_text(&c.path, MAX_READ_BYTES)?),
         FileKind::CrashReport => {
             let text = read_tail_text(&c.path, MAX_READ_BYTES)?;
-            let is_wer = c.path.file_name().map_or(false, |n| {
-                n.to_string_lossy().eq_ignore_ascii_case("Report.wer")
-            });
+            let is_wer = c
+                .path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Report.wer"));
             if is_wer {
                 let hang = c
                     .path
                     .parent()
                     .and_then(|p| p.file_name())
-                    .map_or(false, |n| {
-                        n.to_string_lossy().to_lowercase().starts_with("apphang_")
-                    });
+                    .is_some_and(|n| n.to_string_lossy().to_lowercase().starts_with("apphang_"));
                 (
                     wer_match(&parse_wer(&text), hang).into_iter().collect(),
                     vec![],
@@ -1996,11 +1999,8 @@ mod tests {
         let sel = select_files(c, now, 90, 10);
         assert_eq!(sel.len(), 10);
         assert_eq!(sel[0].path, PathBuf::from("f0"));
-        assert!(!sel.iter().any(|x| x.path == PathBuf::from("old")));
-        assert_eq!(
-            sel.iter().filter(|x| x.path == PathBuf::from("f3")).count(),
-            1
-        );
+        assert!(!sel.iter().any(|x| x.path == Path::new("old")));
+        assert_eq!(sel.iter().filter(|x| x.path == Path::new("f3")).count(), 1);
     }
 
     #[test]

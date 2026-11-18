@@ -90,9 +90,7 @@ pub fn validate_benchmark(i: &BenchmarkInput) -> Result<(), String> {
     check_range("separationDb", i.separation_db, -60.0, 140.0)?;
     check_range("tcSnrDb", i.tc_snr_db, -60.0, 140.0)?;
     check_range("tcPhaseErrorDeg", i.tc_phase_error_deg, 0.0, 360.0)?;
-    if i.tc_dropouts
-        .map_or(false, |d| !(0..=1_000_000).contains(&d))
-    {
+    if i.tc_dropouts.is_some_and(|d| !(0..=1_000_000).contains(&d)) {
         return Err("tcDropouts must be between 0 and 1000000".into());
     }
     if i.thd_percent.is_none()
@@ -259,7 +257,7 @@ pub fn replace(
     if !valid_timestamp(at) {
         return Err(format!("at must be a UTC ISO timestamp, got '{at}'"));
     }
-    if note.map_or(false, |n| n.chars().count() > MAX_NOTE_CHARS) {
+    if note.is_some_and(|n| n.chars().count() > MAX_NOTE_CHARS) {
         return Err(format!("note is limited to {MAX_NOTE_CHARS} characters"));
     }
     asset_exists(conn, asset_id)?;

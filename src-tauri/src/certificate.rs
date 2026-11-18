@@ -347,9 +347,8 @@ pub fn is_decimal(s: &str) -> bool {
         && int_part.len() <= 15
         && int_part.iter().all(u8::is_ascii_digit)
         && (int_part == b"0" || int_part[0] != b'0');
-    let frac_ok = frac.map_or(true, |f| {
-        !f.is_empty() && f.len() <= 12 && f.iter().all(u8::is_ascii_digit)
-    });
+    let frac_ok =
+        frac.is_none_or(|f| !f.is_empty() && f.len() <= 12 && f.iter().all(u8::is_ascii_digit));
     int_ok && frac_ok
 }
 

@@ -5,6 +5,7 @@
 //!   - one `ledger_export` row per successful export, with a revision counter that increases by one (AC-7), plus a
 //!     revision floor outside the database so a backup restore never rewinds it;
 //!   - `asset.public_notes`, the note the owner writes for the public ledger (the private `asset.notes` stays private).
+//!
 //! It also lists the units used in FS-21/FS-22 service jobs (customers' bench units or the owner's own gear serviced
 //! in-house), which the wizard flags and leaves unticked for the owner to decide.
 //! Every IPC argument is validated here; all SQL is parameterised.
@@ -162,8 +163,8 @@ pub fn validate_export(i: &LedgerExportInput) -> Result<(String, String), String
     if !i.privacy.is_object() {
         return Err(invalid("privacy must be an object"));
     }
-    let selection = serde_json::to_string(&i.selection).map_err(|e| invalid(e))?;
-    let privacy = serde_json::to_string(&i.privacy).map_err(|e| invalid(e))?;
+    let selection = serde_json::to_string(&i.selection).map_err(invalid)?;
+    let privacy = serde_json::to_string(&i.privacy).map_err(invalid)?;
     if selection.len() > MAX_META_BYTES || privacy.len() > MAX_META_BYTES {
         return Err(invalid("selection or privacy is larger than 64 KiB"));
     }

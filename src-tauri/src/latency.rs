@@ -665,6 +665,13 @@ struct OutPlan {
     cancel: Option<Arc<AtomicBool>>,
 }
 
+/// Callback observations attached to one output-opening attempt.
+struct OutputObservation<'a> {
+    probe: &'a Arc<Probe>,
+    shared: &'a Arc<Shared>,
+    align: Option<Arc<AlignRecorder>>,
+}
+
 /// `audio_out::Backend` that opens through a [`StreamFactory`] with the planned
 /// buffer request. The renderer (cap, ramps, kill switch) is audio_out's.
 struct TunerBackend {
@@ -1097,11 +1104,14 @@ impl Tuner {
         rate: Option<u32>,
         requested: Option<u32>,
         req: PlayRequest,
-        probe: &Arc<Probe>,
-        shared: &Arc<Shared>,
-        align: Option<Arc<AlignRecorder>>,
+        observation: OutputObservation<'_>,
         cancel: &Arc<AtomicBool>,
     ) -> (Option<u64>, OpenNotes) {
+        let OutputObservation {
+            probe,
+            shared,
+            align,
+        } = observation;
         let mut notes = OpenNotes::default();
         let attempt = |buffer: Option<u32>| -> Result<u64, String> {
             if cancel.load(Relaxed) {
@@ -1203,9 +1213,11 @@ impl Tuner {
                 out_rate,
                 r.buffer_frames,
                 silence,
-                &out_probe,
-                &out_shared,
-                None,
+                OutputObservation {
+                    probe: &out_probe,
+                    shared: &out_shared,
+                    align: None,
+                },
                 &lease.cancel,
             )
         } else {
@@ -1407,9 +1419,11 @@ impl Tuner {
                     Some(meta.sample_rate),
                     r.buffer_frames,
                     req,
-                    &out_probe,
-                    &out_shared,
-                    Some(align.clone()),
+                    OutputObservation {
+                        probe: &out_probe,
+                        shared: &out_shared,
+                        align: Some(align.clone()),
+                    },
                     &lease.cancel,
                 )
             } else {
@@ -4596,7 +4610,8 @@ mod tests {
     #[test]
     fn run_validation_rejects_bad_input_and_writes_nothing() {
         let c = mem();
-        let cases: Vec<(&str, Box<dyn Fn(&mut LatencyRunInput)>)> = vec![
+        type InvalidLatencyCase = (&'static str, Box<dyn Fn(&mut LatencyRunInput)>);
+        let cases: Vec<InvalidLatencyCase> = vec![
             ("kind", Box::new(|i| i.kind = "asio".into())),
             ("device", Box::new(|i| i.device_name = "  ".into())),
             (

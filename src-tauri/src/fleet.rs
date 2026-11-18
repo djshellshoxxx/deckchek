@@ -69,13 +69,15 @@ fn hours_since_completion(
     ))
 }
 
+type ConfirmedUsageByAsset = HashMap<String, Vec<(f64, Option<f64>)>>;
+
 /// Confirmed ledger entries as (hours, julianday(started_at)) per asset, in one pass.
 fn confirmed_usage(
     conn: &Connection,
     asset: Option<&str>,
-) -> Result<HashMap<String, Vec<(f64, Option<f64>)>>, String> {
+) -> Result<ConfirmedUsageByAsset, String> {
     let mut query = conn.prepare("SELECT asset_id,hours,julianday(started_at) FROM asset_usage WHERE confirmed=1 AND (?1 IS NULL OR asset_id=?1)").map_err(err)?;
-    let mut usage: HashMap<String, Vec<(f64, Option<f64>)>> = HashMap::new();
+    let mut usage = ConfirmedUsageByAsset::new();
     for row in query
         .query_map([asset], |r| {
             Ok((
@@ -590,7 +592,7 @@ fn place_in_transaction(
     }
     tx.execute(
         "UPDATE asset SET deck_position_id=?2,updated_at=?3 WHERE id=?1",
-        params![asset, position, now_iso(&tx)?],
+        params![asset, position, now_iso(tx)?],
     )
     .map_err(err)?;
     let description = format!(
@@ -599,11 +601,11 @@ fn place_in_transaction(
         location_label(tx, position)?
     );
     log_maintenance(
-        &tx,
+        tx,
         &MaintenanceInput {
             asset_id: asset.into(),
             event_type: "other".into(),
-            event_at: now_iso(&tx)?,
+            event_at: now_iso(tx)?,
             description: Some(description),
             reminder_id: None,
         },

@@ -81,7 +81,7 @@ impl RedactCtx {
             return;
         }
         self.literals.push((folded, placeholder));
-        self.literals.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        self.literals.sort_by_key(|a| std::cmp::Reverse(a.0.len()));
     }
 
     pub fn from_parts(
@@ -163,9 +163,7 @@ fn redact_emails(text: &[char]) -> Vec<char> {
             let tld_ok = domain
                 .iter()
                 .rposition(|&c| c == '.')
-                .map(|p| {
-                    domain.len() - p - 1 >= 2 && domain[p + 1..].iter().all(|c| c.is_alphabetic())
-                })
+                .map(|p| domain.len() - p > 2 && domain[p + 1..].iter().all(|c| c.is_alphabetic()))
                 .unwrap_or(false);
             let mut ls = out.len();
             while ls > 0 && is_local_char(out[ls - 1]) {

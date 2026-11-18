@@ -17,6 +17,7 @@
 //!   XDG `autostart` folders and macOS `Library/LaunchAgents|LaunchDaemons|StartupItems` are
 //!   refused. Both the given path and its canonical form (symlinks, junctions and 8.3 names
 //!   resolved) are checked.
+//!
 //! Rust-internal callers (backup, pdf, diagnostics) pass fixed extension constants to
 //! `validate_save_path`, which applies the same autostart rule.
 
@@ -406,7 +407,7 @@ fn validate_rel(rel: &str, allowed: &[&str]) -> Result<Vec<String>, UserFileErro
         return Err(UserFileError::Traversal);
     }
     let segs: Vec<&str> = rel.split(['/', '\\']).collect();
-    if segs.iter().any(|s| *s == "..") {
+    if segs.contains(&"..") {
         return Err(UserFileError::Traversal);
     }
     for s in &segs {

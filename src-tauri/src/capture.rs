@@ -3871,8 +3871,10 @@ mod tests {
     /// held while the driver hangs.
     #[test]
     fn a_hung_open_times_out_without_holding_the_capture_locks() {
-        let mut state = LiveCaptureState::default();
-        state.open_timeout = Duration::from_millis(300);
+        let state = LiveCaptureState {
+            open_timeout: Duration::from_millis(300),
+            ..Default::default()
+        };
         let (release, rx) = mpsc::channel();
         let starter = {
             let state = state.clone();
@@ -4049,7 +4051,7 @@ mod tests {
         // One pair at 48 kHz for the full 1800 s fits (691 MB); 32 pairs at 192 kHz do not.
         assert_eq!(budget_max_seconds(MAX_SECONDS, 48_000, 1), MAX_SECONDS);
         let s = budget_max_seconds(MAX_SECONDS, 192_000, 32);
-        assert!(s < 30.0 && s >= MIN_SECONDS, "{s}");
+        assert!((MIN_SECONDS..30.0).contains(&s), "{s}");
         assert!((192_000.0 * 32.0 * 8.0 * s as f64) <= LIVE_BUFFER_BUDGET_BYTES as f64);
     }
 

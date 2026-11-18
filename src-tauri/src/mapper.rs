@@ -469,7 +469,7 @@ mod tests {
         let mine = list(&c, Some("fs32-asset")).unwrap();
         assert_eq!(
             mine.iter().map(|r| r.id.clone()).collect::<Vec<_>>(),
-            [other.id.clone()]
+            std::slice::from_ref(&other.id)
         );
         assert!(delete(&c, &other.id).unwrap());
         assert!(!delete(&c, &other.id).unwrap());
@@ -479,7 +479,8 @@ mod tests {
     #[test]
     fn validation_rejects_bad_input_and_writes_nothing() {
         let c = mem();
-        let cases: Vec<(&str, Box<dyn Fn(&mut MapperModelInput)>)> = vec![
+        type InvalidMapperCase = (&'static str, Box<dyn Fn(&mut MapperModelInput)>);
+        let cases: Vec<InvalidMapperCase> = vec![
             ("blank name", Box::new(|i| i.name = "   ".into())),
             (
                 "long name",

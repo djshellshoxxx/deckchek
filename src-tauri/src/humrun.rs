@@ -170,7 +170,7 @@ fn check_json_array(
     if arr.len() > max_items {
         return Err(invalid(format!("{name} is limited to {max_items} entries")));
     }
-    let text = serde_json::to_string(v).map_err(|e| invalid(e))?;
+    let text = serde_json::to_string(v).map_err(invalid)?;
     if text.len() > max_bytes {
         return Err(invalid(format!("{name} is limited to {max_bytes} bytes")));
     }
@@ -703,7 +703,8 @@ mod tests {
     #[test]
     fn validation_rejects_bad_input_with_codes() {
         let c = mem();
-        let cases: Vec<(&str, Box<dyn Fn(&mut HumRunInput)>)> = vec![
+        type InvalidHumCase = (&'static str, Box<dyn Fn(&mut HumRunInput)>);
+        let cases: Vec<InvalidHumCase> = vec![
             ("kind", Box::new(|i| i.kind = "noise".into())),
             ("mains", Box::new(|i| i.mains_hz = Some(55))),
             ("no steps", Box::new(|i| i.steps.clear())),

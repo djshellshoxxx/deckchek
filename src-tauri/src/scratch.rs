@@ -195,7 +195,7 @@ pub fn validate(input: &ScratchRunInput) -> Result<(), String> {
     if input
         .tonearm_note
         .as_ref()
-        .map_or(false, |n| n.chars().count() > MAX_NOTE_CHARS)
+        .is_some_and(|n| n.chars().count() > MAX_NOTE_CHARS)
     {
         return Err(format!(
             "tonearmNote is limited to {MAX_NOTE_CHARS} characters"

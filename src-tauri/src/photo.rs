@@ -930,7 +930,7 @@ mod tests {
         // size cap: valid structure padded by entropy data
         let mut big = tiny_jpeg(100, 100, &[], 9);
         let eoi = big.split_off(big.len() - 2);
-        big.extend(std::iter::repeat(0x11).take(MAX_PHOTO_BYTES));
+        big.extend(std::iter::repeat_n(0x11, MAX_PHOTO_BYTES));
         big.extend(eoi);
         assert!(attach(&mut c, &d.0, &input(&big, "asset", "a"))
             .unwrap_err()
@@ -939,7 +939,7 @@ mod tests {
         let mut at_cap = tiny_jpeg(100, 100, &[], 10);
         let eoi = at_cap.split_off(at_cap.len() - 2);
         let pad = MAX_PHOTO_BYTES - at_cap.len() - 2;
-        at_cap.extend(std::iter::repeat(0x11).take(pad));
+        at_cap.extend(std::iter::repeat_n(0x11, pad));
         at_cap.extend(eoi);
         assert_eq!(at_cap.len(), MAX_PHOTO_BYTES);
         attach(&mut c, &d.0, &input(&at_cap, "asset", "a")).unwrap();

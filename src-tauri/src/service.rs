@@ -596,9 +596,9 @@ fn job_year(conn: &Connection, local_year: Option<i32>) -> Result<i32, String> {
 
 // ------------------------------------------------------------------ customers
 
-fn validate_customer(
-    c: &CustomerInput,
-) -> Result<(String, Option<String>, Option<String>, Option<String>), String> {
+type ValidatedCustomerFields = (String, Option<String>, Option<String>, Option<String>);
+
+fn validate_customer(c: &CustomerInput) -> Result<ValidatedCustomerFields, String> {
     let name = req_text("customer name", &c.name, MAX_NAME_CHARS, false)?;
     Ok((
         name,
@@ -1757,16 +1757,26 @@ mod tests {
         c.query_row(q, [], |r| r.get(0)).unwrap()
     }
 
-    fn add_dtr(
-        c: &Connection,
-        id: &str,
-        asset: &str,
-        test: &str,
-        status: &str,
-        session: Option<&str>,
-        detail: &str,
-        at: &str,
-    ) {
+    struct DeviceResultFixture<'a> {
+        id: &'a str,
+        asset: &'a str,
+        test: &'a str,
+        status: &'a str,
+        session: Option<&'a str>,
+        detail: &'a str,
+        at: &'a str,
+    }
+
+    fn add_dtr(c: &Connection, result: DeviceResultFixture<'_>) {
+        let DeviceResultFixture {
+            id,
+            asset,
+            test,
+            status,
+            session,
+            detail,
+            at,
+        } = result;
         c.execute("INSERT OR IGNORE INTO device_profile (id, json, loaded_at) VALUES ('technics-sl-1200mk4','{}','t')", []).unwrap();
         c.execute(
             "INSERT INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at) VALUES (?1, ?2, 'technics-sl-1200mk4', ?3, ?4, ?5, ?6, ?7)",
@@ -1810,7 +1820,7 @@ mod tests {
         let mut fixtures: Vec<_> = std::fs::read_dir(&dir)
             .unwrap()
             .map(|e| e.unwrap().path())
-            .filter(|p| p.extension().map_or(false, |x| x == "sql"))
+            .filter(|p| p.extension().is_some_and(|x| x == "sql"))
             .collect();
         fixtures.sort();
         assert!(fixtures.len() >= 3);
@@ -2756,43 +2766,51 @@ mod tests {
         .unwrap();
         add_dtr(
             &c,
-            "d-before",
-            "a1",
-            "sl-balance",
-            "fail",
-            None,
-            r#"{"title":"Channel balance","measurements":[{"metricId":"balance_db","label":"Balance","value":1.8,"unit":"dB"}]}"#,
-            "2026-10-10T11:00:00.000Z",
+            DeviceResultFixture {
+                id: "d-before",
+                asset: "a1",
+                test: "sl-balance",
+                status: "fail",
+                session: None,
+                detail: r#"{"title":"Channel balance","measurements":[{"metricId":"balance_db","label":"Balance","value":1.8,"unit":"dB"}]}"#,
+                at: "2026-10-10T11:00:00.000Z",
+            },
         );
         add_dtr(
             &c,
-            "d-after",
-            "a1",
-            "sl-balance",
-            "pass",
-            None,
-            r#"{"title":"Channel balance","measurements":[{"metricId":"balance_db","value":0.2,"unit":"dB"},{"metricId":"bad","value":"x"}]}"#,
-            "2026-10-12T11:00:00.000Z",
+            DeviceResultFixture {
+                id: "d-after",
+                asset: "a1",
+                test: "sl-balance",
+                status: "pass",
+                session: None,
+                detail: r#"{"title":"Channel balance","measurements":[{"metricId":"balance_db","value":0.2,"unit":"dB"},{"metricId":"bad","value":"x"}]}"#,
+                at: "2026-10-12T11:00:00.000Z",
+            },
         );
         add_dtr(
             &c,
-            "d-sess",
-            "a1",
-            "sl-speed",
-            "pass",
-            Some("s-after"),
-            r#"{"measurements":[{"metricId":"speed_error_pct","value":99}]}"#,
-            "2026-10-12T10:00:00.000Z",
+            DeviceResultFixture {
+                id: "d-sess",
+                asset: "a1",
+                test: "sl-speed",
+                status: "pass",
+                session: Some("s-after"),
+                detail: r#"{"measurements":[{"metricId":"speed_error_pct","value":99}]}"#,
+                at: "2026-10-12T10:00:00.000Z",
+            },
         );
         add_dtr(
             &c,
-            "d-other",
-            "a2",
-            "x",
-            "pass",
-            None,
-            "{}",
-            "2026-10-12T10:00:00.000Z",
+            DeviceResultFixture {
+                id: "d-other",
+                asset: "a2",
+                test: "x",
+                status: "pass",
+                session: None,
+                detail: "{}",
+                at: "2026-10-12T10:00:00.000Z",
+            },
         );
         let r = link_results(
             &mut c,

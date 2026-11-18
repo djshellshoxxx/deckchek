@@ -341,7 +341,9 @@ pub fn fuzz_certificate(data: &[u8]) {
 }
 
 /// Every target, by name, for the drivers.
-pub const TARGETS: &[(&str, fn(&[u8]))] = &[
+pub type FuzzTarget = (&'static str, fn(&[u8]));
+
+pub const TARGETS: &[FuzzTarget] = &[
     ("backup_inspect", fuzz_backup_inspect),
     ("backup_restore", fuzz_backup_restore),
     ("workspace_import", fuzz_workspace_import),

@@ -217,7 +217,7 @@ pub fn validate_run(i: &RunInput) -> Result<(), String> {
         check_timestamp("finishedAt", f)?;
     }
     if i.duration_ms
-        .map_or(false, |d| !(0..=86_400_000).contains(&d))
+        .is_some_and(|d| !(0..=86_400_000).contains(&d))
     {
         return Err("durationMs must be between 0 and 86400000".into());
     }
@@ -227,7 +227,7 @@ pub fn validate_run(i: &RunInput) -> Result<(), String> {
     }
     if i.notes
         .as_ref()
-        .map_or(false, |n| n.chars().count() > MAX_NOTES_CHARS)
+        .is_some_and(|n| n.chars().count() > MAX_NOTES_CHARS)
     {
         return Err(format!("notes are limited to {MAX_NOTES_CHARS} characters"));
     }
@@ -248,7 +248,7 @@ pub fn validate_run(i: &RunInput) -> Result<(), String> {
         }
         if s.deck
             .as_ref()
-            .map_or(false, |d| d.is_empty() || d.chars().count() > 8)
+            .is_some_and(|d| d.is_empty() || d.chars().count() > 8)
         {
             return Err(format!("step {n}: deck must be 1 to 8 characters"));
         }
@@ -283,7 +283,7 @@ pub fn validate_preset(i: &PresetInput) -> Result<(), String> {
     if !i.json.is_object() {
         return Err("preset json must be an object".into());
     }
-    if !i.json.get("v").map_or(false, |v| v.is_u64()) {
+    if !i.json.get("v").is_some_and(|v| v.is_u64()) {
         return Err("preset json needs an integer version field 'v'".into());
     }
     json_len("preset json", &i.json, MAX_PRESET_BYTES)?;

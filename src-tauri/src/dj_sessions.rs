@@ -88,7 +88,7 @@ pub fn parse_stamp(line: &str) -> Option<Stamp> {
     let mut i = 19;
     if b.get(i) == Some(&b'.') {
         i += 1;
-        while b.get(i).map_or(false, u8::is_ascii_digit) {
+        while b.get(i).is_some_and(u8::is_ascii_digit) {
             i += 1;
         }
     }
@@ -140,8 +140,7 @@ pub fn spans_from_text(text: &str, modified_secs: i64) -> Vec<(i64, i64)> {
     let offset_to_utc = (delta as f64 / 900.0).round() as i64 * 900; // add to a naive reading to get UTC
     let residual = modified_secs - (last_naive + offset_to_utc);
     if offset_to_utc.abs() > MAX_OFFSET_SECS
-        || residual < -MTIME_SLACK_AFTER
-        || residual > MTIME_SLACK_BEFORE
+        || !(-MTIME_SLACK_AFTER..=MTIME_SLACK_BEFORE).contains(&residual)
     {
         // no plausible zone: keep only stamps that carry their own zone
         return spans_from_times(
