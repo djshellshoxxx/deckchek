@@ -1,6 +1,10 @@
 # DeckChek spec status (work list)
 
-## Current source38 publication candidate
+## Current source39 correction
+
+The [logical MIDI and mixer follow-up](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) records the accepted logical-ID/Runner/Mapper contract, DJM-450/DJM-900NXS2 provenance and browser-smoke repairs. Source `04bbc714` passed the complete serial Node 22.23.5 suite **1,780/0/1** (1,781 total, 148 files, **249.818975973 TAP seconds**) and all local static gates; all **1,434** frozen files remained unchanged. The initial full **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. Existing draft PR32 is at `61e265f`; publication of the new source is pending. Published-head native/JavaScript successes and unresolved browser failures do not qualify the new bytes. Physical identity/continuity, MIDItest consumer integration, broad Sonar and hardware remain open; Fleet stays OFF.
+
+## Historical source38 prepublication snapshot
 
 Source `fe936f7d48db2633ba3c2e948c682fa49ab68490` (tree `f74910a66e7bf9da818185fc87d4ec22a8cf2b4c`) adds streaming native support-history validation to accepted source37. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; **265.537171973 TAP seconds**), with all **1,429** frozen files unchanged; local static gates passed. The separate exact native-core/harness run passed **23/23**, with bounded allocator measurements and explicit full-application exclusions. See the [current report](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the increased cumulative-allocation/time tradeoff and qualification limits.
 
@@ -49,6 +53,10 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-31 | Timecode doctor live monitor | DONE (HW: H-31; WASAPI-shared capture beside DJ software unverified; negative-SNR floor supported for an acquired coherent carrier; cold-start/changing-pitch noise remains limited) | `src-tauri/src/{monitor,tray}.rs`, `database/migrations/0019_monitor_log.sql`, `app/monitor.js`, `app/ui/screens/monitor.js` | `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8) |
 | FS-32 | MIDI mapper studio | DONE (HW: H-32; VirtualDJ format unverified; Serato and Traktor are reports only) | `src-tauri/src/mapper.rs`, `database/migrations/0020_mapper_models.sql`, `app/mapper/**`, `app/ui/screens/mapper.js` | `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7) |
 | FS-33 | Gear ledger static export | DONE (HW: H-33; GitHub Pages guide wording to verify) | `src-tauri/src/ledger.rs`, `database/migrations/0021_gear_ledger.sql`, `app/ledger/**`, `app/ui/screens/ledger.js` | `tests/ledger*.test.mjs` (incl. leak test), smoke `ledger` (AC-1..AC-7) |
+
+### Current logical MIDI endpoint selection
+
+[FS-36 §7](docs/specs/36-general-midi-test.md#7-explicit-logical-endpoint-selection) now supports backend/direction-scoped opaque IDs, legacy exact unique names, input-only close, captured outputs and shared pending Runner/Mapper input claims. ID selection survives reorder without silently choosing a replacement. The [review record](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#retained-review-findings-and-proof) preserves all three lifecycle findings and the bounded final native proof. Physical identity, hot-plug continuity, actual MIDItest consumer integration and hardware remain unresolved. Reviewed provenance covers 23 existing profiles; current MIDI prerequisites remain conditional for 19 profiles / 57 requirements.
 
 ### Native support-history working memory
 

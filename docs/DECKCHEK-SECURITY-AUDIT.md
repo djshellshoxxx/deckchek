@@ -1,6 +1,14 @@
 # DeckChek security and diagnostic-integrity audit
 
-> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+> Current source39 correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+
+## Source39 confirmed ownership and validation findings
+
+The [independent lifecycle record](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#retained-review-findings-and-proof) reproduces three diagnostic-integrity defects: native reused-input generation could let an old close remove a new claim; JavaScript cached-name replacement could survive its close; and the analogous native alias-forgetting path still failed review2. Accepted source39 corrections retain reuse generation and original legacy-name close intent independently from explicit-ID ownership. Final bounded native proof is 38/38; review2 JS 255/0/1 is retained with unchanged bytes. Read-only independent review does not imply full Tauri, physical identity or hardware execution.
+
+The first combined run also exposed research-group exclusion of two mixer profiles. Prefix-only amendments restore the existing 37-member validation group without changing a capability or assertion. Smoke corrections preserve failing exits and add active-module/full-stack evidence; earlier console counts cannot clear a throwing module. Current-source hosted/security qualification remains open. The published-head Snyk no-manifest-change result is not broad Sonar clearance.
+
+> Historical source38 prepublication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
 
 > Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
 

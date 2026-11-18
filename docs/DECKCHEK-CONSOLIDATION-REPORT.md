@@ -1,6 +1,12 @@
 # DeckChek consolidation report
 
-> Current publication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
+> Current source39 correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
+
+## Current source39 contribution
+
+The [logical MIDI report](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) covers ten accepted MIDI paths, five mixer-provenance paths, the generated matrix and three smoke repairs. It retains lifecycle review failures, the initial combined research-group failure, the exact note/anchor amendments and separately scoped hosted outcomes. Existing browser archives, support-history memory behavior, default flags, hardware gates and historical results are preserved. Software logical IDs now exist; physical identity/continuity and actual MIDItest consumer integration remain open.
+
+> Historical source38 prepublication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
 
 > Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
 
