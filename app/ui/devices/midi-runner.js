@@ -24,55 +24,37 @@ export const IDENTITY_TIMEOUT_MS = 1500;
 export const CONFORMANCE_MAX_EVENTS = 100000;
 const errText = error => String(error?.message || error);
 /** Observe the shared transport counter and this input; unavailable evidence stays unknown. */
-async function captureStatus(midi, port) {
+async function captureStatus(midi, connection) {
   try {
     const s = await midi.status?.();
     // Web MIDI does not expose a measured host-loss counter. Its legacy bridge zero is not evidence.
     const measured = (s?.backend || midi.backend?.()) !== 'webmidi';
     return {
       dropped: measured && Number.isSafeInteger(s?.dropped) && s.dropped >= 0 ? s.dropped : null,
-      inputOpen: Array.isArray(s?.openInputs) && s.openInputs.every(n => typeof n === 'string') ? s.openInputs.includes(port) : null,
+      inputOpen: connection.portId != null
+        ? Array.isArray(s?.openInputIds) && s.openInputIds.every(id => typeof id === 'string') ? s.openInputIds.includes(connection.portId) : null
+        : Array.isArray(s?.openInputs) && s.openInputs.every(n => typeof n === 'string') ? s.openInputs.includes(connection.port) : null,
     };
   } catch { return { dropped: null, inputOpen: null }; }
 }
 
 /** Pair only an unambiguous name/profile match, or the sole input/output pair. */
 function pairedOutput(inputs, outputs, port, profile) {
-  const exact = outputs.filter(n => n === port);
-  if (exact.length) return exact.length === 1 ? exact[0] : null;
-  if (pickMidiPort([port], profile) === port) {
-    const matching = outputs.filter(n => pickMidiPort([n], profile) === n);
-    if (matching.length === 1) return matching[0];
+  if (!port || inputs.filter(p => p.name === port.name).length !== 1) return null;
+  const exact = outputs.filter(p => p.name === port.name);
+  if (exact.length) return exact.length === 1 && exact[0].available ? exact[0] : null;
+  if (pickMidiPort([port.name], profile) === port.name) {
+    const matching = outputs.filter(p => pickMidiPort([p.name], profile) === p.name);
+    if (matching.length === 1 && matching[0].available) return matching[0];
   }
-  return inputs.length === 1 && outputs.length === 1 ? outputs[0] : null;
+  return inputs.length === 1 && outputs.length === 1 && outputs[0].available ? outputs[0] : null;
 }
 
-// Opens are idempotent by port name in both bridges. A replacement runner can claim the same pending
+// Opens are idempotent by logical route (or a legacy unique name). A replacement runner can claim the same pending
 // open, so a stale completion must not close its successor's input. Keep pending closes ahead of reopens.
-const portOwners = new WeakMap();
-function claimPort(midi, port) {
-  let ports = portOwners.get(midi);
-  if (!ports) { ports = new Map(); portOwners.set(midi, ports); }
-  let entry = ports.get(port);
-  if (!entry) { entry = { owner: null, opened: false, pending: 0, closing: null }; ports.set(port, entry); }
-  const claim = { port, entry, ports };
-  entry.owner = claim;
-  return claim;
-}
-function prunePort({ port, entry, ports }) {
-  if (!entry.owner && !entry.opened && !entry.pending && !entry.closing && ports.get(port) === entry) ports.delete(port);
-}
-function releasePort(midi, claim) {
-  if (!claim) return Promise.resolve();
-  const { port, entry } = claim;
-  if (entry.owner === claim) entry.owner = null;
-  if (entry.owner || !entry.opened) { prunePort(claim); return entry.closing || Promise.resolve(); }
-  entry.opened = false;
-  const closing = (entry.closing || Promise.resolve()).then(() => midi.close(port)).catch(() => {});
-  entry.closing = closing;
-  closing.finally(() => { if (entry.closing === closing) entry.closing = null; prunePort(claim); });
-  return closing;
-}
+const claimPort = midiBridge.claimInput;
+const prunePort = midiBridge.pruneInputClaim;
+const releasePort = midiBridge.releaseInput;
 
 /** Control ids the profile's tests refer to, with readable labels (for learn-mode suggestions). */
 function suggestedControls(profile, eff) {
@@ -92,7 +74,7 @@ export function runMidi(host, ctx) {
   const explicitOutput = test.auto === true && kind === 'conformance' && test.params?.outputSelection === 'explicit';
   let canSkip = true;
   let eff = effectiveMidiMap(profile.midi, ctx.learned?.map);
-  const st = { port: null, outPort: null, connection: null, inputs: [], outputs: [], unsub: null, panel: null, disposed: false, generation: 0, refresh: 0 };
+  const st = { port: null, outPort: null, inputChoice: null, outputChoice: null, connection: null, inputs: [], outputs: [], unsub: null, panel: null, disposed: false, generation: 0, refresh: 0 };
 
   const portCard = h('section', { class: 'card dev-midi-ports', 'aria-labelledby': 'midi-port-title' });
   const body = h('div', { class: 'dev-midi-body' });
@@ -138,9 +120,9 @@ export function runMidi(host, ctx) {
     try { ports = await midi.listPorts(); }
     catch (error) { if (!st.disposed && request === st.refresh) portCard.append(h('div', { class: 'banner banner-fail', role: 'alert', html: `${chip('fail')}<div class="banner-text"><strong>Could not list MIDI ports</strong><span>${esc(error?.message || error)}</span></div>` })); return; }
     if (st.disposed || request !== st.refresh) return;
-    st.inputs = (ports?.inputs || []).map(p => p.name);
-    st.outputs = (ports?.outputs || []).map(p => p.name);
-    if (!st.inputs.length) {
+    st.inputs = midiBridge.portChoices(ports?.inputs);
+    st.outputs = midiBridge.portChoices(ports?.outputs);
+    if (!st.inputs.length && st.inputChoice?.id == null) {
       const empty = h('div', { class: 'empty empty-sm', id: 'midi-empty' });
       empty.innerHTML = `${icon('plug', { size: 32 })}<h2>No MIDI device found</h2><p>${esc(prerequisites.connection)} Power on the device and interface, then refresh. Close software that may hold the input port exclusively.</p>`;
       empty.append(h('button', { type: 'button', class: 'btn btn-primary', id: 'midi-refresh', html: `${icon('refresh', { size: 18 })}<span>Refresh</span>`, onclick: refreshPorts }));
@@ -148,22 +130,32 @@ export function runMidi(host, ctx) {
       body.replaceChildren();
       return;
     }
-    const auto = pickMidiPort(st.inputs, profile);
-    st.port ||= auto || st.inputs[0];
-    if (!st.inputs.includes(st.port)) st.port = auto || st.inputs[0];
-    st.outPort = explicitOutput ? null : pairedOutput(st.inputs, st.outputs, st.port, profile);
+    const autoName = pickMidiPort(st.inputs.filter(p => p.available).map(p => p.name), profile);
+    const auto = st.inputs.find(p => p.available && p.name === autoName);
+    let input = st.inputs.find(p => p.key === st.port && p.available);
+    if (!input && st.inputChoice?.id == null) input = auto || st.inputs.find(p => p.available);
+    if (input) { st.port = input.key; st.inputChoice = input; }
+    let output = st.outputs.find(p => p.key === st.outPort && p.available);
+    if (explicitOutput) { output = null; st.outPort = null; st.outputChoice = null; }
+    else if (!output && st.outputChoice?.id == null) output = pairedOutput(st.inputs, st.outputs, input, profile);
+    if (output) { st.outPort = output.key; st.outputChoice = output; }
+    else if (st.outputChoice?.id == null) { st.outPort = null; st.outputChoice = null; }
     const sel = h('select', { id: 'midi-port' });
-    st.inputs.forEach(n => sel.append(h('option', { value: n, text: `${n}${n === auto ? ' (matches profile)' : ''}`, selected: n === st.port ? true : null })));
+    if (!input && st.inputChoice?.id != null) sel.append(h('option', { value: st.port, text: `${st.inputChoice.name || '(unnamed MIDI port)'} — ID ${st.inputChoice.id} (unavailable; select an input)`, selected: true, disabled: true }));
+    st.inputs.forEach(p => sel.append(h('option', { value: p.key, text: `${p.label}${p === auto ? ' (matches profile)' : ''}`, title: p.description, selected: p.key === st.port || null, disabled: !p.available || null })));
     const outSel = h('select', { id: 'midi-output' });
     outSel.append(h('option', { value: '', text: st.outputs.length ? 'No output selected' : 'No output available', selected: !st.outPort || null }));
-    st.outputs.forEach(n => outSel.append(h('option', { value: n, text: n, selected: n === st.outPort || null, disabled: st.outputs.filter(x => x === n).length > 1 || null })));
+    if (!output && st.outputChoice?.id != null) outSel.append(h('option', { value: st.outPort, text: `${st.outputChoice.name || '(unnamed MIDI port)'} — ID ${st.outputChoice.id} (unavailable; select an output)`, selected: true, disabled: true }));
+    st.outputs.forEach(p => outSel.append(h('option', { value: p.key, text: p.label, title: p.description, selected: p.key === st.outPort || null, disabled: !p.available || null })));
     sel.addEventListener('change', async () => {
       st.port = sel.value;
-      st.outPort = explicitOutput ? null : pairedOutput(st.inputs, st.outputs, st.port, profile);
+      st.inputChoice = st.inputs.find(p => p.key === st.port) || null;
+      st.outputChoice = explicitOutput ? null : pairedOutput(st.inputs, st.outputs, st.inputChoice, profile);
+      st.outPort = st.outputChoice?.key ?? null;
       outSel.value = st.outPort || '';
       await connect();
     });
-    outSel.addEventListener('change', async () => { st.outPort = outSel.value || null; await connect(); });
+    outSel.addEventListener('change', async () => { st.outPort = outSel.value || null; st.outputChoice = st.outputs.find(p => p.key === st.outPort) || null; await connect(); });
     const row = h('div', { class: 'dev-port-row' },
       h('label', { class: 'field', for: 'midi-port' }, h('span', { class: 'field-label', text: 'Input port' }), sel),
       h('label', { class: 'field', for: 'midi-output' }, h('span', { class: 'field-label', text: 'Output port' }), outSel),
@@ -187,36 +179,36 @@ export function runMidi(host, ctx) {
   }
   async function connect() {
     if (st.disposed) return;
-    const generation = ++st.generation, port = st.port, status = st.status;
+    const generation = ++st.generation, port = st.inputs.find(p => p.key === st.port && p.available), status = st.status;
     const previous = disconnect();
-    if (st.inputs.filter(n => n === port).length !== 1) {
-      status.innerHTML = `${chip('review', 'AMBIGUOUS INPUT', { size: 14 })} <span>This input name appears more than once. Disconnect duplicate devices and refresh before testing.</span>`;
+    if (!port) {
+      status.innerHTML = `${chip('review', 'INPUT UNAVAILABLE', { size: 14 })} <span>Select an available input. Names without logical IDs must be unique; unavailable or ambiguous IDs cannot be opened.</span>`;
       return;
     }
-    if (st.outputs.filter(n => n === st.outPort).length !== 1) st.outPort = null;
+    const output = st.outputs.find(p => p.key === st.outPort && p.available);
     const claim = claimPort(midi, port); st.connection = claim;
     const current = () => !st.disposed && generation === st.generation && st.connection === claim && claim.entry.owner === claim;
     await previous;
     await claim.entry.closing;
     if (!current()) { releasePort(midi, claim); return; }
     claim.entry.pending++;
-    try { await midi.open(port); claim.entry.opened = true; }
+    try { await midi.open(port.selector); claim.entry.opened = true; }
     catch (error) {
       if (current()) status.innerHTML = `${chip('fail', 'NOT CONNECTED', { size: 14 })} <span>${esc(error?.message || error)}</span>`;
       releasePort(midi, claim);
       return;
     } finally { claim.entry.pending--; prunePort(claim); }
     if (!current()) { releasePort(midi, claim); return; }
-    status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(port)}.</span>`;
+    status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(port.label)}.</span>`;
     // Conformance needs every byte (clock, Active Sensing, malformed input); other panels only see parsed controls.
     st.unsub = midi.onMessage(raw => {
-      if (!current() || (raw.port && raw.port !== port)) return;
+      if (!current() || (port.id != null ? raw.portId !== port.id : raw.port && raw.port !== port.name)) return;
       const panel = st.panel, msg = parseMessage(raw.bytes);
       if (!panel || (!panel.wantsRaw && (msg.kind === 'clock' || msg.kind === 'other'))) return;
       const timestampObserved = Number.isFinite(raw.timestampUs) && raw.timestampUs >= 0;
       panel.onMessage(msg, { tUs: timestampObserved ? raw.timestampUs : nowUs(), timestampObserved, rUs: nowUs(), raw: raw.bytes });
     });
-    st.panel = PANELS[kind]({ current, port, outPort: st.outPort });
+    st.panel = PANELS[kind]({ current, port: port.name, portId: port.id, outPort: output?.selector ?? null, outName: output?.name ?? null });
   }
 
   const finishBtn = (label, onClick) => h('button', { type: 'button', class: 'btn btn-primary btn-lg', id: 'midi-finish', html: `${icon('check', { size: 20 })}<span>${esc(label)}</span>`, onclick: onClick });
@@ -226,7 +218,8 @@ export function runMidi(host, ctx) {
     const outcome = override || evaluateOutcome(test, { measurements, findings });
     const btn = body.querySelector('#midi-finish');
     if (btn) { btn.disabled = true; btn.innerHTML = `${icon('check', { size: 20 })}<span>Saved</span>`; }
-    ctx.finish({ status: outcome.status, detail: outcome.detail, criterion: outcome.criterion, measurements, findings, extra: { port: connection?.port ?? st.port, map: eff.mapSource, ...extra } });
+    const selected = connection || { port: st.inputChoice?.name, portId: st.inputChoice?.id };
+    ctx.finish({ status: outcome.status, detail: outcome.detail, criterion: outcome.criterion, measurements, findings, extra: { port: selected.port, ...(selected.portId != null ? { portId: selected.portId, midiBackend: midi.backend() } : {}), map: eff.mapSource, ...extra } });
   }
   function resultBlock(measurements, findings) {
     return h('div', { class: 'dev-midi-result' }, h('h3', { class: 'section-title', text: 'Readings' }), readoutGrid(measurements), h('h3', { class: 'section-title', text: 'Findings' }), findingList(findings.length ? findings : [{ id: 'midi-ok', severity: 'ok', title: 'No problems found', meaning: 'Every check stayed inside its guide band.', action: '' }]));
@@ -289,7 +282,7 @@ export function runMidi(host, ctx) {
         const fresh = learnedControls(rep.discovered || [], labels);
         if (!fresh.length) { toast('Name at least one control first.', { type: 'warn' }); return; }
         const keep = (ctx.learned?.map?.controls || []).filter(c => !fresh.some(f => f.id === c.id || (f.message.kind === c.message?.kind && f.message.channel === c.message?.channel && f.message.number === c.message?.number)));
-        const map = { mapSource: 'learned', complete: false, port: st.port, controls: [...keep, ...fresh] };
+        const map = { mapSource: 'learned', complete: false, port: st.inputChoice?.name, ...(st.inputChoice?.id != null ? { portId: st.inputChoice.id, midiBackend: midi.backend() } : {}), controls: [...keep, ...fresh] };
         try {
           const saved = await ctx.saveLearned(map);
           ctx.learned = saved; eff = effectiveMidiMap(profile.midi, map); renderMapNote();
@@ -469,14 +462,19 @@ export function runMidi(host, ctx) {
         body.replaceChildren(card);
         return { onMessage() {} };
       }
-      if (!outPort) card.append(h('p', { class: 'hint hint-warn', html: `${icon('warn', { size: 16 })}<span>No MIDI output port found — LEDs cannot be driven. Connect the device and refresh.</span>` }));
+      if (!outPort) {
+        card.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>No MIDI output selected</h2><p>Select the output for this device above before checking its LEDs. No LED messages have been sent.</p>` }));
+        if (typeof ctx.skip === 'function') card.append(h('button', { type: 'button', class: 'btn btn-secondary', id: 'led-skip', text: 'Skip test', onclick: () => { if (current()) ctx.skip('No MIDI output selected for the LED check.'); } }));
+        body.replaceChildren(card);
+        return { onMessage() {}, dispose() { disposed = true; } };
+      }
       const answers = [];
       let i = 0;
       const stage = h('div', { class: 'dev-led-stage', 'aria-live': 'polite' });
       async function send(bytes, cleanup = false) {
         if (!current() && !cleanup) return;
         try { await midi.send(outPort, bytes); }
-        catch (error) { if (current()) toast(`Could not send to ${outPort}: ${error?.message || error}`, { type: 'error' }); }
+        catch (error) { if (current()) toast(`Could not send to ${connection.outName}: ${error?.message || error}`, { type: 'error' }); }
       }
       async function show() {
         if (!current()) return;
@@ -543,7 +541,7 @@ export function runMidi(host, ctx) {
       const current = () => !disposed && !finished && connection.current();
       const events = [];
       let lastT = null, lastR = null, lastTimestamp = null, timestampFaults = 0, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
-      const statusBase = captureStatus(midi, connection.port);
+      const statusBase = captureStatus(midi, connection);
       const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
       card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek checks messages received while you use the MIDI controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing. An optional Identity Request is sent when an output is selected.' }));
       const idLine = h('p', { class: 'dev-target', role: 'status' });
@@ -582,7 +580,7 @@ export function runMidi(host, ctx) {
         finished = true; ++probeToken; clearTimeout(probeTimer); probeTimer = null;
         again.disabled = true; finish.disabled = true;
         const endUs = lastT == null ? null : lastT + (nowUs() - lastR);
-        const [before, after] = await Promise.all([statusBase, captureStatus(midi, connection.port)]);
+        const [before, after] = await Promise.all([statusBase, captureStatus(midi, connection)]);
         if (disposed || !connection.current()) return;
         const counterState = before.dropped == null || after.dropped == null ? 'unavailable' : after.dropped < before.dropped ? 'reset' : 'observed';
         const dropped = counterState === 'observed' ? after.dropped - before.dropped : null;
@@ -600,7 +598,7 @@ export function runMidi(host, ctx) {
         const findings = conformanceFindings(a, identity);
         if (identity.status === 'ok') findings.push({ id: 'midi-identified', severity: 'info', title: `Device identified (manufacturer id ${identity.info.manufacturerHex})`, meaning: `Family ${identity.info.family}, model ${identity.info.member}, version ${identity.info.versionText}. Look the manufacturer id up in the MIDI Association SysEx ID list.`, action: '' });
         if (identity.status === 'pending') findings.push({ id: 'midi-identity-unfinished', severity: 'info', title: 'Identity Request not awaited', meaning: `The test finished before the ${IDENTITY_TIMEOUT_MS / 1000} s reply window closed, so no identity result is recorded.`, action: 'Run the test for longer to include the identity check.' });
-        if (identity.status === 'send-failed') findings.push({ id: 'midi-identity-unsent', severity: 'info', title: 'Identity Request was not sent', meaning: `Sending to ${outPort} failed (${identity.error}), so no identity result is recorded.`, action: 'Check the output port, then run the test again.' });
+        if (identity.status === 'send-failed') findings.push({ id: 'midi-identity-unsent', severity: 'info', title: 'Identity Request was not sent', meaning: `Sending to ${connection.outName} failed (${identity.error}), so no identity result is recorded.`, action: 'Check the output port, then run the test again.' });
         if (dropped) findings.push({ id: 'midi-transport-drops', severity: 'warning', title: `${dropped} MIDI message${dropped > 1 ? 's' : ''} dropped by DeckChek during the capture`, meaning: 'The shared host MIDI queue lost messages during this window. The counter covers all inputs, so it does not prove loss from this device. Missing messages can look like stuck or orphan notes.', action: 'Close other MIDI apps, plug in directly and repeat the test.' });
         if (disconnected) findings.push({ id: 'midi-input-disconnected', severity: 'review', title: 'The selected MIDI input did not stay open', meaning: 'The input was missing from a capture status check. Recorded messages remain available, but the stream cannot be judged as complete.', action: 'Reconnect the device, refresh the ports and repeat the test.' });
         if (unverified) findings.push({ id: 'midi-capture-unverified', severity: 'review', title: 'Capture continuity could not be verified', meaning: counterState === 'reset' ? 'The shared transport counter decreased during capture, so a reliable loss delta is unavailable.' : 'A measured transport counter or selected-input status was unavailable. Unobserved capture loss is not a measured zero.', action: 'Use the desktop MIDI backend, check the device connection and repeat the test.' });

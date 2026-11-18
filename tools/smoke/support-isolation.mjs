@@ -70,7 +70,10 @@ export default async function run({ browser, base, check, SHOTS }) {
   const page = await context.newPage(), errors = watchConsole(page, 'support-isolation');
   const open = async () => {
     await page.waitForSelector('.rail-item[data-screen="hum"]'); await page.click('.rail-item[data-screen="hum"]');
-    await page.click('#hum-tab-support'); await page.waitForSelector('#support-ab-venue option[value="support-smoke-venue"]');
+    await page.click('#hum-tab-support');
+    // A closed select's options need not be visible. selectOption below still
+    // waits for the select itself to be actionable after its choices are loaded.
+    await page.waitForSelector('#support-ab-venue option[value="support-smoke-venue"]', { state: 'attached' });
   };
   await page.goto(base); await open();
   await page.selectOption('#support-ab-venue', 'support-smoke-venue'); await page.selectOption('#support-ab-setup', 'support-smoke-setup');

@@ -3,6 +3,9 @@
 import { createMapperScreen } from '../../app/ui/screens/mapper.js';
 import { go, registerScreens } from '../../app/ui/shell.js';
 import { active } from '../../app/ui/state.js';
+import * as midi from '../../app/midi.js';
+
+let midiMessageListener = null;
 
 class Element {
   constructor(tag, document) {
@@ -65,12 +68,26 @@ export const turn = () => new Promise(resolve => setImmediate(resolve));
 export const settle = async () => { await turn(); await turn(); };
 export const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 
-export function nativeMappings({ rows = [], beforeSave = async () => {} } = {}) {
+export function nativeMappings({ rows = [], beforeSave = async () => {}, ports = [], beforeMidiOpen = async () => {}, openPorts = [] } = {}) {
   const saved = new Map(rows.map(row => [row.id, structuredClone(row)]));
   const saves = [];
+  const midiOpens = [], midiCloses = [], opened = new Map(openPorts.map(p => [p.id, p]));
   let nextId = rows.length + 1;
   const invoke = async (command, args) => {
-    if (command === 'midi_list_ports') return { inputs: [], outputs: [] };
+    if (command === 'midi_list_ports') return { inputs: structuredClone(ports), outputs: [] };
+    if (command === 'midi_status') return { openInputs: [...opened.values()].map(p => p.name), openInputIds: [...opened.keys()], dropped: 0 };
+    if (command === 'midi_open_input') {
+      midiOpens.push(structuredClone(args)); await beforeMidiOpen(args);
+      const matches = ports.filter(p => args.id != null ? p.id === args.id : p.name === args.name);
+      if (matches.length !== 1) throw new Error('MIDI input selection is unavailable or ambiguous');
+      opened.set(matches[0].id, matches[0]); return;
+    }
+    if (command === 'midi_close_input') {
+      midiCloses.push(structuredClone(args));
+      for (const [id, p] of opened) if (args.id != null ? id === args.id : p.name === args.name) opened.delete(id);
+      return;
+    }
+    if (command === 'midi_close_all') { opened.clear(); return; }
     if (command === 'mapper_model_list') return [...saved.values()].map(({ model, ...row }) => ({ ...row, controlCount: model.controls.length }));
     if (command === 'mapper_model_get') return structuredClone(saved.get(args.id) ?? null);
     if (command === 'mapper_model_save') {
@@ -84,7 +101,7 @@ export function nativeMappings({ rows = [], beforeSave = async () => {} } = {}) 
     }
     throw new Error(`Unexpected native command: ${command}`);
   };
-  return { invoke, saved, saves };
+  return { invoke, saved, saves, ports, midiOpens, midiCloses, opened, emitMidi: message => midiMessageListener?.({ payload: message }) };
 }
 
 export async function mountMapper(t, native = nativeMappings()) {
@@ -103,7 +120,7 @@ export async function mountMapper(t, native = nativeMappings()) {
   main.append(section, other); document.body.append(element('nav', 'rail-list'), main);
   const globals = {
     document, Node: Element, CSS: { escape: value => String(value) },
-    window: { __TAURI__: { core: { invoke: native.invoke } } },
+    window: { __TAURI__: { core: { invoke: native.invoke }, event: { listen: async (_, listener) => { midiMessageListener = listener; return () => { midiMessageListener = null; }; } } } },
     fetch: async () => ({ ok: true, json: async () => ({ profiles: [] }) }),
   };
   const previous = Object.fromEntries(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
@@ -115,8 +132,9 @@ export async function mountMapper(t, native = nativeMappings()) {
   ]);
   go('mapper');
   await settle();
-  t.after(() => {
+  t.after(async () => {
     go('other'); active.screen = null;
+    await midi.closeAll();
     for (const [key, descriptor] of Object.entries(previous)) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key];
     }

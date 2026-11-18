@@ -151,7 +151,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await pb.click('.rail-item[data-screen="hum"]'); await pb.click('#hum-tab-incidents');
   await pb.waitForFunction(() => /Booth shock/.test(document.querySelector('#incident-history')?.textContent || ''));
   check('incidents: browser reload retains history and discloses workspace-export scope', /Page 1: 1 recorded incidents on this page; 1 matching incidents/.test(await pb.locator('#incident-history').innerText())
-    && /workspace JSON does not include incidents/.test(await pb.locator('#incident-host').innerText()));
+    && /Workspace JSON does not include incidents or support history/.test(await pb.locator('#incident-host').innerText()));
   const installIncidentPrintSpy = () => {
     const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
     Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', { configurable: true, get() {
@@ -228,7 +228,7 @@ export default async function run({ browser, base, check, SHOTS }) {
     return setup.id;
   });
   await pb.click('.rail-item[data-screen="hum"]'); await pb.click('#hum-tab-incidents');
-  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]');
+  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]', { state: 'attached' });
   await pb.selectOption('#incident-venue', 'incident-smoke-venue');
   await pb.selectOption('#incident-setup', paginationSetupId);
   await pb.fill('#incident-note', 'Notes for the next incident');

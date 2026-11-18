@@ -13,6 +13,23 @@ import { completePlan } from '../app/devices/test-plan.js';
 
 installDom();
 
+test('conformance verifies the selected ID independently of duplicate display names', async t => {
+  for (const [ids, expected] of [[undefined, 'unknown'], [['other'], 'unknown'], [['chosen'], 'pass']]) {
+    const midi = bridge({
+      listPorts: async () => ({ inputs: [{ id: 'other', name: 'USB MIDI' }, { id: 'chosen', name: 'USB MIDI' }], outputs: [] }),
+      status: async () => ({ dropped: 0, openInputs: ['USB MIDI'], ...(ids ? { openInputIds: ids } : {}) }),
+    });
+    const m = mount({ kind: 'conformance', midi }); t.after(() => m.runner.dispose()); await settle();
+    await m.select(m.byId('midi-port').children[1].value); await settle();
+    for (const listener of midi.listeners) listener({ port: 'USB MIDI', portId: 'chosen', bytes: [0xb0, 1, 2], timestampUs: 1000 });
+    await m.click('midi-finish'); await settle();
+    assert.equal(m.finished[0].status, expected, `ID status ${JSON.stringify(ids)}`);
+    assert.equal(m.finished[0].extra.port, 'USB MIDI'); assert.equal(m.finished[0].extra.portId, 'chosen');
+    assert.deepEqual(midi.sends, []);
+    m.runner.dispose();
+  }
+});
+
 const REPLY = [0xf0, 0x7e, 0x00, 0x06, 0x02, 0x47, 0x12, 0x00, 0x34, 0x00, 1, 2, 3, 4, 0xf7];
 const metric = (result, id) => result.measurements.find(m => m.metricId === id);
 const finding = (result, id) => result.findings.find(f => f.id === id);

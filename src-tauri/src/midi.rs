@@ -16,14 +16,18 @@ const BATCH_MAX: usize = 512;
 #[serde(rename_all = "camelCase")]
 pub struct MidiMessage {
     pub port: String,
+    pub port_id: String,
     pub timestamp_us: u64,
     pub bytes: Vec<u8>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PortInfo {
     pub index: usize,
     pub name: String,
+    pub id: String,
+    pub name_available: bool,
 }
 
 #[derive(Serialize)]
@@ -37,6 +41,8 @@ pub struct PortList {
 pub struct MidiStatus {
     pub open_inputs: Vec<String>,
     pub open_outputs: Vec<String>,
+    pub open_input_ids: Vec<String>,
+    pub open_output_ids: Vec<String>,
     pub dropped: u64,
     pub emitted: u64,
 }
@@ -94,6 +100,10 @@ pub struct MidiState {
 struct InputGenerations {
     all: u64,
     ports: HashMap<String, u64>,
+    serial: u64,
+    names: HashMap<String, String>,
+    aliases: HashMap<String, String>,
+    legacy_closes: HashMap<String, u64>,
 }
 
 impl InputGenerations {
@@ -101,22 +111,93 @@ impl InputGenerations {
         (self.all, self.ports.get(name).copied().unwrap_or(0))
     }
 
-    fn close_input(&mut self, name: &str) {
-        let generation = self.ports.entry(name.to_owned()).or_default();
-        *generation = generation.wrapping_add(1);
+    fn started(&self) -> (u64, u64) {
+        (self.all, self.serial)
+    }
+
+    fn current(&self, started: (u64, u64), name: Option<&str>, id: Option<&str>) -> bool {
+        self.all == started.0
+            && name.is_none_or(|name| self.for_port(&format!("name:{name}")).1 <= started.1)
+            && id.is_none_or(|id| self.for_port(&format!("id:{id}")).1 <= started.1)
+    }
+
+    fn current_request(&self, started: (u64, u64), name: Option<&str>, id: Option<&str>) -> bool {
+        self.current(started, name, id)
+            && name
+                .is_none_or(|name| self.legacy_closes.get(name).copied().unwrap_or(0) <= started.1)
+    }
+
+    fn close_input(&mut self, key: &str) {
+        self.serial = self.serial.wrapping_add(1);
+        self.ports.insert(key.to_owned(), self.serial);
+    }
+
+    fn close_selector(
+        &mut self,
+        name: Option<&str>,
+        id: Option<&str>,
+    ) -> Result<Option<String>, String> {
+        let captured = if let Some(id) = id {
+            Some(id.to_owned())
+        } else if let Some(name) = name {
+            if let Some(id) = self.aliases.get(name) {
+                Some(id.clone())
+            } else {
+                let matches: Vec<_> = self
+                    .names
+                    .iter()
+                    .filter(|(_, label)| label.as_str() == name)
+                    .collect();
+                if matches.len() > 1 {
+                    return Err(format!("MIDI input name is ambiguous: {name}"));
+                }
+                matches.first().map(|(id, _)| (*id).clone())
+            }
+        } else {
+            None
+        };
+        if let Some(id) = &captured {
+            self.close_input(&format!("id:{id}"));
+        } else if let Some(name) = name {
+            // An unresolved legacy request checks this mark after it discovers its ID.
+            self.close_input(&format!("name:{name}"));
+        }
+        if let Some(name) = name {
+            // Original name requests stay canceled after the captured alias is forgotten.
+            // Explicit ID requests do not consult this separate intent mark.
+            self.legacy_closes.insert(name.to_owned(), self.serial);
+        }
+        Ok(captured)
+    }
+
+    fn forget(&mut self, id: &str) {
+        self.names.remove(id);
+        self.aliases.retain(|_, captured| captured != id);
     }
 
     fn close_all(&mut self) {
         self.all = self.all.wrapping_add(1);
+        self.serial = self.serial.wrapping_add(1);
         self.ports.clear();
+        self.names.clear();
+        self.aliases.clear();
+        self.legacy_closes.clear();
     }
 }
 
+struct InputBinding {
+    connection: MidiInputConnection<()>,
+    name: String,
+    started: (u64, u64),
+}
+
 struct Inner {
-    inputs: HashMap<String, MidiInputConnection<()>>,
+    inputs: HashMap<String, InputBinding>,
     // None retains a failed/disappeared binding until an explicit reset. Old
     // Note Off cleanup must never reconnect to a new device with the same name.
     outputs: HashMap<String, Option<MidiOutputConnection>>,
+    output_names: HashMap<String, String>,
+    output_aliases: HashMap<String, String>,
     tx: Option<SyncSender<MidiMessage>>,
 }
 
@@ -126,6 +207,8 @@ impl Default for MidiState {
             inner: Mutex::new(Inner {
                 inputs: HashMap::new(),
                 outputs: HashMap::new(),
+                output_names: HashMap::new(),
+                output_aliases: HashMap::new(),
                 tx: None,
             }),
             input_generations: Mutex::new(InputGenerations::default()),
@@ -181,29 +264,111 @@ fn unique_named_port<P>(
     Ok(port)
 }
 
-fn input_names(mi: &MidiInput) -> Vec<String> {
-    mi.ports()
+struct SelectedPort<P> {
+    port: P,
+    id: String,
+    name: String,
+    unique_name: bool,
+}
+
+fn validate_selector(name: Option<&str>, id: Option<&str>) -> Result<(), String> {
+    if id.is_some_and(str::is_empty) {
+        return Err("MIDI logical ID must be a non-empty string".to_owned());
+    }
+    if name.is_none() && id.is_none() {
+        return Err("MIDI selection requires a name or logical ID".to_owned());
+    }
+    Ok(())
+}
+
+/// Both forms share one ID-keyed connection. If a legacy name also supplies an expected
+/// ID, recheck both; enumeration changing between frontend and driver cannot retarget it.
+fn selected_port<P>(
+    ports: impl IntoIterator<Item = P>,
+    name: Option<&str>,
+    id: Option<&str>,
+    direction: &str,
+    mut port_name: impl FnMut(&P) -> Option<String>,
+    mut port_id: impl FnMut(&P) -> String,
+) -> Result<SelectedPort<P>, String> {
+    validate_selector(name, id)?;
+    let mut entries: Vec<_> = ports
+        .into_iter()
+        .map(|port| {
+            let id = port_id(&port);
+            let name = port_name(&port);
+            (port, id, name)
+        })
+        .collect();
+    let index = if let Some(name) = name {
+        unique_named_port(0..entries.len(), name, direction, |i| entries[*i].2.clone())?
+    } else {
+        let id = id.expect("validated ID selector");
+        let matches: Vec<_> = entries
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.1 == id)
+            .map(|(i, _)| i)
+            .collect();
+        if matches.is_empty() {
+            return Err(format!("MIDI {direction} ID not found: {id}"));
+        }
+        if matches.len() != 1 {
+            return Err(format!("MIDI {direction} ID is ambiguous: {id}"));
+        }
+        matches[0]
+    };
+    let selected_id = &entries[index].1;
+    if selected_id.is_empty() || entries.iter().filter(|p| p.1 == *selected_id).count() != 1 {
+        return Err(format!(
+            "MIDI {direction} ID is unavailable or ambiguous: {selected_id}"
+        ));
+    }
+    if id.is_some_and(|expected| expected != selected_id) {
+        return Err(format!("MIDI {direction} changed after enumeration"));
+    }
+    let selected_name = entries[index]
+        .2
+        .as_ref()
+        .ok_or_else(|| format!("MIDI {direction} name is unavailable: {selected_id}"))?;
+    let unique_name = entries
         .iter()
-        .filter_map(|p| mi.port_name(p).ok())
+        .filter(|p| p.2.as_ref() == Some(selected_name))
+        .count()
+        == 1;
+    let (port, id, name) = entries.swap_remove(index);
+    Ok(SelectedPort {
+        port,
+        id,
+        name: name.expect("readable selected name"),
+        unique_name,
+    })
+}
+
+fn present_ids<P>(
+    ports: impl IntoIterator<Item = P>,
+    mut id: impl FnMut(&P) -> String,
+    mut readable: impl FnMut(&P) -> bool,
+) -> Vec<String> {
+    let entries: Vec<_> = ports.into_iter().map(|p| (id(&p), readable(&p))).collect();
+    entries
+        .iter()
+        .filter(|(id, readable)| {
+            *readable && !id.is_empty() && entries.iter().filter(|p| p.0 == *id).count() == 1
+        })
+        .map(|p| p.0.clone())
         .collect()
 }
 
-fn output_names(mo: &MidiOutput) -> Vec<String> {
-    mo.ports()
-        .iter()
-        .filter_map(|p| mo.port_name(p).ok())
-        .collect()
-}
-
-/// Close vanished inputs and retire vanished outputs without forgetting their ownership.
+/// Close vanished inputs and retire vanished outputs without forgetting captured aliases.
 fn prune_stale(inner: &mut Inner, inputs_present: &[String], outputs_present: &[String]) {
-    for n in stale_names(inner.inputs.keys(), inputs_present) {
-        if let Some(c) = inner.inputs.remove(&n) {
-            c.close();
+    for id in stale_names(inner.inputs.keys(), inputs_present) {
+        if let Some(c) = inner.inputs.remove(&id) {
+            c.connection.close();
         }
     }
-    for n in stale_names(inner.outputs.keys(), outputs_present) {
-        if let Some(c) = inner.outputs.get_mut(&n).and_then(Option::take) {
+    for id in stale_names(inner.outputs.keys(), outputs_present) {
+        if let Some(c) = inner.outputs.get_mut(&id).and_then(Option::take) {
             c.close();
         }
     }
@@ -214,7 +379,11 @@ fn prune_with_os(inner: &mut Inner) {
         MidiInput::new("deckchek-prune-in"),
         MidiOutput::new("deckchek-prune-out"),
     ) {
-        prune_stale(inner, &input_names(&mi), &output_names(&mo));
+        prune_stale(
+            inner,
+            &present_ids(mi.ports(), |p| p.id(), |p| mi.port_name(p).is_ok()),
+            &present_ids(mo.ports(), |p| p.id(), |p| mo.port_name(p).is_ok()),
+        );
     }
 }
 
@@ -239,32 +408,36 @@ fn list_ports_blocking(state: &MidiState) -> Result<PortList, String> {
         .ports()
         .iter()
         .enumerate()
-        .map(|(index, p)| PortInfo {
-            index,
-            name: inp.port_name(p).unwrap_or_default(),
+        .map(|(index, p)| {
+            let name = inp.port_name(p).ok();
+            PortInfo {
+                index,
+                id: p.id(),
+                name_available: name.is_some(),
+                name: name.unwrap_or_default(),
+            }
         })
         .collect();
     let outputs = out
         .ports()
         .iter()
         .enumerate()
-        .map(|(index, p)| PortInfo {
-            index,
-            name: out.port_name(p).unwrap_or_default(),
+        .map(|(index, p)| {
+            let name = out.port_name(p).ok();
+            PortInfo {
+                index,
+                id: p.id(),
+                name_available: name.is_some(),
+                name: name.unwrap_or_default(),
+            }
         })
         .collect();
     if let Ok(mut inner) = lock(state) {
-        let (i, o): (Vec<String>, Vec<String>) = (
-            inp.ports()
-                .iter()
-                .filter_map(|p| inp.port_name(p).ok())
-                .collect(),
-            out.ports()
-                .iter()
-                .filter_map(|p| out.port_name(p).ok())
-                .collect(),
+        prune_stale(
+            &mut inner,
+            &present_ids(inp.ports(), |p| p.id(), |p| inp.port_name(p).is_ok()),
+            &present_ids(out.ports(), |p| p.id(), |p| out.port_name(p).is_ok()),
         );
-        prune_stale(&mut inner, &i, &o);
     }
     Ok(PortList { inputs, outputs })
 }
@@ -312,10 +485,15 @@ fn ensure_pump(
 }
 
 #[tauri::command]
-pub async fn midi_open_input(app: AppHandle, name: String) -> Result<(), String> {
-    let generation = input_generations(&app.state::<MidiState>())?.for_port(&name);
+pub async fn midi_open_input(
+    app: AppHandle,
+    name: Option<String>,
+    id: Option<String>,
+) -> Result<(), String> {
+    validate_selector(name.as_deref(), id.as_deref())?;
+    let generation = input_generations(&app.state::<MidiState>())?.started();
     tauri::async_runtime::spawn_blocking(move || {
-        open_input_blocking(&app, &app.state::<MidiState>(), name, generation)
+        open_input_blocking(&app, &app.state::<MidiState>(), name, id, generation)
     })
     .await
     .map_err(background_failed)?
@@ -324,33 +502,62 @@ pub async fn midi_open_input(app: AppHandle, name: String) -> Result<(), String>
 fn open_input_blocking(
     app: &AppHandle,
     state: &MidiState,
-    name: String,
+    name: Option<String>,
+    id: Option<String>,
     generation: (u64, u64),
 ) -> Result<(), String> {
     let mut inner = lock(state)?;
-    if input_generations(state)?.for_port(&name) != generation {
-        return Err(format!(
-            "MIDI input open was cancelled because its connection was closed: {name}"
-        ));
+    if !input_generations(state)?.current_request(generation, name.as_deref(), id.as_deref()) {
+        return Err("MIDI input open was cancelled because its connection was closed".to_owned());
     }
     let mut mi = MidiInput::new("deckchek-in").map_err(|e| e.to_string())?;
     mi.ignore(midir::Ignore::None);
-    // A cached connection whose port vanished is dead: close it and reconnect (or report not found).
-    let present = input_names(&mi);
-    if inner.inputs.contains_key(&name) {
-        let matches = present.iter().filter(|p| *p == &name).count();
-        if matches > 1 {
-            // Reject a new open request without closing another caller's captured connection.
-            return Err(format!("MIDI input name is ambiguous: {name}"));
+    let selected = selected_port(
+        mi.ports(),
+        name.as_deref(),
+        id.as_deref(),
+        "input",
+        |p| mi.port_name(p).ok(),
+        |p| p.id(),
+    )?;
+    {
+        let mut generations = input_generations(state)?;
+        // An unresolved name close cannot identify one of several explicitly selected IDs.
+        let cancellation_name = selected.unique_name.then_some(selected.name.as_str());
+        if !generations.current(generation, cancellation_name, Some(&selected.id))
+            || !generations.current_request(generation, name.as_deref(), Some(&selected.id))
+        {
+            return Err(
+                "MIDI input open was cancelled because its connection was closed".to_owned(),
+            );
         }
-        if matches == 1 {
-            return Ok(());
+        if name.is_some()
+            && generations
+                .aliases
+                .get(&selected.name)
+                .is_some_and(|old| old != &selected.id)
+        {
+            return Err(format!(
+                "MIDI input changed: {}. Close it before opening the replacement.",
+                selected.name
+            ));
         }
-        if let Some(c) = inner.inputs.remove(&name) {
-            c.close();
+        generations
+            .names
+            .insert(selected.id.clone(), selected.name.clone());
+        if selected.unique_name {
+            generations
+                .aliases
+                .entry(selected.name.clone())
+                .or_insert_with(|| selected.id.clone());
         }
     }
-    let port = unique_named_port(mi.ports(), &name, "input", |p| mi.port_name(p).ok())?;
+    if let Some(binding) = inner.inputs.get_mut(&selected.id) {
+        // Reusing a captured connection transfers its ownership to the newest successful request.
+        // A still-valid older request arriving later must not restore an earlier generation.
+        binding.started = binding.started.max(generation);
+        return Ok(());
+    }
     let tx = ensure_pump(
         &mut inner,
         app.clone(),
@@ -358,10 +565,11 @@ fn open_input_blocking(
         state.dropped.clone(),
     );
     let dropped = state.dropped.clone();
-    let port_name = name.clone();
+    let port_name = selected.name.clone();
+    let port_id = selected.id.clone();
     let conn = mi
         .connect(
-            &port,
+            &selected.port,
             "deckchek-input",
             move |ts, bytes, _| {
                 push_bounded(
@@ -369,6 +577,7 @@ fn open_input_blocking(
                     &dropped,
                     MidiMessage {
                         port: port_name.clone(),
+                        port_id: port_id.clone(),
                         timestamp_us: ts,
                         bytes: bytes.to_vec(),
                     },
@@ -376,33 +585,112 @@ fn open_input_blocking(
             },
             (),
         )
-        .map_err(|e| e.to_string())?;
-    inner.inputs.insert(name, conn);
-    Ok(())
+        .map_err(|e| e.to_string());
+    match conn {
+        Ok(connection) => {
+            inner.inputs.insert(
+                selected.id,
+                InputBinding {
+                    connection,
+                    name: selected.name,
+                    started: generation,
+                },
+            );
+            Ok(())
+        }
+        Err(error) => {
+            input_generations(state)?.forget(&selected.id);
+            Err(error)
+        }
+    }
 }
 
+/// Input-only close. Equal raw IDs in the output direction are unrelated owners.
 #[tauri::command]
-pub fn midi_close_input(state: State<'_, MidiState>, name: String) -> Result<(), String> {
-    input_generations(&state)?.close_input(&name);
+pub fn midi_close_input(
+    state: State<'_, MidiState>,
+    name: Option<String>,
+    id: Option<String>,
+) -> Result<(), String> {
+    validate_selector(name.as_deref(), id.as_deref())?;
+    let (captured, closed_at) = {
+        let mut generations = input_generations(&state)?;
+        let captured = generations.close_selector(name.as_deref(), id.as_deref())?;
+        (captured, generations.started())
+    };
     let mut inner = lock(&state)?;
-    if let Some(c) = inner.inputs.remove(&name) {
-        c.close();
+    if let Some(id) = captured {
+        // A newer direct native request may win the connection lock after this close was dispatched.
+        // Close only the captured generation; the frontend also waits on the canonical close barrier.
+        let old = inner
+            .inputs
+            .get(&id)
+            .is_none_or(|binding| binding.started < closed_at);
+        if old {
+            if let Some(binding) = inner.inputs.remove(&id) {
+                binding.connection.close();
+            }
+            input_generations(&state)?.forget(&id);
+        }
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn midi_send(state: State<'_, MidiState>, name: String, bytes: Vec<u8>) -> Result<(), String> {
+pub fn midi_send(
+    state: State<'_, MidiState>,
+    name: Option<String>,
+    id: Option<String>,
+    bytes: Vec<u8>,
+) -> Result<(), String> {
+    validate_selector(name.as_deref(), id.as_deref())?;
     let mut inner = lock(&state)?;
-    send_on_captured_output(
+    let captured = id.clone().or_else(|| {
+        name.as_ref()
+            .and_then(|name| inner.output_aliases.get(name).cloned())
+    });
+    if let Some(key) = captured.filter(|key| inner.outputs.contains_key(key)) {
+        return send_on_captured_output(
+            &mut inner.outputs,
+            &key,
+            || unreachable!("captured output already exists"),
+            |connection| connection.send(&bytes).map_err(|error| error.to_string()),
+            |connection| {
+                connection.close();
+            },
+        );
+    }
+    let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
+    let selected = selected_port(
+        mo.ports(),
+        name.as_deref(),
+        id.as_deref(),
+        "output",
+        |p| mo.port_name(p).ok(),
+        |p| p.id(),
+    )?;
+    let key = selected.id.clone();
+    let result = send_on_captured_output(
         &mut inner.outputs,
-        &name,
-        || connect_output(&name),
+        &key,
+        || {
+            mo.connect(&selected.port, "deckchek-output")
+                .map_err(|e| e.to_string())
+        },
         |connection| connection.send(&bytes).map_err(|error| error.to_string()),
         |connection| {
             connection.close();
         },
-    )
+    );
+    if inner.outputs.contains_key(&key) {
+        inner
+            .output_names
+            .insert(key.clone(), selected.name.clone());
+        if selected.unique_name {
+            inner.output_aliases.entry(selected.name).or_insert(key);
+        }
+    }
+    result
 }
 
 /// Bind only on a first send. Known loss requires an explicit reset, never a
@@ -430,20 +718,15 @@ fn send_on_captured_output<C>(
     Ok(())
 }
 
-fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
-    let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
-    let port = unique_named_port(mo.ports(), name, "output", |p| mo.port_name(p).ok())?;
-    mo.connect(&port, "deckchek-output")
-        .map_err(|e| e.to_string())
-}
-
 #[tauri::command]
 pub fn midi_close_all(state: State<'_, MidiState>) -> Result<(), String> {
     input_generations(&state)?.close_all();
     let mut inner = lock(&state)?;
     for (_, c) in inner.inputs.drain() {
-        c.close();
+        c.connection.close();
     }
+    inner.output_names.clear();
+    inner.output_aliases.clear();
     for (_, c) in inner.outputs.drain() {
         if let Some(c) = c {
             c.close();
@@ -456,18 +739,27 @@ pub fn midi_close_all(state: State<'_, MidiState>) -> Result<(), String> {
 pub fn midi_status(state: State<'_, MidiState>) -> Result<MidiStatus, String> {
     let mut inner = lock(&state)?;
     prune_with_os(&mut inner);
-    let mut open_inputs: Vec<String> = inner.inputs.keys().cloned().collect();
-    let mut open_outputs: Vec<String> = inner
+    let mut open_inputs: Vec<String> = inner.inputs.values().map(|p| p.name.clone()).collect();
+    let mut open_input_ids: Vec<String> = inner.inputs.keys().cloned().collect();
+    let mut open_output_ids: Vec<String> = inner
         .outputs
         .iter()
-        .filter(|(_, connection)| connection.is_some())
-        .map(|(name, _)| name.clone())
+        .filter(|(_, c)| c.is_some())
+        .map(|(id, _)| id.clone())
+        .collect();
+    let mut open_outputs: Vec<String> = open_output_ids
+        .iter()
+        .filter_map(|id| inner.output_names.get(id).cloned())
         .collect();
     open_inputs.sort();
     open_outputs.sort();
+    open_input_ids.sort();
+    open_output_ids.sort();
     Ok(MidiStatus {
         open_inputs,
         open_outputs,
+        open_input_ids,
+        open_output_ids,
         dropped: state.dropped.load(Ordering::Relaxed),
         emitted: state.emitted.load(Ordering::Relaxed),
     })
@@ -676,9 +968,155 @@ mod tests {
         }
     }
 
+    fn logical_test_port(
+        ports: &[(u8, &str, Option<&str>)],
+        name: Option<&str>,
+        id: Option<&str>,
+    ) -> Result<u8, String> {
+        selected_port(
+            ports,
+            name,
+            id,
+            "input",
+            |p| p.2.map(str::to_owned),
+            |p| p.1.to_owned(),
+        )
+        .map(|p| p.port.0)
+    }
+
+    #[test]
+    fn logical_id_selects_duplicate_names_independently_of_enumeration_order() {
+        for ports in [
+            [
+                (11, "first", Some("USB MIDI")),
+                (22, "second", Some("USB MIDI")),
+            ],
+            [
+                (22, "second", Some("USB MIDI")),
+                (11, "first", Some("USB MIDI")),
+            ],
+        ] {
+            assert_eq!(logical_test_port(&ports, None, Some("second")), Ok(22));
+            assert!(logical_test_port(&ports, Some("USB MIDI"), None)
+                .unwrap_err()
+                .contains("name is ambiguous"));
+            assert!(logical_test_port(&ports, Some("USB MIDI"), Some("second"))
+                .unwrap_err()
+                .contains("name is ambiguous"));
+        }
+    }
+
+    #[test]
+    fn logical_id_never_falls_back_to_a_replacement_name_or_an_enumeration_index() {
+        let ports = [(22, "replacement", Some("USB MIDI"))];
+        assert!(logical_test_port(&ports, None, Some("original"))
+            .unwrap_err()
+            .contains("ID not found"));
+        assert!(
+            logical_test_port(&ports, Some("USB MIDI"), Some("original"))
+                .unwrap_err()
+                .contains("changed")
+        );
+        assert!(logical_test_port(&ports, None, Some("0")).is_err());
+        assert_eq!(
+            logical_test_port(&[(22, "0", Some("USB MIDI"))], None, Some("0")),
+            Ok(22)
+        );
+    }
+
+    #[test]
+    fn logical_ids_reject_empty_colliding_and_unreadable_metadata() {
+        assert!(logical_test_port(&[(11, "", Some("A"))], None, Some("")).is_err());
+        for ports in [
+            [(11, "same", Some("A")), (22, "same", Some("B"))],
+            [(11, "same", Some("A")), (22, "same", None)],
+        ] {
+            assert!(logical_test_port(&ports, None, Some("same"))
+                .unwrap_err()
+                .contains("ambiguous"));
+            assert!(logical_test_port(&ports, Some("A"), None)
+                .unwrap_err()
+                .contains("ambiguous"));
+        }
+        assert!(logical_test_port(&[(11, "one", None)], None, Some("one"))
+            .unwrap_err()
+            .contains("name is unavailable"));
+        assert_eq!(
+            logical_test_port(&[(11, "one", Some(""))], None, Some("one")),
+            Ok(11)
+        );
+    }
+
+    #[test]
+    fn captured_name_alias_and_id_share_cancellation_without_closing_a_namesake() {
+        let mut generations = InputGenerations::default();
+        generations.names.insert("first".into(), "A".into());
+        generations.names.insert("second".into(), "A".into());
+        generations.aliases.insert("A".into(), "first".into());
+        let before = generations.started();
+        assert_eq!(
+            generations.close_selector(Some("A"), None).unwrap(),
+            Some("first".into())
+        );
+        assert!(!generations.current(before, Some("A"), Some("first")));
+        assert!(generations.current(before, Some("A"), Some("second")));
+        let after = generations.started();
+        assert!(generations.current(after, Some("A"), Some("first")));
+    }
+
+    #[test]
+    fn unresolved_legacy_close_is_checked_again_after_id_resolution() {
+        let mut generations = InputGenerations::default();
+        let before = generations.started();
+        assert_eq!(generations.close_selector(Some("A"), None).unwrap(), None);
+        assert!(!generations.current(before, Some("A"), Some("one")));
+        assert!(generations.current(before, Some("B"), Some("two")));
+        assert!(generations.current(generations.started(), Some("A"), Some("one")));
+    }
+
+    #[test]
+    fn uncaptured_duplicate_name_close_cannot_choose_an_arbitrary_id() {
+        let mut generations = InputGenerations::default();
+        generations.names.insert("one".into(), "A".into());
+        generations.names.insert("two".into(), "A".into());
+        let before = generations.started();
+        assert!(generations
+            .close_selector(Some("A"), None)
+            .unwrap_err()
+            .contains("ambiguous"));
+        assert_eq!(generations.started(), before);
+    }
+
+    #[test]
+    fn captured_legacy_intent_survives_alias_forget_and_spares_explicit_ids() {
+        let mut generations = InputGenerations::default();
+        generations.names.insert("first".into(), "A".into());
+        generations.aliases.insert("A".into(), "first".into());
+        let before = generations.started();
+        assert_eq!(
+            generations.close_selector(Some("A"), None).unwrap(),
+            Some("first".into())
+        );
+        generations.forget("first");
+        assert!(generations.aliases.is_empty());
+        assert!(generations.current(before, Some("A"), Some("replacement")));
+        assert!(!generations.current_request(before, Some("A"), None));
+        assert!(!generations.current_request(before, Some("A"), Some("replacement")));
+        assert!(generations.current_request(before, None, Some("replacement")));
+        assert!(!generations.current_request(before, None, Some("first")));
+        assert!(generations.current_request(before, Some("B"), Some("replacement")));
+
+        let after = generations.started();
+        assert!(generations.current_request(after, Some("A"), Some("replacement")));
+        generations.close_all();
+        assert!(!generations.current_request(after, None, Some("replacement")));
+        assert!(generations.current_request(generations.started(), Some("A"), Some("replacement")));
+    }
+
     fn msg(i: u64) -> MidiMessage {
         MidiMessage {
             port: "p".into(),
+            port_id: "p-id".into(),
             timestamp_us: i,
             bytes: vec![0x90, 1, 127],
         }
