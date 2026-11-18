@@ -469,8 +469,11 @@ mod aud_08_tests {
         );
         let src = include_str!("lib.rs");
         let prod = src.split("#[cfg(test)]\nmod aud_08_tests").next().unwrap();
+        // Rustfmt may wrap the builder argument onto its own line. Check the call
+        // relationship independently of whitespace while still excluding this test.
+        let compact: String = prod.chars().filter(|c| !c.is_whitespace()).collect();
         assert!(
-            prod.contains("guard_new_windows(tauri::WebviewWindowBuilder::from_config("),
+            compact.contains("guard_new_windows(tauri::WebviewWindowBuilder::from_config("),
             "config windows built with the guard"
         );
     }
