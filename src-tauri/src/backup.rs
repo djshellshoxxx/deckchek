@@ -769,6 +769,17 @@ fn read_entry<R: Read + Seek>(
     if declared > lim.ratio_floor && declared > compressed.saturating_mul(lim.ratio) {
         return Err(BackupError::new("zip_bomb", format!("The backup entry {name} expands far more than a real backup would and was refused.")));
     }
+    read_entry_stream(&mut f, name, declared, sink)
+}
+
+/// Keeps the application-owned byte bound independently testable when the ZIP reader
+/// itself refuses a lying header before returning an oversized chunk.
+fn read_entry_stream<R: Read>(
+    f: &mut R,
+    name: &str,
+    declared: u64,
+    sink: &mut dyn Write,
+) -> Result<(u64, String), BackupError> {
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 64 * 1024];
     let mut total = 0u64;
@@ -3289,12 +3300,72 @@ mod tests {
     }
 
     #[test]
+    fn entry_stream_refuses_overrun_before_writing_it() {
+        // A plain reader has no ZIP size/CRC checks that could mask our own guard.
+        for (prefix, declared) in [(&b""[..], 0), (&b""[..], 1024), (&b"safe"[..], 4)] {
+            let mut excess = io::repeat(b'x').take(16 * 1024 * 1024);
+            let mut reader = prefix.chain(&mut excess);
+            let mut sink = Vec::new();
+            let e = read_entry_stream(&mut reader, UI_ENTRY, declared, &mut sink).unwrap_err();
+            assert_eq!(e.code, "size_mismatch");
+            assert_eq!(
+                sink.len(),
+                prefix.len(),
+                "the oversized chunk must not reach the sink"
+            );
+            assert_eq!(sink, prefix);
+            assert!(excess.limit() > 0, "stop before consuming the whole entry");
+        }
+    }
+
+    #[test]
+    fn entry_stream_preserves_exact_bytes_and_hash() {
+        for bytes in [Vec::new(), b"abc".to_vec(), vec![b'a'; 64 * 1024 + 3]] {
+            let mut reader = bytes.as_slice();
+            let mut sink = Vec::new();
+            let result =
+                read_entry_stream(&mut reader, UI_ENTRY, bytes.len() as u64, &mut sink).unwrap();
+            assert_eq!(result, (bytes.len() as u64, sha_hex(&bytes)));
+            assert_eq!(sink, bytes);
+        }
+    }
+
+    #[test]
+    fn entry_stream_refuses_short_reads() {
+        let mut reader = &b"short"[..];
+        let mut sink = Vec::new();
+        let e = read_entry_stream(&mut reader, UI_ENTRY, 6, &mut sink).unwrap_err();
+        assert_eq!(e.code, "corrupt");
+        assert!(e.message.contains("shorter than its declared size"));
+        assert_eq!(sink, b"short");
+    }
+
+    #[test]
+    fn entry_stream_preserves_read_errors_even_after_declared_bytes() {
+        struct ReadError;
+        impl Read for ReadError {
+            fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
+                Err(io::Error::from(io::ErrorKind::InvalidData))
+            }
+        }
+        for prefix in [&b""[..], &b"safe"[..]] {
+            let mut reader = prefix.chain(ReadError);
+            let mut sink = Vec::new();
+            let e = read_entry_stream(&mut reader, UI_ENTRY, prefix.len() as u64, &mut sink)
+                .unwrap_err();
+            assert_eq!(e.code, "corrupt");
+            assert!(e.message.contains("damaged and cannot be read"));
+            assert_eq!(sink, prefix);
+        }
+    }
+
+    #[test]
     fn lying_header_zip_bomb_is_refused() {
         let env = Env::new("liar-bomb");
         make_db(env.live(), "live", 3);
         let db_bytes = small_db_bytes(&env);
         let before = fs::read(env.live()).unwrap();
-        // 16 MiB of zeros that claims to be 1 KiB: caught when inflation passes 1 KiB
+        // 16 MiB of zeros that claims to be 1 KiB: refused before writing past 1 KiB.
         let bomb = vec![0u8; 16 * 1024 * 1024];
         for (entry, label) in [(UI_ENTRY, "settings"), (DB_ENTRY, "database")] {
             let p = env.out(&format!("lying-{label}.deckchek-backup"));
@@ -3320,19 +3391,26 @@ mod tests {
             assert!(restore_backup(&env.ctx, &p, true, &SettingsBlob::default(), None).is_err());
             assert_eq!(fs::read(env.live()).unwrap(), before);
             no_restore_leftovers(&env);
+
+            // ZIP 9 rejects the oversized chunk before returning it to our stream guard;
+            // read_entry preserves the existing mapping of reader failures to "corrupt".
+            let mut a = ZipArchive::new(File::open(&p).unwrap()).unwrap();
+            assert_eq!(a.by_name(entry).unwrap().size(), 1024);
+            let mut sink = Vec::new();
+            let e = read_entry(
+                &mut a,
+                entry,
+                known_limit(entry, &LIMITS).unwrap(),
+                &LIMITS,
+                &mut sink,
+            )
+            .unwrap_err();
+            assert_eq!(e.code, "corrupt", "{label}");
+            assert!(
+                sink.is_empty(),
+                "{label}: the forged first block must not reach the sink"
+            );
         }
-        // ZIP 9 rejects a block that exceeds its declared size before returning it
-        // from Read. read_entry maps that error to `corrupt`; no inflated bytes may
-        // reach the sink. The application overrun check remains a second boundary.
-        let p = env.out("lying-settings.deckchek-backup");
-        let mut a = ZipArchive::new(File::open(&p).unwrap()).unwrap();
-        let mut extracted = Vec::new();
-        let e = read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut extracted).unwrap_err();
-        assert_eq!(e.code, "corrupt");
-        assert!(
-            extracted.is_empty(),
-            "the forged first block must not reach the sink"
-        );
     }
 
     #[test]
