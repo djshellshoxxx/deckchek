@@ -63,7 +63,7 @@ function render(list) {
     '| Component | Version | Licence | Where | Source |',
     '|---|---|---|---|---|',
     '| qrcode-generator (Kazuhiko Arase) | 1.4.4 | MIT | `app/vendor/qr.js` (licence text kept in the file header) | https://github.com/kazuhikoarase/qrcode-generator |',
-    `| GLib (gtk-rs), local ${provenance.advisory} backport | ${provenance.version} | ${provenance.license} | [LICENSE](vendor/glib-0.18.5/LICENSE), [COPYRIGHT](vendor/glib-0.18.5/COPYRIGHT), [provenance](vendor/glib-0.18.5.README.md) | ${provenance.upstreamFixUrl} |`,
+    `| GLib (gtk-rs), local ${provenance.advisory} backport and compiler compatibility patch | ${provenance.version} | ${provenance.license} | [LICENSE](vendor/glib-0.18.5/LICENSE), [COPYRIGHT](vendor/glib-0.18.5/COPYRIGHT), [provenance](vendor/glib-0.18.5.README.md), [compatibility patch](vendor/${provenance.compatibilityPatch.patchFile}) | ${provenance.upstreamFixUrl} |`,
     '',
     'SQLite is compiled into the app through `libsqlite3-sys` (bundled feature). SQLite itself is in the public domain.',
     '',

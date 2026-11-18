@@ -5,20 +5,21 @@
   "model": "MASCHINE MK3",
   "category": "controller",
   "summary": "Hardware diagnostic research profile. Candidate features: pad,encoder,button,usb,display,audio. Software: MASCHINE.",
-  "identityNotes": "Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.",
+  "identityNotes": "Research seed; MASCHINE MK3 has manufacturer-documented USB audio routing with two input channels, main outputs 1/2 and headphone outputs 3/4, plus 24-bit conversion. The Getting Started guide's 2.7.7 (07/2018) version refers to software, not qualified firmware. Individual sample rates, hardware revision, OS support, firmware, USB IDs, class compliance, MIDI/HID maps and physical performance remain unverified. No factory tolerances or physical qualification are claimed.",
   "documents": [
     {
-      "title": "Manufacturer model-specific features, guide and downloads",
-      "type": "manual",
+      "title": "MASCHINE MK3 product features and audio interface specifications",
+      "type": "spec-sheet",
       "url": "https://www.native-instruments.com/products/maschine",
-      "language": "en"
+      "language": "en",
+      "notes": "Checked 2026-11-18. Exact MK3 hardware: 24-bit audio interface with a 96 kHz maximum. This does not enumerate all supported hardware sample rates."
     },
     {
-      "title": "Official manufacturer documentation or support entry",
-      "type": "manual",
-      "url": "https://www.native-instruments.com/en/support/downloads/",
+      "title": "MASCHINE MK3 Getting Started, software 2.7.7",
+      "type": "user-manual",
+      "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf",
       "language": "en",
-      "notes": "Navigate to exact model/revision if URL is not a direct manual."
+      "notes": "Checked 2026-11-18. Document identifies software 2.7.7 (07/2018) and MASCHINE MK3 hardware. Section 2.1, printed pp. 17-18, covers USB computer connection; section 2.2.1, p. 21, routes inputs L/R to 1/2, main outputs to 1/2 and headphones to 3/4. The software/document version is not a firmware qualification."
     },
     {
       "title": "Driver and firmware support",
@@ -28,10 +29,11 @@
       "notes": "Confirm OS-specific driver and version."
     },
     {
-      "title": "Support and product help",
+      "title": "Notes on MASCHINE MK3's audio interface",
       "type": "support-article",
-      "url": "https://www.native-instruments.com/en/support/downloads/",
-      "language": "en"
+      "url": "https://support.native-instruments.com/support/solutions/articles/69000879608-notes-on-maschine-mk3-s-audio-interface",
+      "language": "en",
+      "notes": "Checked 2026-11-18; no article revision identified. Connecting a microphone disables the line inputs; they are not simultaneous independent input channels. Main and headphone playback are separately addressable."
     },
     {
       "title": "Service manual",
@@ -61,10 +63,10 @@
       ]
     },
     "audio": {
-      "usbChannelsIn": null,
-      "usbChannelsOut": null,
+      "usbChannelsIn": 2,
+      "usbChannelsOut": 4,
       "sampleRatesHz": [],
-      "bitDepth": null
+      "bitDepth": 24
     }
   },
   "software": [
@@ -123,6 +125,24 @@
       "unit": "bit",
       "source": "https://www.native-instruments.com/products/maschine",
       "confidence": "confirmed"
+    },
+    {
+      "key": "verified_usb_audio_input_channels",
+      "label": "USB audio input channels",
+      "value": 2,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf section 2.2.1, printed p. 21",
+      "confidence": "confirmed",
+      "notes": "MASCHINE MK3 input channels 1/2 are the left/right pair; the microphone and line-input paths share this pair. Software version 2.7.7 (07/2018) identifies the guide, not qualified firmware."
+    },
+    {
+      "key": "verified_usb_audio_output_channels",
+      "label": "USB audio output channels",
+      "value": 4,
+      "unit": "count",
+      "source": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/maschine_277/MASCHINE_MK3_Getting_Started_English_2_7_7.pdf section 2.2.1, printed p. 21",
+      "confidence": "confirmed",
+      "notes": "The selected MASCHINE MK3 audio device routes main left/right to 1/2 and headphone left/right to 3/4. MASCHINE software's virtual output buses do not establish additional hardware channels."
     },
     {
       "key": "verified_smart_strip",

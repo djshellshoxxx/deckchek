@@ -9,7 +9,7 @@ publish = false
 [workspace]
 members = ["."]
 
-[dependencies]
+[dev-dependencies]
 glib = "=0.18.5"
 
 [patch.crates-io]

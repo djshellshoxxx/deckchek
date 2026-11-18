@@ -163,7 +163,7 @@ export default async function run({ browser, base, check, SHOTS }) {
   await page.locator('#main').focus().catch(() => {});
   await page.keyboard.press('b');
   await page.waitForSelector('#sty-bench-form');
-  check('stylus: B opens the benchmark form', await page.evaluate(() => document.activeElement?.id === 'sty-b-thd'));
+  check('stylus: B opens guided preparation without starting capture', await page.evaluate(() => document.activeElement?.id === 'sty-guided-record' && Boolean(document.querySelector('#sty-guided-config'))));
   const bench = async (hours, thd, sep, valid = true) => {
     await page.fill('#sty-b-hours', String(hours)); await page.fill('#sty-b-thd', String(thd)); await page.fill('#sty-b-sep', String(sep));
     if (!valid) await page.uncheck('#sty-bench-valid'); else if (!(await page.isChecked('#sty-bench-valid'))) await page.check('#sty-bench-valid');

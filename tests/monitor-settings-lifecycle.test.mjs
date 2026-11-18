@@ -155,3 +155,78 @@ test('a failed native save does not prune or prevent the current persisted setti
   assert.deepEqual(screen.native.of('monitor_prune'), []);
   await assertAlertPreference(screen, true);
 });
+
+test('settings persistence admits one save at a time and does not claim success before the write', async t => {
+  const write = deferred(), screen = await mount(t, { write });
+  screen.save(); await settle();
+  for (const id of ['mon-settings-save', 'mon-retention', 'mon-toasts']) assert.equal(screen.byId(id).disabled, true);
+  assert.match(screen.form.textContent, /Saving settings/);
+  assert.doesNotMatch(screen.form.textContent, /Saved\. Logs/);
+  assert.deepEqual(screen.native.saved, oldSettings);
+  screen.save('120', true); await settle(); // a second programmatic submit is refused too
+  assert.equal(screen.native.of('app_state_set').length, 1, 'no older acknowledgement can race a second native write');
+  write.resolve(); await settle();
+  assert.deepEqual(screen.native.saved, newSettings);
+  assert.equal(screen.byId('mon-retention').value, '30');
+  assert.equal(screen.byId('mon-toasts').checked, false);
+  for (const id of ['mon-settings-save', 'mon-retention', 'mon-toasts']) assert.equal(screen.byId(id).disabled, false);
+  screen.save('120', true); await settle();
+  assert.equal(screen.native.of('app_state_set').length, 2);
+  assert.equal(screen.native.saved.retentionDays, 120);
+  assert.deepEqual(screen.native.of('monitor_prune'), [{ retentionDays: 30 }, { retentionDays: 120 }]);
+  screen.read.resolve({ value: oldSettings }); await settle();
+  assert.equal(screen.byId('mon-retention').value, '120', 'late initialization cannot reset the completed second save');
+});
+
+test('pruning retains the save transaction across cached navigation before another save can begin', async t => {
+  const prune = deferred(), screen = await mount(t, { prune });
+  screen.save(); await settle();
+  const button = screen.byId('mon-settings-save');
+  assert.equal(button.disabled, true, 'the transaction remains owned while pruning');
+  screen.navigate('other'); screen.navigate('monitor');
+  assert.equal(screen.byId('mon-settings-save'), button);
+  assert.equal(button.disabled, true);
+  screen.form.dispatch('submit'); await settle();
+  assert.equal(screen.native.of('app_state_set').length, 1);
+  assert.deepEqual(screen.native.of('monitor_prune'), [{ retentionDays: 30 }]);
+  prune.resolve({ deleted: 3 }); await settle();
+  assert.equal(button.disabled, false);
+  screen.save('120', false); await settle();
+  assert.equal(screen.native.saved.retentionDays, 120);
+  assert.match(screen.form.textContent, /Saved\. Logs are kept for 120 days/);
+  assert.deepEqual(screen.native.of('monitor_prune'), [{ retentionDays: 30 }, { retentionDays: 120 }]);
+});
+
+test('a rejected settings write releases the transaction for retry and never prunes the failed value', async t => {
+  const write = deferred(); let writes = 0;
+  const screen = await mount(t, { write: () => ++writes === 1 ? write.promise : Promise.resolve() });
+  screen.save(); await settle(); write.reject(new Error('write failed')); await settle();
+  assert.equal(screen.byId('mon-settings-save').disabled, false);
+  assert.equal(screen.byId('mon-retention').disabled, false);
+  assert.equal(screen.byId('mon-toasts').disabled, false);
+  assert.match(screen.form.textContent, /Settings could not be saved: write failed/);
+  assert.deepEqual(screen.native.saved, oldSettings);
+  assert.deepEqual(screen.native.of('monitor_prune'), []);
+  screen.save(); await settle();
+  assert.deepEqual(screen.native.saved, newSettings);
+  assert.deepEqual(screen.native.of('monitor_prune'), [{ retentionDays: 30 }]);
+  screen.read.resolve({ value: oldSettings }); await settle();
+  assert.equal(screen.byId('mon-retention').value, '30');
+  assert.equal(screen.byId('mon-toasts').checked, false);
+});
+
+test('a prune failure reports the committed settings truthfully and permits a later retry', async t => {
+  const prune = deferred(); let prunes = 0;
+  const screen = await mount(t, { prune: () => ++prunes === 1 ? prune.promise : { deleted: 1 } });
+  screen.save(); await settle(); prune.reject(new Error('prune failed')); await settle();
+  assert.deepEqual(screen.native.saved, newSettings);
+  assert.match(screen.form.textContent, /Settings saved, but older logs could not be pruned: prune failed/);
+  assert.doesNotMatch(screen.form.textContent, /Settings could not be saved/);
+  assert.equal(screen.byId('mon-settings-save').disabled, false);
+  screen.read.resolve({ value: oldSettings }); await settle();
+  assert.equal(screen.byId('mon-retention').value, '30');
+  screen.save(); await settle();
+  assert.match(screen.form.textContent, /Saved\. Logs are kept for 30 days; 1 older log removed/);
+  assert.equal(prunes, 2);
+  await assertAlertPreference(screen, false);
+});

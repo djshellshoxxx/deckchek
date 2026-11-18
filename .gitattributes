@@ -1,2 +1,3 @@
 vendor/glib-0.18.5/** -text
 vendor/glib-0.18.5.patch -text
+vendor/glib-0.18.5.rust-1.100.patch -text

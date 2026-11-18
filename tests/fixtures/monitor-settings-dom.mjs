@@ -40,10 +40,10 @@ export function nativeMonitorSettings({ read, write, prune, initial = null }) {
     switch (command) {
       case 'app_state_get': return read.promise;
       case 'app_state_set':
-        if (write) await write.promise;
+        if (write) await (typeof write === 'function' ? write(args) : write.promise);
         saved = structuredClone(args.value);
         return null;
-      case 'monitor_prune': return prune ? prune.promise : { deleted: 2 };
+      case 'monitor_prune': return typeof prune === 'function' ? prune(args) : prune ? prune.promise : { deleted: 2 };
       case 'list_native_audio_inputs': return [{ name: 'Monitor test input', isDefault: true, maxChannels: 2 }];
       case 'monitor_session_list': return [];
       case 'monitor_session_start': return { id: '00000000-0000-4000-8000-000000000031' };

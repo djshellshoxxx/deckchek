@@ -121,18 +121,50 @@ async function lpVerifyEd25519(integrity) {
   try { return await subtle.verify({ name: 'Ed25519' }, key, sig, digest); } catch (e) { return null; }
 }
 
-/** -> {status:'match'|'mismatch'|'invalid', hash, signature:true|false|null, listed:true|false|null, reason} */
+function lpFactText(value) {
+  if (typeof value !== 'string' || !value) return 'unavailable';
+  var text = '', length = 0;
+  for (var character of value) {
+    if (length++ === 200) return text + '…';
+    text += character;
+  }
+  return text;
+}
+
+function lpCertificateFacts(canonical, fingerprint) {
+  var payload = JSON.parse(canonical);
+  var p = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  var unit = p.unit && typeof p.unit === 'object' && !Array.isArray(p.unit) ? p.unit : {};
+  return {
+    verdict: lpFactText(p.verdict), tester: lpFactText(p.tester), serial: lpFactText(unit.serial),
+    issuedAt: lpFactText(p.issuedAt), fingerprint: lpFactText(fingerprint)
+  };
+}
+
+/** -> {status:'match'|'mismatch'|'invalid', hash, signature:true|false|null, listed:true|false|null, reason, facts} */
 async function lpVerifyCertificate(file, listedSha) {
-  var r = { status: 'invalid', hash: null, signature: null, listed: null, reason: '' };
+  var r = { status: 'invalid', hash: null, signature: null, listed: null, reason: '', facts: null };
   if (!file || typeof file !== 'object' || file.format !== 'deckchek-certificate') { r.reason = 'This is not a DeckChek certificate.'; return r; }
   if (file.version !== 1) { r.reason = 'This certificate was made by a newer DeckChek (version ' + String(file.version).slice(0, 10) + ').'; return r; }
-  var i = file.integrity;
-  if (!i || typeof i !== 'object' || typeof i.contentHash !== 'string' || !/^[0-9a-f]{64}$/.test(i.contentHash)) { r.reason = 'The certificate has no signature block (unsigned draft).'; return r; }
-  try { r.hash = await lpDigestHex(lpCanonical(file.payload)); } catch (e) { r.reason = 'The certificate content cannot be checked: ' + e.message + '.'; return r; }
+  var original = file.integrity;
+  var i = original && typeof original === 'object' ? {
+    contentHash: original.contentHash, publicKey: original.publicKey,
+    signature: original.signature, fingerprint: original.fingerprint
+  } : null;
+  if (!i || typeof i.contentHash !== 'string' || !/^[0-9a-f]{64}$/.test(i.contentHash)) { r.reason = 'The certificate has no signature block (unsigned draft).'; return r; }
+  var facts;
+  try {
+    var canonical = lpCanonical(file.payload);
+    // Facts and signature inputs belong to the same snapshot, even if the caller
+    // changes its object while the asynchronous digest/signature checks run.
+    facts = lpCertificateFacts(canonical, i.fingerprint);
+    r.hash = await lpDigestHex(canonical);
+  } catch (e) { r.reason = 'The certificate content cannot be checked: ' + e.message + '.'; return r; }
   if (typeof listedSha === 'string') r.listed = listedSha === i.contentHash;
   if (r.hash !== i.contentHash) { r.status = 'mismatch'; r.reason = 'content hash mismatch'; return r; }
   r.status = 'match';
   r.signature = await lpVerifyEd25519(i);
+  r.facts = facts;
   return r;
 }
 
@@ -144,6 +176,11 @@ function lpDescribe(r) {
   else if (r.signature === null) s += 'Hash checked, signature not checked by this browser. Open the certificate file in DeckChek to check the signature.';
   else s = '✗ The hash matches, but the signature does not match the public key in the certificate.';
   if (r.listed === false) s += ' Warning: this hash differs from the one listed in the ledger.';
+  if (r.facts) {
+    s += '\nCertificate content (hash checked): Verdict: ' + r.facts.verdict + '; Tester: ' + r.facts.tester
+      + '; Serial: ' + r.facts.serial + '; Issued: ' + r.facts.issuedAt + '.';
+    s += '\nKey fingerprint (certificate signature block): ' + r.facts.fingerprint + '.';
+  }
   return s;
 }
 
@@ -178,7 +215,9 @@ function lpMain(doc) {
   }
   var paste = el('paste-section');
   paste.hidden = false;
+  var pasteGeneration = 0;
   el('paste-check').addEventListener('click', function () {
+    var generation = ++pasteGeneration;
     var out = el('paste-result'), text = el('paste-input').value;
     if (!text.trim()) { out.textContent = 'Paste the certificate JSON first.'; return; }
     if (text.length > 20000000) { out.textContent = '✗ That text is larger than 20 MB.'; return; }
@@ -186,14 +225,18 @@ function lpMain(doc) {
     try { file = JSON.parse(text); } catch (e) { out.textContent = '✗ That is not valid JSON.'; return; }
     out.textContent = 'Checking…';
     lpVerifyCertificate(file).then(function (r) {
-      var listed = false, h = file && file.integrity && file.integrity.contentHash;
-      for (var x = 0; x < items.length; x++) for (var y = 0; y < ((items[x] && items[x].certificates) || []).length; y++) if (items[x].certificates[y].sha256 === h) listed = true;
+      if (generation !== pasteGeneration) return;
+      var listed = false;
+      if (r.status === 'match') {
+        var h = r.hash;
+        for (var x = 0; x < items.length; x++) for (var y = 0; y < ((items[x] && items[x].certificates) || []).length; y++) if (items[x].certificates[y].sha256 === h) listed = true;
+      }
       out.textContent = lpDescribe(r) + (r.status === 'match' ? (listed ? ' This certificate is listed in this ledger.' : ' This certificate is not listed in this ledger.') : '');
-    }, function () { out.textContent = '✗ The certificate could not be checked.'; });
+    }, function () { if (generation === pasteGeneration) out.textContent = '✗ The certificate could not be checked.'; });
   });
 }
 
-export const PAGE_FUNCTIONS = Object.freeze({ lpLoneSurrogate, lpCanonical, lpHex, lpSha256, lpDigestHex, lpB64, lpVerifyEd25519, lpVerifyCertificate, lpDescribe, lpMain });
+export const PAGE_FUNCTIONS = Object.freeze({ lpLoneSurrogate, lpCanonical, lpHex, lpSha256, lpDigestHex, lpB64, lpVerifyEd25519, lpFactText, lpCertificateFacts, lpVerifyCertificate, lpDescribe, lpMain });
 export const PAGE_SCRIPT = `"use strict";\n${Object.values(PAGE_FUNCTIONS).map(f => f.toString()).join('\n')}\nlpMain(document);\n`;
 
 // ---------------------------------------------------------------- CSS
@@ -215,7 +258,7 @@ dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:.25rem 1rem;marg
 table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:.3rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
 .cert{border-top:1px solid var(--line);padding:.75rem 0}.cert:first-of-type{border-top:0}
 button{font:inherit;min-height:2.25rem;min-width:2.25rem;padding:.35rem .9rem;border-radius:6px;border:1px solid var(--accent);background:var(--bg);color:var(--accent);cursor:pointer}
-.result{font-weight:600;min-height:1.5em;margin:.5rem 0 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto;font-size:.8rem}
+.result{font-weight:600;min-height:1.5em;margin:.5rem 0 0;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto;font-size:.8rem}
 textarea{width:100%;min-height:8rem;font:.85rem ui-monospace,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.5rem}
 .warning{border:2px solid var(--bad);padding:.75rem;border-radius:8px;font-weight:600}
 footer{margin-top:2rem;color:var(--muted);font-size:.875rem}

@@ -249,17 +249,28 @@ export function createMonitorScreen(section) {
   const toastsOn = h('input', { type: 'checkbox', id: 'mon-toasts' });
   toastsOn.checked = monitorSettings.toastsEnabled;
   const settingsMsg = h('p', { class: 'small muted', role: 'status', 'aria-live': 'polite' });
+  const saveSettings = h('button', { type: 'submit', class: 'btn btn-secondary', id: 'mon-settings-save', text: 'Save settings' });
+  let savingSettings = false;
   const settingsCard = h('details', { class: 'card mon-settings' },
     h('summary', { text: 'Monitor settings' }),
     h('form', { class: 'mon-settings-form', novalidate: true, onsubmit: async e => {
       e.preventDefault();
+      if (savingSettings) return;
       // validate before anything is saved: an empty, fractional or out-of-range field keeps the previous value
       const days = retention.validity?.badInput ? null : parseRetentionDays(retention.value);
       const next = days == null ? null : normalizeSettings({ ...monitorSettings, retentionDays: days, toastsEnabled: toastsOn.checked });
       if (!next || next.retentionDays !== days) { retentionValid(false); settingsMsg.textContent = ''; retention.focus(); return; }
       retentionValid(true);
+      // Keep persistence and its retention action in one transaction. A second
+      // submit must not race an older acknowledgement or delayed pruning result.
+      savingSettings = true;
+      saveSettings.disabled = true; retention.disabled = true; toastsOn.disabled = true;
+      saveSettings.textContent = 'Saving…';
+      settingsMsg.textContent = 'Saving settings…';
+      let persisted = false;
       try {
         await appState.set(SETTINGS_KEY, next);
+        persisted = true;
         settingsRevision++;
         monitorSettings = next; c.setSettings(next);
         retention.value = String(next.retentionDays);
@@ -268,12 +279,18 @@ export function createMonitorScreen(section) {
         const r = await invoke('monitor_prune', { retentionDays: days });
         settingsMsg.textContent = `Saved. Logs are kept for ${next.retentionDays} days${r?.deleted ? `; ${r.deleted} older log${r.deleted === 1 ? '' : 's'} removed` : ''}.`;
         logs.refresh();
-      } catch (error) { settingsMsg.textContent = `Settings could not be saved: ${String(error?.message ?? error)}`; }
+      } catch (error) {
+        settingsMsg.textContent = `${persisted ? 'Settings saved, but older logs could not be pruned' : 'Settings could not be saved'}: ${String(error?.message ?? error)}`;
+      } finally {
+        savingSettings = false;
+        saveSettings.disabled = false; retention.disabled = false; toastsOn.disabled = false;
+        saveSettings.textContent = 'Save settings';
+      }
     } },
     h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'mon-retention', text: 'Keep session logs for (days)' }), retention, retentionMsg),
     h('label', { class: 'mon-check', for: 'mon-toasts' }, toastsOn, h('span', { text: 'Show toasts for alerts (the event list always records them)' })),
     h('p', { class: 'small muted', text: 'Alarm thresholds are tunable defaults (SNR 6 dB under its 60 s baseline for 5 s; under 12 dB for 2 s; 3 dropouts in 10 s; hum 10 dB over baseline). Sound alerts are off.' }),
-    h('div', { class: 'mon-actions' }, h('button', { type: 'submit', class: 'btn btn-secondary', id: 'mon-settings-save', text: 'Save settings' })), settingsMsg));
+    h('div', { class: 'mon-actions' }, saveSettings), settingsMsg));
   section.append(setup, decksEl, eventsCard, logs.el, settingsCard);
 
   // ----- rendering -----
