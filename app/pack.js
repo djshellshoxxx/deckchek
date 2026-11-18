@@ -12,6 +12,17 @@ const ownObject = value => value && typeof value === 'object' && !Array.isArray(
 const sameKeys = (object, keys) => ownObject(object) && Object.keys(object).length === keys.length && keys.every(key => Object.hasOwn(object, key));
 const hash = value => sha256HexSync(JSON.stringify(value));
 
+/** Random identifiers must not encode creation time or use a predictable fallback. */
+export function randomPackId() {
+  const crypto = globalThis.crypto;
+  if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID().toLowerCase();
+  if (typeof crypto?.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('Secure randomness is unavailable. Open DeckChek in the desktop app or a secure browser context.');
+}
+
 function definition(registry, product, metric) {
   const key = `${product}:${metric}`;
   return registry instanceof Map ? registry.get(key) : registry?.[key];
@@ -86,9 +97,9 @@ export function buildPack({ rows, appVersion, packId, contributor, createdMonth 
   }
   const pack = {
     format: 'deckchek-pack', version: 1,
-    packId: packId ?? globalThis.crypto.randomUUID(),
+    packId: packId ?? randomPackId(),
     createdMonth: createdMonth ?? new Date().toISOString().slice(0, 7),
-    appVersion, contributor: contributor ?? globalThis.crypto.randomUUID(),
+    appVersion, contributor: contributor ?? randomPackId(),
     rows: rows.map(row => ({ ...normalizedRow(row), value: Number(row.value.toPrecision(3)) })),
   };
   const checked = validatePack(pack, { metricRegistry });

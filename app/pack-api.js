@@ -2,13 +2,11 @@
 // only picks files with the native dialogs, keeps the contributor token and builds the preview text. Browser mode has
 // no database, so every call that needs one rejects with a clear message and `native` is false.
 import { createAppState } from './app-state.js';
-import { buildPack, createMetricRegistry } from './pack.js';
+import { buildPack, createMetricRegistry, randomPackId } from './pack.js';
 
 export const PACK_EXT = 'deckchek-pack';
 export const CONTRIBUTOR_KEY = 'population.contributor';
 const tauri = () => globalThis.window?.__TAURI__ ?? globalThis.__TAURI__ ?? null;
-
-const randomToken = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`).toLowerCase();
 
 /** The row shape Rust accepts for export: whitelisted fields only (the local `units` count stays here). */
 export const exportRow = row => ({ product: row.product, metric: row.metric, method: { key: row.method.key, version: row.method.version }, value: row.value, unit: row.unit });
@@ -38,7 +36,7 @@ export function createPackApi({ api = tauri(), appState = createAppState(), fetc
         const stored = (await appState.get(CONTRIBUTOR_KEY).catch(() => null))?.value;
         if (typeof stored === 'string' && /^[a-z0-9._:-]{8,64}$/.test(stored)) return stored;
       }
-      const token = randomToken();
+      const token = randomPackId();
       await appState.set(CONTRIBUTOR_KEY, token);
       return token;
     },
