@@ -90,6 +90,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: GLib backport provenance and optimized actual-crate regression
+        run: |
+          set -o pipefail
+          node tools/verify-glib-backport.mjs --metadata
+          cargo fmt --manifest-path tools/glib-backport-regression/Cargo.toml --all -- --check
+          cargo test --locked --release --manifest-path tools/glib-backport-regression/Cargo.toml -j 4 2>&1 | tee "$RUNNER_TEMP/glib-backport-tests.log"
       - name: cargo test (unit, migrations, fuzz smoke)
         # 4 vCPU / 16 GB runner: 4 jobs stays well inside RAM for this crate graph.
         run: |
@@ -111,7 +117,9 @@ jobs:
         if: always()
         with:
           name: rust-test-log
-          path: ${{ runner.temp }}/rust-tests.log
+          path: |
+            ${{ runner.temp }}/rust-tests.log
+            ${{ runner.temp }}/glib-backport-tests.log
           retention-days: 14
 
   ui-smoke:

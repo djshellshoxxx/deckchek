@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyGlibBackport } from './verify-glib-backport.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'THIRD-PARTY-NOTICES.md');
@@ -50,6 +51,7 @@ const terms = license => license.replace(/\//g, ' OR ').split(/\s+(?:OR|AND)\s+/
 const unreviewed = license => terms(license).some(t => !REVIEWED.includes(t));
 
 function render(list) {
+  const { provenance } = verifyGlibBackport(ROOT);
   const lines = [
     '# Third-party notices',
     '',
@@ -61,6 +63,7 @@ function render(list) {
     '| Component | Version | Licence | Where | Source |',
     '|---|---|---|---|---|',
     '| qrcode-generator (Kazuhiko Arase) | 1.4.4 | MIT | `app/vendor/qr.js` (licence text kept in the file header) | https://github.com/kazuhikoarase/qrcode-generator |',
+    `| GLib (gtk-rs), local ${provenance.advisory} backport | ${provenance.version} | ${provenance.license} | [LICENSE](vendor/glib-0.18.5/LICENSE), [COPYRIGHT](vendor/glib-0.18.5/COPYRIGHT), [provenance](vendor/glib-0.18.5.README.md) | ${provenance.upstreamFixUrl} |`,
     '',
     'SQLite is compiled into the app through `libsqlite3-sys` (bundled feature). SQLite itself is in the public domain.',
     '',

@@ -1,0 +1,16 @@
+[package]
+name = "deckchek-glib-backport-regression"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# This isolated Linux regression builds the real GLib crate with optimizations,
+# without compiling the Tauri application a second time in the release profile.
+[workspace]
+members = ["."]
+
+[dependencies]
+glib = "=0.18.5"
+
+[patch.crates-io]
+glib = { path = "../../vendor/glib-0.18.5" }
