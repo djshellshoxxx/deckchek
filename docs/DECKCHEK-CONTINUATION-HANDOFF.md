@@ -1,100 +1,77 @@
 # DeckChek continuation handoff
 
-Session date: 2026-11-17, America/Los_Angeles. GitHub timestamps and the requested branch suffix use 2026-11-18 UTC.
+## Current state
 
-## Start here
+Reviewed executable source: **`25e91e97fa2311e2e786894344297ccdc19ca849`**. Its source tree is `b2c36fc3774831859a9d2073e657ec7f013d66d1`; the documentation commit carrying this handoff may have a later SHA with the same executable files. [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29), branch `review/deckchek-lifecycle-20261118`, targets `integration/deckchek-consolidation-20261118` in [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). `main` remains **`ee5aa511fb49fc56e299d5b5c262e815ab420d0d`**. The preserved PR #26 baseline is `4466cc0bb9951a98528f576726e01dd9cecc388e`.
 
-The continuation is [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27), from `integration/deckchek-consolidation-20261118` to `main`. It preserves the PR #26 stack and adds reviewed diagnostic-integrity, privacy, security and verification corrections. **The work is not fully merged or release-qualified.** Check the latest PR head and checks before continuing; do not treat historical green checks as evidence for new source.
+This checkpoint preserves both prior review head `fd39b14586d9abddf93557b6c5f2628304f2caec` and independently reviewed integration head `ef49ed6cfd08e94651a1536b4e4509efdccdbedb`. Other actors have advanced integration during the session. Refresh remote refs, preserve their work, and update only the owned branch with an expected-head lease. Do not replace PR #27's metadata with stale text.
 
-Canonical `main` was last verified as `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The preserved PR #26 baseline is `4466cc0bb9951a98528f576726e01dd9cecc388e`. No branch was deleted, no historical PR was closed, and no release, tag or deployment was performed. Fleet remains opt-in and OFF by default.
+The exact combined source passed **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)** on Node 22.23.5. Native, browser, platform and extended CI still must qualify the new head. The local guided-stylus changes are **not included** in this checkpoint. They remain blocked on a coupled frequency/metric correction described below. Work is neither fully merged nor release-qualified.
 
-## Reviewable corrective commits
+Snapshot dates use UTC. No branches were deleted, historical PRs closed, releases published, tags created or deployments performed. Fleet remains opt-in and OFF by default. Merge verified PRs only after applicable gates; close superseded PRs only after their replacement reaches `main` with contribution evidence.
 
-| Commit | Change | Review/evidence |
-|---|---|---|
-| `f9075bd4b00f0d39680094afda235ff360b7febd` | MIDI capture integrity and per-connection output selection | core_security_review implementation; ci_audit independent review; 75 focused tests passed |
-| `79f2e0afca482f8bf54f9c6fa7a9e95a6ce35e88` | Fleet chooses newest evidence by instant | ci_audit implementation; root review; four new cases failed before, 25 focused tests passed after |
-| `1541130515dd74c0b0bd52749b60921ce42007da` | Certificate timestamp validation and conservative evidence selection | root implementation; ci_audit review; 37 certificate tests passed |
-| `6daf5e8974e09a5865ca9ba14a96cb86c5ec8d4c` | Secure population identifiers without timestamp/Math.random fallback | root implementation; ci_audit review; 13 focused pack tests passed |
-| `ed512a17b24c3d678a405e728660ad64e75aa225` | Mechanical Rust formatting and explicit fmt/check/Clippy gates; preserve compiler pipeline failure | Local and CI format pass; shell regression proves exit 23 remains exit 23 |
-| `f62e8abb82a7d77c538ea6253bdf8e3a06969ade` | Window-guard source check tolerates formatting | Preserves guarded call assertion; removal mutation rejected |
-| `742c67ab93ab52baafa278cc48c6ca7c6d0a8df7` | FS-35 channel response, capture/calibration provenance and keyboard/progress/focus | audio_quality_completion implementation; ci_audit/root review; 51 focused tests passed on Node 22.23.5 |
-| `d8dfa334f67a869b03633163861b50eef8da3d06` | Link-command registration source check tolerates Rustfmt line breaks | 20 focused external-link tests passed; full Node 22 suite 1,325 passed, one optional skip |
+## Accepted source included here
 
-Dependency correction `1ad6a34fccbd08fd1916802830e399da0ca6b04f` upgrades the vulnerable SQLite/ZIP versions, compatible patch dependencies and both lockfiles, with reviewed ZIP API adaptations and regenerated notices. Independent review reran seven compatibility tests and the old-reader/new-archive check. The remaining GLib warning is not cleared. Restore-schema and Clippy corrections are independently reviewed and recorded in the final source/evidence section below. Commit objects are created through the authenticated GitHub connector because native Git has read access but no push credential. Each branch update is a fast-forward guarded by its expected previous SHA; there is no force push.
+| Area | Preserved implementation and evidence |
+|---|---|
+| Cached-screen ownership | Certificate history/signing identity, Verify listeners and monitor saved preferences reject stale asynchronous results. Dedicated behavioral suites and independent probes are retained. |
+| ZIP and restore | Direct stream helper preserves bounded reads and zero-byte refusal of both settings/database entries, including ZIP 9 error behavior; database integrity and orphaned-FK checks remain intact. |
+| WASAPI example | `ProbeDevice` bundles input/output configuration without changing execution semantics; resolves the single eight-argument Clippy finding. |
+| Native MIDI | Pending-open generations and failed-output tombstones preserve ownership; independent production-body harness passed 22 cases and rejected a removed-guard mutant. No physical identity or hardware continuity claim follows. |
+| GLib | Exact original 0.18.5 archive and 121-file provenance plus the official two-line fix; all three Cargo roots select the backport. Six optimized actual-crate tests and 670 app tests passed in `ef49ed6` CI before the old warning grep failed. |
+| Compiler diagnostics | Exact package/manifest attribution, retained dependency warnings, complete build evidence and failure propagation. Seven unit cases, six actual-Cargo states and independent seven-case shell injection passed. |
+| Stress/CI | Unchanged workloads separated into five test files for meaningful process-lifetime memory peaks; platform/nightly PR triggers cover `main` and `integration/**`, preserving permissions, jobs, budgets and tag-only release behavior. |
+| Profiles | Inpulse 500 has documented 2-in/4-out USB audio at 44.1 kHz/24 bit; Launchpad Pro MK3 has no built-in audio interface. Primary-source notes preserve unknown USB IDs, maps, class compliance and firmware qualification. |
+
+The catalog remains 45 profiles, 506 handwritten tests, 187 generated tests and 27 conditional audio cases. Four new profile tests plus eight existing planner cases pass. Generated coverage is current; its zero gaps describe plan selection, not physical qualification. R1-14 comparison entry points were already implemented in ancestor `306b067`; independent inspection and existing local/browser evidence confirm them, so no duplicate UI was added.
+
+## Active guided-stylus correction
+
+The remote guided architecture arrived in `3e85ab544bf04aba73ce0be84af915bfd02527a6`. Earlier local work was archived rather than overwritten. The adopted local correction covers stale asset loads/navigation, honest native field observations before compatibility defaults, calibration mismatch, missing quality counters, start/stop identity agreement, setup membership, History-save ownership, harmonic observability, exact excluded values and the unchanged 64 KiB UTF-8 storage bound. It adds actual-screen/native-IPC browser smoke and checks the real audio-output command names. Browser smoke is authored but has not executed locally.
+
+Independent review found two successive DSP defects:
+
+1. A correct short introduction followed by 1005 Hz could qualify because refinement read only a prefix. A frozen complete-window correction resolved all 12 earlier probes and retained all sample bounds and broad/refined observations.
+2. Exact 10-second 999/1001/1002 Hz controls at 48 kHz still project to zero at nominal 1000 Hz. The windows correctly measure their in-tolerance frequencies, but presence reads −240 dBFS and ordinary fixed-reference analysis gives incorrect THD and 0 dB separation for known 40 dB source isolation. One nominal control passes and all three offset-eligibility assertions fail. Changing presence alone would admit incorrect measurements.
+
+`stylus_guided_capture` is implementing an approved coupled correction: an explicit guided-only analysis path uses the retained per-window measured fundamental for existing tone/THD routines, pools powers by sample count, applies calibration once, and persists the same metrics used by the benchmark. Nominal 1000 Hz remains separate provenance. Unknown measurements remain unavailable/excluded. A guided analysis-version increment distinguishes old fixed-frequency baselines; old rows and explicit operator-confirmed legacy behavior remain unchanged. The existing ±0.3%, −70 dBFS, harmonic and adverse-measurement policies stay intact.
+
+The worker owns `app/stylus-benchmark.js`, `app/ui/workflows/stylus-benchmark.js`, `app/ui/analysis.js` and focused evidence/contract tests. Other frozen guided files must be preserved. `stylus_independent_review` must review the next freeze before publication. Root owns reports, workflows and integration. `compare_entrypoints` may research another small exact-model batch read-only; do not assume it is implemented. `fuzz_stress_resources` completed warning/stress review and released execution.
+
+Use **one local test owner at a time**, with `--test-concurrency=1`. Repeated overlapping runs showed substantial scheduling/resource disturbance. Do not launch another full local stress run; retain the failed runs and use CI. A stale `native_security_review` agent remains pending initialization and consumes a concurrency slot.
 
 ## Exact verification and limits
 
-| Scope | Result | Applies to |
-|---|---|---|
-| Baseline CI [44228369554](https://github.com/djshellshoxxx/deckchek/actions/runs/44228369554) | 654 Linux Rust passed/eight ignored; 1,299 JavaScript passed/one optional skip; 1,276 browser checks passed | `4466cc0` only |
-| Initial continuation CI [44250832064](https://github.com/djshellshoxxx/deckchek/actions/runs/44250832064) | Formatting passed; native app compiled; 653 Rust passed, one source-whitespace assertion failed, eight ignored | `ed512a1`; the assertion is corrected in `f62e8ab` |
-| Continuation native CI [44251830325](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624238498) | **654 Rust tests passed, eight ignored**; compiler-warning check and type checking passed; strict Clippy exposed 57 existing diagnostics | `742c67a`; dependency/schema/style corrections require new native CI |
-| Continuation browser CI [44251830325](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913) | **1,283/1,283 checks passed**, no console errors; all seven new FS-35 browser checks passed | `742c67a`; generated waveforms and injected I/O, not physical hardware |
-| First full Node 22 continuation run | 1,324 passed, one source-whitespace assertion failed, one optional skip | Source through `742c67a`; corrected in `d8dfa33` |
-| Full Node 22 run after both guard corrections | **1,325 passed, zero failures, one optional skip** (1,326 total) | JavaScript/app source and tests represented by `d8dfa33`; later Rust dependency/schema changes require native validation |
-| FS-35 focused + independent review | 51/51 each; no threshold relaxation | `742c67a` |
-| Local native compilation | Blocked before application tests by missing `glib-2.0.pc` and the supported Tauri native development packages | Not a native test pass |
-| Local Chromium smoke launch | Blocked by socket permission failure before browser launch | CI executed the suite successfully at `742c67a`; local launch itself did not pass |
-| Physical MIDI/audio/reference qualification | Not executed | Remains open |
-| Complete CI at report commit `730d71d`, [run 44256004004](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004) | JavaScript **1,325 passed/one optional skip**, performance passed; browser **1,283/1,283 passed**, no console errors; native compile failed with `E0428` before application tests | Native cleanup introduced a `DriverScan` alias beside the existing IPC struct; corrected separately in `8acaa7a` |
+| Revision or source | Observed result |
+|---|---|
+| `25e91e97fa2311e2e786894344297ccdc19ca849` / tree `b2c36fc3774831859a9d2073e657ec7f013d66d1` | Complete serial Node 22 suite: 1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds); before/after source hashes match. |
+| `9475ac5` native CI | 670 passed, eight ignored; fmt, compiler-warning and check passed; Clippy failed one example argument-count lint subsequently corrected by `fd39b14`. |
+| `ef49ed6` CI | Six optimized GLib regressions and 670 native tests passed, eight ignored; old warning grep failed on 34 dependency warnings. JavaScript 1,391 passed/one skipped; browser 1,293/1,293 passed. |
+| Long JS fuzz on frozen tree `6f9ab5666056fe64c96c870db80fe32ca07fbdca` | All 13 targets completed unchanged 120-second budgets across attempts. Initial phone/backup slow calls, mapper slow call and killed processes remain failures; this is not one clean combined invocation. |
+| Stress | Full run remains unqualified. Worker split quick run passed six cases, independent repeat passed three and failed three. The host OOM counter changed during both failed and successful runs, so exact cause/victim attribution remains unavailable. |
+| Local native/browser | Full native build lacks required GLib/GTK/WebKit/ALSA development metadata; Chromium launch remains blocked by the observed socket/environment limit. Do not repeat unchanged probes or alter environment/access policy. |
 
-Focused suite counts overlap with the full suite and must not be summed. The optional JavaScript skip and ignored Rust tests are not passes. The final source/evidence section identifies later CI; pending or cancelled jobs do not qualify the candidate.
+CI evidence: [parent native](https://github.com/djshellshoxxx/deckchek/actions/runs/44264888010), [ef49 platform caller](https://github.com/djshellshoxxx/deckchek/actions/runs/44265442094), [ef49 standalone](https://github.com/djshellshoxxx/deckchek/actions/runs/44265441929). Fetch the new head's own runs; do not reuse ancestor green checks as current qualification.
 
-### Final source and evidence
+Scratch evidence resides under `/workspace/scratch/a884a1d6c4d8/verification`: `accepted-foundation-source.json`, `accepted-foundation-js.log`, `warning-profile-focused.log`, `rust-warning-gate/`, `fuzz-stress-resources/`, `midi-ef49-independent/`, and `stylus-remote-independent/`. The old windowed freeze is `stylus-guided-windowed-freeze-20261118`; it is intermediate failure evidence, not the final accepted implementation. Reproduce from committed source if scratch is lost.
 
-| Commit | Correction | Independent evidence |
-|---|---|---|
-| `1ad6a34fccbd08fd1916802830e399da0ca6b04f` | SQLite/ZIP and compatible patch dependency updates; both locks and notices | Seven migration/backup/archive harness checks and old ZIP reader/new archive compatibility passed; both RustSec audits have zero vulnerability records, one GLib unsoundness warning and five maintenance notices |
-| `c387ae9738e4070db33c602a2689c33a28d469f6` | Trusted schema semantics and foreign keys checked before restore; 64 KiB SQL-byte allocation bound | native_security_review implementation; ci_audit independent review; seven exact-validator harness checks passed, including all four release fixtures and SQLite 3.46 v4/v22 databases |
-| `2243bbb34e21c198390ef32806f813329a5e3dc1` | Corrections for all 57 observed strict Clippy diagnostics without allowances | clippy_cleanup implementation; clippy_review independent review; ci_audit reviewed the two backup style hunks; differential boundary/decoder/sort checks and formatting passed |
+## Resume commands and publication discipline
 
-Source through `2243bbb` was retested on Node 22.23.5: **1,325 passed, zero failures, one optional skip**. Report commit `730d71d` then received the CI results above, including the native compilation failure. Do not carry the earlier 654-test native result forward as a pass for upgraded dependencies or new restore checks.
-
-### Reviewed follow-up candidate
-
-| Commit | Change | Independent evidence |
-|---|---|---|
-| `9192aa0863280300fef3799b09a981ef8c90496b` | Service shortcut failure handling and new-form request ownership | service_lifecycle implementation; ci_audit review; 48 focused checks and five additional lifecycle cases passed; six of eight new regressions failed before the correction |
-| `8acaa7a028bd25b49f1e95679e20bf4db8a0e00f` | Rename only the parser tuple alias to `ParsedDriverOutput`; retain the `DriverScan` IPC struct | Root implementation; ci_audit review; formatting passed; compiler verification remains a fresh CI gate |
-| `b34f3c905ce60d64bfd15587a9c8906c3fd7a650` | Refuse ambiguous native MIDI names without losing captured input callbacks/output cleanup | midi_native_ambiguity implementation; ci_audit review; 19 actual-production-body harness checks plus six independent cases passed; four boundary cases failed before correction |
-| `00f1f3cc8d96527f436ee28958ed23201b60a01b` | Associate pending mapper saves with their original logical mapping | mapper_async_review implementation; service_lifecycle review; 47 focused checks plus four notification/concurrency/error probes passed; three of five regressions failed before correction |
-
-The combined code candidate is **`00f1f3cc8d96527f436ee28958ed23201b60a01b`**. On its complete working source, Node 22.23.5 passed **1,338 tests, zero failures, one optional skip** (1,339 total), and full Rust formatting passed. Fresh native and browser CI remain required for this candidate. These reviewed code scopes are frozen; assign file ownership explicitly before follow-up corrections.
-
-### Reproduce the software checks
-
-Use Node 22 and the supported Rust/Tauri build prerequisites documented in `BUILDING.md`.
+Repository: `/workspace/scratch/a884a1d6c4d8/deckchek`. The isolated accepted-source checkout is `/workspace/scratch/a884a1d6c4d8/verification/accepted-foundation-checkout`.
 
 ```sh
-npm test
-node --expose-gc --test tests/perf/*.test.mjs
-node tools/build-device-index.mjs --check
-node tools/check-device-coverage.mjs --check
-node tools/check-timecode-facts.mjs
-node tools/check-migrations.mjs
-node tools/build-mobile.mjs --check
-cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
-cargo test --locked --manifest-path src-tauri/Cargo.toml -j 4
-cargo check --locked --manifest-path src-tauri/Cargo.toml -j 4
-cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -j 4 -- -D warnings
-node tools/third-party-notices.mjs --check
-cargo audit --file src-tauri/Cargo.lock
-cargo audit --file src-tauri/fuzz/Cargo.lock
-NODE_PATH="$(npm root -g)" node tools/ui-smoke.mjs
+git status --short
+git log -5 --oneline
+git fetch origin main integration/deckchek-consolidation-20261118 review/deckchek-lifecycle-20261118
 ```
 
-Browser CI installs Playwright 1.56.1 and its Chromium on Ubuntu 22.04. The new `tools/smoke/audio-quality.mjs` is automatically discovered. It uses injected I/O and generated waveforms to exercise production browser controls, focus, ownership, evidence and channel plots; it is not a physical-device test.
-
-The current scratch environment also has a tested task-local Node 22.23.5 installation:
+After checking ownership and freezing source, use the task-local supported Node runtime:
 
 ```sh
-npm exec --offline --yes \
-  --cache /workspace/scratch/a884a1d6c4d8/fs35-node22-npm-cache \
-  --package=node@22.23.5 -- node --test tests/*.test.mjs
+/workspace/scratch/a884a1d6c4d8/fs35-node22-npm-cache/_npx/e5e7bdc4f892e393/node_modules/node/bin/node --test --test-concurrency=1 tests/*.test.mjs
 ```
 
-The task-local Rust environment is:
+Task-local Rust settings, for supported small fixtures and formatting:
 
 ```sh
 export CARGO_HOME=/workspace/scratch/a884a1d6c4d8/toolchain/cargo
@@ -102,37 +79,25 @@ export RUSTUP_HOME=/workspace/scratch/a884a1d6c4d8/toolchain/rustup
 export PATH="$CARGO_HOME/bin:$PATH"
 ```
 
-Do not retry a full local native build against the same missing system-package blocker. CI supplies the supported prerequisites. Do not modify sandbox, sudo, package-source or credential policy to work around it.
+Native Git push and `gh` lack authentication. The GitHub connector can create trees/commits and update the owned branch with an expected-head lease. Assemble and hash an explicit allowlist; preserve both integration histories; inspect a rejected lease before retrying. Do not bulk-stage unreviewed guided changes or concurrent work. The integration retains exact upstream vendor bytes; do not rewrite those bytes to satisfy cosmetic whitespace checks.
 
-## Unresolved gates and next actions
+## Next actions
 
-1. Inspect PR #27's current source SHA and complete native, JavaScript and browser CI. Resolve actual failures without weakening numerical thresholds, ownership guarantees, negative tests or warning gates.
-2. Obtain a current broad Sonar result. The historical PR #14 and #16 failures were retrieved and triaged; PR #26's ordinary checks do not clear them. The public Sonar issue export returned HTTP 403. No finding was silently accepted or suppressed. Intentional SHA-256 modular arithmetic and canonical UTF-16 key ordering must not be changed mechanically.
-   The remaining GLib warning has no compatible lockfile-only resolution in the checked Tauri/WebKit stack. GTK3 0.19 now exists, but the current stack still requires GTK/GLib 0.18. See the security audit's primary-source follow-up; no external caller was observed in the 367-package Linux source scan, which is not binary reachability proof or clearance.
-3. Run the existing cross-platform workflow on the integration branch and retain exact artifact/self-test evidence for Windows x64/x86, macOS ARM64/x64 and Linux x64/x86. The configured Linux x86 runtime-smoke limitation remains explicit. This session could not dispatch it: the connector exposes no dispatch method, native `gh` has no login, and the UI fallback showed a signed-out GitHub session. A workflow run may build artifacts without publishing; release publication is restricted to tags, which remain unauthorized here.
-4. Run applicable nightly Windows/PDF, sanitizer, long fuzz and stress checks on the same source. Diagnose the historical Windows process-enumeration timeout without simply widening the timeout or removing coverage.
-5. Merge only after applicable checks and security dispositions are satisfied. Preserve history with the reviewed merge method. Only after successful replacement merge, close the superseded PRs with contribution/commit evidence; do not delete branches.
-6. Continue core features in the ledger's dependency order with a dedicated implementation worker and independent review. Guided FS-12 stylus benchmark capture remains unimplemented. Native connection boundaries now reject observed duplicate names, but stable physical MIDI identities, unreadable-name ambiguity and same-name replacement continuity remain incomplete. Conditional hardware-profile research and the broader architecture backlog remain real work, not hidden behind implementation labels.
+1. Monitor the new head's tests, package/self-test and extended workflows; fix concrete failures while retaining all evidence and budgets.
+2. Complete and independently review the coupled guided measurement correction, including actual History serialization, optional timecode/calibration detail size, coherent offsets, drift, phase/amplitude changes, differing channels, high harmonics and adverse separation. Then publish a separately reviewed source update and qualify it on CI.
+3. Continue small primary-source hardware research batches only where evidence resolves actual capability fields; retain unknown hardware/firmware/mapping facts.
+4. Obtain current broad Sonar evidence through supported access. The previous public export returned 403, and ordinary tests do not clear historical findings. No acceptance or suppression was authorized. Preserve SHA-256 modular arithmetic and canonical UTF-16 ordering when reviewing analyzer findings.
+5. Complete current-source Windows/PDF, sanitizer, long combined fuzz, full stress and platform artifacts/self-tests. No tag, release or deployment is authorized. Hardware acceptance, signing/notarization credentials and owner-level product decisions remain distinct blockers.
+6. Merge only verified changes. Reconcile PR #28's stale pre-backport advisory narrative; close superseded PRs only after contribution-preserving replacement reaches main. Continue the completion ledger's unblocked work afterwards.
 
-### Open numerical-runtime investigation
+Compatibility rules: FS-35 stimulus version 1 and analysis revision 2 remain; the −12 dBFS output cap is unchanged. Missing capture counters remain unobserved/REVIEW, not zero loss. Shared MIDI drop counts do not identify one device. Same-name physical MIDI replacement and unreadable-name ambiguity remain unqualified. Historical certificates/results/migrations are not rewritten. Structured History plus local metadata does not imply a raw PCM archive. The intermittent untouched-baseline Node 24 numerical anomaly has no confirmed JIT/root cause; supported Node 22 evidence must not be generalized beyond tested source.
 
-The untouched `4466cc0` baseline intermittently produces an erroneous cubic-distortion result on Node 24.22.1. Immediate reanalysis of identical buffers yields the expected result. There is no confirmed root cause and no basis to label it a proven V8/JIT defect. Focused Node 22.23.5 tests pass without changed tolerances. Preserve the reproduction and compare supported runtime versions before broad runtime qualification.
-
-### Evidence and compatibility rules
-
-- FS-35 stimulus version remains 1; corrected analysis results use revision 2. Threshold values and the -12 dBFS absolute output cap remain unchanged. Signed mean and per-channel response values stay available.
-- Live capture faults/unobservable counters require REVIEW while preserving measured values. Imported audio has explicitly unobserved continuity. Neither condition is fabricated as zero loss.
-- MIDI shared drop counters are scoped to all inputs, not attributed to a specific device. Start/end name observations cannot prove uninterrupted physical continuity or eliminate name-reuse races.
-- Certificate chronology does not rewrite old signed certificates. An undated historical result requires explicit evidence reconciliation; a newer retest cannot automatically order or discard it.
-- Existing valid contributor IDs and supplied/imported pack IDs remain accepted. Secure-randomness failure preserves the old ID.
-- No fleet default, license, migration numbering or historical result is changed to simplify integration.
+The available OpenAI implementation/review agents and Caveman guidance were used. Claude Opus 5.5 was not exposed in this environment and was not represented as having performed the work.
 
 ## Reports
 
-- [Branch and PR audit](DECKCHEK-BRANCH-AUDIT.md): frozen branch graph, patch equivalence and contribution dispositions.
-- [Consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md): integration decision and corrective scope.
-- [Completion ledger](DECKCHEK-COMPLETION-LEDGER.md): 24 FS entries and additional architecture work, with software/hardware/platform/release distinctions.
-- [Security audit](DECKCHEK-SECURITY-AUDIT.md): reproduced defects, dependency reachability and residual requirements.
-- [Release readiness](DECKCHEK-RELEASE-READINESS.md): exact evidence, failed/blocked checks and platform/hardware limits.
-
-The session used the available OpenAI agents with Caveman guidance. Claude Opus 5.5 was not available in this environment and was not represented as having performed the work.
+- [Branch/PR audit](DECKCHEK-BRANCH-AUDIT.md): ancestry, patch equivalence and contribution dispositions.
+- [Consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md): preserved source and integration decisions.
+- [Completion ledger](DECKCHEK-COMPLETION-LEDGER.md): implemented, under-review, unqualified and blocked features.
+- [Security audit](DECKCHEK-SECURITY-AUDIT.md): reproduced failures, fixes and residual risks.
+- [Release readiness](DECKCHEK-RELEASE-READINESS.md): exact passes, failures and unavailable gates.

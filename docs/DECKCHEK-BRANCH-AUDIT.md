@@ -1,5 +1,7 @@
 # DeckChek branch and pull request audit
 
+**Reviewed foundation checkpoint — 2026-11-18 UTC:** source `25e91e97fa2311e2e786894344297ccdc19ca849`, tree `b2c36fc3774831859a9d2073e657ec7f013d66d1`, preserves both `fd39b14586d9abddf93557b6c5f2628304f2caec` and reviewed integration `ef49ed6cfd08e94651a1536b4e4509efdccdbedb`. It is carried by [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29) into [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). Canonical `main` remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The exact combined source passed the complete Node 22 suite: **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)**. Native, platform and extended CI must qualify this source. Guided-stylus corrections are still local and under independent review; the known measurement defects are not declared fixed in this checkpoint. Older results below apply only to their named revisions. See the [current handoff](DECKCHEK-CONTINUATION-HANDOFF.md).
+
 ## Decision and scope
 
 Audit snapshot: 2026-11-18 UTC. Canonical `main`: [ee5aa51](https://github.com/djshellshoxxx/deckchek/commit/ee5aa511fb49fc56e299d5b5c262e815ab420d0d) (`ee5aa511fb49fc56e299d5b5c262e815ab420d0d`). Consolidation candidate: [#26](https://github.com/djshellshoxxx/deckchek/pull/26), [4466cc0](https://github.com/djshellshoxxx/deckchek/commit/4466cc0bb9951a98528f576726e01dd9cecc388e) (`4466cc0bb9951a98528f576726e01dd9cecc388e`). This report freezes those refs; later integration commits and live GitHub status require separate verification.
@@ -145,3 +147,45 @@ git diff MERGE_BASE_SHA SQUASHED_BRANCH_SHA | git patch-id --stable
 ```
 
 Patch identity answers whether a change was retained; it does not validate the resulting behavior. PR links provide review history, frozen commit links provide source evidence, and the integration review must supply current functional acceptance.
+
+## Lifecycle checkpoint before the isolated follow-up
+
+PR #27 is now ready for review. The next reviewed corrective source is `eb45ab8fecf100ddf50ef4d4bd6e09fc2ad27a98`, preserving the same integration ancestry. The preceding `1b1db16` CI passed JavaScript/browser checks but failed one native ZIP regression assertion after successful compilation; the reviewed follow-up retains archive refusal and adds independent stream-bound coverage. Exact evidence is in the handoff. No replacement has merged into `main`, so none of the superseded PRs or historical branches has been closed or removed.
+
+## Reconciliation of concurrent remote corrections
+
+The attempted publication observed that the remote branch had advanced from `1b1db16` to `1d2b488`; it was not overwritten. Merge candidate `8c1409ef390aeb7c0899a82becbaabe82d45c116` has parents `1d2b48844105bbd5e60043c1989e0e92949aa188` and `fbf28395ccabfa6fc29a955c8b312e6961055408`, preserving both histories.
+
+| Remote commit | Preserved contribution |
+|---|---|
+| `0cf8b32b427a9f6fbaa0b3f076bb25c2b3c77fc2` | Failed native MIDI event emission counts as transport loss |
+| `2ba8125eed53633e58822f619cb6d3afa87ff29f` | Newer GM actions cancel a pending stale step switch |
+| `934f9fd9410e8068068dc8c464ce60ebaf108bd9` | Valid latest evidence and explicit incomplete audio checks |
+| `2243af7fd9325e1bb9c23b32f65a0bcfe437de69` | PR-triggered platform build validation |
+| `96da8854ae68aeb64a5292f04fd89abee408d82d` | Invalid MIDI timing cannot establish a passing result |
+| `1d2b48844105bbd5e60043c1989e0e92949aa188` | Foreign-key integrity for backup/restore and ZIP 9 early rejection |
+
+The overlapping ZIP changes were reconciled with the stronger empty-sink assertion for both entries and direct tests of the unchanged application streaming guard. Review found one workflow collision: direct and reusable PR tests shared a concurrency key. The merge includes the independently reviewed caller-name correction while preserving tag cancellation behavior and release conditions.
+
+All ten new JavaScript cases fail against the previous production code with assertion failures. The isolated combined source passes **1,377 tests, zero failures, one optional skip** (1,378 total) and full Rust formatting. Independent native/workflow review passes eleven compatibility/accounting checks and six exact-source ZIP checks. Full native check/Clippy, browser and platform jobs still need current-source execution. The preceding remote platform run is queued and its direct test run was cancelled; neither is a passing qualification result.
+
+## Inventory refresh and isolated follow-up
+
+The refreshed GitHub inventory on 2026-11-18 contains **26 branches and 23 pull requests**, including **nine open PRs** (#9, #10, #12, #14, #16, #26, #27, #28 and #29). Closed-unmerged #20 is included in the complete PR inventory above. The original 23-branch table remains a frozen comparison, not the current total.
+
+| Added branch | Reviewed head | Main merge base | Ahead / behind main | Ahead / behind PR26 | Changed paths from main base | Disposition |
+|---|---|---|---:|---:|---:|---|
+| `integration/deckchek-consolidation-20261118` | `ef49ed6cfd08e94651a1536b4e4509efdccdbedb` | `ee5aa511fb49fc56e299d5b5c262e815ab420d0d` | 294 / 0 | 33 / 0 | 489 | PR #27 remains the consolidation vehicle; current checks and security dispositions are required before main. |
+| `review/deckchek-lifecycle-20261118` | `fd39b14586d9abddf93557b6c5f2628304f2caec` | `ee5aa511fb49fc56e299d5b5c262e815ab420d0d` | 298 / 0 | 37 / 0 | 363 | PR #29 isolates this continuation's reviewed lifecycle/ZIP and Clippy corrections while the integration branch is being updated concurrently. |
+| `nodata/zealous-mayer-g8x5b0` | `57bd96609aeaf03e97cc79cf3ab1b19115e0da74` | `ee5aa511fb49fc56e299d5b5c262e815ab420d0d` | 291 / 0 | 30 / 0 | 359 | Draft PR #28 has useful SQLite audit corrections. Preserve its provenance; its GLib plan predates the new source backport and requires reconciliation. |
+
+PR #29 at `9475ac5` preserves both the remote `3e85ab5` parent and earlier independently reviewed lifecycle history through `8c1409e`. This avoids competing writes to PR #27. The subsequent one-file `fd39b14` corrects the remaining example Clippy diagnostic. Its parent passed 670 native tests, not the later source's complete gates.
+
+The four newer remote commits are separately reviewed: `24adde0` invalidates native input opens already queued to the blocking pool; `74f21b3` carries the exact GLib source backport and provenance/regression gates; `951457a` retains failed output ownership until explicit reset; `ef49ed6` preserves vendored bytes on Windows checkouts. Root's review compared all 121 original package files, passed six source-integrity tests and Cargo-selection checks for all three roots, and passed 22 production-body MIDI checks with fake driver boundaries. An independent queued-close regression fails when the production generation guard is removed. Actual native/package CI remains required.
+
+PR #28's SQLite version correction agrees with the verified bundled SQLite 3.54.1. Its recommendation to accept the GLib advisory is a historical proposal, not an accepted risk disposition, and its suggested weekly recheck has not been scheduled. No historical PR can be retired until its verified replacement reaches main. Main, existing branches and releases remain preserved.
+## Reviewed foundation checkpoint
+
+The live inventory was refreshed immediately before this checkpoint: 26 branches, with integration at `ef49ed6`, the owned review branch at `fd39b14`, and `main` at `ee5aa51`. The owned follow-up now preserves both reviewed parents in source `25e91e97fa2311e2e786894344297ccdc19ca849`. The exact code tree is `b2c36fc3774831859a9d2073e657ec7f013d66d1`. Its changes relative to the integration source are the previously reviewed lifecycle/ZIP/WASAPI corrections plus warning attribution, stress isolation, automatic qualification triggers and the two-profile research batch. The unreconciled local guided-stylus changes are excluded.
+
+The PR inventory remains 23 total, nine open: #9, #10, #12, #14, #16, #26, #27, #28 and #29. PR #28 remains a draft documentation contribution at `57bd966`; its SQLite update agrees with the independently checked dependency state, but its pre-backport GLib acceptance recommendation is not adopted as an owner decision. No superseded PR was closed, no branch was deleted, and no history was rewritten. Resolve PR #28's documentation against the now-reviewed source backport before eventual disposition. Closure of older PRs still requires their replacement to reach `main` with contribution evidence.

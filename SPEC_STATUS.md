@@ -1,5 +1,9 @@
 # DeckChek spec status (work list)
 
+## Current continuation snapshot
+
+The reviewed source checkpoint is `25e91e97fa2311e2e786894344297ccdc19ca849` in [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29), targeting the consolidation branch in PR #27; `main` is unchanged. The complete combined Node 22 suite passed **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)**. This checkpoint preserves the reviewed native MIDI ownership corrections and exact GLib source backport, corrects Cargo warning attribution without hiding dependency diagnostics, isolates unchanged stress workloads for accurate memory accounting, and researches two existing hardware profiles. The catalog remains 45 profiles with 506 handwritten and 187 generated tests; conditional audio cases decrease from 29 to 27. Guided FS-12 corrections remain unpublished while coupled reference-frequency and measurement defects are resolved. All 13 long JavaScript fuzz targets completed their budgets across retained attempts, but a clean combined run and full stress remain unqualified. Current native, browser, platform, broad Sonar and release gates remain open. See the six continuation reports for exact evidence and limitations.
+
 Updated: 2026-11-18 (reviewed MIDI/service continuation; final native/platform and hardware gates remain open). Source of truth: feature specs `docs/specs/FS-NN` (acceptance criteria `AC-n` in each spec's §2) and the architecture specs `docs/SPEC-NN`. Delivery plan: `docs/DEVELOPMENT-PLAN.md`. Detailed narrative: `docs/IMPLEMENTATION-STATUS.md`.
 
 Legend: **DONE** = implemented with automated tests for every AC that can be automated; **PARTIAL** = implemented, some ACs or gates outstanding (named); **MISSING** = no code. "HW" = needs the owner's physical hardware run (`docs/testing/HARDWARE-TEST-SCRIPTS.md`) and cannot be closed in CI.

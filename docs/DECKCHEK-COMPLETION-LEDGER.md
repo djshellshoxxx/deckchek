@@ -1,5 +1,7 @@
 # DeckChek feature completion ledger
 
+**Reviewed foundation checkpoint — 2026-11-18 UTC:** source `25e91e97fa2311e2e786894344297ccdc19ca849`, tree `b2c36fc3774831859a9d2073e657ec7f013d66d1`, preserves both `fd39b14586d9abddf93557b6c5f2628304f2caec` and reviewed integration `ef49ed6cfd08e94651a1536b4e4509efdccdbedb`. It is carried by [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29) into [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). Canonical `main` remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The exact combined source passed the complete Node 22 suite: **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)**. Native, platform and extended CI must qualify this source. Guided-stylus corrections are still local and under independent review; the known measurement defects are not declared fixed in this checkpoint. Older results below apply only to their named revisions. See the [current handoff](DECKCHEK-CONTINUATION-HANDOFF.md).
+
 ## How to read this ledger
 
 This ledger separates implementation, automated checks, physical hardware qualification, platform qualification and release readiness. They are different states. The baseline is PR #26 at `4466cc0bb9951a98528f576726e01dd9cecc388e`, incorporating `main` at `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The exact continuation commit and final results are recorded in [DECKCHEK-CONTINUATION-HANDOFF.md](DECKCHEK-CONTINUATION-HANDOFF.md).
@@ -112,13 +114,13 @@ No physical device or loopback qualification was performed in this session. Curr
 ## FS-12 — Stylus wear tracker
 
 **Specification:** [12-stylus-wear-tracker.md](specs/12-stylus-wear-tracker.md)
-**Implementation:** `app/stylus-wear.js`, `src-tauri/src/stylus.rs`
-**Status:** PARTIAL: guided benchmark capture not built (spec gap noted in IMPLEMENTATION-STATUS)
-**Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Guided benchmark capture is not built. Reuse existing tone, separated-channel and timecode workflows; preserve calibration/setup provenance. Physical repeatability and rated-life research also remain.
-**Tests and evidence:** `tests/stylus-wear.test.mjs`
+**Implementation:** `app/stylus-wear.js`, `app/stylus-benchmark.js`, `app/ui/workflows/stylus-benchmark.js`, `app/ui/screens/stylus.js`, `src-tauri/src/stylus.rs`
+**Status:** Guided capture is implemented in `3e85ab5`; targeted evidence, persistence and screen-ownership corrections are under independent review. Browser/platform and physical qualification are pending.
+**Completion percentage:** Not freshly scored; the complete specification acceptance mapping still requires review. A source file or focused test count is not hardware qualification.
+**Remaining work / blocking dependencies:** Complete the coupled reference/measurement correction: nominal-frequency projection can cancel a valid off-speed tone and produce incorrect THD and separation. The prior windowed correction passed its original reproductions, but independent coherent-offset controls failed. Retain the reviewed native/calibration/quality, setup, storage and stale-screen corrections, then rerun the complete suite and real-screen native-IPC browser smoke. Physical repeatability, reference media and rated-life research remain open.
+**Tests and evidence:** `tests/stylus-{wear,ui,benchmark}.test.mjs`, `tests/capture-sessions.test.mjs`, new evidence and cached-screen suites, and `tools/smoke/stylus-benchmark.mjs`. The earlier separate local implementation was archived and superseded by the remote model/workflow design; no duplicate implementation was published.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** stylus_guided_capture corrections; stylus_independent_review independent review; root integration. **Verification commit:** remote implementation `3e85ab544bf04aba73ce0be84af915bfd02527a6`; follow-up evidence and final source are identified in the handoff.
 
 ## FS-13 — Control-vinyl wear map
 
@@ -159,10 +161,11 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/{signing,certificate}.rs`, `database/migrations/0014_certificate.sql`, `app/{certificate,certificate-api}.js`, `app/ui/screens/{certificate,verify}.js`
 **Status:** Implemented in baseline (HW: H-20; known gap: no PDF-embedded JSON, verify the sidecar `.deckchek-cert.json`)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Certificate chronology correction is implemented and independently reviewed. Reconcile undated stored results explicitly; perform current native signing/PDF and H-20 qualification. PDF JSON remains a sidecar.
-**Tests and evidence:** `tests/certificate*.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8)
+**Remaining work / blocking dependencies:** Chronology, history/identity request ownership and Verify listener lifecycle corrections are independently reviewed. Reconcile undated stored results explicitly; perform current native signing/PDF and H-20 qualification. PDF JSON remains a sidecar.
+**Tests and evidence:** `tests/certificate*.test.mjs`, `tests/verify-screen-lifecycle.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `certificate`, fuzz target `certificate` (AC-1..AC-8). Eighteen new lifecycle cases; independent review passed 55 overlapping focused tests plus eight probe groups. Complete combined JavaScript source passed 1,367 tests/one optional skip.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root implementation; ci_audit independent review. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** certificate_async_review implementation; ci_audit independent review. **Verification commit:** `eba99f37e85b002b91a7073d33f326782fe46e47`; final CI is identified in the handoff.
+
 
 ## FS-21 — Unit vs population (phases 1-2)
 
@@ -214,10 +217,11 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/{monitor,tray}.rs`, `database/migrations/0019_monitor_log.sql`, `app/monitor.js`, `app/ui/screens/monitor.js`
 **Status:** Implemented in baseline (HW: H-31; WASAPI-shared capture beside DJ software unverified; negative-SNR floor supported for an acquired coherent carrier; cold-start/changing-pitch noise remains limited)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Shared capture alongside real DJ software, cold-start/changing-pitch negative-SNR limitations, and H-31 remain. Existing monitor performance budget passed locally.
-**Tests and evidence:** `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8)
+**Remaining work / blocking dependencies:** Saved-setting ownership is corrected and independently reviewed; failed writes and background cached-screen behavior remain supported. Shared capture alongside real DJ software, cold-start/changing-pitch negative-SNR limitations, and H-31 remain. Existing monitor performance budget passed locally.
+**Tests and evidence:** `tests/monitor*.test.mjs`, smoke `monitor` (AC-1..AC-8). Eleven new lifecycle tests cover effective controller preferences, failed persistence and pruning; independent review passed 58 focused checks and a negative control proving the read-to-DOM identity guard.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** monitor_settings_review implementation; mapper_async_review independent review. **Verification commit:** `6127377ede9178c575293757c8f89be91cb1bddf`; final CI is identified in the handoff.
+
 
 ## FS-32 — MIDI mapper studio
 
@@ -285,7 +289,7 @@ No physical device or loopback qualification was performed in this session. Curr
 | SPEC-05 booth isolation and incident logging | Partial | Hierarchy and feedback step test exist; isolation A/B and incident history remain to be implemented and specified precisely. |
 | SPEC-10 CDJ/media-player transport/digital diagnostics | Not committed as a release feature | Define scope and hardware protocol acceptance before implementing speculative tests. |
 | Controller HID diagnostics | Missing specified workflow | Authoritative device protocol mappings and a testable specification are required. |
-| Hardware profile expansion | 45 profiles; 29 conditional controller audio tests | Research capabilities per exact model/revision/firmware using manufacturer documentation; do not invent mappings. |
+| Hardware profile expansion | 45 profiles; 27 conditional controller audio tests | Research capabilities per exact model/revision/firmware using manufacturer documentation; do not invent mappings. |
 | SPEC-17 signing and automatic updates | Not qualified | Owner certificates, release policy and actual distribution testing; no release/deployment authorized here. |
 
 No numerical percentage is assigned to these broad items until their acceptance criteria and required decisions are explicit.
@@ -302,3 +306,16 @@ No numerical percentage is assigned to these broad items until their acceptance 
 ## Refreshed hardware research issues
 
 Issues [#3](https://github.com/djshellshoxxx/deckchek/issues/3), [#4](https://github.com/djshellshoxxx/deckchek/issues/4), [#5](https://github.com/djshellshoxxx/deckchek/issues/5), [#6](https://github.com/djshellshoxxx/deckchek/issues/6) and [#7](https://github.com/djshellshoxxx/deckchek/issues/7) remain open. They require model/revision-specific manufacturer evidence, dated manuals and firmware/driver applicability; explicit MIDI/HID/audio/analog/manual transport and unavailable states; additive compatibility; and small researched profile batches. The latest profile/index checks pass for 45 devices. That automated coverage count does not establish hardware qualification or completion of all issue requirements. No new model mapping was invented during this consolidation.
+
+## Reconciled evidence update
+
+The reconciled checkpoint was `8c1409ef390aeb7c0899a82becbaabe82d45c116`, with **1,377 complete-suite JavaScript passes, zero failures and one optional skip**, plus passing formatting. FS-08 additionally refuses orphaned foreign-key evidence; all historical migration/fixture checks passed independently, and the merged ZIP test retains zero-byte refusal for both entries. FS-34/35 now require valid latest pass-criterion evidence and explicitly describe unavailable output-quality checks. FS-36 additionally counts known native delivery failures, rejects invalid timing evidence and prevents stale GM actions after newer playback/Silence/Save. Ten new JavaScript regressions fail on the earlier source; independent native/workflow review covers compatibility and preserved release conditions. These corrections do not close hardware, physical identity, platform, broad Sonar or release gates, and do not change feature-completion percentages.
+## Foundation verification and remaining feature work
+
+Source `25e91e97fa2311e2e786894344297ccdc19ca849` passed the combined JavaScript suite: **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)**. The new warning/profile/planner focused run also passed all 19 cases. These results do not replace native, browser, platform, hardware or release acceptance.
+
+The R1-14 comparison-entry-point audit item was already implemented in ancestor `306b067`: Results and History provide Compare actions, the C shortcut opens comparison, and selected devices link to unit comparison. Six relevant implementation/test/smoke files were unchanged between `fd39b14` and `ef49ed6`; three local tests passed, and the 16 relevant browser entry-point checks were present in the successful `ef49ed6` run. No duplicate implementation was added in response to the historical AUDIT.md snapshot.
+
+The first researched capability batch confirms the existing [Hercules Inpulse 500](devices/hercules-djcontrol-inpulse-500.md) and [Novation Launchpad Pro MK3](devices/novation-launchpad-pro-mk3.md) profiles. The generated matrix retains all 506 handwritten tests, has 187 automatic tests, and reduces conditional audio cases from 29 to 27. Its zero capability-coverage gaps describe generated test selection, not physical equipment qualification. Research issues #3–#7 remain open; no firmware or control mapping was invented.
+
+Guided FS-12 remains blocked at source review. Ten-second 999, 1001 and 1002 Hz controls at 48 kHz have valid windowed frequency observations, yet the old nominal-1000 Hz projection reports absent tone and incorrect THD/separation. The pure 1000 Hz control passes. Correcting only the presence floor would admit incorrect metrics. The implementation must couple readiness and measurement extraction before structured History persistence, preserve all samples and existing criteria, and version the changed guided measurement basis. No physical repeatability is inferred from generated signals.
