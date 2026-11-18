@@ -1,3 +1,32 @@
+# DeckChek consolidation and PR9 port — 2026-11-18
+
+Branch `nodata/practical-ptolemy-wu3ekp`, draft PR #26 into `main`. It fast-forwards
+`continuation-deckchek-core-20261028` (`e30e018`, which contains main `ee5aa51`), so PR16 → PR14 →
+main collapses into one PR. Per-branch evidence: [branch consolidation report](docs/BRANCH-CONSOLIDATION-2026-11-18.md).
+After #26 merges, every other remote branch holds no unique content; deleting them and closing
+#9/#10/#12/#14/#16 needs explicit owner approval and was not done.
+
+Added on top of the continuation:
+- CI fix: removed the never-registered `tauri-plugin-notification`; cargo's new
+  `unused_dependencies` lint had turned the continuation head's `rust-tests` red.
+- PR9 remainder: FS-34 device test completeness (45/45 profiles, 188 auto tests, conditional audio
+  tests where a controller's output count is unrecorded; certificate plan excludes auto tests),
+  FS-35 output audio quality (six ownership/cancellation defects fixed), FS-36 conformance and GM
+  panels (connection-bound probe/Finish, serialized GM sends with abort cleanup, drops block PASS).
+
+Local evidence at `ec9b4ad`: `npm test` 1,300 tests, 1,299 pass, 1 optional skip; browser smoke
+all 28 suites pass (core 193/193 at `ec9b4ad`; the others at `61d4245`, before the FS-35 runner was wired);
+`cargo test --locked` 654 passed, 8 ignored, and `cargo build` warning-free on cargo 1.97 (Rust
+unchanged since `ad003f6`, whose PR CI is green). The broad Sonar check no longer appears on PR
+runs; its last recorded state is in the sections below. No hardware, loopback, real Identity Reply
+or GM source qualification. Fleet stays OFF. No release, tag, deployment or policy change.
+
+Next slices: record audio-output counts for the 29 conditional controller profiles from
+manufacturer sources; hardware runs for FS-35/36; FS-31 shared-capture and stylus-lane items per
+the older prompts below.
+
+---
+
 # DeckChek monitor milestone — 2026-10-31
 
 Latest isolated source: `8a654fb2ed6de407ace85390ad052236da764310`, branch
