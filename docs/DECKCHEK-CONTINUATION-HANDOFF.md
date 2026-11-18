@@ -37,6 +37,7 @@ Dependency correction `1ad6a34fccbd08fd1916802830e399da0ca6b04f` upgrades the vu
 | Local native compilation | Blocked before application tests by missing `glib-2.0.pc` and the supported Tauri native development packages | Not a native test pass |
 | Local Chromium smoke launch | Blocked by socket permission failure before browser launch | CI executed the suite successfully at `742c67a`; local launch itself did not pass |
 | Physical MIDI/audio/reference qualification | Not executed | Remains open |
+| Complete CI at report commit `730d71d`, [run 44256004004](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004) | JavaScript **1,325 passed/one optional skip**, performance passed; browser **1,283/1,283 passed**, no console errors; native compile failed with `E0428` before application tests | Native cleanup introduced a `DriverScan` alias beside the existing IPC struct; corrected separately in `8acaa7a` |
 
 Focused suite counts overlap with the full suite and must not be summed. The optional JavaScript skip and ignored Rust tests are not passes. The final source/evidence section identifies later CI; pending or cancelled jobs do not qualify the candidate.
 
@@ -48,7 +49,18 @@ Focused suite counts overlap with the full suite and must not be summed. The opt
 | `c387ae9738e4070db33c602a2689c33a28d469f6` | Trusted schema semantics and foreign keys checked before restore; 64 KiB SQL-byte allocation bound | native_security_review implementation; ci_audit independent review; seven exact-validator harness checks passed, including all four release fixtures and SQLite 3.46 v4/v22 databases |
 | `2243bbb34e21c198390ef32806f813329a5e3dc1` | Corrections for all 57 observed strict Clippy diagnostics without allowances | clippy_cleanup implementation; clippy_review independent review; ci_audit reviewed the two backup style hunks; differential boundary/decoder/sort checks and formatting passed |
 
-The final working source was retested on Node 22.23.5: **1,325 passed, zero failures, one optional skip**. Full application CI for this native candidate is pending; do not carry the earlier 654-test native result forward as a pass for the upgraded dependencies or new restore checks. The subsequent report-only commit records this source without modifying application behavior. These reviewed code scopes are frozen; assign file ownership explicitly before follow-up corrections.
+Source through `2243bbb` was retested on Node 22.23.5: **1,325 passed, zero failures, one optional skip**. Report commit `730d71d` then received the CI results above, including the native compilation failure. Do not carry the earlier 654-test native result forward as a pass for upgraded dependencies or new restore checks.
+
+### Reviewed follow-up candidate
+
+| Commit | Change | Independent evidence |
+|---|---|---|
+| `9192aa0863280300fef3799b09a981ef8c90496b` | Service shortcut failure handling and new-form request ownership | service_lifecycle implementation; ci_audit review; 48 focused checks and five additional lifecycle cases passed; six of eight new regressions failed before the correction |
+| `8acaa7a028bd25b49f1e95679e20bf4db8a0e00f` | Rename only the parser tuple alias to `ParsedDriverOutput`; retain the `DriverScan` IPC struct | Root implementation; ci_audit review; formatting passed; compiler verification remains a fresh CI gate |
+| `b34f3c905ce60d64bfd15587a9c8906c3fd7a650` | Refuse ambiguous native MIDI names without losing captured input callbacks/output cleanup | midi_native_ambiguity implementation; ci_audit review; 19 actual-production-body harness checks plus six independent cases passed; four boundary cases failed before correction |
+| `00f1f3cc8d96527f436ee28958ed23201b60a01b` | Associate pending mapper saves with their original logical mapping | mapper_async_review implementation; service_lifecycle review; 47 focused checks plus four notification/concurrency/error probes passed; three of five regressions failed before correction |
+
+The combined code candidate is **`00f1f3cc8d96527f436ee28958ed23201b60a01b`**. On its complete working source, Node 22.23.5 passed **1,338 tests, zero failures, one optional skip** (1,339 total), and full Rust formatting passed. Fresh native and browser CI remain required for this candidate. These reviewed code scopes are frozen; assign file ownership explicitly before follow-up corrections.
 
 ### Reproduce the software checks
 
@@ -100,7 +112,7 @@ Do not retry a full local native build against the same missing system-package b
 3. Run the existing cross-platform workflow on the integration branch and retain exact artifact/self-test evidence for Windows x64/x86, macOS ARM64/x64 and Linux x64/x86. The configured Linux x86 runtime-smoke limitation remains explicit. This session could not dispatch it: the connector exposes no dispatch method, native `gh` has no login, and the UI fallback showed a signed-out GitHub session. A workflow run may build artifacts without publishing; release publication is restricted to tags, which remain unauthorized here.
 4. Run applicable nightly Windows/PDF, sanitizer, long fuzz and stress checks on the same source. Diagnose the historical Windows process-enumeration timeout without simply widening the timeout or removing coverage.
 5. Merge only after applicable checks and security dispositions are satisfied. Preserve history with the reviewed merge method. Only after successful replacement merge, close the superseded PRs with contribution/commit evidence; do not delete branches.
-6. Continue core features in the ledger's dependency order with a dedicated implementation worker and independent review. Guided FS-12 stylus benchmark capture remains unimplemented. Stable native MIDI identities/all-consumer duplicate handling remain incomplete. Conditional hardware-profile research and the broader architecture backlog remain real work, not hidden behind DONE labels.
+6. Continue core features in the ledger's dependency order with a dedicated implementation worker and independent review. Guided FS-12 stylus benchmark capture remains unimplemented. Native connection boundaries now reject observed duplicate names, but stable physical MIDI identities, unreadable-name ambiguity and same-name replacement continuity remain incomplete. Conditional hardware-profile research and the broader architecture backlog remain real work, not hidden behind implementation labels.
 
 ### Open numerical-runtime investigation
 

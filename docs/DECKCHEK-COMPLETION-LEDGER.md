@@ -181,10 +181,10 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/service.rs`, `database/migrations/0016_service_worksheets.sql`, `app/{service,service-api}.js`, `app/ui/screens/service.js`, `app/ui/workflows/service-job.js`, `app/report-kinds/jobsheet.js`
 **Status:** Implemented in baseline (HW: H-22)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** H-22 and current native service/database tests remain. Async navigation/import failure paths need broader lifecycle review.
-**Tests and evidence:** `tests/service*.test.mjs` (incl. PII leak), smoke `service` (AC-1..AC-8)
+**Remaining work / blocking dependencies:** H-22 and final native/browser service qualification remain. The reproduced shortcut and stale-request ownership defects are corrected; this is not a blanket clearance of all asynchronous code.
+**Tests and evidence:** `tests/service*.test.mjs` (incl. PII leak), smoke `service` (AC-1..AC-8). Eight new lifecycle cases exercise the real screen/shell; six failed before the correction. Independent review passed 48 focused checks and five additional request/navigation edge cases, preserving new form input and current-request Retry behavior.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** service_lifecycle implementation; ci_audit independent review. **Verification commit:** `9192aa0863280300fef3799b09a981ef8c90496b`; final CI is identified in the handoff.
 
 ## FS-23 — Venue fleet dashboard
 
@@ -225,10 +225,10 @@ No physical device or loopback qualification was performed in this session. Curr
 **Implementation:** `src-tauri/src/mapper.rs`, `database/migrations/0020_mapper_models.sql`, `app/mapper/**`, `app/ui/screens/mapper.js`
 **Status:** Implemented in baseline (HW: H-32; VirtualDJ format unverified; Serato and Traktor are reports only)
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Verify VirtualDJ import/export against an actual installation; Serato/Traktor outputs remain reports. Native duplicate-port identity and H-32 remain.
-**Tests and evidence:** `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7)
+**Remaining work / blocking dependencies:** Verify VirtualDJ import/export against an actual installation; Serato/Traktor outputs remain reports. Stable physical MIDI identity and H-32 remain. Final browser/native CI must qualify the reviewed save-association correction.
+**Tests and evidence:** `tests/mapper*.test.mjs`, smoke `mapper`, JS fuzz targets `mapper-xml`, `mapper-vdj` (AC-1..AC-7). Five new lifecycle cases exercise the real screen/store/shell; three failed before the correction. Independent review passed 47 focused checks and four additional concurrency/notification/error probes. A save for one mapping can no longer assign its stored ID to a newly opened mapping and redirect that mapping's next write.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** root integration; existing feature implementation retained. **Verification commit:** baseline `4466cc0`; continuation source and CI are identified in the handoff.
+**Assigned agent:** mapper_async_review implementation; service_lifecycle independent review. **Verification commit:** `00f1f3cc8d96527f436ee28958ed23201b60a01b`; final CI is identified in the handoff.
 
 ## FS-33 — Gear ledger static export
 
@@ -267,12 +267,12 @@ No physical device or loopback qualification was performed in this session. Curr
 
 **Specification:** [36-general-midi-test.md](specs/36-general-midi-test.md)
 **Implementation:** `app/midi-conformance.js`, `app/ui/devices/midi-runner.js`, `app/midi.js`, `src-tauri/src/midi.rs`
-**Status:** Runner corrections implemented and independently reviewed; native identity and hardware work remain
+**Status:** Runner integrity and native duplicate-name corrections implemented and independently reviewed; stable physical identity and hardware work remain
 **Completion percentage:** Not freshly scored; acceptance-by-acceptance audit is still required.
-**Remaining work / blocking dependencies:** Run final CI. Stable native logical port identity, all-consumer duplicate rejection, hot-plug continuity and real Identity Reply/GM hardware qualification remain.
-**Tests and evidence:** `tests/midi-conformance.test.mjs`, `tests/midi-fs36-ui.test.mjs`, `tests/midi-runner-lifecycle.test.mjs`, `tests/midi-tests.test.mjs`
+**Remaining work / blocking dependencies:** Run final CI. Stable native logical/physical port identity, same-name replacement without an observed disappearance, unreadable-name ambiguity, hot-plug continuity and real Identity Reply/GM hardware qualification remain. Successfully read duplicate names are now rejected at native connection boundaries; captured output cleanup retains its original connection.
+**Tests and evidence:** `tests/midi-conformance.test.mjs`, `tests/midi-fs36-ui.test.mjs`, `tests/midi-runner-lifecycle.test.mjs`, `tests/midi-tests.test.mjs`, plus five native selector regressions. Four boundary cases failed before the native correction. An exact-production-body hardware-stubbed harness passed 19 checks; independent review passed those 19 plus six ownership/retry/name-read cases.
 **Hardware qualification:** Pending / not executed here. **Cross-platform qualification:** Pending on the continuation. **Release-ready:** No.
-**Assigned agent:** core_security_review implementation; ci_audit independent review. **Verification commit:** `f9075bd4b00f0d39680094afda235ff360b7febd`; independent focused MIDI suites passed 75 tests. Final CI is identified in the handoff.
+**Assigned agent:** core_security_review runner implementation; midi_native_ambiguity native implementation; ci_audit independent review. **Verification commit:** runner `f9075bd4b00f0d39680094afda235ff360b7febd` (75 focused tests); native `b34f3c905ce60d64bfd15587a9c8906c3fd7a650`. Final CI is identified in the handoff.
 
 ## Additional architecture and integration work
 

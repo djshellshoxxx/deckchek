@@ -53,6 +53,18 @@ The table below is intentionally conservative. “Implemented” means code exis
 
 See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconciliation.
 
+### Reviewed continuation and remaining gates
+
+Native MIDI guard [b34f3c9](https://github.com/djshellshoxxx/deckchek/commit/b34f3c905ce60d64bfd15587a9c8906c3fd7a650) rejects duplicate successfully read names on new connections and explicit cached input reopens, while preserving an existing input on ambiguous reopen. Captured output sends/Note Off cleanup do not re-enumerate; ambiguous reconnects reject. Five new native regressions, 19/19 extracted-production-body harness tests and six independent boundary checks support this correction. Stable physical identity, hot-plug/same-name substitution, unreadable-name uncertainty and real hardware remain unqualified; [FS-36 §6](specs/36-general-midi-test.md#6-native-port-selection-and-remaining-identity-limits) defines these limits.
+
+Service lifecycle correction [9192aa0](https://github.com/djshellshoxxx/deckchek/commit/9192aa0) handles shortcut navigation errors visibly and preserves a new intake form against stale job/comparison responses. Independent review and 48 focused service/crosslinks/PII tests passed; owner H-22 and full current CI remain open.
+
+Mapper save correction [00f1f3c](https://github.com/djshellshoxxx/deckchek/commit/00f1f3cc8d96527f436ee28958ed23201b60a01b) keeps a pending save's ID/status with its originating mapping when New/Open selects another model; normal edits and hide/show remain supported. Independent review accepted 47 focused tests plus four notification/concurrency/error probes. This does not qualify real mapper hardware, VirtualDJ interoperability or full current CI.
+
+Verification is source-specific: browser **1,283/1,283** with all seven FS-35 checks/no console errors applies to `742c67a`. JavaScript CI at `730d71d` passed **1,325 tests/one skip**, but [native compilation failed with E0428](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404). The alias fix [8acaa7a](https://github.com/djshellshoxxx/deckchek/commit/8acaa7a) and later native changes still need fresh full CI; focused harnesses do not qualify native/platform or hardware behavior. The same `730d71d` source also passed [1,283/1,283 browser checks with no console errors](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622) and the JavaScript performance gate; its native compilation failure occurred before application tests ran. Service `9192aa0`, alias `8acaa7a`, native MIDI `b34f3c9` and mapper `00f1f3c` are later follow-ups and are not covered by that CI run.
+
+The combined local follow-up source, including service/MIDI/mapper corrections, passed **1,338 Node 22 tests, zero failures, one optional skip** (1,339 total), and formatting passed. Full native/platform and broad Sonar gates remain open.
+
 
 | Area | Feature | Primary spec | Planned phase |
 |---|---|---|---|

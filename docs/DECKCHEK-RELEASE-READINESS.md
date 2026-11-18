@@ -4,7 +4,7 @@ Audit session: 2026-11-17, America/Los_Angeles. GitHub evidence timestamps are U
 
 ## Decision
 
-**Release readiness is not established.** The continuation has independently reviewed corrections, 1,325 passing local JavaScript tests, passing formatting and 1,283 passing browser checks at the audio-correction commit. The final native/dependency/schema/style candidate still requires current CI. Broad Sonar analysis, the remaining GLib warning, current cross-platform qualification and physical hardware acceptance remain open. No release, release tag, or deployment is authorized by this session.
+**Release readiness is not established.** The reviewed follow-up source has 1,338 passing local JavaScript tests and passing formatting. Earlier report commit `730d71d` passed 1,325 JavaScript tests and 1,283 browser checks in CI, but failed native compilation on a tuple-alias collision. That collision and the new service/mapper/native-MIDI fixes are independently reviewed and require fresh CI. Broad Sonar analysis, the remaining GLib warning, current cross-platform qualification and physical hardware acceptance remain open. No release, release tag, or deployment is authorized by this session.
 
 | Revision | Role |
 |---|---|
@@ -120,6 +120,16 @@ At `742c67a`, [native job 134624238498](https://github.com/djshellshoxxx/deckche
 
 [Browser job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913) at `742c67a` passed **1,283/1,283 checks**, with no console errors. All seven new FS-35 checks passed: focus/progress, Escape ownership, Enter/Stop behavior, unsaved cancellation, clean evidence and output cap, fault evidence requiring REVIEW, and opposite response errors with file provenance. This resolves the new browser-test execution gap for that source. It does not establish native device or physical-loopback qualification.
 
-### Reviewed native candidate
+### First reviewed native candidate
 
-The complete code candidate is `2243bbb34e21c198390ef32806f813329a5e3dc1`, comprising dependency correction `1ad6a34`, restore-schema correction `c387ae9` and the strict Clippy cleanup. On its working-tree source, Node 22.23.5 again passed **1,325 tests, zero failures, one optional skip** (1,326 total), and Rust formatting passed. The schema fix passed an independently rerun seven-test exact-validator harness, including the 64 KiB allocation guard and historical database fixtures. The dependency fix passed a separate seven-test migration/backup/archive compatibility harness and an old ZIP reader/new archive check. These focused results do not count as a full native build. The handoff records the candidate's fresh CI when available.
+The first native code candidate was `2243bbb34e21c198390ef32806f813329a5e3dc1`, comprising dependency correction `1ad6a34`, restore-schema correction `c387ae9` and the strict Clippy cleanup. On its working-tree source, Node 22.23.5 again passed **1,325 tests, zero failures, one optional skip** (1,326 total), and Rust formatting passed. The schema fix passed an independently rerun seven-test exact-validator harness, including the 64 KiB allocation guard and historical database fixtures. The dependency fix passed a separate seven-test migration/backup/archive compatibility harness and an old ZIP reader/new archive check. These focused results do not count as a full native build.
+
+### CI at `730d71d` and reviewed follow-ups
+
+[Run 44256004004](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004) on report commit `730d71d83c911317abba2fa205962cdbd15aa8db` completed with:
+
+- [JavaScript job 134637728702](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728702): **1,325 passed, zero failures, one optional skip**, plus a passing performance check, migration/profile/mobile checks and syntax checking.
+- [Browser job 134637728622](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622): **1,283/1,283 passed**, no console errors.
+- [Native job 134637728404](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404): formatting passed; compilation failed with **E0428**, because a new tuple alias reused the existing `DriverScan` struct name. No application Rust tests ran, and check/Clippy were not reached. Commit `8acaa7a` corrects only the alias and parser return annotation, preserving the IPC struct; independent review accepted it.
+
+The next complete code candidate is **`00f1f3cc8d96527f436ee28958ed23201b60a01b`**. It also includes independently reviewed service request/navigation ownership, native duplicate-name selection and mapper save-association corrections. The complete local Node 22.23.5 suite passed **1,338 tests, zero failures, one optional skip** (1,339 total), and full Rust formatting passed. Independent focused evidence includes 48 service checks, 47 mapper checks and 19 actual-body native MIDI harness checks, with additional reviewer edge probes. Those overlapping counts are not added to the full-suite count. Fresh complete application CI is required before this candidate can be treated as passing.
