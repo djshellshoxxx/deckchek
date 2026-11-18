@@ -167,6 +167,18 @@ test('thresholds and spec notes', () => {
   assert.equal(evaluateAudioQuality([]).status, 'unknown');
 });
 
+test('unavailable audio measurements never describe incomplete checks as all passed', () => {
+  const complete = DEFAULT_THRESHOLDS.map(({ metricId, value, unit }) => ({ metricId, value, unit }));
+  assert.equal(evaluateAudioQuality(complete).status, 'pass');
+  for (const measurements of [[], complete.slice(1), ...[null, NaN, Infinity].map(value => [{ ...complete[0], value }, ...complete.slice(1)])]) {
+    const result = evaluateAudioQuality(measurements);
+    assert.equal(result.status, 'unknown');
+    assert.doesNotMatch(result.detail, /all.*passed/i);
+    assert.match(result.detail, /could not be evaluated/i);
+    assert.ok(result.findings.some(f => f.id === 'aq-incomplete' && f.severity === 'review'));
+  }
+});
+
 test('non-finite samples and malformed capture formats cannot become numerical evidence', () => {
   for (const value of [NaN, Infinity, -Infinity]) {
     const s = exportStimulus();

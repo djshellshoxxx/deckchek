@@ -286,9 +286,14 @@ export function evaluateAudioQuality(measurements, thresholds = DEFAULT_THRESHOL
   const results = thresholds.map(t => ({ threshold: t, ...evaluatePass({ metricId: t.metricId, op: t.op, value: t.value, unit: t.unit, source: 'DeckChek test definition' }, measurements) }));
   const findings = results.filter(r => r.status === 'fail').map(r => ({ id: `aq-${r.threshold.id}`, severity: SEV[r.threshold.severity] || 'warning', title: r.threshold.title, meaning: r.threshold.meaning, action: r.threshold.action, evidence: [r.detail] }));
   const bad = results.filter(r => r.status === 'fail');
+  const unknown = results.filter(r => r.status === 'unknown');
+  if (unknown.length) findings.push({ id: 'aq-incomplete', severity: 'review', title: 'Some output-quality checks could not be evaluated', meaning: `${unknown.length} of ${results.length} checks have unavailable measurements: ${unknown.map(r => r.threshold.id).join(', ')}.`, action: 'Review the recording and repeat the test to obtain complete measurements.', evidence: unknown.map(r => r.detail) });
   const clipped = results.find(r => r.threshold.id === 'clip' && r.status === 'fail');
-  const status = bad.length ? 'fail' : results.some(r => r.status === 'unknown') ? 'unknown' : 'pass';
-  return { status: clipped ? 'unknown' : status, results, findings, detail: bad.length ? `${bad.length} of ${results.length} checks failed: ${bad.map(r => r.threshold.id).join(', ')}.` : 'All output-quality checks passed.' };
+  const status = bad.length ? 'fail' : unknown.length ? 'unknown' : 'pass';
+  const detail = bad.length ? `${bad.length} of ${results.length} checks failed: ${bad.map(r => r.threshold.id).join(', ')}.`
+    : unknown.length ? `${unknown.length} of ${results.length} output-quality checks could not be evaluated: ${unknown.map(r => r.threshold.id).join(', ')}.`
+    : 'All output-quality checks passed.';
+  return { status: clipped ? 'unknown' : status, results, findings, detail };
 }
 
 /** Findings for analysis problems (no marker, dead channel, ...). */

@@ -85,22 +85,25 @@ export function evaluateSoftwareCheck(profile,softwareName,djLogScan){
 /** Evaluate a profile test.pass against measurements (array of {metricId,value}). */
 export function evaluatePass(pass,measurements=[]){
   if(!pass)return {status:'unknown',detail:'No pass criterion (manual judgement).'};
-  const ms=measurements.filter(m=>m.metricId===pass.metricId);
+  const ms=measurements.filter(m=>m?.metricId===pass.metricId);
   const u=pass.unit?` ${pass.unit}`:'';
   if(!ms.length)return {status:'unknown',detail:`No measurement for ${pass.metricId}.`};
-  const nums=ms.map(m=>m.value).filter(v=>v!==null&&v!==undefined);
-  if(!nums.length)return {status:'unknown',detail:`${pass.metricId} could not be measured.`};
-  const v=Number(nums[nums.length-1]),t=Number(pass.value),t2=Number(pass.value2);
+  // The latest observation owns the verdict; unavailable evidence cannot reuse an earlier value.
+  const v=ms[ms.length-1].value;
+  if(v===null||v===undefined)return {status:'unknown',detail:`${pass.metricId} could not be measured.`};
+  const text=pass.op==='equals'&&typeof pass.value==='string';
+  const t=pass.op==='all-seen'&&pass.value==null?100:pass.value,t2=pass.value2;
+  if(text?typeof v!=='string':!Number.isFinite(v))return {status:'unknown',detail:`${pass.metricId} is not a valid ${text?'text':'finite numeric'} measurement.`};
+  if(!text&&(!Number.isFinite(t)||(pass.op==='between'&&!Number.isFinite(t2))))return {status:'unknown',detail:`The pass criterion for ${pass.metricId} has invalid numeric bounds.`};
   let ok,desc;
   switch(pass.op){
     case 'abs<=':ok=Math.abs(v)<=t;desc=`|${v}|<=${t}`;break;
     case '<=':ok=v<=t;desc=`${v}<=${t}`;break;
     case '>=':ok=v>=t;desc=`${v}>=${t}`;break;
     case 'between':ok=v>=Math.min(t,t2)&&v<=Math.max(t,t2);desc=`${v} in [${t}, ${t2}]`;break;
-    case 'equals':ok=nums.length&&(typeof pass.value==='string'?String(nums[nums.length-1])===pass.value:Math.abs(v-t)<1e-9);desc=`${nums[nums.length-1]}==${pass.value}`;break;
-    case 'all-seen':ok=v>=(Number.isFinite(t)?t:100);desc=`${v}% seen`;break;
+    case 'equals':ok=text?v===pass.value:Math.abs(v-t)<1e-9;desc=`${v}==${pass.value}`;break;
+    case 'all-seen':ok=v>=t;desc=`${v}% seen`;break;
     default:return {status:'unknown',detail:`Unsupported operator ${pass.op}.`};
   }
-  if(Number.isNaN(v)&&pass.op!=='equals')return {status:'unknown',detail:`${pass.metricId} is not numeric.`};
   return {status:ok?'pass':'fail',detail:`${ok?'Pass':'Fail'}: ${desc}${u}${pass.source?` (${pass.source})`:''}`};
 }
