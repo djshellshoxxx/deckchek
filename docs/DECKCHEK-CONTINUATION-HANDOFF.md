@@ -1,103 +1,94 @@
 # DeckChek continuation handoff
 
-## Current state
+## Current state and publication
 
-Reviewed executable source: **`25e91e97fa2311e2e786894344297ccdc19ca849`**. Its source tree is `b2c36fc3774831859a9d2073e657ec7f013d66d1`; the documentation commit carrying this handoff may have a later SHA with the same executable files. [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29), branch `review/deckchek-lifecycle-20261118`, targets `integration/deckchek-consolidation-20261118` in [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). `main` remains **`ee5aa511fb49fc56e299d5b5c262e815ab420d0d`**. The preserved PR #26 baseline is `4466cc0bb9951a98528f576726e01dd9cecc388e`.
+**Continuation source checkpoint — 2026-11-18 UTC:** executable source `1943ef024bdc6abfe4ac32b4c368b764b75a0c86`, tree `c0b6a7033318eeb646cfb2c49e7f05029ece653d`. [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30), on `review/deckchek-lifecycle-20261118`, continues into the existing consolidation in [PR #27](https://github.com/djshellshoxxx/deckchek/pull/27). It preserves reviewed parents `0985e9e64b6dd5e92e2f046ebf30a336bf15c735`, `0acb612aa796f7f459172932868ff7e787d83399` and `5bd6359ed5a013379dd1ca7aaee7cdd270931874`. The source passed the complete serial Node 22.23.5 suite: **1,500 passed, zero failed, 1 optional skip (1,501 total; 230.785 seconds)**, with frozen source unchanged. The documentation child carrying this report may have a later SHA. Canonical `main` remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. Current-source hosted native/browser/platform/extended checks and the unresolved broad Sonar requirement remain merge gates at publication; older results below apply only to their named source. Hardware, distribution and release qualification remain separate. No release, tag or deployment is authorized. See the [continuation handoff](DECKCHEK-CONTINUATION-HANDOFF.md).
 
-This checkpoint preserves both prior review head `fd39b14586d9abddf93557b6c5f2628304f2caec` and independently reviewed integration head `ef49ed6cfd08e94651a1536b4e4509efdccdbedb`. Other actors have advanced integration during the session. Refresh remote refs, preserve their work, and update only the owned branch with an expected-head lease. Do not replace PR #27's metadata with stale text.
+PR29 was merged at its frozen `fd39b145` head on 2026-11-18 at 09:13:18 UTC through `e43be06`; later branch updates were not part of that closed PR. PR30 is the active draft continuation into PR27. Do not overwrite PR27 metadata or mistake a closed PR's old head/base for an API outage. Other actors have changed integration during this session: refresh refs/states before every publication and preserve new work.
 
-The exact combined source passed **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)** on Node 22.23.5. Native, browser, platform and extended CI still must qualify the new head. The local guided-stylus changes are **not included** in this checkpoint. They remain blocked on a coupled frequency/metric correction described below. Work is neither fully merged nor release-qualified.
+The source parents are the prior owned checkpoint `0985e9e64b6dd5e92e2f046ebf30a336bf15c735`, independently reviewed integration `0acb612aa796f7f459172932868ff7e787d83399`, and the additive ignore branch `5bd6359ed5a013379dd1ca7aaee7cdd270931874`. Six report conflicts preserve valid source and evidence from both report histories. The documentation child also retains `61a7c6b74d75074cef5ec029e1c127184d869c86` as a parent after independently reviewing PR31 and selectively reconciling its accurate corrections. PR31 remains open until the replacement reaches main. PR28's SQLite facts are retained through `c090c1d`; its pre-backport advisory-acceptance/weekly-reminder recommendation is not adopted.
 
-Snapshot dates use UTC. No branches were deleted, historical PRs closed, releases published, tags created or deployments performed. Fleet remains opt-in and OFF by default. Merge verified PRs only after applicable gates; close superseded PRs only after their replacement reaches `main` with contribution evidence.
+## Accepted implementation
 
-## Accepted source included here
+Five existing profiles now have individually sourced capability decisions: [Inpulse 500](devices/hercules-djcontrol-inpulse-500.md), [Launchpad Pro MK3](devices/novation-launchpad-pro-mk3.md), [Inpulse T7](devices/hercules-djcontrol-inpulse-t7.md), [MASCHINE MK3](devices/native-instruments-maschine-mk3.md), and [DDJ-1000](devices/pioneer-dj-ddj-1000.md). The catalog remains **45 profiles, 506 handwritten checks and 187 generated checks**, with **24 conditional audio cases**, down from 29 before these batches. Manufacturer documentation establishes capability and routing, not physical performance. DDJ-1000 channel counts are explicitly scoped to the manufacturer's dated Mac driver configuration. Maximum sample rates are not expanded into invented supported-rate lists. Unknown IDs, class compliance, maps, firmware/OS qualification and handwritten checks remain preserved. Research issues #3–#7 remain open.
 
-| Area | Preserved implementation and evidence |
-|---|---|
-| Cached-screen ownership | Certificate history/signing identity, Verify listeners and monitor saved preferences reject stale asynchronous results. Dedicated behavioral suites and independent probes are retained. |
-| ZIP and restore | Direct stream helper preserves bounded reads and zero-byte refusal of both settings/database entries, including ZIP 9 error behavior; database integrity and orphaned-FK checks remain intact. |
-| WASAPI example | `ProbeDevice` bundles input/output configuration without changing execution semantics; resolves the single eight-argument Clippy finding. |
-| Native MIDI | Pending-open generations and failed-output tombstones preserve ownership; independent production-body harness passed 22 cases and rejected a removed-guard mutant. No physical identity or hardware continuity claim follows. |
-| GLib | Exact original 0.18.5 archive and 121-file provenance plus the official two-line fix; all three Cargo roots select the backport. Six optimized actual-crate tests and 670 app tests passed in `ef49ed6` CI before the old warning grep failed. |
-| Compiler diagnostics | Exact package/manifest attribution, retained dependency warnings, complete build evidence and failure propagation. Seven unit cases, six actual-Cargo states and independent seven-case shell injection passed. |
-| Stress/CI | Unchanged workloads separated into five test files for meaningful process-lifetime memory peaks; platform/nightly PR triggers cover `main` and `integration/**`, preserving permissions, jobs, budgets and tag-only release behavior. |
-| Profiles | Inpulse 500 has documented 2-in/4-out USB audio at 44.1 kHz/24 bit; Launchpad Pro MK3 has no built-in audio interface. Primary-source notes preserve unknown USB IDs, maps, class compliance and firmware qualification. |
+## Guided stylus measurements and provenance
 
-The catalog remains 45 profiles, 506 handwritten tests, 187 generated tests and 27 conditional audio cases. Four new profile tests plus eight existing planner cases pass. Generated coverage is current; its zero gaps describe plan selection, not physical qualification. R1-14 comparison entry points were already implemented in ancestor `306b067`; independent inspection and existing local/browser evidence confirm them, so no duplicate UI was added.
+The original guided workflow in `3e85ab5` is retained with reviewed corrections to capture ownership, setup membership, native field observations before compatibility defaults, calibration applicability and structured History persistence. Missing counters remain unobserved rather than zero. Starting a new request or selecting another stylus prevents stale success/error completions from taking ownership. A dispatched History or benchmark save is not described as a reversible operation. Explicit Save writes once; an all-null benchmark cannot be saved.
 
-## Active guided-stylus correction
+Independent review reproduced three successive numerical defects: prefix-only frequency validation accepted a correct introduction followed by an out-of-tolerance remainder; nominal-frequency projection cancelled coherent 999/1001/1002 Hz references and corrupted THD/separation; then rectangular leakage from a pure 2001 Hz harmonic produced an apparent absent fundamental at about −69.422 dBFS, passing the unchanged −70 dBFS floor. The final guided method is **`hann-measured-reference-power-v3`**, analysis version **3**. It keeps the nominal 1000 Hz declaration separate from measured frequency, covers every sample with complete windows of at most 0.5 seconds, and applies the same coherent-gain-normalized periodic Hann weights to presence, THD and active/leakage amplitudes. Sample-weighted powers are pooled before one calibration pass. Rectangular and nominal projections remain diagnostic observations; none are pruned.
 
-The remote guided architecture arrived in `3e85ab544bf04aba73ce0be84af915bfd02527a6`. Earlier local work was archived rather than overwritten. The adopted local correction covers stale asset loads/navigation, honest native field observations before compatibility defaults, calibration mismatch, missing quality counters, start/stop identity agreement, setup membership, History-save ownership, harmonic observability, exact excluded values and the unchanged 64 KiB UTF-8 storage bound. It adds actual-screen/native-IPC browser smoke and checks the real audio-output command names. Browser smoke is authored but has not executed locally.
+Per-window coefficient sums, coherent gain, equivalent noise bandwidth and effective sample count are retained. The existing THD noise formula uses effective samples, and the existing separation leak-noise term widens with bandwidth. Chain/gain terms, untapered Level-0 uncertainty and ordinary analysis retain their previous behavior. There is no uncertainty reduction for window count. In the tested 10.1-second 48 kHz uncalibrated fixture, expanded THD uncertainty widened from 0.118433 to 0.119887 percentage points, and separation from 2.240042 to 2.554737 dB. These are fixture results under the existing assumed-noise model, not measured hardware accuracy.
 
-Independent review found two successive DSP defects:
+The pure 2001 Hz-only reproduction now retains its rectangular observation but measures approximately −179.650 dBFS on the qualified amplitude basis, leaving separation unavailable and the benchmark excluded. Genuine strong harmonics, poor or negative separation, and measurable fundamentals just above the floor remain evidence, rather than being filtered into favorable outcomes. The ±0.3% frequency criterion, −70 dBFS presence floor, harmonic observability policy, safe-output cap and native storage bounds remain unchanged. Version-2 guided baselines are distinguished from the new method; original rows and explicit operator-confirmed legacy behavior are retained.
 
-1. A correct short introduction followed by 1005 Hz could qualify because refinement read only a prefix. A frozen complete-window correction resolved all 12 earlier probes and retained all sample bounds and broad/refined observations.
-2. Exact 10-second 999/1001/1002 Hz controls at 48 kHz still project to zero at nominal 1000 Hz. The windows correctly measure their in-tolerance frequencies, but presence reads −240 dBFS and ordinary fixed-reference analysis gives incorrect THD and 0 dB separation for known 40 dB source isolation. One nominal control passes and all three offset-eligibility assertions fail. Changing presence alone would admit incorrect measurements.
+Worker verification passed **154/154** focused cases with no failures/skips, including **57** generated production workflows and **12** full ordinary-analysis comparisons. Independent serial Node 22.23.5 probes passed 2/2 prior reproductions in 11.710 seconds and 10/10 additional controls in 27.296 seconds, covering 33 complete production workflows and 102 structured History writes. These checked every retained field through JSON roundtrips, weak and absent fundamentals, adverse valid measurements, analytic power pooling, calibration, uncertainty and version compatibility. The reviewer matched the twelve frozen source hashes before execution; its later transport disconnect prevented its own post-test read, which root independently completed with all twelve hashes matching. These overlapping scopes are not added into a larger test count. The complete combined-suite result for this source is recorded above.
 
-`stylus_guided_capture` is implementing an approved coupled correction: an explicit guided-only analysis path uses the retained per-window measured fundamental for existing tone/THD routines, pools powers by sample count, applies calibration once, and persists the same metrics used by the benchmark. Nominal 1000 Hz remains separate provenance. Unknown measurements remain unavailable/excluded. A guided analysis-version increment distinguishes old fixed-frequency baselines; old rows and explicit operator-confirmed legacy behavior remain unchanged. The existing ±0.3%, −70 dBFS, harmonic and adverse-measurement policies stay intact.
+Local run evidence retains complete window objects; benchmark detail uses a named, lossless column encoding. Exact JSON roundtrip checks compare every retained field and value. Independent calibrated optional-timecode fixtures used **58,046**, **59,271** and **58,664** bytes at 10, 10.1 and 10.5 seconds respectively, below the unchanged **65,536-byte** limit. Oversized metadata blocks saving without discarding observations. Structured History and local analysis metadata do **not** imply archival of full PCM. New browser smoke is included but its current-source execution remains a hosted gate at publication. Physical cartridge/reference-record repeatability remains unqualified.
 
-The worker owns `app/stylus-benchmark.js`, `app/ui/workflows/stylus-benchmark.js`, `app/ui/analysis.js` and focused evidence/contract tests. Other frozen guided files must be preserved. `stylus_independent_review` must review the next freeze before publication. Root owns reports, workflows and integration. `compare_entrypoints` may research another small exact-model batch read-only; do not assume it is implemented. `fuzz_stress_resources` completed warning/stress review and released execution.
 
-Use **one local test owner at a time**, with `--test-concurrency=1`. Repeated overlapping runs showed substantial scheduling/resource disturbance. Do not launch another full local stress run; retain the failed runs and use CI. A stale `native_security_review` agent remains pending initialization and consumes a concurrency slot.
+## Exported ledger verification facts
 
-## Exact verification and limits
+The retained low-severity R4-21 finding was reproduced through the actual script extracted from an exported `renderLedgerHtml` page: a valid signature/hash result omitted the certificate facts it had checked. The page now snapshots integrity primitives and canonical payload bytes before awaiting cryptography. Bounded verdict, tester, serial and issue-time text comes from that same canonical snapshot. The result labels these as hash-checked content; the key fingerprint is separately identified as coming from the certificate's signature block. Existing signature-success, unavailable and invalid wording remains explicit. Hash mismatch/invalid content does not display checked facts. Rendering uses text content and preserves the export's privacy choices.
 
-| Revision or source | Observed result |
-|---|---|
-| `25e91e97fa2311e2e786894344297ccdc19ca849` / tree `b2c36fc3774831859a9d2073e657ec7f013d66d1` | Complete serial Node 22 suite: 1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds); before/after source hashes match. |
-| `9475ac5` native CI | 670 passed, eight ignored; fmt, compiler-warning and check passed; Clippy failed one example argument-count lint subsequently corrected by `fd39b14`. |
-| `ef49ed6` CI | Six optimized GLib regressions and 670 native tests passed, eight ignored; old warning grep failed on 34 dependency warnings. JavaScript 1,391 passed/one skipped; browser 1,293/1,293 passed. |
-| Long JS fuzz on frozen tree `6f9ab5666056fe64c96c870db80fe32ca07fbdca` | All 13 targets completed unchanged 120-second budgets across attempts. Initial phone/backup slow calls, mapper slow call and killed processes remain failures; this is not one clean combined invocation. |
-| Stress | Full run remains unqualified. Worker split quick run passed six cases, independent repeat passed three and failed three. The host OOM counter changed during both failed and successful runs, so exact cause/victim attribution remains unavailable. |
-| Local native/browser | Full native build lacks required GLib/GTK/WebKit/ALSA development metadata; Chromium launch remains blocked by the observed socket/environment limit. Do not repeat unchanged probes or alter environment/access policy. |
+Three additional actual-page regressions reproduced an older paste verification overwriting a newer verification or validation error. A request generation now owns the paste result; the listed-certificate comparison uses the recomputed checked hash. Canonical JSON ordering, SHA-256 arithmetic, seven cryptographic/canonical helper bodies, existing signed bytes and offline/CSP behavior remain unchanged. Worker verification passed **56/56** focused ledger/hash/privacy checks with no failures/skips, including **nine** actual exported-page scenarios. Root independently reviewed the production handler and all nine actual-page scenarios, confirmed the seven canonical/cryptographic helper bodies were unchanged, and executed the new scenarios as part of the complete combined suite. Three new browser smoke assertions remain pending hosted execution at publication. This clarification does not authenticate a tester's real-world identity or make an editable exported page tamper-proof.
 
-CI evidence: [parent native](https://github.com/djshellshoxxx/deckchek/actions/runs/44264888010), [ef49 platform caller](https://github.com/djshellshoxxx/deckchek/actions/runs/44265442094), [ef49 standalone](https://github.com/djshellshoxxx/deckchek/actions/runs/44265441929). Fetch the new head's own runs; do not reuse ancestor green checks as current qualification.
 
-Scratch evidence resides under `/workspace/scratch/a884a1d6c4d8/verification`: `accepted-foundation-source.json`, `accepted-foundation-js.log`, `warning-profile-focused.log`, `rust-warning-gate/`, `fuzz-stress-resources/`, `midi-ef49-independent/`, and `stylus-remote-independent/`. The old windowed freeze is `stylus-guided-windowed-freeze-20261118`; it is intermediate failure evidence, not the final accepted implementation. Reproduce from committed source if scratch is lost.
+## Preserved foundation and integration corrections
 
-## Resume commands and publication discipline
+Certificate/Verify cached-screen ownership, independent ZIP stream bounds, WASAPI probe cleanup, native MIDI queued-open cancellation and failed-output ownership are retained. Integration's `d9a2add` serializes the complete monitor settings-write/prune operation, snapshots the submitted settings and preserves retry/partial-failure semantics. The separate GLib 34-syntax-correction patch and its expanded provenance guards are retained with the official two-line soundness fix. Root independently reversed both patches to every original byte. The original MIT license, upstream 0.18.5 version and all three Cargo root selections remain unchanged.
 
-Repository: `/workspace/scratch/a884a1d6c4d8/deckchek`. The isolated accepted-source checkout is `/workspace/scratch/a884a1d6c4d8/verification/accepted-foundation-checkout`.
+The exact Cargo package/manifest warning gate preserves dependency diagnostics and every build/parser/stream failure. Existing long stress workloads are isolated into fresh processes without changing fixtures, assertions or budgets. The platform/nightly PR triggers include main and integration/**, keep read permissions, and retain tag-only release publication. The ignore-only branch adds Python bytecode exclusions while retaining existing worktree ignores.
+
+## Qualification of this continuation
+
+| Source and scope | Observed result | Boundary |
+|---|---|---|
+| `1943ef024bdc6abfe4ac32b4c368b764b75a0c86` / tree `c0b6a7033318eeb646cfb2c49e7f05029ece653d` | Complete Node 22.23.5 suite: 1,500 passed, zero failed, 1 optional skip (1,501 total; 230.785 seconds); serial file execution; source hashes unchanged | Current combined JavaScript source pass |
+| Current focused/static checks | Device index, timecode facts, migration numbering, mobile vendor copies, third-party notices, generated device coverage and all 352 JavaScript module syntax checks passed. Application and GLib regression-harness formatting passed; the GLib source/provenance check with Cargo metadata passed. The separate monitor performance test passed 1/1 in 0.956 seconds, observing mean 0.328 ms per hop, worst 1.04 ms and heap growth 0.06 MB under its unchanged budgets. | These checks do not substitute for current hosted native or browser execution |
+| Integration `0acb612`, standalone run [44273893598](https://github.com/djshellshoxxx/deckchek/actions/runs/44273893598) | **674** application Rust tests passed, zero failed/eight ignored; **6** optimized actual-GLib tests passed; fmt, warning check, cargo check and strict Clippy passed. JavaScript **1,428 passed, zero failed, one skipped**, 91.216 seconds; separate performance case passed. Browser **1,293/1,293**, no console errors | Root retrieved job logs; CI merge `c03501c` and `0acb612` have identical tree `536fda86a7b14d348b4855c893e87e368ed85c00`. This does not qualify later source automatically |
+| Integration platform caller [44273893490](https://github.com/djshellshoxxx/deckchek/actions/runs/44273893490) | Browser **1,293/1,293**, no console errors; later platform/native/package outcomes are tracked separately | The successful browser job alone is not packaged-platform acceptance |
+| Foundation `25e91e9` / tree `b2c36fc` | **1,431 passed, zero failed, one skipped**, 123.913 seconds | Historical reviewed foundation, before the newer GLib/monitor and guided corrections |
+| Integration report at `5960099` | Its author recorded **1,428/0/1** in 125.033 seconds after a prior serial **1,424/0/1** run at `e43be06` | Attributed historical local evidence, independently followed by the `0acb612` hosted results above |
+| Earlier parallel integration repeat | **1,340 passed, nine failed, one skipped**: eight SIGKILL workers and certificate timing 1,707 ms against its unchanged 1,000 ms limit | Failed evidence retained; termination cause was not proven |
+| Full stress and combined long fuzz | Unqualified on the current source | Preserve the completed individual target budgets and every failed/killed attempt; no budget or assertion was relaxed |
+
+Current broad Sonar evidence remains unavailable. The latest checked integration external status is Snyk's “No manifest changes detected in 5 projects”; it is not a fresh comprehensive security or Sonar analysis. Local full native compilation still lacks required development metadata, and local Chromium launch remains blocked by the observed socket restriction. Supported hosted workflows provide these prerequisites. No unchanged blocked launch/build was retried.
+
+
+## Execution discipline and retained evidence
+
+Use one local test owner at a time and serial Node 22 file execution. Overlapping/parallel suites produced substantial resource disturbance. Do not repeat the unchanged local Chromium/native prerequisite blockers or launch another local full stress run. Full stress and a clean combined long fuzz invocation remain CI gates. All 13 JavaScript fuzz targets previously completed unchanged 120-second budgets across retained attempts; initial timeout and killed attempts remain failures, not a clean combined pass. The full and quick stress failures remain in the readiness report, including the host-wide counter ambiguity.
+
+The complete combined source was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-30-checkout`. Scratch evidence under `/workspace/scratch/a884a1d6c4d8/verification` includes `continuation-30-full-js.log`, `continuation-30-source-freeze.json`, `continuation-30-report-facts.json`, `continuation-30-remote-evidence.json`, `continuation-30-integration-js-ci.json`, `stylus-guided-hann-freeze-20261118/`, `stylus-remote-independent/`, `ledger-verified-facts-freeze-20261118/`, `glib-0acb-independent/`, `rust-warning-gate/`, and `fuzz-stress-resources/`. Reproduce from committed source if scratch is lost. Earlier coupled/windowed stylus snapshots remain failure history; do not restore them over version 3.
+
+## Resume commands and ownership
+
+Repository: `/workspace/scratch/a884a1d6c4d8/deckchek`. The reviewed guided and ledger implementers and reviewers have released their source and execution ownership. Root owns integration, reports, workflow reconciliation and publication. A stale `native_security_review` agent may remain pending initialization; do not assume it performed new work.
 
 ```sh
 git status --short
+git fetch --no-tags origin
 git log -5 --oneline
-git fetch origin main integration/deckchek-consolidation-20261118 review/deckchek-lifecycle-20261118
-```
-
-After checking ownership and freezing source, use the task-local supported Node runtime:
-
-```sh
 /workspace/scratch/a884a1d6c4d8/fs35-node22-npm-cache/_npx/e5e7bdc4f892e393/node_modules/node/bin/node --test --test-concurrency=1 tests/*.test.mjs
 ```
 
-Task-local Rust settings, for supported small fixtures and formatting:
+Freeze source and check the sole execution owner before rerunning tests. Native Git push/gh lacks authentication here; use the supported GitHub connector to create trees/commits and update only the owned ref with an expected-head lease. A rejected lease requires refresh/reconciliation, never force. Preserve concurrent working files during local adoption. Add a source commit and report-only child before one ref update, avoiding redundant CI restarts while reports are prepared.
 
-```sh
-export CARGO_HOME=/workspace/scratch/a884a1d6c4d8/toolchain/cargo
-export RUSTUP_HOME=/workspace/scratch/a884a1d6c4d8/toolchain/rustup
-export PATH="$CARGO_HOME/bin:$PATH"
-```
+## Next work and gates
 
-Native Git push and `gh` lack authentication. The GitHub connector can create trees/commits and update the owned branch with an expected-head lease. Assemble and hash an explicit allowlist; preserve both integration histories; inspect a rejected lease before retrying. Do not bulk-stage unreviewed guided changes or concurrent work. The integration retains exact upstream vendor bytes; do not rewrite those bytes to satisfy cosmetic whitespace checks.
+1. Follow PR30's own native/browser/platform/extended runs. Fix concrete failures without weakening assertions, budgets, compiler warnings or strict Clippy. Earlier green ancestors do not qualify changed source.
+2. Obtain a current broad Sonar result through supported access. The public route previously returned 403 and no authenticated Sonar capability was exposed; Snyk's no-manifest-change status is not a substitute. Recheck repository approvals/protections before merge.
+3. Continue small manufacturer-sourced profile batches. The remaining 24 conditional audio cases retain unknown fields until exact-model evidence resolves them. Preliminary next research exists for S4 MK3, Mixtrack Platinum FX and Roland DJ-808; it is not implemented or qualified by this checkpoint.
+4. Continue specified unblocked feature work from the completion ledger. Stable physical MIDI identity, conditional MIDItest consumer/contracts, broader FS-15 isolation/incident-history design, PDF-embedded certificate payloads and advanced vinyl classifiers retain their distinct scope/evidence prerequisites. Do not infer owner-level licensing, hosting, identity or distribution decisions.
+5. Merge only after applicable gates pass. Close superseded PRs only after contribution-preserving replacement reaches main. Physical repeatability, real databases, supported driver/hardware combinations, phones, interoperability, signing/notarization and distribution acceptance remain external qualification. No release, tag or deployment is authorized.
 
-## Next actions
-
-1. Monitor the new head's tests, package/self-test and extended workflows; fix concrete failures while retaining all evidence and budgets.
-2. Complete and independently review the coupled guided measurement correction, including actual History serialization, optional timecode/calibration detail size, coherent offsets, drift, phase/amplitude changes, differing channels, high harmonics and adverse separation. Then publish a separately reviewed source update and qualify it on CI.
-3. Continue small primary-source hardware research batches only where evidence resolves actual capability fields; retain unknown hardware/firmware/mapping facts.
-4. Obtain current broad Sonar evidence through supported access. The previous public export returned 403, and ordinary tests do not clear historical findings. No acceptance or suppression was authorized. Preserve SHA-256 modular arithmetic and canonical UTF-16 ordering when reviewing analyzer findings.
-5. Complete current-source Windows/PDF, sanitizer, long combined fuzz, full stress and platform artifacts/self-tests. No tag, release or deployment is authorized. Hardware acceptance, signing/notarization credentials and owner-level product decisions remain distinct blockers.
-6. Merge only verified changes. Reconcile PR #28's stale pre-backport advisory narrative; close superseded PRs only after contribution-preserving replacement reaches main. Continue the completion ledger's unblocked work afterwards.
-
-Compatibility rules: FS-35 stimulus version 1 and analysis revision 2 remain; the −12 dBFS output cap is unchanged. Missing capture counters remain unobserved/REVIEW, not zero loss. Shared MIDI drop counts do not identify one device. Same-name physical MIDI replacement and unreadable-name ambiguity remain unqualified. Historical certificates/results/migrations are not rewritten. Structured History plus local metadata does not imply a raw PCM archive. The intermittent untouched-baseline Node 24 numerical anomaly has no confirmed JIT/root cause; supported Node 22 evidence must not be generalized beyond tested source.
-
-The available OpenAI implementation/review agents and Caveman guidance were used. Claude Opus 5.5 was not exposed in this environment and was not represented as having performed the work.
+Fleet remains OFF by default; safe output levels, migration history, stored raw observations and valid signed certificates are preserved. OpenAI implementation/review agents and Caveman guidance were used. Claude Opus 5.5 was not exposed and is not represented as having performed this session's work.
 
 ## Reports
 
-- [Branch/PR audit](DECKCHEK-BRANCH-AUDIT.md): ancestry, patch equivalence and contribution dispositions.
-- [Consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md): preserved source and integration decisions.
-- [Completion ledger](DECKCHEK-COMPLETION-LEDGER.md): implemented, under-review, unqualified and blocked features.
-- [Security audit](DECKCHEK-SECURITY-AUDIT.md): reproduced failures, fixes and residual risks.
-- [Release readiness](DECKCHEK-RELEASE-READINESS.md): exact passes, failures and unavailable gates.
+- [Branch and PR audit](DECKCHEK-BRANCH-AUDIT.md)
+- [Consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md)
+- [Completion ledger](DECKCHEK-COMPLETION-LEDGER.md)
+- [Security audit](DECKCHEK-SECURITY-AUDIT.md)
+- [Release readiness](DECKCHEK-RELEASE-READINESS.md)

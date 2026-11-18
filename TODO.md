@@ -2,7 +2,7 @@
 
 ## Current continuation snapshot
 
-The reviewed source checkpoint is `25e91e97fa2311e2e786894344297ccdc19ca849` in [PR #29](https://github.com/djshellshoxxx/deckchek/pull/29), targeting the consolidation branch in PR #27; `main` is unchanged. The complete combined Node 22 suite passed **1,431 passed, zero failed and 1 optional skip (1,432 total; 123.913 seconds)**. This checkpoint preserves the reviewed native MIDI ownership corrections and exact GLib source backport, corrects Cargo warning attribution without hiding dependency diagnostics, isolates unchanged stress workloads for accurate memory accounting, and researches two existing hardware profiles. The catalog remains 45 profiles with 506 handwritten and 187 generated tests; conditional audio cases decrease from 29 to 27. Guided FS-12 corrections remain unpublished while coupled reference-frequency and measurement defects are resolved. All 13 long JavaScript fuzz targets completed their budgets across retained attempts, but a clean combined run and full stress remain unqualified. Current native, browser, platform, broad Sonar and release gates remain open. See the six continuation reports for exact evidence and limitations.
+The reviewed continuation source is `1943ef024bdc6abfe4ac32b4c368b764b75a0c86` in [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30), targeting PR #27's existing integration branch. PR29 already merged its older fd39b145 head; main remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`. The combined Node 22 suite passed **1,500 passed, zero failed, 1 optional skip (1,501 total; 230.785 seconds)** with source unchanged. Guided stylus version 3 now couples complete-capture reference validation and Hann-normalized measurements with explicit uncertainty, provenance and History persistence; ledger verification reports the checked certificate facts with owned asynchronous results. Five researched profiles retain 45 models, 506 handwritten checks, 187 generated checks and 24 conditional audio cases. Monitor serialization, both GLib patches and their provenance, native MIDI/ZIP ownership, exact-package warning gates and unchanged stress workloads are retained. Current hosted/native/browser/platform/extended, broad Sonar, full stress, hardware and release gates remain separately tracked. See the six continuation reports for exact evidence and limitations.
 
 See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detailed code/spec reconciliation.
 
@@ -51,8 +51,8 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Test-media library (FS-06), external links (FS-07), backup/restore and Data screen (FS-08).
 - [x] Feature flags, migration runner (0001-0005) and upgrade fixtures (v0.04, v0.0.5).
 - [x] Timecode facts confirmed against xwax.
-- [x] Windows CI including ui-smoke and the PDF spike.
-- Flags: `setupWizard`, `pdfExport`, `backup` default on; `diagnosticsBundle`, `testMedia` and all M6+ flags default off until the owner's hardware run passes.
+- [x] Windows Rust/PDF-spike checks are defined in `nightly.yml`; Playwright UI smoke runs in the Linux job of `test.yml`.
+- Flags: `setupWizard`, `pdfExport`, `backup` and `testMedia` default on. `diagnosticsBundle` is always available; its registry flag has no effect. M6+ flags remain off by default while their qualification gates are open.
 - Known limits: hardware runs pending (docs/testing/results/v0.0.5.md), unsigned installers, no auto-update, first PDF export slow (WebView2 warm-up).
 
 ## M7 wave 0 (foundations, done)
