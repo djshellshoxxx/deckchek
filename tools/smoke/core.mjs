@@ -468,6 +468,17 @@ async function devicesDesktop(page) {
   check('MIDI conformance: clean identified stream saved as PASS', conf?.status === 'pass' && conf.detail.measurements.find(m => m.metricId === 'midi_identity_reply')?.value === 1 && conf.detail.measurements.find(m => m.metricId === 'midi_message_count')?.value === 5, conf?.status);
   await shot(page, 'device-midi-conformance-dark');
 
+  // SPEC-34 auto-added audio:quality (SPEC-35): desktop setup view only (no playback in the mock)
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  await page.click('button[data-run-test="auto-audio-quality"]');
+  await page.waitForSelector('#aq-setup-title');
+  check('Audio quality: setup lists native outputs and keeps the -12 dBFS safety copy', (await page.locator('#aq-out option').count()) === 2 && /never plays louder than -12 dBFS/.test(await page.locator('#dev-runner').innerText()) && (await page.inputValue('#aq-level')) === '-12');
+  check('Audio quality: Run is enabled with an output and an input; no Skip on an unconditional test', await page.isEnabled('#aq-run') && (await page.locator('#aq-skip').count()) === 0);
+  const aa = await a11yAudit(page);
+  check('Audio quality: a11y names + target sizes', !aa.unnamed.length && !aa.small.length, [...aa.unnamed, ...aa.small].slice(0, 3).join(' | '));
+  await shot(page, 'device-audio-quality-dark');
+
   // no MIDI device present -> clear empty state
   await page.evaluate(() => { window.__mockMidi.ports = []; });
   await page.click('#dev-run-back');

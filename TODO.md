@@ -82,6 +82,8 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 
 - [x] FS-34 capability model, baseline plan and coverage audit; `npm test` checks `docs/testing/DEVICE-TEST-COVERAGE.md` (45/45 profiles, 0 gaps).
 - [x] FS-36 `midi:conformance` and `midi:gm` panels with connection-ownership regressions; spec/analyzer discrepancies reconciled; burst rate.
+- [x] FS-35 output audio-quality test (`audio:quality`) with lease-scoped capture, owned-voice cancellation and simulated-device tests; Skip for conditional (no audio output) units.
+- [ ] FS-35: run against real hardware (interface loopback calibrated first) and tune the default thresholds; Esc/Enter shortcuts and a progress bar are not implemented. Its live capture shows as "A live capture" in other features' busy dialogs.
 - [ ] Record `connectivity.audio.usbChannelsOut` (or `audio: null`) for the 29 controller profiles whose audio test is still conditional, from manufacturer sources.
 - [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify manufacturer ids in real Identity Replies against the MIDI Association list.
 - [ ] Hardware: run MIDI conformance against real controllers (Active Sensing, Clock, Identity Reply) and the GM check against a real GM sound source.

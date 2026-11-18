@@ -34,7 +34,13 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 
 ### FS-36 selective consolidation
 
-PARTIAL: the pure MIDI conformance analyzer, Identity Reply parser, General MIDI sequence builder and their tests are ported from PR9 with strict byte validation, corrected audible timing and large-stream handling, invalid-answer rejection and manual provenance for subjective GM results. `app/midi-conformance.js` and `tests/midi-conformance.test.mjs` cover the pure portion of AC-1–AC-4. UI panels, profile/dispatch wiring, ownership/cancellation integration, AC-5 and hardware qualification remain open. See `docs/specs/36-general-midi-test.md` for the original full-feature acceptance criteria and retained spec/source discrepancies. This does not include FS-34 or FS-35.
+PARTIAL (software implemented, hardware unqualified; updated 2026-11-18): the pure analyzer, Identity Reply parser and GM sequences (PR21/22) plus the `midi:conformance` and `midi:gm` Devices panels, dispatch/validation and FS-34 auto-adding, with connection-ownership regressions (`tests/midi-fs36-ui.test.mjs`) and a core smoke run of the DJM-A9 auto conformance test. Spec/analyzer discrepancies (identity severity, 14-bit threshold, burst rate) are reconciled in the spec without threshold changes. Open: real Identity Replies, an audible GM source, physical streams.
+
+### FS-34 device test completeness and FS-35 output audio quality (PR9 consolidation, 2026-11-18)
+
+FS-34 DONE in software: `app/devices/test-plan.js`, `tools/check-device-coverage.mjs`, `docs/testing/DEVICE-TEST-COVERAGE.md` (45/45 profiles, 0 gaps; checked by `npm test` in `tests/device-test-plan.test.mjs`). Audio-output tests are conditional for 29 controllers whose profile does not record an output count. The FS-20 certificate plan excludes these auto tests.
+
+FS-35 PARTIAL, software only: `app/audio-quality.js`, `app/devices/audio-session.js`, `app/ui/devices/audio-runner.js`; six PR9 ownership/cancellation defects fixed with regressions (`tests/audio-session.test.mjs`, `tests/audio-runner-lifecycle.test.mjs`, `tests/audio-quality.test.mjs`). No hardware/loopback run; thresholds are DeckChek test definitions.
 
 ## Architecture specs (SPEC-00..SPEC-20)
 

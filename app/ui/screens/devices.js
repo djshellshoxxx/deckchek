@@ -19,6 +19,7 @@ import { takeHandoff } from '../crosslinks.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
 import { runTimecode } from '../devices/timecode-runner.js';
 import { runMidi } from '../devices/midi-runner.js';
+import { runAudio } from '../devices/audio-runner.js';
 // [FS-22] job mode imports
 import { isEnabled as featureEnabled } from '../../features.js';
 import { navigateTo } from '../crosslinks.js';
@@ -424,7 +425,7 @@ export function createDevicesScreen(section) {
     };
     if (d.runner === 'midi') { try { ctx.learned = await store.getMidiMap(unit.id); } catch { ctx.learned = null; } }
     if (!host.isConnected) return;
-    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi }[d.runner];
+    const runner = { manual: runManual, driver: runDriver, software: runSoftware, timecode: runTimecode, midi: runMidi, audio: runAudio }[d.runner];
     // A method can dispatch to a runner this build does not ship: say so instead of throwing.
     if (!runner) { host.replaceChildren(h('div', { class: 'empty empty-sm', html: `${icon('info', { size: 32 })}<h2>This test cannot run here yet</h2><p>${esc(methodLabel(test))} has no runner in this version of DeckChek.</p>` })); st.runner = null; return; }
     st.runner = runner(host, ctx) || null;

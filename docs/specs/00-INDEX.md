@@ -30,6 +30,7 @@ Status legend: **Ready** = implementable as written; **Ready\*** = implementable
 | [FS-32](32-midi-mapper-studio.md) | MIDI mapper studio (Mixxx, VDJ; Serato/Traktor report) | Implemented (HW: H-32; VirtualDJ format unverified) | L | FS-00 (userfiles) | M8 | 0020 | `mapperStudio` |
 | [FS-33](33-gear-ledger.md) | Gear ledger static export | Implemented (HW: H-33) | L | FS-00 (photo, canonical, userfiles), FS-20 | M8 | 0021 | `gearLedger` |
 | [FS-34](34-device-test-completeness.md) | Device test completeness (capabilities, baseline plan, coverage audit) | Implemented in software (45/45 profiles, 0 gaps; audio output conditional where unrecorded) | M | device library, FS-35, FS-36 | PR9 consolidation | — | — |
+| [FS-35](35-audio-quality-test.md) | Output audio-quality test | See FS-35 status (software port; no hardware/loopback qualification) | L | FS-00 (audio_out, capture), calibration | PR9 consolidation | — | — |
 | [FS-36](36-general-midi-test.md) | General MIDI conformance and sound check | Partial: analyzer, panels, dispatch and ownership regressions implemented; hardware (real Identity Reply, audible GM source) pending | M | MIDI bridge and connection ownership | PR9 consolidation | — | — |
 
 Numbering gaps (04, 05, 09, 16–19, 24–29) are intentional; they leave room for future specs in the same groups (essentials 0x, DJ 1x, pro 2x, companion 3x).
