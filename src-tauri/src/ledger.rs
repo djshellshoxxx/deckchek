@@ -794,7 +794,9 @@ pub async fn ledger_export_record(
 mod tests {
     use super::*;
     use crate::db::{applied_migrations, apply_migrations};
-    use crate::userfiles::{write_folder, FolderFile, UserFileError};
+    #[cfg(unix)]
+    use crate::userfiles::UserFileError;
+    use crate::userfiles::{write_folder, FolderFile};
     use serde_json::json;
     use std::path::{Path, PathBuf};
 

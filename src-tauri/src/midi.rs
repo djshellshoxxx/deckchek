@@ -757,7 +757,12 @@ mod tests {
     /// pool, never on the main (UI) thread. Scans this file's own source.
     #[test]
     fn regression_aud_03_midi_device_commands_run_off_the_main_thread() {
-        let src = include_str!("midi.rs");
+        assert_midi_device_commands_off_main_thread(include_str!("midi.rs"));
+    }
+
+    fn assert_midi_device_commands_off_main_thread(src: &str) {
+        // include_str! retains CRLF from Windows checkouts.
+        let src = src.replace("\r\n", "\n");
         for name in ["midi_list_ports", "midi_open_input"] {
             assert!(
                 !src.contains(&format!("pub fn {name}(")),
@@ -772,6 +777,38 @@ mod tests {
                 body.contains("spawn_blocking"),
                 "{name} must run its body via spawn_blocking"
             );
+        }
+    }
+
+    #[test]
+    fn regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands() {
+        let fixture = concat!(
+            "pub async fn midi_list_ports() {\n    spawn_blocking(|| midi_list_ports());\n}\n",
+            "pub async fn midi_open_input() {\n    spawn_blocking(|| midi_open_input());\n}\n",
+        );
+        for src in [fixture.to_owned(), fixture.replace('\n', "\r\n")] {
+            assert_midi_device_commands_off_main_thread(&src);
+            for name in ["midi_list_ports", "midi_open_input"] {
+                for unsafe_src in [
+                    src.replace(&format!("pub async fn {name}("), &format!("pub fn {name}(")),
+                    src.replace(
+                        &format!("pub async fn {name}("),
+                        "pub async fn other_command(",
+                    ),
+                    src.replace(
+                        &format!("spawn_blocking(|| {name}())"),
+                        &format!("{name}()"),
+                    ),
+                ] {
+                    assert!(
+                        std::panic::catch_unwind(|| {
+                            assert_midi_device_commands_off_main_thread(&unsafe_src)
+                        })
+                        .is_err(),
+                        "unsafe {name} must still be rejected"
+                    );
+                }
+            }
         }
     }
 }

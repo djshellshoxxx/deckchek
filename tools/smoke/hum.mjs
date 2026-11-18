@@ -131,7 +131,9 @@ export default async function run({ browser, base, check, SHOTS }) {
     await createCatalogStore().upsert('venue', { id: 'incident-smoke-venue', name: 'Incident smoke venue' });
   });
   await pb.click('#hum-tab-incidents');
-  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]');
+  // Options in a collapsed select need to be attached, not independently visible.
+  // selectOption below still waits for the actual select to be actionable.
+  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]', { state: 'attached' });
   await pb.selectOption('#incident-venue', 'incident-smoke-venue');
   await pb.fill('#incident-note', 'Left deck <img src=x onerror=alert(1)>');
   await pb.focus('[data-incident-kind="booth_shock"]'); await pb.keyboard.press('Enter');

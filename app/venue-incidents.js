@@ -86,6 +86,25 @@ function savedRecord(value) {
     return { ...draft, origin: 'operator', recordedAt: timestamp(value.recordedAt, 'Recorded time') };
   } catch (error) { throw new IncidentError('INCIDENT_STORAGE', `Saved incident is invalid: ${error.message}`); }
 }
+const sameSavedValue = (a, b) => {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a) && a.length !== b.length) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && sameSavedValue(a[key], b[key]));
+};
+
+/** Archive validation must not normalize a supplied persistence record. Ordinary
+ * save/list callers retain their existing draft normalization behavior. */
+export function validateSavedIncident(value) {
+  const record = savedRecord(value);
+  if (!sameSavedValue(record, value)) throw new IncidentError('INCIDENT_STORAGE', 'Saved incident is not in its complete saved form');
+  // The existing browser key format URI-encodes IDs. Reject an unrestorable
+  // saved ID during whole-file preflight, before any earlier row can append.
+  try { encodeURIComponent(record.id); }
+  catch { throw new IncidentError('INCIDENT_STORAGE', 'Saved incident ID contains an unencodable character'); }
+  return record;
+}
 const submission = record => Object.fromEntries(DRAFT_KEYS.map(key => [key, record[key]]));
 function retry(existing, draft) {
   if (JSON.stringify(submission(existing)) !== JSON.stringify(draft)) throw new IncidentError('INCIDENT_CONFLICT', 'This incident ID already belongs to a different report');
@@ -168,14 +187,40 @@ export function createVenueIncidentStore({ invoke, storage, catalog, now = () =>
     } catch (error) { throw new IncidentError('INCIDENT_STORAGE', error.message); }
   };
   const keyFor = id => STORAGE_PREFIX + encodeURIComponent(id);
-  const readAll = () => {
+  const readAll = (archive = false, { maxRecords = Infinity, maxBytes = Infinity } = {}) => {
     try {
-      const target = localStorage(), keys = Array.from({ length: target.length }, (_, index) => target.key(index)).filter(key => typeof key === 'string' && key.startsWith(STORAGE_PREFIX));
-      return keys.map(key => {
-        const row = savedRecord(JSON.parse(target.getItem(key)));
+      const target = localStorage();
+      let keys, length, bytes = 0;
+      if (archive) {
+        if ([maxRecords, maxBytes].some(value => value !== Infinity && (!Number.isSafeInteger(value) || value < 0))) throw new Error('Invalid archive read bound');
+        length = target.length;
+        if (!Number.isSafeInteger(length) || length < 0 || typeof target.getItem !== 'function') throw new Error('Storage key enumeration is unavailable');
+        keys = []; const seen = new Set();
+        for (let index = 0; index < length; index++) {
+          const key = target.key(index);
+          if (typeof key !== 'string' || seen.has(key)) throw new Error('Storage key enumeration changed or is unavailable');
+          seen.add(key);
+          if (key.startsWith(STORAGE_PREFIX)) {
+            keys.push(key);
+            if (keys.length > maxRecords) throw new Error('Incident history exceeds the archive record bound; nothing was truncated');
+          }
+        }
+        if (target.length !== length) throw new Error('Storage key enumeration changed');
+      } else keys = Array.from({ length: target.length }, (_, index) => target.key(index)).filter(key => typeof key === 'string' && key.startsWith(STORAGE_PREFIX));
+      const records = keys.map(key => {
+        const raw = target.getItem(key);
+        if (archive) {
+          if (typeof raw !== 'string') throw new Error('An incident record could not be read');
+          bytes += new TextEncoder().encode(raw).length;
+          if (bytes > maxBytes) throw new Error('Incident history exceeds the archive byte bound; nothing was truncated');
+        }
+        const value = JSON.parse(raw);
+        const row = archive ? validateSavedIncident(value) : savedRecord(value);
         if (key !== keyFor(row.id)) throw new Error('Incident key does not match its record');
         return row;
       });
+      if (archive && target.length !== length) throw new Error('Storage key enumeration changed');
+      return records;
     } catch (error) { throw new IncidentError('INCIDENT_STORAGE', `Incident history could not be read: ${error.message}`); }
   };
   const call = async (fn, command, args) => {
@@ -186,6 +231,39 @@ export function createVenueIncidentStore({ invoke, storage, catalog, now = () =>
     .sort(compareKeys);
   return {
     get native() { return Boolean(bridge()); },
+    readArchive(limits) {
+      if (bridge()) throw new IncidentError('INCIDENT_UNSUPPORTED', 'Venue-history archives read browser storage only');
+      return readAll(true, limits);
+    },
+    /** Preflight once, then recheck each ID immediately before its synchronous
+     * append. The caller preflights both history stores before using any entry. */
+    prepareArchiveRestore(values, limits) {
+      if (bridge()) throw new IncidentError('INCIDENT_UNSUPPORTED', 'Venue-history archives restore browser storage only');
+      if (!Array.isArray(values)) invalid('Saved incidents must be an array');
+      const records = values.map(validateSavedIncident);
+      if (new Set(records.map(row => row.id)).size !== records.length) invalid('Duplicate incident ID in archive');
+      const existing = new Map(readAll(true, limits).map(row => [row.id, row]));
+      if (typeof localStorage().setItem !== 'function') throw new IncidentError('INCIDENT_STORAGE', 'Browser storage cannot write records');
+      return records.map(record => ({
+        kind: 'incident', id: record.id, present: existing.has(record.id),
+        conflict: existing.has(record.id) && !sameSavedValue(existing.get(record.id), record),
+        restore() {
+          try {
+            const target = localStorage(), key = keyFor(record.id), raw = target.getItem(key);
+            if (raw !== null) {
+              const current = validateSavedIncident(JSON.parse(raw));
+              if (!sameSavedValue(current, record)) throw new IncidentError('INCIDENT_CONFLICT', 'This incident ID has different saved evidence or persistence metadata');
+              return 'present';
+            }
+            target.setItem(key, JSON.stringify(record));
+            return 'added';
+          } catch (error) {
+            if (error instanceof IncidentError) throw error;
+            throw new IncidentError('INCIDENT_STORAGE', `Incident restore could not be confirmed: ${error.message}`);
+          }
+        },
+      }));
+    },
     async save(input) {
       const draft = normalizeIncidentDraft(input), fn = bridge();
       if (fn) return retry(savedRecord(await call(fn, 'venue_incident_save', { input: draft })), draft);

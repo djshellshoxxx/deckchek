@@ -187,3 +187,124 @@ Saved-evidence algebra uses a separate rule: if either compared power is exactly
 6. **History, reports and portability.** UI and venue report each load up to 50 newest observations and 50 newest comparisons, disclose shown/total counts and retain older rows. Ordering uses canonical UTC time then descending Unicode scalar ID, matching SQLite BINARY. Reports separate current catalog descriptions from historical captured context, escape operator text and include original support/setup/settings and calibration provenance, analyzed coverage, quality/rejection reasons and B−A direction. Any history load or missing/corrupt original prevents a successful report; an omitted optional store is explicitly “not loaded.” Native tables participate in complete SQLite backup. Browser workspace JSON does not include support observations/comparisons; browser storage and a bounded readable venue report are the available persistence/export scope for this slice.
 
 Focused proof lives in `tests/support-isolation.test.mjs`, `tests/support-isolation-ui.test.mjs`, `tests/m6-reports.test.mjs`, the shared `tests/contracts/support-isolation.json`, and the actual native module's in-memory/connection tests. The production-handler tests exercise capture A → support B → explicit comparison → reload → report, plus failed/lost saves, hidden ownership, stale reads, escaping and explicit report errors. The lightweight native harness includes the exact production core, its tests, production migration/clock helpers and all 24 migrations; it excludes Tauri adapters/macros and the full desktop build. Hosted Chromium smoke and full native application gates remain separate qualification; no software fixture establishes hardware or venue accuracy.
+
+## 15. Browser venue-history archive — additive portability slice (2026-11-18)
+
+This adds structured browser-history portability to the boundaries recorded in
+§12 and §14. Data exposes a separate versioned archive for all retained manual
+incidents, original support observations and base comparison records. Current
+editable catalogs remain outside this slice. Workspace JSON v1, native commands,
+migrations, database backup, measurement math and Fleet OFF are unchanged. The
+complete format and recovery contract is in [Browser venue-history
+archive](../venue-history-archive.md).
+
+Acceptance criteria:
+
+1. **Complete bounded export.** The exact six-field envelope uses
+   `format: "deckchek-venue-history"`, `formatVersion: 1`, canonical UTC
+   `exportedAt`, `incidents`, `supportObservations` and `supportComparisons`.
+   Export bypasses display/report row limits and retains older records. Files
+   over 32 MiB UTF-8 or 10,000 total records fail without truncation. Strict
+   source readers apply early record/raw-byte bounds and abort on any corrupt
+   record or unavailable/changing enumeration.
+2. **Unchanged saved evidence.** Existing validators check complete saved forms;
+   the archive cannot normalize away nullable fields, change numeric values or
+   strip allowed legacy metadata. Original IDs, times, origin, context, raw JSON
+   text, calibration, PSD, uncertainty, reasons and `contextIssues` are preserved.
+   Restore never calls ordinary save or current catalog lookup.
+3. **Complete graph and exact conflict policy.** Every comparison includes both
+   valid originals in the archive and passes the existing method/algebra/result
+   checks. Incident IDs have their own namespace; support observations and
+   comparisons share one. An exact duplicate includes persistence metadata and
+   the complete saved result, with object-key order irrelevant. Changed
+   `recordedAt`, `contextIssues`, result or record kind conflicts. Malformed IDs,
+   graphs, methods, algebra or envelope fields fail before writes.
+4. **Preflight and resumable append.** File selection and preview do not write.
+   Explicit Import revalidates the complete file and both target stores before
+   any append. Conflicts or corrupt target history cause zero writes. Each ID is
+   rechecked immediately before a synchronous write; observations precede their
+   comparisons. A failed write stops the batch with confirmed-new, exact-match
+   and remaining/unconfirmed counts. Earlier successful records stay stored.
+   There is no overwrite, pruning or rollback-delete flow. Unchanged reimport
+   resumes after reload or lost response without rewriting exact matches.
+5. **Owned UI actions.** Selected-file generations own asynchronous reads and
+   previews. New selection, hide/show and disposal retire old results/errors.
+   A dispatched import retains its copied original submission; duplicate presses
+   and pending selection changes cannot replace it. Retired retries cannot act
+   on a newer file. File names, conflict IDs and outcomes render as text.
+6. **Honest context and limits.** All-venue incident/support panels can display
+   imported records without current catalog entries; reports require a matching
+   current venue ID. The import does not manufacture catalogs or relabel old
+   evidence. Browser storage provides no multi-key transaction or cross-tab
+   compare-and-set guarantee. Structural validation is not authenticity or
+   physical qualification; prior provenance, unknown uncertainty and audio
+   retention contracts remain unchanged.
+
+Proof uses `tests/venue-history-archive.test.mjs` and
+`tests/venue-history-archive-ui.test.mjs` with actual stores and Data handlers,
+including 302 incidents, 102 observations and 101 comparisons, oldest-reference
+retention, exact reimport, corrupted source/target bytes, malformed input,
+first/middle/last write failures and resumed import. Existing incident, support
+and Data tests provide bounded regression coverage. Root owns the separate
+hosted Chromium smoke; no full native or physical qualification is inferred.
+
+## 16. Browser current-catalog archive — support/setup portability (2026-11-18)
+
+This separate additive slice makes current Equipment catalog descriptions
+portable without changing the immutable venue-history format in §15. Data
+exports all six current catalog collections and embedded setup components,
+including retained retired assets and valid legacy metadata. The complete
+contract is in [Browser Equipment catalog archive](../catalog-archive.md).
+
+Acceptance criteria:
+
+1. **Exact saved context.** A distinct `deckchek-catalog` version-1 envelope
+   preserves original record/component IDs, field absence versus null,
+   timestamps, component order, literal support structure JSON, retirement
+   state and unknown valid catalog metadata. Ordinary upsert/filter operations
+   are not used to restore saved values. Finite plain-JSON, depth-24, 32 MiB
+   UTF-8 and 10,000-known-record bounds reject entire operations rather than
+   omit records; setup components count toward the record bound.
+2. **Complete known graph.** Products reference included manufacturers, assets
+   reference included products, setups reference included venues/supports, and
+   every component references an included asset. Incoming, target and proposed
+   merged catalogs are validated. Duplicate identities, missing parents and
+   component IDs assigned to different setups fail before a write. Separate
+   catalog entities retain separate ID namespaces.
+3. **Honest unavailable authorities.** Saved booth, deck-position and
+   asset-settings-snapshot IDs remain exact and appear in preview as references
+   whose records cannot be verified or restored in browser mode. No native
+   records, calibration association or Fleet authority is manufactured. Opaque
+   catalog metadata is never promoted into an authoritative entity. Existing
+   legacy support-position mismatches are retained and disclosed; normal bound
+   venue and asset/settings transition guards remain unchanged.
+4. **Additive one-write commit.** File selection/preview do not write. Explicit
+   Import revalidates all data, treats complete equal records as exact matches,
+   and blocks on any same-ID difference. Unknown catalog metadata is added only
+   when absent or kept when exactly equal. The complete destination siblings
+   outside the catalog are preserved. The original raw value is rechecked
+   immediately before one storage write; changes abort without an archive write.
+   There is no overwrite, name-based rekeying, deletion or partial-record commit.
+   The guard does not claim a cross-tab transaction or compare-and-swap.
+5. **Owned recovery and visibility.** Selected-file generations own asynchronous
+   reads/previews; stale selections, hide/show and disposal cannot reclaim newer
+   UI. A dispatched import retains its copied original file through lost
+   acknowledgments. Explicit retry rechecks the unchanged file; after a full
+   reload it must be selected again. IDs, names and reference/conflict details
+   are escaped. Equipment displays imported current records; same-ID venue
+   restoration enables existing reports while historical snapshots remain
+   unchanged.
+6. **Devices and backup boundaries.** Existing device-profile bindings, results,
+   specification caches and MIDI maps stay in the destination. Imported assets
+   can appear in Equipment before association with a Devices profile. Existing
+   startup synchronization can update matching current products, after which an
+   unchanged older file reports conflicts. Workspace JSON v1, venue-history
+   keys, native database backup, calibration, feature defaults and Fleet OFF are
+   unchanged. No immutable-current-catalog or physical-isolation claim is made.
+
+Proof uses the actual catalog store, Data/Equipment handlers and startup profile
+synchronization in `tests/catalog-archive.test.mjs` and
+`tests/catalog-archive-ui.test.mjs`. The graph fixture includes retained hidden
+assets, opaque references, literal support text and legacy metadata. Root owns
+the separate hosted smoke and complete combined-source qualification; this
+slice does not establish a full native, browser-layout or hardware result.

@@ -3,7 +3,8 @@
 import { isEnabled } from './features.js';
 
 export const ENTITIES = ['manufacturer', 'product', 'asset', 'setup', 'venue', 'supportConfiguration'];
-const STORE_KEY = 'deckchek.catalog.v1';
+export const CATALOG_STORAGE_KEY = 'deckchek.catalog.v1';
+const STORE_KEY = CATALOG_STORAGE_KEY;
 const SEARCH_FIELDS = {
   manufacturer: ['name'], product: ['model', 'variant', 'description'],
   asset: ['nickname', 'serialNumber'], setup: ['name'], venue: ['name', 'city'],
@@ -39,6 +40,25 @@ export function loadState(storage) {
 
 export function saveState(storage, state) {
   try { storage?.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* quota/private mode */ }
+}
+
+// Archive access is intentionally strict and lazy. Ordinary CRUD keeps its
+// existing fallback behavior; the archive validates the complete saved state.
+export function readCatalogArchiveSnapshot(storage) {
+  const target = storage === undefined ? globalThis.localStorage : storage;
+  if (typeof target?.getItem !== 'function') throw new Error('Catalog storage is unavailable.');
+  const raw = target.getItem(STORE_KEY);
+  if (raw !== null && typeof raw !== 'string') throw new Error('Catalog storage returned an invalid saved value.');
+  return {
+    raw,
+    commit(text) {
+      if (typeof text !== 'string' || typeof target.setItem !== 'function') throw new Error('Catalog storage is unavailable for writing.');
+      if (target.getItem(STORE_KEY) !== raw) {
+        throw Object.assign(new Error('The current catalog changed before import. Preview the unchanged archive again; nothing was written.'), { code: 'CATALOG_CHANGED' });
+      }
+      target.setItem(STORE_KEY, text);
+    },
+  };
 }
 
 const objectRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);

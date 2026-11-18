@@ -45,6 +45,7 @@ export function createEquipmentScreen(section, { store = defaultStore } = {}) {
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('equipment', { size: 24 })}</span><div><h1 tabindex="-1">Equipment</h1>
       <p class="lede">Your decks, cartridges, mixers, interfaces, the setups they form and the venues they live in.</p></div></div></header>
+    ${store.native ? '' : '<p class="field-help" id="eq-catalog-portability">Use Data &amp; backup to export or import the separate Equipment catalog file. Imported assets can appear here before they are associated with a Devices profile; existing device-library bindings stay in place.</p>'}
     <div class="tabs" role="tablist" aria-label="Catalog type"></div>
     <div id="eq-support-status" role="status"></div>
     <div class="eq-layout">
@@ -93,7 +94,7 @@ export function createEquipmentScreen(section, { store = defaultStore } = {}) {
     if (relevant) {
       status.append(h('p', { class: 'muted small', text: store.native
         ? 'Support descriptions are current operator-entered catalog context, saved in the local database. They do not establish the support used for historical measurements.'
-        : 'Browser preview: support descriptions and setups stay in this browser. Workspace JSON export does not include catalog supports or setups. Venue reports provide readable current descriptions.' }));
+        : 'Browser preview: support descriptions and setups are saved in this browser. Export or import them with the separate Equipment catalog file in Data & backup. Workspace JSON export does not include catalog supports or setups. Venue reports provide readable current descriptions.' }));
       const error = state.errors.supportConfiguration;
       if (error) status.append(h('p', { class: 'form-error', role: 'alert', text: `Could not load support descriptions: ${error}` }),
         h('button', { type: 'button', id: 'eq-support-retry', class: 'btn btn-secondary btn-sm', text: 'Retry support descriptions', onclick: loadAll }));

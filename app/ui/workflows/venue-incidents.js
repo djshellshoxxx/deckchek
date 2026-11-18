@@ -40,7 +40,7 @@ export function createVenueIncidentPanel(host, {
     h('div', { class: 'form-actions', 'aria-label': 'Record an incident' }, ...buttons), saveStatus,
     h('p', { class: 'muted small', text: store.native
       ? 'Incidents are stored in the local database and included in its database backup. Venue reports include a readable incident history.'
-      : 'Incidents stay in this browser. Export a venue report to keep a readable copy; workspace JSON does not include incidents.' }),
+      : 'Incidents stay in this browser. Data → Browser venue history file exports and imports all retained incident and support history. Workspace JSON does not include incidents or support history. All-venue history can show imported records without current catalog entries; venue reports require a matching current venue.' }),
     h('h3', { class: 'fb-sub', text: 'Recorded incidents' }), history));
 
   const visible = () => state.active && !state.disposed;

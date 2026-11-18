@@ -177,6 +177,7 @@ fn certificate_table_enforces_verdict_check_and_foreign_keys() {
 #[test]
 fn ac2_sign_verify_roundtrip_with_install_key_then_store_list_get() {
     let (c, d) = (mem(), tmpdir("cert"));
+    let pdf_path = d.join("x.pdf").to_string_lossy().into_owned();
     seed_rows(&c);
     let payload = sample_payload();
     let s = sign_payload(&c, &d, &payload).unwrap();
@@ -193,7 +194,7 @@ fn ac2_sign_verify_roundtrip_with_install_key_then_store_list_get() {
             asset_id: "a".into(),
             profile_id: "pioneer-plx-crss12".into(),
             file_json: text,
-            pdf_path: Some("/tmp/x.pdf".into()),
+            pdf_path: Some(pdf_path.clone()),
             json_path: None,
         },
     )
@@ -203,6 +204,7 @@ fn ac2_sign_verify_roundtrip_with_install_key_then_store_list_get() {
         ("pass", s.fingerprint.as_str())
     );
     assert_eq!(stored.serial_number, "SN <001> & \"x\"");
+    assert_eq!(stored.pdf_path.as_deref(), Some(pdf_path.as_str()));
     assert_eq!(list(&c, Some("a")).unwrap(), vec![stored.clone()]);
     assert_eq!(list(&c, None).unwrap().len(), 1);
     assert!(list(&c, Some("other")).unwrap().is_empty());
