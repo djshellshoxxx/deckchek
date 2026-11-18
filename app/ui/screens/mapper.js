@@ -219,6 +219,8 @@ export function createMapperScreen(section) {
     model: null, readOnly: false, savedId: null, assetId: null, profileId: null, selectedId: null, target: 'mixxx', force: false,
     scripts: [], saved: [], learning: null, learnStart: null, savingModel: false, deleting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
+  // Edits and cached-screen navigation keep this identity; opening or creating a mapping replaces it.
+  let modelGeneration = 0;
   const status = h('div', { id: 'mp-status', class: 'mp-status', role: 'status', 'aria-live': 'polite' });
   const warningsBox = h('details', { id: 'mp-warnings', class: 'mp-warnings', hidden: true });
   const validationBox = h('div', { id: 'mp-validation', class: 'mp-validation', 'aria-live': 'polite' });
@@ -274,6 +276,7 @@ export function createMapperScreen(section) {
   }
 
   function setModel(model, { keepUndo = false, select = null } = {}) {
+    modelGeneration++;
     if (!keepUndo) undo.clear();
     showWarnings();
     st.model = model;
@@ -455,16 +458,20 @@ export function createMapperScreen(section) {
     }
     // One save at a time: savedId is only known once the first save returns, so a second click would insert a copy.
     if (st.savingModel) return;
+    const generation = modelGeneration, name = st.model.name;
     st.savingModel = true; saveModelBtn.setAttribute('aria-disabled', 'true');
     try {
       const row = await mstore.save({ id: st.savedId, assetId: st.assetId, profileId: st.profileId, name: st.model.name, model: st.model });
-      st.savedId = row.id;
+      // A user may open another mapping while the native write is pending. Its next save must keep its own id.
+      if (generation === modelGeneration) st.savedId = row.id;
       await refreshSaved();
-      setStatus(`Mapping "${row.name}" saved${mstore.native ? '' : ' in this browser'}.`, 'pass');
-      toast('Mapping saved.', { type: 'success' });
+      const message = `Mapping "${row.name}" saved${mstore.native ? '' : ' in this browser'}.`;
+      if (generation === modelGeneration) setStatus(message, 'pass');
+      toast(generation === modelGeneration ? 'Mapping saved.' : message, { type: 'success' });
     } catch (e) {
-      const msg = typeof e === 'string' ? e : e?.message || 'The mapping could not be saved.';
-      setStatus(msg.replace(/^MAPPER_[A-Z_]+: /, ''), 'fail', { title: 'Not saved.' });
+      const msg = (typeof e === 'string' ? e : e?.message || 'The mapping could not be saved.').replace(/^MAPPER_[A-Z_]+: /, '');
+      if (generation === modelGeneration) setStatus(msg, 'fail', { title: 'Not saved.' });
+      else toast(`Mapping "${name}" was not saved. ${msg}`, { type: 'error' });
     } finally { st.savingModel = false; saveModelBtn.removeAttribute('aria-disabled'); }
   }
 
