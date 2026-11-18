@@ -1,11 +1,13 @@
-// MIDI device tests: coverage (with learn mode), fader, jog, button, LED and
-// timing jitter. Port picker auto-selects the profile's port; every panel has
-// a clear state when no MIDI port or device is present.
+// MIDI device tests: coverage (with learn mode), fader, jog, button, LED,
+// timing jitter, MIDI conformance and the General MIDI sound check (SPEC-36).
+// Port picker auto-selects the profile's port; every panel has a clear state
+// when no MIDI port or device is present.
 
 import { h, esc, formatNumber } from '../dom.js';
 import { icon, chip } from '../icons.js';
 import * as midiBridge from '../../midi.js';
 import { parseMessage, matchControl, createCoverageSession, analyzeFader, analyzeJog, analyzeButton, analyzeTiming, buildLedSequence } from '../../midi-tests.js';
+import { analyzeStream, conformanceFindings, parseIdentityReply, validateMessage, IDENTITY_REQUEST, gmSteps, gmAbortCleanup, evaluateGm } from '../../midi-conformance.js';
 import { evaluateOutcome, effectiveMidiMap, learnedControls, learnKey, inferControlType, pickMidiPort, midiFindings } from '../../devices/dispatch.js';
 import { linePlot } from '../plots.js';
 import { stepsCard, readoutGrid, findingList } from './runners.js';
@@ -15,6 +17,15 @@ const TYPES = ['button', 'pad', 'fader', 'knob', 'encoder', 'jog', 'jog-touch', 
 const nowUs = () => Math.round(performance.now() * 1000);
 const msgLabel = d => `${d.kind === 'note' ? 'Note' : d.kind === 'pitchbend' ? 'Pitch bend' : 'CC'}${d.kind === 'pitchbend' ? '' : ` ${d.number}`} · ch ${d.channel}`;
 const keyOf = msg => `${msg.kind === 'note-on' || msg.kind === 'note-off' ? 'note' : msg.kind}:${msg.channel}:${msg.number}`;
+/** SPEC-36 §2.1: how long the conformance panel waits for a Universal Identity Reply. */
+export const IDENTITY_TIMEOUT_MS = 1500;
+/** Conformance capture bound: past this the end-of-session note state is unknown, so the run is not judged. */
+export const CONFORMANCE_MAX_EVENTS = 100000;
+const errText = error => String(error?.message || error);
+/** Bridge drop counter, or null when the backend cannot report one (never treated as zero). */
+async function droppedCount(midi) {
+  try { const s = await midi.status?.(); return Number.isFinite(s?.dropped) ? s.dropped : null; } catch { return null; }
+}
 
 // Opens are idempotent by port name in both bridges. A replacement runner can claim the same pending
 // open, so a stale completion must not close its successor's input. Keep pending closes ahead of reopens.
@@ -149,7 +160,13 @@ export function runMidi(host, ctx) {
     } finally { claim.entry.pending--; prunePort(claim); }
     if (!current()) { releasePort(midi, claim); return; }
     status.innerHTML = `${chip('pass', 'CONNECTED', { size: 14 })} <span>Listening on ${esc(port)}.</span>`;
-    st.unsub = midi.onMessage(raw => { if (!current() || (raw.port && raw.port !== port)) return; const msg = parseMessage(raw.bytes); if (msg.kind === 'clock' || msg.kind === 'other') return; st.panel?.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs() }); });
+    // Conformance needs every byte (clock, Active Sensing, malformed input); other panels only see parsed controls.
+    st.unsub = midi.onMessage(raw => {
+      if (!current() || (raw.port && raw.port !== port)) return;
+      const panel = st.panel, msg = parseMessage(raw.bytes);
+      if (!panel || (!panel.wantsRaw && (msg.kind === 'clock' || msg.kind === 'other'))) return;
+      panel.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs(), raw: raw.bytes });
+    });
     st.panel = PANELS[kind]({ current, port, outPort: st.outPort });
   }
 
@@ -466,6 +483,180 @@ export function runMidi(host, ctx) {
       })));
       body.replaceChildren(card);
       return { onMessage: (msg, t) => { if (tgt.value(msg) == null) return; stamps.push(t.tUs); draw(); } };
+    },
+
+    // SPEC-36 §2. Everything this panel sends or saves is bound to the connection it was built for:
+    // a refresh, port change or disposal invalidates the probe timer, a late send result and Finish.
+    conformance(connection) {
+      const { outPort } = connection;
+      let disposed = false, finished = false, probeToken = 0, probeTimer = null, truncated = false;
+      const current = () => !disposed && !finished && connection.current();
+      const events = [];
+      let lastT = null, lastR = null, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
+      const dropBase = droppedCount(midi);
+      const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
+      card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek asks the device to identify itself, then checks every message it sends while you use the controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing.' }));
+      const idLine = h('p', { class: 'dev-target', role: 'status' });
+      const stats = h('p', { class: 'num dev-live-stats', 'aria-live': 'off', text: '0 messages' });
+      const showId = () => {
+        const i = identity.info;
+        idLine.innerHTML = identity.status === 'ok' ? `${chip('pass', 'IDENTIFIED', { size: 14 })} <span>Manufacturer id <strong class="num">${esc(i.manufacturerHex)}</strong> · family ${esc(i.family)} · model ${esc(i.member)} · version ${esc(i.versionText)}</span>`
+          : identity.status === 'none' ? `${chip('review', 'NO ANSWER', { size: 14 })} <span>No reply to the Identity Request within ${IDENTITY_TIMEOUT_MS / 1000} s. Many DJ controllers do not implement it.</span>`
+          : identity.status === 'no-port' ? `${chip('info', 'SKIPPED', { size: 14 })} <span>No MIDI output port was found, so the Identity Request was not sent.</span>`
+          : identity.status === 'send-failed' ? `${chip('warn', 'NOT SENT', { size: 14 })} <span>The Identity Request could not be sent: ${esc(identity.error)}</span>`
+          : `${chip('review', 'ASKING', { size: 14 })} <span>Sending the Identity Request…</span>`;
+      };
+      async function probe() {
+        if (!current()) return;
+        const token = ++probeToken;
+        clearTimeout(probeTimer); probeTimer = null;
+        if (!outPort) { identity = { status: 'no-port', info: null, error: null }; showId(); return; }
+        identity = { status: 'pending', info: null, error: null }; showId();
+        try { await midi.send(outPort, IDENTITY_REQUEST); }
+        catch (error) {
+          if (!current() || token !== probeToken) return;
+          identity = { status: 'send-failed', info: null, error: errText(error) }; showId();
+          return;
+        }
+        if (!current() || token !== probeToken || identity.status !== 'pending') return;
+        probeTimer = setTimeout(() => {
+          probeTimer = null;
+          if (!current() || token !== probeToken || identity.status !== 'pending') return;
+          identity = { status: 'none', info: null, error: null }; showId();
+        }, IDENTITY_TIMEOUT_MS);
+      }
+      const draw = throttle(() => { if (!disposed) stats.textContent = `${live.total} messages · ${live.invalid} invalid · ${live.channel} control messages${truncated ? ' · capture full' : ''}`; });
+      const again = h('button', { type: 'button', class: 'btn btn-ghost', id: 'conf-probe', text: 'Ask again', disabled: !outPort || null, onclick: probe });
+      const finish = finishBtn('Finish test', async () => {
+        if (!current()) return;
+        finished = true; ++probeToken; clearTimeout(probeTimer); probeTimer = null;
+        again.disabled = true; finish.disabled = true;
+        const endUs = lastT == null ? null : lastT + (nowUs() - lastR);
+        const [before, after] = await Promise.all([dropBase, droppedCount(midi)]);
+        if (disposed || !connection.current()) return;
+        const dropped = before == null || after == null ? null : Math.max(0, after - before);
+        const a = analyzeStream(events, { endUs });
+        // A reply only counts inside the window; an unsent or unanswered-yet request is not a "no".
+        const asked = identity.status === 'ok' || identity.status === 'none';
+        const measurements = [...a.measurements, ...(asked ? [{ metricId: 'midi_identity_reply', label: 'Identity Reply received', value: identity.status === 'ok' ? 1 : 0, unit: 'bool' }] : [])];
+        const findings = conformanceFindings(a, identity);
+        if (identity.status === 'ok') findings.push({ id: 'midi-identified', severity: 'info', title: `Device identified (manufacturer id ${identity.info.manufacturerHex})`, meaning: `Family ${identity.info.family}, model ${identity.info.member}, version ${identity.info.versionText}. Look the manufacturer id up in the MIDI Association SysEx ID list.`, action: '' });
+        if (identity.status === 'pending') findings.push({ id: 'midi-identity-unfinished', severity: 'info', title: 'Identity Request not awaited', meaning: `The test finished before the ${IDENTITY_TIMEOUT_MS / 1000} s reply window closed, so no identity result is recorded.`, action: 'Run the test for longer to include the identity check.' });
+        if (identity.status === 'send-failed') findings.push({ id: 'midi-identity-unsent', severity: 'info', title: 'Identity Request was not sent', meaning: `Sending to ${outPort} failed (${identity.error}), so no identity result is recorded.`, action: 'Check the output port, then run the test again.' });
+        if (dropped) findings.push({ id: 'midi-transport-drops', severity: 'warning', title: `${dropped} MIDI message${dropped > 1 ? 's' : ''} dropped by DeckChek during the capture`, meaning: 'The host MIDI queue overflowed, so missing messages can look like stuck or orphan notes. This is a capture problem, not a device fault.', action: 'Close other MIDI apps, plug in directly and repeat the test.' });
+        if (truncated) findings.push({ id: 'midi-capture-full', severity: 'review', title: 'Capture limit reached', meaning: `Recording stopped after ${CONFORMANCE_MAX_EVENTS} messages, so later note releases were not seen.`, action: 'Repeat the test and finish after about 15 seconds.' });
+        const bad = a.invalid.length + a.sysexBad.length + a.stuck.length;
+        const exercised = live.channel > 0;
+        const unknown = detail => ({ status: 'unknown', detail, criterion: 'conformance' });
+        const override = truncated ? unknown(`Capture limit of ${CONFORMANCE_MAX_EVENTS} messages reached; the end-of-session note state is unknown.`)
+          : !a.total ? unknown('No MIDI messages were received, so nothing could be checked.')
+          : dropped ? unknown(`${dropped} message(s) were dropped by the host during capture, so the stream cannot be judged.`)
+          : bad ? { status: 'fail', detail: `${a.invalid.length} invalid, ${a.sysexBad.length} malformed SysEx and ${a.stuck.length} stuck note(s) in ${a.total} messages.`, criterion: 'conformance' }
+          : !exercised ? unknown(`${a.total} message(s) received but no control messages; use the controls during the test.`)
+          : test.pass ? null
+          : a.orphans ? unknown(`${a.total} messages are well formed, but ${a.orphans} note-off(s) had no note-on — review.`)
+          : { status: 'pass', detail: `All ${a.total} messages are valid MIDI; no stuck notes.`, criterion: 'conformance' };
+        card.append(resultBlock(measurements, findings));
+        complete(measurements, findings, { kinds: a.kinds, channels: a.channels, identity: identity.info, identityStatus: identity.status, clock: a.clock, sensing: a.sensing, burst: a.burst, droppedDuringCapture: dropped, truncated }, override, connection);
+      });
+      card.append(idLine, stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Use every kind of control for about 15 seconds, hold one pad for a second, release everything, then finish.' }), again, finish));
+      body.replaceChildren(card);
+      showId(); probe();
+      return {
+        wantsRaw: true,
+        onMessage: (msg, t) => {
+          if (!current()) return;
+          let bytes;
+          try { bytes = Array.from(t.raw || []); } catch { bytes = []; }
+          if (!bytes.length) return;
+          if (events.length >= CONFORMANCE_MAX_EVENTS) { if (!truncated) { truncated = true; draw(); } return; }
+          if (identity.status === 'pending') { const reply = parseIdentityReply(bytes); if (reply) { identity = { status: 'ok', info: reply, error: null }; clearTimeout(probeTimer); probeTimer = null; showId(); } }
+          const v = validateMessage(bytes);
+          live.total++; if (!v.ok) live.invalid++; else if (v.kind === 'channel') live.channel++;
+          events.push({ tUs: t.tUs, bytes }); lastT = t.tUs; lastR = t.rUs; draw();
+        },
+        dispose() { disposed = true; ++probeToken; clearTimeout(probeTimer); probeTimer = null; },
+      };
+    },
+
+    // SPEC-36 §3. All sends go through one queue on the output captured at build time, so an abort's
+    // panic is never overtaken by an in-flight note and never reaches a replacement port.
+    gm(connection) {
+      const { outPort } = connection;
+      let disposed = false, run = 0, playing = null, chain = Promise.resolve(), timer = null, wake = null;
+      const current = () => !disposed && connection.current();
+      const card = h('section', { class: 'card', 'aria-labelledby': 'gm-title' });
+      card.append(h('h2', { class: 'card-title', id: 'gm-title', text: 'General MIDI sound check' }), h('p', { class: 'muted small', text: 'For devices with a built-in General MIDI sound source. DeckChek sends GM System On, then ten short musical checks. Turn the unit’s output up a little, listen, and answer for each.' }));
+      if (!outPort) {
+        card.append(h('div', { class: 'empty empty-sm', html: `${icon('plug', { size: 32 })}<h2>No MIDI output port</h2><p>The test needs to send notes to the device. Connect it and refresh the ports, or skip this test if it has no General MIDI sound source.</p>` }),
+          h('div', { class: 'step-footer' }, h('button', { type: 'button', class: 'btn btn-secondary', id: 'gm-skip', text: 'Skip test', onclick: () => { if (current()) ctx.skip('No MIDI output port, or the device has no General MIDI sound source.'); } })));
+        body.replaceChildren(card);
+        return { onMessage() {} };
+      }
+      const steps = gmSteps(), answers = {};
+      const enqueue = bytes => { const sent = chain.then(() => midi.send(outPort, bytes)); chain = sent.catch(() => {}); return sent; };
+      const pause = ms => new Promise(resolve => { wake = resolve; timer = setTimeout(() => { timer = null; wake = null; resolve(); }, ms); });
+      const interrupt = () => { clearTimeout(timer); timer = null; const w = wake; wake = null; w?.(); };
+      const list = h('ol', { class: 'dev-gm-list' });
+      const status = h('p', { class: 'muted small', role: 'status' });
+      const buttons = new Map();
+      const label = (btn, on) => { btn.innerHTML = on ? `${icon('stop', { size: 14 })}<span>Stop</span>` : `${icon('play', { size: 14 })}<span>Play</span>`; btn.setAttribute('aria-pressed', String(on)); };
+      /** Stop the current step (if any) and silence the captured output; cleanup is allowed after disposal. */
+      function abort() {
+        if (!playing) return chain;
+        const stopped = playing; playing = null; ++run; interrupt();
+        const btn = buttons.get(stopped.id); if (btn && !disposed) label(btn, false);
+        return Promise.all(gmAbortCleanup().map(b => enqueue(b).catch(() => {})));
+      }
+      async function play(step) {
+        if (!current()) return;
+        if (playing) { const same = playing.id === step.id; await abort(); if (same || !current()) return; }
+        const mine = ++run; playing = { id: step.id, run: mine };
+        const btn = buttons.get(step.id); label(btn, true);
+        const live = () => current() && run === mine;
+        try {
+          for (const msg of step.messages) {
+            if (!live()) return;
+            await enqueue(msg.bytes);
+            if (msg.delayMs && live()) await pause(msg.delayMs);
+          }
+        } catch (error) {
+          if (!live()) return;
+          toast(`Could not send to ${outPort}: ${errText(error)}`, { type: 'error' });
+          await abort();
+          return;
+        }
+        if (run === mine) { playing = null; if (!disposed) label(btn, false); }
+      }
+      const save = finishBtn('Save result', () => {
+        if (!current()) return;
+        const r = evaluateGm(answers, steps);
+        if (r.status == null) return;
+        abort();
+        card.append(resultBlock(r.measurements, r.findings));
+        complete(r.measurements, r.findings, { answers: { ...answers } }, { status: r.status, detail: r.detail, criterion: 'user' }, connection);
+      });
+      save.disabled = true;
+      const refresh = () => { const r = evaluateGm(answers, steps); save.disabled = r.status == null; status.textContent = r.status == null ? r.detail : `Result: ${r.status === 'pass' ? 'PASS' : r.status === 'fail' ? 'FAIL' : 'SKIPPED'} — ${r.detail}`; };
+      steps.forEach((s, i) => {
+        const li = h('li', { class: 'dev-gm-step', 'data-step': s.id });
+        const playBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: `gm-play-${s.id}`, 'aria-label': `Play step ${i + 1}: ${s.title}` });
+        label(playBtn, false);
+        playBtn.addEventListener('click', () => { play(s); });
+        buttons.set(s.id, playBtn);
+        const group = h('div', { class: 'segmented dev-answer', role: 'radiogroup', 'aria-label': `Step ${i + 1}: ${s.question}` });
+        for (const [val, text, tone] of [['yes', 'Yes', 'pass'], ['no', 'No', 'fail'], ['na', 'N/A', 'info']]) {
+          const b = h('button', { type: 'button', role: 'radio', class: `seg seg-${tone}`, 'aria-checked': 'false', 'data-answer': val, text });
+          b.addEventListener('click', () => { if (!current()) return; answers[s.id] = val; group.querySelectorAll('[role=radio]').forEach(x => x.setAttribute('aria-checked', String(x === b))); refresh(); });
+          group.append(b);
+        }
+        li.append(h('div', { class: 'dev-gm-head' }, h('strong', { text: `${i + 1}. ${s.title}` }), playBtn), h('p', { class: 'muted small', text: s.question }), group);
+        list.append(li);
+      });
+      refresh();
+      card.append(list, h('div', { class: 'step-footer' }, status, h('button', { type: 'button', class: 'btn btn-ghost', id: 'gm-silence', text: 'Silence everything', onclick: () => { if (!current()) return; if (playing) abort(); else gmAbortCleanup().forEach(b => enqueue(b).catch(() => {})); } }), save));
+      body.replaceChildren(card);
+      return { onMessage() {}, dispose() { disposed = true; abort(); } };
     },
   };
 

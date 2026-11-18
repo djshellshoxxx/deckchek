@@ -26,6 +26,12 @@ The Fleet option is now available under Experimental features and remains off by
 - Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
 - Remaining FS-23 work: default-on qualification and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
 
+## PR9 consolidation: FS-34 and FS-36 UI (2026-11-18)
+
+- FS-34 `app/devices/test-plan.js` (capability model, baseline plan, metric registry, audit) and `tools/check-device-coverage.mjs`; the Devices screen applies `completePlan`, the catalog sync still receives researched profiles. 45/45 shipped profiles have zero gaps (506 hand-written + 188 auto tests); `docs/testing/DEVICE-TEST-COVERAGE.md` is generated and checked by `npm test`. Correction over PR9: an unrecorded audio-output count on a controller gives a conditional, minor audio test instead of assuming every controller has a sound card; `connectivity.audio: null` gives none.
+- FS-36 `midi:conformance` and `midi:gm` panels in `app/ui/devices/midi-runner.js` with connection ownership: identity probe/timer and Finish bound to their connection; GM sends serialized per panel on the captured output, with `gmAbortCleanup()` (panic plus controller defaults) on stop/failure/save/disposal and never on a replacement port. Evidence rules: no control messages, a full capture or host-side MIDI queue drops in the capture window give REVIEW, not PASS. Burst rate implemented (informational). Spec/analyzer discrepancies reconciled in documentation without changing thresholds. Tests: `tests/midi-fs36-ui.test.mjs`, `tests/device-test-plan.test.mjs`, additions to `tests/midi-conformance.test.mjs`; core smoke runs the auto-added DJM-A9 conformance test.
+- Not established: real Identity Replies, an audible GM source, physical MIDI streams or any hardware gate.
+
 ## Implemented and test-covered
 
 - Tauri 2 desktop shell with dark/light theme, nav rail navigation and responsive local UI.

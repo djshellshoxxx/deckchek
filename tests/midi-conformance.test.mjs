@@ -441,3 +441,21 @@ test('GM cleanup silences a simulated sustained-chord abort and release tails on
   }
 });
 
+
+test('burstRate reports the peak count in any 100 ms window from finite timestamps only (SPEC-36 §2.2)', async () => {
+  const { burstRate, analyzeStream } = await import('../app/midi-conformance.js');
+  assert.deepEqual(burstRate([]), { windowMs: 100, maxMessages: 0, peakPerSec: 0 });
+  const events = [0, 10_000, 20_000, 99_999, 100_000, 250_000, NaN, null].map(tUs => ({ tUs, bytes: [0xb0, 1, 1] }));
+  assert.deepEqual(burstRate(events), { windowMs: 100, maxMessages: 4, peakPerSec: 40 }, '0–99.999 ms holds 4; 100 ms starts a new window');
+  assert.deepEqual(burstRate([...events].reverse()), burstRate(events), 'arrival order does not matter');
+  assert.deepEqual(analyzeStream(events).burst, burstRate(events), 'analyzeStream exposes it as informational extra');
+  assert.equal(analyzeStream(events).measurements.some(m => /burst/.test(m.metricId)), false, 'never a measurement or pass criterion');
+});
+
+test('gmAbortCleanup silences every channel first, then restores the controllers the steps change', async () => {
+  const { gmAbortCleanup, gmCleanup, pitchBend, controlChange, masterVolume, validateMessage } = await import('../app/midi-conformance.js');
+  const out = gmAbortCleanup();
+  assert.deepEqual(out.slice(0, gmCleanup().length), gmCleanup());
+  assert.deepEqual(out.slice(gmCleanup().length), [pitchBend(1, 8192), controlChange(1, 7, 100), controlChange(1, 10, 64), masterVolume(0x3fff)]);
+  assert.ok(out.every(b => validateMessage(b).ok), 'every cleanup message is valid MIDI');
+});

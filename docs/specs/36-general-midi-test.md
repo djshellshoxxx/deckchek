@@ -1,6 +1,8 @@
 # SPEC-36 General MIDI testing (MIDI conformance + General MIDI sound check)
 
-Status: PARTIAL selective port from PR9 (`a4d844b22df478a141c06a6561c941d6461a8aea`). This continuation contains the pure `app/midi-conformance.js` analyzer, identity parser, GM sequences and automated regression tests only. Subjective GM answer summaries are labeled manual; unrecognized answers remain unanswered. UI panels, profile/dispatch wiring, live lifecycle integration and physical-device qualification remain unmerged. Size: M. UI integration depends on `midi.js` (ports, send, onMessage), `midi-tests.js` (`parseMessage`) and the current connection-ownership safeguards.
+Status: PARTIAL — software implemented, hardware unqualified. The pure `app/midi-conformance.js` analyzer, identity parser and GM sequences came over first (PR21/PR22 repairs); the Devices-screen panels (`conformance` and `gm` in `app/ui/devices/midi-runner.js`), dispatch/validation (`midi:conformance`, `midi:gm`) and FS-34 auto-adding were ported 2026-11-18 from PR9 `a4d844b22df478a141c06a6561c941d6461a8aea` with connection-ownership repairs (§5). Subjective GM answer summaries are labeled manual; unrecognized answers remain unanswered. No physical device, real Identity Reply or audible GM source has been qualified. Size: M.
+
+Reconciled 2026-11-18 (documentation changed to match the tested analyzer; no threshold changed): (1) §2.1 no Identity Reply is an **informational** finding, as the findings helper and its "this is normal" guidance already said, not a warning; (2) §2.2 a 14-bit pair is flagged when more than 50 % of its halves are unpaired (`unpairedFraction > 0.5`), the analyzer's tested threshold, not "≥ 80 %"; (3) the burst rate is now implemented as `burstRate()` (peak messages in any 100 ms window) and saved in `extra.burst`, informational only.
 
 The acceptance criteria below describe the full feature. The pure port retains PR9's existing measurement thresholds and evidence labels; it does not close AC-5 or any hardware gate. Two existing spec/source discrepancies remain for explicit reconciliation: §2.2 says ≥80% unpaired 14-bit events while the analyzer uses >50%, and §2.1 calls no Identity Reply a warning while the findings helper labels it informational. Do not silently change those thresholds or claim full conformance. The planned burst-rate extra is also not implemented in this pure port.
 
@@ -9,17 +11,17 @@ Two generic MIDI tests usable on any MIDI device: **MIDI conformance** (does the
 
 ## 2. MIDI conformance (`midi:conformance`)
 ### 2.1 Active probe
-Send Universal Device Inquiry `F0 7E 7F 06 01 F7` (device id 7F = all). A valid reply is `F0 7E <id> 06 02 <mfr 1|3 bytes> <family 2> <member 2> <version 4> F7`. Parse manufacturer id (1 byte, or `00 xx yy`), family, member, version. The manufacturer *name* is not looked up (no verified registry bundled): hex is shown with a pointer to the MIDI Association SysEx ID list. No reply within 1.5 s is a **warning**, not a failure (many DJ controllers ignore it): `midi_identity_reply` = 0/1.
+Send Universal Device Inquiry `F0 7E 7F 06 01 F7` (device id 7F = all). A valid reply is `F0 7E <id> 06 02 <mfr 1|3 bytes> <family 2> <member 2> <version 4> F7`. Parse manufacturer id (1 byte, or `00 xx yy`), family, member, version. The manufacturer *name* is not looked up (no verified registry bundled): hex is shown with a pointer to the MIDI Association SysEx ID list. No reply within 1.5 s is an **informational** finding, not a failure (many DJ controllers ignore it): `midi_identity_reply` = 0/1. The measurement is recorded only when the request was sent and either answered or its window closed: with no output port, a failed send, or Finish inside the window, no value is saved (an unasked question is not a "no").
 ### 2.2 Passive stream validation (user exercises controls for ~15 s)
 Each received message (`bytes`) is checked:
 - status byte valid (≥ 0x80, not undefined 0xF4/0xF5/0xF9/0xFD); data bytes < 0x80; length matches the status (note/CC/pitch bend = 3; program/channel pressure = 2; poly pressure = 3; song position 3; song select/time code 2; real-time 1) → `midi_invalid_messages`.
 - SysEx: starts `F0`, ends `F7`, all inner bytes < 0x80 → `midi_sysex_malformed`.
 - Note pairing: note-off (or note-on velocity 0) without a sounding note-on → `midi_orphan_note_offs`; notes still sounding at session end → `midi_stuck_notes`.
-- 14-bit CC pairs (CC n and n+32 on one channel, n 0–31) where one half is seen without its partner within 20 ms for ≥ 80 % of events → `midi_unpaired_14bit` count of such controllers (informational flag, not failure).
+- 14-bit CC pairs (CC n and n+32 on one channel, n 0–31) where more than 50 % of the halves have no partner within 20 ms → `midi_unpaired_14bit` count of such controllers (informational flag, not failure).
 - Active Sensing (`FE`): if seen, maximum gap must be ≤ 330 ms (spec 300 ms + tolerance) → `midi_active_sensing_gap_ms`.
 - MIDI Clock (`F8`): if seen, coefficient of variation of intervals → `midi_clock_jitter_percent`.
-- Channels used, message-kind histogram, burst rate (informational in `extra`).
-Pass: `midi_invalid_messages equals 0`, `midi_sysex_malformed equals 0`, `midi_stuck_notes equals 0`; orphans are a warning.
+- Channels used, message-kind histogram, burst rate (peak messages per 100 ms window; informational in `extra`).
+Pass: `midi_invalid_messages equals 0`, `midi_sysex_malformed equals 0`, `midi_stuck_notes equals 0`; orphans are a warning (result REVIEW). Evidence rules in the panel: no messages, no channel (control) messages, a full capture (100,000 messages) or host-side MIDI queue drops during the capture window (`midi.status().dropped` delta) give REVIEW, never PASS, because dropped or unseen messages can look like stuck or orphan notes. An unavailable drop counter is recorded as `null`, not zero.
 
 ## 3. General MIDI sound check (`midi:gm`)
 Requires an output port. Only auto-added when `profile.midi.generalMidi === true`; runnable on any device via manual start. GM Level 1 facts used (sources: General MIDI, Wikipedia; MIDI Association specification): GM System On `F0 7E 7F 09 01 F7`; 16 channels, channel 10 is percussion, percussion key map notes 35–81; 128 melodic programs; minimum 24 simultaneous voices (or 16 melodic + 8 percussive); required controllers CC1, 7, 10, 11, 64, 121, 123; default pitch-bend range ±2 semitones; Master Volume `F0 7F 7F 04 01 ll mm F7`.
@@ -32,3 +34,6 @@ Result: `midi_gm_ok_percent` = Yes ÷ answered ×100; each No becomes a finding 
 - AC-3 `parseIdentityReply` decodes 1-byte and 3-byte manufacturer ids and rejects short/wrong frames.
 - AC-4 `gmSteps()` bytes match the GM facts in §3 (System On bytes, ch10 = status 0x99, notes within 35–81, 24-note polyphony, CC121/123/7/10/64 numbers).
 - AC-5 No MIDI backend / no ports / no output port → clear empty state, test can be skipped, no crash.
+
+## 5. Connection ownership (UI)
+Each panel is built for one connection (input claim + output captured at build time) and is disposed on refresh, port change or leaving the screen. Conformance: the Identity Request, its 1.5 s timer and Finish (including its await of the drop counter) check that connection before every state change and save. GM: every send goes through one per-panel queue on the captured output, so the abort cleanup (`gmAbortCleanup()`: sustain off, All Notes Off and All Sound Off on 16 channels, then pitch bend centre, CC7 100, CC10 64 and full master volume) is queued behind any in-flight note and never sent to a replacement port; stopping, failing, saving or disposing mid-step aborts the step. Regression tests: `tests/midi-fs36-ui.test.mjs`.

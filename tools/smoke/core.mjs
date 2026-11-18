@@ -450,6 +450,24 @@ async function devicesDesktop(page) {
   check('MIDI coverage (mapped): all controls seen -> PASS', cov2.status === 'pass' && cov2.detail.measurements.find(m => m.metricId === 'midi_controls_seen_percent')?.value === 100, cov2.status);
   await shot(page, 'device-midi-coverage-dark');
 
+  // SPEC-34 auto-added midi:conformance (SPEC-36) on the same port: identity probe, raw stream, saved PASS
+  await page.click('#dev-run-back');
+  await page.waitForSelector('#dev-plan .dev-test');
+  check('Test plan: DJM-A9 lists the auto-added MIDI conformance test', (await page.locator('.dev-test[data-test="auto-midi-conformance"]').count()) === 1);
+  await page.click('button[data-run-test="auto-midi-conformance"]');
+  await page.waitForSelector('#conf-title');
+  await page.waitForFunction(() => window.__mockMidi.sent.some(s => s.name === 'DJM-A9 MIDI 1' && s.bytes.join() === '240,126,127,6,1,247'));
+  check('MIDI conformance: Identity Request sent to the profile output port', true);
+  await page.evaluate(() => { const e = window.__emitMidi; e([0xF0, 0x7E, 0x00, 0x06, 0x02, 0x08, 0x10, 0x00, 0x20, 0x00, 1, 0, 0, 0, 0xF7]); e([0xFE]); e([0x90, 11, 127]); e([0x80, 11, 0]); e([0xB0, 31, 64]); });
+  await page.waitForFunction(() => /IDENTIFIED/.test(document.querySelector('#dev-runner')?.innerText || ''));
+  const ca = await a11yAudit(page);
+  check('MIDI conformance: a11y names + target sizes', !ca.unnamed.length && !ca.small.length, [...ca.unnamed, ...ca.small].slice(0, 3).join(' | '));
+  await page.click('#midi-finish');
+  await page.waitForFunction(() => window.__mockDb.deviceResults.some(r => r.testId === 'auto-midi-conformance'));
+  const conf = await page.evaluate(() => window.__mockDb.deviceResults.find(r => r.testId === 'auto-midi-conformance'));
+  check('MIDI conformance: clean identified stream saved as PASS', conf?.status === 'pass' && conf.detail.measurements.find(m => m.metricId === 'midi_identity_reply')?.value === 1 && conf.detail.measurements.find(m => m.metricId === 'midi_message_count')?.value === 5, conf?.status);
+  await shot(page, 'device-midi-conformance-dark');
+
   // no MIDI device present -> clear empty state
   await page.evaluate(() => { window.__mockMidi.ports = []; });
   await page.click('#dev-run-back');

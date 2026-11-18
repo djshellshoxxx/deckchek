@@ -131,7 +131,23 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     ...(sensingMax == null ? [] : [m('midi_active_sensing_gap_ms', 'Longest Active Sensing gap', round(sensingMax, 1), 'ms')]),
     ...(clockJitter == null ? [] : [m('midi_clock_jitter_percent', 'MIDI Clock interval jitter', round(clockJitter, 2), '%')]),
   ];
-  return { total, invalid, sysexBad, stuck, orphans, channels: [...channels].sort((a, b) => a - b), kinds: hist, pairs, sensing: { count: sensing.length, maxGapMs: round(sensingMax, 1) }, clock: { count: clock.length, jitterPercent: round(clockJitter, 2), bpm: round(bpm, 2) }, measurements };
+  return { total, invalid, sysexBad, stuck, orphans, channels: [...channels].sort((a, b) => a - b), kinds: hist, pairs, sensing: { count: sensing.length, maxGapMs: round(sensingMax, 1) }, clock: { count: clock.length, jitterPercent: round(clockJitter, 2), bpm: round(bpm, 2) }, burst: burstRate(evs), measurements };
+}
+
+export const BURST_WINDOW_MS = 100;
+/**
+ * Peak number of messages inside any BURST_WINDOW_MS window (SPEC-36 §2.2 burst rate; informational,
+ * reported in `extra`, never a pass criterion). Only finite timestamps count; order does not matter.
+ */
+export function burstRate(events = [], windowMs = BURST_WINDOW_MS) {
+  const t = (Array.isArray(events) ? events : []).map(e => e?.tUs).filter(Number.isFinite).sort((a, b) => a - b);
+  const span = windowMs * 1000;
+  let max = 0;
+  for (let i = 0, j = 0; i < t.length; i++) {
+    while (t[i] - t[j] >= span) j++;
+    max = Math.max(max, i - j + 1);
+  }
+  return { windowMs, maxMessages: max, peakPerSec: round((max * 1000) / windowMs, 1) };
 }
 
 /** Plain-English findings for a stream analysis (+ optional identity result). */
@@ -214,6 +230,13 @@ export const gmCleanup = () => Array.from({ length: 16 }, (_, c) => [
   controlChange(c + 1, 123, 0), // retain All Notes Off for held keys
   controlChange(c + 1, 120, 0), // silence release tails on every channel
 ]).flat();
+
+/**
+ * Sent when a GM step is stopped, fails or its panel is disposed mid-step: panic first, then
+ * return the controllers the steps change (pitch bend, CC7, CC10 on channel 1, master volume)
+ * to their GM defaults, so an aborted step cannot leave the unit bent, quiet or panned.
+ */
+export const gmAbortCleanup = () => [...gmCleanup(), pitchBend(1, 8192), controlChange(1, 7, 100), controlChange(1, 10, 64), masterVolume(0x3fff)];
 
 /** answers: {[stepId]: 'yes'|'no'|'na'} -> measurement + findings + status ('skipped' when all N/A, null when unanswered). */
 export function evaluateGm(answers = {}, steps = gmSteps()) {

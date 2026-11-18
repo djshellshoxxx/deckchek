@@ -76,7 +76,15 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] FS-33: verify the GitHub Pages guide wording (H-33).
 - [ ] FS-21: manual privacy review of an exported pack. FS-23: real-database walkthrough before enabling fleet by default.
 - [ ] FS-20: PDF-embedded JSON is not possible with WebView2 `PrintToPdf` (sidecar JSON only); revisit if a PDF library is adopted.
-- [ ] Register the notification plugin and its capability if FS-23 reminders should raise OS notifications (currently an in-app banner only).
+- [ ] If FS-23 reminders or FS-31 alerts should raise OS notifications (currently in-app only): re-add `tauri-plugin-notification` together with its registration and capability (the unregistered crate was removed 2026-11-18 because cargo's `unused_dependencies` lint failed the warning gate).
+
+## M9: every device testable (FS-34/35/36, PR9 consolidation 2026-11-18)
+
+- [x] FS-34 capability model, baseline plan and coverage audit; `npm test` checks `docs/testing/DEVICE-TEST-COVERAGE.md` (45/45 profiles, 0 gaps).
+- [x] FS-36 `midi:conformance` and `midi:gm` panels with connection-ownership regressions; spec/analyzer discrepancies reconciled; burst rate.
+- [ ] Record `connectivity.audio.usbChannelsOut` (or `audio: null`) for the 29 controller profiles whose audio test is still conditional, from manufacturer sources.
+- [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify manufacturer ids in real Identity Replies against the MIDI Association list.
+- [ ] Hardware: run MIDI conformance against real controllers (Active Sensing, Clock, Identity Reply) and the GM check against a real GM sound source.
 
 ## M6 (implemented behind default-off flags)
 
