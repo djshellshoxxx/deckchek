@@ -73,13 +73,28 @@ export function certificatePlan(profile) {
   };
 }
 
-/** Latest result per test id (newest createdAt wins). */
+function resultTimestamp(result) {
+  const text = result?.createdAt;
+  const match = typeof text === 'string' && /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.exec(text);
+  if (!match || +match[2] > 23 || +match[3] > 59 || +match[4] > 59) return Number.NaN;
+  const calendar = Date.parse(`${match[1]}T00:00:00Z`);
+  // Date.parse normalises impossible dates such as February 30; those are not evidence times.
+  if (!Number.isFinite(calendar) || new Date(calendar).toISOString().slice(0, 10) !== match[1]) return Number.NaN;
+  return Date.parse(text);
+}
+const resultPriority = result => result?.status === 'fail' ? 2 : result?.status === 'pass' ? 0 : 1;
+
+/** Latest result per test id. Unknown dates stay visible; ties retain adverse evidence. */
 export function latestByTest(results = []) {
   const out = new Map();
   for (const r of Array.isArray(results) ? results : []) {
     if (!r || typeof r.testId !== 'string') continue;
     const prev = out.get(r.testId);
-    if (!prev || String(r.createdAt ?? '') > String(prev.createdAt ?? '')) out.set(r.testId, r);
+    const at = resultTimestamp(r), oldAt = resultTimestamp(prev);
+    // ISO strings with optional fractions or offsets do not sort chronologically. A result
+    // with an unknown time cannot be assumed older than a pass and must remain reviewable.
+    if (!prev || (!Number.isFinite(at) && (Number.isFinite(oldAt) || resultPriority(r) > resultPriority(prev))) ||
+      (Number.isFinite(at) && Number.isFinite(oldAt) && (at > oldAt || (at === oldAt && resultPriority(r) > resultPriority(prev))))) out.set(r.testId, r);
   }
   return out;
 }
@@ -91,8 +106,8 @@ export function readiness(profile, results = [], { now = Date.now(), staleHours 
   const missing = [], stale = [];
   for (const t of plan.tests) {
     const r = latest.get(t.id);
-    if (!r) { missing.push({ testId: t.id, title: t.title || t.id }); continue; }
-    const at = Date.parse(r.createdAt);
+    if (!r || !Number.isFinite(resultTimestamp(r))) { missing.push({ testId: t.id, title: t.title || t.id }); continue; }
+    const at = resultTimestamp(r);
     if (Number.isFinite(at) && +now - at > staleHours * 3600000) stale.push({ testId: t.id, title: t.title || t.id, createdAt: r.createdAt });
   }
   const total = plan.tests.length;
@@ -224,8 +239,10 @@ export function buildCertificatePayload({
   const testById = new Map(plan.tests.map(t => [t.id, t]));
   const payloadResults = plan.tests.slice(0, LIMITS.maxResults).map(t => {
     const r = latest.get(t.id);
-    const status = RESULT_STATUSES.includes(r?.status) ? r.status : 'unknown';
-    const detail = r ? (typeof r.detail === 'string' ? r.detail : r.detail?.summary || '') : 'Not tested.';
+    const timed = Number.isFinite(resultTimestamp(r));
+    const status = RESULT_STATUSES.includes(r?.status) && (timed || r.status === 'fail') ? r.status : 'unknown';
+    const originalDetail = r ? (typeof r.detail === 'string' ? r.detail : r.detail?.summary || '') : 'Not tested.';
+    const detail = r && !timed ? `Result time is unavailable. Review the stored result time before certifying. ${originalDetail}` : originalDetail;
     return { testId: clip(t.id, LIMITS.maxText), title: clip(t.title || t.id, LIMITS.maxText), status, detail: clip(detail, LIMITS.maxLongText) };
   });
   const source = Array.isArray(measurements) ? measurements

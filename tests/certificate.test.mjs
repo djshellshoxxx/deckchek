@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  readiness, certificatePlan, buildCertificatePayload, certificateVerdict, guardBandDecision, limitsFromPass, expandedUncertainty,
+  readiness, certificatePlan, latestByTest, buildCertificatePayload, certificateVerdict, guardBandDecision, limitsFromPass, expandedUncertainty,
   calibrationFor, toDecimal, isDecimal, validatePayload, parseStrictJson, extractJsonFromHtml, contentHash, assembleCertificateFile,
   verifyCertificateText, renderCertificateHtml, renderCertificateBody, certificateBaseName, qrText, certificateQrSvg, diffPayload,
   verifyBadge, embedJson, CertificateError, LIMITS, QR_PREFIX, DISCLAIMER, HTML_MARKER,
@@ -54,6 +54,50 @@ test('AC-1 readiness: lists missing tests, enables only when every required test
   assert.equal(readiness({ id: 'x', tests: [] }, [], {}).ready, false, 'a profile without tests is not certificate-capable');
   const other = readiness(profile, allPass().map(r => ({ ...r, profileId: 'other' })), { now: NOW });
   assert.equal(other.done, 0, 'results of another profile do not count');
+});
+
+test('certificate evidence selects the newest instant across ISO precision and timezone offsets', () => {
+  const cases = [
+    ['2026-10-28T11:00:00Z', '2026-10-28T11:00:00.500Z'],
+    ['2026-10-28T11:00:00.1Z', '2026-10-28T11:00:00.150Z'],
+    ['2026-10-28T11:00:00+01:00', '2026-10-28T10:30:00Z'],
+  ];
+  for (const [olderAt, newerAt] of cases) {
+    const old = res('t-speed', 'pass', [{ metricId: 'measured_pitch_percent', value: 0.02, unit: '%' }], olderAt);
+    const newer = res('t-speed', 'fail', [{ metricId: 'measured_pitch_percent', value: 0.5, unit: '%' }], newerAt);
+    for (const ordered of [[old, newer], [newer, old]]) {
+      assert.equal(latestByTest(ordered).get('t-speed'), newer, `${olderAt} must not hide ${newerAt}`);
+      const payload = build({ results: [...allPass().filter(r => r.testId !== 't-speed'), ...ordered] });
+      assert.equal(payload.results.find(r => r.testId === 't-speed').status, 'fail');
+      assert.equal(payload.verdict, 'fail', 'an older PASS must not be certified over a newer failure');
+      assert.equal(payload.measurements.find(m => m.metricId === 'measured_pitch_percent').value, '0.5');
+    }
+  }
+});
+
+test('certificate timestamp ties retain adverse evidence and unknown times block a certified pass', () => {
+  const passed = allPass()[0];
+  for (const status of ['fail', 'unknown', 'skipped']) {
+    const sameInstant = { ...passed, status, createdAt: '2026-10-28T11:00:00.000Z' };
+    for (const ordered of [[passed, sameInstant], [sameInstant, passed]]) {
+      assert.equal(latestByTest(ordered).get('t-driver'), sameInstant);
+      assert.notEqual(build({ results: [...allPass().slice(1), ...ordered] }).verdict, 'pass');
+    }
+  }
+  for (const createdAt of ['bad-date', '', '2026-02-30T11:00:00Z', '2026-10-28T24:00:00Z', '2026-10-28', '2026-10-28T11:00:00', null, 0, {}, []]) {
+    const undated = { ...passed, createdAt };
+    for (const ordered of [[passed, undated], [undated, passed]]) {
+      const results = [...allPass().slice(1), ...ordered];
+      assert.equal(readiness(profile, results, { now: NOW }).ready, false);
+      const payload = build({ results });
+      assert.equal(payload.verdict, 'review');
+      assert.equal(payload.results.find(r => r.testId === passed.testId).status, 'unknown');
+      assert.match(payload.results.find(r => r.testId === passed.testId).detail, /Result time is unavailable/);
+      assert.equal(undated.status, 'pass', 'raw evidence is not modified');
+    }
+  }
+  const undatedFailure = { ...passed, status: 'fail', createdAt: null };
+  assert.equal(build({ results: [...allPass().slice(1), undatedFailure] }).verdict, 'fail');
 });
 
 test('verdict matrix (spec §6): fail > review > pass, with the AC-6 downgrade', () => {
