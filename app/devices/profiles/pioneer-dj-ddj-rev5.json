@@ -5,7 +5,7 @@
   "model": "DDJ-REV5",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): Serato DJ Pro.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed. The DDJ-REV5 DRI1872B manual confirms USB MIDI control (p. 132), nominal 48 kHz Audio Section sampling and 24-bit A/D and D/A converters (p. 133). USB audio stream formats and channel counts, DIN MIDI, USB IDs, class compliance, hardware/firmware revision applicability, receiving/Identity support, exact control maps, OS/software qualification and factory tolerance limits remain unverified. See docs/devices/pioneer-dj-ddj-rev5.md.",
   "documents": [
     {
       "title": "Manufacturer model feature reference",
@@ -48,6 +48,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "DDJ-REV5 Operating Instructions (DRI1872B)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV5/DDJ-REV5_DRI1872B_manual.pdf",
+      "language": "en",
+      "notes": "DRI1872B p. 132: MIDI DJ-software control over USB; p. 133: nominal Audio Section sampling and A/D,D/A converter depth; p. 134: two USB Type-C terminals. USB audio stream formats/channel counts and receiving/Identity support are not established. See docs/devices/pioneer-dj-ddj-rev5.md."
     }
   ],
   "connectivity": {
@@ -58,7 +65,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-REV5"
@@ -120,6 +127,33 @@
       "notes": [
         "Official MIDI message list and hardware diagram are available on manufacturer site; use a separate mapping validation phase."
       ]
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI control transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV5/DDJ-REV5_DRI1872B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1872B p. 132: connecting a PC/Mac with MIDI software via USB enables control of other DJ software; some buttons depend on the application. This establishes USB MIDI control, not DIN transport, receiving/Identity support or an exact control map."
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Nominal audio-section sampling rate",
+      "value": 48000,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV5/DDJ-REV5_DRI1872B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1872B p. 133, Audio Section: nominal sampling rate is 48 kHz. This does not enumerate supported USB stream sample rates or USB channel counts."
+    },
+    {
+      "key": "verified_ad_da_converter_depth",
+      "label": "Audio-section A/D and D/A converter depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV5/DDJ-REV5_DRI1872B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1872B p. 133, Audio Section: A/D and D/A converters are 24 bit. Converter resolution does not establish USB stream word length; connectivity.audio.bitDepth remains unknown."
     }
   ],
   "midi": {

@@ -30,6 +30,7 @@ mod media;
 mod links;
 // [FS-08] mods
 mod backup;
+mod catalog_archive;
 // [FS-10] mods
 mod pregig;
 // [FS-11] mods
@@ -231,6 +232,10 @@ pub fn run() {
             backup::backup_settings_get,
             backup::backup_settings_set,
             backup::backup_import_workspace,
+            catalog_archive::catalog_archive_setups,
+            catalog_archive::catalog_archive_export,
+            catalog_archive::catalog_archive_preview,
+            catalog_archive::catalog_archive_import,
             // [FS-10] handlers
             pregig::pregig_processes,
             pregig::pregig_save_run,

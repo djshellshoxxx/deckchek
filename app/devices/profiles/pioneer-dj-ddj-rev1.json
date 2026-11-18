@@ -5,7 +5,7 @@
   "model": "DDJ-REV1",
   "category": "controller",
   "summary": "controller profile with jog, pad, fader, eq, audio, usb diagnostic groups. Companion workflow(s): Serato DJ Lite.",
-  "identityNotes": "Research seed with conservative, capability-dependent tests. Exact MIDI IDs, USB IDs, revision, OS support, audio channel maps and tolerance limits are NOT verified; learn or confirm on real hardware before giving pass/fail based on fixed specifications.",
+  "identityNotes": "Research seed. The DDJ-REV1 DRI1744B manual confirms USB MIDI control (p. 57), nominal 48 kHz Audio Section sampling and 24-bit A/D and D/A converters (p. 55). USB audio stream formats and channel counts, DIN MIDI, USB IDs, class compliance, hardware/firmware revision applicability, receiving/Identity support, exact control maps, OS/software qualification and factory tolerance limits remain unverified. See docs/devices/pioneer-dj-ddj-rev1.md.",
   "documents": [
     {
       "title": "Manufacturer detailed product feature and specifications",
@@ -45,6 +45,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "DDJ-REV1 Operating Instructions (DRI1744B)",
+      "type": "user-manual",
+      "url": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV1/DDJ-REV1_DRI1744B_manual.pdf",
+      "language": "en",
+      "notes": "DRI1744B p. 57: MIDI DJ-software control over USB; p. 55: nominal Audio Section sampling and A/D,D/A converter depth; p. 56: one USB Type-B port. USB audio stream formats/channel counts and receiving/Identity support are not established. See docs/devices/pioneer-dj-ddj-rev1.md."
     }
   ],
   "connectivity": {
@@ -55,7 +62,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": true,
       "din": null,
       "portNamePatterns": [
         "DDJ-REV1"
@@ -102,6 +109,33 @@
       "source": "https://www.pioneerdj.com/en/product/dj-controllers/",
       "confidence": "confirmed",
       "notes": "Source model page; inspect revision for deviations."
+    },
+    {
+      "key": "verified_usb_midi_transport",
+      "label": "USB MIDI control transport",
+      "value": true,
+      "unit": "bool",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV1/DDJ-REV1_DRI1744B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1744B p. 57: buttons and knobs output operating data in MIDI format to a PC/Mac DJ application via the supplied USB cable. This establishes USB MIDI control, not DIN transport, receiving/Identity support or an exact control map."
+    },
+    {
+      "key": "verified_audio_section_sampling_rate",
+      "label": "Nominal audio-section sampling rate",
+      "value": 48000,
+      "unit": "Hz",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV1/DDJ-REV1_DRI1744B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1744B p. 55, Audio Section: nominal sampling rate is 48 kHz. This does not enumerate supported USB stream sample rates or USB channel counts."
+    },
+    {
+      "key": "verified_ad_da_converter_depth",
+      "label": "Audio-section A/D and D/A converter depth",
+      "value": 24,
+      "unit": "bit",
+      "source": "https://downloads.support.alphatheta.com/manuals/dj-controllers/DDJ-REV1/DDJ-REV1_DRI1744B_manual.pdf",
+      "confidence": "confirmed",
+      "notes": "DRI1744B p. 55, Audio Section: A/D and D/A converters are 24 bit. Converter resolution does not establish USB stream word length; connectivity.audio.bitDepth remains unknown."
     }
   ],
   "midi": {

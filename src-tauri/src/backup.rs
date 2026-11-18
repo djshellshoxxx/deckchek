@@ -627,6 +627,12 @@ fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
     reject_unexpected_schema_at(conn, current_schema_version())
 }
 
+/// The selected setup archive shares the complete current-schema fingerprint.
+/// This wrapper adds no alternative shape policy and performs no data writes.
+pub(crate) fn validate_catalog_schema(conn: &Connection) -> Result<(), String> {
+    reject_unexpected_schema(conn).map_err(|error| error.to_string())
+}
+
 /// DeckChek only ever writes UTF-8 TEXT. A backup whose rows hold other bytes was edited by hand
 /// or damaged, and every screen that reads such a row would fail after the restore, so it is
 /// refused. The tables are DeckChek's own at this point (`reject_unexpected_schema` ran first).

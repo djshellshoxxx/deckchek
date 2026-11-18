@@ -202,3 +202,22 @@ production library initialization and checks actual downloads/import/reload,
 original graph preservation, existing profile associations, history bytes,
 zero-write retries/conflicts, escaping and phone width. Execution results remain
 source-specific; authored coverage does not establish a hosted Chromium pass.
+
+## 14. Native selected setup catalog file (2026-11-18)
+
+Native Data offers a separate `deckchek-native-setup-catalog` v1 file for selected
+setups, all their components and complete referenced catalog/location/settings
+rows. Raw JSON text crosses IPC so SQLite integers and literal text remain exact.
+Preview precedes an explicit, atomic insertion of missing records. Existing IDs
+with conflicting values block the whole import; exact matches cause no writes.
+Matching manufacturer/product dependencies may retain local timestamps only
+when every non-time value is identical, and the preview counts this separately.
+The complete setup component set and existing snapshot/support ownership rules
+remain authoritative. The full `.deckchek-backup`, browser formats and default
+Fleet opt-in behavior retain their separate contracts.
+
+See the [native setup catalog contract](../native-catalog-archive.md) for the
+fixed ten-table graph, excluded records, strict UTF-8/type/schema checks,
+32 MiB/10,000-row/depth-24 bounds, transaction and retry semantics, UI ownership,
+and source-specific test boundaries. This selective transfer is not a merge of
+arbitrary native databases or a complete product/history archive.
