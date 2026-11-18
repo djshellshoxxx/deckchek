@@ -239,6 +239,29 @@ function comparisonRecord(value) {
   object(value.result.deltaDb,['left','right','pair'],'Delta');for(const key of ['left','right','pair'])if(value.result.deltaDb[key]!==null&&!finite(value.result.deltaDb[key]))invalid('Invalid saved delta');
   return clone({...input,pairId:value.pairId,venueId:value.venueId,setupId:value.setupId,result:value.result,recordedAt:value.recordedAt});
 }
+/** Complete saved forms for archive transfer; no new timestamp or catalog read. */
+function sameSavedForm(a, b) {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a) && a.length !== b.length) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && sameSavedForm(a[key], b[key]));
+}
+export function validateSavedSupportObservation(value) {
+  const record = observationRecord(value);
+  if (!sameSavedForm(record, value)) invalid('Observation is not in its complete saved form');
+  return record;
+}
+function savedComparisonForm(value) {
+  const record = comparisonRecord(value);
+  if (!sameSavedForm(record, value)) invalid('Comparison is not in its complete saved form');
+  return record;
+}
+export function validateSavedSupportComparison(value, observationA, observationB) {
+  const record = savedComparisonForm(value);
+  verifiedComparison(record, observationA, observationB);
+  return record;
+}
 function verifiedComparison(record,a,b) {
   const expected=compareObservations(a,b,comparisonInput(record));
   if(record.pairId!==a.pairId||record.venueId!==a.venueId||record.setupId!==a.setupId||record.result.status!==expected.status||!same(record.result.reasons,expected.reasons))invalid('Saved comparison disagrees with original evidence');
@@ -257,14 +280,20 @@ export function createSupportIsolationStore({invoke,storage,catalog=createCatalo
   const bridge=()=>invoke===undefined?nativeInvoke():invoke;
   const target=()=>{let result=storage;if(result===undefined){try{result=globalThis.localStorage;}catch(error){throw new Error(`Storage unavailable: ${error.message}`);}}if(!result||typeof result.getItem!=='function'||typeof result.setItem!=='function'||typeof result.key!=='function')throw new Error('Storage is unavailable');return result;};
   const storageFailure=error=>new SupportIsolationError('SUPPORT_STORAGE',`Support history storage failed: ${error.message||error}`);
-  function readAll(){try{
+  function readAll(archive=false,{maxRecords=Infinity,maxBytes=Infinity}={}){try{
     const s=target(),observations=[],comparisons=[],length=s.length;
     if(!integer(length))throw new Error('Storage key enumeration is unavailable');
-    for(let i=0;i<length;i++){const key=s.key(i);if(typeof key!=='string')throw new Error('Storage key enumeration changed or is unavailable');if(!key.startsWith(SUPPORT_STORAGE_PREFIX))continue;
-      const kind=key.slice(SUPPORT_STORAGE_PREFIX.length).split('.')[0],raw=JSON.parse(s.getItem(key));let row;
-      if(kind==='observation'){row=observationRecord(raw);observations.push(row);}else if(kind==='comparison'){row=comparisonRecord(raw);comparisons.push(row);}else invalid('Unknown stored record kind');
+    if(archive&&[maxRecords,maxBytes].some(value=>value!==Infinity&&(!integer(value))))throw new Error('Invalid archive read bound');
+    const seen=new Set();let recordsRead=0,bytes=0;
+    for(let i=0;i<length;i++){const key=s.key(i);if(typeof key!=='string'||archive&&seen.has(key))throw new Error('Storage key enumeration changed or is unavailable');seen.add(key);if(!key.startsWith(SUPPORT_STORAGE_PREFIX))continue;
+      if(archive&&++recordsRead>maxRecords)throw new Error('Support history exceeds the archive record bound; nothing was truncated');
+      const text=s.getItem(key);
+      if(archive){if(typeof text!=='string')throw new Error('A support record could not be read');bytes+=new TextEncoder().encode(text).length;if(bytes>maxBytes)throw new Error('Support history exceeds the archive byte bound; nothing was truncated');}
+      const kind=key.slice(SUPPORT_STORAGE_PREFIX.length).split('.')[0],raw=JSON.parse(text);let row;
+      if(kind==='observation'){row=archive?validateSavedSupportObservation(raw):observationRecord(raw);observations.push(row);}else if(kind==='comparison'){row=archive?savedComparisonForm(raw):comparisonRecord(raw);comparisons.push(row);}else invalid('Unknown stored record kind');
       if(key!==`${SUPPORT_STORAGE_PREFIX}${kind}.${row.id}`)invalid('Stored record key and ID disagree');
     }
+    if(archive&&s.length!==length)throw new Error('Storage key enumeration changed');
     const ids=new Set();for(const row of [...observations,...comparisons]){if(ids.has(row.id))invalid('Duplicate immutable record ID');ids.add(row.id);}
     const byId=new Map(observations.map(row=>[row.id,row]));for(const row of comparisons)verifiedComparison(row,byId.get(row.observationAId),byId.get(row.observationBId));
     return {observations,comparisons};
@@ -273,6 +302,56 @@ export function createSupportIsolationStore({invoke,storage,catalog=createCatalo
   async function call(command,args){try{return await bridge()(command,args);}catch(error){throw new SupportIsolationError('SUPPORT_STORAGE',typeof error==='string'?error:error?.message||String(error));}}
   const api={
     get native(){return Boolean(bridge());},
+    readArchive(limits) {
+      if (bridge()) invalid('Venue-history archives read browser storage only');
+      return readAll(true, limits);
+    },
+    prepareArchiveRestore({ observations, comparisons }, limits) {
+      if (bridge()) invalid('Venue-history archives restore browser storage only');
+      if (!Array.isArray(observations) || !Array.isArray(comparisons)) invalid('Saved support records must be arrays');
+      const originals = observations.map(validateSavedSupportObservation), byId = new Map(originals.map(row => [row.id, row]));
+      const derived = comparisons.map(row => validateSavedSupportComparison(row, byId.get(row.observationAId), byId.get(row.observationBId)));
+      const ids = [...originals, ...derived].map(row => row.id);
+      if (new Set(ids).size !== ids.length) invalid('Duplicate support record ID in archive');
+      const current = readAll(true, limits), existing = new Map([
+        ...current.observations.map(row => [row.id, { kind: 'observation', row }]),
+        ...current.comparisons.map(row => [row.id, { kind: 'comparison', row }]),
+      ]);
+      const readOriginal = (storage, expected) => {
+        if (storage.getItem(`${SUPPORT_STORAGE_PREFIX}comparison.${expected.id}`) !== null) throw new SupportIsolationError('SUPPORT_CONFLICT', 'Support ID belongs to a different record kind');
+        const raw = storage.getItem(`${SUPPORT_STORAGE_PREFIX}observation.${expected.id}`);
+        if (raw === null) invalid('Comparison source observation is missing during restore');
+        const found = validateSavedSupportObservation(JSON.parse(raw));
+        if (!same(found, expected)) throw new SupportIsolationError('SUPPORT_CONFLICT', 'Comparison source has different saved evidence or persistence metadata');
+      };
+      return [['observation', originals], ['comparison', derived]].flatMap(([kind, records]) => records.map(record => ({
+        kind: kind === 'observation' ? 'supportObservation' : 'supportComparison', id: record.id,
+        present: existing.has(record.id),
+        conflict: existing.has(record.id) && (existing.get(record.id).kind !== kind || !same(existing.get(record.id).row, record)),
+        restore() {
+          try {
+            const storage = target(), key = `${SUPPORT_STORAGE_PREFIX}${kind}.${record.id}`;
+            const other = kind === 'observation' ? 'comparison' : 'observation';
+            if (storage.getItem(`${SUPPORT_STORAGE_PREFIX}${other}.${record.id}`) !== null) throw new SupportIsolationError('SUPPORT_CONFLICT', 'Support ID belongs to a different record kind');
+            if (kind === 'comparison') {
+              readOriginal(storage, byId.get(record.observationAId));
+              readOriginal(storage, byId.get(record.observationBId));
+            }
+            const raw = storage.getItem(key);
+            if (raw !== null) {
+              const found = kind === 'observation' ? validateSavedSupportObservation(JSON.parse(raw)) : savedComparisonForm(JSON.parse(raw));
+              if (!same(found, record)) throw new SupportIsolationError('SUPPORT_CONFLICT', 'Support ID has different saved evidence or persistence metadata');
+              return 'present';
+            }
+            storage.setItem(key, JSON.stringify(record));
+            return 'added';
+          } catch (error) {
+            if (error instanceof SupportIsolationError) throw error;
+            throw storageFailure(error);
+          }
+        },
+      })));
+    },
     async saveObservation(value){
       const input=normalizeObservation(value);
       if(bridge()){const saved=observationRecord(await call('support_isolation_observation_save',{input}));return conflict(saved,input,sourceInput);}

@@ -84,6 +84,23 @@ limits. Venue reports continue to request up to **300** incidents. Pagination
 adds no table or migration and changes neither append-only save/retry semantics
 nor browser workspace JSON export, which still excludes incidents.
 
+## Complete browser history archive
+
+Data now offers a separate **Browser venue history file** containing every
+retained manual incident, original support observation and base comparison,
+subject to explicit whole-file resource bounds. Incident page and report limits
+do not truncate this archive. Selection validates and previews a file; the
+operator then explicitly imports it. Exact saved duplicates are skipped without
+rewriting timestamps, while different saved values with the same ID block import.
+Partial storage failures retain successful appends, and reimporting the unchanged
+file resumes after reload. This adds no native command, migration or workspace-v1
+format change. See [the archive contract](venue-history-archive.md).
+
+Imported incident history remains visible with all venues selected even when its
+current catalog entries are absent. Reports still require a matching current
+venue. Import preserves the historical names and context; it does not recreate
+editable venues, setups or support descriptions.
+
 ## Bounded verification
 
 The focused regressions use the production store to save and traverse more than

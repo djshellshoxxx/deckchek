@@ -1,6 +1,6 @@
 // Data & backup screen (FS-08): back up now, restore from a file (with an explicit confirmation that
 // lists what is replaced and that a safety backup is taken first), automatic backups, and the browser
-// workspace import. Browser mode has no backup files: only the JSON workspace export/import.
+// workspace import. Browser mode has workspace JSON and a separate venue-history archive.
 
 import { h, isNative, pickFile } from '../dom.js';
 import { icon } from '../icons.js';
@@ -9,6 +9,7 @@ import { exportSettingsBlob, importSettingsBlob } from '../state.js';
 import { exportWorkspace, importWorkspace } from '../persistence.js';
 import { revealAppPath } from '../../external-links.js';
 import { parseWorkspaceJson } from '../../export.js';
+import { createVenueHistoryArchivePanel } from '../workflows/venue-history-archive.js';
 import {
   backupApi, BACKUP_EXT, DEFAULT_KEEP, MAX_KEEP, PROGRESS_EVENT, suggestBackupName, describeBackup, describeRestoreResult,
   progressPercent, formatBytes, workspaceToImportPayload,
@@ -42,7 +43,7 @@ export function replacementLines(inspect) {
   ];
 }
 
-export function createDataScreen(section) {
+export function createDataScreen(section, { archiveOptions = {} } = {}) {
   const native = isNative() && backupApi.supported;
   const st = { busy: false, entries: [], schedule: null };
 
@@ -54,6 +55,8 @@ export function createDataScreen(section) {
   const q = s => section.querySelector(s);
   const grid = q('#data-grid');
   const status = q('#data-status');
+  const archiveHost = native ? null : h('section', { class: 'card data-wide', id: 'data-venue-history' });
+  const archivePanel = archiveHost ? createVenueHistoryArchivePanel(archiveHost, archiveOptions) : null;
 
   const setStatus = (text, kind = 'info') => {
     status.replaceChildren();
@@ -243,6 +246,7 @@ export function createDataScreen(section) {
         h('div', { class: 'data-actions' },
           h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-export-json', onclick: () => { exportWorkspace(); setStatus('Workspace exported as deckchek-workspace.json.', 'success'); } }, h('span', { html: icon('download', { size: 18 }) }), h('span', { text: 'Export workspace (JSON)' })),
           h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-import-json', onclick: onImportWorkspace }, h('span', { html: icon('upload', { size: 18 }) }), h('span', { text: 'Import workspace (JSON)' })))));
+      grid.append(archiveHost);
       return;
     }
     const disabled = st.busy;
@@ -278,7 +282,11 @@ export function createDataScreen(section) {
 
   render();
   refresh();
-  return { onShow: () => { if (native) refresh(); } };
+  return {
+    onShow: () => { if (native) refresh(); archivePanel?.setActive(true); },
+    onHide: () => archivePanel?.setActive(false),
+    dispose: () => archivePanel?.dispose(),
+  };
 }
 
 export function dataScreenDefs() {

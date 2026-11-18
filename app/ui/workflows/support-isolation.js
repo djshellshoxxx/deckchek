@@ -150,7 +150,7 @@ export function createSupportIsolationPanel(host,{catalog=createCatalogStore(),s
     h('p',{class:'muted',text:'After A is saved, install support B, restore the same placement, medium, gain and PA settings, then capture B. Any changed condition must be recorded; it can make the pair non-comparable.'}),
     label('Apart from the declared support change, I repeated the same physical test and PA conditions',fields.confirm),
     h('div',{class:'form-actions'},record,compare,retry,cancel,fresh),status,
-    h('p',{class:'muted small',text:store.native?'Saved observations and comparisons are included in the local database backup.':'History stays in this browser. Workspace JSON does not include support observations or comparisons; a venue report provides a readable copy.'}),
+    h('p',{class:'muted small',text:store.native?'Saved observations and comparisons are included in the local database backup.':'History stays in this browser. Data → Browser venue history file exports and imports all retained incident and support history. Workspace JSON does not include incidents or support history. All-venue history can show imported records without current catalog entries; venue reports require a matching current venue.'}),
     h('h3',{text:'Saved observations and comparisons'}),historyBox));
   function visible(){return active&&!disposed;}
   function renderPairs(){const previous=pair.value,list=devices.find(x=>x.id===device.value)?.pairs||[];pair.replaceChildren(h('option',{value:'',text:'Choose a stereo pair'}),...list.filter(p=>!p.mono).map(p=>h('option',{value:String(p.first),text:p.label})));if(list.some(p=>String(p.first)===previous&&!p.mono))pair.value=previous;renderState();}
