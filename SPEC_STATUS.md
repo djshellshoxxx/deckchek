@@ -19,7 +19,7 @@ Note: the run brief described a "plugin dependency scanner". This repository is 
 | FS-08 | Backup and restore | DONE | `src-tauri/src/backup.rs`, `app/backup.js` | Rust backup/restore tests incl. zip-slip and ratio limits |
 | FS-10 | Pre-gig check | DONE (HW: H-10) | `app/pre-gig.js`, `src-tauri/src/pregig.rs` | `tests/pre-gig.test.mjs`, `tests/pregig-ui.test.mjs` |
 | FS-11 | DVS latency and buffer tuner | DONE (HW: H-11, WASAPI spike) | `app/latency.js`, `src-tauri/src/latency.rs` | `tests/latency.test.mjs` |
-| FS-12 | Stylus wear tracker | PARTIAL: guided benchmark capture not built (spec gap noted in IMPLEMENTATION-STATUS) | `app/stylus-wear.js`, `src-tauri/src/stylus.rs` | `tests/stylus-wear.test.mjs` |
+| FS-12 | Stylus wear tracker | IMPLEMENTED: guided capture and replacement trend reset; browser/platform CI and physical repeatability pending | `app/stylus-wear.js`, `app/stylus-benchmark.js`, `app/ui/workflows/stylus-benchmark.js`, `src-tauri/src/stylus.rs` | `tests/stylus-{benchmark,ui,wear}.test.mjs`, `tests/capture-sessions.test.mjs`; smoke `stylus`, `stylus-benchmark` |
 | FS-13 | Control-vinyl wear map | DONE (HW: H-13) | `app/wear-map.js`, `src-tauri/src/wearmap.rs` | `tests/wear-map*.test.mjs` |
 | FS-14 | Scratch stress test | DONE (HW: skip thresholds need a sacrificial record) | `app/scratch.js`, `src-tauri/src/scratch.rs` | `tests/scratch*.test.mjs` |
 | FS-15 | Booth feedback and hum hunter | DONE (HW: H-15) | `app/hum*.js`, `app/feedback.js`, `src-tauri/src/humrun.rs` | `tests/hum*.test.mjs`, `tests/feedback.test.mjs` |

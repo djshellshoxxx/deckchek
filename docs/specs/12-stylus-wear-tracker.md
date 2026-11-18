@@ -2,7 +2,7 @@
 
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: `0009_stylus_wear.sql` (+ shared `0006_asset_usage.sql`, FS-00). Milestone: M6. Size: M. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
-> **Implementation status (2026-10-10, audit fixes).** Built, including proposals from DeckChek capture sessions (AC-2) and a PDF report. Not built: the guided benchmark capture.
+> **Implementation status (2026-11-18).** The software paths include the hours ledger, capture-session proposals (AC-2), manual and guided benchmarks, trends, alerts, replacement reset and a PDF report. Guided capture has focused model, lifecycle and DOM coverage plus a generated-signal browser smoke. Exact-head browser/platform CI and physical repeatability remain qualification gates; see §11.2.
 
 ## 1. Summary, Goals, Non-goals
 
@@ -73,13 +73,14 @@ Negative/absurd hours rejected (0-24 per entry). Clock changes: entries sorted b
 
 Unit: overlap merge; priority; reset at replacement; regression on synthetic known slope (exact slope recovered, noise CI); n<3; invalid benchmark excluded; lifeStatus thresholds 79.9/80/100 %; projection with zero usage; catalogue fallback to 500; benchmark verdict needs two consecutive.
 Rust: ledger CRUD, constraints (hours bounds), migration applies idempotently.
-UI smoke: add hours, gauge updates, alert snooze.
+UI smoke: add hours, gauge updates, alert snooze, replacement preserves history and clears prior trends (`tools/smoke/stylus.mjs`). Guided preparation, capture progress, keyboard cancellation, explicit save, production analysis of generated signals, provenance and excluded captures: `tools/smoke/stylus-benchmark.mjs`.
 Windows CI: migration.
 Manual: SL-1200MK4 with owner's cartridge: log hours, run three benchmarks 1 week apart, confirm repeatability std < 0.5 dB separation; deliberately raise tracking force offset to confirm benchmarks flag nothing absurd; use Serato CV02.5 and Traktor MK2 segments for SNR.
 
 ## 9. Definition of done
 
-- [ ] AC-1..AC-8; [ ] ledger and benchmark persisted; [ ] alerts shown on rail; [ ] catalogue entries labelled with source confidence.
+- [x] AC-1..AC-8 software paths and focused coverage; [x] ledger and benchmark persistence; [x] alerts shown on rail; [x] catalogue entries labelled with source confidence.
+- [ ] Exact-head browser and platform CI; [ ] physical repeatability and control-vinyl qualification described in §8.
 Rollout: flag `features.stylusWear`. Docs: SPEC-01 cross-reference, FEATURE-MATRIX.
 
 ## 10. Dependencies, risks, open questions, effort
@@ -100,5 +101,31 @@ Depends on SPEC-01 (test tracks, cartridge assets), SPEC-07 data model, calibrat
 - **AC-2 wiring.** `stylus-wear.js` `proposeFromCaptureSessions(rows, assetId, {existing})` keeps `live` captures only (a `file` run is an analysed recording, not play time now) and feeds the shared `proposeFromSessions`; `createStylusApi().captureProposals(assetId, {since, existing})` calls the command and returns unconfirmed `deckchek` proposals. A 40-minute live DVS capture proposes 0.6667 h (tested in Rust and JS).
 - **Where spans come from.** `ui/analysis.js` `buildRun` now stamps `run.capture = captureTiming(...)` (`{kind, startedAt, endedAt, durationSec, approximate}`) and `persistCaptureFields(run)` returns the payload fields. Without an explicit `capture` argument a run with capture-quality counters or a "Live capture" source is `live`, ending at `createdAt` and lasting the audio length (`approximate: true`).
 - **Timecode benchmark auto-fill.** DVS signal runs now carry the `analyzeTimecode` metrics as ordinary measurements (`tc_carrier_hz`, `tc_speed_error_percent`, `tc_phase_deg`, `tc_phase_error_deg`, `tc_balance_db`, `tc_snr_db`, `tc_dropouts`, plus `tc_direction_code`) and `TC_*` findings. The format comes from `params.timecodeFormat` / `params.formatName`, otherwise it is inferred from the carrier (`detectTimecodeFormat`, confidence 0.7, `evidence.timecode.inferred`). `stylus-wear.js` `timecodeBenchmarkFromRuns(runs)` returns `{tcSnrDb, tcPhaseErrorDeg, tcDropouts, tcRun}` from the newest run that has them.
-- **Follow-ups outside this job's files:** `ui/persistence.js` `toPersistRun` must spread `...persistCaptureFields(run)` into its payload (until then saved runs keep the legacy zero-length span and propose nothing); `ui/workflows/flow.js` should pass `capture: {kind, startedAt, endedAt}` stamped at capture start/stop (the Analyze click can come minutes later); `ui/screens/stylus.js` should call `api.captureProposals` next to `proposeFromLogs` in "Find sessions" and merge `timecodeBenchmarkFromRuns` into its run fill.
+- **Current wiring:** `ui/persistence.js` includes `persistCaptureFields(run)`; the stylus screen merges capture-session proposals with DJ-log proposals and includes timecode measurements in saved-run fill. The guided workflow stamps the actual capture span and preserves its selected `setupId` in each diagnostic run's persistence payload.
+
+### 11.2 Guided benchmark implementation (2026-11-18)
+
+The Benchmark tab includes an additive guided panel. Existing manual entry, saved-run fill, hours entry and history remain available. `app/stylus-benchmark.js` defines the versioned evidence contract; `app/ui/workflows/stylus-benchmark.js` owns capture lifecycle and panel controls.
+
+1. Record the reference record and side, tracking force, VTA/tonearm setting, chain/gain description, speed, optional saved setup and selected input pair. The original asset and these values are frozen before capture. Optional control vinyl requires a known format selected explicitly.
+2. Capture stereo 1 kHz for 10 seconds, left-only 1 kHz for 10 seconds, then right-only 1 kHz for 10 seconds. The optional control-vinyl step is 15 seconds. Each completed step uses the existing Cartridge/Channel separation/DVS analyzer and must persist successfully in History before advancing.
+3. Review THD as the mean of the measured left/right values and separation as the poorer isolated-channel result. Both original channel values remain in the evidence. Optional SNR, phase error and dropout count come from the separate DVS run. Only explicit Save writes the benchmark.
+
+Each benchmark retains the ordered source-run IDs, capture timing, actual device/rate/pair, quality counters, stream-error evidence, calibration applicability and full selected calibration profile, measurement records, and the original test conditions. History retains analysis and provenance; this workflow does not persist raw sample audio. `setupId` links both the benchmark and source diagnostic sessions.
+
+Incomplete, silent, nonfinite, preempted or unpersisted steps cannot complete the protocol. Unavailable or inconsistent capture counters, sample-count mismatch, gaps, errors, clipping, truncation, unverified routing/calibration, known condition differences, unverified or reverse control-vinyl direction and absent usable 1 kHz reference evidence make the result excluded from trends. Reference eligibility uses the existing Level-0 −70 dBFS presence floor applied to reference-tone RMS; diagnostic and degradation thresholds are unchanged. The fixed-frequency analyzer can require a repeat when speed drift makes the declared reference unmeasurable. This guard is not physical repeatability qualification.
+
+The first comparable guided benchmark supplies recorded baseline context. Known differences cannot be overridden by the operator checkbox. Legacy manual benchmarks lack that context; their compatibility is explicitly labelled as operator-confirmed. Guided baseline dates must be valid so list ordering cannot silently select a different comparison context. A stylus replacement limits current trend/verdict inputs to guided captures whose complete acquisition spans fall at or after the replacement; a later save cannot carry an old-stylus capture into the new trend. Legacy manual rows use their creation date. Earlier, cross-boundary and unverifiable records remain visible in history.
+
+Cancellation and navigation release only this workflow's capture. Late open, stop, analysis and persistence completions cannot advance a cancelled or disposed workflow. Once the explicit benchmark write starts, cancellation is unavailable: leaving the page can suppress its UI callback but does not roll back the dispatched write. Storage failure keeps the review available for retry.
+
+| Acceptance / contract | Evidence |
+| --- | --- |
+| AC-1..3: existing hours and proposal behavior | `tests/stylus-ui.test.mjs`, `tests/stylus-wear.test.mjs`, `tests/capture-sessions.test.mjs` |
+| AC-4..6: measured inputs, unchanged trends/alerts, excluded evidence | `tests/stylus-benchmark.test.mjs`, `tests/stylus-wear.test.mjs` |
+| AC-7: replacement resets trend inputs and preserves full history | `tests/stylus-benchmark.test.mjs`, browser smoke `stylus` |
+| AC-8: existing snooze behavior | `tests/stylus-wear.test.mjs`, browser smoke `stylus` |
+| §3 guided workflow, ownership, immutable provenance, persistence failures | `tests/stylus-benchmark.test.mjs`, browser smoke `stylus-benchmark` |
+
+Focused Node 22 validation passed 64 tests across those four suites, including 23 new guided tests. Browser smoke execution is delegated to CI because local Chromium launch is restricted. Physical cartridge repeatability, actual supported interfaces and vendor-rated-life research remain open; generated signals establish software behavior only.
 

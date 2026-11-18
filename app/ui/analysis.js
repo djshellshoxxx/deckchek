@@ -347,7 +347,7 @@ export function captureTiming({ capture = null, source = '', quality = null, dur
 export function persistCaptureFields(run) {
   const c = run?.capture;
   if (!c || !Number.isFinite(isoMs(c.startedAt)) || !Number.isFinite(isoMs(c.endedAt))) return {};
-  return { startedAt: c.startedAt, endedAt: c.endedAt, durationSec: Number.isFinite(c.durationSec) ? c.durationSec : null, captureKind: c.kind, assetId: run.assetId ?? run.deviceId ?? null };
+  return { startedAt: c.startedAt, endedAt: c.endedAt, durationSec: Number.isFinite(c.durationSec) ? c.durationSec : null, captureKind: c.kind, assetId: run.assetId ?? run.deviceId ?? null, ...(run.setupId ? { setupId: run.setupId } : {}) };
 }
 
 // ---------- calibration ----------

@@ -35,7 +35,7 @@ export function stylusMock() {
       if (cmd === 'stylus_rated_life_get') return sty.rated;
       if (cmd === 'stylus_rated_life_set') { sty.rated = args.hours; return null; }
       if (cmd === 'stylus_benchmark_list') return sty.bench.filter(b => b.assetId === args.assetId);
-      if (cmd === 'stylus_benchmark_save') { const r = args.result; const row = { id: id('b'), createdAt: new Date(Date.now() - (6 - sty.bench.length) * 7 * 864e5).toISOString(), valid: r.valid !== false, sessionId: null, setupId: null, detail: r.detail || {}, ...r }; sty.bench.push(row); return { id: row.id }; }
+      if (cmd === 'stylus_benchmark_save') { const r = args.result; const row = { id: id('b'), createdAt: new Date().toISOString(), valid: r.valid !== false, sessionId: null, setupId: null, detail: r.detail || {}, ...r }; sty.bench.push(row); return { id: row.id }; }
       if (cmd === 'stylus_alert_list') return sty.snoozes.filter(s => s.assetId === args.assetId);
       if (cmd === 'stylus_alert_snooze') { sty.snoozes.push({ id: id('s'), assetId: args.assetId, kind: args.kind, severity: 'amber', snoozedUntil: args.until, createdAt: new Date().toISOString() }); return { id: id('s') }; }
       if (cmd === 'dj_session_spans') return sty.spans;
@@ -230,6 +230,15 @@ export default async function run({ browser, base, check, SHOTS }) {
     check(`stylus: no horizontal page scroll at phone width (${tab})`, over === '', over);
   }
   await shot(page, 'stylus-phone');
+  // A replacement resets measured trends too. Native benchmark_list retains all rows;
+  // the screen excludes pre-replacement evidence while keeping its history visible.
+  await page.evaluate(() => { window.__sty.baseline = new Date(Date.now() + 1000).toISOString(); });
+  await page.click('.rail-item[data-screen="history"]'); await page.click('.rail-item[data-screen="stylus"]');
+  await page.click('#sty-tab-trends');
+  await page.waitForFunction(() => /No benchmarks yet/.test(document.querySelector('#sty-panel')?.textContent || ''));
+  check('stylus: replacement excludes earlier benchmarks from new trends', (await page.locator('.sty-chart').count()) === 0 && /No benchmarks yet/.test(await text('#sty-panel')));
+  await page.click('#sty-tab-benchmark');
+  check('stylus: replacement preserves all historical benchmark rows', (await page.locator('#sty-bench-table tbody tr').count()) === 6 && /Before replacement/.test(await text('#sty-bench-table')));
   await ctx.close();
   return errors.flat();
 }
