@@ -16,6 +16,12 @@ function humMock() {
   const aud = window.__aud = { calls: [], active: new Set(), levels: [], stops: [], specs: [] };
   const runs = window.__runs = [];
   const incidents = window.__incidents = [];
+  const descendingText = (a, b) => {
+    const left = Array.from(a, c => c.codePointAt(0)), right = Array.from(b, c => c.codePointAt(0));
+    for (let i = 0; i < Math.min(left.length, right.length); i++) if (left[i] !== right[i]) return right[i] - left[i];
+    return right.length - left.length;
+  };
+  const compareIncident = (a, b) => descendingText(a.occurredAt, b.occurredAt) || descendingText(a.id, b.id);
   let n = 0, nextHandle = 1, stream = null;
   class Channel { constructor() { this.onmessage = () => {}; } }
   core.Channel = Channel;
@@ -75,11 +81,16 @@ function humMock() {
         const row = { ...structuredClone(args.input), origin: 'operator', recordedAt: new Date().toISOString() };
         incidents.push(row); return structuredClone(row);
       }
-      case 'venue_incident_list': {
+      case 'venue_incident_list':
+      case 'venue_incident_page': {
         const filter = args.filter || {}, limit = filter.limit ?? 100;
         const rows = incidents.filter(row => (!filter.venueId || row.venueId === filter.venueId) && (!filter.setupId || row.setupId === filter.setupId))
-          .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
-        return { items: structuredClone(rows.slice(0, limit)), total: rows.length, limit, hasMore: rows.length > limit };
+          .sort(compareIncident);
+        if (cmd === 'venue_incident_list') return { items: structuredClone(rows.slice(0, limit)), total: rows.length, limit, hasMore: rows.length > limit };
+        const older = filter.before ? rows.filter(row => compareIncident(row, filter.before) > 0) : rows;
+        const items = structuredClone(older.slice(0, limit)), hasMore = older.length > limit;
+        const last = items.at(-1);
+        return { items, total: rows.length, limit, hasMore, nextCursor: hasMore ? { occurredAt: last.occurredAt, id: last.id } : null };
       }
       default: return base(cmd, args);
     }
@@ -137,9 +148,9 @@ export default async function run({ browser, base, check, SHOTS }) {
   await pb.reload(); await pb.waitForSelector('.rail-item[data-screen="hum"]');
   await pb.click('.rail-item[data-screen="hum"]'); await pb.click('#hum-tab-incidents');
   await pb.waitForFunction(() => /Booth shock/.test(document.querySelector('#incident-history')?.textContent || ''));
-  check('incidents: browser reload retains history and discloses workspace-export scope', /Showing 1 of 1/.test(await pb.locator('#incident-history').innerText())
+  check('incidents: browser reload retains history and discloses workspace-export scope', /Page 1: 1 recorded incidents on this page; 1 matching incidents/.test(await pb.locator('#incident-history').innerText())
     && /workspace JSON does not include incidents/.test(await pb.locator('#incident-host').innerText()));
-  await pb.evaluate(() => {
+  const installIncidentPrintSpy = () => {
     const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
     Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', { configurable: true, get() {
       const w = desc.get.call(this);
@@ -148,7 +159,8 @@ export default async function run({ browser, base, check, SHOTS }) {
       }
       return w;
     } });
-  });
+  };
+  await pb.evaluate(installIncidentPrintSpy);
   await pb.click('.rail-item[data-screen="equipment"]'); await pb.click('#eq-tab-venue');
   await pb.locator('#eq-rows .record-main', { hasText: 'Incident smoke venue' }).click();
   await pb.click('#eq-venue-pdf');
@@ -156,6 +168,89 @@ export default async function run({ browser, base, check, SHOTS }) {
   const incidentHtml = await pb.evaluate(() => window.__incidentReportHtml);
   check('incidents: the Equipment venue report includes escaped operator history', /Operator-reported incidents/.test(incidentHtml)
     && /Booth shock/.test(incidentHtml) && /&lt;img/.test(incidentHtml) && !/<img src=x/.test(incidentHtml));
+
+  // Actual support editor and setup assignment use the same browser catalog as the report.
+  await pb.click('#eq-tab-supportConfiguration');
+  await pb.waitForFunction(() => document.querySelector('#eq-add')?.disabled === false);
+  await pb.click('#eq-add');
+  await pb.fill('#eq-f-name', 'Paver <img src=x onerror=alert(1)>');
+  await pb.fill('#eq-f-description', 'Isolation feet under the booth platform');
+  await pb.fill('#eq-f-approximateMassKg', '8.5');
+  await pb.fill('#eq-f-coupledState', 'Operator-described decoupled');
+  await pb.click('#eq-editor button[type="submit"]');
+  await pb.waitForFunction(() => [...document.querySelectorAll('#eq-rows .record-main')].some(button => button.textContent.includes('Paver <img')));
+  const support = await pb.evaluate(async () => {
+    const { createCatalogStore } = await import('./catalog-store.js');
+    return (await createCatalogStore().list('supportConfiguration')).find(row => row.name.startsWith('Paver <img'));
+  });
+  check('supports: the real browser editor saves a reusable description without invented timestamps or markup',
+    support?.structureJson === '[]' && support.deckPositionId === null && support.approximateMassKg === 8.5
+    && !Object.hasOwn(support, 'createdAt') && !Object.hasOwn(support, 'updatedAt')
+    && (await pb.locator('#eq-rows img').count()) === 0);
+  await pb.click('#eq-tab-setup'); await pb.click('#eq-add');
+  await pb.fill('#eq-f-name', 'Support smoke setup');
+  await pb.selectOption('#eq-f-venueId', 'incident-smoke-venue');
+  await pb.selectOption('#eq-f-supportConfigurationId', support.id);
+  await pb.click('#eq-editor button[type="submit"]');
+  await pb.waitForFunction(() => [...document.querySelectorAll('#eq-rows .record-main')].some(button => button.textContent.includes('Support smoke setup')));
+  await pb.reload(); await pb.waitForSelector('.rail-item[data-screen="equipment"]');
+  await pb.click('.rail-item[data-screen="equipment"]'); await pb.click('#eq-tab-setup');
+  await pb.locator('#eq-rows .record-main', { hasText: 'Support smoke setup' }).click();
+  check('supports: setup assignment survives an actual browser reload and its export scope stays visible',
+    (await pb.locator('#eq-f-supportConfigurationId').inputValue()) === support.id
+    && /Workspace JSON export does not include catalog supports or setups/.test(await pb.locator('#eq-support-status').innerText()));
+  await pb.evaluate(installIncidentPrintSpy);
+  await pb.click('#eq-tab-venue');
+  await pb.locator('#eq-rows .record-main', { hasText: 'Incident smoke venue' }).click();
+  await pb.click('#eq-venue-pdf');
+  await pb.waitForFunction(() => typeof window.__incidentReportHtml === 'string');
+  const supportHtml = await pb.evaluate(() => window.__incidentReportHtml);
+  check('supports: the Equipment venue report escapes current descriptions and preserves incident history',
+    /Current support description/.test(supportHtml) && /does not establish the support used for historical measurements/.test(supportHtml)
+    && /Support smoke setup/.test(supportHtml) && /8\.5 kg/.test(supportHtml)
+    && /Paver &lt;img/.test(supportHtml) && !/<img src=x/.test(supportHtml)
+    && /Operator-reported incidents/.test(supportHtml) && /Booth shock/.test(supportHtml));
+
+  // Browse actual retained browser records beyond two pages without changing the next draft.
+  const paginationSetupId = await pb.evaluate(async () => {
+    const { createCatalogStore } = await import('./catalog-store.js');
+    const { createIncidentDraft, createVenueIncidentStore } = await import('./venue-incidents.js');
+    const catalog = createCatalogStore(), store = createVenueIncidentStore({ catalog });
+    const venue = (await catalog.list('venue')).find(row => row.id === 'incident-smoke-venue');
+    const setup = (await catalog.list('setup')).find(row => row.name === 'Support smoke setup');
+    for (let i = 0; i < 201; i++) {
+      const suffix = String(i).padStart(3, '0');
+      await store.save(createIncidentDraft({ kind: 'other', venue, setup, note: `Pagination event ${suffix}` },
+        { newId: () => `pagination-smoke-${suffix}`, now: () => new Date(Date.UTC(2020, 0, 1) + i * 1000).toISOString() }));
+    }
+    return setup.id;
+  });
+  await pb.click('.rail-item[data-screen="hum"]'); await pb.click('#hum-tab-incidents');
+  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]');
+  await pb.selectOption('#incident-venue', 'incident-smoke-venue');
+  await pb.selectOption('#incident-setup', paginationSetupId);
+  await pb.fill('#incident-note', 'Notes for the next incident');
+  await pb.waitForFunction(() => /Page 1: 100 recorded incidents on this page; 202 matching incidents/.test(document.querySelector('#incident-history')?.textContent || ''));
+  check('incidents: history starts with 100 rows and an honest total before navigating older records',
+    (await pb.locator('#incident-history tbody tr').count()) === 100 && await pb.locator('#incident-history-newer').isDisabled()
+    && await pb.locator('#incident-history-older').isEnabled());
+  await pb.click('#incident-history-older');
+  await pb.waitForFunction(() => /Page 2: 100 recorded incidents/.test(document.querySelector('#incident-history')?.textContent || ''));
+  await pb.click('#incident-history-older');
+  await pb.waitForFunction(() => /Page 3: 2 recorded incidents/.test(document.querySelector('#incident-history')?.textContent || ''));
+  check('incidents: Older reaches the retained final records and disables navigation at the end',
+    (await pb.locator('#incident-history tbody tr').count()) === 2 && await pb.locator('#incident-history-older').isDisabled()
+    && (await pb.locator('#incident-history tbody tr td:nth-child(4)').allTextContents()).join('|') === 'Pagination event 001|Pagination event 000');
+  await pb.click('#incident-history-newer');
+  await pb.waitForFunction(() => /Page 2: 100 recorded incidents/.test(document.querySelector('#incident-history')?.textContent || ''));
+  await pb.click('#incident-history-newest');
+  await pb.waitForFunction(() => /Page 1: 100 recorded incidents/.test(document.querySelector('#incident-history')?.textContent || ''));
+  check('incidents: Newer and Newest preserve the recording selection, notes and saved rows',
+    (await pb.locator('#incident-venue').inputValue()) === 'incident-smoke-venue'
+    && (await pb.locator('#incident-setup').inputValue()) === paginationSetupId
+    && (await pb.locator('#incident-note').inputValue()) === 'Notes for the next incident'
+    && /Booth shock/.test(await pb.locator('#incident-history tbody tr').first().innerText())
+    && await pb.evaluate(async () => (await (await import('./venue-incidents.js')).createVenueIncidentStore().list({ venueId: 'incident-smoke-venue', limit: 500 })).total === 202));
   await bctx.close();
 
   // ----- desktop: feedback tab is separately flagged -----

@@ -2,11 +2,12 @@
 // exposing the same API for browser-only use.
 import { isEnabled } from './features.js';
 
-export const ENTITIES = ['manufacturer', 'product', 'asset', 'setup', 'venue'];
+export const ENTITIES = ['manufacturer', 'product', 'asset', 'setup', 'venue', 'supportConfiguration'];
 const STORE_KEY = 'deckchek.catalog.v1';
 const SEARCH_FIELDS = {
   manufacturer: ['name'], product: ['model', 'variant', 'description'],
   asset: ['nickname', 'serialNumber'], setup: ['name'], venue: ['name', 'city'],
+  supportConfiguration: ['name', 'description', 'coupledState', 'notes'],
 };
 
 export function assertEntity(entity) {
@@ -40,6 +41,87 @@ export function saveState(storage, state) {
   try { storage?.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* quota/private mode */ }
 }
 
+const objectRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+// The support editor must never turn corrupt or unavailable storage into a successful empty save.
+// Keep the older fallback semantics for unrelated catalog callers.
+function loadSupportState(storage) {
+  if (typeof storage?.getItem !== 'function') throw new Error('Catalog storage is unavailable.');
+  const raw = storage.getItem(STORE_KEY);
+  if (raw === null) return emptyState();
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { throw new Error('Catalog storage contains invalid JSON; existing data was kept.'); }
+  if (!objectRecord(parsed) || !objectRecord(parsed.catalog)) throw new Error('Catalog storage has an invalid catalog; existing data was kept.');
+  for (const [entity, records] of Object.entries(parsed.catalog)) {
+    if (!ENTITIES.includes(entity)) continue; // preserve unknown legacy catalog buckets
+    const ids = new Set();
+    if (!Array.isArray(records)) throw new Error(`Catalog storage has invalid ${entity} records.`);
+    for (const row of records) {
+      if (!objectRecord(row) || typeof row.id !== 'string' || !row.id || ids.has(row.id)) throw new Error(`Catalog storage has invalid ${entity} records.`);
+      ids.add(row.id);
+      if (entity === 'supportConfiguration') {
+        if (typeof row.name !== 'string' || typeof row.structureJson !== 'string'
+          || (row.deckPositionId != null && typeof row.deckPositionId !== 'string')
+          || ['description', 'coupledState', 'notes'].some(key => row[key] != null && typeof row[key] !== 'string')
+          || (row.approximateMassKg != null && (typeof row.approximateMassKg !== 'number' || !Number.isFinite(row.approximateMassKg)))) {
+          throw new Error('Catalog storage has an invalid support description.');
+        }
+      }
+      if (entity === 'setup' && row.supportConfigurationId != null && typeof row.supportConfigurationId !== 'string') throw new Error('Catalog storage has an invalid setup support assignment.');
+    }
+  }
+  const base = emptyState();
+  return { ...base, ...parsed, catalog: { ...base.catalog, ...parsed.catalog } };
+}
+
+function supportDescription(record, previous, id) {
+  if (typeof id !== 'string' || !id.trim() || [...id].length > 128) throw new Error('Support id must be a non-empty string of at most 128 characters.');
+  const saved = { ...previous, id };
+  for (const [key, limit, required] of [['name', 200, true], ['description', 5000, false], ['coupledState', 200, false], ['notes', 5000, false]]) {
+    const value = Object.hasOwn(record, key) ? record[key] : previous?.[key];
+    if (value != null && typeof value !== 'string') throw new Error(`Support ${key} must be text.`);
+    const text = value?.trim() || null;
+    if (required && !text) throw new Error(`Support ${key} is required.`);
+    if (text && [...text].length > limit) throw new Error(`Support ${key} must be at most ${limit} characters.`);
+    saved[key] = text;
+  }
+  const mass = Object.hasOwn(record, 'approximateMassKg') ? record.approximateMassKg : previous?.approximateMassKg;
+  if (mass != null && (typeof mass !== 'number' || !Number.isFinite(mass) || mass < 0)) throw new Error('Support approximateMassKg must be a finite nonnegative number.');
+  saved.approximateMassKg = mass ?? null;
+  for (const [key, value] of [['deckPositionId', previous?.deckPositionId ?? null], ['structureJson', previous?.structureJson ?? '[]']]) {
+    if (Object.hasOwn(record, key) && record[key] !== value) throw new Error(`Support ${key} is read-only; existing data was kept.`);
+    saved[key] = value;
+  }
+  return saved;
+}
+
+function hasSavedSetupContext(record) {
+  return record && (['boothId', 'deckPositionId', 'supportConfigurationId'].some(key => record[key] != null)
+    || (Array.isArray(record.components) && record.components.some(component => component?.settingsSnapshotId != null)));
+}
+
+function validateSetupContext(state, record, previous) {
+  if (previous && (record.venueId ?? null) !== (previous.venueId ?? null)) {
+    const previousSupport = state.catalog.supportConfiguration?.find(row => row.id === previous.supportConfigurationId);
+    if (previous.boothId != null || previous.deckPositionId != null || previousSupport?.deckPositionId != null) {
+      throw new Error('Cannot change the venue of a setup with a saved booth, deck position or position-bound support. Keep its original venue.');
+    }
+  }
+  if (Array.isArray(record.components)) for (const component of record.components) {
+    const old = previous?.components?.find(row => row.id === component?.id);
+    if (old && component.assetId !== old.assetId && old.settingsSnapshotId != null && component.settingsSnapshotId === old.settingsSnapshotId) {
+      throw new Error('Changing a component asset requires clearing its old settings snapshot association.');
+    }
+  }
+  const id = record.supportConfigurationId;
+  if (id == null) return;
+  const support = state.catalog.supportConfiguration.find(row => row.id === id);
+  if (!support) throw new Error('The selected support description does not exist.');
+  const position = record.deckPositionId ?? null;
+  const unchanged = previous?.supportConfigurationId === id && (previous.deckPositionId ?? null) === position;
+  if (support.deckPositionId != null && support.deckPositionId !== position && !unchanged) throw new Error('The selected support belongs to a different deck position.');
+}
+
 export function filterRecords(entity, records, filter) {
   const f = filter && typeof filter === 'object' ? filter : {};
   const fields = SEARCH_FIELDS[entity];
@@ -57,9 +139,16 @@ export function upsertRecord(state, entity, record, now = new Date().toISOString
   assertEntity(entity);
   if (!record || typeof record !== 'object') throw new Error('record must be an object');
   const list = state.catalog[entity];
-  const id = record.id || newId();
+  if (entity === 'supportConfiguration' && !objectRecord(record)) throw new Error('Support record must be an object.');
+  const id = entity === 'supportConfiguration' ? record.id ?? newId() : record.id || newId();
   const idx = list.findIndex(r => r.id === id);
   const prev = idx >= 0 ? list[idx] : null;
+  if (entity === 'supportConfiguration') {
+    const saved = supportDescription(record, prev, id);
+    if (idx >= 0) list[idx] = saved; else list.push(saved);
+    return structuredClone(saved);
+  }
+  if (entity === 'setup') validateSetupContext(state, record, prev);
   const saved = { ...record, id, createdAt: prev?.createdAt || now };
   if (entity !== 'setup') saved.updatedAt = now;
   if (entity === 'setup') saved.components = (record.components || prev?.components || []).map(c => ({ ...c, id: c.id || newId() }));
@@ -69,6 +158,7 @@ export function upsertRecord(state, entity, record, now = new Date().toISOString
 
 export function deleteRecord(state, entity, id) {
   assertEntity(entity);
+  if (entity === 'supportConfiguration' && state.catalog.setup.some(row => row.supportConfigurationId === id)) throw new Error('This support description is assigned to a setup and cannot be removed.');
   const list = state.catalog[entity];
   const idx = list.findIndex(r => r.id === id);
   if (idx < 0) return false;
@@ -273,6 +363,13 @@ const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? globalT
 
 export function createCatalogStore({ invoke = nativeInvoke(), storage = globalThis.localStorage } = {}) {
   const mutate = fn => { const s = loadState(storage); const out = fn(s); saveState(storage, s); return out; };
+  const mutateSupport = fn => {
+    const state = loadSupportState(storage);
+    if (typeof storage?.setItem !== 'function') throw new Error('Catalog storage is unavailable for writing.');
+    const out = fn(state);
+    storage.setItem(STORE_KEY, JSON.stringify(state));
+    return structuredClone(out);
+  };
   let userData = null; // memoised: the state before the first device-library sync (FS-01 AC-10)
   return {
     native: Boolean(invoke),
@@ -293,18 +390,34 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
     },
     async list(entity, filter) {
       assertEntity(entity);
+      if (entity === 'supportConfiguration') {
+        if (invoke) return structuredClone(await invoke('catalog_list', { entity, filter: structuredClone(filter ?? null) }));
+        return structuredClone(filterRecords(entity, loadSupportState(storage).catalog[entity], filter));
+      }
       if (invoke) return invoke('catalog_list', { entity, filter: filter ?? null });
       const rows = filterRecords(entity, loadState(storage).catalog[entity], filter).filter(r => !r.isDeleted);
       return rows.map(r => ({ ...r }));
     },
     async upsert(entity, record) {
       assertEntity(entity);
+      // Snapshot the draft before invoking native code or yielding; callers may keep editing.
+      if (entity === 'supportConfiguration' || entity === 'setup') {
+        const draft = structuredClone(record);
+        if (invoke) return structuredClone(await invoke('catalog_upsert', { entity, record: draft }));
+        const previous = entity === 'setup' ? loadState(storage).catalog.setup : null;
+        const supportWrite = entity === 'supportConfiguration' || Object.hasOwn(draft ?? {}, 'supportConfigurationId')
+          || hasSavedSetupContext(draft)
+          || (Array.isArray(previous) && previous.some(row => row?.id === draft?.id && hasSavedSetupContext(row)));
+        if (supportWrite) return mutateSupport(state => upsertRecord(state, entity, draft));
+        return mutate(state => upsertRecord(state, entity, draft));
+      }
       if (invoke) return invoke('catalog_upsert', { entity, record });
       return mutate(s => upsertRecord(s, entity, record));
     },
     async remove(entity, id) {
       assertEntity(entity);
       if (invoke) return invoke('catalog_delete', { entity, id });
+      if (entity === 'supportConfiguration') return mutateSupport(state => deleteRecord(state, entity, id));
       return mutate(s => deleteRecord(s, entity, id));
     },
     async listRuns(limit = 50) {

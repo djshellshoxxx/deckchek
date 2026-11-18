@@ -12,11 +12,16 @@ export function createVenueIncidentPanel(host, {
   catalog = createCatalogStore(), store = createVenueIncidentStore({ catalog }),
   now = () => new Date().toISOString(), newId = () => globalThis.crypto.randomUUID(),
 } = {}) {
+  const paginated = typeof store.page === 'function';
   const state = { active: true, disposed: false, ready: false, catalogError: null, catalogGeneration: 0, historyGeneration: 0,
     venues: [], setups: [], venueId: '', setupId: '', history: null, historyLoading: true, historyError: null,
+    pageCursors: [null], pageIndex: 0, historyRequest: null,
     pending: null, saved: null, draftError: null };
   const venue = h('select', { id: 'incident-venue', onchange: changeVenue });
-  const setup = h('select', { id: 'incident-setup', onchange: () => { state.setupId = setup.value; } });
+  const setup = h('select', { id: 'incident-setup', onchange: () => {
+    if (!visible() || !state.ready) return;
+    state.setupId = setup.value; resetHistory();
+  } });
   const note = h('textarea', { id: 'incident-note', rows: 2, maxlength: 1000, 'aria-describedby': 'incident-note-help' });
   const catalogStatus = h('div', { id: 'incident-catalog-status' });
   const saveStatus = h('div', { id: 'incident-save-status', 'aria-live': 'polite', 'aria-atomic': 'true' });
@@ -78,15 +83,39 @@ export function createVenueIncidentPanel(host, {
   function renderHistory() {
     if (!visible()) return;
     history.replaceChildren();
-    if (state.historyLoading) { history.append(h('p', { class: 'muted', text: 'Loading incident history…' })); return; }
+    if (state.historyLoading) history.append(h('p', { class: 'muted', role: 'status', text: 'Loading incident history…' }));
     if (state.historyError) {
+      const failedRequest = state.historyRequest;
       history.append(h('p', { role: 'alert', text: `Could not load incident history: ${state.historyError}` }),
-        h('button', { type: 'button', id: 'incident-history-retry', class: 'btn btn-secondary', text: 'Try again', onclick: loadHistory })); return;
+        h('button', { type: 'button', id: 'incident-history-retry', class: 'btn btn-secondary', text: 'Try again', onclick: () => {
+          if (visible() && state.historyRequest === failedRequest) loadHistory(failedRequest);
+        } }));
     }
     const result = state.history;
     if (!result) return;
     if (result.total === 0) { history.append(h('p', { class: 'muted', text: 'No incidents recorded for this selection. This does not establish an incident-free session.' })); return; }
-    history.append(h('p', { class: 'muted small', text: `Showing ${result.items.length} of ${result.total} recorded incidents (newest first; display limit ${result.limit}).${result.hasMore ? ' The older records remain stored.' : ''} Names below are the selected context saved with each operator report.` }));
+    const count = paginated
+      ? `Page ${state.pageIndex + 1}: ${result.items.length} recorded incidents on this page; ${result.total} matching incidents (newest first; up to ${result.limit} per page).`
+      : `Showing ${result.items.length} of ${result.total} recorded incidents (newest first; display limit ${result.limit}).${result.hasMore ? ' The older records remain stored.' : ''}`;
+    history.append(h('p', { class: 'muted small', text: `${count} Names below are the selected context saved with each operator report.` }));
+    if (paginated) {
+      const requestOwner = state.historyRequest;
+      const navigate = (index, cursors) => {
+        if (visible() && state.historyRequest === requestOwner && state.history === result) loadHistory({ venueId: state.venueId || null, index, cursors });
+      };
+      history.append(h('div', { class: 'form-actions', 'aria-label': 'Incident history pages' },
+        h('button', { type: 'button', id: 'incident-history-newest', class: 'btn btn-secondary', text: 'Newest',
+          disabled: state.historyLoading && state.historyRequest?.index === 0, onclick: () => navigate(0, [null]) }),
+        h('button', { type: 'button', id: 'incident-history-newer', class: 'btn btn-secondary', text: 'Newer',
+          disabled: state.pageIndex === 0, onclick: () => {
+            if (state.pageIndex > 0) navigate(state.pageIndex - 1, state.pageCursors.slice(0, state.pageIndex));
+          } }),
+        h('button', { type: 'button', id: 'incident-history-older', class: 'btn btn-secondary', text: 'Older',
+          disabled: state.historyLoading || !result.nextCursor, onclick: () => {
+            if (!state.historyLoading && result.nextCursor) navigate(state.pageIndex + 1, [...state.pageCursors.slice(0, state.pageIndex + 1), result.nextCursor]);
+          } })));
+      if (!result.items.length) history.append(h('p', { class: 'muted', text: 'No older incidents remain before this page boundary.' }));
+    }
     history.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
       h('caption', { class: 'sr-only', text: 'Operator-reported venue incidents' }),
       h('thead', {}, h('tr', {}, ...['Occurred', 'Incident', 'Selected context', 'Notes', 'Saved'].map(text => h('th', { scope: 'col', text })))),
@@ -105,36 +134,49 @@ export function createVenueIncidentPanel(host, {
       const [venues, setups] = await Promise.all([catalog.list('venue'), catalog.list('setup')]);
       if (!visible() || generation !== state.catalogGeneration) return;
       if (!Array.isArray(venues) || !Array.isArray(setups)) throw new Error('Catalog returned invalid records');
-      const previousVenue = state.venueId;
+      const previousVenue = state.venueId, previousSetup = state.setupId;
       state.venues = venues.map(item => ({ ...item })); state.setups = setups.map(item => ({ ...item }));
       if (!selectedVenue()) state.venueId = '';
       if (!state.setups.some(item => item.id === state.setupId && item.venueId === state.venueId)) state.setupId = '';
       state.ready = true;
       renderCatalog();
-      if (previousVenue !== state.venueId) loadHistory();
+      if (previousVenue !== state.venueId || previousSetup !== state.setupId) resetHistory();
     } catch (error) {
       if (!visible() || generation !== state.catalogGeneration) return;
       state.catalogError = friendly(error); renderCatalog();
     }
   }
-  async function loadHistory() {
-    if (!visible()) return;
+  const copyCursor = cursor => cursor ? { occurredAt: cursor.occurredAt, id: cursor.id } : null;
+  const newestRequest = () => ({ venueId: state.venueId || null, index: 0, cursors: [null] });
+  async function loadHistory(request = { venueId: state.venueId || null, index: state.pageIndex, cursors: state.pageCursors }) {
+    if (!visible() || request.venueId !== (state.venueId || null)) return;
     const generation = ++state.historyGeneration;
-    const venueId = state.venueId || null;
+    // Pending navigation owns a copied cursor stack. Commit it only with its
+    // result so failures retain a usable page, and retired retries cannot move it.
+    const owned = { venueId: request.venueId, index: request.index, cursors: request.cursors.map(copyCursor) };
+    state.historyRequest = owned;
     state.historyLoading = true; state.historyError = null; renderHistory();
     try {
-      const rows = await store.list({ venueId, limit: INCIDENT_LIST_LIMIT });
+      const filter = { venueId: owned.venueId, limit: INCIDENT_LIST_LIMIT };
+      const rows = await (paginated ? store.page({ ...filter, before: owned.cursors[owned.index] }) : store.list(filter));
       if (!visible() || generation !== state.historyGeneration) return;
+      state.pageIndex = owned.index; state.pageCursors = owned.cursors;
       state.history = rows; state.historyLoading = false; renderHistory();
     } catch (error) {
       if (!visible() || generation !== state.historyGeneration) return;
       state.historyError = friendly(error); state.historyLoading = false; renderHistory();
     }
   }
+  function resetHistory() {
+    ++state.historyGeneration;
+    state.pageCursors = [null]; state.pageIndex = 0; state.historyRequest = null;
+    state.history = null; state.historyError = null; state.historyLoading = true;
+    if (visible()) loadHistory();
+  }
   function changeVenue() {
     if (!visible() || !state.ready) return;
     state.venueId = venue.value; state.setupId = ''; state.draftError = null;
-    renderCatalog(); renderSave(); loadHistory();
+    renderCatalog(); renderSave(); resetHistory();
   }
   function record(kind) {
     if (!visible() || !state.ready || state.pending || !selectedVenue()) return;
@@ -154,7 +196,8 @@ export function createVenueIncidentPanel(host, {
       if (saved.id !== pending.draft.id) throw new Error('The saved incident has an unexpected identity');
       state.saved = saved; state.pending = null;
       if (visible() && state.venueId === pending.draft.venueId && state.setupId === (pending.draft.setupId || '') && note.value === (pending.draft.note || '')) note.value = '';
-      renderSave(); if (visible()) loadHistory();
+      renderSave();
+      if (visible()) loadHistory(newestRequest()); else resetHistory();
     } catch (error) {
       if (state.pending !== pending) return;
       pending.busy = false; pending.error = friendly(error); renderSave();

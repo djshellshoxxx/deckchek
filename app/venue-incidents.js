@@ -91,12 +91,26 @@ function retry(existing, draft) {
   if (JSON.stringify(submission(existing)) !== JSON.stringify(draft)) throw new IncidentError('INCIDENT_CONFLICT', 'This incident ID already belongs to a different report');
   return clone(existing);
 }
-function filterInput(input = {}) {
-  object(input, ['venueId', 'setupId', 'limit'], 'Incident filter');
+function filterInput(input = {}, paged = false) {
+  object(input, paged ? ['venueId', 'setupId', 'limit', 'before'] : ['venueId', 'setupId', 'limit'], 'Incident filter');
   const venueId = identifier(input.venueId, 'Venue ID', true), setupId = identifier(input.setupId, 'Setup ID', true);
   const limit = input.limit ?? INCIDENT_LIST_LIMIT;
   if (!Number.isInteger(limit) || limit < 1 || limit > INCIDENT_MAX_LIMIT) invalid(`Incident limit must be 1–${INCIDENT_MAX_LIMIT}`);
-  return { venueId, setupId, limit };
+  return paged ? { venueId, setupId, limit, before: input.before == null ? null : cursorInput(input.before) } : { venueId, setupId, limit };
+}
+function cursorInput(value) {
+  object(value, ['occurredAt', 'id'], 'Incident cursor');
+  const occurredAt = timestamp(value.occurredAt, 'Cursor occurrence time'), id = identifier(value.id, 'Cursor incident ID');
+  // Rust strings and SQLite UTF-8 IDs contain Unicode scalars, never lone surrogates.
+  if (Array.from(id, c => c.codePointAt(0)).some(code => code >= 0xd800 && code <= 0xdfff)) invalid('Cursor incident ID contains invalid characters');
+  return { occurredAt, id };
+}
+function resultItems(value, filter) {
+  const items = value.items.map(savedRecord);
+  if (new Set(items.map(item => item.id)).size !== items.length || items.some(item => (filter.venueId && item.venueId !== filter.venueId) || (filter.setupId && item.setupId !== filter.setupId))) {
+    throw new IncidentError('INCIDENT_STORAGE', 'Incident history does not match the requested context');
+  }
+  return items;
 }
 function listResult(value, filter) {
   try { object(value, ['items', 'total', 'limit', 'hasMore'], 'Incident history'); }
@@ -105,11 +119,28 @@ function listResult(value, filter) {
       || !Number.isSafeInteger(value.total) || value.items.length !== Math.min(value.total, filter.limit) || value.hasMore !== (value.total > value.items.length)) {
     throw new IncidentError('INCIDENT_STORAGE', 'Incident history has invalid counts or limits');
   }
-  const items = value.items.map(savedRecord);
-  if (new Set(items.map(item => item.id)).size !== items.length || items.some(item => (filter.venueId && item.venueId !== filter.venueId) || (filter.setupId && item.setupId !== filter.setupId))) {
-    throw new IncidentError('INCIDENT_STORAGE', 'Incident history does not match the requested context');
-  }
+  const items = resultItems(value, filter);
   return { items, total: value.total, limit: filter.limit, hasMore: value.hasMore };
+}
+function pageResult(value, filter) {
+  try {
+    object(value, ['items', 'total', 'limit', 'hasMore', 'nextCursor'], 'Incident history page');
+    if (!Array.isArray(value.items) || value.items.length > filter.limit || value.limit !== filter.limit
+        || !Number.isSafeInteger(value.total) || value.total < value.items.length || typeof value.hasMore !== 'boolean'
+        || (value.hasMore && (value.items.length !== filter.limit || value.total <= value.items.length))
+        || (!filter.before && (value.items.length !== Math.min(value.total, filter.limit) || value.hasMore !== (value.total > value.items.length)))) {
+      invalid('Incident history page has invalid counts or limits');
+    }
+    const items = resultItems(value, filter);
+    if (items.some((item, index) => (filter.before && compareKeys(item, filter.before) <= 0)
+        || (index > 0 && compareKeys(items[index - 1], item) >= 0))) invalid('Incident history page has invalid cursor order');
+    let nextCursor = null;
+    if (value.hasMore) {
+      nextCursor = cursorInput(value.nextCursor);
+      if (compareKeys(items.at(-1), nextCursor) !== 0) invalid('Incident history page has an invalid next cursor');
+    } else if (value.nextCursor !== null) invalid('An exhausted incident history page must have a null next cursor');
+    return { items, total: value.total, limit: filter.limit, hasMore: value.hasMore, nextCursor };
+  } catch (error) { throw new IncidentError('INCIDENT_STORAGE', error.message); }
 }
 // Unicode scalar ordering matches SQLite's UTF-8 BINARY collation, without a locale-dependent tie-break.
 function descendingText(a, b) {
@@ -117,6 +148,8 @@ function descendingText(a, b) {
   for (let i = 0; i < Math.min(left.length, right.length); i++) if (left[i] !== right[i]) return right[i] - left[i];
   return right.length - left.length;
 }
+const compareKeys = (a, b) => descendingText(a.occurredAt, b.occurredAt) || descendingText(a.id, b.id);
+const cursorFor = row => ({ occurredAt: row.occurredAt, id: row.id });
 function errorOf(error) {
   if (error instanceof IncidentError) return error;
   const message = typeof error === 'string' ? error : error?.message || String(error);
@@ -148,6 +181,9 @@ export function createVenueIncidentStore({ invoke, storage, catalog, now = () =>
   const call = async (fn, command, args) => {
     try { return await fn(command, args); } catch (error) { throw errorOf(error); }
   };
+  const matchingRows = filter => readAll()
+    .filter(row => (!filter.venueId || row.venueId === filter.venueId) && (!filter.setupId || row.setupId === filter.setupId))
+    .sort(compareKeys);
   return {
     get native() { return Boolean(bridge()); },
     async save(input) {
@@ -174,9 +210,15 @@ export function createVenueIncidentStore({ invoke, storage, catalog, now = () =>
     async list(input = {}) {
       const filter = filterInput(input), fn = bridge();
       if (fn) return listResult(await call(fn, 'venue_incident_list', { filter }), filter);
-      const rows = readAll().filter(row => (!filter.venueId || row.venueId === filter.venueId) && (!filter.setupId || row.setupId === filter.setupId))
-        .sort((a, b) => descendingText(a.occurredAt, b.occurredAt) || descendingText(a.id, b.id));
+      const rows = matchingRows(filter);
       return { items: rows.slice(0, filter.limit), total: rows.length, limit: filter.limit, hasMore: rows.length > filter.limit };
+    },
+    async page(input = {}) {
+      const filter = filterInput(input, true), fn = bridge();
+      if (fn) return pageResult(await call(fn, 'venue_incident_page', { filter }), filter);
+      const rows = matchingRows(filter), older = filter.before ? rows.filter(row => compareKeys(row, filter.before) > 0) : rows;
+      const items = older.slice(0, filter.limit), hasMore = older.length > filter.limit;
+      return { items, total: rows.length, limit: filter.limit, hasMore, nextCursor: hasMore ? cursorFor(items.at(-1)) : null };
     },
   };
 }

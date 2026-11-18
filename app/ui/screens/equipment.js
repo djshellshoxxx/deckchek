@@ -3,13 +3,14 @@
 
 import { h, esc, formatDate } from '../dom.js';
 import { icon } from '../icons.js';
-import { store, emit } from '../state.js';
+import { store as defaultStore, emit } from '../state.js';
 import { toast, announce } from '../live.js';
 import { confirmDialog } from '../shell.js';
 import { equipmentLinkRow } from '../crosslinks.js';
 import { pdfButton, gatherVenueReport } from '../workflows/m6-reports.js';
 import { createHumRunStore } from '../../hum-tree.js';
 import { createVenueIncidentStore } from '../../venue-incidents.js';
+import { newId } from '../../catalog-store.js';
 
 const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['dvs_media', 'DVS / timecode media'], ['software', 'Software'], ['other', 'Other']];
 const ROLES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['mixer', 'Mixer'], ['interface', 'Interface'], ['dvs_interface', 'DVS interface'], ['preamp', 'Preamp'], ['media_player', 'Media player'], ['other', 'Other']];
@@ -26,20 +27,25 @@ const ENTITIES = {
     fields: [{ key: 'name', label: 'Name', required: true }, { key: 'website', label: 'Website', type: 'url' }, { key: 'notes', label: 'Notes', type: 'textarea' }] },
   setup: { title: 'Setups', one: 'setup', icon: 'link', name: r => r.name, sub: (r, ctx) => [ctx.venueName(r.venueId), `${(r.components || []).length} component(s)`].filter(Boolean).join(' · '),
     blurb: 'A signal chain: which assets are connected, in which role and position.',
-    fields: [{ key: 'name', label: 'Name', required: true, placeholder: 'Club booth — left deck' }, { key: 'profile', label: 'Profile', type: 'select', options: [['', '—'], ['home', 'Home'], ['club', 'Club'], ['mobile', 'Mobile'], ['studio', 'Studio']] }, { key: 'venueId', label: 'Venue', type: 'ref', ref: 'venue' }, { key: 'notes', label: 'Notes', type: 'textarea' }, { key: 'components', label: 'Components', type: 'components' }] },
+    fields: [{ key: 'name', label: 'Name', required: true, placeholder: 'Club booth — left deck' }, { key: 'profile', label: 'Profile', type: 'select', options: [['', '—'], ['home', 'Home'], ['club', 'Club'], ['mobile', 'Mobile'], ['studio', 'Studio']] }, { key: 'venueId', label: 'Venue', type: 'ref', ref: 'venue' }, { key: 'supportConfigurationId', label: 'Current support description', type: 'ref', ref: 'supportConfiguration' }, { key: 'notes', label: 'Notes', type: 'textarea' }, { key: 'components', label: 'Components', type: 'components' }] },
+  supportConfiguration: { title: 'Support descriptions', one: 'support description', icon: 'equipment', name: r => r.name, sub: r => [r.description, r.coupledState].filter(Boolean).join(' · '), deletable: false,
+    blurb: 'Operator descriptions of what supports a deck. Assign a description to a setup; it does not measure isolation performance.',
+    fields: [{ key: 'name', label: 'Name', required: true, maxLength: 200 }, { key: 'description', label: 'Description', type: 'textarea', maxLength: 5000 }, { key: 'approximateMassKg', label: 'Approximate mass (kg, operator entry)', type: 'number', min: 0, step: 'any' }, { key: 'coupledState', label: 'Coupled state (operator description)', maxLength: 200, placeholder: 'Describe how the support is coupled or decoupled' }, { key: 'notes', label: 'Notes', type: 'textarea', maxLength: 5000 }] },
   venue: { title: 'Venues', one: 'venue', icon: 'vinyl', name: r => r.name, sub: r => [r.venueType, r.city, r.country].filter(Boolean).join(' · '),
     blurb: 'Places where setups live — useful for booth vibration and hum history.',
     fields: [{ key: 'name', label: 'Name', required: true }, { key: 'venueType', label: 'Type', type: 'select', options: [['', '—'], ['club', 'Club'], ['bar', 'Bar'], ['festival', 'Festival'], ['studio', 'Studio'], ['home', 'Home'], ['other', 'Other']] }, { key: 'city', label: 'City' }, { key: 'region', label: 'Region' }, { key: 'country', label: 'Country' }, { key: 'notes', label: 'Notes', type: 'textarea' }] },
 };
-const ORDER = ['asset', 'product', 'manufacturer', 'setup', 'venue'];
+const ORDER = ['asset', 'product', 'manufacturer', 'setup', 'venue', 'supportConfiguration'];
 function labelOf(opts, v) { return opts.find(([k]) => k === v)?.[1] || v || ''; }
 
-export function createEquipmentScreen(section) {
-  const state = { entity: 'asset', search: '', records: {}, editing: null };
+export function createEquipmentScreen(section, { store = defaultStore } = {}) {
+  const state = { entity: 'asset', search: '', records: {}, errors: {}, editing: null };
+  let active = true, generation = 0, loadGeneration = 0;
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('equipment', { size: 24 })}</span><div><h1 tabindex="-1">Equipment</h1>
       <p class="lede">Your decks, cartridges, mixers, interfaces, the setups they form and the venues they live in.</p></div></div></header>
     <div class="tabs" role="tablist" aria-label="Catalog type"></div>
+    <div id="eq-support-status" role="status"></div>
     <div class="eq-layout">
       <section class="card eq-list" role="tabpanel" id="eq-panel">
         <div class="toolbar"><search class="search"><label for="eq-search" class="sr-only">Search</label>${icon('search', { size: 18 })}<input id="eq-search" type="search" autocomplete="off"></search><button type="button" class="btn btn-primary" id="eq-add"></button></div>
@@ -58,8 +64,50 @@ export function createEquipmentScreen(section) {
   };
 
   async function loadAll() {
-    await Promise.all(ORDER.map(async e => { try { state.records[e] = await store.list(e); } catch (error) { state.records[e] = []; toast(`Could not load ${ENTITIES[e].title.toLowerCase()}: ${error?.message || error}`, { type: 'error' }); } }));
-    renderTabs(); renderRows(); renderEditor();
+    const request = ++loadGeneration;
+    const results = await Promise.all(ORDER.map(async entity => {
+      try {
+        const records = await store.list(entity);
+        if (!Array.isArray(records)) throw new Error('Catalog returned invalid records.');
+        return { entity, records: structuredClone(records) };
+      } catch (error) { return { entity, error: error?.message || String(error) }; }
+    }));
+    if (!active || request !== loadGeneration) return;
+    for (const result of results) {
+      if (result.error) {
+        state.errors[result.entity] = result.error;
+        if (result.entity !== 'supportConfiguration') toast(`Could not load ${ENTITIES[result.entity].title.toLowerCase()}: ${result.error}`, { type: 'error' });
+      } else { state.records[result.entity] = result.records; delete state.errors[result.entity]; }
+    }
+    renderTabs(); renderRows();
+    if (!state.editing) renderEditor(); // a pending refresh must not discard a form's unsaved text
+    refreshSupportControls();
+  }
+
+  function supportUnavailable() { return state.errors.supportConfiguration || !state.records.supportConfiguration; }
+
+  function refreshSupportControls() {
+    const relevant = ['supportConfiguration', 'setup'].includes(state.entity), status = $('#eq-support-status');
+    status.replaceChildren();
+    if (relevant) {
+      status.append(h('p', { class: 'muted small', text: store.native
+        ? 'Support descriptions are current operator-entered catalog context, saved in the local database. They do not establish the support used for historical measurements.'
+        : 'Browser preview: support descriptions and setups stay in this browser. Workspace JSON export does not include catalog supports or setups. Venue reports provide readable current descriptions.' }));
+      const error = state.errors.supportConfiguration;
+      if (error) status.append(h('p', { class: 'form-error', role: 'alert', text: `Could not load support descriptions: ${error}` }),
+        h('button', { type: 'button', id: 'eq-support-retry', class: 'btn btn-secondary btn-sm', text: 'Retry support descriptions', onclick: loadAll }));
+      else if (!state.records.supportConfiguration) status.append(h('p', { text: 'Loading support descriptions…' }));
+    }
+    $('#eq-add').disabled = state.entity === 'supportConfiguration' && Boolean(supportUnavailable());
+    const form = $('#eq-editor').querySelector('form');
+    if (!form || !relevant) return;
+    const select = form.querySelector('[name="supportConfigurationId"]');
+    if (select) {
+      const value = select.value;
+      select.replaceChildren(...refOptions('supportConfiguration', value).map(([v, text]) => h('option', { value: v, text, selected: String(value) === String(v) ? true : null })));
+      select.disabled = Boolean(supportUnavailable());
+    }
+    form.querySelector('[type="submit"]').disabled = Boolean(supportUnavailable()) || form.dataset.saving === 'true';
   }
 
   function renderTabs() {
@@ -83,12 +131,16 @@ export function createEquipmentScreen(section) {
     tabs.querySelector('[aria-selected="true"]')?.focus();
   });
 
-  function select(entity) { state.entity = entity; state.editing = null; state.search = ''; $('#eq-search').value = ''; renderTabs(); renderRows(); renderEditor(); }
+  function select(entity) { generation++; state.entity = entity; state.editing = null; state.search = ''; $('#eq-search').value = ''; renderTabs(); renderRows(); renderEditor(); refreshSupportControls(); }
 
   function renderRows() {
     const d = ENTITIES[state.entity], q = state.search.trim().toLowerCase();
     const rows = (state.records[state.entity] || []).filter(r => !q || `${d.name(r)} ${d.sub(r, ctx)}`.toLowerCase().includes(q));
     const host = $('#eq-rows');
+    if (state.entity === 'supportConfiguration' && supportUnavailable()) {
+      host.replaceChildren(h('p', { text: state.errors.supportConfiguration ? 'Support descriptions could not be loaded.' : 'Loading support descriptions…' }));
+      return;
+    }
     if (!rows.length) {
       host.innerHTML = q
         ? `<div class="empty empty-sm">${icon('search', { size: 32 })}<h2>No matches</h2><p>Nothing in ${esc(d.title.toLowerCase())} matches “${esc(state.search)}”.</p></div>`
@@ -101,18 +153,27 @@ export function createEquipmentScreen(section) {
       const li = h('li', { class: `record ${state.editing?.id === r.id ? 'selected' : ''}` });
       const open = h('button', { type: 'button', class: 'record-main', 'aria-current': state.editing?.id === r.id ? 'true' : null, html: `<strong>${esc(d.name(r) || '(unnamed)')}</strong><span class="muted small">${esc(d.sub(r, ctx) || '—')}</span>` });
       open.addEventListener('click', () => edit(r));
-      const del = h('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-danger-ghost', 'aria-label': `Delete ${d.name(r)}`, html: icon('trash', { size: 18 }) });
-      del.addEventListener('click', () => remove(r));
-      li.append(open, del);
+      li.append(open);
+      if (d.deletable !== false) {
+        const del = h('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-danger-ghost', 'aria-label': `Delete ${d.name(r)}`, html: icon('trash', { size: 18 }) });
+        del.addEventListener('click', () => remove(r)); li.append(del);
+      }
       list.append(li);
     });
     host.replaceChildren(h('p', { class: 'muted small list-count', text: `${rows.length} ${rows.length === 1 ? d.one : d.title.toLowerCase()}` }), list);
   }
 
-  function edit(record) { state.editing = record ? { ...record } : {}; renderRows(); renderEditor(); section.querySelector('#eq-editor input, #eq-editor select')?.focus(); }
+  function edit(record) {
+    if (state.entity === 'supportConfiguration' && supportUnavailable()) return;
+    generation++; state.editing = record ? structuredClone(record) : {}; renderRows(); renderEditor(); refreshSupportControls(); section.querySelector('#eq-editor input, #eq-editor select')?.focus();
+  }
 
-  function refOptions(entity) {
-    return [['', '— none —'], ...(state.records[entity] || []).map(r => [r.id, ENTITIES[entity].name(r)])];
+  function refOptions(entity, selected = '') {
+    let rows = state.records[entity] || [];
+    if (entity === 'supportConfiguration') rows = rows.filter(r => r.deckPositionId == null || r.deckPositionId === state.editing?.deckPositionId || r.id === selected);
+    const options = [['', '— none —'], ...rows.map(r => [r.id, ENTITIES[entity].name(r)])];
+    if (entity === 'supportConfiguration' && selected && !options.some(([id]) => id === selected)) options.push([selected, 'Assigned support record unavailable']);
+    return options;
   }
 
   function fieldEl(f, value) {
@@ -121,9 +182,9 @@ export function createEquipmentScreen(section) {
     let input;
     if (f.type === 'select' || f.type === 'ref') {
       input = h('select', { id, name: f.key, required: f.required || null });
-      (f.type === 'ref' ? refOptions(f.ref) : f.options).forEach(([v, t]) => input.append(h('option', { value: v, text: t, selected: String(value ?? '') === String(v) ? true : null })));
-    } else if (f.type === 'textarea') input = h('textarea', { id, name: f.key, rows: 3 }, value ?? '');
-    else input = h('input', { id, name: f.key, type: f.type || 'text', value: value ?? '', required: f.required || null, placeholder: f.placeholder || null });
+      (f.type === 'ref' ? refOptions(f.ref, value) : f.options).forEach(([v, t]) => input.append(h('option', { value: v, text: t, selected: String(value ?? '') === String(v) ? true : null })));
+    } else if (f.type === 'textarea') input = h('textarea', { id, name: f.key, rows: 3, maxlength: f.maxLength }, value ?? '');
+    else input = h('input', { id, name: f.key, type: f.type || 'text', value: value ?? '', required: f.required || null, placeholder: f.placeholder || null, maxlength: f.maxLength, min: f.min, step: f.step });
     wrap.append(input);
     return wrap;
   }
@@ -142,6 +203,7 @@ export function createEquipmentScreen(section) {
       list.append(row);
     };
     (components || []).forEach(addRow);
+    if ((components || []).some(component => component.settingsSnapshotId)) box.append(h('p', { class: 'muted small', text: 'Replacing a component asset clears only its saved settings association. Existing snapshot records are retained.' }));
     const add = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', html: `${icon('plus', { size: 16 })}<span>Add component</span>` });
     add.addEventListener('click', () => { addRow({}); list.lastElementChild?.querySelector('select')?.focus(); });
     if (!(state.records.asset || []).length) box.append(h('p', { class: 'muted small', text: 'Add assets first, then attach them here.' }));
@@ -155,15 +217,17 @@ export function createEquipmentScreen(section) {
       host.innerHTML = `<div class="empty empty-sm">${icon('edit', { size: 36 })}<h2>Select a record</h2><p>Choose an item to edit, or add a new ${esc(d.one)}.</p></div>`;
       return;
     }
-    const r = state.editing, isNew = !r.id;
+    const entity = state.entity, r = structuredClone(state.editing), isNew = !r.id;
+    let draftId = r.id;
     const form = h('form', { class: 'editor-form', novalidate: true });
     form.append(h('h2', { class: 'card-title', text: isNew ? `New ${d.one}` : `Edit ${d.name(r) || d.one}` }));
     const grid = h('div', { class: 'field-grid' });
     d.fields.forEach(f => grid.append(f.type === 'components' ? componentsEditor(r.components) : fieldEl(f, r[f.key])));
     form.append(grid);
+    if (entity === 'supportConfiguration') form.append(h('p', { class: 'muted small', text: 'New descriptions are reusable and start without a deck-position binding. Existing layer structure and position bindings are preserved by descriptive edits.' }));
     if (r.updatedAt || r.createdAt) form.append(h('p', { class: 'muted small', text: `Created ${formatDate(r.createdAt)}${r.updatedAt ? ` · updated ${formatDate(r.updatedAt)}` : ''}` }));
     const err = h('p', { class: 'form-error', role: 'alert' });
-    const cancel = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Cancel', onclick: () => { state.editing = null; renderRows(); renderEditor(); } });
+    const cancel = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Cancel', onclick: () => { generation++; state.editing = null; renderRows(); renderEditor(); } });
     const save = h('button', { type: 'submit', class: 'btn btn-primary', html: `${icon('check', { size: 18 })}<span>${isNew ? 'Create' : 'Save changes'}</span>` });
     if (state.entity === 'asset' && !isNew) {
       // M6 cross-links: a cartridge opens its stylus page and wear map, DVS media its wear map, an interface the latency tuner.
@@ -178,7 +242,11 @@ export function createEquipmentScreen(section) {
     form.append(err, h('div', { class: 'form-actions' }, cancel, save));
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      const record = { ...(r.id ? { id: r.id } : {}) };
+      if (save.disabled || !active || state.entity !== entity || !host.contains(form)) return;
+      const owner = generation;
+      const owns = () => active && generation === owner && state.entity === entity && host.contains(form);
+      // Keep booth/position/support context, legacy keys and component settings snapshots.
+      const record = entity === 'setup' ? structuredClone(r) : { ...(r.id ? { id: r.id } : {}) };
       for (const f of d.fields) {
         if (f.type === 'components') continue;
         const el = form.elements[f.key]; let v = el.value.trim();
@@ -186,52 +254,79 @@ export function createEquipmentScreen(section) {
         el.removeAttribute('aria-invalid');
         record[f.key] = v === '' ? null : f.type === 'number' ? Number(v) : v;
       }
-      if (state.entity === 'setup') {
+      if (entity === 'setup') {
         const rows = [...form.querySelectorAll('.component-row')];
         const missing = rows.find(row => !row.querySelector('[name="assetId"]').value);
         if (missing) { err.textContent = 'Each component needs an asset.'; missing.querySelector('[name="assetId"]').focus(); return; }
-        record.components = rows.map(row => ({ ...(row.dataset.id ? { id: row.dataset.id } : {}), role: row.querySelector('[name="role"]').value, assetId: row.querySelector('[name="assetId"]').value, position: row.querySelector('[name="position"]').value.trim() || null }));
+        record.components = rows.map(row => {
+          const previous = (r.components || []).find(component => component.id === row.dataset.id);
+          const component = { ...structuredClone(previous || {}), ...(row.dataset.id ? { id: row.dataset.id } : {}), role: row.querySelector('[name="role"]').value, assetId: row.querySelector('[name="assetId"]').value, position: row.querySelector('[name="position"]').value.trim() || null };
+          if (previous && component.assetId !== previous.assetId && previous.settingsSnapshotId != null) component.settingsSnapshotId = null;
+          return component;
+        });
       }
-      save.disabled = true;
+      record.id = draftId ||= newId();
+      state.editing = structuredClone(record);
+      save.disabled = true; form.dataset.saving = 'true'; err.textContent = '';
+      let saved = null;
       try {
-        const saved = await store.upsert(state.entity, record);
-        await reload(state.entity);
-        state.editing = saved ? { ...saved } : null;
-        renderTabs(); renderRows(); renderEditor();
-        toast(`${d.one[0].toUpperCase() + d.one.slice(1)} ${isNew ? 'created' : 'saved'}.`, { type: 'success' });
+        saved = await store.upsert(entity, structuredClone(record));
         emit('catalog');
-      } catch (error) { err.textContent = `Could not save: ${error?.message || error}`; save.disabled = false; }
+        if (!owns()) return;
+        if (!await reload(entity, owns)) return;
+        generation++; state.editing = saved ? structuredClone(saved) : null;
+        renderTabs(); renderRows(); renderEditor();
+        refreshSupportControls();
+        toast(`${d.one[0].toUpperCase() + d.one.slice(1)} ${isNew ? 'created' : 'saved'}.`, { type: 'success' });
+      } catch (error) {
+        if (!owns()) return;
+        if (saved) {
+          // Persisted successfully: retain the returned id so another edit cannot create a duplicate.
+          generation++; state.editing = structuredClone(saved); renderEditor(); refreshSupportControls();
+          host.querySelector('.form-error').textContent = `Saved, but the catalog list could not be refreshed: ${error?.message || error}`;
+        } else { err.textContent = `Could not save: ${error?.message || error}`; save.disabled = false; form.dataset.saving = 'false'; }
+      }
     });
     host.replaceChildren(form);
   }
 
-  async function reload(entity) { state.records[entity] = await store.list(entity); }
+  async function reload(entity, owns) {
+    const records = await store.list(entity);
+    if (!owns()) return false;
+    if (!Array.isArray(records)) throw new Error('Catalog returned invalid records.');
+    ++loadGeneration; state.records[entity] = structuredClone(records); delete state.errors[entity];
+    return true;
+  }
 
   async function remove(r) {
-    const d = ENTITIES[state.entity];
+    const entity = state.entity, owner = generation, d = ENTITIES[entity];
+    const owns = () => active && generation === owner && state.entity === entity;
     const ok = await confirmDialog({ title: `Delete ${d.one}?`, body: `“${d.name(r)}” will be removed from your catalog. Saved results keep their measurements. This cannot be undone.` });
     if (!ok) return;
     try {
-      await store.remove(state.entity, r.id);
-      await reload(state.entity);
+      await store.remove(entity, r.id);
+      if (!await reload(entity, owns)) return;
       if (state.editing?.id === r.id) state.editing = null;
       renderTabs(); renderRows(); renderEditor();
       announce(`${d.name(r)} deleted`);
       toast(`Deleted ${d.name(r)}.`);
       emit('catalog');
-    } catch (error) { toast(`Delete failed: ${error?.message || error}`, { type: 'error' }); }
+    } catch (error) { if (owns()) toast(`Delete failed: ${error?.message || error}`, { type: 'error' }); }
   }
 
   $('#eq-search').addEventListener('input', e => { state.search = e.target.value; renderRows(); });
   $('#eq-add').addEventListener('click', () => edit(null));
-  loadAll();
+  renderTabs(); renderRows(); renderEditor(); refreshSupportControls(); loadAll();
 
   return {
     onShow: () => {
+      active = true; generation++;
+      renderEditor(); refreshSupportControls();
       loadAll();
       document.getElementById('inspector-title').textContent = 'About equipment';
       document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>Results are tied to an <strong>asset</strong> so you can track a deck over time. Products and manufacturers describe what an asset is; setups describe how assets are wired together.</p><h3>Storage</h3><p>${store.native ? 'Saved in the local DeckChek database on this computer.' : 'Browser preview: saved in this browser only.'}</p></div>`;
     },
-    onEscape: () => { if (state.editing) { state.editing = null; renderRows(); renderEditor(); return true; } return false; },
+    onHide: () => { active = false; generation++; loadGeneration++; },
+    onEscape: () => { if (state.editing) { generation++; state.editing = null; renderRows(); renderEditor(); return true; } return false; },
   };
 }

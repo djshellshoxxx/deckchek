@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerPrintableKind, composePrintable, printableKinds } from '../app/report-pdf.js';
+import { createHumRunStore, HumRunError } from '../app/hum-tree.js';
 import {
   M6_KINDS, latencyPrintData, stylusPrintData, wearMapPrintData, scratchPrintData, humPrintData, venuePrintData, gatherVenueReport,
 } from '../app/ui/workflows/m6-reports.js';
@@ -62,7 +63,7 @@ test('hum report and venue report (FS-15 AC-7) list the isolation steps per venu
   assert.match(html, /Ground loop/); assert.match(html, /Unplug laptop/); assert.match(html, /Skipped/); assert.ok(!html.includes(EVIL));
 
   const catalog = { list: async e => ({ venue: [{ id: 'v1', name: 'Club X', city: 'Berlin' }], setup: [{ id: 's1', venueId: 'v1', name: 'Booth A', components: [{ role: 'turntable', assetId: 'a1', position: 'left' }] }, { id: 's2', venueId: 'v2', name: 'Other' }], asset: [{ id: 'a1', nickname: 'Deck 1' }] }[e]) };
-  const humStore = { list: async ({ venueId }) => { assert.equal(venueId, 'v1'); return [{ id: 'r1' }, { id: 'gone' }]; }, get: async id => { if (id === 'gone') throw new Error('x'); return run; } };
+  const humStore = { list: async ({ venueId }) => { assert.equal(venueId, 'v1'); return [{ id: 'r1' }]; }, get: async () => run };
   const data = await gatherVenueReport({ catalog, humStore, venueId: 'v1' });
   assert.equal(data.setups.length, 1); assert.equal(data.humRuns.length, 1); assert.equal(await gatherVenueReport({ catalog, humStore, venueId: 'nope' }), null);
   ({ html } = compose('venue', data));
@@ -93,4 +94,59 @@ test('venue report collection propagates incident storage failure and includes t
   await assert.rejects(gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' }), /Incident store unreadable/);
   incidentStore.list = async () => ({ items: [], total: 0, limit: 300, hasMore: false });
   assert.equal((await gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' })).incidents.total, 0);
+});
+
+test('venue reports identify CURRENT support descriptions, escape text and disclose missing support records', async () => {
+  const venue = { id: 'v-support', name: 'Club' }, setup = { id: 's-support', venueId: venue.id, name: 'Left', supportConfigurationId: 'support-a', components: [] };
+  const support = { id: 'support-a', name: `Paver ${EVIL}`, description: `Feet ${EVIL}`, approximateMassKg: 6, coupledState: 'Decoupled', notes: EVIL };
+  const { html } = compose('venue', venuePrintData({ venue, setups: [setup], supports: [support] }));
+  assert.match(html, /Current support description/); assert.match(html, /does not establish the support used for historical measurements/);
+  assert.match(html, /6 kg/); assert.match(html, /&lt;img/); assert.ok(!html.includes(EVIL));
+  assert.match(compose('venue', venuePrintData({ venue, setups: [setup], supports: [] })).html, /support record.*unavailable/i);
+  assert.match(compose('venue', venuePrintData({ venue, setups: [setup] })).html, /support descriptions.*not loaded/i);
+});
+
+test('venue report collection loads supports and propagates their read failure', async () => {
+  const humStore = { list: async () => [] }, calls = [];
+  const catalog = { list: async entity => { calls.push(entity); if (entity === 'supportConfiguration') throw new Error('Support catalog unreadable'); return entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : []; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), /Support catalog unreadable/);
+  assert.ok(calls.includes('supportConfiguration'));
+});
+
+for (const failure of ['failed', 'missing']) test(`venue measured history rejects ${failure} details instead of reporting an empty saved history`, async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const humStore = { list: async () => [{ id: 'run-a' }], get: async () => { if (failure === 'failed') throw new Error('Measurement read failed'); return null; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), failure === 'failed' ? /Measurement read failed/ : /run-a.*unavailable|missing.*run-a/i);
+});
+
+test('venue measured history explicitly discloses its 50-run bound without deleting older records', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const rows = Array.from({ length: 51 }, (_, i) => ({ id: `r${i}`, kind: 'hum', venueId: 'v1', createdAt: '2026-11-18T10:00:00.000Z', steps: [] }));
+  const humStore = { list: async ({ limit }) => { assert.equal(limit, 50); return rows.slice(0, limit); }, get: async id => rows.find(row => row.id === id) };
+  const data = await gatherVenueReport({ catalog, humStore, venueId: 'v1' });
+  assert.equal(data.humRuns.length, 50); assert.equal(rows.length, 51);
+  assert.match(compose('venue', data).html, /up to 50.*hum.*feedback|hum.*feedback.*up to 50/i);
+  assert.match(compose('venue', data).html, /older.*remain stored/i);
+});
+
+for (const [label, storage] of [
+  ['malformed JSON', { getItem: () => '{bad' }],
+  ['non-array data', { getItem: () => '{}' }],
+  ['literal null', { getItem: () => 'null' }],
+  ['unavailable storage', null],
+  ['throwing read', { getItem() { throw new Error('History read denied'); } }],
+]) test(`actual browser hum store: ${label} aborts venue report preparation`, async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const humStore = createHumRunStore({ invoke: null, storage });
+  await assert.rejects(gatherVenueReport({ catalog, humStore, venueId: 'v1' }), error => error instanceof HumRunError && error.code === 'HUMRUN_DB');
+});
+
+test('actual browser hum store: a missing key is empty, while a failed detail reread is an error', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club' }] : [] };
+  const empty = createHumRunStore({ invoke: null, storage: { getItem: () => null } });
+  const data = await gatherVenueReport({ catalog, humStore: empty, venueId: 'v1' });
+  assert.equal(data.humRuns.length, 0); assert.match(compose('venue', data).html, /No hum or feedback runs are saved/);
+  let reads = 0;
+  const storage = { getItem() { return ++reads === 1 ? JSON.stringify([{ id: 'r1', kind: 'hum', venueId: 'v1', createdAt: '2026-11-18T10:00:00.000Z', steps: [] }]) : '{broken after list'; } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore: createHumRunStore({ invoke: null, storage }), venueId: 'v1' }), error => error instanceof HumRunError && error.code === 'HUMRUN_DB');
 });

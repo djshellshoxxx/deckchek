@@ -496,7 +496,7 @@ async function devicesDesktop(page) {
 // Minimal Tauri mock: catalog/run commands in memory, synthetic live capture.
 export function tauriMock() {
   const listeners = {};
-  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
+  const db = { catalog: { manufacturer: [], product: [], asset: [], setup: [], venue: [], supportConfiguration: [] }, runs: [], deviceProfiles: {}, deviceResults: [], midiMaps: {} };
   const midiState = { ports: ['Focusrite USB MIDI', 'DJM-A9 MIDI 1'], open: [], sent: [] };
   let running = false, started = 0, timer = null;
   const sr = 48000;

@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { installServiceDom, deferred, settle } from './fixtures/service-screen-dom.mjs';
-import { createVenueIncidentStore } from '../app/venue-incidents.js';
+import { createIncidentDraft, createVenueIncidentStore } from '../app/venue-incidents.js';
 
 const document = installServiceDom({ after });
 window.addEventListener = () => {};
@@ -134,4 +134,130 @@ test('the actual Hum screen exposes the incident panel and retains its selected 
   section.querySelector('#hum-tab-hum').dispatch('click'); section.querySelector('#hum-tab-incidents').dispatch('click'); await settle();
   assert.equal(section.querySelector('#incident-venue').value, 'v1');
   assert.match(section.querySelector('#incident-history').textContent, /Other/);
+});
+
+async function retainedHistory(count) {
+  const store = createVenueIncidentStore({ invoke: null, storage: memory(), catalog, now: () => '2026-11-18T10:00:01.000Z' });
+  const ids = Array.from({ length: count }, (_, i) => `history-${String(i).padStart(3, '0')}`);
+  for (const id of ids) await store.save(createIncidentDraft({ kind: 'other', venue: venues[0], setup: setups[0], note: id },
+    { now: () => '2026-11-18T09:00:00.000Z', newId: () => id }));
+  return { store, ids: ids.toReversed() };
+}
+const historyIds = s => Array.from(s.byId('incident-history').querySelector('tbody')?.children ?? [], row => row.children[3].textContent);
+function pageClick(s, direction) {
+  const button = s.byId(`incident-history-${direction}`);
+  assert.ok(button, `${direction} navigation is present`);
+  assert.equal(Boolean(button.disabled), false, `${direction} navigation is available`);
+  button.dispatch('click');
+}
+
+test('production history navigates all 305 saved records, preserves notes and resets newest on setup selection', async t => {
+  const { store, ids } = await retainedHistory(305);
+  const s = mount(t, { store }); await settle(); s.choose('incident-venue', 'v1'); await settle();
+  s.byId('incident-note').value = 'Next incident notes';
+  assert.deepEqual(historyIds(s), ids.slice(0, 100));
+  pageClick(s, 'older'); await settle(); assert.deepEqual(historyIds(s), ids.slice(100, 200));
+  s.choose('incident-setup', 's1'); await settle();
+  assert.deepEqual(historyIds(s), ids.slice(0, 100));
+  assert.match(s.byId('incident-history').textContent, /Page 1/);
+  const visited = [...historyIds(s)];
+  await store.save(createIncidentDraft({ kind: 'hum', venue: venues[0], note: 'newer append' }, { now: () => time, newId: () => 'newer-append' }));
+  for (let page = 2; page <= 4; page++) {
+    pageClick(s, 'older'); await settle();
+    assert.match(s.byId('incident-history').textContent, new RegExp(`Page ${page}`));
+    assert.match(s.byId('incident-history').textContent, /306/);
+    assert.ok(historyIds(s).length <= 100);
+    visited.push(...historyIds(s));
+  }
+  assert.deepEqual(visited, ids);
+  assert.equal(new Set(visited).size, 305);
+  assert.equal(s.byId('incident-history-older').disabled, true);
+  pageClick(s, 'newer'); await settle(); assert.deepEqual(historyIds(s), ids.slice(200, 300));
+  pageClick(s, 'newest'); await settle(); assert.equal(historyIds(s)[0], 'newer append');
+  assert.equal(s.byId('incident-venue').value, 'v1'); assert.equal(s.byId('incident-setup').value, 's1');
+  assert.equal(s.byId('incident-note').value, 'Next incident notes');
+  assert.equal((await store.list({ limit: 500 })).total, 306);
+});
+
+test('late page success and errors cannot replace Newest or a newer venue selection', async t => {
+  const { store: durable, ids } = await retainedHistory(101);
+  for (const target of ['newest', 'venue']) for (const outcome of ['success', 'error']) {
+    const gate = deferred(); let requested;
+    const store = { ...durable, page: async filter => {
+      if (filter.venueId === 'v1' && filter.before) { requested = structuredClone(filter); return gate.promise; }
+      return durable.page(filter);
+    } };
+    const s = mount(t, { store }); await settle(); s.choose('incident-venue', 'v1'); await settle();
+    pageClick(s, 'older'); await settle();
+    if (target === 'newest') pageClick(s, 'newest'); else s.choose('incident-venue', 'v2');
+    await settle();
+    if (outcome === 'success') gate.resolve(await durable.page(requested)); else gate.reject(new Error('Stale page error'));
+    await settle();
+    assert.ok(!s.byId('incident-history').textContent.includes('Stale page error'));
+    if (target === 'newest') { assert.deepEqual(historyIds(s), ids.slice(0, 100)); assert.match(s.byId('incident-history').textContent, /Page 1/); }
+    else { assert.equal(s.byId('incident-venue').value, 'v2'); assert.match(s.byId('incident-history').textContent, /No incidents recorded/); }
+  }
+});
+
+test('a page failure retains the last page, retries the same cursor and retires detached retry buttons', async t => {
+  const { store: durable, ids } = await retainedHistory(101);
+  let fail = true; const requests = [];
+  const store = { ...durable, page: async filter => {
+    requests.push(structuredClone(filter));
+    if (filter.before && fail) throw new Error('Older history unavailable');
+    return durable.page(filter);
+  } };
+  const s = mount(t, { store }); await settle(); s.choose('incident-venue', 'v1'); await settle();
+  pageClick(s, 'older'); await settle();
+  assert.match(s.byId('incident-history').textContent, /Older history unavailable/);
+  assert.deepEqual(historyIds(s), ids.slice(0, 100));
+  assert.ok(!s.byId('incident-history').textContent.includes('No incidents recorded'));
+  const failed = requests.at(-1), retry = s.byId('incident-history-retry');
+  fail = false; retry.dispatch('click'); await settle();
+  assert.deepEqual(requests.at(-1), failed); assert.deepEqual(historyIds(s), ids.slice(100));
+  pageClick(s, 'newest'); await settle(); const count = requests.length;
+  retry.dispatch('click'); await settle();
+  assert.equal(requests.length, count); assert.deepEqual(historyIds(s), ids.slice(0, 100));
+});
+
+test('hide and disposal invalidate in-flight pages and a reactivated panel reloads its committed page', async t => {
+  const { store: durable, ids } = await retainedHistory(101);
+  for (const mode of ['hide', 'dispose']) {
+    const gate = deferred(); let requested;
+    const store = { ...durable, page: async filter => {
+      if (filter.before) { requested = structuredClone(filter); return gate.promise; }
+      return durable.page(filter);
+    } };
+    const s = mount(t, { store }); await settle(); s.choose('incident-venue', 'v1'); await settle();
+    pageClick(s, 'older'); await settle();
+    if (mode === 'hide') s.panel.setActive(false); else s.panel.dispose();
+    const hidden = s.host.textContent;
+    gate.resolve(await durable.page(requested)); await settle(); assert.equal(s.host.textContent, hidden);
+    if (mode === 'hide') {
+      s.panel.setActive(true); await settle();
+      assert.deepEqual(historyIds(s), ids.slice(0, 100)); assert.match(s.byId('incident-history').textContent, /Page 1/);
+    }
+  }
+});
+
+test('pagination preserves a pending original save and its completion refreshes newest without clearing later notes', async t => {
+  const { store: durable } = await retainedHistory(101); const gate = deferred(), submitted = [];
+  const store = { ...durable, save: async draft => { submitted.push(structuredClone(draft)); await gate.promise; return durable.save(draft); } };
+  const s = mount(t, { store }); await settle(); s.choose('incident-venue', 'v1'); await settle(); s.choose('incident-setup', 's1'); await settle();
+  s.byId('incident-note').value = 'Original press'; s.press('skip');
+  s.byId('incident-note').value = 'Later notes'; pageClick(s, 'older'); await settle();
+  assert.match(s.byId('incident-history').textContent, /Page 2/);
+  gate.resolve(); await settle();
+  assert.equal(submitted.length, 1); assert.equal(submitted[0].note, 'Original press'); assert.equal(submitted[0].context.setup.name, 'Left deck');
+  assert.match(s.byId('incident-history').textContent, /Page 1/); assert.equal(historyIds(s)[0], 'Original press');
+  assert.equal(s.byId('incident-note').value, 'Later notes'); assert.equal(s.byId('incident-venue').value, 'v1');
+  assert.equal((await durable.list()).total, 102);
+});
+
+test('injected list-only stores retain first-page history without offering pagination', async t => {
+  const { store: durable } = await retainedHistory(101);
+  const s = mount(t, { store: { native: false, save: input => durable.save(input), list: filter => durable.list(filter) } });
+  await settle(); s.choose('incident-venue', 'v1'); await settle();
+  assert.equal(historyIds(s).length, 100); assert.match(s.byId('incident-history').textContent, /Showing 100 of 101/);
+  for (const direction of ['older', 'newer', 'newest']) assert.equal(s.byId(`incident-history-${direction}`), null);
 });

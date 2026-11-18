@@ -166,3 +166,57 @@ test('native bridge submits an immutable strict draft and verifies returned oper
     await assert.rejects(createVenueIncidentStore({ invoke: async () => result }).list(), code('INCIDENT_STORAGE'));
   }
 });
+
+test('page cursors reject unknown fields, invalid calendar times and invalid scalar IDs before storage or bridge access', async () => {
+  let calls = 0;
+  const store = createVenueIncidentStore({ invoke: async () => { calls++; throw new Error('Must not be called'); } });
+  const cursor = { occurredAt: fixture.draft.occurredAt, id: 'cursor' };
+  for (const filter of [null, [], { offset: 1 }, { limit: 0 }, { limit: 501 }, { limit: 1.5 }, { limit: '2' },
+    { before: false }, { before: [] }, { before: {} }, { before: { ...cursor, offset: 1 } },
+    ...['2026-02-29T10:00:00.000Z', '2026-11-18T10:00:00Z', '2026-11-18T10:00:00.000+00:00', '2026-11-18T24:00:00.000Z'].map(occurredAt => ({ before: { ...cursor, occurredAt } })),
+    ...['', ' leading', 'trailing ', 'line\nbreak', '\0', '🙂'.repeat(129), '\uD800', '\uDC00'].map(id => ({ before: { ...cursor, id } })),
+    { before: { ...cursor, id: 2 } }, { before: { ...cursor, occurredAt: 0 } }, { venueId: false }, { setupId: 'bad\nsetup' }]) {
+    await assert.rejects(store.page(filter), code('INCIDENT_INVALID'), JSON.stringify(filter));
+  }
+  assert.equal(calls, 0);
+});
+
+test('native page requests copy their cursor before awaiting and retain the legacy list command shape', async () => {
+  const gate = deferred(), calls = [];
+  const expected = { ...draft(), id: 'b', origin: 'operator', recordedAt: fixture.recordedAt };
+  const cursor = { occurredAt: expected.occurredAt, id: 'c' };
+  const store = createVenueIncidentStore({ invoke: async (command, args) => {
+    calls.push([command, args]); await gate.promise;
+    return command === 'venue_incident_page'
+      ? { items: [expected], total: 3, limit: 1, hasMore: true, nextCursor: { occurredAt: expected.occurredAt, id: 'b' } }
+      : { items: [expected], total: 3, limit: 1, hasMore: true };
+  } });
+  const input = { venueId: 'venue-1', setupId: 'setup-1', limit: 1, before: structuredClone(cursor) };
+  const pending = store.page(input); input.before.id = 'changed'; input.venueId = 'venue-2';
+  assert.deepEqual(calls[0], ['venue_incident_page', { filter: { venueId: 'venue-1', setupId: 'setup-1', limit: 1, before: cursor } }]);
+  gate.resolve(); const result = await pending;
+  result.nextCursor.id = 'Caller mutation'; result.items[0].context.setup.name = 'Caller mutation';
+  assert.equal(expected.context.setup.name, fixture.draft.context.setup.name);
+  await store.list({ venueId: 'venue-1', limit: 1 });
+  assert.deepEqual(calls[1], ['venue_incident_list', { filter: { venueId: 'venue-1', setupId: null, limit: 1 } }]);
+});
+
+test('native page validation rejects malformed counts, cursors, order and context without guessing missing data', async () => {
+  const row = id => ({ ...draft(), id, origin: 'operator', recordedAt: fixture.recordedAt });
+  const before = { occurredAt: fixture.draft.occurredAt, id: 'c' };
+  const good = { items: [row('b'), row('a')], total: 4, limit: 2, hasMore: true, nextCursor: { occurredAt: before.occurredAt, id: 'a' } };
+  const invalid = [null, [], { ...good, unexpected: true }, { ...good, total: -1 }, { ...good, total: 1 }, { ...good, total: 1.5 },
+    { ...good, limit: 3 }, { ...good, hasMore: 'yes' }, { ...good, nextCursor: null }, { ...good, nextCursor: undefined },
+    { ...good, nextCursor: { ...good.nextCursor, id: 'b' } }, { ...good, nextCursor: { ...good.nextCursor, extra: true } },
+    { ...good, nextCursor: { ...good.nextCursor, occurredAt: '2026-02-31T00:00:00.000Z' } },
+    { ...good, hasMore: false }, { ...good, items: [row('b')] }, { ...good, items: [row('a'), row('b')] },
+    { ...good, items: [row('b'), row('b')] }, { ...good, items: [row('c'), row('a')] }, { ...good, items: [row('d'), row('a')] },
+    { ...good, items: [row('b'), { ...row('a'), origin: 'detected' }] },
+    { ...good, items: [row('b'), { ...row('a'), venueId: 'venue-2', context: { venue: { id: 'venue-2', name: 'Other' }, setup: null }, setupId: null }] }];
+  for (const response of invalid) {
+    await assert.rejects(createVenueIncidentStore({ invoke: async () => response }).page({ venueId: 'venue-1', limit: 2, before }), code('INCIDENT_STORAGE'));
+  }
+  await assert.rejects(createVenueIncidentStore({ invoke: async () => ({ ...good, items: [row('a')], hasMore: false, nextCursor: null }) }).page({ limit: 2 }), code('INCIDENT_STORAGE'), 'a first page cannot omit counted rows');
+  const exhausted = { items: [], total: 4, limit: 2, hasMore: false, nextCursor: null };
+  assert.deepEqual(await createVenueIncidentStore({ invoke: async () => exhausted }).page({ limit: 2, before }), exhausted);
+});

@@ -261,9 +261,29 @@ function localRun(input,id,createdAt){
  */
 export function createHumRunStore({invoke,storage,now=()=>new Date().toISOString(),newId=()=>globalThis.crypto?.randomUUID?.()??`local-${Date.now()}-${Math.random().toString(16).slice(2)}`}={}){
   const bridge=()=>(invoke===undefined?nativeInvoke():invoke);
-  const store=()=>{if(storage!==undefined)return storage;try{return globalThis.localStorage??null;}catch{return null;}};
-  const readAll=()=>{try{const v=JSON.parse(store()?.getItem(STORAGE_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
-  const writeAll=runs=>{const s=store();if(!s)throw new HumRunError('HUMRUN_DB','no storage available in browser mode');s.setItem(STORAGE_KEY,JSON.stringify(runs));};
+  const store=()=>storage!==undefined?storage:globalThis.localStorage??null;
+  const storageError=(action,error)=>new HumRunError('HUMRUN_DB',`Could not ${action} hum/feedback history: ${error?.message??String(error)}`);
+  const readAll=()=>{
+    try{
+      const s=store();if(typeof s?.getItem!=='function')throw new Error('no readable storage available in browser mode');
+      const raw=s.getItem(STORAGE_KEY);if(raw===null)return [];
+      const runs=JSON.parse(raw);
+      if(!Array.isArray(runs))throw new Error('stored history is not an array; existing data was kept');
+      // Check only the structure consumed by list/get. Retain legacy values and unknown metadata unchanged.
+      const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+      if(runs.some(run=>!object(run)||typeof run.id!=='string'||!run.id||!['hum','feedback'].includes(run.kind)
+        ||!Array.isArray(run.steps)||run.steps.some(step=>!object(step))||(run.causes!=null&&!Array.isArray(run.causes)))){
+        throw new Error('stored history contains an invalid run; existing data was kept');
+      }
+      return runs;
+    }catch(error){throw storageError('read',error);}
+  };
+  const writeAll=runs=>{
+    try{
+      const s=store();if(typeof s?.setItem!=='function')throw new Error('no writable storage available in browser mode');
+      s.setItem(STORAGE_KEY,JSON.stringify(runs));
+    }catch(error){throw storageError('write',error);}
+  };
   const call=async(cmd,args)=>{try{return await bridge()(cmd,args);}catch(e){throw toHumRunError(e);}};
   return {
     get native(){return Boolean(bridge());},

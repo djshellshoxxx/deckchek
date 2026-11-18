@@ -8,6 +8,7 @@ import { INCIDENT_TYPES } from '../../venue-incidents.js';
 const num = (v, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? String(Number(v.toFixed(d))) : '—');
 const when = iso => { const d = new Date(iso); if (Number.isNaN(d.getTime())) return ''; const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const MAX_ROWS = 300;
+const VENUE_RUN_LIMIT = 50;
 
 function table(esc, head, rows, { numeric = [] } = {}) {
   if (!rows.length) return '';
@@ -179,14 +180,29 @@ export const humPrintable = Object.freeze({
 // ------------------------------------------------------------------ venue report (FS-15 AC-7)
 
 /** Plain data: catalog, measured runs and a separately identified operator incident history. */
-export function venuePrintData({ venue, setups = [], humRuns = [], incidents = null, assetName = id => id } = {}) {
+export function venuePrintData({ venue, setups = [], supports = null, humRuns = [], incidents = null, assetName = id => id } = {}) {
   if (!venue) return null;
   return {
     name: venue.name || 'Venue', details: [['Type', venue.venueType], ['City', venue.city], ['Country', venue.country], ['Notes', venue.notes]].filter(([, v]) => v),
-    setups: setups.filter(s => s.venueId === venue.id).map(s => ({ name: s.name, profile: s.profile || '', components: (s.components || []).map(c => `${c.role || 'component'}${c.position ? ` (${c.position})` : ''}: ${assetName(c.assetId)}`) })),
-    humRuns: humRuns.map(r => humPrintData(r, { venueName: venue.name })).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+    supportsLoaded: Array.isArray(supports),
+    setups: setups.filter(s => s.venueId === venue.id).map(s => ({ name: s.name, profile: s.profile || '',
+      supportConfigurationId: s.supportConfigurationId ?? null,
+      support: structuredClone(supports?.find(row => row.id === s.supportConfigurationId) ?? null),
+      components: (s.components || []).map(c => `${c.role || 'component'}${c.position ? ` (${c.position})` : ''}: ${assetName(c.assetId)}`) })),
+    humRuns: humRuns.map(r => humPrintData(r, { venueName: venue.name })).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, VENUE_RUN_LIMIT),
     incidents,
   };
+}
+function currentSupportHtml(setup, loaded, esc) {
+  const heading = '<h4>Current support description</h4>';
+  if (!loaded) return `${heading}<p>Support descriptions were not loaded for this report.</p>`;
+  if (!setup.supportConfigurationId) return `${heading}<p>No support description is currently assigned to this setup.</p>`;
+  if (!setup.support) return `${heading}<p>The assigned support record is unavailable.</p>`;
+  const support = setup.support;
+  return `${heading}${para(esc, 'Current operator-described catalog context; this does not establish the support used for historical measurements.', 'dc-note')}${facts(esc, [
+    ['Name', support.name], ['Description', support.description], ['Approximate mass (operator entry)', support.approximateMassKg == null ? null : `${num(support.approximateMassKg, 3)} kg`],
+    ['Coupled state (operator description)', support.coupledState], ['Notes', support.notes],
+  ])}`;
 }
 function incidentHistoryHtml(history, esc) {
   const heading = '<h2>Operator-reported incidents</h2>';
@@ -207,27 +223,34 @@ export const venuePrintable = Object.freeze({
   summary: d => [['Setups', (d?.setups || []).length], ['Hum and feedback runs', (d?.humRuns || []).length], ...(d?.details || []).slice(0, 3)],
   build: (d = {}, { esc }) => {
     const setups = (d.setups || []).length
-      ? `<h2>Setups at this venue</h2>${d.setups.map(s => `<h3>${esc(s.name)}${s.profile ? ` (${esc(s.profile)})` : ''}</h3>${s.components.length ? `<ul>${s.components.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : '<p>No components recorded.</p>'}`).join('')}`
+      ? `<h2>Setups at this venue</h2>${d.setups.map(s => `<h3>${esc(s.name)}${s.profile ? ` (${esc(s.profile)})` : ''}</h3>${s.components.length ? `<ul>${s.components.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : '<p>No components recorded.</p>'}${currentSupportHtml(s, d.supportsLoaded, esc)}`).join('')}`
       : '<h2>Setups at this venue</h2><p>No setups are linked to this venue.</p>';
     const runs = (d.humRuns || []).length
       ? `<h2>Hum and feedback history</h2>${d.humRuns.map(r => humRunHtml(r, esc, 'h3')).join('')}`
       : '<h2>Hum and feedback history</h2><p>No hum or feedback runs are saved for this venue.</p>';
-    return `${facts(esc, d.details || [])}${setups}${runs}${incidentHistoryHtml(d.incidents, esc)}`;
+    const historyScope = para(esc, `This report includes up to ${VENUE_RUN_LIMIT} saved hum and feedback runs for this venue, newest first. Older saved records remain stored.`, 'dc-note');
+    return `${facts(esc, d.details || [])}${setups}${historyScope}${runs}${incidentHistoryHtml(d.incidents, esc)}`;
   },
 });
 
 /**
- * Each measured run is fetched in full; a failed run is skipped (existing behavior), with at most 50 runs.
- * Incident reads are authoritative and propagate errors. Legacy callers without that store disclose it as unloaded.
+ * Each measured run is fetched in full, with at most 50 runs. Read failures or missing details abort report preparation.
+ * Incident and support reads also propagate errors. Legacy callers without those records disclose them as unloaded.
  */
 export async function gatherVenueReport({ catalog, humStore, incidentStore, venueId }) {
   const venue = (await catalog.list('venue')).find(v => v.id === venueId);
   if (!venue) return null;
-  const [setups, assets, summaries, incidents] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: 50 }),
-    incidentStore ? incidentStore.list({ venueId, limit: MAX_ROWS }) : Promise.resolve(null)]);
-  const runs = (await Promise.all((summaries || []).map(s => humStore.get(s.id).catch(() => null)))).filter(Boolean);
+  const [setups, assets, summaries, incidents, supports] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: VENUE_RUN_LIMIT }),
+    incidentStore ? incidentStore.list({ venueId, limit: MAX_ROWS }) : Promise.resolve(null), catalog.list('supportConfiguration')]);
+  if (supports != null && !Array.isArray(supports)) throw new Error('Support catalog returned invalid records.');
+  if (!Array.isArray(summaries)) throw new Error('Hum and feedback history returned invalid records.');
+  const runs = await Promise.all(summaries.slice(0, VENUE_RUN_LIMIT).map(async summary => {
+    const run = await humStore.get(summary.id);
+    if (!run) throw new Error(`Saved hum/feedback run ${summary.id} is unavailable; the report was not generated.`);
+    return run;
+  }));
   const name = id => assets.find(a => a.id === id)?.nickname || 'Unknown asset';
-  return venuePrintData({ venue, setups, humRuns: runs, incidents, assetName: name });
+  return venuePrintData({ venue, setups, supports, humRuns: runs, incidents, assetName: name });
 }
 
 // ------------------------------------------------------------------ registration + button

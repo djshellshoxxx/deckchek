@@ -85,6 +85,32 @@ pub struct IncidentList {
     pub has_more: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct IncidentCursor {
+    pub occurred_at: String,
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct IncidentPageFilter {
+    pub venue_id: Option<String>,
+    pub setup_id: Option<String>,
+    pub limit: Option<u32>,
+    pub before: Option<IncidentCursor>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IncidentPage {
+    pub items: Vec<Incident>,
+    pub total: u64,
+    pub limit: u32,
+    pub has_more: bool,
+    pub next_cursor: Option<IncidentCursor>,
+}
+
 fn invalid(message: impl std::fmt::Display) -> String {
     format!("INCIDENT_INVALID: {message}")
 }
@@ -302,32 +328,99 @@ pub fn save(conn: &Connection, input: &IncidentInput) -> Result<Incident, String
     })
 }
 
-pub fn list(conn: &Connection, filter: &IncidentFilter) -> Result<IncidentList, String> {
-    optional_id(&filter.venue_id, "Venue ID")?;
-    optional_id(&filter.setup_id, "Setup ID")?;
-    let limit = filter.limit.unwrap_or(DEFAULT_LIMIT);
+fn filter_limit(
+    venue_id: &Option<String>,
+    setup_id: &Option<String>,
+    limit: Option<u32>,
+) -> Result<u32, String> {
+    optional_id(venue_id, "Venue ID")?;
+    optional_id(setup_id, "Setup ID")?;
+    let limit = limit.unwrap_or(DEFAULT_LIMIT);
     if !(1..=MAX_LIMIT).contains(&limit) {
         return Err(invalid(format!("Incident limit must be 1–{MAX_LIMIT}")));
     }
+    Ok(limit)
+}
+
+// The count and page share one read transaction. The cursor restricts only the
+// rows, not the total, and BINARY ordering agrees with browser Unicode scalars.
+fn query_history(
+    conn: &Connection,
+    venue_id: &Option<String>,
+    setup_id: &Option<String>,
+    before: Option<&IncidentCursor>,
+    fetch_limit: u32,
+) -> Result<(Vec<Incident>, u64), String> {
     let tx = conn.unchecked_transaction().map_err(storage)?;
-    let total: i64 = tx.query_row("SELECT COUNT(*) FROM venue_incident WHERE (?1 IS NULL OR venue_id = ?1) AND (?2 IS NULL OR setup_id = ?2)", params![&filter.venue_id, &filter.setup_id], |row| row.get(0)).map_err(storage)?;
+    let total: i64 = tx.query_row("SELECT COUNT(*) FROM venue_incident WHERE (?1 IS NULL OR venue_id = ?1) AND (?2 IS NULL OR setup_id = ?2)", params![venue_id, setup_id], |row| row.get(0)).map_err(storage)?;
     let total = u64::try_from(total).map_err(storage)?;
     let items = {
-        let mut statement = tx.prepare(&format!("SELECT {COLUMNS} FROM venue_incident WHERE (?1 IS NULL OR venue_id = ?1) AND (?2 IS NULL OR setup_id = ?2) ORDER BY occurred_at DESC, id DESC LIMIT ?3")).map_err(storage)?;
+        let mut statement = tx.prepare(&format!("SELECT {COLUMNS} FROM venue_incident WHERE (?1 IS NULL OR venue_id = ?1) AND (?2 IS NULL OR setup_id = ?2) AND (?3 IS NULL OR occurred_at COLLATE BINARY < ?3 OR (occurred_at = ?3 AND id COLLATE BINARY < ?4)) ORDER BY occurred_at COLLATE BINARY DESC, id COLLATE BINARY DESC LIMIT ?5")).map_err(storage)?;
         let raw = statement
-            .query_map(params![&filter.venue_id, &filter.setup_id, limit], row)
+            .query_map(
+                params![
+                    venue_id,
+                    setup_id,
+                    before.map(|cursor| &cursor.occurred_at),
+                    before.map(|cursor| &cursor.id),
+                    fetch_limit
+                ],
+                row,
+            )
             .map_err(storage)?
             .collect::<rusqlite::Result<Vec<_>>>()
             .map_err(storage)?;
         raw.into_iter().map(decode).collect::<Result<Vec<_>, _>>()?
     };
     tx.commit().map_err(storage)?;
+    Ok((items, total))
+}
+
+pub fn list(conn: &Connection, filter: &IncidentFilter) -> Result<IncidentList, String> {
+    let limit = filter_limit(&filter.venue_id, &filter.setup_id, filter.limit)?;
+    let (items, total) = query_history(conn, &filter.venue_id, &filter.setup_id, None, limit)?;
     let has_more = total > items.len() as u64;
     Ok(IncidentList {
         items,
         total,
         limit,
         has_more,
+    })
+}
+
+pub fn page(conn: &Connection, filter: &IncidentPageFilter) -> Result<IncidentPage, String> {
+    let limit = filter_limit(&filter.venue_id, &filter.setup_id, filter.limit)?;
+    if let Some(before) = &filter.before {
+        identifier(&before.id, "Cursor incident ID")?;
+        if !valid_time(&before.occurred_at) {
+            return Err(invalid(
+                "Cursor occurrence time must be a valid UTC timestamp with milliseconds",
+            ));
+        }
+    }
+    let (mut items, total) = query_history(
+        conn,
+        &filter.venue_id,
+        &filter.setup_id,
+        filter.before.as_ref(),
+        limit + 1,
+    )?;
+    let has_more = items.len() > limit as usize;
+    items.truncate(limit as usize);
+    let next_cursor = if has_more {
+        items.last().map(|item| IncidentCursor {
+            occurred_at: item.input.occurred_at.clone(),
+            id: item.input.id.clone(),
+        })
+    } else {
+        None
+    };
+    Ok(IncidentPage {
+        items,
+        total,
+        limit,
+        has_more,
+        next_cursor,
     })
 }
 
@@ -348,6 +441,18 @@ pub async fn venue_incident_list(
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         list(&conn, &filter.unwrap_or_default())
+    })
+    .await?
+}
+
+#[tauri::command]
+pub async fn venue_incident_page(
+    app: AppHandle,
+    filter: Option<IncidentPageFilter>,
+) -> Result<IncidentPage, String> {
+    crate::db::off_main(move || {
+        let conn = open_database(&database_path(&app)?)?;
+        page(&conn, &filter.unwrap_or_default())
     })
     .await?
 }
@@ -619,5 +724,353 @@ mod tests {
             assert_eq!(count(&conn), 1);
         }
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn pages_traverse_305_actual_records_with_scalar_ties_and_a_newer_append() {
+        let conn = mem();
+        let numbered: Vec<String> = (0..301).map(|i| format!("event-{i:03}")).collect();
+        for id in numbered
+            .iter()
+            .map(String::as_str)
+            .chain(["Z", "a", "\u{e000}", "🙂"])
+        {
+            save(
+                &conn,
+                &IncidentInput {
+                    id: id.into(),
+                    ..input()
+                },
+            )
+            .unwrap();
+        }
+        let original = list(
+            &conn,
+            &IncidentFilter {
+                limit: Some(500),
+                ..Default::default()
+            },
+        )
+        .unwrap()
+        .items;
+        let expected: Vec<String> = ["🙂", "\u{e000}"]
+            .into_iter()
+            .map(String::from)
+            .chain(numbered.into_iter().rev())
+            .chain(["a", "Z"].into_iter().map(String::from))
+            .collect();
+        let mut filter = IncidentPageFilter {
+            venue_id: Some("venue-1".into()),
+            limit: Some(100),
+            ..Default::default()
+        };
+        let mut result = page(&conn, &filter).unwrap();
+        assert_eq!(result.total, 305);
+        let mut visited: Vec<String> = result
+            .items
+            .iter()
+            .map(|row| row.input.id.clone())
+            .collect();
+        save(
+            &conn,
+            &IncidentInput {
+                id: "newest-append".into(),
+                occurred_at: "2026-11-18T11:00:00.000Z".into(),
+                ..input()
+            },
+        )
+        .unwrap();
+        let mut pages = 1;
+        while let Some(before) = result.next_cursor.clone() {
+            let last = &result.items.last().unwrap().input;
+            assert_eq!(before.id, last.id);
+            assert_eq!(before.occurred_at, last.occurred_at);
+            filter.before = Some(before);
+            result = page(&conn, &filter).unwrap();
+            assert_eq!(result.total, 306);
+            assert_eq!(result.limit, 100);
+            assert_eq!(result.has_more, result.next_cursor.is_some());
+            visited.extend(result.items.iter().map(|row| row.input.id.clone()));
+            pages += 1;
+            assert!(pages <= 4);
+        }
+        assert_eq!(pages, 4);
+        assert_eq!(visited, expected);
+        let last = &result.items.last().unwrap().input;
+        filter.before = Some(IncidentCursor {
+            occurred_at: last.occurred_at.clone(),
+            id: last.id.clone(),
+        });
+        let exhausted = page(&conn, &filter).unwrap();
+        assert!(exhausted.items.is_empty());
+        assert_eq!(exhausted.total, 306);
+        assert!(!exhausted.has_more);
+        assert!(exhausted.next_cursor.is_none());
+        let current = list(
+            &conn,
+            &IncidentFilter {
+                limit: Some(500),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            current
+                .items
+                .into_iter()
+                .filter(|row| row.input.id != "newest-append")
+                .collect::<Vec<_>>(),
+            original
+        );
+    }
+
+    #[test]
+    fn pages_apply_context_and_time_boundaries_without_changing_total_or_recorded_context() {
+        let conn = mem();
+        for (id, occurred_at) in [
+            ("new", "2026-11-18T11:00:00.000Z"),
+            ("middle", "2026-11-18T10:00:00.000Z"),
+            ("old", "2026-11-18T09:00:00.000Z"),
+        ] {
+            save(
+                &conn,
+                &IncidentInput {
+                    id: id.into(),
+                    occurred_at: occurred_at.into(),
+                    ..input()
+                },
+            )
+            .unwrap();
+        }
+        let mut other = input();
+        other.id = "other-venue".into();
+        other.venue_id = "venue-2".into();
+        other.setup_id = None;
+        other.context.venue = SelectedVenue {
+            id: "venue-2".into(),
+            name: "Other".into(),
+        };
+        other.context.setup = None;
+        save(&conn, &other).unwrap();
+        let filter = IncidentPageFilter {
+            venue_id: Some("venue-1".into()),
+            setup_id: Some("setup-1".into()),
+            limit: Some(1),
+            before: Some(IncidentCursor {
+                occurred_at: "2026-11-18T10:30:00.000Z".into(),
+                id: "unrecorded-anchor".into(),
+            }),
+        };
+        let result = page(&conn, &filter).unwrap();
+        assert_eq!(result.total, 3);
+        assert_eq!(result.items[0].input.id, "middle");
+        assert!(result.has_more);
+        conn.execute_batch(
+            "DELETE FROM setup WHERE id='setup-1'; DELETE FROM venue WHERE id='venue-1';",
+        )
+        .unwrap();
+        let retained = page(&conn, &filter).unwrap();
+        assert_eq!(retained.items, result.items);
+        let empty = page(
+            &conn,
+            &IncidentPageFilter {
+                venue_id: Some("venue-2".into()),
+                setup_id: Some("setup-1".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(empty.total, 0);
+        assert!(empty.items.is_empty());
+        assert!(!empty.has_more);
+        assert!(empty.next_cursor.is_none());
+    }
+
+    #[test]
+    fn page_cursor_tie_break_uses_sqlite_binary_order_for_non_bmp_ids_and_prefixes() {
+        let conn = mem();
+        for id in ["Z", "a", "\u{e000}", "🙂", "🙂x"] {
+            save(
+                &conn,
+                &IncidentInput {
+                    id: id.into(),
+                    ..input()
+                },
+            )
+            .unwrap();
+        }
+        let mut filter = IncidentPageFilter {
+            limit: Some(1),
+            ..Default::default()
+        };
+        let mut ids = Vec::new();
+        loop {
+            let result = page(&conn, &filter).unwrap();
+            assert_eq!(result.total, 5);
+            ids.push(result.items[0].input.id.clone());
+            let Some(cursor) = result.next_cursor else {
+                break;
+            };
+            filter.before = Some(cursor);
+        }
+        assert_eq!(ids, ["🙂x", "🙂", "\u{e000}", "a", "Z"]);
+    }
+
+    #[test]
+    fn page_requests_reject_unknown_fields_wrong_types_and_invalid_cursor_values() {
+        let conn = mem();
+        let valid = json!({"occurredAt":"2026-11-18T10:00:00.000Z","id":"cursor"});
+        let mut invalid_requests = vec![
+            json!({"offset":1}),
+            json!({"limit":0}),
+            json!({"limit":501}),
+            json!({"limit":1.5}),
+            json!({"limit":"2"}),
+            json!({"limit":-1}),
+            json!({"before":false}),
+            json!({"before":[]}),
+            json!({"before":{}}),
+            json!({"before":{"occurredAt":"2026-11-18T10:00:00.000Z","id":"a","extra":1}}),
+        ];
+        for value in [
+            "2026-02-29T10:00:00.000Z",
+            "2026-11-18T10:00:00Z",
+            "2026-11-18T10:00:00.000+00:00",
+            "2026-11-18T24:00:00.000Z",
+        ] {
+            let mut cursor = valid.clone();
+            cursor["occurredAt"] = json!(value);
+            invalid_requests.push(json!({"before":cursor}));
+        }
+        for value in [
+            "".to_string(),
+            " leading".into(),
+            "trailing ".into(),
+            "line\nbreak".into(),
+            "\0".into(),
+            "🙂".repeat(129),
+        ] {
+            let mut cursor = valid.clone();
+            cursor["id"] = json!(value);
+            invalid_requests.push(json!({"before":cursor}));
+        }
+        for request in invalid_requests {
+            if let Ok(filter) = serde_json::from_value::<IncidentPageFilter>(request.clone()) {
+                assert!(page(&conn, &filter).is_err(), "{request}");
+            }
+        }
+        assert!(serde_json::from_str::<IncidentPageFilter>(
+            r#"{"before":{"occurredAt":"2026-11-18T10:00:00.000Z","id":"\ud800"}}"#
+        )
+        .is_err());
+        assert_eq!(count(&conn), 0);
+    }
+
+    #[test]
+    fn original_list_response_and_limits_remain_unchanged_beside_pages() {
+        let conn = mem();
+        for id in ["a", "b", "c"] {
+            save(
+                &conn,
+                &IncidentInput {
+                    id: id.into(),
+                    ..input()
+                },
+            )
+            .unwrap();
+        }
+        for limit in [1, 2, 300, 500] {
+            let listed = serde_json::to_value(
+                list(
+                    &conn,
+                    &IncidentFilter {
+                        limit: Some(limit),
+                        ..Default::default()
+                    },
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(listed.as_object().unwrap().len(), 4);
+            assert!(listed.get("nextCursor").is_none());
+            let mut paged = serde_json::to_value(
+                page(
+                    &conn,
+                    &IncidentPageFilter {
+                        limit: Some(limit),
+                        ..Default::default()
+                    },
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            assert!(paged
+                .as_object_mut()
+                .unwrap()
+                .remove("nextCursor")
+                .is_some());
+            assert_eq!(paged, listed);
+        }
+        assert!(serde_json::from_value::<IncidentFilter>(
+            json!({"before":{"occurredAt":"2026-11-18T10:00:00.000Z","id":"b"}})
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn paged_corruption_errors_keep_saved_bytes_and_do_not_change_old_first_page_behavior() {
+        let conn = mem();
+        for id in ["a", "b", "c"] {
+            save(
+                &conn,
+                &IncidentInput {
+                    id: id.into(),
+                    ..input()
+                },
+            )
+            .unwrap();
+        }
+        let broken =
+            r#"{"venue":{"id":"venue-1","name":"Club","sensor":"automatic"},"setup":null}"#;
+        conn.execute(
+            "UPDATE venue_incident SET context_json=?1 WHERE id='b'",
+            [broken],
+        )
+        .unwrap();
+        let first = list(
+            &conn,
+            &IncidentFilter {
+                limit: Some(1),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(first.items[0].input.id, "c");
+        let filter = IncidentPageFilter {
+            limit: Some(1),
+            before: Some(IncidentCursor {
+                occurred_at: input().occurred_at,
+                id: "c".into(),
+            }),
+            ..Default::default()
+        };
+        assert!(page(&conn, &filter)
+            .unwrap_err()
+            .starts_with("INCIDENT_STORAGE:"));
+        assert_eq!(
+            conn.query_row::<String, _, _>(
+                "SELECT context_json FROM venue_incident WHERE id='b'",
+                [],
+                |row| row.get(0)
+            )
+            .unwrap(),
+            broken
+        );
+        assert_eq!(
+            conn.query_row::<i64, _, _>("SELECT COUNT(*) FROM venue_incident", [], |row| row
+                .get(0))
+                .unwrap(),
+            3
+        );
     }
 }

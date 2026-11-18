@@ -279,6 +279,7 @@ pub fn run() {
             humrun::hum_run_delete,
             venue_incidents::venue_incident_save,
             venue_incidents::venue_incident_list,
+            venue_incidents::venue_incident_page,
             selftest::self_test_mode,
             selftest::self_test_report,
             // [FS-20] handlers
