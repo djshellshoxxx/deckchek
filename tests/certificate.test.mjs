@@ -548,3 +548,15 @@ test('regression: a certificate built from a stored device result uses the run\'
   assert.equal(plain.measurements[0].uncertainty, 0.05, 'a plain expanded U number is kept');
   assert.equal('calibrated' in plain.measurements[0], false, 'only a boolean calibrated flag is stored');
 });
+
+test('FS-34 auto tests never change the certificate plan or its readiness', async () => {
+  const { completePlan } = await import('../app/devices/test-plan.js');
+  const raw = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'app', 'devices', 'profiles', 'pioneer-djm-a9.json'), 'utf8'));
+  const done = completePlan(raw);
+  assert.ok(done.autoTests > 0, 'the Devices screen plan has auto tests');
+  assert.deepEqual(certificatePlan(done).tests.map(t => t.id), certificatePlan(raw).tests.map(t => t.id));
+  const results = raw.tests.map(t => ({ testId: t.id, profileId: raw.id, status: 'pass', createdAt: new Date().toISOString() }));
+  const r = readiness(done, results);
+  assert.equal(r.ready, true, 'researched tests alone make the unit ready');
+  assert.equal(r.total, raw.tests.length);
+});

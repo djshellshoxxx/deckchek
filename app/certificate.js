@@ -58,9 +58,14 @@ const DAY_MS = 86400000;
 
 // ------------------------------------------------------------------ plan and readiness
 
-/** The certificate plan of a device profile: every profile test is required (spec §1). */
+/**
+ * The certificate plan of a device profile: every researched profile test is required (spec §1).
+ * FS-34 baseline tests (`auto: true`, added by app/devices/test-plan.js on the Devices screen) are
+ * excluded: a signed plan is tied to profile id + version, and DeckChek-defined additions must not
+ * change what a certificate requires without a profile version change.
+ */
 export function certificatePlan(profile) {
-  const tests = Array.isArray(profile?.tests) ? profile.tests.filter(t => t && typeof t.id === 'string' && t.id) : [];
+  const tests = Array.isArray(profile?.tests) ? profile.tests.filter(t => t && t.auto !== true && typeof t.id === 'string' && t.id) : [];
   const v = Number(profile?.version ?? profile?.schemaVersion ?? 1);
   return {
     profileId: String(profile?.id ?? ''), profileVersion: Number.isSafeInteger(v) && v >= 0 ? v : 1,
