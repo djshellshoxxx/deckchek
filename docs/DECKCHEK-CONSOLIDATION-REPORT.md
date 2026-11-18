@@ -1,18 +1,42 @@
 # DeckChek consolidation report
 
-## Current source40 native catalog and controller provenance
+## Current source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+## Source41 contributions and preservation
+
+The accepted intakes add nine learned-map identity paths, 23 incident snapshot paths, 31 transport-batch paths and the four-path Push3 audio successor. These scopes overlap and are not a sum of the final diff. The successor deliberately updates three previously accepted transport paths while preserving their MIDI assertions, retained note prefix and historical fingerprint. The pack author released four changed paths with 16/16 persistent, 32/32 related and 3/3 unchanged independent probes; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. The exact integrated code/tree and completed local full/static/performance/native-carry evidence are recorded above and in the linked report; hosted source41 qualification remains pending.
+
+The incident attachment uses additive migration 0025 and preserves all 24 old migrations and 222 existing test files at its accepted overlay. Its native 45/45 proof binds 52 application-lock dependency identities and excludes the full Tauri adapter. Earlier exploratory dependency/fixture failures and focused-JS inventory limits remain visible. The profile batch preserves 124 handwritten tests, 92 prior specs, 87 prior source documents and 21 software objects; mode, exact-model and DIN-direction restrictions remain in the manufacturer notes. Push3 changes only its documented 16-in/16-out USB counts, with rates/bit depth still unknown.
+
+Root's one successful matrix generation changes fourteen MIDI rows and audio applicability on Push3's same row; the final counts are 45/506/187 with zero gaps, 22 conditional audio and 3 conditional MIDI profiles / 9 requirements. The later metadata audit's raw-model-label assertion was corrected without regenerating or hand-editing output. The earlier six dated follow-up reports remain byte-identical, while current rows and preserved anchors/table evidence are reconciled here.
+
+The current integration plan uses PR33 after retargeting to fresh integration before the successor push, then exact-source gates, integration merge and integration-to-main qualification through existing PR27. Fresh remote/publication state is **Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending**. PR27 metadata remains untouched; PR32/PR30 remain until replacement reaches main. No merge or superseded closure is asserted.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
 
 Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
 
 This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
 
-## Native selected-setup catalog integration
+<a id="native-selected-setup-catalog-integration"></a>
+
+## Historical source40 native selected-setup catalog integration
 
 Source40 integrates exactly 13 accepted catalog paths, five REV1/REV5 paths and two regenerated MIDI matrix rows within the single matrix path. The [native contract](native-catalog-archive.md) preserves all columns of the ten-table selected aggregate, large native integers and literal text, exact existing rows, complete components and timestamp-only matching dependencies. Import reparses and revalidates under one immediate transaction; malformed graphs, substantive conflicts, schema drift and damaged destination foreign keys refuse the whole operation.
 
 Independent review reproduced the Data chooser cancellation regression on v1 and accepted the two-file correction in v2. The [failure and qualification account](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#catalog-findings-and-retained-qualification) retains the 2/2 baseline versus 0/2 candidate, persistent 32/4 then 36/0, unchanged probe 2/2 and final related 146/146, alongside exact native 18/18 and its exclusions. The complete combined suite passed 1,835/0/1 with all 1,447 files unchanged. Browser formats, history, device-profile bindings, migrations, locked dependencies, thresholds and default flags retain their existing scope.
 
-## REV1 and REV5 integration
+<a id="rev1-and-rev5-integration"></a>
+
+## Historical source40 REV1 and REV5 integration
 
 [Exact-model manufacturer notes](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#rev1-and-rev5-manufacturer-provenance) confirm USB MIDI and nominal Audio Section 48 kHz / 24-bit conversion, without inventing USB stream counts/formats, receiving support or maps. All 16 original handwritten test objects and the 37-member research group remain. The retained 49/1 stale-matrix filtering mistake is separate from root's successful one-time regeneration. Coverage now has 17 conditional MIDI profiles / 51 requirements, with all 23 audio conditions and all test totals unchanged.
 

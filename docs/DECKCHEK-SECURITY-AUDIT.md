@@ -1,12 +1,36 @@
 # DeckChek security and diagnostic-integrity audit
 
-## Current source40 native catalog and controller provenance
+## Current source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+## Source41 diagnostic integrity and pack findings
+
+The accepted [learned-map identity correction](learned-midi-map-profile-identity.md) prevents an asset's previous product profile from implicitly supplying the next product's map. Same/unknown legacy identity and explicit import behavior retain their scope. Independent probes changed from 7/4 to 11/11; persistent checks from 12/7 to 19/19, with 146/146 related checks. Logical/profile identity does not establish physical device identity.
+
+**PACK-PREVIEW-OWNERSHIP-01 (medium)** reproduced Save-before-preview and stale-A/current-B mismatch. The sealed candidate binds completed preview, rows and metadata to one private snapshot and retires stale callbacks on selection, close/hide/disposal. Persistent 4/12 red became 16/16; related checks passed 32/32 and the unchanged independent probe changed from 1/2 to 3/3. Every green has matching full 1,479-file inventories. Independent candidate acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**; no baseline network transmission, actual native write or forbidden-field leak was demonstrated.
+
+Low-severity **PACK-PRIVACY-COPY-01** and **PACK-PRIVACY-COPY-02** concern the existing `createdMonth` envelope metadata and the unsupported guarantee of unlinkability after token reset. Candidate copy discloses the month and avoids that guarantee because unchanged model/measurement/method/month content can correlate. The payload whitelist, accepted randomness, format/API/crypto, rounding and native code remain unchanged. Hosted browser execution of the amended assertion still belongs to the source41 gates.
+
+The [native incident evidence contract](incident-metric-evidence.md) stores immutable incident/evidence pairs in one Immediate transaction, with closed fields/enums, finite values, bounded payloads and exact retry/conflict/corruption behavior. Monitor selection is explicit; the latest existing reading is frozen at press without acquiring capture ownership. Separate clocks and operator-selected context do not prove physical cause, freshness or authenticity. Native acceptance is 45/45 with 52 application-lock dependency identities; the final combined-source carry is **Verified 38 production inputs, 39 generated files, 52 application-lock identities and five direct dependency feature sets; carries bounded 45/45 and strict Clippy, not full Tauri/platform execution (record `736e13fc6bd413265948ac110c697c4b95bf9876914e1b71872836b5c181e69f`)**. Earlier incident focused JS runs lacked per-run complete inventories; the completed source41 full/performance records now supply their own complete 1,480-file before/after binding without changing the earlier records’ limitations.
+
+Completed source39/source40 hosted checks are [source-bound](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). Historical Sonar failures on PR12/14/16 and no-manifest-change Snyk outcomes do not establish current broad Sonar clearance. No hardware/security/release-wide clearance is inferred from the accepted bounded fixes.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
 
 Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
 
 This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
 
-## Source40 catalog integrity and resolved chooser finding
+<a id="source40-catalog-integrity-and-resolved-chooser-finding"></a>
+
+## Historical source40 catalog integrity and resolved chooser finding
 
 The [native catalog contract](native-catalog-archive.md) uses a closed ten-table graph, strict duplicate/missing/unknown-key validation, bounded UTF-8/raw-text transport, native signed integers, actual SQLite NOCASE uniqueness, complete component-set comparisons and a narrowly disclosed manufacturer/product timestamp rule. Import checks the actual schema and destination foreign keys, reparses and revalidates under one immediate transaction, then performs ordered inserts and one commit. There is no replacement, remapping, hidden repair or loss of existing rows. Focused adversarial tests cover schema/type/graph/conflict bounds and rollback after a late actual constraint failure; [18/18 native harness scope](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#catalog-findings-and-retained-qualification) excludes Tauri dispatch and real restore-gate concurrency.
 

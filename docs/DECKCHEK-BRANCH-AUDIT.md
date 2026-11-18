@@ -1,12 +1,39 @@
 # DeckChek branch and pull request audit
 
-## Current source40 native catalog and controller provenance
+## Current source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+## Source41 branch disposition
+
+The retained preparation inventory at **2026-11-18T20:16:52.258Z** has **30 branches**. ROOT's later read-only audit reported all names/heads unchanged and no reviews/inline threads across twelve open PRs; final evidence and publication state are **Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending**.
+
+| Ref or PR | Last retained head/state | Source41 disposition |
+| --- | --- | --- |
+| `main` | `ee5aa511fb49fc56e299d5b5c262e815ab420d0d` | Refresh and qualify the eventual integration-to-main change. |
+| `integration/deckchek-consolidation-20261118` | `0acb612aa796f7f459172932868ff7e787d83399` | Fresh base required before retarget/publication. |
+| PR27 | Open, non-draft; integration to main | Preserve all PR metadata; use the existing consolidation path after qualification. |
+| PR33, `review/deckchek-native-catalog-20261118` | Open draft, `5978c7c2e857785db60848a403ae5e89064120cc`; currently based on PR32's review branch | Intended source41 successor; retarget to fresh integration before pushing the new head so existing platform/nightly workflows apply. |
+| PR32, `review/deckchek-midi-profile-20261118` | Open draft, `cc15026a3594d65ab8fbc4d3e9d18f7113b73b10` | All three source39 workflows succeeded; retain until the replacement reaches main. |
+| PR30 | Retained head `72dd38c8bcc941ec33dbe567b8a74f858682ab82` | Retain until the replacement reaches main. |
+
+Merge only after applicable source41 gates, then qualify the resulting integration tree through the existing consolidation PR. PRs 9, 10, 12, 14, 16, 26, 28, 30, 31 and 32 are candidates for supersession only after their selectively preserved replacement reaches main. No merge, closure, branch deletion, history rewrite, release, tag or deployment is asserted here. All dated inventories and disposition rows below retain their original scope.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
 
 Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
 
 This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
 
-## Source40 branch disposition
+<a id="source40-branch-disposition"></a>
+
+## Historical source40 branch disposition
 
 The source commit `20a8c34261d2aa801335a812fbc3c5987cf28587` exists and is fetched locally, with parent published `cc15026a`; no remote branch has moved for this source. The **19:03:44 UTC** ref preflight verified unchanged main `ee5aa511`, integration `0acb612` and the PR32 branch at `cc15026a`. PR30 retains its separately observed `72dd38c` head. Existing [PR32](https://github.com/djshellshoxxx/deckchek/pull/32) stays an open draft at `cc15026a`. Root intends a distinct draft catalog/profile follow-up against the integration base after this overlay is independently reviewed, retaining PR32's running gates. No branch name or PR number is assumed. The verified merge tree and source-specific hosted outcomes are in [the current report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#published-source39-and-integration-state). No superseded PR is closed before its replacement reaches main, and PR27 metadata remains untouched. Historical branch/PR inventories below retain their dated counts and dispositions.
 

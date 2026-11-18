@@ -1,6 +1,16 @@
 # DeckChek build queue
 
-## Current source40 native catalog and controller provenance
+## Current source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](docs/DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
 
 Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
 
@@ -86,11 +96,12 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Canonical JSON, SHA-256, QR (`qrSvg`) and `metric-compat` with shared vectors (AC-7).
 - [x] Photo store, migration 0013 and the `photos/` backup entries (AC-8); fixture `v0.0.7.sql`.
 - [x] M7/M8 crates and tauri features added once (`ed25519-dalek`, `getrandom`, notification plugin, DPAPI feature, `tray-icon`, `image-png`).
-- [ ] Follow-ups owned by the feature jobs: first screen that uses the photo store (FS-20/22/33), register the notification plugin and add its capability when FS-23 needs it, DPAPI wrapper (cfg(windows)) with a Windows CI test.
+- [x] First photo-store production use is implemented in FS-22 Service Job and FS-33 Gear Ledger (`preparePhoto` and attachment handlers); this correction makes no additional FS-20 use claim.
+- [x] Windows DPAPI wrapper in `signing.rs`; the actual source39 Windows CI seed roundtrip passed. Optional OS notifications remain the separate conditional item below.
 
 ## M7 and M8 features (implemented behind flags, hardware gates open)
 
-- [x] Follow-ups from wave 0: photo store used by FS-20/22/33; DPAPI wrapper with the certificate signing key (`signing.rs`).
+- [x] Follow-ups from wave 0: actual FS-22/FS-33 photo-store use and the certificate-key DPAPI wrapper are implemented. Source39 Windows CI passed `dpapi_roundtrip_seals_the_seed`; physical-machine and release qualification remain separate.
 - [x] FS-20 Used-gear certificate (`certificates`): signing, strict verifier, Certificates and Verify screens.
 - [x] FS-21 Unit vs population (`population`, `packs`): Compare tabs, anonymous packs, migration 0022.
 - [x] FS-22 Service worksheets (`service`): jobs, work log, job sheet, device-runner job mode.
@@ -106,7 +117,9 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] FS-31: WASAPI-shared capture beside DJ software (H-31 steps 1-6); negative-SNR residual (noise louder than the carrier reads as cueing).
 - [ ] FS-32: confirm the VirtualDJ file format against a real install (H-32 step 7).
 - [ ] FS-33: verify the GitHub Pages guide wording (H-33).
-- [ ] FS-21: manual privacy review of an exported pack. FS-23: real-database walkthrough before enabling fleet by default.
+- [x] FS-21: bounded exported-pack privacy/source review accepted for the frozen four-file correction; all three ownership/copy findings resolved. Persistent 16/16, related 32/32 and unchanged independent 3/3 are recorded in the [source41 report](docs/DECKCHEK-CONTINUATION-41.md#pack-preview-ownership-and-privacy-copy).
+- [ ] FS-21: exact-source hosted export/import and owner H-21 qualification remain separate from the accepted source/probe review.
+- [ ] FS-23: real-database walkthrough and H-23 hardware qualification before enabling Fleet by default.
 - [ ] FS-20: PDF-embedded JSON is not possible with WebView2 `PrintToPdf` (sidecar JSON only); revisit if a PDF library is adopted.
 - [ ] If FS-23 reminders or FS-31 alerts should raise OS notifications (currently in-app only): re-add `tauri-plugin-notification` together with its registration and capability (the unregistered crate was removed 2026-11-18 because cargo's `unused_dependencies` lint failed the warning gate).
 
@@ -114,16 +127,17 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 
 - [x] FS-34 capability model, baseline plan and coverage audit; `npm test` checks `docs/testing/DEVICE-TEST-COVERAGE.md` (45/45 profiles, 0 gaps).
 - [x] FS-36 `midi:conformance` and `midi:gm` panels with connection-ownership regressions; spec/analyzer discrepancies reconciled; burst rate. Output selection and duplicate-name guards are implemented; missing/reset loss counters or unavailable/disappeared input observations give REVIEW with saved provenance.
-- [x] Native MIDI guard [b34f3c9](https://github.com/djshellshoxxx/deckchek/commit/b34f3c905ce60d64bfd15587a9c8906c3fd7a650): new connections and explicit cached input reopens reject duplicate successfully read names; ambiguous reconnects reject. Cached output sends, including Note Off cleanup, retain their captured connection without re-enumeration. Five new native regressions; 19/19 extracted-production-body harness tests plus six independent boundary checks passed. Full native CI for this change remains pending.
+- [x] Native MIDI guard [b34f3c9](https://github.com/djshellshoxxx/deckchek/commit/b34f3c905ce60d64bfd15587a9c8906c3fd7a650): new connections and explicit cached input reopens reject duplicate successfully read names; ambiguous reconnects reject. Cached output sends, including Note Off cleanup, retain their captured connection without re-enumeration. Five new native regressions; 19/19 extracted-production-body harness tests plus six independent boundary checks passed. At that historical checkpoint, full native CI remained pending; completed source39/source40 hosted results are now recorded in the [source41 report](docs/DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks).
 - [x] FS-35 output audio-quality test (`audio:quality`) with lease-scoped capture, owned-voice cancellation and simulated-device tests; Skip for conditional (no audio output) units. Analysis revision 2 uses worst-channel response; live capture provenance and actual-device/rate calibration matching are saved. Imported-file continuity is explicitly unobserved.
 - [x] FS-35 phase progress, Enter/Esc shortcuts and focus transitions between Run, Stop, Try again and the result summary; lifecycle regressions cover the software behavior.
 - [x] Browser CI at source `742c67a`: **1,283/1,283 checks passed**, including all seven new FS-35 `audio-quality` checks; no console errors. Evidence: [browser CI job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913).
 - [x] Combined local follow-up source, including the service/MIDI/mapper corrections: Node 22 **1,338 passed, zero failed, one optional skip** (1,339 total); `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` passed. This local result does not replace fresh full CI.
-- [ ] Qualify the completed integration revision with required native gates and platform builds/self-tests. At source `730d71d`, JavaScript CI passed 1,325 tests/one skip, but [native CI failed compilation with E0428](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404). The alias collision is corrected in [8acaa7a](https://github.com/djshellshoxxx/deckchek/commit/8acaa7a); fresh CI including the subsequent fixes remains pending. The browser pass at `742c67a` does not qualify later native changes or close hardware gates. The same `730d71d` source also passed [1,283/1,283 browser checks with no console errors](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622) and the JavaScript performance gate; its native compilation failure occurred before application tests ran. Service `9192aa0`, alias `8acaa7a`, native MIDI `b34f3c9` and mapper `00f1f3c` are later follow-ups and are not covered by that CI run.
+- [ ] Qualify final source41 and the resulting integration tree through applicable native/browser/platform/extended gates. Source39 all-three-workflow and source40 primary completion are exact-source prior evidence; final source41 fields are in the [report](docs/DECKCHEK-CONTINUATION-41.md#source-and-qualification-state).
+- Historical qualification snapshot retained from the earlier integration: Qualify the completed integration revision with required native gates and platform builds/self-tests. At source `730d71d`, JavaScript CI passed 1,325 tests/one skip, but [native CI failed compilation with E0428](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404). The alias collision is corrected in [8acaa7a](https://github.com/djshellshoxxx/deckchek/commit/8acaa7a); fresh CI including the subsequent fixes remains pending. The browser pass at `742c67a` does not qualify later native changes or close hardware gates. The same `730d71d` source also passed [1,283/1,283 browser checks with no console errors](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622) and the JavaScript performance gate; its native compilation failure occurred before application tests ran. Service `9192aa0`, alias `8acaa7a`, native MIDI `b34f3c9` and mapper `00f1f3c` are later follow-ups and are not covered by that CI run.
 - [x] Implement logical MIDI IDs scoped by backend/direction, explicit selection, captured-output ownership and shared pending Runner/Mapper input claims; preserve exact legacy unique-name calls. [Source39 contract and review](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#logical-endpoint-selection-and-ownership) retain independent lifecycle findings and bounded proof.
 - [ ] Native MIDI: establish physical identity and qualify hot-plug continuity/same-name device substitution. Opaque logical IDs and readable names are not physical-device proof; failed native name reads remain unselectable. Qualify real Identity Reply/GM and the separate MIDItest consumer contract.
 - [ ] FS-35: run against real hardware (interface loopback calibrated first), compare with a reference analyser and validate the default thresholds before considering any tuning. Thresholds remain unchanged. Its live capture shows as "A live capture" in other features' busy dialogs.
-- [ ] Record `connectivity.audio.usbChannelsOut` (or `audio: null`) for the 23 controller profiles whose audio test is still conditional, from manufacturer sources.
+- [ ] Research manufacturer evidence for the **22** remaining conditional audio profiles and **3** conditional MIDI profiles / **9** requirements. Push3 now has documented 16-in/16-out USB channels; preserve unknown rates/bit depths, exact models, directions, connection modes and no-audio exclusions.
 - [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify manufacturer ids in real Identity Replies against the MIDI Association list.
 - [ ] Hardware: run MIDI conformance against real controllers (Active Sensing, Clock, Identity Reply) and the GM check against a real GM sound source.
 
@@ -133,6 +147,12 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Flip each flag on only after its owner hardware script passes.
 
 ## Active beta validation gates
+
+- [x] Implement the optional, default-OFF native incident latest-reading attachment with immutable retries and atomic incident/evidence storage; preserve no-new-capture and separate-clock semantics.
+- [ ] Qualify broader incident windows, shock/DVS/onset isolation and actual hardware separately; the latest-reading attachment does not establish those outcomes.
+- [x] Prevent implicit learned-map reuse after an asset changes product profile; preserve same/unknown legacy identity and explicit import behavior.
+- [x] Source41 combined local qualification passed: full 1,975/0/1 and all 11 static/performance/syntax gates, with all 1,480 source hashes/tree unchanged. Prior bounded native 45/45 and strict Clippy are bound to the exact final inputs.
+- [ ] Complete exact-source hosted checks and integration qualification; local success does not establish release/platform readiness.
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
 

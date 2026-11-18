@@ -1,12 +1,40 @@
 # DeckChek release readiness
 
-## Current source40 native catalog and controller provenance
+## Current source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+## Source41 qualification and release boundary
+
+| Scope | Source41 state | Boundary |
+| --- | --- | --- |
+| Exact code/tree | `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9` / `751ba0df2acde7e05a37d25927ef013543ffdace` | Documentation publication is a separate later head. |
+| Complete serial JavaScript and inventories | 1,975 passed / 0 failed / 1 optional skip; 1,976 total across 162 top-level files on Node 22.23.5, 257.854541805 TAP seconds; all 1,480 source hashes and tree unchanged (record `13c24e29722dab5b487fc862ba34018ad232b2ba8d39c1c70c9b30407e704631`) | Focused component counts overlap and are not summed. |
+| Static, coverage and authored browser-smoke syntax | All 11 static/performance/syntax gates passed, including 426 syntax files, 25 migrations and the 45-profile coverage check; all 1,480 source hashes and the tree matched before/after every gate | Syntax does not establish Chromium execution. |
+| Both performance gates and inventories | 2/2 passed with all 1,480 source hashes/tree unchanged: controller 2,400 hops, 0.339 ms mean / 1.04 ms worst / 0.07 MB heap; monitor 2,400 hops, 0.329 ms mean / 1.29 ms worst / 0.06 MB heap (record `91ae72485525171783e1061ba945e3dc959d91bae25040f234baab9285ec673a`) | Proxy performance does not establish platform or hardware behavior. |
+| Accepted native input/dependency carry | Verified 38 production inputs, 39 generated files, 52 application-lock identities and five direct dependency feature sets; carries bounded 45/45 and strict Clippy, not full Tauri/platform execution (record `736e13fc6bd413265948ac110c697c4b95bf9876914e1b71872836b5c181e69f`) | Incident 45/45 proof is a bounded harness, not local full Tauri execution. |
+| Pack independent acceptance | ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`) | Persistent 16/16, related 32/32 and unchanged independent probe 3/3 passed with complete inventories. |
+| Publication and applicable hosted checks | Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending | No source41 hosted result or merge is asserted. |
+
+The [completed preceding checks](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks) are exact-source evidence: source39 has all three workflows, Linux 730/0/8 ignored, Windows 724/0/9 ignored, browser 1,338/1,338 twice, six builds and five packaged self-tests; source40 has primary JavaScript 1,835/0/1, native 748/0/8 ignored and browser 1,347/1,347. Source40's review-branch base did not trigger platform/nightly. Linux x86 is build-only, ASan leak detection was disabled, native-fuzz actual counts/durations are unknown, and Actions artifact digest comparison is not an independent binary rehash.
+
+The native-catalog browser cases use deterministic IPC fixtures. Separately executed full native tests do not convert that browser path into live Tauri/SQLite; inspected screenshots did not show the native archive controls. Broad Sonar, actual devices/reference measurements, owner workflows, interoperability, signing/distribution and final integration platform qualification remain open. Source41 is not declared release-ready. Fleet stays OFF; no release/tag/deployment is authorized.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
 
 Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
 
 This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
 
-## Source40 qualification and release boundary
+<a id="source40-qualification-and-release-boundary"></a>
+
+## Historical source40 qualification and release boundary
 
 Source `20a8c342` passed the complete 151-file Node suite **1,835/0/1**, 253,593.508232 ms TAP, with all 1,447 source files unchanged. Local static/proxy gates passed: device index, timecode, 24 migrations, mobile output, notices, coverage, GLib provenance metadata, application/GLib formatting and 411 syntax checks. The separate monitor passed 1/1 over 2,400 hops at 0.351 ms mean / 1.96 ms worst and 0.06 MB heap growth; unchanged budgets apply. [Exact native/profile scope and preserved failures](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#combined-source40-qualification) remain distinct from full application and hardware qualification.
 
