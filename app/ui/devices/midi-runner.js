@@ -200,7 +200,8 @@ export function runMidi(host, ctx) {
       if (!current() || (raw.port && raw.port !== port)) return;
       const panel = st.panel, msg = parseMessage(raw.bytes);
       if (!panel || (!panel.wantsRaw && (msg.kind === 'clock' || msg.kind === 'other'))) return;
-      panel.onMessage(msg, { tUs: Number.isFinite(raw.timestampUs) ? raw.timestampUs : nowUs(), rUs: nowUs(), raw: raw.bytes });
+      const timestampObserved = Number.isFinite(raw.timestampUs) && raw.timestampUs >= 0;
+      panel.onMessage(msg, { tUs: timestampObserved ? raw.timestampUs : nowUs(), timestampObserved, rUs: nowUs(), raw: raw.bytes });
     });
     st.panel = PANELS[kind]({ current, port, outPort: st.outPort });
   }
@@ -511,13 +512,13 @@ export function runMidi(host, ctx) {
       const draw = throttle(() => { const a = analyzeTiming(stamps); stats.textContent = `${stamps.length} messages${a.jitterMs != null ? ` · jitter ${formatNumber(a.jitterMs, { digits: 2 })} ms · ${formatNumber(a.ratePerSec, { digits: 0 })} msg/s` : ''}`; }, 250);
       card.append(stats, h('div', { class: 'step-footer' }, h('span', { class: 'muted small', text: 'Use a direct USB port, not a hub.' }), finishBtn('Finish test', () => {
         const a = analyzeTiming(stamps);
-        if (!a.measurements.length) { toast('Not enough messages yet — keep the control moving.', { type: 'warn' }); return; }
+        if (!a.measurements.length) { toast(a.error === 'not enough samples' ? 'Not enough messages yet — keep the control moving.' : 'MIDI timestamps were invalid or did not advance. Refresh the connection and repeat the timing test.', { type: 'warn' }); return; }
         const findings = midiFindings('latency', a);
         card.append(resultBlock(a.measurements, findings));
         complete(a.measurements, findings, { messages: a.count, ratePerSec: a.ratePerSec, meanIntervalMs: a.meanIntervalMs });
       })));
       body.replaceChildren(card);
-      return { onMessage: (msg, t) => { if (tgt.value(msg) == null) return; stamps.push(t.tUs); draw(); } };
+      return { onMessage: (msg, t) => { if (tgt.value(msg) == null) return; stamps.push(t.timestampObserved ? t.tUs : NaN); draw(); } };
     },
 
     // SPEC-36 §2. Everything this panel sends or saves is bound to the connection it was built for:
@@ -527,7 +528,7 @@ export function runMidi(host, ctx) {
       let disposed = false, finished = false, probeToken = 0, probeTimer = null, truncated = false;
       const current = () => !disposed && !finished && connection.current();
       const events = [];
-      let lastT = null, lastR = null, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
+      let lastT = null, lastR = null, lastTimestamp = null, timestampFaults = 0, live = { total: 0, invalid: 0, channel: 0 }, identity = { status: outPort ? 'pending' : 'no-port', info: null, error: null };
       const statusBase = captureStatus(midi, connection.port);
       const card = h('section', { class: 'card', 'aria-labelledby': 'conf-title' });
       card.append(h('h2', { class: 'card-title', id: 'conf-title', text: 'MIDI conformance' }), h('p', { class: 'muted small', text: 'DeckChek asks the device to identify itself, then checks every message it sends while you use the controls: well-formed bytes and SysEx, notes that never release, and Active Sensing / Clock timing.' }));
@@ -576,6 +577,7 @@ export function runMidi(host, ctx) {
         const captureIntegrity = {
           counterState, counterScope: 'all-inputs', droppedBefore: before.dropped, droppedAfter: after.dropped,
           inputOpenAtStart: before.inputOpen, inputOpenAtEnd: after.inputOpen,
+          timingState: timestampFaults ? 'unavailable' : 'observed', timestampFaults,
         };
         const a = analyzeStream(events, { endUs });
         // A reply only counts inside the window; an unsent or unanswered-yet request is not a "no".
@@ -588,6 +590,7 @@ export function runMidi(host, ctx) {
         if (dropped) findings.push({ id: 'midi-transport-drops', severity: 'warning', title: `${dropped} MIDI message${dropped > 1 ? 's' : ''} dropped by DeckChek during the capture`, meaning: 'The shared host MIDI queue lost messages during this window. The counter covers all inputs, so it does not prove loss from this device. Missing messages can look like stuck or orphan notes.', action: 'Close other MIDI apps, plug in directly and repeat the test.' });
         if (disconnected) findings.push({ id: 'midi-input-disconnected', severity: 'review', title: 'The selected MIDI input did not stay open', meaning: 'The input was missing from a capture status check. Recorded messages remain available, but the stream cannot be judged as complete.', action: 'Reconnect the device, refresh the ports and repeat the test.' });
         if (unverified) findings.push({ id: 'midi-capture-unverified', severity: 'review', title: 'Capture continuity could not be verified', meaning: counterState === 'reset' ? 'The shared transport counter decreased during capture, so a reliable loss delta is unavailable.' : 'A measured transport counter or selected-input status was unavailable. Unobserved capture loss is not a measured zero.', action: 'Use the desktop MIDI backend, check the device connection and repeat the test.' });
+        if (timestampFaults) findings.push({ id: 'midi-timing-unverified', severity: 'review', title: 'MIDI timing evidence could not be verified', meaning: `${timestampFaults} message timestamp(s) were missing, invalid or moved backwards. Received packet bytes remain available, but timing checks cannot establish conformance.`, action: 'Refresh the MIDI connection and repeat the test.' });
         if (truncated) findings.push({ id: 'midi-capture-full', severity: 'review', title: 'Capture limit reached', meaning: `Recording stopped after ${CONFORMANCE_MAX_EVENTS} messages, so later note releases were not seen.`, action: 'Repeat the test and finish after about 15 seconds.' });
         const bad = a.invalid.length + a.sysexBad.length + a.stuck.length;
         const exercised = live.channel > 0;
@@ -596,6 +599,7 @@ export function runMidi(host, ctx) {
           : !a.total ? unknown('No MIDI messages were received, so nothing could be checked.')
           : disconnected ? unknown('The selected MIDI input did not stay open, so capture continuity is unknown.')
           : unverified ? unknown('Capture continuity could not be verified, so the stream cannot be judged complete.')
+          : timestampFaults ? unknown('MIDI timestamps were invalid or moved backwards, so timing conformance could not be verified.')
           : dropped ? unknown(`${dropped} message(s) were dropped by the host during capture, so the stream cannot be judged.`)
           : bad ? { status: 'fail', detail: `${a.invalid.length} invalid, ${a.sysexBad.length} malformed SysEx and ${a.stuck.length} stuck note(s) in ${a.total} messages.`, criterion: 'conformance' }
           : !exercised ? unknown(`${a.total} message(s) received but no control messages; use the controls during the test.`)
@@ -616,6 +620,11 @@ export function runMidi(host, ctx) {
           try { bytes = Array.from(t.raw || []); } catch { bytes = []; }
           if (!bytes.length) return;
           if (events.length >= CONFORMANCE_MAX_EVENTS) { if (!truncated) { truncated = true; draw(); } return; }
+          if (!t.timestampObserved) timestampFaults++;
+          else {
+            if (lastTimestamp != null && t.tUs < lastTimestamp) timestampFaults++;
+            lastTimestamp = t.tUs;
+          }
           if (identity.status === 'pending') { const reply = parseIdentityReply(bytes); if (reply) { identity = { status: 'ok', info: reply, error: null }; clearTimeout(probeTimer); probeTimer = null; showId(); } }
           const v = validateMessage(bytes);
           live.total++; if (!v.ok) live.invalid++; else if (v.kind === 'channel') live.channel++;

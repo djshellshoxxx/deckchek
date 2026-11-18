@@ -172,6 +172,18 @@ test('analyzeTiming', () => {
   assert.equal(analyzeTiming([1]).jitterMs, null);
 });
 
+test('MIDI timing rejects reversed, missing, invalid and zero-span timestamps without fabricating zero jitter', () => {
+  for (const stamps of [[3000, 2000, 1000], [1000, 1000, 1000], [-1000, 0, 1000], [0, NaN, 2000], [0, Infinity, 2000], [0, null, 2000], [0, {}, 2000], [0, '1000', 2000]]) {
+    const result = analyzeTiming(stamps);
+    assert.equal(result.jitterMs, null, String(stamps));
+    assert.deepEqual(result.measurements, []);
+    assert.ok(result.error);
+  }
+  const tied = analyzeTiming([{ tUs: 0 }, { tUs: 0 }, { tUs: 1000 }]);
+  assert.equal(tied.count, 3, 'equal timestamps inside an advancing clock retain batched messages');
+  assert.equal(tied.jitterMs, 0.5);
+});
+
 test('buildLedSequence', () => {
   const seq = buildLedSequence(profile);
   assert.deepEqual(seq.map((s) => s.bytes), [[0x90, 11, 127], [0x80, 11, 0], [0xb2, 9, 127], [0xb2, 9, 0]]);

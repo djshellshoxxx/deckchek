@@ -265,8 +265,11 @@ export function analyzeButton(events, { bounceWindowUs = 5000, stuckAfterSec = 1
 
 /** timestamps: array of microsecond times (or objects with tUs). */
 export function analyzeTiming(timestamps) {
-  const t = (timestamps || []).map((x) => (typeof x === 'number' ? x : x.tUs)).filter(Number.isFinite);
+  const t = Array.from(timestamps || [], x => typeof x === 'number' ? x : x?.tUs);
   if (t.length < 3) return { jitterMs: null, ratePerSec: null, measurements: [], error: 'not enough samples' };
+  if (t.some((value, i) => !Number.isFinite(value) || value < 0 || (i > 0 && value < t[i - 1])) || t[t.length - 1] <= t[0]) {
+    return { jitterMs: null, ratePerSec: null, measurements: [], error: 'invalid or non-advancing timestamps' };
+  }
   const gaps = [];
   for (let i = 1; i < t.length; i++) gaps.push((t[i] - t[i - 1]) / 1000);
   const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;

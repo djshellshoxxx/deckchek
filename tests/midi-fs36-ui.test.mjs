@@ -158,6 +158,31 @@ test('conformance: browser MIDI cannot claim a measured zero-loss counter', asyn
   assert.equal(m.finished[0].extra.droppedDuringCapture, null);
 });
 
+test('MIDI latency cannot save a passing result from invalid or reversed transport timestamps', async () => {
+  for (const stamps of [[3000, 2000, 1000], [1000, 1000, 1000], [-1000, 0, 1000], [0, NaN, 2000], [0, Infinity, 2000], [0, null, 2000]]) {
+    const m = mount({ kind: 'latency', test: { pass: { metricId: 'midi_jitter_ms', op: '<=', value: 10 } } }); await settle();
+    stamps.forEach((stamp, i) => m.midi.emit([0xb0, 1, i], stamp));
+    await m.click('midi-finish'); await settle();
+    assert.deepEqual(m.finished, [], String(stamps));
+    m.runner.dispose();
+  }
+});
+
+test('conformance retains packet evidence but needs review when transport timestamps are invalid or reverse', async () => {
+  for (const stamps of [[3000, 2000, 1000], [-1000, 0, 1000], [0, NaN, 2000], [0, Infinity, 2000], [0, null, 2000]]) {
+    const m = mount({ kind: 'conformance' }); await settle();
+    stamps.forEach((stamp, i) => m.midi.emit([0xb0, 1, i], stamp));
+    await m.click('midi-finish'); await settle();
+    const result = m.finished[0];
+    assert.equal(result.status, 'unknown', String(stamps));
+    assert.equal(metric(result, 'midi_message_count').value, stamps.length);
+    assert.equal(result.extra.captureIntegrity.timingState, 'unavailable');
+    assert.ok(result.extra.captureIntegrity.timestampFaults > 0);
+    assert.ok(finding(result, 'midi-timing-unverified'));
+    m.runner.dispose();
+  }
+});
+
 test('MIDI routing: changing the input pairs its matching output, even against the profile hint', async t => {
   const m = mount({ kind: 'conformance', profile: { model: 'A', midi: { controls: [] }, connectivity: { midi: { portNamePatterns: ['A'] } } } }); t.after(() => m.runner.dispose()); await settle();
   await m.select('B'); await settle();
