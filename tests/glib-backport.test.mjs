@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -23,6 +24,8 @@ test('GLib backport preserves the complete registry inventory and all exact depe
   assert.equal(result.files, 121);
   assert.equal(result.provenance.version, '0.18.5');
   assert.equal(result.provenance.advisory, 'RUSTSEC-2024-0429');
+  assert.equal(result.compatibilityFiles, 12);
+  assert.deepEqual(result.provenance.compatibilityPatch.diagnostics, { unused_parens: 3, mismatched_lifetime_syntaxes: 31 });
   assert.equal(result.cargoRoots.length, 3);
 });
 
@@ -51,6 +54,61 @@ test('the original inventory cannot be rewritten to approve a different source s
   const provenance = JSON.parse(fs.readFileSync(file, 'utf8'));
   provenance.originalFiles.LICENSE = '0'.repeat(64); fs.writeFileSync(file, JSON.stringify(provenance));
   assert.throws(() => verifyGlibBackport(directory), /Original registry file inventory changed/);
+});
+
+test('compiler compatibility changes must remain exact, including in otherwise approved files', t => {
+  const directory = fixture(t);
+  for (const [relative, change] of [
+    ['src/object.rs', source => source.replace("InterfaceRef<'_, T>", 'InterfaceRef<T>')],
+    ['src/value_array.rs', source => source.replace('let func_obj: &mut dyn FnMut(&Value, &Value) -> Ordering', 'let func_obj: &mut (dyn FnMut(&Value, &Value) -> Ordering)')],
+    ['src/variant.rs', source => source + '\n// unreviewed adjacent change\n'],
+  ]) {
+    const file = path.join(directory, 'vendor/glib-0.18.5', relative), original = fs.readFileSync(file, 'utf8');
+    const changed = change(original);
+    assert.notEqual(changed, original);
+    fs.writeFileSync(file, changed);
+    assert.throws(() => verifyGlibBackport(directory), /Unapproved compatibility source change/);
+    fs.writeFileSync(file, original);
+  }
+});
+
+test('compatibility metadata cannot bless a different source or expanded patch', t => {
+  const directory = fixture(t), file = path.join(directory, 'vendor/glib-0.18.5.provenance.json');
+  const original = fs.readFileSync(file, 'utf8'), provenance = JSON.parse(original);
+  const relative = 'src/object.rs', source = path.join(directory, 'vendor/glib-0.18.5', relative);
+  fs.appendFileSync(source, '\n// changed alongside forged provenance\n');
+  provenance.compatibilityPatch.patchedFiles[relative] = createHash('sha256').update(fs.readFileSync(source)).digest('hex');
+  fs.writeFileSync(file, JSON.stringify(provenance));
+  assert.throws(() => verifyGlibBackport(directory), /Approved compatibility metadata changed/);
+
+  const expanded = JSON.parse(original);
+  expanded.compatibilityPatch.patchedFiles['src/lib.rs'] = expanded.originalFiles['src/lib.rs'];
+  fs.writeFileSync(file, JSON.stringify(expanded));
+  assert.throws(() => verifyGlibBackport(directory), /Approved compatibility metadata changed/);
+});
+
+test('official security and compiler compatibility patch artifacts remain independently anchored', t => {
+  const directory = fixture(t);
+  for (const [relative, expected] of [
+    ['glib-0.18.5.patch', /Approved patch changed/],
+    ['glib-0.18.5.rust-1.100.patch', /Approved compatibility patch changed/],
+  ]) {
+    const file = path.join(directory, 'vendor', relative), original = fs.readFileSync(file);
+    fs.appendFileSync(file, '\n');
+    assert.throws(() => verifyGlibBackport(directory), expected);
+    fs.writeFileSync(file, original);
+  }
+  fs.unlinkSync(path.join(directory, 'vendor/glib-0.18.5.rust-1.100.patch'));
+  assert.throws(() => verifyGlibBackport(directory), /ENOENT/);
+});
+
+test('the actual-crate regression keeps GLib as a test-only exact dependency', t => {
+  const directory = fixture(t), file = path.join(directory, 'tools/glib-backport-regression/Cargo.toml');
+  const manifest = fs.readFileSync(file, 'utf8');
+  fs.writeFileSync(file, manifest.replace('[dev-dependencies]', '[dependencies]'));
+  assert.throws(() => verifyGlibBackport(directory), /exact test-only dev-dependency/);
+  fs.writeFileSync(file, manifest + '\n[dependencies]\nglib = "=0.18.5"\n');
+  assert.throws(() => verifyGlibBackport(directory), /must not be an unused runtime dependency/);
 });
 
 test('each independently locked root must select the patched source and harness versions must match', t => {
