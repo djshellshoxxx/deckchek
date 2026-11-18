@@ -14,7 +14,7 @@ import { toast, announce } from '../live.js';
 import { go, confirmDialog, showInspector } from '../shell.js';
 import { settings, setSetting, active } from '../state.js';
 import { isEnabled } from '../../features.js';
-import { takeHandoff } from '../crosslinks.js';
+import { navigateTo, takeHandoff } from '../crosslinks.js';
 import { createServiceApi, serviceSupported } from '../../service-api.js';
 import { STATUSES, STATUS_LABELS, STEPS, statusLabel, nextStatuses, isReadOnly, stepperState, stepIndex, buildComparison, directionHints, deleteConfirmed, listPrefsForSettings, when, CHANGE_TEXT } from '../../service.js';
 import { ensureLibrary, profileById } from '../devices/library-state.js';
@@ -165,6 +165,7 @@ export function createServiceScreen(section) {
   // ------------------------------------------------------------ new job
   function openNew(preset = {}) {
     if (!native) { st.view = 'list'; renderList(); return; }
+    ++st.loadSeq; // A previous job/comparison request no longer owns the new form.
     st.view = 'new';
     body.replaceChildren();
     const host = h('div', { id: 'svc-new-host' });
@@ -394,7 +395,8 @@ export function serviceScreenDefs() {
     if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'j' || !isEnabled('service')) return;
     if (document.querySelector('dialog[open]')) return;
     e.preventDefault(); // Ctrl+J would otherwise open the WebView downloads panel
-    import('../crosslinks.js').then(m => m.navigateTo('service', { newJob: {} }));
+    try { navigateTo('service', { newJob: {} }); }
+    catch (error) { toast(`Could not open a new job: ${friendly(error)}`, { type: 'error' }); }
   });
   return [{ id: 'service', title: 'Service', short: 'Service', icon: 'edit', feature: 'service', create: createServiceScreen }];
 }
