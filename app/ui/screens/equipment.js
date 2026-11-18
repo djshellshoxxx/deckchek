@@ -10,6 +10,7 @@ import { equipmentLinkRow } from '../crosslinks.js';
 import { pdfButton, gatherVenueReport } from '../workflows/m6-reports.js';
 import { createHumRunStore } from '../../hum-tree.js';
 import { createVenueIncidentStore } from '../../venue-incidents.js';
+import { createSupportIsolationStore } from '../../support-isolation.js';
 import { newId } from '../../catalog-store.js';
 
 const CATEGORIES = [['turntable', 'Turntable'], ['cartridge', 'Cartridge'], ['stylus', 'Stylus'], ['mixer', 'Mixer'], ['audio_interface', 'Audio interface'], ['dvs_interface', 'DVS interface'], ['media_player', 'Media player'], ['controller', 'Controller'], ['preamp', 'Phono preamp'], ['dvs_media', 'DVS / timecode media'], ['software', 'Software'], ['other', 'Other']];
@@ -237,7 +238,7 @@ export function createEquipmentScreen(section, { store = defaultStore } = {}) {
     }
     if (state.entity === 'venue' && !isNew) {
       form.append(h('div', { class: 'eq-links' }, h('span', { class: 'field-label', text: 'Venue report' }),
-        pdfButton(h, { id: 'eq-venue-pdf', kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog: store, humStore: createHumRunStore(), incidentStore: createVenueIncidentStore({ catalog: store }), venueId: r.id }) })));
+        pdfButton(h, { id: 'eq-venue-pdf', kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog: store, humStore: createHumRunStore(), incidentStore: createVenueIncidentStore({ catalog: store }), isolationStore: createSupportIsolationStore({ catalog: store }), venueId: r.id }) })));
     }
     form.append(err, h('div', { class: 'form-actions' }, cancel, save));
     form.addEventListener('submit', async e => {

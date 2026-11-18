@@ -96,6 +96,38 @@ export function calibrationStatus(deviceName = settings.deviceName, sampleRate =
   return { state: 'none', profile: null, reasons: ['no calibration profile'] };
 }
 
+/** Strict, read-only snapshot for support observations. Existing calibration
+ * consumers retain their lookup behavior. Absence means this exact key only;
+ * unreadable/invalid data is never presented as an absent profile. */
+export function readSupportCalibration(deviceName, sampleRate, { storage } = {}) {
+  const sourceKey = profileKey(deviceName, sampleRate);
+  const observation = (state, profile, reasons = []) => ({ state, sourceKey, profile, reasons, applied: false });
+  try {
+    const target = storage === undefined ? globalThis.localStorage : storage;
+    if (!target || typeof target.getItem !== 'function') throw new Error('Calibration storage is unavailable');
+    const raw = target.getItem(PROFILES_KEY);
+    if (raw === null) return observation('none', null);
+    const map = JSON.parse(raw);
+    if (!isPlainObject(map)) throw new Error('Calibration registry is not an object');
+    if (!Object.hasOwn(map, sourceKey)) return observation('none', null);
+    const entry = map[sourceKey];
+    if (typeof entry !== 'string') return observation('rejected', null, ['The selected calibration entry is not serialized profile JSON']);
+    let profile;
+    try { profile = deserializeProfile(JSON.parse(entry, (_, value) => {
+      if (typeof value === 'number' && !Number.isFinite(value)) throw new Error('Calibration contains a non-finite number');
+      return value;
+    })); }
+    catch (error) { return observation('rejected', entry, [String(error.message || error)]); }
+    // Validate against the actual native endpoint, not against the profile's
+    // own claimed device. No age rule or uncertainty default is introduced.
+    const reasons = typeof profile.deviceName !== 'string' || !profile.deviceName.trim()
+      ? ['Profile device identity is unavailable'] : profileInapplicableReasons(profile, { deviceName, sampleRate });
+    return observation(reasons.length ? 'rejected' : 'available', JSON.parse(entry), reasons);
+  } catch (error) {
+    return observation('unavailable', null, [String(error.message || error)]);
+  }
+}
+
 // ---------- backup bridge (FS-08) ----------
 // `deckchek.ui.v1` and `deckchek.calibration.v1` live in WebView localStorage, so the Data screen hands
 // them to Rust when backing up and writes the restored copies back (validated) before the reload.

@@ -13,6 +13,34 @@ const NOW = new Date('2026-10-10T12:00:00Z');
 const compose = (kind, data) => composePrintable(kind, data, { now: NOW, css: '', appVersion: '0.0.7' });
 const EVIL = '<img src=x onerror=alert(1)>';
 
+test('venue report reloads immutable support A/B observations separately from current support and escapes context', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { createSupportIsolationStore } = await import('../app/support-isolation.js');
+  const fixture = JSON.parse(readFileSync(new URL('./contracts/support-isolation.json', import.meta.url)));
+  const a = fixture.observationA, b = fixture.observationB;
+  b.context.support.approximateMassKg = 12.5; b.context.support.coupledState = 'Decoupled <operator>';
+  for (const row of [a,b]) {
+    row.context.setup.components[0].settingsSnapshotId = 'settings-original';
+    row.calibration = {state:'available',sourceKey:'interface a|4096',applied:false,reasons:[],profile:{version:1,deviceName:'Interface A',sampleRate:4096,createdAt:'2026-11-01T12:00:00.000Z',valid:true,issues:[],gainDb:{left:0,right:0},uncertainty:{},mismatchDb:0,clockPpm:0,latencyMs:1}};
+  }
+  const catalog = { list: async entity => structuredClone({ venue: [a.context.venue], setup: [a.context.setup], asset: [], supportConfiguration: [a.context.support,b.context.support] }[entity]) };
+  const values = new Map(), storage = { get length() { return values.size; }, key: index => [...values.keys()][index] ?? null, getItem: key => values.get(key) ?? null, setItem: (key,value) => values.set(key,value) };
+  const store = createSupportIsolationStore({ invoke: null, storage, catalog });
+  await store.saveObservation(a); await store.saveObservation(b); await store.saveComparison(fixture.comparison);
+  const data = await gatherVenueReport({ catalog, humStore: { list: async () => [] }, isolationStore: createSupportIsolationStore({ invoke: null, storage, catalog }), venueId: a.venueId });
+  const { html } = compose('venue',data);
+  assert.match(html,/Historical support A\/B observations/); assert.match(html,/20–200 Hz/); assert.match(html,/B − A/);
+  assert.match(html,/Paver &lt;img/); assert.ok(!html.includes('<img src=x>')); assert.match(html,/uncertainty is unknown/i);
+  assert.match(html,/Current support description/); assert.match(html,/No raw audio is archived/); assert.match(html,/Showing 2 of 2/);
+  assert.match(html,/12\.50* kg/); assert.match(html,/Decoupled &lt;operator&gt;/); assert.match(html,/settings-original/);
+  assert.match(html,/interface a\|4096/); assert.match(html,/2026-11-01T12:00:00/); assert.match(html,/Support position binding/);
+});
+
+test('support observation read failures abort report preparation instead of presenting an empty comparison history', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{id:'venue-a',name:'Club'}] : [] };
+  await assert.rejects(gatherVenueReport({catalog,humStore:{list:async()=>[]},isolationStore:{list:async()=>{throw new Error('Support observation history is corrupt');}},venueId:'venue-a'}),/history is corrupt/);
+});
+
 test('every M6 kind is registered with a valid file name', () => {
   for (const kind of ['latency', 'stylus', 'wearMap', 'scratch', 'hum', 'venue']) assert.ok(printableKinds().includes(kind), kind);
 });

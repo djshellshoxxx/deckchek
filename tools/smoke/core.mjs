@@ -526,6 +526,7 @@ export function tauriMock() {
     catalog_list: ({ entity }) => db.catalog[entity].slice(),
     catalog_upsert: ({ entity, record }) => { const r = { ...record, id: record.id || `id-${Math.random().toString(36).slice(2)}` }; db.catalog[entity] = [...db.catalog[entity].filter(x => x.id !== r.id), r]; return r; },
     catalog_delete: ({ entity, id }) => { db.catalog[entity] = db.catalog[entity].filter(x => x.id !== id); return true; },
+    support_isolation_list: ({ filter = {} }) => ({ observations: [], comparisons: [], observationTotal: 0, comparisonTotal: 0, limit: filter.limit ?? 50 }),
     save_diagnostic_run: ({ run }) => {
       if (run.measurements.some(m => typeof m.uncertainty === 'object' && m.uncertainty !== null)) throw 'uncertainty must be numeric';
       db.runs.unshift(run); return null;

@@ -4,6 +4,7 @@
 // ctx.esc, so the HTML is unit-testable in Node. Status is always printed as a word, never colour alone.
 // The only DOM here is pdfButton(), which screens place in their header.
 import { INCIDENT_TYPES } from '../../venue-incidents.js';
+import { SUPPORT_HISTORY_LIMIT, observationIssues } from '../../support-isolation.js';
 
 const num = (v, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? String(Number(v.toFixed(d))) : '—');
 const when = iso => { const d = new Date(iso); if (Number.isNaN(d.getTime())) return ''; const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -180,7 +181,7 @@ export const humPrintable = Object.freeze({
 // ------------------------------------------------------------------ venue report (FS-15 AC-7)
 
 /** Plain data: catalog, measured runs and a separately identified operator incident history. */
-export function venuePrintData({ venue, setups = [], supports = null, humRuns = [], incidents = null, assetName = id => id } = {}) {
+export function venuePrintData({ venue, setups = [], supports = null, humRuns = [], incidents = null, isolation = null, assetName = id => id } = {}) {
   if (!venue) return null;
   return {
     name: venue.name || 'Venue', details: [['Type', venue.venueType], ['City', venue.city], ['Country', venue.country], ['Notes', venue.notes]].filter(([, v]) => v),
@@ -190,7 +191,7 @@ export function venuePrintData({ venue, setups = [], supports = null, humRuns = 
       support: structuredClone(supports?.find(row => row.id === s.supportConfigurationId) ?? null),
       components: (s.components || []).map(c => `${c.role || 'component'}${c.position ? ` (${c.position})` : ''}: ${assetName(c.assetId)}`) })),
     humRuns: humRuns.map(r => humPrintData(r, { venueName: venue.name })).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, VENUE_RUN_LIMIT),
-    incidents,
+    incidents, isolation: isolation == null ? null : structuredClone(isolation),
   };
 }
 function currentSupportHtml(setup, loaded, esc) {
@@ -216,6 +217,56 @@ ${table(esc, ['Occurred (UTC)', 'Incident', 'Selected venue', 'Selected setup', 
     row.occurredAt, INCIDENT_TYPES.find(type => type.id === row.kind)?.label || row.kind, row.context?.venue?.name || '', row.context?.setup?.name || 'No setup assigned', row.note || '', row.recordedAt,
   ]))}`;
 }
+function supportObservationHtml(row, esc) {
+  const { context, capture, analysis, calibration } = row;
+  const issues = observationIssues(row), conditions = context.conditions;
+  const profile = calibration.profile && typeof calibration.profile === 'object' ? calibration.profile : null;
+  const components = Array.isArray(context.setup.components) ? context.setup.components.map(component => component
+    ? `${component.role ?? 'Unknown role'}: asset ${component.assetId ?? 'unavailable'}; component ${component.id ?? 'unavailable'}; position ${component.position ?? 'not recorded'}; settings snapshot ${component.settingsSnapshotId ?? 'not recorded'}` : 'Unavailable component').join(' | ') : 'Unavailable';
+  return `<h4>${esc(`${row.stage}: ${context.support.name}`)}</h4>${facts(esc, [
+    ['Observation', row.id], ['Capture observed (UTC)', `${row.capturedAt} → ${row.finishedAt}`], ['Saved (UTC)', row.recordedAt],
+    ['Historical selected venue / setup', `${context.venue.name} / ${context.setup.name}`], ['Selected support', context.support.name],
+    ['Support description', context.support.description], ['Support structure (original text)', context.support.structureJson], ['Support notes', context.support.notes],
+    ['Approximate support mass (operator)', context.support.approximateMassKg == null ? 'Not recorded' : `${num(context.support.approximateMassKg, 3)} kg`],
+    ['Coupled state (operator description)', context.support.coupledState ?? 'Not recorded'], ['Support position binding', context.support.deckPositionId ?? 'Reusable / unassigned'],
+    ['Original setup / booth / deck position IDs', `${context.setup.id} / ${context.setup.boothId ?? 'unassigned'} / ${context.setup.deckPositionId ?? 'unassigned'}`],
+    ['Original catalog support assignment', context.setup.supportConfigurationId ?? 'Unassigned; the selected physical support is recorded separately'],
+    ['Original component and settings associations', components || 'No components recorded'],
+    ['Physical route (operator)', conditions.route], ['Gain / filters (operator)', conditions.gainSettings], ['Procedure / source (operator)', `${conditions.procedure} / ${conditions.source}`],
+    ['Placement (operator)', conditions.placement], ['PA state / level (operator)', `${conditions.paState} / ${conditions.paLevel}`],
+    ['Reported input / pair', `${capture.deviceName ?? 'Unavailable'} / ${capture.pair?.label ?? 'Unavailable'}`],
+    ['Actual reported sample rate', `${num(capture.sampleRate, 0)} Hz`], ['Captured duration', `${num(capture.framesL / capture.sampleRate, 3)} s (${capture.framesL} frames)`],
+    ['Analyzed interval', analysis ? `[0, ${analysis.analyzedFrames}) samples; ${num(analysis.analyzedFrames / analysis.sampleRate, 3)} s; ${analysis.omittedFrames} captured frames outside the analysis` : 'Unavailable'],
+    ['Method', analysis ? `${analysis.method}; 20–200 Hz; periodic Hann ${analysis.fftSize}; hop ${analysis.hop}; ${analysis.segments} complete windows; linear mean PSD` : row.analysisError],
+    ['L / R / mean channel power', analysis ? `${num(analysis.levelDbfsL, 3)} / ${num(analysis.levelDbfsR, 3)} / ${num(analysis.levelDbfsPair, 3)} dBFS RMS` : 'Unavailable'],
+    ['Calibration context', `${calibration.state}; corrections not applied`], ['Calibration source key', calibration.sourceKey ?? 'Unavailable'],
+    ['Profile identity / rate / version', profile ? `${profile.deviceName ?? 'unavailable'} / ${profile.sampleRate ?? 'unavailable'} Hz / ${profile.version ?? 'unavailable'}` : 'No usable profile supplied'],
+    ['Profile created (original value)', profile?.createdAt ?? 'Not recorded'],
+    ['Recorded profile gain L / R (not applied)', profile?.gainDb ? `${num(profile.gainDb.left, 3)} / ${num(profile.gainDb.right, 3)} dB` : 'Unavailable'],
+    ['Recorded profile clock (not applied)', profile?.clockPpm == null ? 'Unavailable' : `${num(profile.clockPpm, 3)} ppm`],
+    ['Calibration limitations', calibration.reasons.join('; ') || 'Uncertainty remains unknown; no physical calibration is applied'],
+    ['Changed or unreadable calibration evidence', profile?.atStart || typeof calibration.profile === 'string' ? JSON.stringify(calibration.profile) : null],
+    ['Quality / eligibility', issues.length ? issues.join('; ') : 'Supplied capture evidence meets this method’s checks'],
+    ['Original retained frames / dropped input samples', `${capture.quality?.framesCaptured ?? 'unavailable'} / ${capture.quality?.overrunSamples ?? 'unavailable'}`],
+    ['Original clipped samples L / R', `${capture.quality?.clippedSamplesL ?? 'unavailable'} / ${capture.quality?.clippedSamplesR ?? 'unavailable'}`],
+    ['Stream errors (total; latest messages)', `${capture.quality?.streamErrors ?? 'unavailable'}; ${Array.isArray(capture.quality?.streamErrorMessages) ? capture.quality.streamErrorMessages.join('; ') || 'none reported' : 'messages unavailable'}`],
+    ['Capture truncated', capture.quality?.truncated === false ? 'No' : capture.quality?.truncated === true ? 'Yes' : 'Unavailable'],
+    ['Observed maximum callback gap (not a dropout threshold)', `${num(capture.quality?.maxCallbackGapMs, 3)} ms`],
+  ])}`;
+}
+function supportHistoryHtml(history, esc) {
+  const heading = '<h2>Historical support A/B observations</h2>';
+  if (!history) return `${heading}<p>Support A/B history was not loaded for this report.</p>`;
+  const note = para(esc, 'Passive 20–200 Hz digital observations. PA, procedure and physical context are operator declarations. Measurement uncertainty is unknown; these results do not establish physical isolation efficiency or a precision-based ranking. No raw audio is archived.', 'dc-note');
+  const scope = para(esc, `Showing ${history.observations.length} of ${history.observationTotal} original observations and ${history.comparisons.length} of ${history.comparisonTotal} comparisons (newest first; each report limit ${history.limit}). Older records remain stored.`, 'dc-note');
+  const comparisons = history.comparisons.map(row => `<h3>Support comparison ${esc(row.id)}</h3>${facts(esc, [
+    ['A → B supports (historical)', `${row.observationA.context.support.name} → ${row.observationB.context.support.name}`],
+    ['Original observations', `${row.observationAId} → ${row.observationBId}`], ['Comparability', row.result.status === 'operator_reported_comparable' ? 'Operator reports matching conditions; acquisition and method checks passed' : 'Not comparable'],
+    ['Change B − A (L / R / mean channel power)', `${num(row.result.deltaDb.left, 3)} / ${num(row.result.deltaDb.right, 3)} / ${num(row.result.deltaDb.pair, 3)} dB`],
+    ['Direction', 'Negative means lower recorded LF power in B; positive means higher'], ['Rejection reasons', row.result.reasons.join('; ')],
+  ])}${supportObservationHtml(row.observationA, esc)}${supportObservationHtml(row.observationB, esc)}`).join('');
+  return `${heading}${note}${scope}${comparisons}${history.observations.length ? `<h3>Retained original observations</h3>${history.observations.map(row => supportObservationHtml(row, esc)).join('')}` : '<p>No support A/B observations are saved for this venue.</p>'}`;
+}
 export const venuePrintable = Object.freeze({
   fileKind: 'Venue',
   title: d => `Venue report — ${d?.name || 'venue'}`,
@@ -229,7 +280,7 @@ export const venuePrintable = Object.freeze({
       ? `<h2>Hum and feedback history</h2>${d.humRuns.map(r => humRunHtml(r, esc, 'h3')).join('')}`
       : '<h2>Hum and feedback history</h2><p>No hum or feedback runs are saved for this venue.</p>';
     const historyScope = para(esc, `This report includes up to ${VENUE_RUN_LIMIT} saved hum and feedback runs for this venue, newest first. Older saved records remain stored.`, 'dc-note');
-    return `${facts(esc, d.details || [])}${setups}${historyScope}${runs}${incidentHistoryHtml(d.incidents, esc)}`;
+    return `${facts(esc, d.details || [])}${setups}${historyScope}${runs}${incidentHistoryHtml(d.incidents, esc)}${supportHistoryHtml(d.isolation, esc)}`;
   },
 });
 
@@ -237,11 +288,13 @@ export const venuePrintable = Object.freeze({
  * Each measured run is fetched in full, with at most 50 runs. Read failures or missing details abort report preparation.
  * Incident and support reads also propagate errors. Legacy callers without those records disclose them as unloaded.
  */
-export async function gatherVenueReport({ catalog, humStore, incidentStore, venueId }) {
+export async function gatherVenueReport({ catalog, humStore, incidentStore, isolationStore, venueId }) {
   const venue = (await catalog.list('venue')).find(v => v.id === venueId);
   if (!venue) return null;
-  const [setups, assets, summaries, incidents, supports] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: VENUE_RUN_LIMIT }),
-    incidentStore ? incidentStore.list({ venueId, limit: MAX_ROWS }) : Promise.resolve(null), catalog.list('supportConfiguration')]);
+  const [setups, assets, summaries, incidents, supports, isolation] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: VENUE_RUN_LIMIT }),
+    incidentStore ? incidentStore.list({ venueId, limit: MAX_ROWS }) : Promise.resolve(null), catalog.list('supportConfiguration'),
+    isolationStore ? isolationStore.list({ venueId, limit: SUPPORT_HISTORY_LIMIT }) : Promise.resolve(null)]);
+  if (isolationStore && (!isolation || !Array.isArray(isolation.observations) || !Array.isArray(isolation.comparisons))) throw new Error('Support A/B history returned invalid records.');
   if (supports != null && !Array.isArray(supports)) throw new Error('Support catalog returned invalid records.');
   if (!Array.isArray(summaries)) throw new Error('Hum and feedback history returned invalid records.');
   const runs = await Promise.all(summaries.slice(0, VENUE_RUN_LIMIT).map(async summary => {
@@ -250,7 +303,7 @@ export async function gatherVenueReport({ catalog, humStore, incidentStore, venu
     return run;
   }));
   const name = id => assets.find(a => a.id === id)?.nickname || 'Unknown asset';
-  return venuePrintData({ venue, setups, supports, humRuns: runs, incidents, assetName: name });
+  return venuePrintData({ venue, setups, supports, humRuns: runs, incidents, isolation, assetName: name });
 }
 
 // ------------------------------------------------------------------ registration + button

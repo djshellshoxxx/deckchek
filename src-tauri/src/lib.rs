@@ -42,6 +42,7 @@ mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
+mod support_isolation;
 mod venue_incidents;
 
 #[cfg(test)]
@@ -280,6 +281,10 @@ pub fn run() {
             venue_incidents::venue_incident_save,
             venue_incidents::venue_incident_list,
             venue_incidents::venue_incident_page,
+            support_isolation::support_isolation_observation_save,
+            support_isolation::support_isolation_observation_get,
+            support_isolation::support_isolation_comparison_save,
+            support_isolation::support_isolation_list,
             selftest::self_test_mode,
             selftest::self_test_report,
             // [FS-20] handlers

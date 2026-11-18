@@ -22,10 +22,12 @@ import { openMonoInput, loadInputs, createFeedbackPanel, fmtDbfs } from './feedb
 import { createPairPicker } from '../pair-picker.js';
 import { createVenueIncidentStore } from '../../venue-incidents.js';
 import { createVenueIncidentPanel } from './venue-incidents.js';
+import { createSupportIsolationStore } from '../../support-isolation.js';
+import { createSupportIsolationPanel } from './support-isolation.js';
 
 export const HUM_HOLDER = 'hum-hunter';
 const LIVE_WINDOW_SEC = 1;
-const TABS = [['hum', 'Hum hunter'], ['feedback', 'Feedback test'], ['incidents', 'Incidents'], ['runs', 'Runs']];
+const TABS = [['hum', 'Hum hunter'], ['feedback', 'Feedback test'], ['support', 'Support A/B'], ['incidents', 'Incidents'], ['runs', 'Runs']];
 
 const fmt1 = v => (Number.isFinite(v) ? v.toFixed(1).replace('-', '−') : '—');
 export const fmtDb = v => (Number.isFinite(v) ? `${v.toFixed(1).replace('-', '−')} dB` : '—');
@@ -92,9 +94,10 @@ const confidenceWord = c => (c >= .7 ? 'High' : c >= .45 ? 'Medium' : 'Low');
 
 // ------------------------------------------------------------------ screen
 
-export function createHumScreen(section, { store = createHumRunStore(), openInput = openMonoInput, feedbackOptions = {}, incidentOptions = {} } = {}) {
+export function createHumScreen(section, { store = createHumRunStore(), openInput = openMonoInput, feedbackOptions = {}, incidentOptions = {}, isolationOptions = {} } = {}) {
   const native = () => isNative();
   const incidentStore = incidentOptions.store ?? createVenueIncidentStore({ catalog: incidentOptions.catalog ?? catalog });
+  const isolationStore = isolationOptions.store ?? createSupportIsolationStore({ catalog: isolationOptions.catalog ?? catalog });
   const st = {
     tab: 'hum', venues: [],
     hum: { view: 'setup', settings: { input: '', channel: 'left', mains: 'auto', venueId: '' }, inputs: [], loaded: false, session: null,
@@ -139,6 +142,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
   function leaveTab() {
     disposeFeedback();
     st.incidents?.setActive(false);
+    st.isolation?.setActive(false);
     if (st.tab === 'hum' && hum.view === 'steps') { closeCapture(); hum.view = 'setup'; hum.measuring = null; }
   }
   function disposeFeedback() { if (st.feedback) { st.feedback.dispose(); st.feedback = null; } }
@@ -151,6 +155,15 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
       const host = h('div', { class: 'fb-host', id: 'fb-host' });
       panel.append(host);
       st.feedback = createFeedbackPanel(host, { store, venues: venueList, ...feedbackOptions });
+    } else if (st.tab === 'support') {
+      if (!st.isolation) {
+        st.isolationHost = h('div', { id: 'support-ab-host' });
+        panel.append(st.isolationHost);
+        st.isolation = createSupportIsolationPanel(st.isolationHost, { catalog, ...isolationOptions, store: isolationStore });
+      } else {
+        panel.append(st.isolationHost);
+        st.isolation.setActive(true);
+      }
     } else if (st.tab === 'incidents') {
       if (!st.incidents) {
         st.incidentHost = h('div', { id: 'incident-host' });
@@ -461,7 +474,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
     for (const [name, rows] of groups) {
       const sec = h('section', { class: 'card hum-run-group', 'aria-label': `Runs: ${name}` }, h('div', { class: 'card-head' }, h('h2', { class: 'card-title', text: name }), h('span', { class: 'muted small', text: `${rows.length} run${rows.length > 1 ? 's' : ''}` })));
       const venueId = rows[0]?.venueId;
-      if (venueId) sec.querySelector('.card-head').append(pdfButton(h, { id: `hum-venue-pdf-${venueId}`, kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog, humStore: store, incidentStore, venueId }) }));
+      if (venueId) sec.querySelector('.card-head').append(pdfButton(h, { id: `hum-venue-pdf-${venueId}`, kind: 'venue', label: 'Venue report (PDF)', icon: icon('download', { size: 16 }), getData: () => gatherVenueReport({ catalog, humStore: store, incidentStore, isolationStore, venueId }) }));
       const list = h('ul', { class: 'hum-run-list' });
       for (const r of rows) {
         const open = st.runs.open === r.id;
@@ -520,6 +533,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
   function shutdown() {
     disposeFeedback();
     st.incidents?.setActive(false);
+    st.isolation?.setActive(false);
     hum.measuring = null;
     if (hum.view === 'steps') { closeCapture(); hum.view = 'setup'; }
   }
@@ -528,7 +542,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
   renderTabs();
   renderPanel();
   return {
-    onShow() { if (st.tab === 'runs') { st.runs.list = null; renderRuns(); } else if (st.tab === 'incidents') st.incidents?.setActive(true); else if (st.tab === 'feedback' && !st.feedback) renderPanel(); else if (st.tab === 'hum' && hum.view === 'setup') { hum.loaded = false; renderHumSetup(); } renderTabs(); },
+    onShow() { if (st.tab === 'runs') { st.runs.list = null; renderRuns(); } else if (st.tab === 'incidents') st.incidents?.setActive(true); else if (st.tab === 'support') st.isolation?.setActive(true); else if (st.tab === 'feedback' && !st.feedback) renderPanel(); else if (st.tab === 'hum' && hum.view === 'setup') { hum.loaded = false; renderHumSetup(); } renderTabs(); },
     onHide: shutdown,
     onSpace() {
       if (st.tab !== 'hum' || hum.view !== 'steps' || hum.measuring) return false;
@@ -536,6 +550,7 @@ export function createHumScreen(section, { store = createHumRunStore(), openInpu
       return true;
     },
     onEscape() {
+      if (st.tab === 'support') return st.isolation?.cancel() ?? false;
       if (st.feedback?.isRunning()) { st.feedback.stop('key'); return true; }
       if (hum.measuring) { hum.measuring = null; hum.message = { tone: 'info', text: 'Measurement cancelled.' }; renderHumSteps(); return true; }
       return false;
