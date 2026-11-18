@@ -70,3 +70,27 @@ test('hum report and venue report (FS-15 AC-7) list the isolation steps per venu
   ({ html } = compose('venue', venuePrintData({ venue: { id: 'v9', name: 'Empty' } })));
   assert.match(html, /No hum or feedback runs are saved for this venue/);
 });
+
+test('venue reports distinguish unavailable incident history from loaded-empty and escape operator reports with limits', async () => {
+  const venue = { id: 'v1', name: 'Club X' };
+  let { html } = compose('venue', venuePrintData({ venue }));
+  assert.match(html, /Incident history was not loaded/);
+  ({ html } = compose('venue', venuePrintData({ venue, incidents: { items: [], total: 0, limit: 300, hasMore: false } })));
+  assert.match(html, /No incidents recorded/);
+  const row = { id: 'incident-1', origin: 'operator', kind: 'booth_shock', occurredAt: '2026-11-18T10:00:00.123Z', recordedAt: '2026-11-18T10:00:01.000Z', note: EVIL,
+    context: { venue, setup: { id: 's1', name: `Left ${EVIL}` } } };
+  ({ html } = compose('venue', venuePrintData({ venue, incidents: { items: [row], total: 301, limit: 300, hasMore: true } })));
+  assert.match(html, /Operator-reported incidents/); assert.match(html, /Booth shock/);
+  assert.match(html, /Showing 1 of 301 recorded incidents/); assert.match(html, /older records remain stored/);
+  assert.ok(!html.includes(EVIL)); assert.match(html, /&lt;img/);
+  assert.match(html, /selected context/);
+});
+
+test('venue report collection propagates incident storage failure and includes the selected venue history', async () => {
+  const catalog = { list: async entity => entity === 'venue' ? [{ id: 'v1', name: 'Club X' }] : [] };
+  const humStore = { list: async () => [], get: async () => null };
+  const incidentStore = { list: async filter => { assert.equal(filter.venueId, 'v1'); assert.equal(filter.limit, 300); throw new Error('Incident store unreadable'); } };
+  await assert.rejects(gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' }), /Incident store unreadable/);
+  incidentStore.list = async () => ({ items: [], total: 0, limit: 300, hasMore: false });
+  assert.equal((await gatherVenueReport({ catalog, humStore, incidentStore, venueId: 'v1' })).incidents.total, 0);
+});

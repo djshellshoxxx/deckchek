@@ -42,6 +42,8 @@ mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
+mod venue_incidents;
+
 #[cfg(test)]
 mod audit_repro;
 #[cfg(any(test, feature = "fuzzing"))]
@@ -275,6 +277,8 @@ pub fn run() {
             humrun::hum_run_list,
             humrun::hum_run_get,
             humrun::hum_run_delete,
+            venue_incidents::venue_incident_save,
+            venue_incidents::venue_incident_list,
             selftest::self_test_mode,
             selftest::self_test_report,
             // [FS-20] handlers

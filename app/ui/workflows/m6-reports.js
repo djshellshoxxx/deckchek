@@ -3,6 +3,7 @@
 // Each kind has a pure `...PrintData(...)` function (screen state -> plain data) and a builder that renders it with
 // ctx.esc, so the HTML is unit-testable in Node. Status is always printed as a word, never colour alone.
 // The only DOM here is pdfButton(), which screens place in their header.
+import { INCIDENT_TYPES } from '../../venue-incidents.js';
 
 const num = (v, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? String(Number(v.toFixed(d))) : '—');
 const when = iso => { const d = new Date(iso); if (Number.isNaN(d.getTime())) return ''; const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -177,14 +178,27 @@ export const humPrintable = Object.freeze({
 
 // ------------------------------------------------------------------ venue report (FS-15 AC-7)
 
-/** Plain data: the venue record, its setups (with component names) and its hum/feedback run details. */
-export function venuePrintData({ venue, setups = [], humRuns = [], assetName = id => id } = {}) {
+/** Plain data: catalog, measured runs and a separately identified operator incident history. */
+export function venuePrintData({ venue, setups = [], humRuns = [], incidents = null, assetName = id => id } = {}) {
   if (!venue) return null;
   return {
     name: venue.name || 'Venue', details: [['Type', venue.venueType], ['City', venue.city], ['Country', venue.country], ['Notes', venue.notes]].filter(([, v]) => v),
     setups: setups.filter(s => s.venueId === venue.id).map(s => ({ name: s.name, profile: s.profile || '', components: (s.components || []).map(c => `${c.role || 'component'}${c.position ? ` (${c.position})` : ''}: ${assetName(c.assetId)}`) })),
     humRuns: humRuns.map(r => humPrintData(r, { venueName: venue.name })).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+    incidents,
   };
+}
+function incidentHistoryHtml(history, esc) {
+  const heading = '<h2>Operator-reported incidents</h2>';
+  if (!history) return `${heading}<p>Incident history was not loaded for this report.</p>`;
+  if (history.total === 0) return `${heading}<p>No incidents recorded for this venue. This does not establish an incident-free session.</p>`;
+  const rows = history.items.slice(0, MAX_ROWS);
+  const omitted = history.total > rows.length;
+  return `${heading}${para(esc, `Showing ${rows.length} of ${history.total} recorded incidents (newest first; report limit ${MAX_ROWS}).${omitted ? ' The older records remain stored.' : ''}`, 'dc-note')}
+${para(esc, 'Each entry is an operator report, not a sensor detection or diagnosis. Names are the selected context saved at the press; timestamps distinguish occurrence from persistence. Times below are UTC.', 'dc-note')}
+${table(esc, ['Occurred (UTC)', 'Incident', 'Selected venue', 'Selected setup', 'Notes', 'Saved (UTC)'], rows.map(row => [
+    row.occurredAt, INCIDENT_TYPES.find(type => type.id === row.kind)?.label || row.kind, row.context?.venue?.name || '', row.context?.setup?.name || 'No setup assigned', row.note || '', row.recordedAt,
+  ]))}`;
 }
 export const venuePrintable = Object.freeze({
   fileKind: 'Venue',
@@ -198,21 +212,22 @@ export const venuePrintable = Object.freeze({
     const runs = (d.humRuns || []).length
       ? `<h2>Hum and feedback history</h2>${d.humRuns.map(r => humRunHtml(r, esc, 'h3')).join('')}`
       : '<h2>Hum and feedback history</h2><p>No hum or feedback runs are saved for this venue.</p>';
-    return `${facts(esc, d.details || [])}${setups}${runs}`;
+    return `${facts(esc, d.details || [])}${setups}${runs}${incidentHistoryHtml(d.incidents, esc)}`;
   },
 });
 
 /**
- * Collects a venue report's data from the catalog and the hum-run store (both injected). Each run is fetched in full
- * (steps and causes); a run that fails to load is skipped. At most 50 runs are included.
+ * Each measured run is fetched in full; a failed run is skipped (existing behavior), with at most 50 runs.
+ * Incident reads are authoritative and propagate errors. Legacy callers without that store disclose it as unloaded.
  */
-export async function gatherVenueReport({ catalog, humStore, venueId }) {
+export async function gatherVenueReport({ catalog, humStore, incidentStore, venueId }) {
   const venue = (await catalog.list('venue')).find(v => v.id === venueId);
   if (!venue) return null;
-  const [setups, assets, summaries] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: 50 })]);
+  const [setups, assets, summaries, incidents] = await Promise.all([catalog.list('setup'), catalog.list('asset'), humStore.list({ venueId, limit: 50 }),
+    incidentStore ? incidentStore.list({ venueId, limit: MAX_ROWS }) : Promise.resolve(null)]);
   const runs = (await Promise.all((summaries || []).map(s => humStore.get(s.id).catch(() => null)))).filter(Boolean);
   const name = id => assets.find(a => a.id === id)?.nickname || 'Unknown asset';
-  return venuePrintData({ venue, setups, humRuns: runs, assetName: name });
+  return venuePrintData({ venue, setups, humRuns: runs, incidents, assetName: name });
 }
 
 // ------------------------------------------------------------------ registration + button

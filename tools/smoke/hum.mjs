@@ -15,6 +15,7 @@ function humMock() {
   const sig = window.__sig = { hum: 0.0003, harmonics: [1, .5, .3], mains: 50, noise: 1e-4, clip: false, silent: false, howl: false, howlHz: 63 };
   const aud = window.__aud = { calls: [], active: new Set(), levels: [], stops: [], specs: [] };
   const runs = window.__runs = [];
+  const incidents = window.__incidents = [];
   let n = 0, nextHandle = 1, stream = null;
   class Channel { constructor() { this.onmessage = () => {}; } }
   core.Channel = Channel;
@@ -68,6 +69,18 @@ function humMock() {
       case 'hum_run_list': return runs.map(({ steps, causes, ...r }) => ({ ...r, stepCount: steps.length, onset: steps.some(s => s.onset) })).reverse();
       case 'hum_run_get': return runs.find(r => r.id === args.id) ?? null;
       case 'hum_run_delete': { const i = runs.findIndex(r => r.id === args.id); if (i >= 0) runs.splice(i, 1); return i >= 0; }
+      case 'venue_incident_save': {
+        const saved = incidents.find(row => row.id === args.input.id);
+        if (saved) return structuredClone(saved);
+        const row = { ...structuredClone(args.input), origin: 'operator', recordedAt: new Date().toISOString() };
+        incidents.push(row); return structuredClone(row);
+      }
+      case 'venue_incident_list': {
+        const filter = args.filter || {}, limit = filter.limit ?? 100;
+        const rows = incidents.filter(row => (!filter.venueId || row.venueId === filter.venueId) && (!filter.setupId || row.setupId === filter.setupId))
+          .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
+        return { items: structuredClone(rows.slice(0, limit)), total: rows.length, limit, hasMore: rows.length > limit };
+      }
       default: return base(cmd, args);
     }
   };
@@ -101,6 +114,48 @@ export default async function run({ browser, base, check, SHOTS }) {
   await pb.click('#hum-tab-runs');
   await pb.waitForSelector('#hum-runs-empty');
   check('hum: runs tab has an empty state', true);
+  // Actual browser storage path: a keyboard press, reload and the Equipment venue-report button.
+  await pb.evaluate(async () => {
+    const { createCatalogStore } = await import('./catalog-store.js');
+    await createCatalogStore().upsert('venue', { id: 'incident-smoke-venue', name: 'Incident smoke venue' });
+  });
+  await pb.click('#hum-tab-incidents');
+  await pb.waitForSelector('#incident-venue option[value="incident-smoke-venue"]');
+  await pb.selectOption('#incident-venue', 'incident-smoke-venue');
+  await pb.fill('#incident-note', 'Left deck <img src=x onerror=alert(1)>');
+  await pb.focus('[data-incident-kind="booth_shock"]'); await pb.keyboard.press('Enter');
+  await pb.waitForFunction(() => /Saved Booth shock/.test(document.querySelector('#incident-save-status')?.textContent || ''));
+  check('incidents: operator press saves context and timestamps without inserting note markup', await pb.evaluate(async () => {
+    const { createVenueIncidentStore } = await import('./venue-incidents.js');
+    const result = await createVenueIncidentStore().list({ venueId: 'incident-smoke-venue' });
+    const row = result.items[0];
+    return result.total === 1 && row.origin === 'operator' && row.kind === 'booth_shock'
+      && row.context.venue.name === 'Incident smoke venue' && row.setupId === null
+      && Number.isFinite(Date.parse(row.occurredAt)) && Number.isFinite(Date.parse(row.recordedAt))
+      && document.querySelectorAll('#incident-history img').length === 0;
+  }));
+  await pb.reload(); await pb.waitForSelector('.rail-item[data-screen="hum"]');
+  await pb.click('.rail-item[data-screen="hum"]'); await pb.click('#hum-tab-incidents');
+  await pb.waitForFunction(() => /Booth shock/.test(document.querySelector('#incident-history')?.textContent || ''));
+  check('incidents: browser reload retains history and discloses workspace-export scope', /Showing 1 of 1/.test(await pb.locator('#incident-history').innerText())
+    && /workspace JSON does not include incidents/.test(await pb.locator('#incident-host').innerText()));
+  await pb.evaluate(() => {
+    const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+    Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', { configurable: true, get() {
+      const w = desc.get.call(this);
+      if (w && this.classList.contains('dc-print-frame') && !w.__incidentPrintSpy) {
+        w.__incidentPrintSpy = true; w.print = () => { window.__incidentReportHtml = w.document.body.innerHTML; };
+      }
+      return w;
+    } });
+  });
+  await pb.click('.rail-item[data-screen="equipment"]'); await pb.click('#eq-tab-venue');
+  await pb.locator('#eq-rows .record-main', { hasText: 'Incident smoke venue' }).click();
+  await pb.click('#eq-venue-pdf');
+  await pb.waitForFunction(() => typeof window.__incidentReportHtml === 'string');
+  const incidentHtml = await pb.evaluate(() => window.__incidentReportHtml);
+  check('incidents: the Equipment venue report includes escaped operator history', /Operator-reported incidents/.test(incidentHtml)
+    && /Booth shock/.test(incidentHtml) && /&lt;img/.test(incidentHtml) && !/<img src=x/.test(incidentHtml));
   await bctx.close();
 
   // ----- desktop: feedback tab is separately flagged -----
