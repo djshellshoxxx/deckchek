@@ -19,7 +19,7 @@ Serve the repository root or app/ through a local HTTP server and open app/index
     npm test
     find app -name '*.js' -exec node --check {} \;
 
-## UI smoke test (Playwright, local only)
+## UI smoke test (Playwright, local and CI)
 
 `tools/ui-smoke.mjs` serves `app/` with a tiny Node HTTP server (sending the
 same CSP as the Tauri build), drives it in headless Chromium and saves
@@ -31,8 +31,9 @@ shortcuts) and a mocked desktop mode (`window.__TAURI__` stub) that exercises
 live capture, meters, clip latch, capture-quality counters and native run
 persistence. It fails on any console error.
 
-It needs a globally installed Playwright with Chromium already present and is
-not part of CI (the Linux CI runners have no browsers configured):
+The `ui-smoke` job in `.github/workflows/test.yml` runs this suite with Node 22,
+Playwright 1.56.1 and Chromium on Ubuntu 22.04. For a local run, install that
+Playwright version and its Chromium first, then run:
 
     NODE_PATH=$(npm root -g) node tools/ui-smoke.mjs
 
@@ -43,17 +44,23 @@ reuses the system browser; CI continues to use Playwright's pinned browser.
 
 ## Run the Tauri desktop shell
 
-Install Rust and the Tauri 2 platform prerequisites, then from the repository root run:
+Install Rust and the Tauri 2 platform prerequisites, then from the repository root run.
+The current rusqlite dependency requires Rust 1.89 or newer; CI uses stable Rust.
 
     cargo install tauri-cli --version "^2"
     cargo tauri dev
 
 For Rust-only verification:
 
-    cargo test --manifest-path src-tauri/Cargo.toml
-    cargo check --manifest-path src-tauri/Cargo.toml
+    cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+    cargo test --locked --manifest-path src-tauri/Cargo.toml
+    cargo check --locked --manifest-path src-tauri/Cargo.toml
+    cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
-CI contains both JavaScript and Rust jobs.
+CI requires JavaScript, native Rust and browser smoke jobs. Formatting, compiler
+warnings, type checking and strict Clippy are explicit native gates. A local
+missing GTK/WebKitGTK/ALSA development package is a build prerequisite failure,
+not a passing native check.
 
 ## Windows build
 
@@ -75,7 +82,7 @@ Outputs are generated in `src-tauri/target/release/`:
 
 Static browser mode stores the working equipment/run list in localStorage and supports JSON export/import.
 
-Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies database/migrations/0001_initial.sql, and stores completed diagnostic sessions, analysis methods, measurements and finding evidence.
+Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies the ordered pending migrations from `database/migrations/` (currently `0001` through `0022`), and stores completed diagnostic sessions, analysis methods, measurements and finding evidence. Existing databases keep their migration history; initialization does not replay already applied migrations.
 
 ## Backup and restore
 

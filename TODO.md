@@ -36,7 +36,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Live meters with peak hold and clip latch.
 - [x] Dark/light themes and keyboard shortcuts.
 - [x] Windows standalone build with portable exe and installer packages.
-- [x] Playwright UI smoke test (62 checks).
+- [x] Playwright UI smoke test: [1,283/1,283 checks passed at source `742c67a`](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913), including all seven new FS-35 checks, with no console errors.
 - [x] Device library (0.0.3, 0.0.4 removes the M-Audio profile and prunes retired profiles on sync): profiles synced to the catalog, "My <model>" units, Devices screen, per-device test plans and runners, device_test_result persistence, learned MIDI maps, device HTML reports.
 
 ## M5 shipped (0.0.5)
@@ -81,9 +81,12 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 ## M9: every device testable (FS-34/35/36, PR9 consolidation 2026-11-18)
 
 - [x] FS-34 capability model, baseline plan and coverage audit; `npm test` checks `docs/testing/DEVICE-TEST-COVERAGE.md` (45/45 profiles, 0 gaps).
-- [x] FS-36 `midi:conformance` and `midi:gm` panels with connection-ownership regressions; spec/analyzer discrepancies reconciled; burst rate.
-- [x] FS-35 output audio-quality test (`audio:quality`) with lease-scoped capture, owned-voice cancellation and simulated-device tests; Skip for conditional (no audio output) units.
-- [ ] FS-35: run against real hardware (interface loopback calibrated first) and tune the default thresholds; Esc/Enter shortcuts and a progress bar are not implemented. Its live capture shows as "A live capture" in other features' busy dialogs.
+- [x] FS-36 `midi:conformance` and `midi:gm` panels with connection-ownership regressions; spec/analyzer discrepancies reconciled; burst rate. Output selection and duplicate-name guards are implemented; missing/reset loss counters or unavailable/disappeared input observations give REVIEW with saved provenance.
+- [x] FS-35 output audio-quality test (`audio:quality`) with lease-scoped capture, owned-voice cancellation and simulated-device tests; Skip for conditional (no audio output) units. Analysis revision 2 uses worst-channel response; live capture provenance and actual-device/rate calibration matching are saved. Imported-file continuity is explicitly unobserved.
+- [x] FS-35 phase progress, Enter/Esc shortcuts and focus transitions between Run, Stop, Try again and the result summary; lifecycle regressions cover the software behavior.
+- [x] Browser CI at source `742c67a`: **1,283/1,283 checks passed**, including all seven new FS-35 `audio-quality` checks; no console errors. Evidence: [browser CI job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913).
+- [ ] Qualify the completed integration revision with required native gates and platform builds/self-tests; the browser pass at `742c67a` does not qualify later native changes or close hardware gates.
+- [ ] FS-35: run against real hardware (interface loopback calibrated first), compare with a reference analyser and validate the default thresholds before considering any tuning. Thresholds remain unchanged. Its live capture shows as "A live capture" in other features' busy dialogs.
 - [ ] Record `connectivity.audio.usbChannelsOut` (or `audio: null`) for the 29 controller profiles whose audio test is still conditional, from manufacturer sources.
 - [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify manufacturer ids in real Identity Replies against the MIDI Association list.
 - [ ] Hardware: run MIDI conformance against real controllers (Active Sensing, Clock, Identity Reply) and the GM check against a real GM sound source.
