@@ -18,8 +18,10 @@ permissions:
   contents: read
 
 concurrency:
-  # Own group name: when release builds call this workflow, github.workflow is the caller's name.
-  group: deckchek-tests-${{ github.event_name }}-${{ github.ref }}
+  # Keep reusable platform validation separate from the standalone PR gate.
+  # github.workflow is the caller's name for a reusable invocation; the prefix
+  # also keeps this group distinct from the caller's own concurrency group.
+  group: deckchek-tests-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
