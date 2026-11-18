@@ -67,7 +67,11 @@ pub struct PackError {
 
 impl PackError {
     fn new(code: &'static str, message: impl Into<String>) -> Self {
-        PackError { code, message: message.into(), rows: Vec::new() }
+        PackError {
+            code,
+            message: message.into(),
+            rows: Vec::new(),
+        }
     }
 }
 
@@ -102,13 +106,32 @@ pub fn metric_table() -> &'static HashMap<String, MetricDef> {
     static TABLE: OnceLock<HashMap<String, MetricDef>> = OnceLock::new();
     TABLE.get_or_init(|| {
         let mut out = HashMap::new();
-        let Ok(root) = serde_json::from_str::<Value>(METRICS_JSON) else { return out };
-        let Some(metrics) = root.get("metrics").and_then(Value::as_object) else { return out };
+        let Ok(root) = serde_json::from_str::<Value>(METRICS_JSON) else {
+            return out;
+        };
+        let Some(metrics) = root.get("metrics").and_then(Value::as_object) else {
+            return out;
+        };
         for (key, def) in metrics {
-            let (Some(unit), Some(range)) = (def.get("unit").and_then(Value::as_str), def.get("plausible").and_then(Value::as_array)) else { continue };
-            if let (Some(lo), Some(hi)) = (range.first().and_then(Value::as_f64), range.get(1).and_then(Value::as_f64)) {
+            let (Some(unit), Some(range)) = (
+                def.get("unit").and_then(Value::as_str),
+                def.get("plausible").and_then(Value::as_array),
+            ) else {
+                continue;
+            };
+            if let (Some(lo), Some(hi)) = (
+                range.first().and_then(Value::as_f64),
+                range.get(1).and_then(Value::as_f64),
+            ) {
                 if lo <= hi && is_id(key) {
-                    out.insert(key.clone(), MetricDef { unit: unit.to_string(), lo, hi });
+                    out.insert(
+                        key.clone(),
+                        MetricDef {
+                            unit: unit.to_string(),
+                            lo,
+                            hi,
+                        },
+                    );
                 }
             }
         }
@@ -141,18 +164,33 @@ pub struct ParsedPack {
 
 /// `[a-z0-9._:-]{1,64}` (spec §7).
 pub fn is_id(s: &str) -> bool {
-    !s.is_empty() && s.len() <= 64 && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'_' | b':' | b'-'))
+    !s.is_empty()
+        && s.len() <= 64
+        && s.bytes().all(|b| {
+            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'_' | b':' | b'-')
+        })
 }
 
 fn is_month(s: &str) -> bool {
     let b = s.as_bytes();
-    b.len() == 7 && b[..4].iter().all(u8::is_ascii_digit) && b[4] == b'-' && matches!(&s[5..], "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12")
+    b.len() == 7
+        && b[..4].iter().all(u8::is_ascii_digit)
+        && b[4] == b'-'
+        && matches!(
+            &s[5..],
+            "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" | "10" | "11" | "12"
+        )
 }
 
 /// `^[0-9][a-z0-9.+-]{0,63}$`
 fn is_app_version(s: &str) -> bool {
     let b = s.as_bytes();
-    !b.is_empty() && b.len() <= 64 && b[0].is_ascii_digit() && b[1..].iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'.' | b'+' | b'-'))
+    !b.is_empty()
+        && b.len() <= 64
+        && b[0].is_ascii_digit()
+        && b[1..].iter().all(|c| {
+            c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'.' | b'+' | b'-')
+        })
 }
 
 fn depth_ok(root: &Value) -> bool {
@@ -195,7 +233,9 @@ pub fn round_sig3(v: f64) -> f64 {
     // check is cheap; only a candidate pays for the exact expansion (a double has at most 767 significant digits).
     let is_tie = |text: &str| {
         let mantissa = text.split('e').next().unwrap_or("");
-        mantissa.len() > 5 && mantissa.as_bytes()[4] == b'5' && mantissa[5..].bytes().all(|b| b == b'0')
+        mantissa.len() > 5
+            && mantissa.as_bytes()[4] == b'5'
+            && mantissa[5..].bytes().all(|b| b == b'0')
     };
     let abs = v.abs();
     if !is_tie(&format!("{abs:.20e}")) || !is_tie(&format!("{abs:.800e}")) {
@@ -203,21 +243,34 @@ pub fn round_sig3(v: f64) -> f64 {
     }
     let wide = format!("{abs:.3e}");
     let (mantissa, exp) = wide.split_once('e').unwrap_or(("", "0"));
-    let (Ok(digits), Ok(mut exp)) = (mantissa.replace('.', "")[..3].parse::<u32>(), exp.parse::<i32>()) else { return nearest };
+    let (Ok(digits), Ok(mut exp)) = (
+        mantissa.replace('.', "")[..3].parse::<u32>(),
+        exp.parse::<i32>(),
+    ) else {
+        return nearest;
+    };
     let mut up = digits + 1;
     if up == 1000 {
         up = 100;
         exp += 1;
     }
     let sign = if v < 0.0 { "-" } else { "" };
-    format!("{sign}{}.{:02}e{exp}", up / 100, up % 100).parse::<f64>().unwrap_or(nearest)
+    format!("{sign}{}.{:02}e{exp}", up / 100, up % 100)
+        .parse::<f64>()
+        .unwrap_or(nearest)
 }
 
 fn value_text(v: f64) -> String {
     format!("{}", if v == 0.0 { 0.0 } else { v })
 }
 
-fn digest_of(pack_id: &str, created_month: &str, app_version: &str, contributor: &str, rows: &[PackRow]) -> Result<String, PackError> {
+fn digest_of(
+    pack_id: &str,
+    created_month: &str,
+    app_version: &str,
+    contributor: &str,
+    rows: &[PackRow],
+) -> Result<String, PackError> {
     let rows: Vec<Value> = rows
         .iter()
         .map(|r| json!({"product": r.product, "metric": r.metric, "method": {"key": r.method_key, "version": r.method_version}, "value": value_text(r.value), "unit": r.unit}))
@@ -227,13 +280,24 @@ fn digest_of(pack_id: &str, created_month: &str, app_version: &str, contributor:
 }
 
 fn row_hash(contributor: &str, r: &PackRow) -> Result<String, PackError> {
-    let doc = json!([contributor, r.product, r.metric, r.method_key, r.method_version, r.unit, value_text(r.value)]);
+    let doc = json!([
+        contributor,
+        r.product,
+        r.metric,
+        r.method_key,
+        r.method_version,
+        r.unit,
+        value_text(r.value)
+    ]);
     canonical_sha256(&doc).map_err(|e| PackError::new("digest", e.to_string()))
 }
 
 /// Check one row's content against the whitelist. `Err` carries a reason that never echoes input.
 fn check_row(r: &PackRow) -> Result<(), &'static str> {
-    if ![&r.product, &r.metric, &r.method_key].iter().all(|s| is_id(s)) {
+    if ![&r.product, &r.metric, &r.method_key]
+        .iter()
+        .all(|s| is_id(s))
+    {
         return Err("invalid identifier");
     }
     if r.method_version < 1 || r.method_version > 9_007_199_254_740_991 {
@@ -242,7 +306,9 @@ fn check_row(r: &PackRow) -> Result<(), &'static str> {
     if !r.value.is_finite() {
         return Err("value must be finite");
     }
-    let Some(def) = metric_table().get(&r.metric) else { return Err("metric is not in the population whitelist") };
+    let Some(def) = metric_table().get(&r.metric) else {
+        return Err("metric is not in the population whitelist");
+    };
     if r.unit != def.unit {
         return Err("unit differs from the metric definition");
     }
@@ -258,41 +324,90 @@ pub fn parse_pack(bytes: &[u8]) -> Result<ParsedPack, PackError> {
     if bytes.len() as u64 > MAX_PACK_BYTES {
         return Err(PackError::new("too_large", "Pack exceeds 5 MB"));
     }
-    let root: Value = crate::canonical::parse_json_bytes(bytes).map_err(|_| PackError::new("bad_json", "This is not a DeckChek pack: the file is not valid JSON"))?;
+    let root: Value = crate::canonical::parse_json_bytes(bytes).map_err(|_| {
+        PackError::new(
+            "bad_json",
+            "This is not a DeckChek pack: the file is not valid JSON",
+        )
+    })?;
     if !depth_ok(&root) {
-        return Err(PackError::new("too_deep", "Pack nesting exceeds eight levels"));
+        return Err(PackError::new(
+            "too_deep",
+            "Pack nesting exceeds eight levels",
+        ));
     }
-    let Some(obj) = root.as_object() else { return Err(PackError::new("not_a_pack", "This is not a DeckChek pack")) };
+    let Some(obj) = root.as_object() else {
+        return Err(PackError::new("not_a_pack", "This is not a DeckChek pack"));
+    };
     if obj.get("format").and_then(Value::as_str) != Some(PACK_FORMAT) {
         return Err(PackError::new("not_a_pack", "This is not a DeckChek pack"));
     }
     match obj.get("version") {
         Some(Value::Number(n)) if n.as_i64() == Some(PACK_VERSION) => {}
         Some(Value::Number(n)) if n.is_i64() || n.is_u64() => {
-            let v = n.as_i64().map(|v| v.to_string()).unwrap_or_else(|| "?".into());
-            return Err(PackError::new("unsupported_version", format!("Pack version {v} needs a different version of DeckChek")));
+            let v = n
+                .as_i64()
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "?".into());
+            return Err(PackError::new(
+                "unsupported_version",
+                format!("Pack version {v} needs a different version of DeckChek"),
+            ));
         }
-        _ => return Err(PackError::new("bad_envelope", "This is not a DeckChek pack: the version is missing or not a whole number")),
+        _ => {
+            return Err(PackError::new(
+                "bad_envelope",
+                "This is not a DeckChek pack: the version is missing or not a whole number",
+            ))
+        }
     }
-    if !exact_keys(obj, &["format", "version", "packId", "createdMonth", "appVersion", "contributor", "rows"]) {
-        return Err(PackError::new("bad_envelope", "This is not a DeckChek pack: missing or unknown fields"));
+    if !exact_keys(
+        obj,
+        &[
+            "format",
+            "version",
+            "packId",
+            "createdMonth",
+            "appVersion",
+            "contributor",
+            "rows",
+        ],
+    ) {
+        return Err(PackError::new(
+            "bad_envelope",
+            "This is not a DeckChek pack: missing or unknown fields",
+        ));
     }
     let text = |k: &str| obj.get(k).and_then(Value::as_str);
     let (Some(pack_id), Some(contributor)) = (text("packId"), text("contributor")) else {
-        return Err(PackError::new("bad_envelope", "Pack and contributor IDs must be text"));
+        return Err(PackError::new(
+            "bad_envelope",
+            "Pack and contributor IDs must be text",
+        ));
     };
     if !is_id(pack_id) || !is_id(contributor) {
-        return Err(PackError::new("bad_envelope", "Pack and contributor IDs must be safe identifiers"));
+        return Err(PackError::new(
+            "bad_envelope",
+            "Pack and contributor IDs must be safe identifiers",
+        ));
     }
     let Some(created_month) = text("createdMonth").filter(|m| is_month(m)) else {
-        return Err(PackError::new("bad_envelope", "createdMonth must contain only year and month"));
+        return Err(PackError::new(
+            "bad_envelope",
+            "createdMonth must contain only year and month",
+        ));
     };
     let Some(app_version) = text("appVersion").filter(|v| is_app_version(v)) else {
         return Err(PackError::new("bad_envelope", "Invalid app version"));
     };
-    let Some(rows) = obj.get("rows").and_then(Value::as_array) else { return Err(PackError::new("bad_envelope", "rows must be a list")) };
+    let Some(rows) = obj.get("rows").and_then(Value::as_array) else {
+        return Err(PackError::new("bad_envelope", "rows must be a list"));
+    };
     if rows.len() > MAX_ROWS {
-        return Err(PackError::new("too_many_rows", "Pack must contain at most 100000 rows"));
+        return Err(PackError::new(
+            "too_many_rows",
+            "Pack must contain at most 100000 rows",
+        ));
     }
     let mut out = Vec::with_capacity(rows.len());
     let mut seen: HashSet<(String, String, String, i64, u64)> = HashSet::new();
@@ -301,10 +416,19 @@ pub fn parse_pack(bytes: &[u8]) -> Result<ParsedPack, PackError> {
     for (i, raw) in rows.iter().enumerate() {
         match parse_row(raw) {
             Ok(row) => {
-                if !seen.insert((row.product.clone(), row.metric.clone(), row.method_key.clone(), row.method_version, row.value.to_bits())) {
+                if !seen.insert((
+                    row.product.clone(),
+                    row.metric.clone(),
+                    row.method_key.clone(),
+                    row.method_version,
+                    row.value.to_bits(),
+                )) {
                     invalid += 1;
                     if issues.len() < MAX_REPORTED_ISSUES {
-                        issues.push(RowIssue { row: i + 1, reason: "duplicate observation".into() });
+                        issues.push(RowIssue {
+                            row: i + 1,
+                            reason: "duplicate observation".into(),
+                        });
                     }
                     continue;
                 }
@@ -313,27 +437,67 @@ pub fn parse_pack(bytes: &[u8]) -> Result<ParsedPack, PackError> {
             Err(reason) => {
                 invalid += 1;
                 if issues.len() < MAX_REPORTED_ISSUES {
-                    issues.push(RowIssue { row: i + 1, reason: reason.into() });
+                    issues.push(RowIssue {
+                        row: i + 1,
+                        reason: reason.into(),
+                    });
                 }
             }
         }
     }
     if invalid > 0 {
-        return Err(PackError { code: "invalid_rows", message: format!("{invalid} row(s) are not valid, so the pack was not imported"), rows: issues });
+        return Err(PackError {
+            code: "invalid_rows",
+            message: format!("{invalid} row(s) are not valid, so the pack was not imported"),
+            rows: issues,
+        });
     }
     let digest = digest_of(pack_id, created_month, app_version, contributor, &out)?;
-    Ok(ParsedPack { pack_id: pack_id.into(), created_month: created_month.into(), app_version: app_version.into(), contributor: contributor.into(), rows: out, digest })
+    Ok(ParsedPack {
+        pack_id: pack_id.into(),
+        created_month: created_month.into(),
+        app_version: app_version.into(),
+        contributor: contributor.into(),
+        rows: out,
+        digest,
+    })
 }
 
 fn parse_row(raw: &Value) -> Result<PackRow, &'static str> {
-    let Some(obj) = raw.as_object().filter(|o| exact_keys(o, &["product", "metric", "method", "value", "unit"])) else { return Err("missing or unknown row fields") };
-    let Some(method) = obj["method"].as_object().filter(|m| exact_keys(m, &["key", "version"])) else { return Err("missing or unknown row fields") };
-    let (Some(product), Some(metric), Some(method_key), Some(unit)) = (obj["product"].as_str(), obj["metric"].as_str(), method["key"].as_str(), obj["unit"].as_str()) else {
+    let Some(obj) = raw
+        .as_object()
+        .filter(|o| exact_keys(o, &["product", "metric", "method", "value", "unit"]))
+    else {
+        return Err("missing or unknown row fields");
+    };
+    let Some(method) = obj["method"]
+        .as_object()
+        .filter(|m| exact_keys(m, &["key", "version"]))
+    else {
+        return Err("missing or unknown row fields");
+    };
+    let (Some(product), Some(metric), Some(method_key), Some(unit)) = (
+        obj["product"].as_str(),
+        obj["metric"].as_str(),
+        method["key"].as_str(),
+        obj["unit"].as_str(),
+    ) else {
         return Err("wrong field type");
     };
-    let Some(method_version) = method["version"].as_i64() else { return Err("invalid method version") };
-    let Some(value) = obj["value"].as_f64() else { return Err("value must be a number") };
-    let row = PackRow { product: product.into(), metric: metric.into(), method_key: method_key.into(), method_version, value: if value == 0.0 { 0.0 } else { value }, unit: unit.into() };
+    let Some(method_version) = method["version"].as_i64() else {
+        return Err("invalid method version");
+    };
+    let Some(value) = obj["value"].as_f64() else {
+        return Err("value must be a number");
+    };
+    let row = PackRow {
+        product: product.into(),
+        metric: metric.into(),
+        method_key: method_key.into(),
+        method_version,
+        value: if value == 0.0 { 0.0 } else { value },
+        unit: unit.into(),
+    };
     check_row(&row)?;
     Ok(row)
 }
@@ -353,11 +517,18 @@ pub fn read_pack_file(path: &str) -> Result<Vec<u8>, PackError> {
     if p.components().any(|c| matches!(c, Component::ParentDir)) {
         return Err(PackError::new("bad_path", "Path traversal is not allowed"));
     }
-    let ext_ok = p.extension().and_then(|e| e.to_str()).is_some_and(|e| PACK_EXTENSIONS.iter().any(|a| a.eq_ignore_ascii_case(e)));
+    let ext_ok = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| PACK_EXTENSIONS.iter().any(|a| a.eq_ignore_ascii_case(e)));
     if !ext_ok {
-        return Err(PackError::new("bad_extension", "Choose a .deckchek-pack file"));
+        return Err(PackError::new(
+            "bad_extension",
+            "Choose a .deckchek-pack file",
+        ));
     }
-    let meta = fs::symlink_metadata(&p).map_err(|_| PackError::new("not_found", "The file could not be found"))?;
+    let meta = fs::symlink_metadata(&p)
+        .map_err(|_| PackError::new("not_found", "The file could not be found"))?;
     if meta.file_type().is_symlink() {
         return Err(PackError::new("bad_path", "Symbolic links are not allowed"));
     }
@@ -367,9 +538,12 @@ pub fn read_pack_file(path: &str) -> Result<Vec<u8>, PackError> {
     if meta.len() > MAX_PACK_BYTES {
         return Err(PackError::new("too_large", "Pack exceeds 5 MB"));
     }
-    let file = fs::File::open(&p).map_err(|_| PackError::new("io", "The file could not be opened"))?;
+    let file =
+        fs::File::open(&p).map_err(|_| PackError::new("io", "The file could not be opened"))?;
     let mut buf = Vec::with_capacity(meta.len() as usize);
-    file.take(MAX_PACK_BYTES + 1).read_to_end(&mut buf).map_err(|_| PackError::new("io", "The file could not be read"))?;
+    file.take(MAX_PACK_BYTES + 1)
+        .read_to_end(&mut buf)
+        .map_err(|_| PackError::new("io", "The file could not be read"))?;
     if buf.len() as u64 > MAX_PACK_BYTES {
         return Err(PackError::new("too_large", "Pack exceeds 5 MB"));
     }
@@ -400,14 +574,27 @@ pub struct PackPreview {
 fn counts_of(rows: &[PackRow]) -> Vec<CellCount> {
     let mut map: BTreeMap<(String, String), usize> = BTreeMap::new();
     for r in rows {
-        *map.entry((r.product.clone(), r.metric.clone())).or_default() += 1;
+        *map.entry((r.product.clone(), r.metric.clone()))
+            .or_default() += 1;
     }
-    map.into_iter().map(|((product, metric), rows)| CellCount { product, metric, rows }).collect()
+    map.into_iter()
+        .map(|((product, metric), rows)| CellCount {
+            product,
+            metric,
+            rows,
+        })
+        .collect()
 }
 
 pub fn preview(conn: &Connection, bytes: &[u8]) -> Result<PackPreview, PackError> {
     let p = parse_pack(bytes)?;
-    let existing: Option<String> = conn.query_row("SELECT sha256 FROM reference_pack WHERE id = ?1", [&p.pack_id], |r| r.get(0)).ok();
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT sha256 FROM reference_pack WHERE id = ?1",
+            [&p.pack_id],
+            |r| r.get(0),
+        )
+        .ok();
     Ok(PackPreview {
         already_imported: existing.as_deref() == Some(p.digest.as_str()),
         counts: counts_of(&p.rows),
@@ -430,20 +617,40 @@ pub struct ImportResult {
 }
 
 fn clean_label(label: Option<&str>) -> Result<Option<String>, PackError> {
-    let Some(label) = label.map(str::trim).filter(|s| !s.is_empty()) else { return Ok(None) };
+    let Some(label) = label.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
     if label.chars().count() > MAX_LABEL_CHARS || label.chars().any(char::is_control) {
-        return Err(PackError::new("bad_label", "The source label must be 64 characters or fewer, without control characters"));
+        return Err(PackError::new(
+            "bad_label",
+            "The source label must be 64 characters or fewer, without control characters",
+        ));
     }
     Ok(Some(label.to_string()))
 }
 
-pub fn import(conn: &Connection, bytes: &[u8], source_label: Option<&str>) -> Result<ImportResult, PackError> {
+pub fn import(
+    conn: &Connection,
+    bytes: &[u8],
+    source_label: Option<&str>,
+) -> Result<ImportResult, PackError> {
     let p = parse_pack(bytes)?;
     let label = clean_label(source_label)?;
-    let existing: Option<String> = conn.query_row("SELECT sha256 FROM reference_pack WHERE id = ?1", [&p.pack_id], |r| r.get(0)).ok();
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT sha256 FROM reference_pack WHERE id = ?1",
+            [&p.pack_id],
+            |r| r.get(0),
+        )
+        .ok();
     if let Some(sha) = existing {
         if sha == p.digest {
-            return Ok(ImportResult { pack_id: p.pack_id, accepted: 0, rejected: Vec::new(), duplicate: true });
+            return Ok(ImportResult {
+                pack_id: p.pack_id,
+                accepted: 0,
+                rejected: Vec::new(),
+                duplicate: true,
+            });
         }
         return Err(PackError::new("id_conflict", "A different pack with this ID is already imported. Remove it first if you want to replace it."));
     }
@@ -455,23 +662,44 @@ pub fn import(conn: &Connection, bytes: &[u8], source_label: Option<&str>) -> Re
     let mut accepted = 0usize;
     let mut rejected = Vec::new();
     {
-        let mut claim = tx.prepare("INSERT OR IGNORE INTO reference_sample_claim (pack_id, row_hash) VALUES (?1, ?2)")?;
+        let mut claim = tx.prepare(
+            "INSERT OR IGNORE INTO reference_sample_claim (pack_id, row_hash) VALUES (?1, ?2)",
+        )?;
         let mut sample = tx.prepare(
             "INSERT OR IGNORE INTO reference_sample (id, pack_id, contributor, product_key, metric_key, method_key, method_version, value, unit, row_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
         )?;
         for (i, r) in p.rows.iter().enumerate() {
             let hash = row_hash(&p.contributor, r)?;
             claim.execute(params![p.pack_id, hash])?;
-            let n = sample.execute(params![new_id(), p.pack_id, p.contributor, r.product, r.metric, r.method_key, r.method_version, r.value, r.unit, hash])?;
+            let n = sample.execute(params![
+                new_id(),
+                p.pack_id,
+                p.contributor,
+                r.product,
+                r.metric,
+                r.method_key,
+                r.method_version,
+                r.value,
+                r.unit,
+                hash
+            ])?;
             if n == 1 {
                 accepted += 1;
             } else if rejected.len() < MAX_REPORTED_ISSUES {
-                rejected.push(RowIssue { row: i + 1, reason: "already imported from another pack".into() });
+                rejected.push(RowIssue {
+                    row: i + 1,
+                    reason: "already imported from another pack".into(),
+                });
             }
         }
     }
     tx.commit()?;
-    Ok(ImportResult { pack_id: p.pack_id, accepted, rejected, duplicate: false })
+    Ok(ImportResult {
+        pack_id: p.pack_id,
+        accepted,
+        rejected,
+        duplicate: false,
+    })
 }
 
 // ------------------------------------------------------------------ list, remove, query
@@ -488,7 +716,15 @@ pub struct PackInfo {
 
 pub fn list(conn: &Connection) -> Result<Vec<PackInfo>, PackError> {
     let mut stmt = conn.prepare("SELECT id, source_label, imported_at, row_count, sha256 FROM reference_pack ORDER BY imported_at, id")?;
-    let rows = stmt.query_map([], |r| Ok(PackInfo { id: r.get(0)?, source_label: r.get(1)?, imported_at: r.get(2)?, row_count: r.get(3)?, sha256: r.get(4)? }))?;
+    let rows = stmt.query_map([], |r| {
+        Ok(PackInfo {
+            id: r.get(0)?,
+            source_label: r.get(1)?,
+            imported_at: r.get(2)?,
+            row_count: r.get(3)?,
+            sha256: r.get(4)?,
+        })
+    })?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
@@ -505,19 +741,33 @@ pub fn remove(conn: &Connection, pack_id: &str) -> Result<RemoveResult, PackErro
         return Err(PackError::new("bad_id", "Invalid pack id"));
     }
     let tx = conn.unchecked_transaction()?;
-    let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM reference_pack WHERE id = ?1)", [pack_id], |r| r.get(0))?;
+    let exists: bool = tx.query_row(
+        "SELECT EXISTS(SELECT 1 FROM reference_pack WHERE id = ?1)",
+        [pack_id],
+        |r| r.get(0),
+    )?;
     if !exists {
-        return Ok(RemoveResult { removed: false, samples_deleted: 0 });
+        return Ok(RemoveResult {
+            removed: false,
+            samples_deleted: 0,
+        });
     }
     tx.execute(
         "UPDATE reference_sample SET pack_id = (SELECT c.pack_id FROM reference_sample_claim c WHERE c.row_hash = reference_sample.row_hash AND c.pack_id <> ?1 ORDER BY c.pack_id LIMIT 1)
          WHERE pack_id = ?1 AND EXISTS (SELECT 1 FROM reference_sample_claim c WHERE c.row_hash = reference_sample.row_hash AND c.pack_id <> ?1)",
         [pack_id],
     )?;
-    let owned_after: i64 = tx.query_row("SELECT COUNT(*) FROM reference_sample WHERE pack_id = ?1", [pack_id], |r| r.get(0))?;
+    let owned_after: i64 = tx.query_row(
+        "SELECT COUNT(*) FROM reference_sample WHERE pack_id = ?1",
+        [pack_id],
+        |r| r.get(0),
+    )?;
     tx.execute("DELETE FROM reference_pack WHERE id = ?1", [pack_id])?;
     tx.commit()?;
-    Ok(RemoveResult { removed: true, samples_deleted: owned_after })
+    Ok(RemoveResult {
+        removed: true,
+        samples_deleted: owned_after,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -563,15 +813,34 @@ fn method_registry(conn: &Connection, method_key: &str) -> Result<Vec<MethodInfo
     let mut stmt = conn.prepare(
         "SELECT key, version, parameters_json FROM analysis_method WHERE key = ?1 AND length(parameters_json) <= ?2 ORDER BY version LIMIT ?3",
     )?;
-    let rows = stmt.query_map(params![method_key, MAX_POP_METHOD_PARAMS as i64, MAX_POP_METHODS as i64], |r| {
-        Ok(MethodInfo { key: r.get(0)?, version: r.get(1)?, parameters_json: r.get(2)? })
-    })?;
+    let rows = stmt.query_map(
+        params![
+            method_key,
+            MAX_POP_METHOD_PARAMS as i64,
+            MAX_POP_METHODS as i64
+        ],
+        |r| {
+            Ok(MethodInfo {
+                key: r.get(0)?,
+                version: r.get(1)?,
+                parameters_json: r.get(2)?,
+            })
+        },
+    )?;
     Ok(rows.collect::<Result<_, _>>()?)
 }
 
-pub fn query_population(conn: &Connection, product: &str, metric: &str, method_key: &str) -> Result<PopulationQuery, PackError> {
+pub fn query_population(
+    conn: &Connection,
+    product: &str,
+    metric: &str,
+    method_key: &str,
+) -> Result<PopulationQuery, PackError> {
     if ![product, metric, method_key].iter().all(|s| is_id(s)) {
-        return Err(PackError::new("bad_id", "Invalid product, metric or method"));
+        return Err(PackError::new(
+            "bad_id",
+            "Invalid product, metric or method",
+        ));
     }
     // One voice per contributor (spec section 6): caps are applied per contributor BEFORE the global limit, and the
     // global limit then takes rows round-robin across contributors, so no contributor token, however it sorts and
@@ -598,11 +867,17 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
     let mut tokens: Vec<String> = Vec::new();
     let mut kept: Vec<Kept> = Vec::new();
     // The current contributor's finished version groups (oldest dropped past the cap), and the open group.
-    let mut versions: std::collections::VecDeque<Vec<(Kept, usize)>> = std::collections::VecDeque::new();
+    let mut versions: std::collections::VecDeque<Vec<(Kept, usize)>> =
+        std::collections::VecDeque::new();
     let mut group: Vec<(usize, f64, String)> = Vec::new();
     let mut group_version = 0i64;
     let mut total = 0usize;
-    fn close_group(group: &mut Vec<(usize, f64, String)>, version: i64, contributor: usize, versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>) {
+    fn close_group(
+        group: &mut Vec<(usize, f64, String)>,
+        version: i64,
+        contributor: usize,
+        versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>,
+    ) {
         if group.is_empty() {
             return;
         }
@@ -612,7 +887,17 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
             .enumerate()
             .filter_map(|(i, (seq, value, unit))| {
                 let d = (2 * (i + 1)).abs_diff(n + 1);
-                (d < MAX_POP_WINDOW).then_some((Kept { seq, contributor, version, value, unit, pair_rank: 0 }, d))
+                (d < MAX_POP_WINDOW).then_some((
+                    Kept {
+                        seq,
+                        contributor,
+                        version,
+                        value,
+                        unit,
+                        pair_rank: 0,
+                    },
+                    d,
+                ))
             })
             .collect();
         versions.push_back(window);
@@ -620,9 +905,16 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
             versions.pop_front();
         }
     }
-    fn close_contributor(versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>, kept: &mut Vec<Kept>) {
+    fn close_contributor(
+        versions: &mut std::collections::VecDeque<Vec<(Kept, usize)>>,
+        kept: &mut Vec<Kept>,
+    ) {
         let mut rows: Vec<(Kept, usize)> = versions.drain(..).flatten().collect();
-        rows.sort_by(|a, b| a.1.cmp(&b.1).then(b.0.version.cmp(&a.0.version)).then(a.0.seq.cmp(&b.0.seq)));
+        rows.sort_by(|a, b| {
+            a.1.cmp(&b.1)
+                .then(b.0.version.cmp(&a.0.version))
+                .then(a.0.seq.cmp(&b.0.seq))
+        });
         let mut rank = 0usize;
         let mut last: Option<(usize, i64)> = None;
         for (mut row, d) in rows {
@@ -660,13 +952,32 @@ pub fn query_population(conn: &Connection, product: &str, metric: &str, method_k
     kept.truncate(MAX_ROWS);
     kept.sort_by_key(|k| k.seq);
     let truncated = total > kept.len();
-    let contributors = kept.iter().map(|k| k.contributor).collect::<HashSet<_>>().len();
+    let contributors = kept
+        .iter()
+        .map(|k| k.contributor)
+        .collect::<HashSet<_>>()
+        .len();
     let rows = kept
         .into_iter()
-        .map(|k| PopulationRow { contributor: tokens[k.contributor].clone(), product: product.to_string(), metric: metric.to_string(), method: MethodRef { key: method_key.to_string(), version: k.version }, value: k.value, unit: k.unit })
+        .map(|k| PopulationRow {
+            contributor: tokens[k.contributor].clone(),
+            product: product.to_string(),
+            metric: metric.to_string(),
+            method: MethodRef {
+                key: method_key.to_string(),
+                version: k.version,
+            },
+            value: k.value,
+            unit: k.unit,
+        })
         .collect();
     let methods = method_registry(conn, method_key)?;
-    Ok(PopulationQuery { rows, contributors, truncated, methods })
+    Ok(PopulationQuery {
+        rows,
+        contributors,
+        truncated,
+        methods,
+    })
 }
 
 // ------------------------------------------------------------------ export
@@ -709,7 +1020,10 @@ pub struct ExportResult {
 }
 
 fn current_month() -> String {
-    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0) as i64;
     // civil-from-days (Howard Hinnant), UTC
     let z = secs.div_euclid(86_400) + 719_468;
     let era = z.div_euclid(146_097);
@@ -726,10 +1040,16 @@ fn current_month() -> String {
 /// is parsed again with [`parse_pack`], so anything written is guaranteed to import cleanly.
 pub fn build_export(sel: &ExportSelection) -> Result<(ParsedPack, String), PackError> {
     if sel.rows.is_empty() {
-        return Err(PackError::new("empty", "Choose at least one result to share"));
+        return Err(PackError::new(
+            "empty",
+            "Choose at least one result to share",
+        ));
     }
     if sel.rows.len() > MAX_ROWS {
-        return Err(PackError::new("too_many_rows", "Pack must contain at most 100000 rows"));
+        return Err(PackError::new(
+            "too_many_rows",
+            "Pack must contain at most 100000 rows",
+        ));
     }
     if !is_id(&sel.contributor) {
         return Err(PackError::new("bad_selection", "Invalid contributor token"));
@@ -741,40 +1061,67 @@ pub fn build_export(sel: &ExportSelection) -> Result<(ParsedPack, String), PackE
     };
     let month = match &sel.created_month {
         Some(m) if is_month(m) => m.clone(),
-        Some(_) => return Err(PackError::new("bad_selection", "createdMonth must contain only year and month")),
+        Some(_) => {
+            return Err(PackError::new(
+                "bad_selection",
+                "createdMonth must contain only year and month",
+            ))
+        }
         None => current_month(),
     };
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let mut issues = Vec::new();
     let mut rows = Vec::with_capacity(sel.rows.len());
     for (i, r) in sel.rows.iter().enumerate() {
-        let row = PackRow { product: r.product.clone(), metric: r.metric.clone(), method_key: r.method.key.clone(), method_version: r.method.version, value: round_sig3(r.value), unit: r.unit.clone() };
+        let row = PackRow {
+            product: r.product.clone(),
+            metric: r.metric.clone(),
+            method_key: r.method.key.clone(),
+            method_version: r.method.version,
+            value: round_sig3(r.value),
+            unit: r.unit.clone(),
+        };
         match check_row(&row) {
             Ok(()) => rows.push(row),
             Err(reason) => {
                 if issues.len() < MAX_REPORTED_ISSUES {
-                    issues.push(RowIssue { row: i + 1, reason: reason.into() });
+                    issues.push(RowIssue {
+                        row: i + 1,
+                        reason: reason.into(),
+                    });
                 }
             }
         }
     }
     if !issues.is_empty() {
-        return Err(PackError { code: "invalid_rows", message: "Some selected results cannot be shared".into(), rows: issues });
+        return Err(PackError {
+            code: "invalid_rows",
+            message: "Some selected results cannot be shared".into(),
+            rows: issues,
+        });
     }
     let rows_json: Vec<Value> = rows
         .iter()
         .map(|r| json!({"product": r.product, "metric": r.metric, "method": {"key": r.method_key, "version": r.method_version}, "value": r.value, "unit": r.unit}))
         .collect();
     let doc = json!({"format": PACK_FORMAT, "version": PACK_VERSION, "packId": pack_id, "createdMonth": month, "appVersion": app_version, "contributor": sel.contributor, "rows": rows_json});
-    let text = serde_json::to_string_pretty(&doc).map_err(|e| PackError::new("serialize", e.to_string()))?;
+    let text = serde_json::to_string_pretty(&doc)
+        .map_err(|e| PackError::new("serialize", e.to_string()))?;
     let parsed = parse_pack(text.as_bytes())?;
     Ok((parsed, text))
 }
 
 pub fn export_to(sel: &ExportSelection, path: &str) -> Result<ExportResult, PackError> {
     let (parsed, text) = build_export(sel)?;
-    let written = crate::userfiles::write_text(path, &text, &["deckchek-pack"]).map_err(|e| PackError::new(e.code(), e.to_string()))?;
-    Ok(ExportResult { pack_id: parsed.pack_id, rows: parsed.rows.len(), bytes: written.bytes, sha256: sha256_hex(text.as_bytes()), path: written.path })
+    let written = crate::userfiles::write_text(path, &text, &["deckchek-pack"])
+        .map_err(|e| PackError::new(e.code(), e.to_string()))?;
+    Ok(ExportResult {
+        pack_id: parsed.pack_id,
+        rows: parsed.rows.len(),
+        bytes: written.bytes,
+        sha256: sha256_hex(text.as_bytes()),
+        path: written.path,
+    })
 }
 
 // ------------------------------------------------------------------ this computer's own values
@@ -816,7 +1163,13 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         let mut stmt = conn.prepare(
             "SELECT a.id, a.nickname, MIN(dp.id) FROM asset a JOIN device_profile dp ON dp.product_id = a.product_id WHERE a.is_deleted = 0 GROUP BY a.id",
         )?;
-        for row in stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)))? {
+        for row in stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+            ))
+        })? {
             let (id, nick, profile) = row?;
             assets.insert(id, (nick, profile));
         }
@@ -873,8 +1226,11 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         let (method_key, method_version): (String, i64) = (r.get(1)?, r.get(2)?);
         let unit: Option<String> = r.get(3)?;
         let value: f64 = r.get(4)?;
-        let (at, setup, direct, mid): (String, Option<String>, Option<String>, String) = (r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?);
-        let Some(def) = table.get(&metric) else { continue };
+        let (at, setup, direct, mid): (String, Option<String>, Option<String>, String) =
+            (r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?);
+        let Some(def) = table.get(&metric) else {
+            continue;
+        };
         if unit.as_deref() != Some(def.unit.as_str()) || !value.is_finite() || !is_id(&method_key) {
             skipped_unit += 1;
             continue;
@@ -890,7 +1246,23 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
             },
         };
         let (nickname, product_key) = assets[&asset_id].clone();
-        by_pair.entry((asset_id.clone(), metric.clone())).or_default().push((mid, UnitValue { asset_id, nickname, product_key, metric, method_key, method_version, unit: def.unit.clone(), value, at }));
+        by_pair
+            .entry((asset_id.clone(), metric.clone()))
+            .or_default()
+            .push((
+                mid,
+                UnitValue {
+                    asset_id,
+                    nickname,
+                    product_key,
+                    metric,
+                    method_key,
+                    method_version,
+                    unit: def.unit.clone(),
+                    value,
+                    at,
+                },
+            ));
     }
     // Each list is newest first. Keep the newest MAX_UNIT_ROWS_PER_PAIR per (unit, metric); if the total is still over
     // MAX_UNIT_ROWS, share the cap round-robin (every pair's newest value before any pair's second), so the cut drops
@@ -929,7 +1301,12 @@ pub fn unit_values(conn: &Connection) -> Result<UnitValues, PackError> {
         list.reverse(); // callers get oldest first
         out.extend(list);
     }
-    Ok(UnitValues { rows: out, skipped_unit, skipped_unattributed, truncated })
+    Ok(UnitValues {
+        rows: out,
+        skipped_unit,
+        skipped_unattributed,
+        truncated,
+    })
 }
 
 // ------------------------------------------------------------------ commands
@@ -952,7 +1329,11 @@ pub async fn pack_preview(app: AppHandle, path: String) -> Result<PackPreview, P
 }
 
 #[tauri::command]
-pub async fn pack_import(app: AppHandle, path: String, source_label: Option<String>) -> Result<ImportResult, PackError> {
+pub async fn pack_import(
+    app: AppHandle,
+    path: String,
+    source_label: Option<String>,
+) -> Result<ImportResult, PackError> {
     crate::db::off_main(move || {
         let bytes = read_pack_file(&path)?;
         let conn = open(&app)?;
@@ -985,7 +1366,12 @@ pub fn pack_export(selection: ExportSelection, path: String) -> Result<ExportRes
 }
 
 #[tauri::command]
-pub async fn population_query(app: AppHandle, product_id: String, metric_id: String, method_key: String) -> Result<PopulationQuery, PackError> {
+pub async fn population_query(
+    app: AppHandle,
+    product_id: String,
+    metric_id: String,
+    method_key: String,
+) -> Result<PopulationQuery, PackError> {
     crate::db::off_main(move || {
         let conn = open(&app)?;
         query_population(&conn, &product_id, &metric_id, &method_key)
@@ -1029,7 +1415,14 @@ mod tests {
     }
 
     fn good() -> Value {
-        pack_with("pack-one", "contrib-a", vec![row("pioneer-plx-crss12", "wow_flutter_rms_percent", 0.12), row("pioneer-plx-crss12", "channel_separation_db", 31.5)])
+        pack_with(
+            "pack-one",
+            "contrib-a",
+            vec![
+                row("pioneer-plx-crss12", "wow_flutter_rms_percent", 0.12),
+                row("pioneer-plx-crss12", "channel_separation_db", 31.5),
+            ],
+        )
     }
 
     fn code(r: Result<ParsedPack, PackError>) -> &'static str {
@@ -1037,11 +1430,16 @@ mod tests {
     }
 
     fn count(c: &Connection, table: &str) -> i64 {
-        c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).unwrap()
+        c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
+            .unwrap()
     }
 
     fn tmp_dir(tag: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("deckchek-pack-{tag}-{}-{}", std::process::id(), new_id()));
+        let d = std::env::temp_dir().join(format!(
+            "deckchek-pack-{tag}-{}-{}",
+            std::process::id(),
+            new_id()
+        ));
         fs::create_dir_all(&d).unwrap();
         d
     }
@@ -1071,9 +1469,15 @@ mod tests {
     fn regression_pack_wrapped_in_serde_raw_value_key_is_not_a_pack() {
         // serde_json (raw_value feature) would unwrap {"$serde_json::private::RawValue": <pack>}
         // to the inner pack, while JavaScript sees a wrapper object (FUZZ-04).
-        let wrapped = format!("{{\"$serde_json::private::RawValue\":{}}}", serde_json::to_string(&good()).unwrap());
+        let wrapped = format!(
+            "{{\"$serde_json::private::RawValue\":{}}}",
+            serde_json::to_string(&good()).unwrap()
+        );
         assert_eq!(code(parse_pack(wrapped.as_bytes())), "not_a_pack");
-        let escaped = format!("{{\"\\u0024serde_json::private::RawValue\":{}}}", serde_json::to_string(&good()).unwrap());
+        let escaped = format!(
+            "{{\"\\u0024serde_json::private::RawValue\":{}}}",
+            serde_json::to_string(&good()).unwrap()
+        );
         assert_eq!(code(parse_pack(escaped.as_bytes())), "not_a_pack");
     }
 
@@ -1087,26 +1491,108 @@ mod tests {
         let cases: Vec<(&str, Value, &str)> = vec![
             ("array root", json!([1, 2]), "not_a_pack"),
             ("string root", json!("pack"), "not_a_pack"),
-            ("wrong format", mutate(&|v| v["format"] = json!("other")), "not_a_pack"),
-            ("version 3", mutate(&|v| v["version"] = json!(3)), "unsupported_version"),
-            ("version 0", mutate(&|v| v["version"] = json!(0)), "unsupported_version"),
-            ("version negative", mutate(&|v| v["version"] = json!(-1)), "unsupported_version"),
-            ("version huge", mutate(&|v| v["version"] = json!(u64::MAX)), "unsupported_version"),
-            ("version string", mutate(&|v| v["version"] = json!("1")), "bad_envelope"),
-            ("version float", mutate(&|v| v["version"] = json!(1.5)), "bad_envelope"),
-            ("version null", mutate(&|v| v["version"] = Value::Null), "bad_envelope"),
-            ("unknown root field", mutate(&|v| v["serial"] = json!("SN1")), "bad_envelope"),
-            ("missing contributor", mutate(&|v| { v.as_object_mut().unwrap().remove("contributor"); }), "bad_envelope"),
-            ("packId number", mutate(&|v| v["packId"] = json!(5)), "bad_envelope"),
-            ("packId uppercase", mutate(&|v| v["packId"] = json!("Pack-One")), "bad_envelope"),
-            ("packId 65 chars", mutate(&|v| v["packId"] = json!("a".repeat(65))), "bad_envelope"),
-            ("packId path", mutate(&|v| v["packId"] = json!("../etc")), "bad_envelope"),
-            ("contributor space", mutate(&|v| v["contributor"] = json!("a b")), "bad_envelope"),
-            ("createdMonth with day", mutate(&|v| v["createdMonth"] = json!("2026-10-05")), "bad_envelope"),
-            ("createdMonth 13", mutate(&|v| v["createdMonth"] = json!("2026-13")), "bad_envelope"),
-            ("appVersion odd", mutate(&|v| v["appVersion"] = json!("v1; DROP")), "bad_envelope"),
-            ("rows object", mutate(&|v| v["rows"] = json!({"a": 1})), "bad_envelope"),
-            ("rows string", mutate(&|v| v["rows"] = json!("none")), "bad_envelope"),
+            (
+                "wrong format",
+                mutate(&|v| v["format"] = json!("other")),
+                "not_a_pack",
+            ),
+            (
+                "version 3",
+                mutate(&|v| v["version"] = json!(3)),
+                "unsupported_version",
+            ),
+            (
+                "version 0",
+                mutate(&|v| v["version"] = json!(0)),
+                "unsupported_version",
+            ),
+            (
+                "version negative",
+                mutate(&|v| v["version"] = json!(-1)),
+                "unsupported_version",
+            ),
+            (
+                "version huge",
+                mutate(&|v| v["version"] = json!(u64::MAX)),
+                "unsupported_version",
+            ),
+            (
+                "version string",
+                mutate(&|v| v["version"] = json!("1")),
+                "bad_envelope",
+            ),
+            (
+                "version float",
+                mutate(&|v| v["version"] = json!(1.5)),
+                "bad_envelope",
+            ),
+            (
+                "version null",
+                mutate(&|v| v["version"] = Value::Null),
+                "bad_envelope",
+            ),
+            (
+                "unknown root field",
+                mutate(&|v| v["serial"] = json!("SN1")),
+                "bad_envelope",
+            ),
+            (
+                "missing contributor",
+                mutate(&|v| {
+                    v.as_object_mut().unwrap().remove("contributor");
+                }),
+                "bad_envelope",
+            ),
+            (
+                "packId number",
+                mutate(&|v| v["packId"] = json!(5)),
+                "bad_envelope",
+            ),
+            (
+                "packId uppercase",
+                mutate(&|v| v["packId"] = json!("Pack-One")),
+                "bad_envelope",
+            ),
+            (
+                "packId 65 chars",
+                mutate(&|v| v["packId"] = json!("a".repeat(65))),
+                "bad_envelope",
+            ),
+            (
+                "packId path",
+                mutate(&|v| v["packId"] = json!("../etc")),
+                "bad_envelope",
+            ),
+            (
+                "contributor space",
+                mutate(&|v| v["contributor"] = json!("a b")),
+                "bad_envelope",
+            ),
+            (
+                "createdMonth with day",
+                mutate(&|v| v["createdMonth"] = json!("2026-10-05")),
+                "bad_envelope",
+            ),
+            (
+                "createdMonth 13",
+                mutate(&|v| v["createdMonth"] = json!("2026-13")),
+                "bad_envelope",
+            ),
+            (
+                "appVersion odd",
+                mutate(&|v| v["appVersion"] = json!("v1; DROP")),
+                "bad_envelope",
+            ),
+            (
+                "rows object",
+                mutate(&|v| v["rows"] = json!({"a": 1})),
+                "bad_envelope",
+            ),
+            (
+                "rows string",
+                mutate(&|v| v["rows"] = json!("none")),
+                "bad_envelope",
+            ),
         ];
         for (name, v, want) in cases {
             assert_eq!(code(parse_pack(&bytes(&v))), want, "{name}");
@@ -1116,27 +1602,80 @@ mod tests {
     #[test]
     fn adversarial_rows_reject_the_whole_pack_with_row_reasons() {
         let bad_rows: Vec<(&str, Value)> = vec![
-            ("value as text", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":"3","unit":"regions"})),
-            ("value null", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":null,"unit":"regions"})),
-            ("value NaN text", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":"NaN","unit":"regions"})),
-            ("value huge", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1e300,"unit":"regions"})),
-            ("value negative out of range", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":-1,"unit":"regions"})),
-            ("unknown metric", json!({"product":"p","metric":"serial_number","method":{"key":"k","version":1},"value":1,"unit":"regions"})),
-            ("wrong unit", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"dB"})),
-            ("extra row field", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions","nickname":"Deck 1"})),
-            ("extra method field", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1,"note":"x"},"value":1,"unit":"regions"})),
-            ("missing unit", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1})),
-            ("method string", json!({"product":"p","metric":"dropout_count","method":"k@1","value":1,"unit":"regions"})),
-            ("version 0", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":0},"value":1,"unit":"regions"})),
-            ("version fractional", json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1.5},"value":1,"unit":"regions"})),
-            ("product number", json!({"product":7,"metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"})),
-            ("product with space", json!({"product":"my deck","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"})),
-            ("product windows path", json!({"product":"C:\\Users\\sam","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"})),
+            (
+                "value as text",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":"3","unit":"regions"}),
+            ),
+            (
+                "value null",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":null,"unit":"regions"}),
+            ),
+            (
+                "value NaN text",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":"NaN","unit":"regions"}),
+            ),
+            (
+                "value huge",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1e300,"unit":"regions"}),
+            ),
+            (
+                "value negative out of range",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":-1,"unit":"regions"}),
+            ),
+            (
+                "unknown metric",
+                json!({"product":"p","metric":"serial_number","method":{"key":"k","version":1},"value":1,"unit":"regions"}),
+            ),
+            (
+                "wrong unit",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"dB"}),
+            ),
+            (
+                "extra row field",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions","nickname":"Deck 1"}),
+            ),
+            (
+                "extra method field",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1,"note":"x"},"value":1,"unit":"regions"}),
+            ),
+            (
+                "missing unit",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1},"value":1}),
+            ),
+            (
+                "method string",
+                json!({"product":"p","metric":"dropout_count","method":"k@1","value":1,"unit":"regions"}),
+            ),
+            (
+                "version 0",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":0},"value":1,"unit":"regions"}),
+            ),
+            (
+                "version fractional",
+                json!({"product":"p","metric":"dropout_count","method":{"key":"k","version":1.5},"value":1,"unit":"regions"}),
+            ),
+            (
+                "product number",
+                json!({"product":7,"metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"}),
+            ),
+            (
+                "product with space",
+                json!({"product":"my deck","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"}),
+            ),
+            (
+                "product windows path",
+                json!({"product":"C:\\Users\\sam","metric":"dropout_count","method":{"key":"k","version":1},"value":1,"unit":"regions"}),
+            ),
             ("row is a number", json!(7)),
             ("row is null", Value::Null),
         ];
         for (name, bad) in bad_rows {
-            let err = parse_pack(&bytes(&pack_with("pack-bad", "c", vec![row("p", "dropout_count", 1.0), bad]))).expect_err(name);
+            let err = parse_pack(&bytes(&pack_with(
+                "pack-bad",
+                "c",
+                vec![row("p", "dropout_count", 1.0), bad],
+            )))
+            .expect_err(name);
             assert_eq!(err.code, "invalid_rows", "{name}");
             assert_eq!(err.rows.len(), 1, "{name}");
             assert_eq!(err.rows[0].row, 2, "{name}");
@@ -1148,7 +1687,10 @@ mod tests {
     fn duplicate_observations_inside_one_pack_are_rejected() {
         let r = row("p", "dropout_count", 4.0);
         let err = parse_pack(&bytes(&pack_with("pack-dup", "c", vec![r.clone(), r]))).unwrap_err();
-        assert_eq!((err.code, err.rows[0].reason.as_str()), ("invalid_rows", "duplicate observation"));
+        assert_eq!(
+            (err.code, err.rows[0].reason.as_str()),
+            ("invalid_rows", "duplicate observation")
+        );
     }
 
     #[test]
@@ -1157,7 +1699,15 @@ mod tests {
         for len in (0..full.len()).step_by(7).chain([full.len() - 1]) {
             assert!(parse_pack(&full[..len]).is_err(), "truncated at {len}");
         }
-        for junk in [&b""[..], b"NaN", b"{\"value\": NaN}", b"{\"value\": 1e999}", b"\xff\xfe\x00\x01", b"{\"format\":\"deckchek-pack\"", &[0u8; 64]] {
+        for junk in [
+            &b""[..],
+            b"NaN",
+            b"{\"value\": NaN}",
+            b"{\"value\": 1e999}",
+            b"\xff\xfe\x00\x01",
+            b"{\"format\":\"deckchek-pack\"",
+            &[0u8; 64],
+        ] {
             assert!(parse_pack(junk).is_err());
         }
         // a JSON number that does not fit a double is a parse error, not a panic
@@ -1168,14 +1718,21 @@ mod tests {
     #[test]
     fn nesting_and_size_limits_hold_before_any_row_work() {
         let nested = format!("{}{}", "[".repeat(100_000), "]".repeat(100_000));
-        assert_eq!(code(parse_pack(nested.as_bytes())), "bad_json", "serde recursion limit, no stack overflow");
+        assert_eq!(
+            code(parse_pack(nested.as_bytes())),
+            "bad_json",
+            "serde recursion limit, no stack overflow"
+        );
         let mut v = good();
         v["rows"][0] = json!({"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": {"i": 1}}}}}}}}});
         assert_eq!(code(parse_pack(&bytes(&v))), "too_deep");
         let big = vec![b' '; MAX_PACK_BYTES as usize + 1];
         assert_eq!(code(parse_pack(&big)), "too_large");
         let rows: Vec<Value> = (0..MAX_ROWS + 1).map(|_| json!(0)).collect();
-        assert_eq!(code(parse_pack(&bytes(&pack_with("pack-many", "c", rows)))), "too_many_rows");
+        assert_eq!(
+            code(parse_pack(&bytes(&pack_with("pack-many", "c", rows)))),
+            "too_many_rows"
+        );
     }
 
     #[test]
@@ -1212,16 +1769,25 @@ mod tests {
         assert!(read_pack_file(ok.to_str().unwrap()).is_ok());
         let big = dir.join("big.deckchek-pack");
         fs::write(&big, vec![b'x'; MAX_PACK_BYTES as usize + 1]).unwrap();
-        assert_eq!(read_pack_file(big.to_str().unwrap()).unwrap_err().code, "too_large");
+        assert_eq!(
+            read_pack_file(big.to_str().unwrap()).unwrap_err().code,
+            "too_large"
+        );
         let exact = dir.join("exact.json");
         fs::write(&exact, vec![b' '; MAX_PACK_BYTES as usize]).unwrap();
-        assert!(read_pack_file(exact.to_str().unwrap()).is_ok(), "exactly the cap is allowed");
+        assert!(
+            read_pack_file(exact.to_str().unwrap()).is_ok(),
+            "exactly the cap is allowed"
+        );
         for (path, want) in [
             ("".to_string(), "bad_path"),
             ("pack.deckchek-pack".to_string(), "bad_path"),
             (format!("{}/../a.deckchek-pack", dir.display()), "bad_path"),
             (format!("{}/a.txt", dir.display()), "bad_extension"),
-            (format!("{}/missing.deckchek-pack", dir.display()), "not_found"),
+            (
+                format!("{}/missing.deckchek-pack", dir.display()),
+                "not_found",
+            ),
             (format!("{}/a\0.deckchek-pack", dir.display()), "bad_path"),
             (dir.display().to_string(), "bad_extension"),
         ] {
@@ -1229,12 +1795,18 @@ mod tests {
         }
         let folder = dir.join("folder.deckchek-pack");
         fs::create_dir(&folder).unwrap();
-        assert_eq!(read_pack_file(folder.to_str().unwrap()).unwrap_err().code, "bad_path");
+        assert_eq!(
+            read_pack_file(folder.to_str().unwrap()).unwrap_err().code,
+            "bad_path"
+        );
         #[cfg(unix)]
         {
             let link = dir.join("link.deckchek-pack");
             std::os::unix::fs::symlink(&ok, &link).unwrap();
-            assert_eq!(read_pack_file(link.to_str().unwrap()).unwrap_err().code, "bad_path");
+            assert_eq!(
+                read_pack_file(link.to_str().unwrap()).unwrap_err().code,
+                "bad_path"
+            );
         }
         let _ = fs::remove_dir_all(dir);
     }
@@ -1246,16 +1818,34 @@ mod tests {
         let p = preview(&c, &b).unwrap();
         assert_eq!((p.rows, p.already_imported), (2, false));
         assert_eq!(p.counts.len(), 2);
-        assert!(p.counts.windows(2).all(|w| (&w[0].product, &w[0].metric) < (&w[1].product, &w[1].metric)), "deterministic order");
+        assert!(
+            p.counts
+                .windows(2)
+                .all(|w| (&w[0].product, &w[0].metric) < (&w[1].product, &w[1].metric)),
+            "deterministic order"
+        );
         assert_eq!(count(&c, "reference_sample"), 0, "preview writes nothing");
         let first = import(&c, &b, Some("Shop A")).unwrap();
-        assert_eq!((first.accepted, first.duplicate, first.rejected.len()), (2, false, 0));
+        assert_eq!(
+            (first.accepted, first.duplicate, first.rejected.len()),
+            (2, false, 0)
+        );
         let again = import(&c, &b, None).unwrap();
         assert_eq!((again.accepted, again.duplicate), (0, true));
-        assert_eq!((count(&c, "reference_pack"), count(&c, "reference_sample")), (1, 2));
+        assert_eq!(
+            (count(&c, "reference_pack"), count(&c, "reference_sample")),
+            (1, 2)
+        );
         assert!(preview(&c, &b).unwrap().already_imported);
         let info = list(&c).unwrap();
-        assert_eq!((info[0].id.as_str(), info[0].source_label.as_deref(), info[0].row_count), ("pack-one", Some("Shop A"), 2));
+        assert_eq!(
+            (
+                info[0].id.as_str(),
+                info[0].source_label.as_deref(),
+                info[0].row_count
+            ),
+            ("pack-one", Some("Shop A"), 2)
+        );
     }
 
     #[test]
@@ -1264,7 +1854,10 @@ mod tests {
         import(&c, &bytes(&good()), None).unwrap();
         let mut other = good();
         other["rows"][0]["value"] = json!(0.5);
-        assert_eq!(import(&c, &bytes(&other), None).unwrap_err().code, "id_conflict");
+        assert_eq!(
+            import(&c, &bytes(&other), None).unwrap_err().code,
+            "id_conflict"
+        );
         assert_eq!(count(&c, "reference_sample"), 2);
     }
 
@@ -1273,10 +1866,30 @@ mod tests {
         let c = mem();
         let mut bad = good();
         bad["rows"][1]["value"] = json!(1e9);
-        assert_eq!(import(&c, &bytes(&bad), None).unwrap_err().code, "invalid_rows");
-        assert_eq!((count(&c, "reference_pack"), count(&c, "reference_sample"), count(&c, "reference_sample_claim")), (0, 0, 0));
-        assert_eq!(import(&c, &bytes(&good()), Some(&"x".repeat(65))).unwrap_err().code, "bad_label");
-        assert_eq!(import(&c, &bytes(&good()), Some("bad\nlabel")).unwrap_err().code, "bad_label");
+        assert_eq!(
+            import(&c, &bytes(&bad), None).unwrap_err().code,
+            "invalid_rows"
+        );
+        assert_eq!(
+            (
+                count(&c, "reference_pack"),
+                count(&c, "reference_sample"),
+                count(&c, "reference_sample_claim")
+            ),
+            (0, 0, 0)
+        );
+        assert_eq!(
+            import(&c, &bytes(&good()), Some(&"x".repeat(65)))
+                .unwrap_err()
+                .code,
+            "bad_label"
+        );
+        assert_eq!(
+            import(&c, &bytes(&good()), Some("bad\nlabel"))
+                .unwrap_err()
+                .code,
+            "bad_label"
+        );
         assert_eq!(count(&c, "reference_pack"), 0);
     }
 
@@ -1284,35 +1897,122 @@ mod tests {
     fn shared_observations_survive_removal_of_one_pack() {
         let c = mem();
         let shared = row("deck-a", "dropout_count", 2.0);
-        import(&c, &bytes(&pack_with("pack-one", "same-shop", vec![shared.clone(), row("deck-a", "dropout_count", 3.0)])), None).unwrap();
-        let second = import(&c, &bytes(&pack_with("pack-two", "same-shop", vec![shared, row("deck-a", "dropout_count", 9.0)])), None).unwrap();
+        import(
+            &c,
+            &bytes(&pack_with(
+                "pack-one",
+                "same-shop",
+                vec![shared.clone(), row("deck-a", "dropout_count", 3.0)],
+            )),
+            None,
+        )
+        .unwrap();
+        let second = import(
+            &c,
+            &bytes(&pack_with(
+                "pack-two",
+                "same-shop",
+                vec![shared, row("deck-a", "dropout_count", 9.0)],
+            )),
+            None,
+        )
+        .unwrap();
         assert_eq!(second.accepted, 1);
-        assert_eq!(second.rejected, vec![RowIssue { row: 1, reason: "already imported from another pack".into() }]);
+        assert_eq!(
+            second.rejected,
+            vec![RowIssue {
+                row: 1,
+                reason: "already imported from another pack".into()
+            }]
+        );
         assert_eq!(count(&c, "reference_sample"), 3);
         let r = remove(&c, "pack-one").unwrap();
         assert_eq!((r.removed, r.samples_deleted), (true, 1));
         let q = query_population(&c, "deck-a", "dropout_count", "dropout_count").unwrap();
-        assert_eq!(q.rows.iter().map(|r| r.value).collect::<Vec<_>>(), vec![2.0, 9.0], "shared row moved to pack-two");
+        assert_eq!(
+            q.rows.iter().map(|r| r.value).collect::<Vec<_>>(),
+            vec![2.0, 9.0],
+            "shared row moved to pack-two"
+        );
         remove(&c, "pack-two").unwrap();
-        assert_eq!((count(&c, "reference_pack"), count(&c, "reference_sample"), count(&c, "reference_sample_claim")), (0, 0, 0));
-        assert_eq!(remove(&c, "pack-two").unwrap(), RemoveResult { removed: false, samples_deleted: 0 });
+        assert_eq!(
+            (
+                count(&c, "reference_pack"),
+                count(&c, "reference_sample"),
+                count(&c, "reference_sample_claim")
+            ),
+            (0, 0, 0)
+        );
+        assert_eq!(
+            remove(&c, "pack-two").unwrap(),
+            RemoveResult {
+                removed: false,
+                samples_deleted: 0
+            }
+        );
         assert_eq!(remove(&c, "Not An Id").unwrap_err().code, "bad_id");
     }
 
     #[test]
     fn population_query_is_deterministic_and_counts_contributors() {
         let c = mem();
-        let rows = |vals: &[f64]| vals.iter().map(|v| row("deck-a", "channel_separation_db", *v)).collect::<Vec<_>>();
-        import(&c, &bytes(&pack_with("pack-b", "zed", rows(&[30.0, 28.0]))), None).unwrap();
+        let rows = |vals: &[f64]| {
+            vals.iter()
+                .map(|v| row("deck-a", "channel_separation_db", *v))
+                .collect::<Vec<_>>()
+        };
+        import(
+            &c,
+            &bytes(&pack_with("pack-b", "zed", rows(&[30.0, 28.0]))),
+            None,
+        )
+        .unwrap();
         import(&c, &bytes(&pack_with("pack-a", "amy", rows(&[33.0]))), None).unwrap();
-        let q1 = query_population(&c, "deck-a", "channel_separation_db", "channel_separation_db").unwrap();
-        let q2 = query_population(&c, "deck-a", "channel_separation_db", "channel_separation_db").unwrap();
+        let q1 = query_population(
+            &c,
+            "deck-a",
+            "channel_separation_db",
+            "channel_separation_db",
+        )
+        .unwrap();
+        let q2 = query_population(
+            &c,
+            "deck-a",
+            "channel_separation_db",
+            "channel_separation_db",
+        )
+        .unwrap();
         assert_eq!(q1, q2);
         assert_eq!(q1.contributors, 2);
-        assert_eq!(q1.rows.iter().map(|r| (r.contributor.as_str(), r.value)).collect::<Vec<_>>(), vec![("amy", 33.0), ("zed", 28.0), ("zed", 30.0)]);
-        assert_eq!(query_population(&c, "other", "channel_separation_db", "channel_separation_db").unwrap().rows.len(), 0);
-        assert_eq!(query_population(&c, "deck a", "x", "y").unwrap_err().code, "bad_id");
-        assert_eq!(query_population(&c, "p'; DROP TABLE reference_pack;--", "x", "y").unwrap_err().code, "bad_id");
+        assert_eq!(
+            q1.rows
+                .iter()
+                .map(|r| (r.contributor.as_str(), r.value))
+                .collect::<Vec<_>>(),
+            vec![("amy", 33.0), ("zed", 28.0), ("zed", 30.0)]
+        );
+        assert_eq!(
+            query_population(
+                &c,
+                "other",
+                "channel_separation_db",
+                "channel_separation_db"
+            )
+            .unwrap()
+            .rows
+            .len(),
+            0
+        );
+        assert_eq!(
+            query_population(&c, "deck a", "x", "y").unwrap_err().code,
+            "bad_id"
+        );
+        assert_eq!(
+            query_population(&c, "p'; DROP TABLE reference_pack;--", "x", "y")
+                .unwrap_err()
+                .code,
+            "bad_id"
+        );
     }
 
     fn selection(rows: Vec<Value>) -> Value {
@@ -1321,36 +2021,80 @@ mod tests {
 
     #[test]
     fn export_whitelists_rounds_and_round_trips_through_import() {
-        let sel: ExportSelection = serde_json::from_value(selection(vec![row("pioneer-plx-crss12", "wow_flutter_rms_percent", 0.123456)])).unwrap();
+        let sel: ExportSelection = serde_json::from_value(selection(vec![row(
+            "pioneer-plx-crss12",
+            "wow_flutter_rms_percent",
+            0.123456,
+        )]))
+        .unwrap();
         let (parsed, text) = build_export(&sel).unwrap();
         assert_eq!(parsed.rows[0].value, 0.123);
         assert_eq!(parsed.app_version, env!("CARGO_PKG_VERSION"));
         let doc: Value = serde_json::from_str(&text).unwrap();
         let mut keys: Vec<_> = doc.as_object().unwrap().keys().cloned().collect();
         keys.sort();
-        assert_eq!(keys, ["appVersion", "contributor", "createdMonth", "format", "packId", "rows", "version"]);
+        assert_eq!(
+            keys,
+            [
+                "appVersion",
+                "contributor",
+                "createdMonth",
+                "format",
+                "packId",
+                "rows",
+                "version"
+            ]
+        );
         assert_eq!(doc["rows"][0].as_object().unwrap().len(), 5);
         let dir = tmp_dir("export");
         let path = dir.join("out.deckchek-pack");
         let res = export_to(&sel, path.to_str().unwrap()).unwrap();
-        assert_eq!((res.rows, res.bytes), (1, fs::metadata(&path).unwrap().len() as usize));
+        assert_eq!(
+            (res.rows, res.bytes),
+            (1, fs::metadata(&path).unwrap().len() as usize)
+        );
         assert_eq!(res.sha256, sha256_hex(&fs::read(&path).unwrap()));
         let c = mem();
         let read = read_pack_file(path.to_str().unwrap()).unwrap();
         assert_eq!(import(&c, &read, None).unwrap().accepted, 1);
-        let q = query_population(&c, "pioneer-plx-crss12", "wow_flutter_rms_percent", "wow_flutter_rms_percent").unwrap();
+        let q = query_population(
+            &c,
+            "pioneer-plx-crss12",
+            "wow_flutter_rms_percent",
+            "wow_flutter_rms_percent",
+        )
+        .unwrap();
         assert_eq!(q.rows[0].value, 0.123);
         let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
     fn export_refuses_pii_fields_and_never_writes_seeded_values() {
-        const PII: [&str; 6] = ["SN-998877", "Sam's Deck", "C:\\Users\\sam\\gig.wav", "booth-pc.local", "Club Neon", "sam@example.com"];
+        const PII: [&str; 6] = [
+            "SN-998877",
+            "Sam's Deck",
+            "C:\\Users\\sam\\gig.wav",
+            "booth-pc.local",
+            "Club Neon",
+            "sam@example.com",
+        ];
         let base = row("pioneer-plx-crss12", "wow_flutter_rms_percent", 0.1);
-        for (k, v) in [("serial", PII[0]), ("nickname", PII[1]), ("path", PII[2]), ("hostname", PII[3]), ("venue", PII[4]), ("email", PII[5]), ("assetId", "a-1"), ("sessionId", "s-1")] {
+        for (k, v) in [
+            ("serial", PII[0]),
+            ("nickname", PII[1]),
+            ("path", PII[2]),
+            ("hostname", PII[3]),
+            ("venue", PII[4]),
+            ("email", PII[5]),
+            ("assetId", "a-1"),
+            ("sessionId", "s-1"),
+        ] {
             let mut p = base.clone();
             p[k] = json!(v);
-            assert!(serde_json::from_value::<ExportSelection>(selection(vec![p])).is_err(), "{k} must be refused");
+            assert!(
+                serde_json::from_value::<ExportSelection>(selection(vec![p])).is_err(),
+                "{k} must be refused"
+            );
         }
         let mut nested = base.clone();
         nested["method"]["note"] = json!(PII[1]);
@@ -1358,9 +2102,22 @@ mod tests {
         let mut top = selection(vec![row("p", "dropout_count", 1.0)]);
         top["serial"] = json!(PII[0]);
         assert!(serde_json::from_value::<ExportSelection>(top).is_err());
-        let sel: ExportSelection = serde_json::from_value(selection(vec![row("p", "dropout_count", 1.0)])).unwrap();
+        let sel: ExportSelection =
+            serde_json::from_value(selection(vec![row("p", "dropout_count", 1.0)])).unwrap();
         let (_, text) = build_export(&sel).unwrap();
-        for needle in PII.iter().chain(["serial", "nickname", "assetId", "sessionId", "path", "venue", "email", "hostname"].iter()) {
+        for needle in PII.iter().chain(
+            [
+                "serial",
+                "nickname",
+                "assetId",
+                "sessionId",
+                "path",
+                "venue",
+                "email",
+                "hostname",
+            ]
+            .iter(),
+        ) {
             assert!(!text.contains(needle), "{needle} leaked into the pack");
         }
     }
@@ -1368,38 +2125,70 @@ mod tests {
     #[test]
     fn export_rejects_bad_selections_with_typed_errors() {
         let mk = |v: Value| serde_json::from_value::<ExportSelection>(v).unwrap();
-        assert_eq!(build_export(&mk(selection(vec![]))).unwrap_err().code, "empty");
+        assert_eq!(
+            build_export(&mk(selection(vec![]))).unwrap_err().code,
+            "empty"
+        );
         let mut bad_contrib = selection(vec![row("p", "dropout_count", 1.0)]);
         bad_contrib["contributor"] = json!("Sam Smith");
-        assert_eq!(build_export(&mk(bad_contrib)).unwrap_err().code, "bad_selection");
+        assert_eq!(
+            build_export(&mk(bad_contrib)).unwrap_err().code,
+            "bad_selection"
+        );
         let mut bad_month = selection(vec![row("p", "dropout_count", 1.0)]);
         bad_month["createdMonth"] = json!("2026-10-05");
-        assert_eq!(build_export(&mk(bad_month)).unwrap_err().code, "bad_selection");
+        assert_eq!(
+            build_export(&mk(bad_month)).unwrap_err().code,
+            "bad_selection"
+        );
         let mut bad_id = selection(vec![row("p", "dropout_count", 1.0)]);
         bad_id["packId"] = json!("../x");
         assert_eq!(build_export(&mk(bad_id)).unwrap_err().code, "bad_selection");
-        let unknown = mk(selection(vec![json!({"product":"p","metric":"serial_number","method":{"key":"k","version":1},"value":1.0,"unit":"x"})]));
-        assert_eq!(build_export(&unknown).unwrap_err().rows[0].reason, "metric is not in the population whitelist");
+        let unknown = mk(selection(vec![
+            json!({"product":"p","metric":"serial_number","method":{"key":"k","version":1},"value":1.0,"unit":"x"}),
+        ]));
+        assert_eq!(
+            build_export(&unknown).unwrap_err().rows[0].reason,
+            "metric is not in the population whitelist"
+        );
         let mut sel = mk(selection(vec![row("p", "dropout_count", 1.0)]));
         for v in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 1e300, -5.0] {
             sel.rows[0].value = v;
             assert_eq!(build_export(&sel).unwrap_err().code, "invalid_rows", "{v}");
         }
-        let dups = mk(selection(vec![row("p", "dropout_count", 1.0), row("p", "dropout_count", 1.0)]));
+        let dups = mk(selection(vec![
+            row("p", "dropout_count", 1.0),
+            row("p", "dropout_count", 1.0),
+        ]));
         assert_eq!(build_export(&dups).unwrap_err().code, "invalid_rows");
         let dir = tmp_dir("badexport");
         let ok = mk(selection(vec![row("p", "dropout_count", 1.0)]));
-        for path in [dir.join("x.txt"), dir.join("missing").join("x.deckchek-pack")] {
+        for path in [
+            dir.join("x.txt"),
+            dir.join("missing").join("x.deckchek-pack"),
+        ] {
             assert!(export_to(&ok, path.to_str().unwrap()).is_err());
         }
         assert!(export_to(&ok, "relative.deckchek-pack").is_err());
-        assert!(fs::read_dir(&dir).unwrap().next().is_none(), "failed exports leave no file");
+        assert!(
+            fs::read_dir(&dir).unwrap().next().is_none(),
+            "failed exports leave no file"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
     fn rounding_to_three_significant_figures_is_idempotent() {
-        for (v, want) in [(-62.12345, -62.1), (0.123456, 0.123), (1234.5, 1230.0), (0.0, 0.0), (-0.0, 0.0), (9.996, 10.0), (9.995, 9.99), (0.000123456, 0.000123)] {
+        for (v, want) in [
+            (-62.12345, -62.1),
+            (0.123456, 0.123),
+            (1234.5, 1230.0),
+            (0.0, 0.0),
+            (-0.0, 0.0),
+            (9.996, 10.0),
+            (9.995, 9.99),
+            (0.000123456, 0.000123),
+        ] {
             let r = round_sig3(v);
             assert_eq!(r, want, "{v}");
             assert_eq!(round_sig3(r), r);
@@ -1464,8 +2253,19 @@ mod tests {
 
     #[test]
     fn population_migrations_apply_fresh_rerun_and_upgrade_every_fixture() {
-        let tables = ["reference_pack", "reference_sample", "reference_sample_claim"];
-        let exists = |c: &Connection, t: &str| -> i64 { c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0)).unwrap() };
+        let tables = [
+            "reference_pack",
+            "reference_sample",
+            "reference_sample_claim",
+        ];
+        let exists = |c: &Connection, t: &str| -> i64 {
+            c.query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                [t],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
         let fresh = mem();
         for t in tables {
             assert_eq!(exists(&fresh, t), 1, "{t}");
@@ -1473,10 +2273,16 @@ mod tests {
         let versions = |c: &Connection| crate::db::applied_migrations(c).unwrap();
         let before = versions(&fresh);
         assert!(before.contains(&15) && before.contains(&22));
-        let schema = |c: &Connection| -> Vec<String> { c.prepare("SELECT sql FROM sqlite_master WHERE name LIKE 'reference_%' OR name LIKE 'idx_ref_%' ORDER BY name").unwrap().query_map([], |r| r.get::<_, String>(0)).unwrap().map(Result::unwrap).collect() };
+        let schema = |c: &Connection| -> Vec<String> {
+            c.prepare("SELECT sql FROM sqlite_master WHERE name LIKE 'reference_%' OR name LIKE 'idx_ref_%' ORDER BY name").unwrap().query_map([], |r| r.get::<_, String>(0)).unwrap().map(Result::unwrap).collect()
+        };
         let snapshot = schema(&fresh);
         apply_migrations(&fresh).unwrap();
-        assert_eq!((versions(&fresh), schema(&fresh)), (before, snapshot), "re-run is a no-op");
+        assert_eq!(
+            (versions(&fresh), schema(&fresh)),
+            (before, snapshot),
+            "re-run is a no-op"
+        );
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db");
         let mut seen = 0;
         for entry in fs::read_dir(dir).unwrap() {
@@ -1486,14 +2292,23 @@ mod tests {
             }
             let c = Connection::open_in_memory().unwrap();
             c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
-            c.execute_batch(&fs::read_to_string(&path).unwrap()).unwrap();
+            c.execute_batch(&fs::read_to_string(&path).unwrap())
+                .unwrap();
             // fixtures from v0.1.0 on already carry reference packs; earlier ones predate the tables
-            let packs_before = if exists(&c, "reference_pack") == 1 { count(&c, "reference_pack") } else { 0 };
+            let packs_before = if exists(&c, "reference_pack") == 1 {
+                count(&c, "reference_pack")
+            } else {
+                0
+            };
             apply_migrations(&c).unwrap_or_else(|e| panic!("{path:?}: {e}"));
             for t in tables {
                 assert_eq!(exists(&c, t), 1, "{path:?} {t}");
             }
-            assert_eq!(count(&c, "reference_pack"), packs_before, "{path:?}: the upgrade neither adds nor drops packs");
+            assert_eq!(
+                count(&c, "reference_pack"),
+                packs_before,
+                "{path:?}: the upgrade neither adds nor drops packs"
+            );
             seen += 1;
         }
         assert!(seen >= 3, "all release fixtures are exercised");
@@ -1502,18 +2317,56 @@ mod tests {
     #[test]
     fn population_tables_enforce_their_constraints() {
         let c = mem();
-        c.execute("INSERT INTO reference_pack(id,imported_at,row_count,sha256) VALUES('p1','t',1,'h')", []).unwrap();
+        c.execute(
+            "INSERT INTO reference_pack(id,imported_at,row_count,sha256) VALUES('p1','t',1,'h')",
+            [],
+        )
+        .unwrap();
         assert!(c.execute("INSERT INTO reference_pack(id,imported_at,row_count,sha256) VALUES('p2','t',-1,'h')", []).is_err(), "row_count >= 0");
         let sample = "INSERT INTO reference_sample(id,pack_id,contributor,product_key,metric_key,method_key,method_version,value,unit,row_hash) VALUES(?1,?2,'c','p','m','k',?3,1.5,'dB',?4)";
         c.execute(sample, params!["s1", "p1", 1, "h1"]).unwrap();
-        assert!(c.execute(sample, params!["s2", "p1", 1, "h1"]).is_err(), "row_hash unique");
-        assert!(c.execute(sample, params!["s3", "p1", 0, "h3"]).is_err(), "method_version > 0");
-        assert!(c.execute(sample, params!["s4", "missing", 1, "h4"]).is_err(), "pack must exist");
-        c.execute("INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('p1','h1')", []).unwrap();
-        assert!(c.execute("INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('p1','h1')", []).is_err(), "one claim per (pack, row)");
-        assert!(c.execute("INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('nope','h1')", []).is_err());
-        c.execute("DELETE FROM reference_pack WHERE id='p1'", []).unwrap();
-        assert_eq!((count(&c, "reference_sample"), count(&c, "reference_sample_claim")), (0, 0), "cascade");
+        assert!(
+            c.execute(sample, params!["s2", "p1", 1, "h1"]).is_err(),
+            "row_hash unique"
+        );
+        assert!(
+            c.execute(sample, params!["s3", "p1", 0, "h3"]).is_err(),
+            "method_version > 0"
+        );
+        assert!(
+            c.execute(sample, params!["s4", "missing", 1, "h4"])
+                .is_err(),
+            "pack must exist"
+        );
+        c.execute(
+            "INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('p1','h1')",
+            [],
+        )
+        .unwrap();
+        assert!(
+            c.execute(
+                "INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('p1','h1')",
+                []
+            )
+            .is_err(),
+            "one claim per (pack, row)"
+        );
+        assert!(c
+            .execute(
+                "INSERT INTO reference_sample_claim(pack_id,row_hash) VALUES('nope','h1')",
+                []
+            )
+            .is_err());
+        c.execute("DELETE FROM reference_pack WHERE id='p1'", [])
+            .unwrap();
+        assert_eq!(
+            (
+                count(&c, "reference_sample"),
+                count(&c, "reference_sample_claim")
+            ),
+            (0, 0),
+            "cascade"
+        );
     }
 
     #[test]
@@ -1521,7 +2374,11 @@ mod tests {
         let c = mem();
         seed_units(&c);
         let v = unit_values(&c).unwrap();
-        let got: Vec<(String, String, f64)> = v.rows.iter().map(|r| (r.asset_id.clone(), r.at.clone(), r.value)).collect();
+        let got: Vec<(String, String, f64)> = v
+            .rows
+            .iter()
+            .map(|r| (r.asset_id.clone(), r.at.clone(), r.value))
+            .collect();
         assert_eq!(
             got,
             vec![
@@ -1531,9 +2388,14 @@ mod tests {
                 ("a2".to_string(), "2026-10-04T10:00:00Z".to_string(), 0.25),
             ]
         );
-        assert_eq!(v.skipped_unattributed, 1, "setup with two profiled units is ambiguous");
+        assert_eq!(
+            v.skipped_unattributed, 1,
+            "setup with two profiled units is ambiguous"
+        );
         assert_eq!(v.skipped_unit, 1, "unit mismatch is never converted");
-        assert!(v.rows.iter().all(|r| r.product_key == "profile-tt" && r.method_key == r.metric && r.method_version == 1));
+        assert!(v.rows.iter().all(|r| r.product_key == "profile-tt"
+            && r.method_key == r.metric
+            && r.method_version == 1));
         assert_eq!(unit_values(&c).unwrap(), v, "same input twice, same output");
     }
 
@@ -1552,9 +2414,21 @@ mod tests {
     #[test]
     fn regression_round_sig3_ties_match_the_js_preview() {
         for (_, raw, shown) in TIES {
-            assert_eq!(round_sig3(raw), shown, "tie {raw} rounds like toPrecision(3)");
-            assert_eq!(round_sig3(shown), shown, "already-rounded {shown} is left alone");
-            assert_eq!(round_sig3(-raw), -shown, "ties round away from zero for negatives too");
+            assert_eq!(
+                round_sig3(raw),
+                shown,
+                "tie {raw} rounds like toPrecision(3)"
+            );
+            assert_eq!(
+                round_sig3(shown),
+                shown,
+                "already-rounded {shown} is left alone"
+            );
+            assert_eq!(
+                round_sig3(-raw),
+                -shown,
+                "ties round away from zero for negatives too"
+            );
         }
         // Not ties: the exact double just below/above x.xx5 rounds to the nearest value as before.
         assert_eq!(round_sig3(9.995), 9.99);
@@ -1563,10 +2437,17 @@ mod tests {
         // Carry into the next decade.
         assert_eq!(round_sig3(9.995_f64.next_up()), 10.0);
         assert_eq!(round_sig3(999.5), 1000.0);
-        assert_eq!(round_sig3(0.0009995), 0.000999, "0.0009995 is not an exact tie in binary");
+        assert_eq!(
+            round_sig3(0.0009995),
+            0.000999,
+            "0.0009995 is not an exact tie in binary"
+        );
 
         // The written file equals the previewed document, whether the bridge sends raw or already-rounded rows.
-        for values in [TIES.map(|(m, raw, _)| (m, raw)), TIES.map(|(m, _, shown)| (m, shown))] {
+        for values in [
+            TIES.map(|(m, raw, _)| (m, raw)),
+            TIES.map(|(m, _, shown)| (m, shown)),
+        ] {
             let rows: Vec<Value> = values.iter().map(|(m, v)| row("plx", m, *v)).collect();
             let sel: ExportSelection = serde_json::from_value(selection(rows)).unwrap();
             let (_, text) = build_export(&sel).unwrap();
@@ -1580,7 +2461,11 @@ mod tests {
         }
     }
 
-    fn insert_samples(c: &Connection, pack_id: &str, rows: impl Iterator<Item = (String, i64, f64)>) {
+    fn insert_samples(
+        c: &Connection,
+        pack_id: &str,
+        rows: impl Iterator<Item = (String, i64, f64)>,
+    ) {
         c.execute("INSERT INTO reference_pack(id, source_label, imported_at, row_count, sha256) VALUES (?1, NULL, 't', 0, 'x')", params![pack_id]).unwrap();
         c.execute_batch("BEGIN").unwrap();
         {
@@ -1588,7 +2473,14 @@ mod tests {
                 .prepare("INSERT INTO reference_sample(id, pack_id, contributor, product_key, metric_key, method_key, method_version, value, unit, row_hash) VALUES (?1, ?2, ?3, 'plx', 'dropout_count', 'dropout_count', ?4, ?5, 'regions', ?1)")
                 .unwrap();
             for (i, (contributor, version, value)) in rows.enumerate() {
-                stmt.execute(params![format!("{pack_id}-{i}"), pack_id, contributor, version, value]).unwrap();
+                stmt.execute(params![
+                    format!("{pack_id}-{i}"),
+                    pack_id,
+                    contributor,
+                    version,
+                    value
+                ])
+                .unwrap();
             }
         }
         c.execute_batch("COMMIT").unwrap();
@@ -1598,29 +2490,84 @@ mod tests {
     fn regression_population_query_one_contributor_cannot_crowd_out_honest_contributors() {
         let c = mem();
         // One hostile token that sorts before every real one, with more rows than the global limit (distinct versions).
-        insert_samples(&c, "hostile", (0..(MAX_ROWS as i64 + 10)).map(|i| ("-".to_string(), i + 1, (i % 1000) as f64)));
+        insert_samples(
+            &c,
+            "hostile",
+            (0..(MAX_ROWS as i64 + 10)).map(|i| ("-".to_string(), i + 1, (i % 1000) as f64)),
+        );
         // Sybil tokens that also sort first, each filling its own per-contributor share.
-        insert_samples(&c, "sybil", (0..250 * 1100).map(|i| (format!("-s{:03}", i / 1100), 1 + (i % 7) as i64, (i % 1100) as f64)));
+        insert_samples(
+            &c,
+            "sybil",
+            (0..250 * 1100).map(|i| {
+                (
+                    format!("-s{:03}", i / 1100),
+                    1 + (i % 7) as i64,
+                    (i % 1100) as f64,
+                )
+            }),
+        );
         // 25 honest contributors with one row each, and one honest contributor with many rows.
-        insert_samples(&c, "honest", (0..25).map(|i| (format!("c{i:02}"), 1, 10.0 + i as f64)));
-        insert_samples(&c, "big", (0..2001).map(|i| ("cbig".to_string(), 1, i as f64)));
+        insert_samples(
+            &c,
+            "honest",
+            (0..25).map(|i| (format!("c{i:02}"), 1, 10.0 + i as f64)),
+        );
+        insert_samples(
+            &c,
+            "big",
+            (0..2001).map(|i| ("cbig".to_string(), 1, i as f64)),
+        );
         let q = query_population(&c, "plx", "dropout_count", "dropout_count").unwrap();
         assert!(q.truncated, "rows were dropped, so the result says so");
-        assert_eq!(q.rows.len(), MAX_ROWS, "the global limit was reached, so the round-robin share decided");
-        let honest: HashSet<&str> = q.rows.iter().map(|r| r.contributor.as_str()).filter(|t| t.starts_with('c')).collect();
-        assert_eq!(honest.len(), 26, "every honest contributor survives the limit");
+        assert_eq!(
+            q.rows.len(),
+            MAX_ROWS,
+            "the global limit was reached, so the round-robin share decided"
+        );
+        let honest: HashSet<&str> = q
+            .rows
+            .iter()
+            .map(|r| r.contributor.as_str())
+            .filter(|t| t.starts_with('c'))
+            .collect();
+        assert_eq!(
+            honest.len(),
+            26,
+            "every honest contributor survives the limit"
+        );
         assert_eq!(q.contributors, 1 + 250 + 26);
-        let mut big: Vec<f64> = q.rows.iter().filter(|r| r.contributor == "cbig").map(|r| r.value).collect();
+        let mut big: Vec<f64> = q
+            .rows
+            .iter()
+            .filter(|r| r.contributor == "cbig")
+            .map(|r| r.value)
+            .collect();
         big.sort_by(f64::total_cmp);
         assert!(big.len() < 2001, "one contributor's rows are capped");
-        assert_eq!(big[big.len() / 2], 1000.0, "the kept window is centred, so the contributor's median is unchanged");
-        assert_eq!(big.len() % 2, 1, "symmetric window around the median of an odd count");
+        assert_eq!(
+            big[big.len() / 2],
+            1000.0,
+            "the kept window is centred, so the contributor's median is unchanged"
+        );
+        assert_eq!(
+            big.len() % 2,
+            1,
+            "symmetric window around the median of an odd count"
+        );
         let per: HashMap<&str, usize> = q.rows.iter().fold(HashMap::new(), |mut m, r| {
             *m.entry(r.contributor.as_str()).or_default() += 1;
             m
         });
-        assert!(per["-"] <= MAX_POP_WINDOW * MAX_POP_VERSIONS_PER_CONTRIBUTOR, "the hostile token gets one share, not the whole limit");
-        assert_eq!(query_population(&c, "plx", "dropout_count", "dropout_count").unwrap(), q, "deterministic");
+        assert!(
+            per["-"] <= MAX_POP_WINDOW * MAX_POP_VERSIONS_PER_CONTRIBUTOR,
+            "the hostile token gets one share, not the whole limit"
+        );
+        assert_eq!(
+            query_population(&c, "plx", "dropout_count", "dropout_count").unwrap(),
+            q,
+            "deterministic"
+        );
         // Small cells are untouched and not marked truncated.
         let small = mem();
         insert_samples(&small, "p", (0..5).map(|i| (format!("t{i}"), 1, i as f64)));
@@ -1632,18 +2579,36 @@ mod tests {
     /// check them here: every command that opens the database is `async` and runs its body through `db::off_main`.
     #[test]
     fn regression_aud_03_pack_db_commands_run_off_the_main_thread() {
-        let src = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/pack.rs")).unwrap();
+        let src =
+            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/pack.rs"))
+                .unwrap();
         let src = &src[..src.find("#[cfg(test)]").unwrap()];
         let mut checked = Vec::new();
         for chunk in src.split("#[tauri::command]").skip(1) {
             let body = &chunk[..chunk.find("\n}").unwrap()];
-            let name: String = body[body.find("fn ").unwrap() + 3..].chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let name: String = body[body.find("fn ").unwrap() + 3..]
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
             if body.contains("open(&app)") || body.contains("open_database(") {
-                assert!(body.contains("pub async fn") && body.contains("crate::db::off_main("), "{name} opens the database on the main thread");
+                assert!(
+                    body.contains("pub async fn") && body.contains("crate::db::off_main("),
+                    "{name} opens the database on the main thread"
+                );
                 checked.push(name);
             }
         }
-        assert_eq!(checked, ["pack_preview", "pack_import", "pack_list", "pack_remove", "population_query", "population_unit_values"]);
+        assert_eq!(
+            checked,
+            [
+                "pack_preview",
+                "pack_import",
+                "pack_list",
+                "pack_remove",
+                "population_query",
+                "population_unit_values"
+            ]
+        );
     }
 
     #[test]
@@ -1657,15 +2622,39 @@ mod tests {
                ('o1','wow_flutter_rms_percent',1,'other key','{\"compat\":[2]}','t');",
         )
         .unwrap();
-        insert_samples(&c, "p", (0..9).map(|i| (format!("t{i}"), 1 + (i % 3) as i64, i as f64)));
+        insert_samples(
+            &c,
+            "p",
+            (0..9).map(|i| (format!("t{i}"), 1 + (i % 3) as i64, i as f64)),
+        );
         let q = query_population(&c, "plx", "dropout_count", "dropout_count").unwrap();
-        let got: Vec<(&str, i64, &str)> = q.methods.iter().map(|m| (m.key.as_str(), m.version, m.parameters_json.as_str())).collect();
-        assert_eq!(got, vec![("dropout_count", 1, "{\"compat\":[2]}"), ("dropout_count", 2, "{\"compat\":[1]}"), ("dropout_count", 3, "{\"compat\":[]}")], "only this method key, every version");
+        let got: Vec<(&str, i64, &str)> = q
+            .methods
+            .iter()
+            .map(|m| (m.key.as_str(), m.version, m.parameters_json.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("dropout_count", 1, "{\"compat\":[2]}"),
+                ("dropout_count", 2, "{\"compat\":[1]}"),
+                ("dropout_count", 3, "{\"compat\":[]}")
+            ],
+            "only this method key, every version"
+        );
         // compare.js comparePopulation reads result.methods[].{key, version, parametersJson}.
         let json = serde_json::to_value(&q).unwrap();
-        assert_eq!(json["methods"][1], json!({ "key": "dropout_count", "version": 2, "parametersJson": "{\"compat\":[1]}" }));
+        assert_eq!(
+            json["methods"][1],
+            json!({ "key": "dropout_count", "version": 2, "parametersJson": "{\"compat\":[1]}" })
+        );
         // A cell with no local method rows still answers, with an empty registry.
-        assert!(query_population(&c, "plx", "dropout_count", "unknown_method").unwrap().methods.is_empty());
+        assert!(
+            query_population(&c, "plx", "dropout_count", "unknown_method")
+                .unwrap()
+                .methods
+                .is_empty()
+        );
     }
 
     fn seed_many_units(c: &Connection, units: usize, runs: usize) {
@@ -1695,7 +2684,15 @@ mod tests {
                 .unwrap();
                 for (i, m) in metrics.iter().enumerate() {
                     let unit = &metric_table()[m].unit;
-                    ins.execute(params![format!("{sid}-{i}"), sid, format!("m{i}"), m, (r % 10) as f64, unit]).unwrap();
+                    ins.execute(params![
+                        format!("{sid}-{i}"),
+                        sid,
+                        format!("m{i}"),
+                        m,
+                        (r % 10) as f64,
+                        unit
+                    ])
+                    .unwrap();
                 }
             }
         }
@@ -1712,12 +2709,26 @@ mod tests {
         assert!(v.truncated, "the cap was hit, so the result says so");
         assert!(v.rows.len() <= MAX_UNIT_ROWS);
         let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
-        assert_eq!(assets.len(), units, "every unit is still in the picker, the sibling ranking and the export");
-        let pairs: HashSet<(&str, &str)> = v.rows.iter().map(|r| (r.asset_id.as_str(), r.metric.as_str())).collect();
-        assert_eq!(pairs.len(), units * metric_table().len(), "every (unit, metric) keeps its latest value");
+        assert_eq!(
+            assets.len(),
+            units,
+            "every unit is still in the picker, the sibling ranking and the export"
+        );
+        let pairs: HashSet<(&str, &str)> = v
+            .rows
+            .iter()
+            .map(|r| (r.asset_id.as_str(), r.metric.as_str()))
+            .collect();
+        assert_eq!(
+            pairs.len(),
+            units * metric_table().len(),
+            "every (unit, metric) keeps its latest value"
+        );
         // Rows stay grouped per (unit, metric), oldest first, and the newest run is the one kept last.
         for w in v.rows.windows(2) {
-            if (w[0].asset_id.as_str(), w[0].metric.as_str()) == (w[1].asset_id.as_str(), w[1].metric.as_str()) {
+            if (w[0].asset_id.as_str(), w[0].metric.as_str())
+                == (w[1].asset_id.as_str(), w[1].metric.as_str())
+            {
                 assert!(w[0].at <= w[1].at);
             }
         }
@@ -1745,20 +2756,40 @@ mod tests {
         let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
         assert!(assets.contains("old"), "the oldest unit is still listed");
         assert_eq!(assets.len(), 161);
-        let pairs: HashSet<(&str, &str)> = v.rows.iter().map(|r| (r.asset_id.as_str(), r.metric.as_str())).collect();
-        assert_eq!(pairs.len(), 160 * metric_table().len() + 1, "every (unit, metric) keeps its latest value");
+        let pairs: HashSet<(&str, &str)> = v
+            .rows
+            .iter()
+            .map(|r| (r.asset_id.as_str(), r.metric.as_str()))
+            .collect();
+        assert_eq!(
+            pairs.len(),
+            160 * metric_table().len() + 1,
+            "every (unit, metric) keeps its latest value"
+        );
         // Each kept list is still the newest values of that pair, oldest first.
         let mut newest: HashMap<(&str, &str), &str> = HashMap::new();
         for w in v.rows.windows(2) {
-            if (w[0].asset_id.as_str(), w[0].metric.as_str()) == (w[1].asset_id.as_str(), w[1].metric.as_str()) {
+            if (w[0].asset_id.as_str(), w[0].metric.as_str())
+                == (w[1].asset_id.as_str(), w[1].metric.as_str())
+            {
                 assert!(w[0].at <= w[1].at);
             }
         }
         for r in &v.rows {
             newest.insert((r.asset_id.as_str(), r.metric.as_str()), r.at.as_str());
         }
-        let latest: String = c.query_row("SELECT MAX(started_at) FROM session WHERE id LIKE 's000-%'", [], |r| r.get(0)).unwrap();
-        assert_eq!(newest[&("u000", "dropout_count")], latest.as_str(), "the newest run of a unit is the one kept last");
+        let latest: String = c
+            .query_row(
+                "SELECT MAX(started_at) FROM session WHERE id LIKE 's000-%'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            newest[&("u000", "dropout_count")],
+            latest.as_str(),
+            "the newest run of a unit is the one kept last"
+        );
     }
 
     #[test]
@@ -1771,14 +2802,22 @@ mod tests {
             let mut m = c.prepare("INSERT INTO measurement(id,session_id,method_id,metric_key,state,numeric_value,unit,quality_flags_json,created_at) VALUES(?1,?2,'m-wf','wow_flutter_rms_percent','measured',0.2,'%','[]','t')").unwrap();
             for r in 0..(MAX_UNIT_ROWS * 5 + 10) {
                 let sid = format!("busy-{r:06}");
-                s.execute(params![sid, format!("2026-11-01T00:00:00.{r:06}Z")]).unwrap();
+                s.execute(params![sid, format!("2026-11-01T00:00:00.{r:06}Z")])
+                    .unwrap();
                 m.execute(params![format!("bm-{r:06}"), sid]).unwrap();
             }
         }
         c.execute_batch("COMMIT").unwrap();
         let v = unit_values(&c).unwrap();
         let assets: HashSet<&str> = v.rows.iter().map(|r| r.asset_id.as_str()).collect();
-        assert_eq!(assets, HashSet::from(["a1", "a2", "busy"]), "older units are not pushed out by a busy one");
-        assert_eq!(v.rows.iter().filter(|r| r.asset_id == "busy").count(), MAX_UNIT_ROWS_PER_PAIR);
+        assert_eq!(
+            assets,
+            HashSet::from(["a1", "a2", "busy"]),
+            "older units are not pushed out by a busy one"
+        );
+        assert_eq!(
+            v.rows.iter().filter(|r| r.asset_id == "busy").count(),
+            MAX_UNIT_ROWS_PER_PAIR
+        );
     }
 }

@@ -59,16 +59,33 @@ fn hours_since_completion(
     asset: &str,
     completed: &str,
 ) -> Result<Option<f64>, String> {
-    let completed: Option<f64> = conn.query_row("SELECT julianday(?1)", [completed], |r| r.get(0)).map_err(err)?;
+    let completed: Option<f64> = conn
+        .query_row("SELECT julianday(?1)", [completed], |r| r.get(0))
+        .map_err(err)?;
     let usage = confirmed_usage(conn, Some(asset))?;
-    Ok(since_completion(usage.get(asset).map_or(&[][..], Vec::as_slice), completed))
+    Ok(since_completion(
+        usage.get(asset).map_or(&[][..], Vec::as_slice),
+        completed,
+    ))
 }
 
 /// Confirmed ledger entries as (hours, julianday(started_at)) per asset, in one pass.
-fn confirmed_usage(conn: &Connection, asset: Option<&str>) -> Result<HashMap<String, Vec<(f64, Option<f64>)>>, String> {
+fn confirmed_usage(
+    conn: &Connection,
+    asset: Option<&str>,
+) -> Result<HashMap<String, Vec<(f64, Option<f64>)>>, String> {
     let mut query = conn.prepare("SELECT asset_id,hours,julianday(started_at) FROM asset_usage WHERE confirmed=1 AND (?1 IS NULL OR asset_id=?1)").map_err(err)?;
     let mut usage: HashMap<String, Vec<(f64, Option<f64>)>> = HashMap::new();
-    for row in query.query_map([asset], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?, r.get::<_, Option<f64>>(2)?))).map_err(err)? {
+    for row in query
+        .query_map([asset], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, f64>(1)?,
+                r.get::<_, Option<f64>>(2)?,
+            ))
+        })
+        .map_err(err)?
+    {
         let (asset, hours, started) = row.map_err(err)?;
         usage.entry(asset).or_default().push((hours, started));
     }
@@ -93,11 +110,32 @@ fn since_completion(entries: &[(f64, Option<f64>)], completed: Option<f64>) -> O
 
 /// Titles of a device profile's tests, read from the synced profile JSON. Unknown profile or test -> no entry.
 fn profile_test_titles(conn: &Connection, profile_id: &str) -> HashMap<String, String> {
-    let json: Option<String> = conn.query_row("SELECT json FROM device_profile WHERE id=?1", [profile_id], |r| r.get(0)).optional().ok().flatten();
-    let Some(value) = json.and_then(|j| serde_json::from_str::<Value>(&j).ok()) else { return HashMap::new() };
-    value["tests"].as_array().map(|tests| {
-        tests.iter().filter_map(|t| Some((t["id"].as_str()?.to_string(), t["title"].as_str()?.chars().take(200).collect::<String>()))).collect()
-    }).unwrap_or_default()
+    let json: Option<String> = conn
+        .query_row(
+            "SELECT json FROM device_profile WHERE id=?1",
+            [profile_id],
+            |r| r.get(0),
+        )
+        .optional()
+        .ok()
+        .flatten();
+    let Some(value) = json.and_then(|j| serde_json::from_str::<Value>(&j).ok()) else {
+        return HashMap::new();
+    };
+    value["tests"]
+        .as_array()
+        .map(|tests| {
+            tests
+                .iter()
+                .filter_map(|t| {
+                    Some((
+                        t["id"].as_str()?.to_string(),
+                        t["title"].as_str()?.chars().take(200).collect::<String>(),
+                    ))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// One pass over each table (never a query per asset), so a fleet of thousands stays interactive.
@@ -110,13 +148,30 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     {
         let mut titles: HashMap<String, HashMap<String, String>> = HashMap::new();
         let mut tests = conn.prepare("SELECT asset_id,test_id,status,created_at,id,profile_id FROM (SELECT asset_id,test_id,status,created_at,id,profile_id,ROW_NUMBER() OVER(PARTITION BY asset_id,test_id ORDER BY julianday(created_at) DESC,id DESC) AS rank FROM device_test_result) WHERE rank=1 ORDER BY asset_id,test_id").map_err(err)?;
-        let rows = tests.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,String>(2)?, r.get::<_,String>(3)?, r.get::<_,String>(4)?, r.get::<_,String>(5)?))).map_err(err)?;
+        let rows = tests
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
+                ))
+            })
+            .map_err(err)?;
         for row in rows {
             let (asset, test, status, created, id, profile) = row.map_err(err)?;
             let mut item = json!({"testId":test,"status":status,"createdAt":created,"id":id});
             if status == "fail" {
-                let name = titles.entry(profile.clone()).or_insert_with(|| profile_test_titles(conn, &profile)).get(&test).cloned();
-                if let Some(name) = name { item["name"] = json!(name); }
+                let name = titles
+                    .entry(profile.clone())
+                    .or_insert_with(|| profile_test_titles(conn, &profile))
+                    .get(&test)
+                    .cloned();
+                if let Some(name) = name {
+                    item["name"] = json!(name);
+                }
             }
             results.entry(asset).or_default().push(item);
         }
@@ -124,14 +179,36 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     // Newest completed session per asset: sessions that name the asset in their snapshot, or ran on a setup that uses it.
     let mut sessions: HashMap<String, String> = HashMap::new();
     {
-        let mut keep = |asset: String, at: Option<String>| { if let Some(at) = at { let e = sessions.entry(asset).or_default(); if *e < at { *e = at; } } };
+        let mut keep = |asset: String, at: Option<String>| {
+            if let Some(at) = at {
+                let e = sessions.entry(asset).or_default();
+                if *e < at {
+                    *e = at;
+                }
+            }
+        };
         let mut direct = conn.prepare("SELECT COALESCE(json_extract(config_snapshot_json,'$.assetId'),json_extract(config_snapshot_json,'$.deviceId')) AS asset,MAX(COALESCE(ended_at,started_at)) FROM session WHERE status='completed' AND json_valid(config_snapshot_json) GROUP BY asset").map_err(err)?;
-        for row in direct.query_map([], |r| Ok((r.get::<_,Option<String>>(0)?, r.get::<_,Option<String>>(1)?))).map_err(err)? {
+        for row in direct
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, Option<String>>(0)?,
+                    r.get::<_, Option<String>>(1)?,
+                ))
+            })
+            .map_err(err)?
+        {
             let (asset, at) = row.map_err(err)?;
-            if let Some(asset) = asset { keep(asset, at); }
+            if let Some(asset) = asset {
+                keep(asset, at);
+            }
         }
         let mut via_setup = conn.prepare("SELECT sc.asset_id,MAX(COALESCE(s.ended_at,s.started_at)) FROM setup_component sc JOIN session s ON s.setup_id=sc.setup_id WHERE s.status='completed' GROUP BY sc.asset_id").map_err(err)?;
-        for row in via_setup.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,Option<String>>(1)?))).map_err(err)? {
+        for row in via_setup
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })
+            .map_err(err)?
+        {
             let (asset, at) = row.map_err(err)?;
             keep(asset, at);
         }
@@ -139,7 +216,10 @@ pub fn snapshot(conn: &Connection) -> Result<Value, String> {
     let mut hours_by_asset: HashMap<String, f64> = HashMap::new();
     {
         let mut q = conn.prepare("SELECT asset_id,COALESCE(SUM(hours),0) FROM asset_usage WHERE confirmed=1 GROUP BY asset_id").map_err(err)?;
-        for row in q.query_map([], |r| Ok((r.get::<_,String>(0)?, r.get::<_,f64>(1)?))).map_err(err)? {
+        for row in q
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))
+            .map_err(err)?
+        {
             let (asset, total) = row.map_err(err)?;
             hours_by_asset.insert(asset, total);
         }
@@ -186,12 +266,26 @@ pub fn reminders(conn: &Connection, asset: Option<&str>) -> Result<Vec<Value>, S
     let mut completions: HashMap<String, (String, Option<f64>, Option<f64>)> = HashMap::new();
     {
         let mut query = conn.prepare(LATEST_COMPLETIONS_SQL).map_err(err)?;
-        for row in query.query_map([asset], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<f64>>(2)?, r.get::<_, Option<f64>>(3)?))).map_err(err)? {
+        for row in query
+            .query_map([asset], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, Option<f64>>(2)?,
+                    r.get::<_, Option<f64>>(3)?,
+                ))
+            })
+            .map_err(err)?
+        {
             let (reminder, at, hours, julian) = row.map_err(err)?;
             completions.insert(reminder, (at, hours, julian));
         }
     }
-    let usage = if completions.is_empty() { HashMap::new() } else { confirmed_usage(conn, asset)? };
+    let usage = if completions.is_empty() {
+        HashMap::new()
+    } else {
+        confirmed_usage(conn, asset)?
+    };
     let mut query = conn.prepare(REMINDERS_SQL).map_err(err)?;
     let mut rows = query.query_map([asset], |r| Ok(json!({"id":r.get::<_,String>(0)?,"assetId":r.get::<_,Option<String>>(1)?,"productId":r.get::<_,Option<String>>(2)?,"title":r.get::<_,String>(3)?,"basis":r.get::<_,String>(4)?,"intervalValue":r.get::<_,f64>(5)?,"warnBefore":r.get::<_,f64>(6)?,"enabled":r.get::<_,bool>(7)?,"snoozedUntil":r.get::<_,Option<String>>(8)?,"createdAt":r.get::<_,String>(9)?}))).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
     for row in &mut rows {
@@ -339,8 +433,16 @@ pub fn snooze(conn: &Connection, id: &str, until: &str) -> Result<(), String> {
 pub fn delete_reminder(conn: &Connection, id: &str) -> Result<(), String> {
     valid_id(id, "reminder id")?;
     let tx = conn.unchecked_transaction().map_err(err)?;
-    tx.execute("UPDATE maintenance_event SET reminder_id=NULL WHERE reminder_id=?1", [id]).map_err(err)?;
-    if tx.execute("DELETE FROM maintenance_reminder WHERE id=?1", [id]).map_err(err)? == 0 {
+    tx.execute(
+        "UPDATE maintenance_event SET reminder_id=NULL WHERE reminder_id=?1",
+        [id],
+    )
+    .map_err(err)?;
+    if tx
+        .execute("DELETE FROM maintenance_reminder WHERE id=?1", [id])
+        .map_err(err)?
+        == 0
+    {
         return Err("reminder not found".into());
     }
     tx.commit().map_err(err)
@@ -369,7 +471,11 @@ pub fn log_maintenance(conn: &Connection, input: &MaintenanceInput) -> Result<St
         // A completion dated after today would reset its reminder and hide it until that date (spec §7).
         // One calendar day of slack: the UI dates events by the user's local calendar day.
         let future: bool = conn
-            .query_row("SELECT julianday(?1) >= julianday(date('now','+2 days'))", [&input.event_at], |r| r.get(0))
+            .query_row(
+                "SELECT julianday(?1) >= julianday(date('now','+2 days'))",
+                [&input.event_at],
+                |r| r.get(0),
+            )
             .map_err(err)?;
         if future {
             return Err("maintenance completion date is in the future".into());
@@ -457,7 +563,9 @@ pub fn place(conn: &mut Connection, asset: &str, position: Option<&str>) -> Resu
 
 /// "Venue / Booth / Position" for a position id; "Unplaced" for none or a position that no longer exists.
 fn location_label(conn: &Connection, position: Option<&str>) -> Result<String, String> {
-    let Some(id) = position else { return Ok("Unplaced".into()) };
+    let Some(id) = position else {
+        return Ok("Unplaced".into());
+    };
     let label: Option<String> = conn
         .query_row("SELECT COALESCE(v.name,'?') || ' / ' || b.name || ' / ' || d.name FROM deck_position d JOIN booth b ON b.id=d.booth_id LEFT JOIN venue v ON v.id=b.venue_id WHERE d.id=?1", [id], |r| r.get(0))
         .optional()
@@ -465,8 +573,18 @@ fn location_label(conn: &Connection, position: Option<&str>) -> Result<String, S
     Ok(label.unwrap_or_else(|| "Unplaced".into()))
 }
 
-fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) -> Result<(), String> {
-    let previous: Option<String> = tx.query_row("SELECT deck_position_id FROM asset WHERE id=?1", [asset], |r| r.get(0)).map_err(err)?;
+fn place_in_transaction(
+    tx: &Connection,
+    asset: &str,
+    position: Option<&str>,
+) -> Result<(), String> {
+    let previous: Option<String> = tx
+        .query_row(
+            "SELECT deck_position_id FROM asset WHERE id=?1",
+            [asset],
+            |r| r.get(0),
+        )
+        .map_err(err)?;
     if previous.as_deref() == position {
         return Ok(()); // not a move: no update and no "Moved from A to A" event
     }
@@ -475,7 +593,11 @@ fn place_in_transaction(tx: &Connection, asset: &str, position: Option<&str>) ->
         params![asset, position, now_iso(&tx)?],
     )
     .map_err(err)?;
-    let description = format!("Moved from {} to {}", location_label(tx, previous.as_deref())?, location_label(tx, position)?);
+    let description = format!(
+        "Moved from {} to {}",
+        location_label(tx, previous.as_deref())?,
+        location_label(tx, position)?
+    );
     log_maintenance(
         &tx,
         &MaintenanceInput {
@@ -522,9 +644,17 @@ pub struct LocationMove {
     pub deck_position_id: Option<String>,
 }
 
-pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Option<&LocationMove>) -> Result<(), String> {
+pub fn delete_location(
+    conn: &mut Connection,
+    kind: &str,
+    id: &str,
+    move_to: Option<&LocationMove>,
+) -> Result<(), String> {
     valid_id(id, "location id")?;
-    valid_opt_id(move_to.and_then(|m| m.deck_position_id.as_deref()), "destination id")?;
+    valid_opt_id(
+        move_to.and_then(|m| m.deck_position_id.as_deref()),
+        "destination id",
+    )?;
     let (scope, delete_sql) = match kind {
         "venue" => ("b.venue_id=?1", "DELETE FROM venue WHERE id=?1"),
         "booth" => ("d.booth_id=?1", "DELETE FROM booth WHERE id=?1"),
@@ -534,7 +664,11 @@ pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Opt
     let tx = conn.transaction().map_err(err)?;
     let assets = {
         let mut query = tx.prepare(&format!("SELECT a.id FROM asset a JOIN deck_position d ON d.id=a.deck_position_id JOIN booth b ON b.id=d.booth_id WHERE a.is_deleted=0 AND {scope}")).map_err(err)?;
-        let rows = query.query_map([id], |row| row.get::<_,String>(0)).map_err(err)?.collect::<Result<Vec<_>,_>>().map_err(err)?;
+        let rows = query
+            .query_map([id], |row| row.get::<_, String>(0))
+            .map_err(err)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(err)?;
         rows
     };
     // Assets deleted in Equipment keep their old placement; release them silently (they are not shown in the
@@ -542,20 +676,37 @@ pub fn delete_location(conn: &mut Connection, kind: &str, id: &str, move_to: Opt
     tx.execute(&format!("UPDATE asset SET deck_position_id=NULL,updated_at=?2 WHERE is_deleted=1 AND deck_position_id IN (SELECT d.id FROM deck_position d JOIN booth b ON b.id=d.booth_id WHERE {scope})"), params![id, now_iso(&tx)?]).map_err(err)?;
     if let Some(target) = move_to {
         if let Some(position) = &target.deck_position_id {
-            let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM deck_position WHERE id=?1)", [position], |r|r.get(0)).map_err(err)?;
-            if !exists { return Err("destination position not found".into()); }
+            let exists: bool = tx
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM deck_position WHERE id=?1)",
+                    [position],
+                    |r| r.get(0),
+                )
+                .map_err(err)?;
+            if !exists {
+                return Err("destination position not found".into());
+            }
             let inside: bool = tx.query_row(&format!("SELECT EXISTS(SELECT 1 FROM deck_position d JOIN booth b ON b.id=d.booth_id WHERE {scope} AND d.id=?2)"), params![id,position], |r|r.get(0)).map_err(err)?;
-            if inside { return Err("destination must be outside the location being deleted".into()); }
+            if inside {
+                return Err("destination must be outside the location being deleted".into());
+            }
         }
         for asset in &assets {
             place_in_transaction(&tx, asset, target.deck_position_id.as_deref())?;
         }
     } else if !assets.is_empty() {
-        return Err(format!("move or unplace {} assets before deleting this location", assets.len()));
+        return Err(format!(
+            "move or unplace {} assets before deleting this location",
+            assets.len()
+        ));
     }
-    let deleted = tx.execute(delete_sql, [id])
-        .map_err(|_| "location is still used by a saved setup or support configuration; no assets were moved".to_string())?;
-    if deleted != 1 { return Err("location not found".into()); }
+    let deleted = tx.execute(delete_sql, [id]).map_err(|_| {
+        "location is still used by a saved setup or support configuration; no assets were moved"
+            .to_string()
+    })?;
+    if deleted != 1 {
+        return Err("location not found".into());
+    }
     tx.commit().map_err(err)
 }
 
@@ -588,7 +739,10 @@ pub async fn reminder_upsert(app: AppHandle, input: ReminderInput) -> Result<Str
     .await?
 }
 #[tauri::command]
-pub async fn reminder_template_upsert(app: AppHandle, input: TemplateInput) -> Result<String, String> {
+pub async fn reminder_template_upsert(
+    app: AppHandle,
+    input: TemplateInput,
+) -> Result<String, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         save_template(&conn, &input)
@@ -668,7 +822,12 @@ pub async fn position_upsert(app: AppHandle, input: LocationInput) -> Result<Str
     .await?
 }
 #[tauri::command]
-pub async fn fleet_location_delete(app: AppHandle, kind: String, id: String, move_to: Option<LocationMove>) -> Result<(), String> {
+pub async fn fleet_location_delete(
+    app: AppHandle,
+    kind: String,
+    id: String,
+    move_to: Option<LocationMove>,
+) -> Result<(), String> {
     crate::db::off_main(move || {
         let mut conn = open_database(&database_path(&app)?)?;
         delete_location(&mut conn, &kind, &id, move_to.as_ref())
@@ -845,27 +1004,90 @@ mod tests {
             let mut conn = database();
             place(&mut conn, "unit", Some("position")).unwrap();
             conn.execute_batch("INSERT INTO venue(id,name,created_at,updated_at) VALUES('destination','Other club','2026-01-01','2026-01-01'); INSERT INTO booth(id,venue_id,name) VALUES('destination-booth','destination','Other booth'); INSERT INTO deck_position(id,booth_id,name) VALUES('destination-position','destination-booth','Right');").unwrap();
-            let id = match kind { "venue" => "venue", "booth" => "booth", _ => "position" };
-            let target = LocationMove { deck_position_id: Some("position".into()) };
-            assert!(delete_location(&mut conn, kind, id, Some(&target)).unwrap_err().contains("outside"));
-            let target = LocationMove { deck_position_id: Some("missing".into()) };
-            assert!(delete_location(&mut conn, kind, id, Some(&target)).unwrap_err().contains("not found"));
-            let target = LocationMove { deck_position_id: Some("destination-position".into()) };
+            let id = match kind {
+                "venue" => "venue",
+                "booth" => "booth",
+                _ => "position",
+            };
+            let target = LocationMove {
+                deck_position_id: Some("position".into()),
+            };
+            assert!(delete_location(&mut conn, kind, id, Some(&target))
+                .unwrap_err()
+                .contains("outside"));
+            let target = LocationMove {
+                deck_position_id: Some("missing".into()),
+            };
+            assert!(delete_location(&mut conn, kind, id, Some(&target))
+                .unwrap_err()
+                .contains("not found"));
+            let target = LocationMove {
+                deck_position_id: Some("destination-position".into()),
+            };
             conn.execute_batch("INSERT INTO setup(id,name,deck_position_id,created_at) VALUES('setup','Saved chain','position','2026-01-01');").unwrap();
-            let before: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get(0)).unwrap();
+            let before: i64 = conn
+                .query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0))
+                .unwrap();
             assert!(delete_location(&mut conn, kind, id, Some(&target)).is_err());
-            assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,String>(0)).unwrap(), "position");
-            assert_eq!(conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get::<_,i64>(0)).unwrap(), before);
-            conn.execute("DELETE FROM setup WHERE id='setup'", []).unwrap();
+            assert_eq!(
+                conn.query_row(
+                    "SELECT deck_position_id FROM asset WHERE id='unit'",
+                    [],
+                    |r| r.get::<_, String>(0)
+                )
+                .unwrap(),
+                "position"
+            );
+            assert_eq!(
+                conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                before
+            );
+            conn.execute("DELETE FROM setup WHERE id='setup'", [])
+                .unwrap();
             delete_location(&mut conn, kind, id, Some(&target)).unwrap();
-            assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,String>(0)).unwrap(), "destination-position");
-            assert_eq!(conn.query_row("SELECT COUNT(*) FROM asset", [], |r|r.get::<_,i64>(0)).unwrap(), 2);
-            assert_eq!(conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r|r.get::<_,i64>(0)).unwrap(), before + 1);
+            assert_eq!(
+                conn.query_row(
+                    "SELECT deck_position_id FROM asset WHERE id='unit'",
+                    [],
+                    |r| r.get::<_, String>(0)
+                )
+                .unwrap(),
+                "destination-position"
+            );
+            assert_eq!(
+                conn.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get::<_, i64>(0))
+                    .unwrap(),
+                2
+            );
+            assert_eq!(
+                conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                before + 1
+            );
         }
         let mut conn = database();
         place(&mut conn, "unit", Some("position")).unwrap();
-        delete_location(&mut conn, "venue", "venue", Some(&LocationMove { deck_position_id: None })).unwrap();
-        assert_eq!(conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r|r.get::<_,Option<String>>(0)).unwrap(), None);
+        delete_location(
+            &mut conn,
+            "venue",
+            "venue",
+            Some(&LocationMove {
+                deck_position_id: None,
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            conn.query_row(
+                "SELECT deck_position_id FROM asset WHERE id='unit'",
+                [],
+                |r| r.get::<_, Option<String>>(0)
+            )
+            .unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -1055,17 +1277,39 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["eventAt"], "2026-01-03T23:00:00Z");
         assert!(maintenance_filtered(&conn, Some("unit"), Some("2026-02-31"), None, None).is_err());
-        assert!(
-            maintenance_filtered(&conn, Some("unit"), Some("2026-01-03"), Some("2026-01-01"), None)
-                .is_err()
-        );
+        assert!(maintenance_filtered(
+            &conn,
+            Some("unit"),
+            Some("2026-01-03"),
+            Some("2026-01-01"),
+            None
+        )
+        .is_err());
         assert!(maintenance_filtered(&conn, Some("unit"), None, None, Some("injected")).is_err());
-        log_maintenance(&conn, &MaintenanceInput {
-            asset_id: "unit".into(), event_type: "inspect".into(),
-            event_at: "9999-12-31T23:59:59.999Z".into(), description: None, reminder_id: None,
-        }).unwrap();
-        let maximum_day = maintenance_filtered(&conn, Some("unit"), Some("9999-12-31"), Some("9999-12-31"), None).unwrap();
-        assert_eq!(maximum_day.len(), 1, "maximum accepted date must remain inclusive without calendar overflow");
+        log_maintenance(
+            &conn,
+            &MaintenanceInput {
+                asset_id: "unit".into(),
+                event_type: "inspect".into(),
+                event_at: "9999-12-31T23:59:59.999Z".into(),
+                description: None,
+                reminder_id: None,
+            },
+        )
+        .unwrap();
+        let maximum_day = maintenance_filtered(
+            &conn,
+            Some("unit"),
+            Some("9999-12-31"),
+            Some("9999-12-31"),
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            maximum_day.len(),
+            1,
+            "maximum accepted date must remain inclusive without calendar overflow"
+        );
         assert_eq!(maximum_day[0]["eventAt"], "9999-12-31T23:59:59.999Z");
     }
 
@@ -1075,48 +1319,154 @@ mod tests {
         conn.execute_batch("PRAGMA foreign_keys=ON; CREATE TABLE schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL, app_version TEXT);").unwrap();
         for (version, sql) in crate::db::MIGRATIONS.iter().filter(|(v, _)| *v != 17) {
             conn.execute_batch(sql).unwrap();
-            conn.execute("INSERT OR IGNORE INTO schema_migration(version,applied_at) VALUES(?1,'t')", [version]).unwrap();
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migration(version,applied_at) VALUES(?1,'t')",
+                [version],
+            )
+            .unwrap();
         }
         conn.execute_batch("INSERT INTO asset(id,nickname,created_at,updated_at) VALUES('old','Old deck','t','t');
             INSERT INTO maintenance_event(id,asset_id,event_type,event_at,created_at) VALUES('e','old','clean','2026-01-01T00:00:00Z','t');").unwrap();
         crate::db::apply_migrations(&conn).unwrap();
         let (position, events): (Option<String>, i64) = conn.query_row("SELECT (SELECT deck_position_id FROM asset WHERE id='old'),(SELECT COUNT(*) FROM maintenance_event)", [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
-        assert_eq!((position, events), (None, 1), "existing assets start unplaced and keep their history");
-        let reminder_link: Option<String> = conn.query_row("SELECT reminder_id FROM maintenance_event WHERE id='e'", [], |r| r.get(0)).unwrap();
+        assert_eq!(
+            (position, events),
+            (None, 1),
+            "existing assets start unplaced and keep their history"
+        );
+        let reminder_link: Option<String> = conn
+            .query_row(
+                "SELECT reminder_id FROM maintenance_event WHERE id='e'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(reminder_link, None);
-        let before: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0)).unwrap();
+        let before: i64 = conn
+            .query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0))
+            .unwrap();
         crate::db::apply_migrations(&conn).unwrap();
-        let after: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0)).unwrap();
+        let after: i64 = conn
+            .query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(before, after);
-        let violations: i64 = conn.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
+        let violations: i64 = conn
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
         assert_eq!(violations, 0);
     }
 
     #[test]
     fn every_command_input_id_is_validated_before_it_reaches_sql() {
         let mut conn = database();
-        let bad = ["", " ", "a b", "tab\there", "nul\0id", "line\nbreak", "\u{e9}clair"];
+        let bad = [
+            "",
+            " ",
+            "a b",
+            "tab\there",
+            "nul\0id",
+            "line\nbreak",
+            "\u{e9}clair",
+        ];
         let too_long = "x".repeat(129);
         for id in bad.iter().copied().chain([too_long.as_str()]) {
             assert!(valid_id(id, "id").is_err(), "{id:?}");
             assert!(place(&mut conn, id, None).is_err(), "asset {id:?}");
-            assert!(place(&mut conn, "unit", Some(id)).is_err(), "position {id:?}");
-            assert!(snooze(&conn, id, "2026-10-23T00:00:00Z").is_err(), "snooze {id:?}");
+            assert!(
+                place(&mut conn, "unit", Some(id)).is_err(),
+                "position {id:?}"
+            );
+            assert!(
+                snooze(&conn, id, "2026-10-23T00:00:00Z").is_err(),
+                "snooze {id:?}"
+            );
             assert!(apply_template(&conn, id, "unit").is_err());
             assert!(delete_location(&mut conn, "booth", id, None).is_err());
-            assert!(save_location(&conn, "booth", &LocationInput { id: Some(id.into()), parent_id: "venue".into(), name: "x".into() }).is_err());
-            assert!(save_location(&conn, "booth", &LocationInput { id: None, parent_id: id.into(), name: "x".into() }).is_err());
-            assert!(save_reminder(&conn, &ReminderInput { id: Some(id.into()), ..reminder("unit") }).is_err());
-            assert!(save_template(&conn, &TemplateInput { id: None, product_id: id.into(), title: "t".into(), basis: "days".into(), interval_value: 30.0, warn_before: None }).is_err());
-            assert!(log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at: "2026-01-01T00:00:00Z".into(), description: None, reminder_id: Some(id.into()) }).is_err());
+            assert!(save_location(
+                &conn,
+                "booth",
+                &LocationInput {
+                    id: Some(id.into()),
+                    parent_id: "venue".into(),
+                    name: "x".into()
+                }
+            )
+            .is_err());
+            assert!(save_location(
+                &conn,
+                "booth",
+                &LocationInput {
+                    id: None,
+                    parent_id: id.into(),
+                    name: "x".into()
+                }
+            )
+            .is_err());
+            assert!(save_reminder(
+                &conn,
+                &ReminderInput {
+                    id: Some(id.into()),
+                    ..reminder("unit")
+                }
+            )
+            .is_err());
+            assert!(save_template(
+                &conn,
+                &TemplateInput {
+                    id: None,
+                    product_id: id.into(),
+                    title: "t".into(),
+                    basis: "days".into(),
+                    interval_value: 30.0,
+                    warn_before: None
+                }
+            )
+            .is_err());
+            assert!(log_maintenance(
+                &conn,
+                &MaintenanceInput {
+                    asset_id: "unit".into(),
+                    event_type: "clean".into(),
+                    event_at: "2026-01-01T00:00:00Z".into(),
+                    description: None,
+                    reminder_id: Some(id.into())
+                }
+            )
+            .is_err());
             assert!(maintenance_filtered(&conn, Some(id), None, None, None).is_err());
         }
         for field in ["", "  ", "x\0y"] {
-            assert!(save_location(&conn, "booth", &LocationInput { id: None, parent_id: "venue".into(), name: field.into() }).is_err(), "{field:?}");
+            assert!(
+                save_location(
+                    &conn,
+                    "booth",
+                    &LocationInput {
+                        id: None,
+                        parent_id: "venue".into(),
+                        name: field.into()
+                    }
+                )
+                .is_err(),
+                "{field:?}"
+            );
         }
-        let long_title = ReminderInput { title: "t".repeat(201), ..reminder("unit") };
+        let long_title = ReminderInput {
+            title: "t".repeat(201),
+            ..reminder("unit")
+        };
         assert!(save_reminder(&conn, &long_title).is_err());
-        assert!(save_location(&conn, "shelf", &LocationInput { id: None, parent_id: "venue".into(), name: "x".into() }).is_err());
+        assert!(save_location(
+            &conn,
+            "shelf",
+            &LocationInput {
+                id: None,
+                parent_id: "venue".into(),
+                name: "x".into()
+            }
+        )
+        .is_err());
         assert!(delete_location(&mut conn, "asset", "unit", None).is_err());
         let ok = "template:".to_string() + &"a".repeat(64);
         assert!(valid_id(&ok, "id").is_ok());
@@ -1127,12 +1477,24 @@ mod tests {
         let conn = database();
         let id = save_reminder(&conn, &reminder("unit")).unwrap();
         snooze(&conn, &id, "2026-10-23T00:00:00.000Z").unwrap();
-        let until: Option<String> = conn.query_row("SELECT snoozed_until FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        let until: Option<String> = conn
+            .query_row(
+                "SELECT snoozed_until FROM maintenance_reminder WHERE id=?1",
+                [&id],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(until.as_deref(), Some("2026-10-23T00:00:00.000Z"));
         assert!(snooze(&conn, &id, "tomorrow").is_err());
         assert!(snooze(&conn, &id, "2026-02-30T00:00:00Z").is_err());
         assert!(snooze(&conn, "missing", "2026-10-23T00:00:00Z").is_err());
-        let still: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        let still: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1",
+                [&id],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(still, 1, "snoozing never deletes the reminder");
     }
 
@@ -1142,28 +1504,75 @@ mod tests {
         place(&mut conn, "unit", Some("position")).unwrap();
         place(&mut conn, "unit", None).unwrap();
         let events = maintenance_events(&conn, "unit").unwrap();
-        let descriptions: Vec<&str> = events.iter().filter_map(|e| e["description"].as_str()).collect();
-        assert!(descriptions.contains(&"Moved from Unplaced to Club / Booth / Left"), "{descriptions:?}");
-        assert!(descriptions.contains(&"Moved from Club / Booth / Left to Unplaced"), "{descriptions:?}");
+        let descriptions: Vec<&str> = events
+            .iter()
+            .filter_map(|e| e["description"].as_str())
+            .collect();
+        assert!(
+            descriptions.contains(&"Moved from Unplaced to Club / Booth / Left"),
+            "{descriptions:?}"
+        );
+        assert!(
+            descriptions.contains(&"Moved from Club / Booth / Left to Unplaced"),
+            "{descriptions:?}"
+        );
         conn.execute("UPDATE device_profile SET json=?1 WHERE id='profile'", [r#"{"tests":[{"id":"t-fail","title":"Pitch is accurate"},{"id":"t-pass","title":"Output is clean"}]}"#]).unwrap();
         conn.execute_batch("INSERT INTO device_test_result(id,asset_id,profile_id,test_id,status,created_at) VALUES('r1','unit','profile','t-fail','fail','2026-10-01T00:00:00Z'),('r2','unit','profile','t-pass','pass','2026-10-01T00:00:00Z'),('r3','unit','profile','unlisted','fail','2026-10-01T00:00:00Z');").unwrap();
         let snap = snapshot(&conn).unwrap();
-        let unit = snap["rows"].as_array().unwrap().iter().find(|r| r["assetId"] == "unit").unwrap();
-        let named: Vec<(String, Option<String>)> = unit["lastResults"].as_array().unwrap().iter()
-            .map(|r| (r["testId"].as_str().unwrap().to_string(), r["name"].as_str().map(str::to_string))).collect();
+        let unit = snap["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["assetId"] == "unit")
+            .unwrap();
+        let named: Vec<(String, Option<String>)> = unit["lastResults"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| {
+                (
+                    r["testId"].as_str().unwrap().to_string(),
+                    r["name"].as_str().map(str::to_string),
+                )
+            })
+            .collect();
         assert!(named.contains(&("t-fail".into(), Some("Pitch is accurate".into()))));
-        assert!(named.contains(&("t-pass".into(), None)), "only failing tests are named");
-        assert!(named.contains(&("unlisted".into(), None)), "an unknown test falls back to its id in the UI");
+        assert!(
+            named.contains(&("t-pass".into(), None)),
+            "only failing tests are named"
+        );
+        assert!(
+            named.contains(&("unlisted".into(), None)),
+            "an unknown test falls back to its id in the UI"
+        );
     }
 
     #[test]
     fn maintenance_list_without_an_asset_spans_the_fleet_newest_first() {
         let conn = database();
-        for (asset, at) in [("unit", "2026-01-01T00:00:00Z"), ("other", "2026-02-01T00:00:00Z")] {
-            log_maintenance(&conn, &MaintenanceInput { asset_id: asset.into(), event_type: "inspect".into(), event_at: at.into(), description: None, reminder_id: None }).unwrap();
+        for (asset, at) in [
+            ("unit", "2026-01-01T00:00:00Z"),
+            ("other", "2026-02-01T00:00:00Z"),
+        ] {
+            log_maintenance(
+                &conn,
+                &MaintenanceInput {
+                    asset_id: asset.into(),
+                    event_type: "inspect".into(),
+                    event_at: at.into(),
+                    description: None,
+                    reminder_id: None,
+                },
+            )
+            .unwrap();
         }
         let all = maintenance_filtered(&conn, None, None, None, None).unwrap();
-        assert_eq!(all.iter().map(|e| e["assetName"].as_str().unwrap()).collect::<Vec<_>>(), ["Other", "Deck"]);
+        assert_eq!(
+            all.iter()
+                .map(|e| e["assetName"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["Other", "Deck"]
+        );
         let one = maintenance_filtered(&conn, Some("unit"), None, None, None).unwrap();
         assert_eq!(one.len(), 1);
         assert!(maintenance_filtered(&conn, Some("missing"), None, None, None).is_err());
@@ -1184,7 +1593,11 @@ mod tests {
             conn.execute("INSERT INTO setup_component(id,setup_id,role,asset_id) VALUES(?1,'setup','turntable',?2)", params![format!("sc-{i}"), format!("fleet-{i}")]).unwrap();
             for t in 0..8 {
                 for run in 0..2 {
-                    let status = if t == 0 && run == 1 && i % 10 == 0 { "fail" } else { "pass" };
+                    let status = if t == 0 && run == 1 && i % 10 == 0 {
+                        "fail"
+                    } else {
+                        "pass"
+                    };
                     conn.execute("INSERT INTO device_test_result(id,asset_id,profile_id,test_id,status,created_at) VALUES(?1,?2,'profile',?3,?4,?5)",
                         params![format!("res-{i}-{t}-{run}"), format!("fleet-{i}"), format!("t{t}"), status, format!("2026-10-{:02}T00:00:00Z", 10 + run)]).unwrap();
                 }
@@ -1197,12 +1610,35 @@ mod tests {
         let snap = snapshot(&conn).unwrap();
         let elapsed = started.elapsed();
         let rows = snap["rows"].as_array().unwrap();
-        assert_eq!(rows.len(), 2002, "2000 fleet assets plus the two fixture assets");
-        let failing = rows.iter().filter(|r| r["lastResults"].as_array().unwrap().iter().any(|x| x["status"] == "fail")).count();
+        assert_eq!(
+            rows.len(),
+            2002,
+            "2000 fleet assets plus the two fixture assets"
+        );
+        let failing = rows
+            .iter()
+            .filter(|r| {
+                r["lastResults"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|x| x["status"] == "fail")
+            })
+            .count();
         assert_eq!(failing, 200);
         let sample = rows.iter().find(|r| r["assetId"] == "fleet-7").unwrap();
-        assert_eq!((sample["hoursTotal"].as_f64(), sample["reminders"].as_array().unwrap().len(), sample["lastResults"].as_array().unwrap().len()), (Some(3.0), 1, 8));
-        assert!(elapsed < std::time::Duration::from_secs(10), "2000-asset overview took {elapsed:?}");
+        assert_eq!(
+            (
+                sample["hoursTotal"].as_f64(),
+                sample["reminders"].as_array().unwrap().len(),
+                sample["lastResults"].as_array().unwrap().len()
+            ),
+            (Some(3.0), 1, 8)
+        );
+        assert!(
+            elapsed < std::time::Duration::from_secs(10),
+            "2000-asset overview took {elapsed:?}"
+        );
     }
 
     /// Review FS-23: an asset deleted in Equipment (soft delete) kept its deck_position_id, so its old
@@ -1210,17 +1646,41 @@ mod tests {
     #[test]
     fn regression_soft_deleted_asset_does_not_block_location_delete() {
         for kind in ["venue", "booth", "position"] {
-            for move_to in [None, Some(LocationMove { deck_position_id: None })] {
+            for move_to in [
+                None,
+                Some(LocationMove {
+                    deck_position_id: None,
+                }),
+            ] {
                 let mut conn = database();
                 place(&mut conn, "unit", Some("position")).unwrap();
-                conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", []).unwrap();
-                let before: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0)).unwrap();
-                delete_location(&mut conn, kind, kind, move_to.as_ref()).unwrap_or_else(|e| panic!("{kind} {move_to:?}: {e}"));
-                let position: Option<String> = conn.query_row("SELECT deck_position_id FROM asset WHERE id='unit'", [], |r| r.get(0)).unwrap();
-                assert_eq!(position, None, "the deleted asset is released from the removed location");
-                let deleted: i64 = conn.query_row("SELECT is_deleted FROM asset WHERE id='unit'", [], |r| r.get(0)).unwrap();
+                conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", [])
+                    .unwrap();
+                let before: i64 = conn
+                    .query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0))
+                    .unwrap();
+                delete_location(&mut conn, kind, kind, move_to.as_ref())
+                    .unwrap_or_else(|e| panic!("{kind} {move_to:?}: {e}"));
+                let position: Option<String> = conn
+                    .query_row(
+                        "SELECT deck_position_id FROM asset WHERE id='unit'",
+                        [],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    position, None,
+                    "the deleted asset is released from the removed location"
+                );
+                let deleted: i64 = conn
+                    .query_row("SELECT is_deleted FROM asset WHERE id='unit'", [], |r| {
+                        r.get(0)
+                    })
+                    .unwrap();
                 assert_eq!(deleted, 1, "the asset stays deleted");
-                let after: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0)).unwrap();
+                let after: i64 = conn
+                    .query_row("SELECT COUNT(*) FROM maintenance_event", [], |r| r.get(0))
+                    .unwrap();
                 assert_eq!(after, before, "no move event is logged for a deleted asset");
             }
         }
@@ -1228,8 +1688,11 @@ mod tests {
         let mut conn = database();
         place(&mut conn, "unit", Some("position")).unwrap();
         place(&mut conn, "other", Some("position")).unwrap();
-        conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", []).unwrap();
-        assert!(delete_location(&mut conn, "position", "position", None).unwrap_err().contains("move or unplace 1 assets"));
+        conn.execute("UPDATE asset SET is_deleted=1 WHERE id='unit'", [])
+            .unwrap();
+        assert!(delete_location(&mut conn, "position", "position", None)
+            .unwrap_err()
+            .contains("move or unplace 1 assets"));
     }
 
     /// Review FS-23: moving an asset to the position it already occupies logged "Moved from A to A".
@@ -1237,12 +1700,18 @@ mod tests {
     fn regression_moving_to_the_current_position_logs_no_event() {
         let mut conn = database();
         place(&mut conn, "unit", None).unwrap();
-        assert!(maintenance_events(&conn, "unit").unwrap().is_empty(), "Unplaced -> Unplaced is not a move");
+        assert!(
+            maintenance_events(&conn, "unit").unwrap().is_empty(),
+            "Unplaced -> Unplaced is not a move"
+        );
         place(&mut conn, "unit", Some("position")).unwrap();
         place(&mut conn, "unit", Some("position")).unwrap();
         let events = maintenance_events(&conn, "unit").unwrap();
         assert_eq!(events.len(), 1, "{events:?}");
-        assert_eq!(events[0]["description"], "Moved from Unplaced to Club / Booth / Left");
+        assert_eq!(
+            events[0]["description"],
+            "Moved from Unplaced to Club / Booth / Left"
+        );
     }
 
     /// Review FS-23: a completion dated in the future silently reset its reminder. It is now refused
@@ -1251,12 +1720,33 @@ mod tests {
     fn regression_future_dated_completion_is_rejected() {
         let conn = database();
         let id = save_reminder(&conn, &reminder("unit")).unwrap();
-        let at = |offset: &str| -> String { conn.query_row("SELECT strftime('%Y-%m-%dT12:00:00.000Z','now',?1)", [offset], |r| r.get(0)).unwrap() };
-        let complete = |event_at: String| log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at, description: None, reminder_id: Some(id.clone()) });
+        let at = |offset: &str| -> String {
+            conn.query_row(
+                "SELECT strftime('%Y-%m-%dT12:00:00.000Z','now',?1)",
+                [offset],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
+        let complete = |event_at: String| {
+            log_maintenance(
+                &conn,
+                &MaintenanceInput {
+                    asset_id: "unit".into(),
+                    event_type: "clean".into(),
+                    event_at,
+                    description: None,
+                    reminder_id: Some(id.clone()),
+                },
+            )
+        };
         complete(at("-1 day")).unwrap();
         let error = complete(at("+2 days")).unwrap_err();
         assert!(error.contains("future"), "{error}");
-        assert_eq!(reminders(&conn, Some("unit")).unwrap()[0]["lastDoneAt"], at("-1 day"));
+        assert_eq!(
+            reminders(&conn, Some("unit")).unwrap()[0]["lastDoneAt"],
+            at("-1 day")
+        );
         complete(at("+1 day")).expect("tomorrow (UTC) is today somewhere ahead of UTC");
         assert!(complete("9999-12-31T23:59:59.999Z".into()).is_err());
     }
@@ -1268,8 +1758,15 @@ mod tests {
         let conn = database();
         for sql in [REMINDERS_SQL, LATEST_COMPLETIONS_SQL] {
             let mut q = conn.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
-            let plan: Vec<String> = q.query_map([Option::<String>::None], |r| r.get::<_, String>(3)).unwrap().collect::<Result<_, _>>().unwrap();
-            assert!(plan.iter().all(|step| !step.contains("CORRELATED")), "no per-reminder subquery: {plan:?}");
+            let plan: Vec<String> = q
+                .query_map([Option::<String>::None], |r| r.get::<_, String>(3))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            assert!(
+                plan.iter().all(|step| !step.contains("CORRELATED")),
+                "no per-reminder subquery: {plan:?}"
+            );
         }
         conn.execute_batch("BEGIN").unwrap();
         for i in 0..1000 {
@@ -1279,7 +1776,11 @@ mod tests {
                 conn.execute("INSERT INTO maintenance_reminder(id,asset_id,title,basis,interval_value,warn_before,created_at) VALUES(?1,?2,'Clean',?3,90,14,'2026-01-01T00:00:00Z')", params![format!("rem-{r}-{i}"), asset, basis]).unwrap();
             }
             for e in 0..10 {
-                let reminder = match e { 3 => Some(format!("rem-days-{i}")), 7 => Some(format!("rem-hours-{i}")), _ => None };
+                let reminder = match e {
+                    3 => Some(format!("rem-days-{i}")),
+                    7 => Some(format!("rem-hours-{i}")),
+                    _ => None,
+                };
                 conn.execute("INSERT INTO maintenance_event(id,asset_id,event_type,event_at,reminder_id,created_at) VALUES(?1,?2,'other',?3,?4,'t')", params![format!("ev-{i}-{e}"), asset, format!("2026-0{}-01T00:00:00Z", e % 9 + 1), reminder]).unwrap();
             }
             for u in 0..3 {
@@ -1295,11 +1796,22 @@ mod tests {
         assert_eq!(days["lastDoneAt"], "2026-04-01T00:00:00Z");
         let hours = all.iter().find(|r| r["id"] == "rem-hours-5").unwrap();
         assert_eq!(hours["lastDoneAt"], "2026-08-01T00:00:00Z");
-        assert_eq!(hours["hoursSinceCompletion"], 2.0, "only the usage entry starting after the completion counts");
+        assert_eq!(
+            hours["hoursSinceCompletion"], 2.0,
+            "only the usage entry starting after the completion counts"
+        );
         assert_eq!(days["hoursSinceCompletion"], 4.0);
         let one = reminders(&conn, Some("fleet-5")).unwrap();
-        assert_eq!(one.iter().map(|r| r["hoursSinceCompletion"].clone()).collect::<Vec<_>>(), [json!(4.0), json!(2.0)]);
-        assert!(elapsed < std::time::Duration::from_millis(200), "reminders for 1k assets took {elapsed:?}");
+        assert_eq!(
+            one.iter()
+                .map(|r| r["hoursSinceCompletion"].clone())
+                .collect::<Vec<_>>(),
+            [json!(4.0), json!(2.0)]
+        );
+        assert!(
+            elapsed < std::time::Duration::from_millis(200),
+            "reminders for 1k assets took {elapsed:?}"
+        );
     }
 
     /// Review FS-23: templates (and reminders) could not be deleted, so a product with a template could never
@@ -1308,15 +1820,43 @@ mod tests {
     fn regression_reminder_templates_can_be_deleted_so_the_product_can_be() {
         let conn = database();
         conn.execute_batch("INSERT INTO product(id,category,model,created_at,updated_at) VALUES('model','turntable','Reference','2026-01-01','2026-01-01');").unwrap();
-        let template = save_template(&conn, &TemplateInput { id: None, product_id: "model".into(), title: "Clean faders".into(), basis: "days".into(), interval_value: 180.0, warn_before: None }).unwrap();
-        assert!(conn.execute("DELETE FROM product WHERE id='model'", []).is_err(), "precondition: the template blocks the product delete");
+        let template = save_template(
+            &conn,
+            &TemplateInput {
+                id: None,
+                product_id: "model".into(),
+                title: "Clean faders".into(),
+                basis: "days".into(),
+                interval_value: 180.0,
+                warn_before: None,
+            },
+        )
+        .unwrap();
+        assert!(
+            conn.execute("DELETE FROM product WHERE id='model'", [])
+                .is_err(),
+            "precondition: the template blocks the product delete"
+        );
         delete_reminder(&conn, &template).unwrap();
-        conn.execute("DELETE FROM product WHERE id='model'", []).unwrap();
-        assert!(delete_reminder(&conn, &template).unwrap_err().contains("not found"));
+        conn.execute("DELETE FROM product WHERE id='model'", [])
+            .unwrap();
+        assert!(delete_reminder(&conn, &template)
+            .unwrap_err()
+            .contains("not found"));
         assert!(delete_reminder(&conn, "bad id").is_err());
         // An asset reminder with completion history: the reminder goes, the logged maintenance stays.
         let id = save_reminder(&conn, &reminder("unit")).unwrap();
-        log_maintenance(&conn, &MaintenanceInput { asset_id: "unit".into(), event_type: "clean".into(), event_at: "2026-01-01T00:00:00Z".into(), description: None, reminder_id: Some(id.clone()) }).unwrap();
+        log_maintenance(
+            &conn,
+            &MaintenanceInput {
+                asset_id: "unit".into(),
+                event_type: "clean".into(),
+                event_at: "2026-01-01T00:00:00Z".into(),
+                description: None,
+                reminder_id: Some(id.clone()),
+            },
+        )
+        .unwrap();
         delete_reminder(&conn, &id).unwrap();
         assert!(reminders(&conn, Some("unit")).unwrap().is_empty());
         let events = maintenance_events(&conn, "unit").unwrap();
@@ -1334,13 +1874,33 @@ mod tests {
         crate::db::apply_migrations(&conn).unwrap();
         crate::catalog::seed_if_empty(&conn).unwrap();
         let profile = |id: &str, model: &str| json!({"schemaVersion": 1, "id": id, "manufacturer": "Acme", "model": model, "category": "turntable", "summary": "Deck", "documents": [], "specs": [], "tests": []});
-        let synced = crate::devices::sync_profiles(&mut conn, &[profile("keep", "K-1"), profile("gone", "G-1")]).unwrap();
+        let synced = crate::devices::sync_profiles(
+            &mut conn,
+            &[profile("keep", "K-1"), profile("gone", "G-1")],
+        )
+        .unwrap();
         let asset = synced[1].asset_id.clone().unwrap();
         let id = save_reminder(&conn, &reminder(&asset)).unwrap();
         crate::devices::sync_profiles(&mut conn, &[profile("keep", "K-1")]).unwrap();
-        let (exists, deleted): (i64, i64) = conn.query_row("SELECT COUNT(*),COALESCE(MAX(is_deleted),0) FROM asset WHERE id=?1", [&asset], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
-        assert_eq!((exists, deleted), (1, 1), "the asset is retired, not hard-deleted");
-        let kept: i64 = conn.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1", [&id], |r| r.get(0)).unwrap();
+        let (exists, deleted): (i64, i64) = conn
+            .query_row(
+                "SELECT COUNT(*),COALESCE(MAX(is_deleted),0) FROM asset WHERE id=?1",
+                [&asset],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            (exists, deleted),
+            (1, 1),
+            "the asset is retired, not hard-deleted"
+        );
+        let kept: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM maintenance_reminder WHERE id=?1",
+                [&id],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(kept, 1, "the reminder is not cascade-deleted");
     }
 
@@ -1350,9 +1910,15 @@ mod tests {
         let lib = include_str!("lib.rs");
         let start = lib.find("// [FS-23] handlers").unwrap();
         let end = start + lib[start..].find("// [FS-30] handlers").unwrap();
-        assert!(lib[start..end].contains("fleet::reminder_delete"), "fleet::reminder_delete is not in the [FS-23] handlers block");
+        assert!(
+            lib[start..end].contains("fleet::reminder_delete"),
+            "fleet::reminder_delete is not in the [FS-23] handlers block"
+        );
         let src = include_str!("fleet.rs");
-        assert!(src.contains(concat!("pub async fn ", "reminder_delete(")), "reminder_delete must be async via db::off_main");
+        assert!(
+            src.contains(concat!("pub async fn ", "reminder_delete(")),
+            "reminder_delete must be async via db::off_main"
+        );
     }
 
     /// The location-delete FK error names what can actually hold a location: a saved setup or a support configuration.
@@ -1361,7 +1927,10 @@ mod tests {
         let mut conn = database();
         conn.execute_batch("INSERT INTO support_configuration(id,deck_position_id,name) VALUES('support','position','Stand');").unwrap();
         let error = delete_location(&mut conn, "position", "position", None).unwrap_err();
-        assert!(error.contains("saved setup or support configuration"), "{error}");
+        assert!(
+            error.contains("saved setup or support configuration"),
+            "{error}"
+        );
         assert!(!error.contains("diagnostic"), "{error}");
     }
 }

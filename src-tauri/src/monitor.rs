@@ -165,7 +165,11 @@ fn opt_text(name: &str, v: &Option<String>, max: usize) -> Result<Option<String>
                 return Err(format!("{name} must not contain control characters"));
             }
             let t = s.trim();
-            Ok(if t.is_empty() { None } else { Some(t.to_string()) })
+            Ok(if t.is_empty() {
+                None
+            } else {
+                Some(t.to_string())
+            })
         }
     }
 }
@@ -175,7 +179,10 @@ fn opt_text(name: &str, v: &Option<String>, max: usize) -> Result<Option<String>
 /// characters; empty is `None`.
 pub fn clean_label(v: &Option<String>, max: usize) -> Option<String> {
     let s = v.as_deref()?;
-    let spaced: String = s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+    let spaced: String = s
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect();
     let joined = spaced.split_whitespace().collect::<Vec<_>>().join(" ");
     let cut: String = joined.chars().take(max).collect();
     let t = cut.trim();
@@ -188,14 +195,19 @@ pub fn clean_label(v: &Option<String>, max: usize) -> Option<String> {
 
 fn check_num(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(format!("{name} must be a number between {lo} and {hi}")),
+        Some(x) if !x.is_finite() || x < lo || x > hi => {
+            Err(format!("{name} must be a number between {lo} and {hi}"))
+        }
         _ => Ok(()),
     }
 }
 
 /// Event kinds are short camelCase identifiers (`snrDrop`, `dropouts`, `deviceLost`, ...).
 pub fn valid_kind(kind: &str) -> bool {
-    !kind.is_empty() && kind.len() <= 32 && kind.starts_with(|c: char| c.is_ascii_lowercase()) && kind.chars().all(|c| c.is_ascii_alphanumeric())
+    !kind.is_empty()
+        && kind.len() <= 32
+        && kind.starts_with(|c: char| c.is_ascii_lowercase())
+        && kind.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 fn valid_deck(deck: &str) -> bool {
@@ -269,7 +281,12 @@ pub fn validate_minute(m: &MinuteInput) -> Result<(), String> {
     if !valid_deck(&m.deck) {
         return Err("minute deck must be A, B, C or D".into());
     }
-    for (n, v) in [("snrDbMin", m.snr_db_min), ("snrDbMean", m.snr_db_mean), ("humDbMax", m.hum_db_max), ("driftDegMax", m.drift_deg_max)] {
+    for (n, v) in [
+        ("snrDbMin", m.snr_db_min),
+        ("snrDbMean", m.snr_db_mean),
+        ("humDbMax", m.hum_db_max),
+        ("driftDegMax", m.drift_deg_max),
+    ] {
         check_num(n, v, -1000.0, 1000.0)?;
     }
     if m.dropouts.map_or(false, |d| !(0..=100_000).contains(&d)) {
@@ -283,9 +300,15 @@ pub fn validate_minute(m: &MinuteInput) -> Result<(), String> {
 pub fn session_start(conn: &Connection, i: &SessionStartInput) -> Result<SessionStarted, String> {
     validate_start(i)?;
     if let Some(a) = &i.asset_id {
-        let n: Option<i64> = conn.query_row("SELECT 1 FROM asset WHERE id = ?1", [a], |r| r.get(0)).optional().map_err(e2s)?;
+        let n: Option<i64> = conn
+            .query_row("SELECT 1 FROM asset WHERE id = ?1", [a], |r| r.get(0))
+            .optional()
+            .map_err(e2s)?;
         if n.is_none() {
-            return Err(format!("unknown asset '{}'", a.chars().take(64).collect::<String>()));
+            return Err(format!(
+                "unknown asset '{}'",
+                a.chars().take(64).collect::<String>()
+            ));
         }
     }
     let config = bounded_json("config", &i.config, MAX_CONFIG_BYTES)?;
@@ -296,11 +319,21 @@ pub fn session_start(conn: &Connection, i: &SessionStartInput) -> Result<Session
         params![id, now, clean_label(&i.device_name, MAX_NAME_CHARS), clean_label(&i.host_api, MAX_HOST_API_CHARS), i.sample_rate, i.format.trim(), config, i.asset_id],
     )
     .map_err(e2s)?;
-    Ok(SessionStarted { id, started_at: now })
+    Ok(SessionStarted {
+        id,
+        started_at: now,
+    })
 }
 
 fn session_open(conn: &Connection, id: &str) -> Result<bool, String> {
-    let row: Option<Option<String>> = conn.query_row("SELECT ended_at FROM monitor_session WHERE id = ?1", [id], |r| r.get(0)).optional().map_err(e2s)?;
+    let row: Option<Option<String>> = conn
+        .query_row(
+            "SELECT ended_at FROM monitor_session WHERE id = ?1",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(e2s)?;
     match row {
         None => Err("unknown monitor session".into()),
         Some(ended) => Ok(ended.is_none()),
@@ -311,13 +344,20 @@ fn session_open(conn: &Connection, id: &str) -> Result<bool, String> {
 /// for a (minute, deck) already stored is ignored, never a silent overwrite of earlier history (the webview's
 /// session clock is monotonic, so it never sends one). Events beyond the per-session cap are dropped and
 /// counted, never an error.
-pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput], minutes: &[MinuteInput]) -> Result<AppendResult, String> {
+pub fn log_append(
+    conn: &mut Connection,
+    session_id: &str,
+    events: &[EventInput],
+    minutes: &[MinuteInput],
+) -> Result<AppendResult, String> {
     require_id(session_id)?;
     if events.len() > MAX_EVENTS_PER_CALL {
         return Err(format!("at most {MAX_EVENTS_PER_CALL} events per call"));
     }
     if minutes.len() > MAX_MINUTES_PER_CALL {
-        return Err(format!("at most {MAX_MINUTES_PER_CALL} minute rows per call"));
+        return Err(format!(
+            "at most {MAX_MINUTES_PER_CALL} minute rows per call"
+        ));
     }
     for e in events {
         validate_event(e)?;
@@ -329,7 +369,13 @@ pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput]
         return Err("monitor session has ended".into());
     }
     let tx = conn.transaction().map_err(e2s)?;
-    let have: i64 = tx.query_row("SELECT COUNT(*) FROM monitor_event WHERE session_id = ?1", [session_id], |r| r.get(0)).map_err(e2s)?;
+    let have: i64 = tx
+        .query_row(
+            "SELECT COUNT(*) FROM monitor_event WHERE session_id = ?1",
+            [session_id],
+            |r| r.get(0),
+        )
+        .map_err(e2s)?;
     let room = (MAX_EVENTS_PER_SESSION - have).max(0) as usize;
     let keep = events.len().min(room);
     for e in &events[..keep] {
@@ -339,11 +385,21 @@ pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput]
         )
         .map_err(e2s)?;
     }
-    let mins: i64 = tx.query_row("SELECT COUNT(*) FROM monitor_minute WHERE session_id = ?1", [session_id], |r| r.get(0)).map_err(e2s)?;
+    let mins: i64 = tx
+        .query_row(
+            "SELECT COUNT(*) FROM monitor_minute WHERE session_id = ?1",
+            [session_id],
+            |r| r.get(0),
+        )
+        .map_err(e2s)?;
     let mut stored = 0usize;
     for m in minutes {
         let exists: Option<i64> = tx
-            .query_row("SELECT 1 FROM monitor_minute WHERE session_id = ?1 AND minute = ?2 AND deck = ?3", params![session_id, m.minute, m.deck], |r| r.get(0))
+            .query_row(
+                "SELECT 1 FROM monitor_minute WHERE session_id = ?1 AND minute = ?2 AND deck = ?3",
+                params![session_id, m.minute, m.deck],
+                |r| r.get(0),
+            )
             .optional()
             .map_err(e2s)?;
         if exists.is_some() || mins + stored as i64 >= MAX_MINUTES_PER_SESSION {
@@ -358,7 +414,11 @@ pub fn log_append(conn: &mut Connection, session_id: &str, events: &[EventInput]
             .map_err(e2s)?;
     }
     tx.commit().map_err(e2s)?;
-    Ok(AppendResult { events_stored: keep, events_dropped: events.len() - keep, minutes_stored: stored })
+    Ok(AppendResult {
+        events_stored: keep,
+        events_dropped: events.len() - keep,
+        minutes_stored: stored,
+    })
 }
 
 /// Close a session with its summary. Ending twice keeps the first end time and replaces the summary.
@@ -418,16 +478,31 @@ pub fn session_list(conn: &Connection, limit: Option<u32>) -> Result<Vec<Session
 pub fn session_get(conn: &Connection, id: &str) -> Result<Option<SessionLog>, String> {
     require_id(id)?;
     let session = conn
-        .query_row(&format!("SELECT {SESSION_COLS} FROM monitor_session s WHERE s.id = ?1"), [id], session_row)
+        .query_row(
+            &format!("SELECT {SESSION_COLS} FROM monitor_session s WHERE s.id = ?1"),
+            [id],
+            session_row,
+        )
         .optional()
         .map_err(e2s)?;
-    let Some(session) = session else { return Ok(None) };
+    let Some(session) = session else {
+        return Ok(None);
+    };
     let mut stmt = conn
         .prepare("SELECT id, t_ms, deck, kind, severity, value, baseline, message FROM monitor_event WHERE session_id = ?1 ORDER BY t_ms, rowid")
         .map_err(e2s)?;
     let events = stmt
         .query_map([id], |r| {
-            Ok(EventRow { id: r.get(0)?, t_ms: r.get(1)?, deck: r.get(2)?, kind: r.get(3)?, severity: r.get(4)?, value: r.get(5)?, baseline: r.get(6)?, message: r.get(7)? })
+            Ok(EventRow {
+                id: r.get(0)?,
+                t_ms: r.get(1)?,
+                deck: r.get(2)?,
+                kind: r.get(3)?,
+                severity: r.get(4)?,
+                value: r.get(5)?,
+                baseline: r.get(6)?,
+                message: r.get(7)?,
+            })
         })
         .map_err(e2s)?
         .collect::<rusqlite::Result<Vec<_>>>()
@@ -437,21 +512,42 @@ pub fn session_get(conn: &Connection, id: &str) -> Result<Option<SessionLog>, St
         .map_err(e2s)?;
     let minutes = stmt
         .query_map([id], |r| {
-            Ok(MinuteRow { minute: r.get(0)?, deck: r.get(1)?, snr_db_min: r.get(2)?, snr_db_mean: r.get(3)?, hum_db_max: r.get(4)?, drift_deg_max: r.get(5)?, dropouts: r.get(6)? })
+            Ok(MinuteRow {
+                minute: r.get(0)?,
+                deck: r.get(1)?,
+                snr_db_min: r.get(2)?,
+                snr_db_mean: r.get(3)?,
+                hum_db_max: r.get(4)?,
+                drift_deg_max: r.get(5)?,
+                dropouts: r.get(6)?,
+            })
         })
         .map_err(e2s)?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(e2s)?;
-    Ok(Some(SessionLog { version: 1, session, events, minutes }))
+    Ok(Some(SessionLog {
+        version: 1,
+        session,
+        events,
+        minutes,
+    }))
 }
 
 /// Delete an ended session (cascades to its events and minutes). A session still open is being recorded (by
 /// this or another running instance; crashed ones are closed at startup) and is refused.
 pub fn session_delete(conn: &Connection, id: &str) -> Result<bool, String> {
     require_id(id)?;
-    let n = conn.execute("DELETE FROM monitor_session WHERE id = ?1 AND ended_at IS NOT NULL", [id]).map_err(e2s)?;
+    let n = conn
+        .execute(
+            "DELETE FROM monitor_session WHERE id = ?1 AND ended_at IS NOT NULL",
+            [id],
+        )
+        .map_err(e2s)?;
     if n == 0 && session_open(conn, id).unwrap_or(false) {
-        return Err("This session is still running. Stop the live monitor first, then delete its log.".into());
+        return Err(
+            "This session is still running. Stop the live monitor first, then delete its log."
+                .into(),
+        );
     }
     Ok(n > 0)
 }
@@ -471,9 +567,15 @@ pub fn stored_retention_days(conn: &Connection) -> i64 {
 /// [`MAX_SESSIONS`]. With `close_open_before` (Unix seconds, the process start), sessions still open that started
 /// before it were left open by a crash or a kill: they are closed first, at their last event, and marked
 /// "interrupted". Sessions of the running process are never touched.
-pub fn prune(conn: &mut Connection, days: i64, close_open_before: Option<f64>) -> Result<PruneResult, String> {
+pub fn prune(
+    conn: &mut Connection,
+    days: i64,
+    close_open_before: Option<f64>,
+) -> Result<PruneResult, String> {
     if !(1..=MAX_RETENTION_DAYS).contains(&days) {
-        return Err(format!("retentionDays must be between 1 and {MAX_RETENTION_DAYS}"));
+        return Err(format!(
+            "retentionDays must be between 1 and {MAX_RETENTION_DAYS}"
+        ));
     }
     let tx = conn.transaction().map_err(e2s)?;
     let closed = match close_open_before {
@@ -489,7 +591,11 @@ pub fn prune(conn: &mut Connection, days: i64, close_open_before: Option<f64>) -
         _ => 0,
     };
     let cutoff: String = tx
-        .query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)", [format!("-{days} days")], |r| r.get(0))
+        .query_row(
+            "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)",
+            [format!("-{days} days")],
+            |r| r.get(0),
+        )
         .map_err(e2s)?;
     let mut deleted = tx
         .execute("DELETE FROM monitor_session WHERE COALESCE(ended_at, started_at) < ?1 AND ended_at IS NOT NULL", [&cutoff])
@@ -501,7 +607,11 @@ pub fn prune(conn: &mut Connection, days: i64, close_open_before: Option<f64>) -
         )
         .map_err(e2s)?;
     tx.commit().map_err(e2s)?;
-    Ok(PruneResult { deleted, retention_days: days, closed })
+    Ok(PruneResult {
+        deleted,
+        retention_days: days,
+        closed,
+    })
 }
 
 /// Instance lock file (next to the database). Every DeckChek process holds a shared lock on it for its whole
@@ -511,7 +621,10 @@ pub const INSTANCE_LOCK_FILE: &str = "monitor-instance.lock";
 static INSTANCE_GUARD: std::sync::OnceLock<File> = std::sync::OnceLock::new();
 
 fn now_secs() -> f64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0)
 }
 
 /// Startup prune with crash detection that a second launch cannot fool. Sessions left open are closed as
@@ -519,8 +632,19 @@ fn now_secs() -> f64 {
 /// crashed process's lock is released by the OS). A second instance (the shortcut clicked while the first runs in
 /// the tray) therefore leaves the first one's running session open. Afterwards this process takes a shared lock
 /// and returns it: keep it alive for the process lifetime. If the lock file cannot be opened, nothing is closed.
-pub fn startup_prune(conn: &mut Connection, lock_path: &Path, days: i64, process_start: f64) -> Result<(PruneResult, Option<File>), String> {
-    let file = OpenOptions::new().create(true).truncate(false).read(true).write(true).open(lock_path).ok();
+pub fn startup_prune(
+    conn: &mut Connection,
+    lock_path: &Path,
+    days: i64,
+    process_start: f64,
+) -> Result<(PruneResult, Option<File>), String> {
+    let file = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(lock_path)
+        .ok();
     let alone = file.as_ref().is_some_and(|f| f.try_lock().is_ok());
     let result = prune(conn, days, if alone { Some(process_start) } else { None });
     let guard = file.and_then(|f| {
@@ -550,7 +674,10 @@ pub fn setup(app: &AppHandle) {
 // ---------------------------------------------------------------- commands
 
 #[tauri::command]
-pub async fn monitor_session_start(app: AppHandle, input: SessionStartInput) -> Result<SessionStarted, String> {
+pub async fn monitor_session_start(
+    app: AppHandle,
+    input: SessionStartInput,
+) -> Result<SessionStarted, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         session_start(&conn, &input)
@@ -559,7 +686,12 @@ pub async fn monitor_session_start(app: AppHandle, input: SessionStartInput) -> 
 }
 
 #[tauri::command]
-pub async fn monitor_log_append(app: AppHandle, session_id: String, events: Vec<EventInput>, minutes: Vec<MinuteInput>) -> Result<AppendResult, String> {
+pub async fn monitor_log_append(
+    app: AppHandle,
+    session_id: String,
+    events: Vec<EventInput>,
+    minutes: Vec<MinuteInput>,
+) -> Result<AppendResult, String> {
     crate::db::off_main(move || {
         let mut conn = open_database(&database_path(&app)?)?;
         log_append(&mut conn, &session_id, &events, &minutes)
@@ -568,7 +700,11 @@ pub async fn monitor_log_append(app: AppHandle, session_id: String, events: Vec<
 }
 
 #[tauri::command]
-pub async fn monitor_session_end(app: AppHandle, session_id: String, summary: Value) -> Result<(), String> {
+pub async fn monitor_session_end(
+    app: AppHandle,
+    session_id: String,
+    summary: Value,
+) -> Result<(), String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         session_end(&conn, &session_id, &summary)
@@ -577,7 +713,10 @@ pub async fn monitor_session_end(app: AppHandle, session_id: String, summary: Va
 }
 
 #[tauri::command]
-pub async fn monitor_session_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<SessionRow>, String> {
+pub async fn monitor_session_list(
+    app: AppHandle,
+    limit: Option<u32>,
+) -> Result<Vec<SessionRow>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         session_list(&conn, limit)
@@ -605,7 +744,10 @@ pub async fn monitor_session_delete(app: AppHandle, id: String) -> Result<bool, 
 
 /// Prune now with `retentionDays` (or the stored setting). Open sessions are never touched here.
 #[tauri::command]
-pub async fn monitor_prune(app: AppHandle, retention_days: Option<i64>) -> Result<PruneResult, String> {
+pub async fn monitor_prune(
+    app: AppHandle,
+    retention_days: Option<i64>,
+) -> Result<PruneResult, String> {
     crate::db::off_main(move || {
         let mut conn = open_database(&database_path(&app)?)?;
         let days = match retention_days {
@@ -631,21 +773,48 @@ mod tests {
     }
 
     fn start(c: &Connection) -> String {
-        session_start(c, &SessionStartInput { device_name: Some("Traktor Audio 8 DJ".into()), host_api: Some("WASAPI".into()), sample_rate: Some(48000), format: "Traktor Scratch MK2".into(), config: json!({"decks": [{"deck": "A", "first": 1}], "hopMs": 250}), asset_id: None })
-            .unwrap()
-            .id
+        session_start(
+            c,
+            &SessionStartInput {
+                device_name: Some("Traktor Audio 8 DJ".into()),
+                host_api: Some("WASAPI".into()),
+                sample_rate: Some(48000),
+                format: "Traktor Scratch MK2".into(),
+                config: json!({"decks": [{"deck": "A", "first": 1}], "hopMs": 250}),
+                asset_id: None,
+            },
+        )
+        .unwrap()
+        .id
     }
 
     fn ev(t: i64, sev: &str) -> EventInput {
-        EventInput { t_ms: t, deck: Some("A".into()), kind: "snrDrop".into(), severity: sev.into(), value: Some(24.0), baseline: Some(32.0), message: Some("Deck A: timecode SNR dropped 8 dB".into()) }
+        EventInput {
+            t_ms: t,
+            deck: Some("A".into()),
+            kind: "snrDrop".into(),
+            severity: sev.into(),
+            value: Some(24.0),
+            baseline: Some(32.0),
+            message: Some("Deck A: timecode SNR dropped 8 dB".into()),
+        }
     }
 
     fn minute(m: i64, deck: &str) -> MinuteInput {
-        MinuteInput { minute: m, deck: deck.into(), snr_db_min: Some(28.0), snr_db_mean: Some(30.5), hum_db_max: Some(-70.0), drift_deg_max: Some(1.5), dropouts: Some(0) }
+        MinuteInput {
+            minute: m,
+            deck: deck.into(),
+            snr_db_min: Some(28.0),
+            snr_db_mean: Some(30.5),
+            hum_db_max: Some(-70.0),
+            drift_deg_max: Some(1.5),
+            dropouts: Some(0),
+        }
     }
 
     fn table_count(c: &Connection, t: &str) -> i64 {
-        c.query_row(&format!("SELECT COUNT(*) FROM {t}"), [], |r| r.get(0)).unwrap()
+        c.query_row(&format!("SELECT COUNT(*) FROM {t}"), [], |r| r.get(0))
+            .unwrap()
     }
 
     fn fixtures() -> Vec<(String, String)> {
@@ -666,18 +835,36 @@ mod tests {
     #[test]
     fn migration_0019_fresh_database_and_rerun_is_a_noop() {
         let c = mem();
-        assert!(crate::db::MIGRATIONS.iter().any(|(v, sql)| *v == 19 && sql.contains("monitor_session")));
+        assert!(crate::db::MIGRATIONS
+            .iter()
+            .any(|(v, sql)| *v == 19 && sql.contains("monitor_session")));
         for t in ["monitor_session", "monitor_event", "monitor_minute"] {
-            let n: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0)).unwrap();
+            let n: i64 = c
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    [t],
+                    |r| r.get(0),
+                )
+                .unwrap();
             assert_eq!(n, 1, "{t}");
         }
         let idx: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('idx_monitor_event_session','idx_monitor_session_started')", [], |r| r.get(0)).unwrap();
         assert_eq!(idx, 2);
         apply_migrations(&c).unwrap();
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM schema_migration WHERE version = 19", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row(
+                "SELECT COUNT(*) FROM schema_migration WHERE version = 19",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(n, 1);
         // the SQL itself is idempotent too (IF NOT EXISTS everywhere)
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 19).unwrap().1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 19)
+            .unwrap()
+            .1;
         c.execute_batch(sql).unwrap();
     }
 
@@ -691,22 +878,42 @@ mod tests {
             c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
             let before: Vec<(String, i64)> = {
                 let mut st = c.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'schema_migration' ORDER BY name").unwrap();
-                let names: Vec<String> = st.query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
-                names.into_iter().map(|t| { let n = table_count(&c, &t); (t, n) }).collect()
+                let names: Vec<String> = st
+                    .query_map([], |r| r.get(0))
+                    .unwrap()
+                    .map(|r| r.unwrap())
+                    .collect();
+                names
+                    .into_iter()
+                    .map(|t| {
+                        let n = table_count(&c, &t);
+                        (t, n)
+                    })
+                    .collect()
             };
             apply_migrations(&c).unwrap();
             for (t, n) in &before {
                 assert_eq!(table_count(&c, t), *n, "{name}: {t} row count");
             }
-            let ok: String = c.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
+            let ok: String = c
+                .query_row("PRAGMA integrity_check", [], |r| r.get(0))
+                .unwrap();
             assert_eq!(ok, "ok", "{name}");
-            let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
+            let fk: i64 = c
+                .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })
+                .unwrap();
             assert_eq!(fk, 0, "{name}");
             // and the new tables work on the upgraded database
             let id = start(&c);
             let mut c = c;
             log_append(&mut c, &id, &[ev(1000, "warning")], &[minute(0, "A")]).unwrap();
-            assert_eq!(session_get(&c, &id).unwrap().unwrap().events.len(), 1, "{name}");
+            assert_eq!(
+                session_get(&c, &id).unwrap().unwrap().events.len(),
+                1,
+                "{name}"
+            );
         }
     }
 
@@ -714,31 +921,82 @@ mod tests {
     fn session_round_trip_with_events_minutes_and_summary() {
         let mut c = mem();
         let id = start(&c);
-        let r = log_append(&mut c, &id, &[ev(5250, "warning"), ev(1000, "critical")], &[minute(0, "A"), minute(0, "B"), minute(1, "A")]).unwrap();
-        assert_eq!(r, AppendResult { events_stored: 2, events_dropped: 0, minutes_stored: 3 });
+        let r = log_append(
+            &mut c,
+            &id,
+            &[ev(5250, "warning"), ev(1000, "critical")],
+            &[minute(0, "A"), minute(0, "B"), minute(1, "A")],
+        )
+        .unwrap();
+        assert_eq!(
+            r,
+            AppendResult {
+                events_stored: 2,
+                events_dropped: 0,
+                minutes_stored: 3
+            }
+        );
         // a second row for a stored minute neither adds a row nor overwrites it (FS-31 review: no silent REPLACE)
         let mut m = minute(1, "A");
         m.dropouts = Some(3);
-        assert_eq!(log_append(&mut c, &id, &[], &[m]).unwrap().minutes_stored, 0);
+        assert_eq!(
+            log_append(&mut c, &id, &[], &[m]).unwrap().minutes_stored,
+            0
+        );
         session_end(&c, &id, &json!({"version": 1, "worst": "critical"})).unwrap();
         let log = session_get(&c, &id).unwrap().unwrap();
         assert_eq!(log.version, 1);
-        assert_eq!(log.events.iter().map(|e| e.t_ms).collect::<Vec<_>>(), [1000, 5250]);
+        assert_eq!(
+            log.events.iter().map(|e| e.t_ms).collect::<Vec<_>>(),
+            [1000, 5250]
+        );
         assert_eq!(log.minutes.len(), 3);
-        assert_eq!(log.minutes.iter().find(|m| m.minute == 1).unwrap().dropouts, Some(0));
+        assert_eq!(
+            log.minutes.iter().find(|m| m.minute == 1).unwrap().dropouts,
+            Some(0)
+        );
         assert_eq!(log.session.summary.as_ref().unwrap()["worst"], "critical");
-        assert_eq!((log.session.event_count, log.session.warning_count, log.session.critical_count, log.session.minute_count), (2, 1, 1, 3));
-        assert_eq!(log.session.device_name.as_deref(), Some("Traktor Audio 8 DJ"));
+        assert_eq!(
+            (
+                log.session.event_count,
+                log.session.warning_count,
+                log.session.critical_count,
+                log.session.minute_count
+            ),
+            (2, 1, 1, 3)
+        );
+        assert_eq!(
+            log.session.device_name.as_deref(),
+            Some("Traktor Audio 8 DJ")
+        );
         assert_eq!(log.session.config["hopMs"], 250);
         let first_end = log.session.ended_at.clone().unwrap();
         session_end(&c, &id, &json!({"version": 1, "worst": "ok"})).unwrap();
-        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.ended_at.unwrap(), first_end, "end time kept");
+        assert_eq!(
+            session_get(&c, &id)
+                .unwrap()
+                .unwrap()
+                .session
+                .ended_at
+                .unwrap(),
+            first_end,
+            "end time kept"
+        );
         // an ended session takes no more events
-        assert!(log_append(&mut c, &id, &[ev(9000, "info")], &[]).unwrap_err().contains("ended"));
+        assert!(log_append(&mut c, &id, &[ev(9000, "info")], &[])
+            .unwrap_err()
+            .contains("ended"));
         let list = session_list(&c, None).unwrap();
         assert_eq!(list.len(), 1);
         assert!(session_delete(&c, &id).unwrap());
-        assert_eq!((table_count(&c, "monitor_event"), table_count(&c, "monitor_minute")), (0, 0), "cascade");
+        assert_eq!(
+            (
+                table_count(&c, "monitor_event"),
+                table_count(&c, "monitor_minute")
+            ),
+            (0, 0),
+            "cascade"
+        );
         assert!(!session_delete(&c, &id).unwrap());
         assert!(session_get(&c, &id).unwrap().is_none());
     }
@@ -748,19 +1006,29 @@ mod tests {
         let c = mem();
         for i in 0..5 {
             let id = start(&c);
-            c.execute("UPDATE monitor_session SET started_at = ?2 WHERE id = ?1", params![id, format!("2026-10-0{}T20:00:00.000Z", i + 1)]).unwrap();
+            c.execute(
+                "UPDATE monitor_session SET started_at = ?2 WHERE id = ?1",
+                params![id, format!("2026-10-0{}T20:00:00.000Z", i + 1)],
+            )
+            .unwrap();
         }
         let l = session_list(&c, Some(3)).unwrap();
         assert_eq!(l.len(), 3);
         assert!(l[0].started_at > l[1].started_at && l[1].started_at > l[2].started_at);
-        assert_eq!(session_list(&c, Some(0)).unwrap().len(), 1, "limit clamps to at least 1");
+        assert_eq!(
+            session_list(&c, Some(0)).unwrap().len(),
+            1,
+            "limit clamps to at least 1"
+        );
     }
 
     #[test]
     fn events_are_capped_per_session_and_per_call() {
         let mut c = mem();
         let id = start(&c);
-        let batch: Vec<EventInput> = (0..MAX_EVENTS_PER_CALL as i64).map(|i| ev(i, "info")).collect();
+        let batch: Vec<EventInput> = (0..MAX_EVENTS_PER_CALL as i64)
+            .map(|i| ev(i, "info"))
+            .collect();
         let mut stored = 0;
         let mut dropped = 0;
         for _ in 0..(MAX_EVENTS_PER_SESSION as usize / MAX_EVENTS_PER_CALL + 2) {
@@ -771,9 +1039,13 @@ mod tests {
         assert_eq!(stored as i64, MAX_EVENTS_PER_SESSION);
         assert_eq!(dropped, 2 * MAX_EVENTS_PER_CALL);
         assert_eq!(table_count(&c, "monitor_event"), MAX_EVENTS_PER_SESSION);
-        let too_many: Vec<EventInput> = (0..=MAX_EVENTS_PER_CALL as i64).map(|i| ev(i, "info")).collect();
+        let too_many: Vec<EventInput> = (0..=MAX_EVENTS_PER_CALL as i64)
+            .map(|i| ev(i, "info"))
+            .collect();
         assert!(log_append(&mut c, &id, &too_many, &[]).is_err());
-        let mins: Vec<MinuteInput> = (0..=MAX_MINUTES_PER_CALL as i64).map(|m| minute(m, "A")).collect();
+        let mins: Vec<MinuteInput> = (0..=MAX_MINUTES_PER_CALL as i64)
+            .map(|m| minute(m, "A"))
+            .collect();
         assert!(log_append(&mut c, &id, &[], &mins).is_err());
     }
 
@@ -782,45 +1054,146 @@ mod tests {
         let mut c = mem();
         let id = start(&c);
         let bad_events = [
-            EventInput { t_ms: -1, ..ev(0, "info") },
-            EventInput { t_ms: MAX_T_MS + 1, ..ev(0, "info") },
-            EventInput { deck: Some("E".into()), ..ev(0, "info") },
-            EventInput { kind: "snr drop".into(), ..ev(0, "info") },
-            EventInput { kind: "Snr".into(), ..ev(0, "info") },
-            EventInput { kind: "x".repeat(33), ..ev(0, "info") },
-            EventInput { severity: "red".into(), ..ev(0, "info") },
-            EventInput { value: Some(f64::NAN), ..ev(0, "info") },
-            EventInput { baseline: Some(1e9), ..ev(0, "info") },
-            EventInput { message: Some("m".repeat(MAX_MESSAGE_CHARS + 1)), ..ev(0, "info") },
-            EventInput { message: Some("line\u{0}break".into()), ..ev(0, "info") },
+            EventInput {
+                t_ms: -1,
+                ..ev(0, "info")
+            },
+            EventInput {
+                t_ms: MAX_T_MS + 1,
+                ..ev(0, "info")
+            },
+            EventInput {
+                deck: Some("E".into()),
+                ..ev(0, "info")
+            },
+            EventInput {
+                kind: "snr drop".into(),
+                ..ev(0, "info")
+            },
+            EventInput {
+                kind: "Snr".into(),
+                ..ev(0, "info")
+            },
+            EventInput {
+                kind: "x".repeat(33),
+                ..ev(0, "info")
+            },
+            EventInput {
+                severity: "red".into(),
+                ..ev(0, "info")
+            },
+            EventInput {
+                value: Some(f64::NAN),
+                ..ev(0, "info")
+            },
+            EventInput {
+                baseline: Some(1e9),
+                ..ev(0, "info")
+            },
+            EventInput {
+                message: Some("m".repeat(MAX_MESSAGE_CHARS + 1)),
+                ..ev(0, "info")
+            },
+            EventInput {
+                message: Some("line\u{0}break".into()),
+                ..ev(0, "info")
+            },
         ];
         for e in bad_events {
             assert!(log_append(&mut c, &id, &[e.clone()], &[]).is_err(), "{e:?}");
         }
-        for m in [MinuteInput { minute: -1, ..minute(0, "A") }, MinuteInput { deck: "Z".into(), ..minute(0, "A") }, MinuteInput { dropouts: Some(-2), ..minute(0, "A") }, MinuteInput { hum_db_max: Some(f64::INFINITY), ..minute(0, "A") }] {
+        for m in [
+            MinuteInput {
+                minute: -1,
+                ..minute(0, "A")
+            },
+            MinuteInput {
+                deck: "Z".into(),
+                ..minute(0, "A")
+            },
+            MinuteInput {
+                dropouts: Some(-2),
+                ..minute(0, "A")
+            },
+            MinuteInput {
+                hum_db_max: Some(f64::INFINITY),
+                ..minute(0, "A")
+            },
+        ] {
             assert!(log_append(&mut c, &id, &[], &[m]).is_err());
         }
-        assert_eq!(table_count(&c, "monitor_event"), 0, "nothing stored from a rejected batch");
+        assert_eq!(
+            table_count(&c, "monitor_event"),
+            0,
+            "nothing stored from a rejected batch"
+        );
         for bad_id in ["", "x' OR '1'='1", "../../etc/passwd", &"z".repeat(36)] {
             assert!(log_append(&mut c, bad_id, &[], &[]).is_err());
             assert!(session_get(&c, bad_id).is_err());
             assert!(session_delete(&c, bad_id).is_err());
         }
-        assert!(log_append(&mut c, "00000000-0000-4000-8000-000000000000", &[], &[]).unwrap_err().contains("unknown"));
-        let base = SessionStartInput { device_name: None, host_api: None, sample_rate: None, format: "Serato CV02.5".into(), config: json!({}), asset_id: None };
+        assert!(
+            log_append(&mut c, "00000000-0000-4000-8000-000000000000", &[], &[])
+                .unwrap_err()
+                .contains("unknown")
+        );
+        let base = SessionStartInput {
+            device_name: None,
+            host_api: None,
+            sample_rate: None,
+            format: "Serato CV02.5".into(),
+            config: json!({}),
+            asset_id: None,
+        };
         for bad in [
-            SessionStartInput { format: " ".into(), ..base.clone() },
-            SessionStartInput { format: "f".repeat(81), ..base.clone() },
-            SessionStartInput { sample_rate: Some(1), ..base.clone() },
-            SessionStartInput { config: json!([1, 2]), ..base.clone() },
-            SessionStartInput { config: json!({"x": "y".repeat(MAX_CONFIG_BYTES)}), ..base.clone() },
-            SessionStartInput { asset_id: Some("ghost".into()), ..base.clone() },
+            SessionStartInput {
+                format: " ".into(),
+                ..base.clone()
+            },
+            SessionStartInput {
+                format: "f".repeat(81),
+                ..base.clone()
+            },
+            SessionStartInput {
+                sample_rate: Some(1),
+                ..base.clone()
+            },
+            SessionStartInput {
+                config: json!([1, 2]),
+                ..base.clone()
+            },
+            SessionStartInput {
+                config: json!({"x": "y".repeat(MAX_CONFIG_BYTES)}),
+                ..base.clone()
+            },
+            SessionStartInput {
+                asset_id: Some("ghost".into()),
+                ..base.clone()
+            },
         ] {
             assert!(session_start(&c, &bad).is_err(), "{bad:?}");
         }
         // an overlong device label is cut, not a refusal (regression_device_name_... covers control characters)
-        let long = session_start(&c, &SessionStartInput { device_name: Some("d".repeat(MAX_NAME_CHARS + 1)), ..base.clone() }).unwrap().id;
-        assert_eq!(session_get(&c, &long).unwrap().unwrap().session.device_name.unwrap().chars().count(), MAX_NAME_CHARS);
+        let long = session_start(
+            &c,
+            &SessionStartInput {
+                device_name: Some("d".repeat(MAX_NAME_CHARS + 1)),
+                ..base.clone()
+            },
+        )
+        .unwrap()
+        .id;
+        assert_eq!(
+            session_get(&c, &long)
+                .unwrap()
+                .unwrap()
+                .session
+                .device_name
+                .unwrap()
+                .chars()
+                .count(),
+            MAX_NAME_CHARS
+        );
         assert!(session_end(&c, &id, &json!("str")).is_err());
         assert!(session_end(&c, &id, &json!({"x": "y".repeat(MAX_SUMMARY_BYTES)})).is_err());
         assert!(session_end(&c, "00000000-0000-4000-8000-000000000000", &json!({})).is_err());
@@ -830,13 +1203,33 @@ mod tests {
     fn asset_link_is_checked_and_nulled_on_asset_delete() {
         let c = mem();
         c.execute("INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('a1','Deck 1','t','t')", []).unwrap();
-        let id = session_start(&c, &SessionStartInput { device_name: None, host_api: None, sample_rate: None, format: "Serato CV02.5".into(), config: json!({}), asset_id: Some("a1".into()) }).unwrap().id;
+        let id = session_start(
+            &c,
+            &SessionStartInput {
+                device_name: None,
+                host_api: None,
+                sample_rate: None,
+                format: "Serato CV02.5".into(),
+                config: json!({}),
+                asset_id: Some("a1".into()),
+            },
+        )
+        .unwrap()
+        .id;
         c.execute("DELETE FROM asset WHERE id = 'a1'", []).unwrap();
-        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.asset_id, None);
+        assert_eq!(
+            session_get(&c, &id).unwrap().unwrap().session.asset_id,
+            None
+        );
         // constraint: unknown severity at the SQL level, and orphan events
         assert!(c.execute("INSERT INTO monitor_event (id, session_id, t_ms, kind, severity) VALUES ('e1', ?1, 0, 'x', 'loud')", [&id]).is_err());
         assert!(c.execute("INSERT INTO monitor_event (id, session_id, t_ms, kind, severity) VALUES ('e2', 'nope', 0, 'x', 'info')", []).is_err());
-        assert!(c.execute("INSERT INTO monitor_minute (session_id, minute, deck) VALUES ('nope', 0, 'A')", []).is_err());
+        assert!(c
+            .execute(
+                "INSERT INTO monitor_minute (session_id, minute, deck) VALUES ('nope', 0, 'A')",
+                []
+            )
+            .is_err());
     }
 
     #[test]
@@ -848,28 +1241,55 @@ mod tests {
         log_append(&mut c, &old, &[ev(1, "info")], &[minute(0, "A")]).unwrap();
         c.execute("UPDATE monitor_session SET started_at = '2020-01-01T00:00:00.000Z', ended_at = '2020-01-01T01:00:00.000Z' WHERE id = ?1", [&old]).unwrap();
         session_end(&c, &recent, &json!({})).unwrap();
-        c.execute("UPDATE monitor_session SET started_at = '2020-01-01T00:00:00.000Z' WHERE id = ?1", [&open_old]).unwrap();
+        c.execute(
+            "UPDATE monitor_session SET started_at = '2020-01-01T00:00:00.000Z' WHERE id = ?1",
+            [&open_old],
+        )
+        .unwrap();
         // on-demand prune leaves open sessions alone
         let r = prune(&mut c, 90, None).unwrap();
         assert_eq!((r.deleted, r.closed, r.retention_days), (1, 0, 90));
         assert!(session_get(&c, &old).unwrap().is_none());
-        assert_eq!((table_count(&c, "monitor_event"), table_count(&c, "monitor_minute")), (0, 0));
+        assert_eq!(
+            (
+                table_count(&c, "monitor_event"),
+                table_count(&c, "monitor_minute")
+            ),
+            (0, 0)
+        );
         assert!(session_get(&c, &open_old).unwrap().is_some());
         // startup prune: sessions left open before the process started are closed at their last event and marked
         // interrupted (an old one then ages out); a session of the running process is not touched
         let crashed = start(&c);
         log_append(&mut c, &crashed, &[ev(90_000, "warning")], &[]).unwrap();
-        c.execute("UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1", [&crashed]).unwrap();
+        c.execute(
+            "UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1",
+            [&crashed],
+        )
+        .unwrap();
         let running = start(&c);
-        let process_start = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f64() - 60.0;
+        let process_start = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64()
+            - 60.0;
         let r = prune(&mut c, 3650, Some(process_start)).unwrap();
         assert_eq!(r.closed, 2);
         let cr = session_get(&c, &crashed).unwrap().unwrap().session;
         assert_eq!(cr.ended_at.as_deref(), Some("2026-10-27T20:01:30.000Z"));
         assert_eq!(cr.summary.unwrap()["endReason"], "interrupted");
-        assert!(session_get(&c, &running).unwrap().unwrap().session.ended_at.is_none());
+        assert!(session_get(&c, &running)
+            .unwrap()
+            .unwrap()
+            .session
+            .ended_at
+            .is_none());
         let r = prune(&mut c, 90, Some(process_start)).unwrap();
-        assert_eq!((r.closed, r.deleted), (0, 1), "the 2020 session closed above now ages out");
+        assert_eq!(
+            (r.closed, r.deleted),
+            (0, 1),
+            "the 2020 session closed above now ages out"
+        );
         assert!(session_get(&c, &open_old).unwrap().is_none());
         assert!(session_get(&c, &recent).unwrap().is_some());
         session_end(&c, &running, &json!({})).unwrap();
@@ -889,7 +1309,12 @@ mod tests {
     fn retention_setting_is_read_from_app_state() {
         let c = mem();
         assert_eq!(stored_retention_days(&c), DEFAULT_RETENTION_DAYS);
-        crate::app_state::set(&c, SETTINGS_KEY, &json!({"version": 1, "retentionDays": 30})).unwrap();
+        crate::app_state::set(
+            &c,
+            SETTINGS_KEY,
+            &json!({"version": 1, "retentionDays": 30}),
+        )
+        .unwrap();
         assert_eq!(stored_retention_days(&c), 30);
         crate::app_state::set(&c, SETTINGS_KEY, &json!({"retentionDays": 1e12})).unwrap();
         assert_eq!(stored_retention_days(&c), MAX_RETENTION_DAYS);
@@ -900,9 +1325,25 @@ mod tests {
     #[test]
     fn regression_device_name_with_control_chars_or_overlong_is_cleaned_not_rejected() {
         let c = mem();
-        let base = SessionStartInput { device_name: None, host_api: None, sample_rate: None, format: "Serato CV02.5".into(), config: json!({}), asset_id: None };
+        let base = SessionStartInput {
+            device_name: None,
+            host_api: None,
+            sample_rate: None,
+            format: "Serato CV02.5".into(),
+            config: json!({}),
+            asset_id: None,
+        };
         let hostile = format!("Bad\u{7}Name\twith\nnewline{}\u{85}", "x".repeat(400));
-        let id = session_start(&c, &SessionStartInput { device_name: Some(hostile), host_api: Some("WAS\u{0}API".into()), ..base.clone() }).unwrap().id;
+        let id = session_start(
+            &c,
+            &SessionStartInput {
+                device_name: Some(hostile),
+                host_api: Some("WAS\u{0}API".into()),
+                ..base.clone()
+            },
+        )
+        .unwrap()
+        .id;
         let row = session_get(&c, &id).unwrap().unwrap().session;
         let name = row.device_name.unwrap();
         assert!(name.starts_with("Bad Name with newline"), "{name:?}");
@@ -910,18 +1351,52 @@ mod tests {
         assert!(name.chars().count() <= MAX_NAME_CHARS);
         assert_eq!(row.host_api.as_deref(), Some("WAS API"));
         // a label of only control characters / spaces is stored as no label
-        let id = session_start(&c, &SessionStartInput { device_name: Some("\u{1} \u{2}".into()), ..base.clone() }).unwrap().id;
-        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.device_name, None);
+        let id = session_start(
+            &c,
+            &SessionStartInput {
+                device_name: Some("\u{1} \u{2}".into()),
+                ..base.clone()
+            },
+        )
+        .unwrap()
+        .id;
+        assert_eq!(
+            session_get(&c, &id).unwrap().unwrap().session.device_name,
+            None
+        );
         // an overlong host API is cut to its own cap
-        let id = session_start(&c, &SessionStartInput { host_api: Some("h".repeat(100)), ..base }).unwrap().id;
-        assert_eq!(session_get(&c, &id).unwrap().unwrap().session.host_api.unwrap().chars().count(), 40);
+        let id = session_start(
+            &c,
+            &SessionStartInput {
+                host_api: Some("h".repeat(100)),
+                ..base
+            },
+        )
+        .unwrap()
+        .id;
+        assert_eq!(
+            session_get(&c, &id)
+                .unwrap()
+                .unwrap()
+                .session
+                .host_api
+                .unwrap()
+                .chars()
+                .count(),
+            40
+        );
     }
 
     #[test]
     fn regression_minute_rows_are_never_overwritten() {
         let mut c = mem();
         let id = start(&c);
-        assert_eq!(log_append(&mut c, &id, &[], &[minute(0, "A"), minute(1, "A")]).unwrap().minutes_stored, 2);
+        assert_eq!(
+            log_append(&mut c, &id, &[], &[minute(0, "A"), minute(1, "A")])
+                .unwrap()
+                .minutes_stored,
+            2
+        );
         // a second row for minute 0 (e.g. a clock restart) must not replace the stored one
         let mut again = minute(0, "A");
         again.snr_db_min = Some(3.0);
@@ -930,7 +1405,11 @@ mod tests {
         assert_eq!(r.minutes_stored, 1, "only the new minute is stored");
         let log = session_get(&c, &id).unwrap().unwrap();
         let m0 = log.minutes.iter().find(|m| m.minute == 0).unwrap();
-        assert_eq!((m0.snr_db_min, m0.dropouts), (Some(28.0), Some(0)), "the first row for minute 0 is kept");
+        assert_eq!(
+            (m0.snr_db_min, m0.dropouts),
+            (Some(28.0), Some(0)),
+            "the first row for minute 0 is kept"
+        );
         assert_eq!(log.minutes.len(), 3);
     }
 
@@ -942,7 +1421,13 @@ mod tests {
         let err = session_delete(&c, &id).unwrap_err();
         assert!(err.contains("still running"), "{err}");
         assert!(session_get(&c, &id).unwrap().is_some());
-        assert_eq!(log_append(&mut c, &id, &[ev(2000, "info")], &[]).unwrap().events_stored, 1, "the running session keeps logging");
+        assert_eq!(
+            log_append(&mut c, &id, &[ev(2000, "info")], &[])
+                .unwrap()
+                .events_stored,
+            1,
+            "the running session keeps logging"
+        );
         session_end(&c, &id, &json!({})).unwrap();
         assert!(session_delete(&c, &id).unwrap());
     }
@@ -959,12 +1444,27 @@ mod tests {
         let first = first.expect("instance lock held");
         let running = start(&c);
         log_append(&mut c, &running, &[ev(90_000, "warning")], &[]).unwrap();
-        c.execute("UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1", [&running]).unwrap();
+        c.execute(
+            "UPDATE monitor_session SET started_at = '2026-10-27T20:00:00.000Z' WHERE id = ?1",
+            [&running],
+        )
+        .unwrap();
         // a second launch (shortcut clicked while the first hides in the tray) must leave that session open
         let (r, second) = startup_prune(&mut c, &lock, 90, now_secs()).unwrap();
         assert_eq!(r.closed, 0, "another instance is alive: no crash-close");
-        assert!(session_get(&c, &running).unwrap().unwrap().session.ended_at.is_none());
-        assert_eq!(log_append(&mut c, &running, &[ev(95_000, "info")], &[]).unwrap().events_stored, 1, "the first instance keeps logging");
+        assert!(session_get(&c, &running)
+            .unwrap()
+            .unwrap()
+            .session
+            .ended_at
+            .is_none());
+        assert_eq!(
+            log_append(&mut c, &running, &[ev(95_000, "info")], &[])
+                .unwrap()
+                .events_stored,
+            1,
+            "the first instance keeps logging"
+        );
         // both processes gone (a crash releases the lock): the next launch closes the session as interrupted
         drop(first);
         drop(second);
@@ -979,18 +1479,30 @@ mod tests {
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/monitor.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/monitor.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
         let mut c = mem();
-        let input: SessionStartInput = serde_json::from_value(v["monitor_session_start"]["request"]["input"].clone()).unwrap();
+        let input: SessionStartInput =
+            serde_json::from_value(v["monitor_session_start"]["request"]["input"].clone()).unwrap();
         let started = session_start(&c, &input).unwrap();
         assert!(valid_id(&started.id));
         let ap = &v["monitor_log_append"]["request"];
         let events: Vec<EventInput> = serde_json::from_value(ap["events"].clone()).unwrap();
         let minutes: Vec<MinuteInput> = serde_json::from_value(ap["minutes"].clone()).unwrap();
         let r = log_append(&mut c, &started.id, &events, &minutes).unwrap();
-        assert_eq!(serde_json::to_value(&r).unwrap(), v["monitor_log_append"]["response"]);
-        session_end(&c, &started.id, &v["monitor_session_end"]["request"]["summary"]).unwrap();
+        assert_eq!(
+            serde_json::to_value(&r).unwrap(),
+            v["monitor_log_append"]["response"]
+        );
+        session_end(
+            &c,
+            &started.id,
+            &v["monitor_session_end"]["request"]["summary"],
+        )
+        .unwrap();
         let mut got = serde_json::to_value(session_get(&c, &started.id).unwrap().unwrap()).unwrap();
         let want = &v["monitor_session_get"]["response"];
         for k in ["id", "startedAt", "endedAt"] {
@@ -1001,7 +1513,13 @@ mod tests {
         }
         assert_eq!(&got, want);
         let list = serde_json::to_value(session_list(&c, Some(10)).unwrap()).unwrap();
-        assert_eq!(list[0]["eventCount"], v["monitor_session_list"]["response"][0]["eventCount"]);
-        assert_eq!(list[0]["criticalCount"], v["monitor_session_list"]["response"][0]["criticalCount"]);
+        assert_eq!(
+            list[0]["eventCount"],
+            v["monitor_session_list"]["response"][0]["eventCount"]
+        );
+        assert_eq!(
+            list[0]["criticalCount"],
+            v["monitor_session_list"]["response"][0]["criticalCount"]
+        );
     }
 }

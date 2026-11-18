@@ -1,23 +1,23 @@
-mod catalog;
-mod commands;
 mod audio;
 mod capture;
+mod catalog;
+mod commands;
 mod db;
+mod devices;
+pub mod domain;
+mod midi;
 #[cfg(test)]
 mod migration_m7_tests;
-mod devices;
-mod midi;
 mod system_check;
-pub mod domain;
 // [FS-00] mods
-mod selftest; // --self-test=<report.json>: packaged-artifact smoke test (CI release jobs)
+mod app_state;
+mod audio_out;
 pub mod canonical;
 pub mod photo; // content-addressed photo store (FS-00 §4.11) // canonical JSON + SHA-256 (FS-00 §4.12); consumed by FS-20/30/33 jobs
-mod userfiles;
-mod app_state;
-mod usage;
 mod processes;
-mod audio_out;
+mod selftest; // --self-test=<report.json>: packaged-artifact smoke test (CI release jobs)
+mod usage;
+mod userfiles;
 // [FS-01] mods
 mod wizard;
 // [FS-02] mods
@@ -35,24 +35,24 @@ mod pregig;
 // [FS-11] mods
 mod latency;
 // [FS-12] mods
-mod stylus;
 mod dj_sessions;
+mod stylus;
 // [FS-13] mods
 mod wearmap;
 // [FS-14] mods
 mod scratch;
 // [FS-15] mods
-mod humrun;
+#[cfg(test)]
+mod audit_repro;
 #[cfg(any(test, feature = "fuzzing"))]
 pub mod fuzz_api; // untrusted-input fuzz entry points (cargo-fuzz in src-tauri/fuzz, smoke in cargo test)
+mod humrun;
 #[cfg(test)]
-mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_tests -- --ignored
-#[cfg(test)]
-mod audit_repro; // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
-// [FS-20] mods
-pub mod signing; // per-install Ed25519 identity (DPAPI on Windows)
-pub mod certificate; // used-gear certificates: sign, verify, extract, store
-// [FS-21] mods
+mod stress_tests; // #[ignore] stress/perf: cargo test --release --lib stress_tests -- --ignored // docs/audit/2026-10-bug-hunt.md failing repros (all #[ignore])
+                  // [FS-20] mods
+pub mod certificate;
+pub mod signing; // per-install Ed25519 identity (DPAPI on Windows) // used-gear certificates: sign, verify, extract, store
+                 // [FS-21] mods
 mod pack;
 // [FS-22] mods
 mod service;
@@ -75,7 +75,10 @@ mod ledger;
 /// in the system browser and everything else is dropped. Logs the host only (Spec 02 log rule).
 fn route_new_window(url: &tauri::Url, opener: &dyn links::Opener) -> links::OpenResult {
     let r = links::open_external_with(url.as_str(), false, &links::Allowlist::bundled(), opener);
-    eprintln!("[links] new-window request denied in-app host={} opened={} reason={:?}", r.host, r.opened, r.reason);
+    eprintln!(
+        "[links] new-window request denied in-app host={} opened={} reason={:?}",
+        r.host, r.opened, r.reason
+    );
     r
 }
 
@@ -85,7 +88,10 @@ struct SystemBrowser<R: tauri::Runtime>(tauri::AppHandle<R>);
 impl<R: tauri::Runtime> links::Opener for SystemBrowser<R> {
     fn open_url(&self, url: &str) -> Result<(), String> {
         use tauri_plugin_opener::OpenerExt;
-        self.0.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
+        self.0
+            .opener()
+            .open_url(url, None::<&str>)
+            .map_err(|e| e.to_string())
     }
     fn open_path(&self, _: &std::path::Path) -> Result<(), String> {
         Err("unsupported".into())
@@ -112,7 +118,9 @@ pub(crate) fn guard_new_windows<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
 
 /// Takes the windows Tauri would create from `tauri.conf.json` and clears their `create` flag, so
 /// `setup` builds them itself with the new-window guard (the config has no such option).
-fn take_config_windows(windows: &mut [tauri::utils::config::WindowConfig]) -> Vec<tauri::utils::config::WindowConfig> {
+fn take_config_windows(
+    windows: &mut [tauri::utils::config::WindowConfig],
+) -> Vec<tauri::utils::config::WindowConfig> {
     windows
         .iter_mut()
         .filter(|w| w.create)
@@ -131,94 +139,228 @@ pub fn run() {
         .manage(capture::LiveCaptureState::default())
         .manage(midi::MidiState::default())
         .invoke_handler(tauri::generate_handler![
-            commands::initialize_database, commands::save_diagnostic_run,
-            commands::list_runs, commands::get_run, commands::save_scan_alignment,
-            audio::list_native_audio_inputs, audio::capture_native_audio,
-            capture::start_live_capture, capture::stop_live_capture, capture::live_capture_status,
-            catalog::catalog_list, catalog::catalog_upsert, catalog::catalog_delete,
-            system_check::system_scan_drivers, system_check::system_scan_events, system_check::system_scan_dj_logs,
-            midi::midi_list_ports, midi::midi_open_input, midi::midi_close_input, midi::midi_send,
-            midi::midi_close_all, midi::midi_status,
-            devices::device_profiles_sync, devices::device_test_result_save, devices::device_test_results,
-            devices::device_midi_map_save, devices::device_midi_map_get,
+            commands::initialize_database,
+            commands::save_diagnostic_run,
+            commands::list_runs,
+            commands::get_run,
+            commands::save_scan_alignment,
+            audio::list_native_audio_inputs,
+            audio::capture_native_audio,
+            capture::start_live_capture,
+            capture::stop_live_capture,
+            capture::live_capture_status,
+            catalog::catalog_list,
+            catalog::catalog_upsert,
+            catalog::catalog_delete,
+            system_check::system_scan_drivers,
+            system_check::system_scan_events,
+            system_check::system_scan_dj_logs,
+            midi::midi_list_ports,
+            midi::midi_open_input,
+            midi::midi_close_input,
+            midi::midi_send,
+            midi::midi_close_all,
+            midi::midi_status,
+            devices::device_profiles_sync,
+            devices::device_test_result_save,
+            devices::device_test_results,
+            devices::device_midi_map_save,
+            devices::device_midi_map_get,
             // [FS-00] handlers
-            capture::capture_lease_acquire, capture::capture_lease_release, capture::capture_lease_status, capture::capture_preempt,
-            capture::start_stream_capture, capture::stream_capture_ack, capture::stop_stream_capture,
-            userfiles::userfiles_write_text, userfiles::userfiles_write_folder,
-            app_state::app_state_get, app_state::app_state_set, app_state::app_state_delete,
-            photo::photo_attach, photo::photo_list, photo::photo_unlink, photo::photo_read,
-            usage::usage_add, usage::usage_list, usage::usage_delete, usage::usage_confirm,
-            processes::dj_processes, processes::top_cpu,
-            audio_out::list_native_audio_outputs, audio_out::audio_play_buffer, audio_out::audio_play_tone,
-            audio_out::audio_set_level, audio_out::audio_stop, audio_out::audio_stop_all, audio_out::audio_out_status,
+            capture::capture_lease_acquire,
+            capture::capture_lease_release,
+            capture::capture_lease_status,
+            capture::capture_preempt,
+            capture::start_stream_capture,
+            capture::stream_capture_ack,
+            capture::stop_stream_capture,
+            userfiles::userfiles_write_text,
+            userfiles::userfiles_write_folder,
+            app_state::app_state_get,
+            app_state::app_state_set,
+            app_state::app_state_delete,
+            photo::photo_attach,
+            photo::photo_list,
+            photo::photo_unlink,
+            photo::photo_read,
+            usage::usage_add,
+            usage::usage_list,
+            usage::usage_delete,
+            usage::usage_confirm,
+            processes::dj_processes,
+            processes::top_cpu,
+            audio_out::list_native_audio_outputs,
+            audio_out::audio_play_buffer,
+            audio_out::audio_play_tone,
+            audio_out::audio_set_level,
+            audio_out::audio_stop,
+            audio_out::audio_stop_all,
+            audio_out::audio_out_status,
             // [FS-01] handlers
-            wizard::wizard_state_get, wizard::wizard_state_save, wizard::wizard_create_assets,
-            wizard::wizard_apply_gear, wizard::wizard_has_user_data,
+            wizard::wizard_state_get,
+            wizard::wizard_state_save,
+            wizard::wizard_create_assets,
+            wizard::wizard_apply_gear,
+            wizard::wizard_has_user_data,
             // [FS-02] handlers
-            diagnostics::log_client_error, diagnostics::diagnostics_status, diagnostics::diagnostics_ack_crash,
-            diagnostics::diagnostics_preview, diagnostics::diagnostics_create_bundle,
+            diagnostics::log_client_error,
+            diagnostics::diagnostics_status,
+            diagnostics::diagnostics_ack_crash,
+            diagnostics::diagnostics_preview,
+            diagnostics::diagnostics_create_bundle,
             // [FS-03] handlers
             pdf::pdf_render,
             // [FS-06] handlers
-            media::media_profiles_sync, media::media_list, media::media_custom_save, media::media_custom_delete, media::media_owned_set,
+            media::media_profiles_sync,
+            media::media_list,
+            media::media_custom_save,
+            media::media_custom_delete,
+            media::media_owned_set,
             // [FS-07] handlers
-            links::open_external_url, links::open_path, links::reveal_path,
+            links::open_external_url,
+            links::open_path,
+            links::reveal_path,
             // [FS-08] handlers
-            backup::backup_create, backup::backup_inspect, backup::backup_restore, backup::backup_list,
-            backup::backup_settings_get, backup::backup_settings_set, backup::backup_import_workspace,
+            backup::backup_create,
+            backup::backup_inspect,
+            backup::backup_restore,
+            backup::backup_list,
+            backup::backup_settings_get,
+            backup::backup_settings_set,
+            backup::backup_import_workspace,
             // [FS-10] handlers
-            pregig::pregig_processes, pregig::pregig_save_run, pregig::pregig_list_runs, pregig::pregig_get_run,
-            pregig::pregig_preset_upsert, pregig::pregig_preset_list, pregig::pregig_preset_delete,
+            pregig::pregig_processes,
+            pregig::pregig_save_run,
+            pregig::pregig_list_runs,
+            pregig::pregig_get_run,
+            pregig::pregig_preset_upsert,
+            pregig::pregig_preset_list,
+            pregig::pregig_preset_delete,
             // [FS-11] handlers
-            latency::audio_device_buffer_info, latency::latency_play_and_capture, latency::stress_run, latency::latency_abort,
-            latency::windows_tuning_scan, latency::latency_run_save, latency::latency_run_list, latency::latency_run_delete,
-            latency::buffer_recommendation_save, latency::buffer_recommendation_latest,
+            latency::audio_device_buffer_info,
+            latency::latency_play_and_capture,
+            latency::stress_run,
+            latency::latency_abort,
+            latency::windows_tuning_scan,
+            latency::latency_run_save,
+            latency::latency_run_list,
+            latency::latency_run_delete,
+            latency::buffer_recommendation_save,
+            latency::buffer_recommendation_latest,
             // [FS-12] handlers
-            stylus::stylus_benchmark_save, stylus::stylus_benchmark_list, stylus::stylus_alert_snooze, stylus::stylus_alert_list,
-            stylus::stylus_baseline, stylus::stylus_replace, stylus::stylus_rated_life_set, stylus::stylus_rated_life_get,
-            dj_sessions::dj_session_spans, commands::list_capture_sessions,
+            stylus::stylus_benchmark_save,
+            stylus::stylus_benchmark_list,
+            stylus::stylus_alert_snooze,
+            stylus::stylus_alert_list,
+            stylus::stylus_baseline,
+            stylus::stylus_replace,
+            stylus::stylus_rated_life_set,
+            stylus::stylus_rated_life_get,
+            dj_sessions::dj_session_spans,
+            commands::list_capture_sessions,
             // [FS-13] handlers
-            wearmap::wearmap_save, wearmap::wearmap_list, wearmap::wearmap_get, wearmap::wearmap_delete,
-            wearmap::wearmap_records_list, wearmap::wearmap_record_save,
+            wearmap::wearmap_save,
+            wearmap::wearmap_list,
+            wearmap::wearmap_get,
+            wearmap::wearmap_delete,
+            wearmap::wearmap_records_list,
+            wearmap::wearmap_record_save,
             // [FS-14] handlers
-            scratch::scratch_save, scratch::scratch_list, scratch::scratch_get, scratch::scratch_delete,
+            scratch::scratch_save,
+            scratch::scratch_list,
+            scratch::scratch_get,
+            scratch::scratch_delete,
             // [FS-15] handlers
-            humrun::hum_run_save, humrun::hum_run_list, humrun::hum_run_get, humrun::hum_run_delete,
-            selftest::self_test_mode, selftest::self_test_report,
+            humrun::hum_run_save,
+            humrun::hum_run_list,
+            humrun::hum_run_get,
+            humrun::hum_run_delete,
+            selftest::self_test_mode,
+            selftest::self_test_report,
             // [FS-20] handlers
-            signing::signing_get_identity, signing::signing_create_identity,
-            certificate::certificate_sign, certificate::certificate_verify, certificate::certificate_extract_json,
-            certificate::certificate_store, certificate::certificate_list, certificate::certificate_get,
+            signing::signing_get_identity,
+            signing::signing_create_identity,
+            certificate::certificate_sign,
+            certificate::certificate_verify,
+            certificate::certificate_extract_json,
+            certificate::certificate_store,
+            certificate::certificate_list,
+            certificate::certificate_get,
             // [FS-21] handlers
-            pack::pack_preview, pack::pack_import, pack::pack_list, pack::pack_remove, pack::pack_export,
-            pack::population_query, pack::population_unit_values,
+            pack::pack_preview,
+            pack::pack_import,
+            pack::pack_list,
+            pack::pack_remove,
+            pack::pack_export,
+            pack::population_query,
+            pack::population_unit_values,
             // [FS-22] handlers
-            service::job_create, service::job_get, service::job_list, service::job_update_fields, service::job_set_status,
-            service::job_add_log, service::job_attach_photo, service::job_link_results, service::job_comparison, service::job_delete,
-            service::customer_list, service::customer_update, service::customer_delete,
+            service::job_create,
+            service::job_get,
+            service::job_list,
+            service::job_update_fields,
+            service::job_set_status,
+            service::job_add_log,
+            service::job_attach_photo,
+            service::job_link_results,
+            service::job_comparison,
+            service::job_delete,
+            service::customer_list,
+            service::customer_update,
+            service::customer_delete,
             // [FS-23] handlers
-            fleet::fleet_snapshot, fleet::fleet_place_asset, fleet::reminder_upsert, fleet::reminder_snooze,
-            fleet::maintenance_log, fleet::maintenance_list, fleet::booth_upsert, fleet::position_upsert,
+            fleet::fleet_snapshot,
+            fleet::fleet_place_asset,
+            fleet::reminder_upsert,
+            fleet::reminder_snooze,
+            fleet::maintenance_log,
+            fleet::maintenance_list,
+            fleet::booth_upsert,
+            fleet::position_upsert,
             fleet::fleet_location_delete,
-            fleet::reminder_template_upsert, fleet::reminder_apply_template, fleet::reminder_delete,
+            fleet::reminder_template_upsert,
+            fleet::reminder_apply_template,
+            fleet::reminder_delete,
             // [FS-30] handlers
             // [FS-31] handlers
-            monitor::monitor_session_start, monitor::monitor_log_append, monitor::monitor_session_end, monitor::monitor_session_list,
-            monitor::monitor_session_get, monitor::monitor_session_delete, monitor::monitor_prune, tray::monitor_set_tray_state,
+            monitor::monitor_session_start,
+            monitor::monitor_log_append,
+            monitor::monitor_session_end,
+            monitor::monitor_session_list,
+            monitor::monitor_session_get,
+            monitor::monitor_session_delete,
+            monitor::monitor_prune,
+            tray::monitor_set_tray_state,
             // [FS-32] handlers
-            mapper::mapper_model_save, mapper::mapper_model_list, mapper::mapper_model_get, mapper::mapper_model_delete,
+            mapper::mapper_model_save,
+            mapper::mapper_model_list,
+            mapper::mapper_model_get,
+            mapper::mapper_model_delete,
             // [FS-33] handlers
-            ledger::ledger_public_notes, ledger::ledger_public_note_set, ledger::ledger_export_list, ledger::ledger_export_record,
-            ledger::ledger_next_revision, ledger::ledger_customer_units, ledger::ledger_write_folder,
+            ledger::ledger_public_notes,
+            ledger::ledger_public_note_set,
+            ledger::ledger_export_list,
+            ledger::ledger_export_record,
+            ledger::ledger_next_revision,
+            ledger::ledger_customer_units,
+            ledger::ledger_write_folder,
         ])
         .setup(move |_app| {
             // [AUD-08] config windows first (where Tauri would have built them), each with the guard
             for w in &config_windows {
-                guard_new_windows(tauri::WebviewWindowBuilder::from_config(_app.handle(), w)?, _app.handle()).build()?;
+                guard_new_windows(
+                    tauri::WebviewWindowBuilder::from_config(_app.handle(), w)?,
+                    _app.handle(),
+                )
+                .build()?;
             }
             // [FS-00] setup
             _app.handle().plugin(tauri_plugin_dialog::init())?;
-            _app.handle().plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())?;
+            _app.handle().plugin(
+                tauri_plugin_opener::Builder::new()
+                    .open_js_links_on_click(false)
+                    .build(),
+            )?;
             // [FS-01] setup
             // [FS-02] setup
             diagnostics::setup(_app);
@@ -296,9 +438,9 @@ mod aud_08_tests {
         for (url, opens) in [
             ("https://github.com/deckchek", true),
             ("https://www.pioneerdj.com/en/", true),
-            ("https://example.org/", false),          // needs confirmation, which a popup cannot give
-            ("https://user:pw@github.com/", false),   // userinfo is never auto-allowlisted
-            ("https://github.com:8443/", false),      // non-default port
+            ("https://example.org/", false), // needs confirmation, which a popup cannot give
+            ("https://user:pw@github.com/", false), // userinfo is never auto-allowlisted
+            ("https://github.com:8443/", false), // non-default port
             ("http://github.com/", false),
             ("file:///C:/Windows/System32/calc.exe", false),
             ("javascript:alert(1)", false),
@@ -321,9 +463,15 @@ mod aud_08_tests {
         ctx_windows[1].create = false;
         let taken = take_config_windows(&mut ctx_windows);
         assert_eq!(taken.len(), 1, "only windows Tauri would have created");
-        assert!(ctx_windows.iter().all(|w| !w.create), "Tauri must not create any window itself");
+        assert!(
+            ctx_windows.iter().all(|w| !w.create),
+            "Tauri must not create any window itself"
+        );
         let src = include_str!("lib.rs");
         let prod = src.split("#[cfg(test)]\nmod aud_08_tests").next().unwrap();
-        assert!(prod.contains("guard_new_windows(tauri::WebviewWindowBuilder::from_config("), "config windows built with the guard");
+        assert!(
+            prod.contains("guard_new_windows(tauri::WebviewWindowBuilder::from_config("),
+            "config windows built with the guard"
+        );
     }
 }

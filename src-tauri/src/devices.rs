@@ -50,7 +50,10 @@ fn e2s(e: rusqlite::Error) -> String {
 }
 
 fn str_field<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
-    v.get(key).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
+    v.get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
 }
 
 /// Map a profile category onto the catalog product category vocabulary.
@@ -77,7 +80,11 @@ pub fn spec_provenance(confidence: Option<&str>) -> &'static str {
 
 fn ensure_manufacturer(conn: &Connection, name: &str, now: &str) -> Result<String, String> {
     if let Some(id) = conn
-        .query_row("SELECT id FROM manufacturer WHERE name = ?1 COLLATE NOCASE", [name], |r| r.get::<_, String>(0))
+        .query_row(
+            "SELECT id FROM manufacturer WHERE name = ?1 COLLATE NOCASE",
+            [name],
+            |r| r.get::<_, String>(0),
+        )
         .optional()
         .map_err(e2s)?
     {
@@ -102,13 +109,28 @@ fn first_document_url(profile: &Value) -> Option<String> {
         .map(str::to_string)
 }
 
-fn sync_specs(conn: &Connection, profile_id: &str, product_id: &str, profile: &Value, now: &str) -> Result<(), String> {
+fn sync_specs(
+    conn: &Connection,
+    profile_id: &str,
+    product_id: &str,
+    profile: &Value,
+    now: &str,
+) -> Result<(), String> {
     // Replace only the rows this sync owns (deterministic ids), leaving user-entered specs alone.
-    conn.execute("DELETE FROM product_spec WHERE product_id = ?1 AND id LIKE ?2", params![product_id, format!("{profile_id}:spec:%")])
-        .map_err(e2s)?;
-    let specs = profile.get("specs").and_then(Value::as_array).cloned().unwrap_or_default();
+    conn.execute(
+        "DELETE FROM product_spec WHERE product_id = ?1 AND id LIKE ?2",
+        params![product_id, format!("{profile_id}:spec:%")],
+    )
+    .map_err(e2s)?;
+    let specs = profile
+        .get("specs")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     for (i, spec) in specs.iter().enumerate() {
-        let Some(key) = str_field(spec, "key") else { continue };
+        let Some(key) = str_field(spec, "key") else {
+            continue;
+        };
         let value = spec.get("value").unwrap_or(&Value::Null);
         let (num, text, boolean) = match value {
             Value::Number(n) => (n.as_f64(), None, None),
@@ -159,30 +181,49 @@ fn sync_specs(conn: &Connection, profile_id: &str, product_id: &str, profile: &V
 /// Idempotent: unchanged profiles keep their version; a profile seen for the
 /// first time also gets one "My <model>" asset (the user's own unit).
 #[cfg(test)]
-pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<Vec<SyncedProfile>, String> {
+pub fn sync_profiles(
+    conn: &mut Connection,
+    profiles: &[Value],
+) -> Result<Vec<SyncedProfile>, String> {
     sync_profiles_with(conn, profiles, true)
 }
 
 /// Like `sync_profiles`; with `create_assets == false` (setup wizard enabled, FS-01 AC-6) a newly seen profile
 /// gets no asset, so the user's gear list comes from what they tick, not from the whole library.
-pub fn sync_profiles_with(conn: &mut Connection, profiles: &[Value], create_assets: bool) -> Result<Vec<SyncedProfile>, String> {
+pub fn sync_profiles_with(
+    conn: &mut Connection,
+    profiles: &[Value],
+    create_assets: bool,
+) -> Result<Vec<SyncedProfile>, String> {
     let tx = conn.transaction().map_err(e2s)?;
     let now = now_iso(&tx)?;
     let mut out = Vec::new();
     for profile in profiles {
-        let id = str_field(profile, "id").ok_or("profile.id is required")?.to_string();
-        let manufacturer = str_field(profile, "manufacturer").ok_or_else(|| format!("{id}: manufacturer is required"))?;
-        let model = str_field(profile, "model").ok_or_else(|| format!("{id}: model is required"))?;
+        let id = str_field(profile, "id")
+            .ok_or("profile.id is required")?
+            .to_string();
+        let manufacturer = str_field(profile, "manufacturer")
+            .ok_or_else(|| format!("{id}: manufacturer is required"))?;
+        let model =
+            str_field(profile, "model").ok_or_else(|| format!("{id}: model is required"))?;
         let category = product_category(str_field(profile, "category").unwrap_or("other"));
         let manufacturer_id = ensure_manufacturer(&tx, manufacturer, &now)?;
         let canonical = serde_json::to_string(profile).map_err(|e| e.to_string())?;
 
         let existing: Option<(Option<String>, String, i64)> = tx
-            .query_row("SELECT product_id, json, version FROM device_profile WHERE id = ?1", [&id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .query_row(
+                "SELECT product_id, json, version FROM device_profile WHERE id = ?1",
+                [&id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
             .optional()
             .map_err(e2s)?;
         let known_product = existing.as_ref().and_then(|e| e.0.clone()).filter(|pid| {
-            tx.query_row("SELECT COUNT(*) FROM product WHERE id = ?1", [pid], |r| r.get::<_, i64>(0)).map(|n| n > 0).unwrap_or(false)
+            tx.query_row("SELECT COUNT(*) FROM product WHERE id = ?1", [pid], |r| {
+                r.get::<_, i64>(0)
+            })
+            .map(|n| n > 0)
+            .unwrap_or(false)
         });
         let product_id = match known_product {
             Some(pid) => pid,
@@ -227,7 +268,15 @@ pub fn sync_profiles_with(conn: &mut Connection, profiles: &[Value], create_asse
             .map_err(e2s)?;
             asset_id = Some(aid);
         }
-        out.push(SyncedProfile { profile_id: id, manufacturer_id, product_id, version, created, changed, asset_id });
+        out.push(SyncedProfile {
+            profile_id: id,
+            manufacturer_id,
+            product_id,
+            version,
+            created,
+            changed,
+            asset_id,
+        });
     }
     let shipped: Vec<String> = out.iter().map(|p| p.profile_id.clone()).collect();
     prune_retired_profiles(&tx, &shipped, &now)?;
@@ -257,36 +306,62 @@ fn asset_references(conn: &Connection) -> Result<Vec<String>, String> {
     let mut stmt = conn
         .prepare("SELECT m.name, f.\"from\" FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND f.\"table\" = 'asset' ORDER BY m.name, f.\"from\"")
         .map_err(e2s)?;
-    let pairs = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))).map_err(e2s)?;
+    let pairs = stmt
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .map_err(e2s)?;
     let quote = |id: &str| format!("\"{}\"", id.replace('"', "\"\""));
     pairs
-        .map(|p| p.map(|(t, c)| format!("SELECT COUNT(*) FROM {} WHERE {} = ?1", quote(&t), quote(&c))).map_err(e2s))
+        .map(|p| {
+            p.map(|(t, c)| {
+                format!(
+                    "SELECT COUNT(*) FROM {} WHERE {} = ?1",
+                    quote(&t),
+                    quote(&c)
+                )
+            })
+            .map_err(e2s)
+        })
         .collect()
 }
 
-pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) -> Result<PruneSummary, String> {
+pub fn prune_retired_profiles(
+    conn: &Connection,
+    shipped: &[String],
+    now: &str,
+) -> Result<PruneSummary, String> {
     let mut summary = PruneSummary::default();
     if shipped.is_empty() {
         return Ok(summary);
     }
     let rows: Vec<(String, Option<String>)> = {
-        let mut stmt = conn.prepare("SELECT id, product_id FROM device_profile").map_err(e2s)?;
-        let it = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?))).map_err(e2s)?;
+        let mut stmt = conn
+            .prepare("SELECT id, product_id FROM device_profile")
+            .map_err(e2s)?;
+        let it = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(e2s)?;
         it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
     };
-    let n = |sql: &str, id: &str| -> Result<i64, String> { conn.query_row(sql, [id], |r| r.get(0)).map_err(e2s) };
+    let n = |sql: &str, id: &str| -> Result<i64, String> {
+        conn.query_row(sql, [id], |r| r.get(0)).map_err(e2s)
+    };
     for (id, product_id) in rows.into_iter().filter(|(id, _)| !shipped.contains(id)) {
         if let Some(pid) = &product_id {
             let assets: Vec<String> = {
                 let mut stmt = conn
                     .prepare("SELECT id FROM asset WHERE product_id = ?1 AND is_deleted = 0 AND notes LIKE ?2 || '%'")
                     .map_err(e2s)?;
-                let it = stmt.query_map(params![pid, AUTO_ASSET_NOTE], |r| r.get(0)).map_err(e2s)?;
+                let it = stmt
+                    .query_map(params![pid, AUTO_ASSET_NOTE], |r| r.get(0))
+                    .map_err(e2s)?;
                 it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
             };
             let refs = asset_references(conn)?;
             for aid in assets {
-                let mut used = n("SELECT COUNT(*) FROM photo_link WHERE owner_kind = 'asset' AND owner_id = ?1", &aid)?;
+                let mut used = n(
+                    "SELECT COUNT(*) FROM photo_link WHERE owner_kind = 'asset' AND owner_id = ?1",
+                    &aid,
+                )?;
                 for sql in &refs {
                     used += n(sql, &aid)?;
                 }
@@ -294,15 +369,29 @@ pub fn prune_retired_profiles(conn: &Connection, shipped: &[String], now: &str) 
                     conn.execute("UPDATE asset SET is_deleted = 1, retired_date = COALESCE(retired_date, substr(?2, 1, 10)), updated_at = ?2 WHERE id = ?1", params![aid, now]).map_err(e2s)?;
                     summary.assets_retired.push(aid);
                 } else {
-                    conn.execute("DELETE FROM asset WHERE id = ?1", [&aid]).map_err(e2s)?;
+                    conn.execute("DELETE FROM asset WHERE id = ?1", [&aid])
+                        .map_err(e2s)?;
                     summary.assets_deleted.push(aid);
                 }
             }
         }
-        conn.execute("DELETE FROM product_spec WHERE id LIKE ?1 || ':spec:%'", [&id]).map_err(e2s)?;
-        if n("SELECT COUNT(*) FROM device_test_result WHERE profile_id = ?1", &id)? == 0 {
-            conn.execute("UPDATE asset_midi_map SET profile_id = NULL WHERE profile_id = ?1", [&id]).map_err(e2s)?;
-            conn.execute("DELETE FROM device_profile WHERE id = ?1", [&id]).map_err(e2s)?;
+        conn.execute(
+            "DELETE FROM product_spec WHERE id LIKE ?1 || ':spec:%'",
+            [&id],
+        )
+        .map_err(e2s)?;
+        if n(
+            "SELECT COUNT(*) FROM device_test_result WHERE profile_id = ?1",
+            &id,
+        )? == 0
+        {
+            conn.execute(
+                "UPDATE asset_midi_map SET profile_id = NULL WHERE profile_id = ?1",
+                [&id],
+            )
+            .map_err(e2s)?;
+            conn.execute("DELETE FROM device_profile WHERE id = ?1", [&id])
+                .map_err(e2s)?;
             summary.profiles.push(id);
         }
     }
@@ -329,39 +418,66 @@ const RESULT_COLS: &str = "id, asset_id, profile_id, test_id, session_id, status
 
 pub fn save_result(conn: &Connection, input: &DeviceTestResultInput) -> Result<Value, String> {
     if !RESULT_STATUSES.contains(&input.status.as_str()) {
-        return Err(format!("invalid status '{}' (expected pass, fail, unknown or skipped)", input.status));
+        return Err(format!(
+            "invalid status '{}' (expected pass, fail, unknown or skipped)",
+            input.status
+        ));
     }
     if input.test_id.trim().is_empty() {
         return Err("testId is required".into());
     }
-    let id = input.id.clone().filter(|s| !s.is_empty()).unwrap_or_else(new_id);
+    let id = input
+        .id
+        .clone()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(new_id);
     let created = match &input.created_at {
         Some(s) if !s.is_empty() => s.clone(),
         _ => now_iso(conn)?,
     };
     // A session id is only kept when that run was actually persisted.
     let session = input.session_id.clone().filter(|sid| {
-        conn.query_row("SELECT COUNT(*) FROM session WHERE id = ?1", [sid], |r| r.get::<_, i64>(0)).map(|n| n > 0).unwrap_or(false)
+        conn.query_row("SELECT COUNT(*) FROM session WHERE id = ?1", [sid], |r| {
+            r.get::<_, i64>(0)
+        })
+        .map(|n| n > 0)
+        .unwrap_or(false)
     });
     // Like the session id, a medium reference is only kept when the medium row exists (FK); the track key rides along.
     let media = input.media_id.clone().filter(|m| {
-        conn.query_row("SELECT COUNT(*) FROM test_media WHERE id = ?1", [m], |r| r.get::<_, i64>(0)).map(|n| n > 0).unwrap_or(false)
+        conn.query_row("SELECT COUNT(*) FROM test_media WHERE id = ?1", [m], |r| {
+            r.get::<_, i64>(0)
+        })
+        .map(|n| n > 0)
+        .unwrap_or(false)
     });
-    let media_track = media.as_ref().and_then(|_| input.media_track_key.clone().filter(|k| !k.is_empty()));
-    let detail = serde_json::to_string(input.detail.as_ref().unwrap_or(&json!({}))).map_err(|e| e.to_string())?;
+    let media_track = media
+        .as_ref()
+        .and_then(|_| input.media_track_key.clone().filter(|k| !k.is_empty()));
+    let detail = serde_json::to_string(input.detail.as_ref().unwrap_or(&json!({})))
+        .map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO device_test_result (id, asset_id, profile_id, test_id, session_id, status, detail_json, created_at, media_id, media_track_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) ON CONFLICT(id) DO UPDATE SET asset_id = excluded.asset_id, profile_id = excluded.profile_id, test_id = excluded.test_id, session_id = excluded.session_id, status = excluded.status, detail_json = excluded.detail_json, created_at = excluded.created_at, media_id = excluded.media_id, media_track_key = excluded.media_track_key",
         params![id, input.asset_id, input.profile_id, input.test_id, session, input.status, detail, created, media, media_track],
     )
     .map_err(e2s)?;
-    conn.query_row(&format!("SELECT {RESULT_COLS} FROM device_test_result WHERE id = ?1"), [&id], result_row).map_err(e2s)
+    conn.query_row(
+        &format!("SELECT {RESULT_COLS} FROM device_test_result WHERE id = ?1"),
+        [&id],
+        result_row,
+    )
+    .map_err(e2s)
 }
 
 /// Results, newest first; all assets when `asset_id` is None.
 pub fn list_results(conn: &Connection, asset_id: Option<&str>) -> Result<Vec<Value>, String> {
     let sql = format!(
         "SELECT {RESULT_COLS} FROM device_test_result {} ORDER BY created_at DESC, rowid DESC",
-        if asset_id.is_some() { "WHERE asset_id = ?1" } else { "" }
+        if asset_id.is_some() {
+            "WHERE asset_id = ?1"
+        } else {
+            ""
+        }
     );
     let mut stmt = conn.prepare(&sql).map_err(e2s)?;
     let rows = match asset_id {
@@ -372,7 +488,12 @@ pub fn list_results(conn: &Connection, asset_id: Option<&str>) -> Result<Vec<Val
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
 }
 
-pub fn save_midi_map(conn: &Connection, asset_id: &str, profile_id: Option<&str>, map: &Value) -> Result<Value, String> {
+pub fn save_midi_map(
+    conn: &Connection,
+    asset_id: &str,
+    profile_id: Option<&str>,
+    map: &Value,
+) -> Result<Value, String> {
     if !map.is_object() {
         return Err("map must be an object".into());
     }
@@ -387,62 +508,82 @@ pub fn save_midi_map(conn: &Connection, asset_id: &str, profile_id: Option<&str>
 }
 
 pub fn get_midi_map(conn: &Connection, asset_id: &str) -> Result<Option<Value>, String> {
-    conn.query_row("SELECT asset_id, profile_id, map_json, updated_at FROM asset_midi_map WHERE asset_id = ?1", [asset_id], |r| {
-        let map: String = r.get(2)?;
-        Ok(json!({
-            "assetId": r.get::<_, String>(0)?,
-            "profileId": r.get::<_, Option<String>>(1)?,
-            "map": serde_json::from_str::<Value>(&map).unwrap_or(Value::Null),
-            "updatedAt": r.get::<_, String>(3)?,
-        }))
-    })
+    conn.query_row(
+        "SELECT asset_id, profile_id, map_json, updated_at FROM asset_midi_map WHERE asset_id = ?1",
+        [asset_id],
+        |r| {
+            let map: String = r.get(2)?;
+            Ok(json!({
+                "assetId": r.get::<_, String>(0)?,
+                "profileId": r.get::<_, Option<String>>(1)?,
+                "map": serde_json::from_str::<Value>(&map).unwrap_or(Value::Null),
+                "updatedAt": r.get::<_, String>(3)?,
+            }))
+        },
+    )
     .optional()
     .map_err(e2s)
 }
 
-fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, String>) -> Result<T, String> {
+fn with_db<T>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut Connection) -> Result<T, String>,
+) -> Result<T, String> {
     let mut conn = open_database(&database_path(app)?)?;
     f(&mut conn)
 }
 
 #[tauri::command]
-pub async fn device_profiles_sync(app: AppHandle, profiles: Vec<Value>, create_assets: Option<bool>) -> Result<Vec<SyncedProfile>, String> {
+pub async fn device_profiles_sync(
+    app: AppHandle,
+    profiles: Vec<Value>,
+    create_assets: Option<bool>,
+) -> Result<Vec<SyncedProfile>, String> {
     crate::db::off_main(move || {
-        with_db(&app, |c| sync_profiles_with(c, &profiles, create_assets.unwrap_or(true)))
+        with_db(&app, |c| {
+            sync_profiles_with(c, &profiles, create_assets.unwrap_or(true))
+        })
     })
     .await?
 }
 
 #[tauri::command]
-pub async fn device_test_result_save(app: AppHandle, result: DeviceTestResultInput) -> Result<Value, String> {
+pub async fn device_test_result_save(
+    app: AppHandle,
+    result: DeviceTestResultInput,
+) -> Result<Value, String> {
+    crate::db::off_main(move || with_db(&app, |c| save_result(c, &result))).await?
+}
+
+#[tauri::command]
+pub async fn device_test_results(
+    app: AppHandle,
+    asset_id: Option<String>,
+) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || with_db(&app, |c| list_results(c, asset_id.as_deref()))).await?
+}
+
+#[tauri::command]
+pub async fn device_midi_map_save(
+    app: AppHandle,
+    asset_id: String,
+    profile_id: Option<String>,
+    map: Value,
+) -> Result<Value, String> {
     crate::db::off_main(move || {
-        with_db(&app, |c| save_result(c, &result))
+        with_db(&app, |c| {
+            save_midi_map(c, &asset_id, profile_id.as_deref(), &map)
+        })
     })
     .await?
 }
 
 #[tauri::command]
-pub async fn device_test_results(app: AppHandle, asset_id: Option<String>) -> Result<Vec<Value>, String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| list_results(c, asset_id.as_deref()))
-    })
-    .await?
-}
-
-#[tauri::command]
-pub async fn device_midi_map_save(app: AppHandle, asset_id: String, profile_id: Option<String>, map: Value) -> Result<Value, String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| save_midi_map(c, &asset_id, profile_id.as_deref(), &map))
-    })
-    .await?
-}
-
-#[tauri::command]
-pub async fn device_midi_map_get(app: AppHandle, asset_id: String) -> Result<Option<Value>, String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| get_midi_map(c, &asset_id))
-    })
-    .await?
+pub async fn device_midi_map_get(
+    app: AppHandle,
+    asset_id: String,
+) -> Result<Option<Value>, String> {
+    crate::db::off_main(move || with_db(&app, |c| get_midi_map(c, &asset_id))).await?
 }
 
 #[cfg(test)]
@@ -478,25 +619,62 @@ mod tests {
     fn sync_is_idempotent_and_reuses_seed_manufacturer() {
         let mut c = mem();
         let mfr_before = count(&c, "SELECT COUNT(*) FROM manufacturer");
-        let profiles = vec![profile("pioneer-x", "pioneer dj", "X-1"), profile("acme-y", "Acme", "Y-2")];
+        let profiles = vec![
+            profile("pioneer-x", "pioneer dj", "X-1"),
+            profile("acme-y", "Acme", "Y-2"),
+        ];
         let first = sync_profiles(&mut c, &profiles).unwrap();
-        assert!(first.iter().all(|p| p.created && p.changed && p.version == 1 && p.asset_id.is_some()));
+        assert!(first
+            .iter()
+            .all(|p| p.created && p.changed && p.version == 1 && p.asset_id.is_some()));
         // "pioneer dj" matched the seeded "Pioneer DJ"; Acme is new
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM manufacturer"), mfr_before + 1);
+        assert_eq!(
+            count(&c, "SELECT COUNT(*) FROM manufacturer"),
+            mfr_before + 1
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 2);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM product_spec WHERE id LIKE 'pioneer-x:spec:%'"), 2);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM product_spec WHERE id LIKE 'pioneer-x:spec:%'"
+            ),
+            2
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM product_spec WHERE provenance_type='manufacturer-doc' AND key='speed' AND source_title='Manual p.4'"), 2);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM product_spec WHERE provenance_type='research-unverified' AND source_url='https://example.test/spec'"), 2);
-        let nick: String = c.query_row("SELECT nickname FROM asset WHERE id = ?1", [first[0].asset_id.as_ref().unwrap()], |r| r.get(0)).unwrap();
+        let nick: String = c
+            .query_row(
+                "SELECT nickname FROM asset WHERE id = ?1",
+                [first[0].asset_id.as_ref().unwrap()],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(nick, "My X-1");
-        let src: String = c.query_row("SELECT source_url FROM product WHERE id = ?1", [&first[0].product_id], |r| r.get(0)).unwrap();
+        let src: String = c
+            .query_row(
+                "SELECT source_url FROM product WHERE id = ?1",
+                [&first[0].product_id],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(src, "https://example.test/deck");
 
-        let counts = |c: &Connection| ["manufacturer", "product", "product_spec", "asset", "device_profile"].map(|t| count(c, &format!("SELECT COUNT(*) FROM {t}")));
+        let counts = |c: &Connection| {
+            [
+                "manufacturer",
+                "product",
+                "product_spec",
+                "asset",
+                "device_profile",
+            ]
+            .map(|t| count(c, &format!("SELECT COUNT(*) FROM {t}")))
+        };
         let before = counts(&c);
         let second = sync_profiles(&mut c, &profiles).unwrap();
         assert_eq!(counts(&c), before, "second sync must not add rows");
-        assert!(second.iter().all(|p| !p.created && !p.changed && p.version == 1 && p.asset_id.is_none()));
+        assert!(second
+            .iter()
+            .all(|p| !p.created && !p.changed && p.version == 1 && p.asset_id.is_none()));
         assert_eq!(second[0].product_id, first[0].product_id);
 
         // a changed profile bumps the version but still creates no new asset
@@ -526,13 +704,28 @@ mod tests {
     #[test]
     fn sync_prunes_profiles_that_no_longer_ship() {
         let mut c = mem();
-        let all = vec![profile("keep-a", "Acme", "A-1"), profile("gone-unused", "Acme", "B-2"), profile("gone-used", "Acme", "C-3")];
+        let all = vec![
+            profile("keep-a", "Acme", "A-1"),
+            profile("gone-unused", "Acme", "B-2"),
+            profile("gone-used", "Acme", "C-3"),
+        ];
         let first = sync_profiles(&mut c, &all).unwrap();
         let used_asset = first[2].asset_id.clone().unwrap();
-        save_result(&c, &DeviceTestResultInput {
-            id: None, asset_id: used_asset.clone(), profile_id: "gone-used".into(), test_id: "t".into(), session_id: None,
-            status: "pass".into(), detail: None, created_at: None, media_id: None, media_track_key: None,
-        })
+        save_result(
+            &c,
+            &DeviceTestResultInput {
+                id: None,
+                asset_id: used_asset.clone(),
+                profile_id: "gone-used".into(),
+                test_id: "t".into(),
+                session_id: None,
+                status: "pass".into(),
+                detail: None,
+                created_at: None,
+                media_id: None,
+                media_track_key: None,
+            },
+        )
         .unwrap();
         // an empty shipped set (library failed to load) must not wipe anything
         sync_profiles(&mut c, &[]).unwrap();
@@ -540,18 +733,64 @@ mod tests {
 
         sync_profiles(&mut c, &all[..1]).unwrap();
         // unused profile: row, specs and asset are gone
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-unused'"), 0);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM product_spec WHERE id LIKE 'gone-unused:spec:%'"), 0);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset WHERE id = ?1".replace("?1", &format!("'{}'", first[1].asset_id.as_ref().unwrap())).as_str()), 0);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-unused'"
+            ),
+            0
+        );
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM product_spec WHERE id LIKE 'gone-unused:spec:%'"
+            ),
+            0
+        );
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM asset WHERE id = ?1"
+                    .replace("?1", &format!("'{}'", first[1].asset_id.as_ref().unwrap()))
+                    .as_str()
+            ),
+            0
+        );
         // profile with saved results: asset soft-deleted and retired, history and profile row kept
-        let (deleted, retired): (i64, Option<String>) = c.query_row("SELECT is_deleted, retired_date FROM asset WHERE id = ?1", [&used_asset], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        let (deleted, retired): (i64, Option<String>) = c
+            .query_row(
+                "SELECT is_deleted, retired_date FROM asset WHERE id = ?1",
+                [&used_asset],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
         assert_eq!(deleted, 1);
         assert!(retired.is_some());
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result"), 1);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-used'"), 1);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM device_profile WHERE id = 'gone-used'"
+            ),
+            1
+        );
         // shipped profile untouched
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile WHERE id = 'keep-a'"), 1);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM asset WHERE id = ?1".replace("?1", &format!("'{}'", first[0].asset_id.as_ref().unwrap())).as_str()), 1);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM device_profile WHERE id = 'keep-a'"
+            ),
+            1
+        );
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM asset WHERE id = ?1"
+                    .replace("?1", &format!("'{}'", first[0].asset_id.as_ref().unwrap()))
+                    .as_str()
+            ),
+            1
+        );
         // a second sync is stable
         sync_profiles(&mut c, &all[..1]).unwrap();
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_profile"), 2);
@@ -560,20 +799,40 @@ mod tests {
     #[test]
     fn prune_keeps_assets_referenced_by_any_feature_table() {
         let mut c = mem();
-        let all = vec![profile("keep-a", "Acme", "A-1"), profile("gone-stylus", "Acme", "S-1"), profile("gone-photo", "Acme", "P-1"), profile("gone-reminder", "Acme", "R-1")];
+        let all = vec![
+            profile("keep-a", "Acme", "A-1"),
+            profile("gone-stylus", "Acme", "S-1"),
+            profile("gone-photo", "Acme", "P-1"),
+            profile("gone-reminder", "Acme", "R-1"),
+        ];
         let first = sync_profiles(&mut c, &all).unwrap();
-        let (stylus, photo, reminder) = (first[1].asset_id.clone().unwrap(), first[2].asset_id.clone().unwrap(), first[3].asset_id.clone().unwrap());
+        let (stylus, photo, reminder) = (
+            first[1].asset_id.clone().unwrap(),
+            first[2].asset_id.clone().unwrap(),
+            first[3].asset_id.clone().unwrap(),
+        );
         c.execute("INSERT INTO stylus_benchmark (id, asset_id, hours_at, created_at) VALUES ('b1', ?1, 3.5, 'x')", [&stylus]).unwrap();
         c.execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('ph', ?1, 'image/jpeg', 1, 1, 1, 'x')", ["a".repeat(64)]).unwrap();
         c.execute("INSERT INTO photo_link (id, photo_id, owner_kind, owner_id, created_at) VALUES ('pl', 'ph', 'asset', ?1, 'x')", [&photo]).unwrap();
         c.execute("INSERT INTO maintenance_reminder (id, asset_id, title, basis, interval_value, created_at) VALUES ('r1', ?1, 'Clean', 'days', 30, 'x')", [&reminder]).unwrap();
         sync_profiles(&mut c, &all[..1]).unwrap();
         for aid in [&stylus, &photo, &reminder] {
-            assert_eq!(count(&c, &format!("SELECT COUNT(*) FROM asset WHERE id = '{aid}' AND is_deleted = 1")), 1, "{aid} retired, not deleted");
+            assert_eq!(
+                count(
+                    &c,
+                    &format!("SELECT COUNT(*) FROM asset WHERE id = '{aid}' AND is_deleted = 1")
+                ),
+                1,
+                "{aid} retired, not deleted"
+            );
         }
         assert_eq!(count(&c, "SELECT COUNT(*) FROM stylus_benchmark"), 1);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM photo_link"), 1);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM maintenance_reminder"), 1, "reminder not cascade-deleted");
+        assert_eq!(
+            count(&c, "SELECT COUNT(*) FROM maintenance_reminder"),
+            1,
+            "reminder not cascade-deleted"
+        );
     }
 
     #[test]
@@ -589,20 +848,44 @@ mod tests {
         let mut c = mem();
         let synced = sync_profiles(&mut c, &[profile("acme-y", "Acme", "Y-2")]).unwrap();
         let asset = synced[0].asset_id.clone().unwrap();
-        let input = |status: &str, test: &str, session: Option<&str>, at: &str| DeviceTestResultInput {
-            id: None, asset_id: asset.clone(), profile_id: "acme-y".into(), test_id: test.into(), session_id: session.map(str::to_string),
-            status: status.into(), detail: Some(json!({"detail": "Pass: 1==1", "metrics": [{"metricId": "driver_present", "value": 1}]})), created_at: Some(at.into()),
-            media_id: None, media_track_key: None,
+        let input = |status: &str, test: &str, session: Option<&str>, at: &str| {
+            DeviceTestResultInput {
+                id: None,
+                asset_id: asset.clone(),
+                profile_id: "acme-y".into(),
+                test_id: test.into(),
+                session_id: session.map(str::to_string),
+                status: status.into(),
+                detail: Some(
+                    json!({"detail": "Pass: 1==1", "metrics": [{"metricId": "driver_present", "value": 1}]}),
+                ),
+                created_at: Some(at.into()),
+                media_id: None,
+                media_track_key: None,
+            }
         };
         let a = save_result(&c, &input("pass", "t-driver", None, "2026-10-01T10:00:00Z")).unwrap();
         assert_eq!(a["status"], "pass");
         assert_eq!(a["detail"]["metrics"][0]["metricId"], "driver_present");
         // unknown session ids are dropped instead of violating the FK
-        let b = save_result(&c, &input("fail", "t-midi", Some("no-such-session"), "2026-10-02T10:00:00Z")).unwrap();
+        let b = save_result(
+            &c,
+            &input(
+                "fail",
+                "t-midi",
+                Some("no-such-session"),
+                "2026-10-02T10:00:00Z",
+            ),
+        )
+        .unwrap();
         assert_eq!(b["sessionId"], Value::Null);
         // a persisted run's id is kept
         c.execute("INSERT INTO session (id, session_type, started_at, app_version, schema_version, status, config_snapshot_json) VALUES ('run-1', 'quick', 'now', 'test', 1, 'completed', '{}')", []).unwrap();
-        let d = save_result(&c, &input("unknown", "t-quick", Some("run-1"), "2026-10-03T10:00:00Z")).unwrap();
+        let d = save_result(
+            &c,
+            &input("unknown", "t-quick", Some("run-1"), "2026-10-03T10:00:00Z"),
+        )
+        .unwrap();
         assert_eq!(d["sessionId"], "run-1");
         assert!(save_result(&c, &input("great", "t", None, "x")).is_err());
         assert!(save_result(&c, &input("pass", " ", None, "x")).is_err());
@@ -626,24 +909,52 @@ mod tests {
         let asset = synced[0].asset_id.clone().unwrap();
         c.execute("INSERT INTO test_media (id, source, kind, name, version, profile_json, created_at, updated_at) VALUES ('ortofon-test-record','builtin','test_record','Ortofon',1,'{}','t','t')", []).unwrap();
         let input = |media: Option<&str>, track: Option<&str>| DeviceTestResultInput {
-            id: None, asset_id: asset.clone(), profile_id: "acme-y".into(), test_id: "t-speed".into(), session_id: None,
-            status: "pass".into(), detail: None, created_at: Some("2026-10-05T10:00:00Z".into()),
-            media_id: media.map(str::to_string), media_track_key: track.map(str::to_string),
+            id: None,
+            asset_id: asset.clone(),
+            profile_id: "acme-y".into(),
+            test_id: "t-speed".into(),
+            session_id: None,
+            status: "pass".into(),
+            detail: None,
+            created_at: Some("2026-10-05T10:00:00Z".into()),
+            media_id: media.map(str::to_string),
+            media_track_key: track.map(str::to_string),
         };
         let a = save_result(&c, &input(Some("ortofon-test-record"), Some("t5"))).unwrap();
         assert_eq!(a["mediaId"], "ortofon-test-record");
         assert_eq!(a["mediaTrackKey"], "t5");
         let listed = list_results(&c, Some(&asset)).unwrap();
-        assert_eq!((listed[0]["mediaId"].as_str(), listed[0]["mediaTrackKey"].as_str()), (Some("ortofon-test-record"), Some("t5")));
+        assert_eq!(
+            (
+                listed[0]["mediaId"].as_str(),
+                listed[0]["mediaTrackKey"].as_str()
+            ),
+            (Some("ortofon-test-record"), Some("t5"))
+        );
         // no medium: both stay null; an unknown medium (or a track key without a medium) is dropped, not an FK error
         let b = save_result(&c, &input(None, Some("t5"))).unwrap();
-        assert_eq!((b["mediaId"].clone(), b["mediaTrackKey"].clone()), (Value::Null, Value::Null));
+        assert_eq!(
+            (b["mediaId"].clone(), b["mediaTrackKey"].clone()),
+            (Value::Null, Value::Null)
+        );
         let d = save_result(&c, &input(Some("no-such-medium"), Some("t5"))).unwrap();
-        assert_eq!((d["mediaId"].clone(), d["mediaTrackKey"].clone()), (Value::Null, Value::Null));
+        assert_eq!(
+            (d["mediaId"].clone(), d["mediaTrackKey"].clone()),
+            (Value::Null, Value::Null)
+        );
         // camelCase JSON from the UI deserialises, and old payloads without the fields still do
         let from_ui: DeviceTestResultInput = serde_json::from_value(json!({"assetId": "a", "profileId": "p", "testId": "t", "status": "pass", "mediaId": "m", "mediaTrackKey": "k"})).unwrap();
-        assert_eq!((from_ui.media_id.as_deref(), from_ui.media_track_key.as_deref()), (Some("m"), Some("k")));
-        let old: DeviceTestResultInput = serde_json::from_value(json!({"assetId": "a", "profileId": "p", "testId": "t", "status": "pass"})).unwrap();
+        assert_eq!(
+            (
+                from_ui.media_id.as_deref(),
+                from_ui.media_track_key.as_deref()
+            ),
+            (Some("m"), Some("k"))
+        );
+        let old: DeviceTestResultInput = serde_json::from_value(
+            json!({"assetId": "a", "profileId": "p", "testId": "t", "status": "pass"}),
+        )
+        .unwrap();
         assert!(old.media_id.is_none() && old.media_track_key.is_none());
     }
 

@@ -59,7 +59,10 @@ impl Path<'_> {
 fn err<T>(message: impl Into<String>, path: &Path) -> Result<T, CanonicalError> {
     let mut text = String::new();
     path.render(&mut text);
-    Err(CanonicalError { message: message.into(), path: text })
+    Err(CanonicalError {
+        message: message.into(),
+        path: text,
+    })
 }
 
 /// The canonical text of an `f64` that must be a safe integer (`-0` -> `0`).
@@ -72,7 +75,10 @@ fn number_text_f64(n: f64, path: &Path) -> Result<String, CanonicalError> {
         return err(format!("{n} is not allowed"), path);
     }
     if n.fract() != 0.0 {
-        return err(format!("non-integer number {n} (emit measured values as decimal strings)"), path);
+        return err(
+            format!("non-integer number {n} (emit measured values as decimal strings)"),
+            path,
+        );
     }
     if n.abs() > MAX_SAFE as f64 {
         return err(format!("integer {n} outside the safe range"), path);
@@ -82,7 +88,11 @@ fn number_text_f64(n: f64, path: &Path) -> Result<String, CanonicalError> {
 
 fn number_text(n: &serde_json::Number, path: &Path) -> Result<String, CanonicalError> {
     if let Some(i) = n.as_i64() {
-        return if i.abs() <= MAX_SAFE { Ok(i.to_string()) } else { err(format!("integer {i} outside the safe range"), path) };
+        return if i.abs() <= MAX_SAFE {
+            Ok(i.to_string())
+        } else {
+            err(format!("integer {i} outside the safe range"), path)
+        };
     }
     if let Some(u) = n.as_u64() {
         return err(format!("integer {u} outside the safe range"), path);
@@ -111,7 +121,12 @@ fn write_string(out: &mut String, s: &str) {
     out.push('"');
 }
 
-fn write_value(out: &mut String, v: &Value, path: &Path, depth: usize) -> Result<(), CanonicalError> {
+fn write_value(
+    out: &mut String,
+    v: &Value,
+    path: &Path,
+    depth: usize,
+) -> Result<(), CanonicalError> {
     if depth > MAX_DEPTH {
         return err(format!("nesting deeper than {MAX_DEPTH}"), path);
     }
@@ -158,7 +173,10 @@ pub fn canonical_json(value: &Value) -> Result<String, CanonicalError> {
 
 /// Lowercase hex SHA-256 of `bytes`.
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// SHA-256 (hex) of the canonical UTF-8 bytes of `value`.
@@ -168,7 +186,10 @@ pub fn canonical_sha256(value: &Value) -> Result<String, CanonicalError> {
 
 /// True when `text` parses as JSON and is already byte-for-byte its own canonical form.
 pub fn is_canonical(text: &str) -> bool {
-    parse_json(text).ok().and_then(|v| canonical_json(&v).ok()).is_some_and(|c| c == text)
+    parse_json(text)
+        .ok()
+        .and_then(|v| canonical_json(&v).ok())
+        .is_some_and(|c| c == text)
 }
 
 /// Parses untrusted JSON the way JavaScript's `JSON.parse` sees it: every object key is kept as
@@ -248,7 +269,8 @@ mod tests {
     use std::fs;
 
     fn vectors() -> Value {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/canonical-vectors.json");
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tests/fixtures/canonical-vectors.json");
         serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
     }
 
@@ -264,7 +286,8 @@ mod tests {
         let v = parse_json(&format!("{{\"{key}\":{{\"a\":1}}}}")).unwrap();
         assert_eq!(v.as_object().unwrap().len(), 1);
         assert_eq!(v[key]["a"], 1);
-        let canon = canonical_json(&parse_json(&format!("{{\"b\":[1],\"{key}\":3}}")).unwrap()).unwrap();
+        let canon =
+            canonical_json(&parse_json(&format!("{{\"b\":[1],\"{key}\":3}}")).unwrap()).unwrap();
         assert_eq!(canon, format!("{{\"{key}\":3,\"b\":[1]}}"));
         assert!(is_canonical(&canon));
         assert!(parse_json("[1,").is_err());
@@ -279,11 +302,20 @@ mod tests {
         assert!(items.len() >= 25);
         for item in items {
             let name = item["name"].as_str().unwrap();
-            let input: Value = serde_json::from_str(item["inputJson"].as_str().unwrap()).unwrap_or_else(|e| panic!("{name}: {e}"));
+            let input: Value = serde_json::from_str(item["inputJson"].as_str().unwrap())
+                .unwrap_or_else(|e| panic!("{name}: {e}"));
             let out = canonical_json(&input).unwrap_or_else(|e| panic!("{name}: {e}"));
             assert_eq!(out, item["canonical"].as_str().unwrap(), "{name}");
-            assert_eq!(sha256_hex(out.as_bytes()), item["sha256"].as_str().unwrap(), "{name} sha256");
-            assert_eq!(canonical_sha256(&input).unwrap(), item["sha256"].as_str().unwrap(), "{name} canonical_sha256");
+            assert_eq!(
+                sha256_hex(out.as_bytes()),
+                item["sha256"].as_str().unwrap(),
+                "{name} sha256"
+            );
+            assert_eq!(
+                canonical_sha256(&input).unwrap(),
+                item["sha256"].as_str().unwrap(),
+                "{name} canonical_sha256"
+            );
             assert!(is_canonical(&out), "{name} is its own canonical form");
         }
     }
@@ -314,7 +346,10 @@ mod tests {
             assert!(canonical_f64(n).is_err(), "{n}");
         }
         assert_eq!(canonical_f64(-0.0).unwrap(), "0");
-        assert_eq!(canonical_f64(9_007_199_254_740_991.0).unwrap(), "9007199254740991");
+        assert_eq!(
+            canonical_f64(9_007_199_254_740_991.0).unwrap(),
+            "9007199254740991"
+        );
         assert!(canonical_f64(9_007_199_254_740_992.0).is_err());
         assert!(canonical_f64(0.5).is_err());
     }
@@ -327,7 +362,10 @@ mod tests {
             let text = item["text"].as_str().unwrap();
             assert!(!is_canonical(text), "{name}");
             let parsed: Value = serde_json::from_str(text).unwrap();
-            assert!(is_canonical(&canonical_json(&parsed).unwrap()), "{name} re-canonicalised");
+            assert!(
+                is_canonical(&canonical_json(&parsed).unwrap()),
+                "{name} re-canonicalised"
+            );
         }
         assert!(!is_canonical("not json"));
     }
@@ -349,7 +387,11 @@ mod tests {
         let value = Value::Object(map);
         let started = std::time::Instant::now();
         let out = canonical_json(&value).unwrap();
-        assert!(started.elapsed() < std::time::Duration::from_secs(1), "took {:?}", started.elapsed());
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(1),
+            "took {:?}",
+            started.elapsed()
+        );
         assert_eq!(out.len(), "{\"\":[]}".len() + key.len() + 100_000 * 2 - 1);
         // the path is still reported in full when there is an error
         let mut bad = serde_json::Map::new();
@@ -368,8 +410,17 @@ mod tests {
 
     #[test]
     fn sha256_known_answers() {
-        assert_eq!(sha256_hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-        assert_eq!(sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-        assert_eq!(sha256_hex(&vec![b'a'; 1_000_000]), "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            sha256_hex(&vec![b'a'; 1_000_000]),
+            "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"
+        );
     }
 }

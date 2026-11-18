@@ -74,7 +74,9 @@ pub struct IdResult {
 
 fn check_range(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(format!("{name} must be between {lo} and {hi}")),
+        Some(x) if !x.is_finite() || x < lo || x > hi => {
+            Err(format!("{name} must be between {lo} and {hi}"))
+        }
         _ => Ok(()),
     }
 }
@@ -88,17 +90,27 @@ pub fn validate_benchmark(i: &BenchmarkInput) -> Result<(), String> {
     check_range("separationDb", i.separation_db, -60.0, 140.0)?;
     check_range("tcSnrDb", i.tc_snr_db, -60.0, 140.0)?;
     check_range("tcPhaseErrorDeg", i.tc_phase_error_deg, 0.0, 360.0)?;
-    if i.tc_dropouts.map_or(false, |d| !(0..=1_000_000).contains(&d)) {
+    if i.tc_dropouts
+        .map_or(false, |d| !(0..=1_000_000).contains(&d))
+    {
         return Err("tcDropouts must be between 0 and 1000000".into());
     }
-    if i.thd_percent.is_none() && i.separation_db.is_none() && i.tc_snr_db.is_none() && i.tc_phase_error_deg.is_none() && i.tc_dropouts.is_none() {
+    if i.thd_percent.is_none()
+        && i.separation_db.is_none()
+        && i.tc_snr_db.is_none()
+        && i.tc_phase_error_deg.is_none()
+        && i.tc_dropouts.is_none()
+    {
         return Err("benchmark has no metrics".into());
     }
     Ok(())
 }
 
 fn asset_exists(conn: &Connection, id: &str) -> Result<(), String> {
-    let n: Option<i64> = conn.query_row("SELECT 1 FROM asset WHERE id = ?1", [id], |r| r.get(0)).optional().map_err(e2s)?;
+    let n: Option<i64> = conn
+        .query_row("SELECT 1 FROM asset WHERE id = ?1", [id], |r| r.get(0))
+        .optional()
+        .map_err(e2s)?;
     n.map(|_| ()).ok_or_else(|| format!("unknown asset '{id}'"))
 }
 
@@ -126,9 +138,17 @@ const BENCH_COLS: &str = "id, asset_id, session_id, setup_id, hours_at, thd_perc
 pub fn benchmark_save(conn: &Connection, i: &BenchmarkInput) -> Result<IdResult, String> {
     validate_benchmark(i)?;
     asset_exists(conn, &i.asset_id)?;
-    for (table, id, what) in [("session", &i.session_id, "session"), ("setup", &i.setup_id, "setup")] {
+    for (table, id, what) in [
+        ("session", &i.session_id, "session"),
+        ("setup", &i.setup_id, "setup"),
+    ] {
         if let Some(id) = id {
-            let n: Option<i64> = conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| r.get(0)).optional().map_err(e2s)?;
+            let n: Option<i64> = conn
+                .query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| {
+                    r.get(0)
+                })
+                .optional()
+                .map_err(e2s)?;
             if n.is_none() {
                 return Err(format!("unknown {what} '{id}'"));
             }
@@ -162,11 +182,22 @@ pub fn benchmark_list(conn: &Connection, asset_id: &str) -> Result<Vec<Benchmark
 }
 
 pub fn valid_kind(kind: &str) -> bool {
-    !kind.is_empty() && kind.len() <= 48 && kind.starts_with(|c: char| c.is_ascii_lowercase()) && kind.chars().all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '_')
+    !kind.is_empty()
+        && kind.len() <= 48
+        && kind.starts_with(|c: char| c.is_ascii_lowercase())
+        && kind
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '_')
 }
 
 /// Record a snooze. Each call adds a row (the history is the record); readers use the latest per kind.
-pub fn alert_snooze(conn: &Connection, asset_id: &str, kind: &str, until: &str, severity: Option<&str>) -> Result<IdResult, String> {
+pub fn alert_snooze(
+    conn: &Connection,
+    asset_id: &str,
+    kind: &str,
+    until: &str,
+    severity: Option<&str>,
+) -> Result<IdResult, String> {
     if !valid_kind(kind) {
         return Err("alert kind must be lowercase letters, digits, ':' or '_' (max 48)".into());
     }
@@ -194,7 +225,14 @@ pub fn alert_list(conn: &Connection, asset_id: &str) -> Result<Vec<StylusAlert>,
         .map_err(e2s)?;
     let rows = stmt
         .query_map([asset_id], |r| {
-            Ok(StylusAlert { id: r.get(0)?, asset_id: r.get(1)?, kind: r.get(2)?, severity: r.get(3)?, snoozed_until: r.get(4)?, created_at: r.get(5)? })
+            Ok(StylusAlert {
+                id: r.get(0)?,
+                asset_id: r.get(1)?,
+                kind: r.get(2)?,
+                severity: r.get(3)?,
+                snoozed_until: r.get(4)?,
+                created_at: r.get(5)?,
+            })
         })
         .map_err(e2s)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)
@@ -212,7 +250,12 @@ pub fn baseline(conn: &Connection, asset_id: &str) -> Result<Option<String>, Str
 }
 
 /// Mark a stylus replacement (resets the hours baseline; ledger, benchmarks and alerts are kept).
-pub fn replace(conn: &Connection, asset_id: &str, at: &str, note: Option<&str>) -> Result<IdResult, String> {
+pub fn replace(
+    conn: &Connection,
+    asset_id: &str,
+    at: &str,
+    note: Option<&str>,
+) -> Result<IdResult, String> {
     if !valid_timestamp(at) {
         return Err(format!("at must be a UTC ISO timestamp, got '{at}'"));
     }
@@ -235,7 +278,9 @@ pub fn replace(conn: &Connection, asset_id: &str, at: &str, note: Option<&str>) 
 pub fn rated_life_set(conn: &Connection, asset_id: &str, hours: Option<f64>) -> Result<(), String> {
     if let Some(h) = hours {
         if !h.is_finite() || h <= 0.0 || h > MAX_RATED_HOURS {
-            return Err(format!("rated life must be above 0 and at most {MAX_RATED_HOURS} hours"));
+            return Err(format!(
+                "rated life must be above 0 and at most {MAX_RATED_HOURS} hours"
+            ));
         }
     }
     let n = conn.execute("UPDATE asset SET rated_life_hours = ?2, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1", params![asset_id, hours]).map_err(e2s)?;
@@ -246,14 +291,21 @@ pub fn rated_life_set(conn: &Connection, asset_id: &str, hours: Option<f64>) -> 
 }
 
 pub fn rated_life_get(conn: &Connection, asset_id: &str) -> Result<Option<f64>, String> {
-    conn.query_row("SELECT rated_life_hours FROM asset WHERE id = ?1", [asset_id], |r| r.get::<_, Option<f64>>(0))
-        .optional()
-        .map_err(e2s)?
-        .ok_or_else(|| format!("unknown asset '{asset_id}'"))
+    conn.query_row(
+        "SELECT rated_life_hours FROM asset WHERE id = ?1",
+        [asset_id],
+        |r| r.get::<_, Option<f64>>(0),
+    )
+    .optional()
+    .map_err(e2s)?
+    .ok_or_else(|| format!("unknown asset '{asset_id}'"))
 }
 
 #[tauri::command]
-pub async fn stylus_benchmark_save(app: AppHandle, result: BenchmarkInput) -> Result<IdResult, String> {
+pub async fn stylus_benchmark_save(
+    app: AppHandle,
+    result: BenchmarkInput,
+) -> Result<IdResult, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         benchmark_save(&conn, &result)
@@ -262,7 +314,10 @@ pub async fn stylus_benchmark_save(app: AppHandle, result: BenchmarkInput) -> Re
 }
 
 #[tauri::command]
-pub async fn stylus_benchmark_list(app: AppHandle, asset_id: String) -> Result<Vec<Benchmark>, String> {
+pub async fn stylus_benchmark_list(
+    app: AppHandle,
+    asset_id: String,
+) -> Result<Vec<Benchmark>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         benchmark_list(&conn, &asset_id)
@@ -271,7 +326,13 @@ pub async fn stylus_benchmark_list(app: AppHandle, asset_id: String) -> Result<V
 }
 
 #[tauri::command]
-pub async fn stylus_alert_snooze(app: AppHandle, asset_id: String, kind: String, until: String, severity: Option<String>) -> Result<IdResult, String> {
+pub async fn stylus_alert_snooze(
+    app: AppHandle,
+    asset_id: String,
+    kind: String,
+    until: String,
+    severity: Option<String>,
+) -> Result<IdResult, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         alert_snooze(&conn, &asset_id, &kind, &until, severity.as_deref())
@@ -280,7 +341,10 @@ pub async fn stylus_alert_snooze(app: AppHandle, asset_id: String, kind: String,
 }
 
 #[tauri::command]
-pub async fn stylus_alert_list(app: AppHandle, asset_id: String) -> Result<Vec<StylusAlert>, String> {
+pub async fn stylus_alert_list(
+    app: AppHandle,
+    asset_id: String,
+) -> Result<Vec<StylusAlert>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         alert_list(&conn, &asset_id)
@@ -298,7 +362,12 @@ pub async fn stylus_baseline(app: AppHandle, asset_id: String) -> Result<Option<
 }
 
 #[tauri::command]
-pub async fn stylus_replace(app: AppHandle, asset_id: String, at: String, note: Option<String>) -> Result<IdResult, String> {
+pub async fn stylus_replace(
+    app: AppHandle,
+    asset_id: String,
+    at: String,
+    note: Option<String>,
+) -> Result<IdResult, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         replace(&conn, &asset_id, &at, note.as_deref())
@@ -307,7 +376,11 @@ pub async fn stylus_replace(app: AppHandle, asset_id: String, at: String, note: 
 }
 
 #[tauri::command]
-pub async fn stylus_rated_life_set(app: AppHandle, asset_id: String, hours: Option<f64>) -> Result<(), String> {
+pub async fn stylus_rated_life_set(
+    app: AppHandle,
+    asset_id: String,
+    hours: Option<f64>,
+) -> Result<(), String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         rated_life_set(&conn, &asset_id, hours)
@@ -316,7 +389,10 @@ pub async fn stylus_rated_life_set(app: AppHandle, asset_id: String, hours: Opti
 }
 
 #[tauri::command]
-pub async fn stylus_rated_life_get(app: AppHandle, asset_id: String) -> Result<Option<f64>, String> {
+pub async fn stylus_rated_life_get(
+    app: AppHandle,
+    asset_id: String,
+) -> Result<Option<f64>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         rated_life_get(&conn, &asset_id)
@@ -359,17 +435,38 @@ mod tests {
     #[test]
     fn migration_creates_tables_and_asset_column_and_is_recorded_once() {
         let c = mem();
-        let v = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 9).expect("0009 registered");
+        let v = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 9)
+            .expect("0009 registered");
         assert!(v.1.contains("stylus_benchmark"));
         // runner is idempotent: a second pass applies nothing and does not re-run the ALTER
         apply_migrations(&c).unwrap();
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM schema_migration WHERE version = 9", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row(
+                "SELECT COUNT(*) FROM schema_migration WHERE version = 9",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(n, 1);
         for t in ["stylus_benchmark", "stylus_alert"] {
-            let n: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0)).unwrap();
+            let n: i64 = c
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    [t],
+                    |r| r.get(0),
+                )
+                .unwrap();
             assert_eq!(n, 1, "{t}");
         }
-        let cols: Vec<String> = c.prepare("SELECT name FROM pragma_table_info('asset')").unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
+        let cols: Vec<String> = c
+            .prepare("SELECT name FROM pragma_table_info('asset')")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
         assert!(cols.contains(&"rated_life_hours".to_string()));
     }
 
@@ -377,18 +474,36 @@ mod tests {
     fn upgrade_from_pre_stylus_database_keeps_rows() {
         let c = Connection::open_in_memory().unwrap();
         c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
-        let upto: Vec<_> = crate::db::MIGRATIONS.iter().filter(|(v, _)| *v < 9).cloned().collect();
+        let upto: Vec<_> = crate::db::MIGRATIONS
+            .iter()
+            .filter(|(v, _)| *v < 9)
+            .cloned()
+            .collect();
         c.execute_batch("CREATE TABLE schema_migration (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL, app_version TEXT);").unwrap();
         for (v, sql) in &upto {
             c.execute_batch(sql).unwrap();
-            c.execute("INSERT OR IGNORE INTO schema_migration (version, applied_at) VALUES (?1,'t')", [v]).unwrap();
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migration (version, applied_at) VALUES (?1,'t')",
+                [v],
+            )
+            .unwrap();
         }
-        c.execute("INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('old','Old','t','t')", []).unwrap();
+        c.execute(
+            "INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('old','Old','t','t')",
+            [],
+        )
+        .unwrap();
         apply_migrations(&c).unwrap();
         assert_eq!(rated_life_get(&c, "old").unwrap(), None);
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(n, 1);
-        let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
+        let fk: i64 = c
+            .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
         assert_eq!(fk, 0);
     }
 
@@ -402,7 +517,10 @@ mod tests {
         benchmark_save(&c, &bench("a1", 10.0)).unwrap();
         benchmark_save(&c, &bench("a2", 5.0)).unwrap();
         let list = benchmark_list(&c, "a1").unwrap();
-        assert_eq!(list.iter().map(|b| b.hours_at).collect::<Vec<_>>(), [10.0, 120.0]);
+        assert_eq!(
+            list.iter().map(|b| b.hours_at).collect::<Vec<_>>(),
+            [10.0, 120.0]
+        );
         let l = list.iter().find(|b| b.id == id_late).unwrap();
         assert!(!l.valid);
         assert_eq!(l.detail["note"], "side B");
@@ -417,7 +535,9 @@ mod tests {
         assert!(benchmark_save(&c, &bench("a1", 0.0)).is_ok());
         assert!(benchmark_save(&c, &bench("a1", -0.1)).is_err());
         assert!(benchmark_save(&c, &bench("a1", f64::NAN)).is_err());
-        assert!(benchmark_save(&c, &bench("nope", 1.0)).unwrap_err().contains("unknown asset"));
+        assert!(benchmark_save(&c, &bench("nope", 1.0))
+            .unwrap_err()
+            .contains("unknown asset"));
         let mut b = bench("a1", 1.0);
         b.thd_percent = Some(-0.01);
         assert!(benchmark_save(&c, &b).is_err());
@@ -429,15 +549,28 @@ mod tests {
         assert!(benchmark_save(&c, &b).is_err());
         b = bench("a1", 1.0);
         b.session_id = Some("ghost".into());
-        assert!(benchmark_save(&c, &b).unwrap_err().contains("unknown session"));
+        assert!(benchmark_save(&c, &b)
+            .unwrap_err()
+            .contains("unknown session"));
         b = bench("a1", 1.0);
         b.setup_id = Some("ghost".into());
-        assert!(benchmark_save(&c, &b).unwrap_err().contains("unknown setup"));
+        assert!(benchmark_save(&c, &b)
+            .unwrap_err()
+            .contains("unknown setup"));
         b = bench("a1", 1.0);
         b.detail = Some(serde_json::json!({"x": "y".repeat(MAX_DETAIL_BYTES)}));
         assert!(benchmark_save(&c, &b).unwrap_err().contains("detail"));
-        let empty = BenchmarkInput { thd_percent: None, separation_db: None, tc_snr_db: None, tc_phase_error_deg: None, tc_dropouts: None, ..bench("a1", 1.0) };
-        assert!(benchmark_save(&c, &empty).unwrap_err().contains("no metrics"));
+        let empty = BenchmarkInput {
+            thd_percent: None,
+            separation_db: None,
+            tc_snr_db: None,
+            tc_phase_error_deg: None,
+            tc_dropouts: None,
+            ..bench("a1", 1.0)
+        };
+        assert!(benchmark_save(&c, &empty)
+            .unwrap_err()
+            .contains("no metrics"));
     }
 
     #[test]
@@ -447,7 +580,8 @@ mod tests {
         let mut b = bench("a1", 1.0);
         b.session_id = Some("s1".into());
         benchmark_save(&c, &b).unwrap();
-        c.execute("DELETE FROM session WHERE id = 's1'", []).unwrap();
+        c.execute("DELETE FROM session WHERE id = 's1'", [])
+            .unwrap();
         let l = benchmark_list(&c, "a1").unwrap();
         assert_eq!((l.len(), l[0].session_id.clone()), (1, None));
     }
@@ -456,29 +590,64 @@ mod tests {
     fn snooze_is_recorded_per_kind_and_validated() {
         let c = mem();
         alert_snooze(&c, "a1", "life", "2026-11-09T00:00:00.000Z", None).unwrap();
-        alert_snooze(&c, "a1", "bench:separationDb", "2026-11-09T00:00:00.000Z", Some("amber")).unwrap();
+        alert_snooze(
+            &c,
+            "a1",
+            "bench:separationDb",
+            "2026-11-09T00:00:00.000Z",
+            Some("amber"),
+        )
+        .unwrap();
         let l = alert_list(&c, "a1").unwrap();
         assert_eq!(l.len(), 2);
-        assert!(l.iter().all(|a| a.snoozed_until.as_deref() == Some("2026-11-09T00:00:00.000Z") && a.severity == "amber"));
+        assert!(l.iter().all(
+            |a| a.snoozed_until.as_deref() == Some("2026-11-09T00:00:00.000Z")
+                && a.severity == "amber"
+        ));
         assert!(alert_list(&c, "a2").unwrap().is_empty());
         assert!(alert_snooze(&c, "a1", "Life", "2026-11-09T00:00:00.000Z", None).is_err());
         assert!(alert_snooze(&c, "a1", "life", "next week", None).is_err());
         assert!(alert_snooze(&c, "a1", "life", "2026-11-09T00:00:00Z", Some("purple")).is_err());
-        assert!(alert_snooze(&c, "zz", "life", "2026-11-09T00:00:00Z", None).unwrap_err().contains("unknown asset"));
-        assert!(!valid_kind("") && !valid_kind("a b") && !valid_kind(&"a".repeat(49)) && valid_kind("bench:tcSnrDb"));
+        assert!(alert_snooze(&c, "zz", "life", "2026-11-09T00:00:00Z", None)
+            .unwrap_err()
+            .contains("unknown asset"));
+        assert!(
+            !valid_kind("")
+                && !valid_kind("a b")
+                && !valid_kind(&"a".repeat(49))
+                && valid_kind("bench:tcSnrDb")
+        );
     }
 
     #[test]
     fn replacement_event_sets_baseline_and_keeps_history() {
         let c = mem();
         assert_eq!(baseline(&c, "a1").unwrap(), None);
-        let u = |at: &str, h: f64| UsageAddInput { asset_id: "a1".into(), kind: None, started_at: at.into(), hours: h, source: "manual".into(), session_id: None, note: None, confirmed: None };
+        let u = |at: &str, h: f64| UsageAddInput {
+            asset_id: "a1".into(),
+            kind: None,
+            started_at: at.into(),
+            hours: h,
+            source: "manual".into(),
+            session_id: None,
+            note: None,
+            confirmed: None,
+        };
         usage::add(&c, &u("2026-01-01T10:00:00.000Z", 3.0)).unwrap();
         benchmark_save(&c, &bench("a1", 3.0)).unwrap();
-        replace(&c, "a1", "2026-02-01T00:00:00.000Z", Some("  new Concorde ")).unwrap();
+        replace(
+            &c,
+            "a1",
+            "2026-02-01T00:00:00.000Z",
+            Some("  new Concorde "),
+        )
+        .unwrap();
         replace(&c, "a1", "2026-01-15T00:00:00.000Z", None).unwrap(); // older entry never wins
         c.execute("INSERT INTO maintenance_event (id, asset_id, event_type, event_at, created_at) VALUES ('m','a1','cleaned','2026-03-01T00:00:00.000Z','t')", []).unwrap();
-        assert_eq!(baseline(&c, "a1").unwrap().as_deref(), Some("2026-02-01T00:00:00.000Z"));
+        assert_eq!(
+            baseline(&c, "a1").unwrap().as_deref(),
+            Some("2026-02-01T00:00:00.000Z")
+        );
         assert_eq!(baseline(&c, "a2").unwrap(), None);
         let d: Option<String> = c.query_row("SELECT description FROM maintenance_event WHERE event_at = '2026-02-01T00:00:00.000Z'", [], |r| r.get(0)).unwrap();
         assert_eq!(d.as_deref(), Some("new Concorde"));
@@ -507,11 +676,16 @@ mod tests {
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/stylus.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/stylus.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
         let c = mem();
         c.execute("INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('asset-1','x','t','t')", []).unwrap();
-        let input: BenchmarkInput = serde_json::from_value(v["stylus_benchmark_save"]["request"]["result"].clone()).unwrap();
+        let input: BenchmarkInput =
+            serde_json::from_value(v["stylus_benchmark_save"]["request"]["result"].clone())
+                .unwrap();
         let id = benchmark_save(&c, &input).unwrap();
         assert!(serde_json::to_value(&id).unwrap()["id"].is_string());
         let mut got = serde_json::to_value(benchmark_list(&c, "asset-1").unwrap()).unwrap();
@@ -523,7 +697,14 @@ mod tests {
         }
         assert_eq!(&got, want);
         let sn = &v["stylus_alert_snooze"]["request"];
-        let r = alert_snooze(&c, sn["assetId"].as_str().unwrap(), sn["kind"].as_str().unwrap(), sn["until"].as_str().unwrap(), None).unwrap();
+        let r = alert_snooze(
+            &c,
+            sn["assetId"].as_str().unwrap(),
+            sn["kind"].as_str().unwrap(),
+            sn["until"].as_str().unwrap(),
+            None,
+        )
+        .unwrap();
         assert!(!r.id.is_empty());
     }
 }

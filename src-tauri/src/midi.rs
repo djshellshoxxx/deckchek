@@ -54,7 +54,12 @@ pub fn push_bounded(tx: &SyncSender<MidiMessage>, dropped: &AtomicU64, msg: Midi
 
 /// Block for the first message (up to `idle`), then gather more until `window` elapses or `max` reached.
 /// Returns None on disconnect, Some(empty) on idle timeout.
-pub fn collect_batch(rx: &Receiver<MidiMessage>, idle: Duration, window: Duration, max: usize) -> Option<Vec<MidiMessage>> {
+pub fn collect_batch(
+    rx: &Receiver<MidiMessage>,
+    idle: Duration,
+    window: Duration,
+    max: usize,
+) -> Option<Vec<MidiMessage>> {
     let first = match rx.recv_timeout(idle) {
         Ok(m) => m,
         Err(RecvTimeoutError::Timeout) => return Some(Vec::new()),
@@ -90,7 +95,11 @@ struct Inner {
 impl Default for MidiState {
     fn default() -> Self {
         Self {
-            inner: Mutex::new(Inner { inputs: HashMap::new(), outputs: HashMap::new(), tx: None }),
+            inner: Mutex::new(Inner {
+                inputs: HashMap::new(),
+                outputs: HashMap::new(),
+                tx: None,
+            }),
             dropped: Arc::new(AtomicU64::new(0)),
             emitted: Arc::new(AtomicU64::new(0)),
         }
@@ -98,22 +107,34 @@ impl Default for MidiState {
 }
 
 fn lock(state: &MidiState) -> Result<std::sync::MutexGuard<'_, Inner>, String> {
-    state.inner.lock().map_err(|_| "MIDI state poisoned".to_string())
+    state
+        .inner
+        .lock()
+        .map_err(|_| "MIDI state poisoned".to_string())
 }
 
 /// Names in `open` that no longer appear among the ports the OS reports (device unplugged).
 pub fn stale_names<'a>(open: impl Iterator<Item = &'a String>, present: &[String]) -> Vec<String> {
-    let mut v: Vec<String> = open.filter(|n| !present.iter().any(|p| p == *n)).cloned().collect();
+    let mut v: Vec<String> = open
+        .filter(|n| !present.iter().any(|p| p == *n))
+        .cloned()
+        .collect();
     v.sort();
     v
 }
 
 fn input_names(mi: &MidiInput) -> Vec<String> {
-    mi.ports().iter().filter_map(|p| mi.port_name(p).ok()).collect()
+    mi.ports()
+        .iter()
+        .filter_map(|p| mi.port_name(p).ok())
+        .collect()
 }
 
 fn output_names(mo: &MidiOutput) -> Vec<String> {
-    mo.ports().iter().filter_map(|p| mo.port_name(p).ok()).collect()
+    mo.ports()
+        .iter()
+        .filter_map(|p| mo.port_name(p).ok())
+        .collect()
 }
 
 /// Drop (and close) every cached connection whose port has disappeared, so a replug reopens fresh.
@@ -131,7 +152,10 @@ fn prune_stale(inner: &mut Inner, inputs_present: &[String], outputs_present: &[
 }
 
 fn prune_with_os(inner: &mut Inner) {
-    if let (Ok(mi), Ok(mo)) = (MidiInput::new("deckchek-prune-in"), MidiOutput::new("deckchek-prune-out")) {
+    if let (Ok(mi), Ok(mo)) = (
+        MidiInput::new("deckchek-prune-in"),
+        MidiOutput::new("deckchek-prune-out"),
+    ) {
         prune_stale(inner, &input_names(&mi), &output_names(&mo));
     }
 }
@@ -153,27 +177,53 @@ pub async fn midi_list_ports(app: AppHandle) -> Result<PortList, String> {
 fn list_ports_blocking(state: &MidiState) -> Result<PortList, String> {
     let inp = MidiInput::new("deckchek-list-in").map_err(|e| e.to_string())?;
     let out = MidiOutput::new("deckchek-list-out").map_err(|e| e.to_string())?;
-    let inputs = inp.ports().iter().enumerate()
-        .map(|(index, p)| PortInfo { index, name: inp.port_name(p).unwrap_or_default() }).collect();
-    let outputs = out.ports().iter().enumerate()
-        .map(|(index, p)| PortInfo { index, name: out.port_name(p).unwrap_or_default() }).collect();
+    let inputs = inp
+        .ports()
+        .iter()
+        .enumerate()
+        .map(|(index, p)| PortInfo {
+            index,
+            name: inp.port_name(p).unwrap_or_default(),
+        })
+        .collect();
+    let outputs = out
+        .ports()
+        .iter()
+        .enumerate()
+        .map(|(index, p)| PortInfo {
+            index,
+            name: out.port_name(p).unwrap_or_default(),
+        })
+        .collect();
     if let Ok(mut inner) = lock(state) {
         let (i, o): (Vec<String>, Vec<String>) = (
-            inp.ports().iter().filter_map(|p| inp.port_name(p).ok()).collect(),
-            out.ports().iter().filter_map(|p| out.port_name(p).ok()).collect(),
+            inp.ports()
+                .iter()
+                .filter_map(|p| inp.port_name(p).ok())
+                .collect(),
+            out.ports()
+                .iter()
+                .filter_map(|p| out.port_name(p).ok())
+                .collect(),
         );
         prune_stale(&mut inner, &i, &o);
     }
     Ok(PortList { inputs, outputs })
 }
 
-fn ensure_pump(inner: &mut Inner, app: AppHandle, emitted: Arc<AtomicU64>) -> SyncSender<MidiMessage> {
+fn ensure_pump(
+    inner: &mut Inner,
+    app: AppHandle,
+    emitted: Arc<AtomicU64>,
+) -> SyncSender<MidiMessage> {
     if let Some(tx) = &inner.tx {
         return tx.clone();
     }
     let (tx, rx) = sync_channel::<MidiMessage>(QUEUE_CAPACITY);
     std::thread::spawn(move || {
-        while let Some(batch) = collect_batch(&rx, Duration::from_millis(250), BATCH_WINDOW, BATCH_MAX) {
+        while let Some(batch) =
+            collect_batch(&rx, Duration::from_millis(250), BATCH_WINDOW, BATCH_MAX)
+        {
             if batch.is_empty() {
                 continue;
             }
@@ -187,9 +237,11 @@ fn ensure_pump(inner: &mut Inner, app: AppHandle, emitted: Arc<AtomicU64>) -> Sy
 
 #[tauri::command]
 pub async fn midi_open_input(app: AppHandle, name: String) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || open_input_blocking(&app, &app.state::<MidiState>(), name))
-        .await
-        .map_err(background_failed)?
+    tauri::async_runtime::spawn_blocking(move || {
+        open_input_blocking(&app, &app.state::<MidiState>(), name)
+    })
+    .await
+    .map_err(background_failed)?
 }
 
 fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Result<(), String> {
@@ -206,15 +258,32 @@ fn open_input_blocking(app: &AppHandle, state: &MidiState, name: String) -> Resu
             c.close();
         }
     }
-    let port = mi.ports().into_iter()
+    let port = mi
+        .ports()
+        .into_iter()
         .find(|p| mi.port_name(p).map(|n| n == name).unwrap_or(false))
         .ok_or_else(|| format!("MIDI input not found: {name}"))?;
     let tx = ensure_pump(&mut inner, app.clone(), state.emitted.clone());
     let dropped = state.dropped.clone();
     let port_name = name.clone();
-    let conn = mi.connect(&port, "deckchek-input", move |ts, bytes, _| {
-        push_bounded(&tx, &dropped, MidiMessage { port: port_name.clone(), timestamp_us: ts, bytes: bytes.to_vec() });
-    }, ()).map_err(|e| e.to_string())?;
+    let conn = mi
+        .connect(
+            &port,
+            "deckchek-input",
+            move |ts, bytes, _| {
+                push_bounded(
+                    &tx,
+                    &dropped,
+                    MidiMessage {
+                        port: port_name.clone(),
+                        timestamp_us: ts,
+                        bytes: bytes.to_vec(),
+                    },
+                );
+            },
+            (),
+        )
+        .map_err(|e| e.to_string())?;
     inner.inputs.insert(name, conn);
     Ok(())
 }
@@ -254,10 +323,13 @@ pub fn midi_send(state: State<'_, MidiState>, name: String, bytes: Vec<u8>) -> R
 
 fn connect_output(name: &str) -> Result<MidiOutputConnection, String> {
     let mo = MidiOutput::new("deckchek-out").map_err(|e| e.to_string())?;
-    let port = mo.ports().into_iter()
+    let port = mo
+        .ports()
+        .into_iter()
         .find(|p| mo.port_name(p).map(|n| n == name).unwrap_or(false))
         .ok_or_else(|| format!("MIDI output not found: {name}"))?;
-    mo.connect(&port, "deckchek-output").map_err(|e| e.to_string())
+    mo.connect(&port, "deckchek-output")
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -303,7 +375,11 @@ mod tests {
     use super::*;
 
     fn msg(i: u64) -> MidiMessage {
-        MidiMessage { port: "p".into(), timestamp_us: i, bytes: vec![0x90, 1, 127] }
+        MidiMessage {
+            port: "p".into(),
+            timestamp_us: i,
+            bytes: vec![0x90, 1, 127],
+        }
     }
 
     #[test]
@@ -323,17 +399,29 @@ mod tests {
         for i in 0..10 {
             tx.send(msg(i)).unwrap();
         }
-        let b = collect_batch(&rx, Duration::from_millis(50), Duration::from_millis(10), 4).unwrap();
+        let b =
+            collect_batch(&rx, Duration::from_millis(50), Duration::from_millis(10), 4).unwrap();
         assert_eq!(b.len(), 4);
         assert_eq!(b[0].timestamp_us, 0);
-        let b = collect_batch(&rx, Duration::from_millis(50), Duration::from_millis(10), 100).unwrap();
+        let b = collect_batch(
+            &rx,
+            Duration::from_millis(50),
+            Duration::from_millis(10),
+            100,
+        )
+        .unwrap();
         assert_eq!(b.len(), 6);
     }
 
     #[test]
     fn batch_idle_and_disconnect() {
         let (tx, rx) = sync_channel::<MidiMessage>(4);
-        assert_eq!(collect_batch(&rx, Duration::from_millis(5), BATCH_WINDOW, 10).unwrap().len(), 0);
+        assert_eq!(
+            collect_batch(&rx, Duration::from_millis(5), BATCH_WINDOW, 10)
+                .unwrap()
+                .len(),
+            0
+        );
         drop(tx);
         assert!(collect_batch(&rx, Duration::from_millis(5), BATCH_WINDOW, 10).is_none());
     }
@@ -345,11 +433,19 @@ mod tests {
     fn regression_aud_03_midi_device_commands_run_off_the_main_thread() {
         let src = include_str!("midi.rs");
         for name in ["midi_list_ports", "midi_open_input"] {
-            assert!(!src.contains(&format!("pub fn {name}(")), "{name} is still a sync command on the main thread");
+            assert!(
+                !src.contains(&format!("pub fn {name}(")),
+                "{name} is still a sync command on the main thread"
+            );
             let head = format!("pub async fn {name}(");
-            let at = src.find(&head).unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
+            let at = src
+                .find(&head)
+                .unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
             let body = &src[at..at + src[at..].find("\n}\n").expect("command body")];
-            assert!(body.contains("spawn_blocking"), "{name} must run its body via spawn_blocking");
+            assert!(
+                body.contains("spawn_blocking"),
+                "{name} must run its body via spawn_blocking"
+            );
         }
     }
 }

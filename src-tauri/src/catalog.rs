@@ -36,7 +36,12 @@ struct Col {
 }
 
 const fn c(key: &'static str, col: &'static str, kind: Kind, required: bool) -> Col {
-    Col { key, col, kind, required }
+    Col {
+        key,
+        col,
+        kind,
+        required,
+    }
 }
 
 struct EntitySpec {
@@ -52,7 +57,11 @@ use Kind::{Int, Real, Text};
 
 static MANUFACTURER: EntitySpec = EntitySpec {
     table: "manufacturer",
-    cols: &[c("name", "name", Text, true), c("website", "website", Text, false), c("notes", "notes", Text, false)],
+    cols: &[
+        c("name", "name", Text, true),
+        c("website", "website", Text, false),
+        c("notes", "notes", Text, false),
+    ],
     search: &["name"],
     order: "name COLLATE NOCASE",
     has_updated: true,
@@ -106,7 +115,12 @@ static SETUP: EntitySpec = EntitySpec {
         c("venueId", "venue_id", Text, false),
         c("boothId", "booth_id", Text, false),
         c("deckPositionId", "deck_position_id", Text, false),
-        c("supportConfigurationId", "support_configuration_id", Text, false),
+        c(
+            "supportConfigurationId",
+            "support_configuration_id",
+            Text,
+            false,
+        ),
         c("notes", "notes", Text, false),
     ],
     search: &["name"],
@@ -215,26 +229,44 @@ fn select_list(spec: &EntitySpec) -> String {
 
 fn row_to_json(spec: &EntitySpec, row: &rusqlite::Row) -> rusqlite::Result<Value> {
     let mut m = Map::new();
-    m.insert("id".into(), from_sql(crate::db::owned_value(row.get_ref(0)?)));
+    m.insert(
+        "id".into(),
+        from_sql(crate::db::owned_value(row.get_ref(0)?)),
+    );
     for (i, col) in spec.cols.iter().enumerate() {
-        m.insert(col.key.into(), from_sql(crate::db::owned_value(row.get_ref(i + 1)?)));
+        m.insert(
+            col.key.into(),
+            from_sql(crate::db::owned_value(row.get_ref(i + 1)?)),
+        );
     }
     let n = spec.cols.len();
-    m.insert("createdAt".into(), from_sql(crate::db::owned_value(row.get_ref(n + 1)?)));
+    m.insert(
+        "createdAt".into(),
+        from_sql(crate::db::owned_value(row.get_ref(n + 1)?)),
+    );
     if spec.has_updated {
-        m.insert("updatedAt".into(), from_sql(crate::db::owned_value(row.get_ref(n + 2)?)));
+        m.insert(
+            "updatedAt".into(),
+            from_sql(crate::db::owned_value(row.get_ref(n + 2)?)),
+        );
     }
     Ok(Value::Object(m))
 }
 
 fn like_escape(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    s.replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }
 
 /// List records. `filter` may contain `search` (substring match over the
 /// entity's searchable columns) and equality filters on any record key
 /// (e.g. `{"manufacturerId": "..."}`). Unknown keys are rejected.
-pub fn list(conn: &Connection, entity: Entity, filter: Option<&Value>) -> Result<Vec<Value>, String> {
+pub fn list(
+    conn: &Connection,
+    entity: Entity,
+    filter: Option<&Value>,
+) -> Result<Vec<Value>, String> {
     let spec = entity.spec();
     let mut wheres: Vec<String> = Vec::new();
     let mut binds: Vec<Sql> = Vec::new();
@@ -256,14 +288,24 @@ pub fn list(conn: &Connection, entity: Entity, filter: Option<&Value>) -> Result
                 if s.is_empty() {
                     continue;
                 }
-                let parts: Vec<String> = spec.search.iter().map(|c| format!("{c} LIKE ? ESCAPE '\\'")).collect();
+                let parts: Vec<String> = spec
+                    .search
+                    .iter()
+                    .map(|c| format!("{c} LIKE ? ESCAPE '\\'"))
+                    .collect();
                 wheres.push(format!("({})", parts.join(" OR ")));
                 for _ in spec.search {
                     binds.push(Sql::Text(format!("%{}%", like_escape(s))));
                 }
             } else if let Some(col) = spec.cols.iter().find(|c| c.key == k) {
                 wheres.push(format!("{} = ?", col.col));
-                binds.push(to_sql(&Col { required: false, ..*col }, Some(v))?);
+                binds.push(to_sql(
+                    &Col {
+                        required: false,
+                        ..*col
+                    },
+                    Some(v),
+                )?);
             } else {
                 return Err(format!("unknown filter key: {k}"));
             }
@@ -309,7 +351,11 @@ fn list_components(conn: &Connection, setup_id: &str) -> Result<Vec<Value>, Stri
 
 pub fn get(conn: &Connection, entity: Entity, id: &str) -> Result<Option<Value>, String> {
     let spec = entity.spec();
-    let sql = format!("SELECT {} FROM {} WHERE id = ?1", select_list(spec), spec.table);
+    let sql = format!(
+        "SELECT {} FROM {} WHERE id = ?1",
+        select_list(spec),
+        spec.table
+    );
     let mut rec = match conn.query_row(&sql, [id], |r| row_to_json(spec, r)) {
         Ok(v) => v,
         Err(rusqlite::Error::QueryReturnedNoRows) => return Ok(None),
@@ -350,7 +396,11 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
         binds.push(Sql::Text(now));
     }
     let placeholders = vec!["?"; names.len()].join(", ");
-    let mut sets: Vec<String> = spec.cols.iter().map(|c| format!("{0} = excluded.{0}", c.col)).collect();
+    let mut sets: Vec<String> = spec
+        .cols
+        .iter()
+        .map(|c| format!("{0} = excluded.{0}", c.col))
+        .collect();
     if spec.has_updated {
         sets.push("updated_at = excluded.updated_at".into());
     }
@@ -363,15 +413,21 @@ pub fn upsert(conn: &mut Connection, entity: Entity, record: &Value) -> Result<V
     );
 
     let tx = conn.transaction().map_err(err)?;
-    tx.execute(&sql, params_from_iter(binds.iter())).map_err(err)?;
+    tx.execute(&sql, params_from_iter(binds.iter()))
+        .map_err(err)?;
     if spec.soft_delete {
         // Saving an asset un-deletes it.
-        tx.execute(&format!("UPDATE {} SET is_deleted = 0 WHERE id = ?1", spec.table), [&id]).map_err(err)?;
+        tx.execute(
+            &format!("UPDATE {} SET is_deleted = 0 WHERE id = ?1", spec.table),
+            [&id],
+        )
+        .map_err(err)?;
     }
     if entity == Entity::Setup {
         if let Some(comps) = obj.get("components") {
             let arr = comps.as_array().ok_or("components must be an array")?;
-            tx.execute("DELETE FROM setup_component WHERE setup_id = ?1", [&id]).map_err(err)?;
+            tx.execute("DELETE FROM setup_component WHERE setup_id = ?1", [&id])
+                .map_err(err)?;
             for comp in arr {
                 let cobj = comp.as_object().ok_or("component must be an object")?;
                 let cid = match cobj.get("id") {
@@ -421,19 +477,28 @@ pub fn delete(conn: &Connection, entity: Entity, id: &str) -> Result<bool, Strin
 /// loaded before (so a user who deletes everything is not re-seeded).
 pub fn seed_if_empty(conn: &Connection) -> Result<bool, String> {
     let done: i64 = conn
-        .query_row("SELECT COUNT(*) FROM schema_migration WHERE version = ?1", [SEED_MARKER_VERSION], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM schema_migration WHERE version = ?1",
+            [SEED_MARKER_VERSION],
+            |r| r.get(0),
+        )
         .map_err(err)?;
     if done > 0 {
         return Ok(false);
     }
     let existing: i64 = conn
-        .query_row("SELECT (SELECT COUNT(*) FROM manufacturer) + (SELECT COUNT(*) FROM product)", [], |r| r.get(0))
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM manufacturer) + (SELECT COUNT(*) FROM product)",
+            [],
+            |r| r.get(0),
+        )
         .map_err(err)?;
     if existing == 0 {
-        conn.execute_batch(&format!("BEGIN;\n{SEED_SQL}\nCOMMIT;")).map_err(|e| {
-            let _ = conn.execute_batch("ROLLBACK;");
-            format!("seed failed: {e}")
-        })?;
+        conn.execute_batch(&format!("BEGIN;\n{SEED_SQL}\nCOMMIT;"))
+            .map_err(|e| {
+                let _ = conn.execute_batch("ROLLBACK;");
+                format!("seed failed: {e}")
+            })?;
     }
     conn.execute(
         "INSERT OR IGNORE INTO schema_migration(version, applied_at, app_version) VALUES (?1, CURRENT_TIMESTAMP, 'seed')",
@@ -443,14 +508,21 @@ pub fn seed_if_empty(conn: &Connection) -> Result<bool, String> {
     Ok(existing == 0)
 }
 
-fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, String>) -> Result<T, String> {
+fn with_db<T>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut Connection) -> Result<T, String>,
+) -> Result<T, String> {
     let path = database_path(app)?;
     let mut conn = open_database(&path)?;
     f(&mut conn)
 }
 
 #[tauri::command]
-pub async fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>) -> Result<Vec<Value>, String> {
+pub async fn catalog_list(
+    app: AppHandle,
+    entity: String,
+    filter: Option<Value>,
+) -> Result<Vec<Value>, String> {
     crate::db::off_main(move || {
         let e = Entity::parse(&entity)?;
         with_db(&app, |c| list(c, e, filter.as_ref()))
@@ -459,7 +531,11 @@ pub async fn catalog_list(app: AppHandle, entity: String, filter: Option<Value>)
 }
 
 #[tauri::command]
-pub async fn catalog_upsert(app: AppHandle, entity: String, record: Value) -> Result<Value, String> {
+pub async fn catalog_upsert(
+    app: AppHandle,
+    entity: String,
+    record: Value,
+) -> Result<Value, String> {
     crate::db::off_main(move || {
         let e = Entity::parse(&entity)?;
         with_db(&app, |c| upsert(c, e, &record))
@@ -491,7 +567,12 @@ mod tests {
     #[test]
     fn crud_round_trip_per_entity() {
         let mut c = mem();
-        let m = upsert(&mut c, Entity::Manufacturer, &json!({"name": "Acme", "website": "https://acme.test"})).unwrap();
+        let m = upsert(
+            &mut c,
+            Entity::Manufacturer,
+            &json!({"name": "Acme", "website": "https://acme.test"}),
+        )
+        .unwrap();
         let mid = m["id"].as_str().unwrap().to_string();
         assert_eq!(m["name"], "Acme");
 
@@ -499,34 +580,79 @@ mod tests {
         assert_eq!(p["releaseYear"], 2020);
         let pid = p["id"].as_str().unwrap().to_string();
 
-        let a = upsert(&mut c, Entity::Asset, &json!({"productId": pid, "nickname": "Deck L", "serialNumber": "S1"})).unwrap();
+        let a = upsert(
+            &mut c,
+            Entity::Asset,
+            &json!({"productId": pid, "nickname": "Deck L", "serialNumber": "S1"}),
+        )
+        .unwrap();
         let aid = a["id"].as_str().unwrap().to_string();
 
-        let v = upsert(&mut c, Entity::Venue, &json!({"name": "Club", "city": "Berlin"})).unwrap();
+        let v = upsert(
+            &mut c,
+            Entity::Venue,
+            &json!({"name": "Club", "city": "Berlin"}),
+        )
+        .unwrap();
         let vid = v["id"].as_str().unwrap().to_string();
 
-        let s = upsert(&mut c, Entity::Setup, &json!({
-            "name": "Home", "venueId": vid,
-            "components": [{"role": "turntable", "assetId": aid, "position": "left"}]
-        })).unwrap();
+        let s = upsert(
+            &mut c,
+            Entity::Setup,
+            &json!({
+                "name": "Home", "venueId": vid,
+                "components": [{"role": "turntable", "assetId": aid, "position": "left"}]
+            }),
+        )
+        .unwrap();
         let sid = s["id"].as_str().unwrap().to_string();
         assert_eq!(s["components"].as_array().unwrap().len(), 1);
         assert_eq!(s["components"][0]["position"], "left");
 
         // update by id: replace components, keep created_at
-        let s2 = upsert(&mut c, Entity::Setup, &json!({"id": sid, "name": "Home 2", "components": []})).unwrap();
+        let s2 = upsert(
+            &mut c,
+            Entity::Setup,
+            &json!({"id": sid, "name": "Home 2", "components": []}),
+        )
+        .unwrap();
         assert_eq!(s2["name"], "Home 2");
         assert_eq!(s2["createdAt"], s["createdAt"]);
         assert_eq!(s2["components"].as_array().unwrap().len(), 0);
 
         // update + filter + search
-        let a2 = upsert(&mut c, Entity::Asset, &json!({"id": aid, "productId": pid, "nickname": "Deck R"})).unwrap();
+        let a2 = upsert(
+            &mut c,
+            Entity::Asset,
+            &json!({"id": aid, "productId": pid, "nickname": "Deck R"}),
+        )
+        .unwrap();
         assert_eq!(a2["nickname"], "Deck R");
         assert_eq!(a2["serialNumber"], Value::Null);
-        assert_eq!(list(&c, Entity::Asset, Some(&json!({"search": "deck"}))).unwrap().len(), 1);
-        assert_eq!(list(&c, Entity::Asset, Some(&json!({"productId": "nope"}))).unwrap().len(), 0);
-        assert_eq!(list(&c, Entity::Product, Some(&json!({"manufacturerId": mid}))).unwrap().len(), 1);
-        assert_eq!(list(&c, Entity::Venue, Some(&json!({"search": "100%"}))).unwrap().len(), 0);
+        assert_eq!(
+            list(&c, Entity::Asset, Some(&json!({"search": "deck"})))
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            list(&c, Entity::Asset, Some(&json!({"productId": "nope"})))
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(
+            list(&c, Entity::Product, Some(&json!({"manufacturerId": mid})))
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            list(&c, Entity::Venue, Some(&json!({"search": "100%"})))
+                .unwrap()
+                .len(),
+            0
+        );
 
         // deletes
         assert!(delete(&c, Entity::Setup, &sid).unwrap());
@@ -549,10 +675,19 @@ mod tests {
         // conversion panics on it (found by the backup_restore fuzz target).
         let mut c = mem();
         let m = upsert(&mut c, Entity::Manufacturer, &json!({"name": "Acme"})).unwrap();
-        c.execute("UPDATE manufacturer SET name = CAST(X'41FF42' AS TEXT) WHERE id = ?1", [m["id"].as_str().unwrap()]).unwrap();
+        c.execute(
+            "UPDATE manufacturer SET name = CAST(X'41FF42' AS TEXT) WHERE id = ?1",
+            [m["id"].as_str().unwrap()],
+        )
+        .unwrap();
         let rows = list(&c, Entity::Manufacturer, None).unwrap();
         assert_eq!(rows[0]["name"], "A\u{FFFD}B");
-        assert_eq!(get(&c, Entity::Manufacturer, m["id"].as_str().unwrap()).unwrap().unwrap()["name"], "A\u{FFFD}B");
+        assert_eq!(
+            get(&c, Entity::Manufacturer, m["id"].as_str().unwrap())
+                .unwrap()
+                .unwrap()["name"],
+            "A\u{FFFD}B"
+        );
     }
 
     #[test]
@@ -564,8 +699,18 @@ mod tests {
         assert!(upsert(&mut c, Entity::Venue, &json!({"name": 5})).is_err());
         assert!(list(&c, Entity::Venue, Some(&json!({"id; DROP TABLE venue": 1}))).is_err());
         // injection-looking values are just data
-        let v = upsert(&mut c, Entity::Venue, &json!({"name": "x'); DROP TABLE venue;--"})).unwrap();
-        assert_eq!(list(&c, Entity::Venue, Some(&json!({"search": "DROP"}))).unwrap().len(), 1);
+        let v = upsert(
+            &mut c,
+            Entity::Venue,
+            &json!({"name": "x'); DROP TABLE venue;--"}),
+        )
+        .unwrap();
+        assert_eq!(
+            list(&c, Entity::Venue, Some(&json!({"search": "DROP"})))
+                .unwrap()
+                .len(),
+            1
+        );
         assert_eq!(v["name"], "x'); DROP TABLE venue;--");
     }
 
@@ -574,7 +719,12 @@ mod tests {
         let c = mem();
         assert!(seed_if_empty(&c).unwrap());
         assert!(list(&c, Entity::Manufacturer, None).unwrap().len() >= 8);
-        assert!(list(&c, Entity::Product, Some(&json!({"search": "PLX"}))).unwrap().len() == 1);
+        assert!(
+            list(&c, Entity::Product, Some(&json!({"search": "PLX"})))
+                .unwrap()
+                .len()
+                == 1
+        );
         assert!(!seed_if_empty(&c).unwrap());
         c.execute("DELETE FROM dvs_media_profile", []).unwrap();
         c.execute("DELETE FROM product_spec", []).unwrap();
@@ -589,15 +739,32 @@ mod tests {
     #[test]
     fn regression_product_delete_removes_its_reminder_templates() {
         let mut c = mem();
-        let p = upsert(&mut c, Entity::Product, &json!({"category": "TURNTABLE", "model": "T1"})).unwrap();
+        let p = upsert(
+            &mut c,
+            Entity::Product,
+            &json!({"category": "TURNTABLE", "model": "T1"}),
+        )
+        .unwrap();
         let pid = p["id"].as_str().unwrap().to_string();
-        let templates = |c: &Connection| -> i64 { c.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE product_id=?1 AND asset_id IS NULL", [&pid], |r| r.get(0)).unwrap() };
+        let templates = |c: &Connection| -> i64 {
+            c.query_row("SELECT COUNT(*) FROM maintenance_reminder WHERE product_id=?1 AND asset_id IS NULL", [&pid], |r| r.get(0)).unwrap()
+        };
         c.execute("INSERT INTO maintenance_reminder(id,product_id,title,basis,interval_value,created_at) VALUES('tpl',?1,'Clean','days',90,'2026-01-01')", [&pid]).unwrap();
         // Still in use by an asset: the delete fails and the template survives (nothing half-done).
-        let a = upsert(&mut c, Entity::Asset, &json!({"productId": pid, "nickname": "Deck"})).unwrap();
+        let a = upsert(
+            &mut c,
+            Entity::Asset,
+            &json!({"productId": pid, "nickname": "Deck"}),
+        )
+        .unwrap();
         assert!(delete(&c, Entity::Product, &pid).is_err());
-        assert_eq!(templates(&c), 1, "a failed product delete rolls back the template removal");
-        c.execute("DELETE FROM asset WHERE id=?1", [a["id"].as_str().unwrap()]).unwrap();
+        assert_eq!(
+            templates(&c),
+            1,
+            "a failed product delete rolls back the template removal"
+        );
+        c.execute("DELETE FROM asset WHERE id=?1", [a["id"].as_str().unwrap()])
+            .unwrap();
         assert!(delete(&c, Entity::Product, &pid).unwrap());
         assert_eq!(templates(&c), 0);
         assert_eq!(list(&c, Entity::Product, None).unwrap().len(), 0);
@@ -612,11 +779,21 @@ mod tests {
             INSERT INTO deck_position(id,booth_id,name) VALUES('p','b','Left');").unwrap();
         let a = upsert(&mut c, Entity::Asset, &json!({"nickname": "Deck"})).unwrap();
         let aid = a["id"].as_str().unwrap().to_string();
-        c.execute("UPDATE asset SET deck_position_id='p' WHERE id=?1", [&aid]).unwrap();
+        c.execute("UPDATE asset SET deck_position_id='p' WHERE id=?1", [&aid])
+            .unwrap();
         assert!(delete(&c, Entity::Asset, &aid).unwrap());
-        let (deleted, position): (i64, Option<String>) = c.query_row("SELECT is_deleted, deck_position_id FROM asset WHERE id=?1", [&aid], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        let (deleted, position): (i64, Option<String>) = c
+            .query_row(
+                "SELECT is_deleted, deck_position_id FROM asset WHERE id=?1",
+                [&aid],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
         assert_eq!((deleted, position), (1, None));
-        assert!(!delete(&c, Entity::Asset, &aid).unwrap(), "a second delete is a no-op");
+        assert!(
+            !delete(&c, Entity::Asset, &aid).unwrap(),
+            "a second delete is a no-op"
+        );
     }
 
     #[test]

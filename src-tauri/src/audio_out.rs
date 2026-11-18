@@ -116,7 +116,9 @@ pub fn clamp_level_dbfs(level: f32, cap_dbfs: f32) -> Result<f32, String> {
     if level.is_nan() {
         return Err("AUDIO_OUT_INVALID: levelDbfs must be a number".into());
     }
-    Ok(level.min(effective_cap_dbfs(Some(cap_dbfs))).max(SILENCE_DBFS))
+    Ok(level
+        .min(effective_cap_dbfs(Some(cap_dbfs)))
+        .max(SILENCE_DBFS))
 }
 
 /// Ramp duration in ms, never below [`MIN_RAMP_MS`].
@@ -173,7 +175,9 @@ impl Biquad {
     }
 
     fn run(&mut self, x: f64) -> f64 {
-        let y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2 - self.a1 * self.y1 - self.a2 * self.y2;
+        let y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2
+            - self.a1 * self.y1
+            - self.a2 * self.y2;
         self.x2 = self.x1;
         self.x1 = x;
         self.y2 = self.y1;
@@ -204,22 +208,48 @@ impl Noise {
 const THIRD_OCTAVE_STAGE_Q: f64 = 4.318 * 0.6436;
 
 pub enum Source {
-    Sine { phase: f64, step: f64 },
-    PinkBand { noise: Noise, stages: [Biquad; 2], scale: f64 },
-    Chirp { phase: f64, f0: f64, ratio_ln: f64, n: u64, t: u64, fs: f64 },
-    Buffer { left: Vec<f32>, right: Vec<f32>, pos: f64, step: f64, looped: bool },
+    Sine {
+        phase: f64,
+        step: f64,
+    },
+    PinkBand {
+        noise: Noise,
+        stages: [Biquad; 2],
+        scale: f64,
+    },
+    Chirp {
+        phase: f64,
+        f0: f64,
+        ratio_ln: f64,
+        n: u64,
+        t: u64,
+        fs: f64,
+    },
+    Buffer {
+        left: Vec<f32>,
+        right: Vec<f32>,
+        pos: f64,
+        step: f64,
+        looped: bool,
+    },
     #[cfg(test)]
     Test(Box<dyn FnMut() -> Option<(f32, f32)> + Send>),
 }
 
 fn nyquist_clamp(hz: f64, fs: f64) -> f64 {
-    hz.clamp(MIN_TONE_HZ, (fs * MAX_TONE_NYQUIST_FRACTION).min(MAX_TONE_HZ))
+    hz.clamp(
+        MIN_TONE_HZ,
+        (fs * MAX_TONE_NYQUIST_FRACTION).min(MAX_TONE_HZ),
+    )
 }
 
 impl Source {
     pub fn sine(freq_hz: f64, fs: u32) -> Self {
         let fs = fs as f64;
-        Source::Sine { phase: 0.0, step: nyquist_clamp(freq_hz, fs) / fs }
+        Source::Sine {
+            phase: 0.0,
+            step: nyquist_clamp(freq_hz, fs) / fs,
+        }
     }
 
     /// One-third-octave noise band centred on `freq_hz`, scaled so its RMS is
@@ -243,7 +273,11 @@ impl Source {
         }
         let rms = (sum / n as f64).sqrt();
         let scale = if rms > 1e-12 { NOISE_RMS / rms } else { 0.0 };
-        Source::PinkBand { noise, stages, scale }
+        Source::PinkBand {
+            noise,
+            stages,
+            scale,
+        }
     }
 
     /// Exponential sweep `f0 -> f1` over `duration_sec`, repeated with
@@ -253,14 +287,37 @@ impl Source {
         let f0 = nyquist_clamp(f0, fsf);
         let f1 = nyquist_clamp(f1, fsf);
         let n = ((duration_sec.clamp(0.05, 60.0)) * fsf).round().max(1.0) as u64;
-        Source::Chirp { phase: 0.0, f0, ratio_ln: (f1 / f0).ln(), n, t: 0, fs: fsf }
+        Source::Chirp {
+            phase: 0.0,
+            f0,
+            ratio_ln: (f1 / f0).ln(),
+            n,
+            t: 0,
+            fs: fsf,
+        }
     }
 
     /// A stereo buffer at `buffer_rate`, linearly resampled to `device_rate`.
     /// An empty `right` duplicates `left`.
-    pub fn buffer(left: Vec<f32>, right: Vec<f32>, buffer_rate: u32, device_rate: u32, looped: bool) -> Self {
-        let right = if right.is_empty() { left.clone() } else { right };
-        Source::Buffer { left, right, pos: 0.0, step: buffer_rate as f64 / device_rate.max(1) as f64, looped }
+    pub fn buffer(
+        left: Vec<f32>,
+        right: Vec<f32>,
+        buffer_rate: u32,
+        device_rate: u32,
+        looped: bool,
+    ) -> Self {
+        let right = if right.is_empty() {
+            left.clone()
+        } else {
+            right
+        };
+        Source::Buffer {
+            left,
+            right,
+            pos: 0.0,
+            step: buffer_rate as f64 / device_rate.max(1) as f64,
+            looped,
+        }
     }
 
     /// Next stereo frame at nominal full scale; `None` once a one-shot buffer ends.
@@ -272,12 +329,23 @@ impl Source {
                 *phase = (*phase + *step).fract();
                 Some((v, v))
             }
-            Source::PinkBand { noise, stages, scale } => {
+            Source::PinkBand {
+                noise,
+                stages,
+                scale,
+            } => {
                 let a = stages[0].run(noise.next());
                 let y = (stages[1].run(a) * *scale) as f32;
                 Some((y, y))
             }
-            Source::Chirp { phase, f0, ratio_ln, n, t, fs } => {
+            Source::Chirp {
+                phase,
+                f0,
+                ratio_ln,
+                n,
+                t,
+                fs,
+            } => {
                 let v = (TAU * *phase).sin() as f32;
                 let f = *f0 * (*ratio_ln * (*t as f64 / *n as f64)).exp();
                 *phase = (*phase + f / *fs).fract();
@@ -287,7 +355,13 @@ impl Source {
                 }
                 Some((v, v))
             }
-            Source::Buffer { left, right, pos, step, looped } => {
+            Source::Buffer {
+                left,
+                right,
+                pos,
+                step,
+                looped,
+            } => {
                 let len = left.len().min(right.len());
                 if len == 0 {
                     return None;
@@ -300,7 +374,13 @@ impl Source {
                 }
                 let i = *pos as usize;
                 let frac = (*pos - i as f64) as f32;
-                let j = if i + 1 < len { i + 1 } else if *looped { 0 } else { i };
+                let j = if i + 1 < len {
+                    i + 1
+                } else if *looped {
+                    0
+                } else {
+                    i
+                };
                 let l = left[i] + (left[j] - left[i]) * frac;
                 let r = right[i] + (right[j] - right[i]) * frac;
                 *pos += *step;
@@ -358,7 +438,9 @@ impl VoiceControl {
     /// Marks the voice faulted; the renderer outputs 0 from its next poll.
     /// Called from cpal's error callback (not the data callback).
     pub fn report_fault(&self, fault: Fault, message: impl Into<String>) {
-        let _ = self.fault.compare_exchange(Fault::Clear as u8, fault as u8, SeqCst, SeqCst);
+        let _ = self
+            .fault
+            .compare_exchange(Fault::Clear as u8, fault as u8, SeqCst, SeqCst);
         if let Ok(mut m) = self.message.lock() {
             m.get_or_insert_with(|| message.into());
         }
@@ -533,7 +615,8 @@ impl Renderer {
     pub fn render_safe(&mut self, out: &mut [f32], channels: usize) {
         if catch_unwind(AssertUnwindSafe(|| self.render(out, channels))).is_err() {
             out.fill(0.0);
-            self.ctl.report_fault(Fault::RenderPanic, "panic in the audio output callback");
+            self.ctl
+                .report_fault(Fault::RenderPanic, "panic in the audio output callback");
             self.go_silent();
         }
         hard_cap(out);
@@ -543,7 +626,11 @@ impl Renderer {
 /// The absolute ceiling, applied to every sample after the limiter.
 pub fn hard_cap(out: &mut [f32]) {
     for s in out.iter_mut() {
-        *s = if s.is_finite() { s.clamp(-ABS_MAX_AMP, ABS_MAX_AMP) } else { 0.0 };
+        *s = if s.is_finite() {
+            s.clamp(-ABS_MAX_AMP, ABS_MAX_AMP)
+        } else {
+            0.0
+        };
     }
 }
 
@@ -718,7 +805,9 @@ impl PlayRequest {
                 for (name, v) in [("freqHz", s.freq_hz), ("endHz", s.end_hz)] {
                     if let Some(hz) = v {
                         if !(MIN_TONE_HZ..=MAX_TONE_HZ).contains(&hz) {
-                            return bad(&format!("{name} must be between {MIN_TONE_HZ} and {MAX_TONE_HZ} Hz"));
+                            return bad(&format!(
+                                "{name} must be between {MIN_TONE_HZ} and {MAX_TONE_HZ} Hz"
+                            ));
                         }
                     }
                 }
@@ -758,7 +847,9 @@ impl PlayRequest {
                     rate,
                 ),
             },
-            PlayRequest::Buffer(b, o) => Source::buffer(b.left, b.right, b.sample_rate, rate, o.looped),
+            PlayRequest::Buffer(b, o) => {
+                Source::buffer(b.left, b.right, b.sample_rate, rate, o.looped)
+            }
         }
     }
 }
@@ -807,7 +898,9 @@ fn silence_voice(ctl: &VoiceControl) {
         thread::sleep(Duration::from_millis(1));
     }
     if !ctl.is_silent() {
-        ctl.fault.compare_exchange(Fault::Clear as u8, Fault::HardMute as u8, SeqCst, SeqCst).ok();
+        ctl.fault
+            .compare_exchange(Fault::Clear as u8, Fault::HardMute as u8, SeqCst, SeqCst)
+            .ok();
     }
 }
 
@@ -821,7 +914,10 @@ pub struct OutputGroup {
 
 impl OutputGroup {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self { kill: Arc::new(AtomicBool::new(false)), voice: Mutex::new(None) })
+        Arc::new(Self {
+            kill: Arc::new(AtomicBool::new(false)),
+            voice: Mutex::new(None),
+        })
     }
 
     /// Lock-free emergency silence for every member engine. Latched.
@@ -890,7 +986,10 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 impl Engine {
     pub fn new(backend: Box<dyn Backend>) -> Self {
         let epoch = Instant::now();
-        Self::with_clock(backend, Box::new(move || epoch.elapsed().as_millis() as u64))
+        Self::with_clock(
+            backend,
+            Box::new(move || epoch.elapsed().as_millis() as u64),
+        )
     }
 
     /// An engine that shares `group`'s voice slot and kill switch.
@@ -904,7 +1003,10 @@ impl Engine {
         self
     }
 
-    pub fn with_clock(backend: Box<dyn Backend>, clock: Box<dyn Fn() -> u64 + Send + Sync>) -> Self {
+    pub fn with_clock(
+        backend: Box<dyn Backend>,
+        clock: Box<dyn Fn() -> u64 + Send + Sync>,
+    ) -> Self {
         Self {
             id: NEXT_ENGINE_ID.fetch_add(1, SeqCst),
             group: None,
@@ -982,7 +1084,9 @@ impl Engine {
             ctl.request_stop();
             playing.close();
             self.release_from_group(&ctl);
-            return Err("AUDIO_OUT_STOPPED: output was stopped while the device was opening".into());
+            return Err(
+                "AUDIO_OUT_STOPPED: output was stopped while the device was opening".into(),
+            );
         }
         if let Some(old) = slot.take() {
             self.teardown(old, EndReason::Replaced); // defensive: every install bumps the generation
@@ -1019,14 +1123,26 @@ impl Engine {
                 v.level_dbfs = level;
                 v.last_activity_ms = (self.clock)();
                 v.ctl.set_level(level);
-                Ok(LevelResult { handle, level_dbfs: level })
+                Ok(LevelResult {
+                    handle,
+                    level_dbfs: level,
+                })
             }
             _ => {
                 let why = self
                     .ended_reason(handle)
-                    .map(|r| format!(" ({})", serde_json::to_string(&r).unwrap_or_default().trim_matches('"')))
+                    .map(|r| {
+                        format!(
+                            " ({})",
+                            serde_json::to_string(&r)
+                                .unwrap_or_default()
+                                .trim_matches('"')
+                        )
+                    })
                     .unwrap_or_default();
-                Err(format!("AUDIO_OUT_NOT_PLAYING: audio handle {handle} is not playing{why}"))
+                Err(format!(
+                    "AUDIO_OUT_NOT_PLAYING: audio handle {handle} is not playing{why}"
+                ))
             }
         }
     }
@@ -1090,7 +1206,10 @@ impl Engine {
             thread::sleep(Duration::from_millis(1));
         }
         if !v.ctl.is_silent() {
-            v.ctl.fault.compare_exchange(Fault::Clear as u8, Fault::HardMute as u8, SeqCst, SeqCst).ok();
+            v.ctl
+                .fault
+                .compare_exchange(Fault::Clear as u8, Fault::HardMute as u8, SeqCst, SeqCst)
+                .ok();
         }
         v.playing.close();
         let reason = match v.ctl.fault() {
@@ -1102,12 +1221,18 @@ impl Engine {
         if recent.len() >= RECENT_ENDED {
             recent.pop_front();
         }
-        recent.push_back(EndedVoice { handle: v.handle, reason, message: v.ctl.message() });
+        recent.push_back(EndedVoice {
+            handle: v.handle,
+            reason,
+            message: v.ctl.message(),
+        });
     }
 
     /// Watchdog step: reaps faulted, finished, disabled and inactive voices.
     pub fn tick(&self) {
-        let Ok(mut slot) = self.active.try_lock() else { return };
+        let Ok(mut slot) = self.active.try_lock() else {
+            return;
+        };
         let Some(v) = slot.as_ref() else { return };
         let reason = if self.is_disabled() {
             Some(EndReason::Disabled)
@@ -1132,7 +1257,11 @@ impl Engine {
     }
 
     pub fn ended_reason(&self, handle: u64) -> Option<EndReason> {
-        lock(&self.recent).iter().rev().find(|e| e.handle == handle).map(|e| e.reason)
+        lock(&self.recent)
+            .iter()
+            .rev()
+            .find(|e| e.handle == handle)
+            .map(|e| e.reason)
     }
 
     /// Blocks until `handle` has ended (e.g. a one-shot buffer finished) or
@@ -1197,7 +1326,9 @@ fn choose_output(device_name: Option<&str>) -> Result<cpal::Device, String> {
                 return Ok(device);
             }
         }
-        return Err(format!("AUDIO_OUT_DEVICE: audio output not found: {target}"));
+        return Err(format!(
+            "AUDIO_OUT_DEVICE: audio output not found: {target}"
+        ));
     }
     host.default_output_device()
         .ok_or_else(|| "AUDIO_OUT_DEVICE: no default audio output is available".to_string())
@@ -1242,8 +1373,12 @@ fn output_thread_main(
 ) {
     let setup = || -> Result<(cpal::Stream, StreamInfo), String> {
         let device = choose_output(device_name.as_deref())?;
-        let name = device.name().unwrap_or_else(|_| "Unnamed audio output".to_string());
-        let supported = device.default_output_config().map_err(|e| format!("AUDIO_OUT_DEVICE: {e}"))?;
+        let name = device
+            .name()
+            .unwrap_or_else(|_| "Unnamed audio output".to_string());
+        let supported = device
+            .default_output_config()
+            .map_err(|e| format!("AUDIO_OUT_DEVICE: {e}"))?;
         let format = supported.sample_format();
         let config: cpal::StreamConfig = supported.into();
         if config.channels == 0 {
@@ -1256,9 +1391,18 @@ fn output_thread_main(
             cpal::SampleFormat::I16 => build_output::<i16>(&device, &config, renderer, c),
             cpal::SampleFormat::U16 => build_output::<u16>(&device, &config, renderer, c),
             cpal::SampleFormat::I32 => build_output::<i32>(&device, &config, renderer, c),
-            other => Err(format!("AUDIO_OUT_DEVICE: output sample format {other:?} is not supported")),
+            other => Err(format!(
+                "AUDIO_OUT_DEVICE: output sample format {other:?} is not supported"
+            )),
         }?;
-        Ok((stream, StreamInfo { device_name: name, sample_rate: config.sample_rate.0, channels: config.channels }))
+        Ok((
+            stream,
+            StreamInfo {
+                device_name: name,
+                sample_rate: config.sample_rate.0,
+                channels: config.channels,
+            },
+        ))
     };
     match setup() {
         Ok((stream, info)) => {
@@ -1268,7 +1412,10 @@ fn output_thread_main(
                 return;
             }
             if let Err(e) = stream.play() {
-                ctl.report_fault(Fault::Device, format!("could not start the output stream: {e}"));
+                ctl.report_fault(
+                    Fault::Device,
+                    format!("could not start the output stream: {e}"),
+                );
             }
             while !stop.load(SeqCst) {
                 thread::sleep(Duration::from_millis(5));
@@ -1299,7 +1446,13 @@ impl Backend for CpalBackend {
                 .map_err(|e| e.to_string())?
         };
         match rx.recv_timeout(OPEN_TIMEOUT) {
-            Ok(Ok(info)) => Ok((info, Box::new(CpalPlaying { stop, thread: Some(thread) }))),
+            Ok(Ok(info)) => Ok((
+                info,
+                Box::new(CpalPlaying {
+                    stop,
+                    thread: Some(thread),
+                }),
+            )),
             Ok(Err(e)) => {
                 let _ = thread.join();
                 Err(e)
@@ -1337,12 +1490,14 @@ pub fn emergency_silence() {
 /// The process-wide engine (cpal backend) with its watchdog thread.
 pub fn global() -> &'static Engine {
     ENGINE.get_or_init(|| {
-        let _ = thread::Builder::new().name("deckchek-audio-watchdog".into()).spawn(|| loop {
-            thread::sleep(WATCHDOG_INTERVAL);
-            if let Some(e) = ENGINE.get() {
-                e.tick();
-            }
-        });
+        let _ = thread::Builder::new()
+            .name("deckchek-audio-watchdog".into())
+            .spawn(|| loop {
+                thread::sleep(WATCHDOG_INTERVAL);
+                if let Some(e) = ENGINE.get() {
+                    e.tick();
+                }
+            });
         Engine::grouped(Box::new(CpalBackend), output_group().clone())
     })
 }
@@ -1366,11 +1521,11 @@ pub fn stop_reason_for(event: &tauri::RunEvent) -> Option<EndReason> {
     use tauri::{RunEvent, WindowEvent};
     match event {
         RunEvent::Exit | RunEvent::ExitRequested { .. } => Some(EndReason::AppExit),
-        RunEvent::WindowEvent { label, event: WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed, .. }
-            if label == MAIN_WINDOW_LABEL =>
-        {
-            Some(EndReason::WindowClosed)
-        }
+        RunEvent::WindowEvent {
+            label,
+            event: WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed,
+            ..
+        } if label == MAIN_WINDOW_LABEL => Some(EndReason::WindowClosed),
         _ => None,
     }
 }
@@ -1396,7 +1551,9 @@ pub fn list_native_audio_outputs() -> Result<Vec<AudioOutputInfo>, String> {
     let default_name = host.default_output_device().and_then(|d| d.name().ok());
     let mut out = Vec::new();
     for device in host.output_devices().map_err(|e| e.to_string())? {
-        let name = device.name().unwrap_or_else(|_| "Unnamed audio output".to_string());
+        let name = device
+            .name()
+            .unwrap_or_else(|_| "Unnamed audio output".to_string());
         let cfg = device.default_output_config().ok();
         out.push(AudioOutputInfo {
             is_default: default_name.as_deref() == Some(name.as_str()),
@@ -1408,12 +1565,20 @@ pub fn list_native_audio_outputs() -> Result<Vec<AudioOutputInfo>, String> {
     Ok(out)
 }
 
-async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + 'static) -> Result<T, String> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())?
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub async fn audio_play_buffer(device: Option<String>, buffer: BufferInput, opts: BufferOpts) -> Result<PlayInfo, String> {
+pub async fn audio_play_buffer(
+    device: Option<String>,
+    buffer: BufferInput,
+    opts: BufferOpts,
+) -> Result<PlayInfo, String> {
     blocking(move || global().play(device, PlayRequest::Buffer(buffer, opts))).await
 }
 
@@ -1445,7 +1610,12 @@ pub async fn audio_stop_all() -> Result<u32, String> {
 pub fn audio_out_status() -> AudioOutStatus {
     match ENGINE.get() {
         Some(e) => e.status(),
-        None => AudioOutStatus { abs_max_dbfs: ABS_MAX_DBFS, disabled: false, active: None, recent: Vec::new() },
+        None => AudioOutStatus {
+            abs_max_dbfs: ABS_MAX_DBFS,
+            disabled: false,
+            active: None,
+            recent: Vec::new(),
+        },
     }
 }
 
@@ -1466,7 +1636,10 @@ mod tests {
     struct Rng(u64);
     impl Rng {
         fn u(&mut self) -> f64 {
-            self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             (self.0 >> 11) as f64 / (1u64 << 53) as f64
         }
         fn range(&mut self, a: f64, b: f64) -> f64 {
@@ -1474,8 +1647,15 @@ mod tests {
         }
     }
 
-    fn renderer(source: Source, level: f32, cap: f32, ramp_ms: f32) -> (Renderer, Arc<VoiceControl>, Arc<AtomicBool>) {
-        let ctl = Arc::new(VoiceControl::new(clamp_level_dbfs(level, effective_cap_dbfs(Some(cap))).unwrap()));
+    fn renderer(
+        source: Source,
+        level: f32,
+        cap: f32,
+        ramp_ms: f32,
+    ) -> (Renderer, Arc<VoiceControl>, Arc<AtomicBool>) {
+        let ctl = Arc::new(VoiceControl::new(
+            clamp_level_dbfs(level, effective_cap_dbfs(Some(cap))).unwrap(),
+        ));
         let kill = Arc::new(AtomicBool::new(false));
         let r = Renderer::new(source, ctl.clone(), kill.clone(), FS, cap, ramp_ms);
         (r, ctl, kill)
@@ -1526,9 +1706,14 @@ mod tests {
         assert_eq!(clamp_level_dbfs(-29.9, -30.0).unwrap(), -30.0);
         assert_eq!(clamp_level_dbfs(-30.1, -30.0).unwrap(), -30.1);
         assert_eq!(clamp_level_dbfs(10.0, 0.0).unwrap(), -12.0);
-        assert_eq!(clamp_level_dbfs(f32::NEG_INFINITY, -12.0).unwrap(), SILENCE_DBFS);
+        assert_eq!(
+            clamp_level_dbfs(f32::NEG_INFINITY, -12.0).unwrap(),
+            SILENCE_DBFS
+        );
         assert_eq!(clamp_level_dbfs(f32::INFINITY, -20.0).unwrap(), -20.0);
-        assert!(clamp_level_dbfs(f32::NAN, -12.0).unwrap_err().starts_with("AUDIO_OUT_INVALID"));
+        assert!(clamp_level_dbfs(f32::NAN, -12.0)
+            .unwrap_err()
+            .starts_with("AUDIO_OUT_INVALID"));
     }
 
     #[test]
@@ -1541,7 +1726,14 @@ mod tests {
 
     #[test]
     fn ramps_are_never_shorter_than_10_ms() {
-        for v in [None, Some(0.0), Some(-5.0), Some(9.99), Some(f32::NAN), Some(f32::INFINITY)] {
+        for v in [
+            None,
+            Some(0.0),
+            Some(-5.0),
+            Some(9.99),
+            Some(f32::NAN),
+            Some(f32::INFINITY),
+        ] {
             let r = clamp_ramp_ms(v);
             assert!(r >= MIN_RAMP_MS, "{v:?} -> {r}");
             assert!(ramp_samples(r, FS) >= 480);
@@ -1568,8 +1760,15 @@ mod tests {
             let source = Source::Test(Box::new(move || {
                 let mut x = || match mode {
                     0 => src_rng.range(-1e6, 1e6) as f32,
-                    1 => [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 1e30, -1e30][(src_rng.u() * 5.0) as usize],
-                    2 => if src_rng.u() < 0.5 { 1.0 } else { -1.0 },
+                    1 => [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 1e30, -1e30]
+                        [(src_rng.u() * 5.0) as usize],
+                    2 => {
+                        if src_rng.u() < 0.5 {
+                            1.0
+                        } else {
+                            -1.0
+                        }
+                    }
                     3 => f32::MAX,
                     _ => src_rng.range(-1.0, 1.0) as f32,
                 };
@@ -1617,7 +1816,11 @@ mod tests {
         let max_step = (to - from).abs() / min_len as f32 + 1e-6;
         let mut prev = from;
         for (i, &s) in out.iter().enumerate() {
-            assert!((s - prev).abs() <= max_step, "step {} at {i} > {max_step}", (s - prev).abs());
+            assert!(
+                (s - prev).abs() <= max_step,
+                "step {} at {i} > {max_step}",
+                (s - prev).abs()
+            );
             prev = s;
         }
     }
@@ -1657,15 +1860,33 @@ mod tests {
             ctl.request_stop();
             let out = render_frames(&mut r, ms(200.0), channels, block);
             let l = left(&out, channels);
-            assert!(l[..ms(5.0)].iter().any(|s| s.abs() > 0.05), "fade starts from signal");
-            assert!(out[ms(50.0) * channels..].iter().all(|&s| s == 0.0), "block {block}: not silent after 50 ms");
+            assert!(
+                l[..ms(5.0)].iter().any(|s| s.abs() > 0.05),
+                "fade starts from signal"
+            );
+            assert!(
+                out[ms(50.0) * channels..].iter().all(|&s| s == 0.0),
+                "block {block}: not silent after 50 ms"
+            );
             assert!(ctl.is_silent());
             // Gradual: |gain step| <= cap / fade length.
             let envelope_step = ABS_MAX_AMP / ms(STOP_FADE_MS) as f32;
-            let mut ramp = Renderer::new(dc(1.0), Arc::new(VoiceControl::new(-12.0)), Arc::new(AtomicBool::new(false)), FS, -12.0, 10.0);
+            let mut ramp = Renderer::new(
+                dc(1.0),
+                Arc::new(VoiceControl::new(-12.0)),
+                Arc::new(AtomicBool::new(false)),
+                FS,
+                -12.0,
+                10.0,
+            );
             render_frames(&mut ramp, ms(20.0), 1, block);
             ramp.ctl.request_stop();
-            assert_ramp(&render_frames(&mut ramp, ms(60.0), 1, block), ABS_MAX_AMP, 0.0, (ABS_MAX_AMP / envelope_step) as usize);
+            assert_ramp(
+                &render_frames(&mut ramp, ms(60.0), 1, block),
+                ABS_MAX_AMP,
+                0.0,
+                (ABS_MAX_AMP / envelope_step) as usize,
+            );
         }
     }
 
@@ -1772,7 +1993,10 @@ mod tests {
         assert!(10.0 * (centre / octave_up).log10() > 15.0);
         assert!(10.0 * (centre / octave_down).log10() > 15.0);
         // Deterministic per seed.
-        assert_eq!(raw(&mut Source::pink_band(100.0, FS, 7), 64), raw(&mut Source::pink_band(100.0, FS, 7), 64));
+        assert_eq!(
+            raw(&mut Source::pink_band(100.0, FS, 7), 64),
+            raw(&mut Source::pink_band(100.0, FS, 7), 64)
+        );
     }
 
     #[test]
@@ -1798,7 +2022,10 @@ mod tests {
         assert!((n as i64 - 480).abs() <= 1, "10 ms at 48 kHz: {n}");
         let mut s = Source::buffer(vec![0.1, 0.2], vec![0.3, 0.4], 48_000, 48_000, true);
         let got: Vec<_> = (0..5).map(|_| s.next().unwrap()).collect();
-        assert_eq!(got, vec![(0.1, 0.3), (0.2, 0.4), (0.1, 0.3), (0.2, 0.4), (0.1, 0.3)]);
+        assert_eq!(
+            got,
+            vec![(0.1, 0.3), (0.2, 0.4), (0.1, 0.3), (0.2, 0.4), (0.1, 0.3)]
+        );
     }
 
     #[test]
@@ -1828,15 +2055,35 @@ mod tests {
     fn validation_rejects_bad_requests() {
         assert!(tone(-30.0).validate().is_ok());
         assert!(tone(f32::NAN).validate().is_err());
-        let mut t = ToneSpec { freq_hz: Some(5.0), ..match tone(-30.0) { PlayRequest::Tone(s) => s, _ => unreachable!() } };
+        let mut t = ToneSpec {
+            freq_hz: Some(5.0),
+            ..match tone(-30.0) {
+                PlayRequest::Tone(s) => s,
+                _ => unreachable!(),
+            }
+        };
         assert!(PlayRequest::Tone(t.clone()).validate().is_err());
         t.freq_hz = Some(25_000.0);
         assert!(PlayRequest::Tone(t.clone()).validate().is_err());
         t.freq_hz = None;
         t.duration_sec = Some(0.0);
         assert!(PlayRequest::Tone(t).validate().is_err());
-        let opts = BufferOpts { level_dbfs: -20.0, cap_dbfs: None, looped: false, ramp_ms: None };
-        let buf = |rate, l: usize, r: usize| PlayRequest::Buffer(BufferInput { sample_rate: rate, left: vec![0.0; l], right: vec![0.0; r] }, opts.clone());
+        let opts = BufferOpts {
+            level_dbfs: -20.0,
+            cap_dbfs: None,
+            looped: false,
+            ramp_ms: None,
+        };
+        let buf = |rate, l: usize, r: usize| {
+            PlayRequest::Buffer(
+                BufferInput {
+                    sample_rate: rate,
+                    left: vec![0.0; l],
+                    right: vec![0.0; r],
+                },
+                opts.clone(),
+            )
+        };
         assert!(buf(48_000, 10, 0).validate().is_ok());
         assert!(buf(48_000, 10, 10).validate().is_ok());
         assert!(buf(48_000, 0, 0).validate().is_err());
@@ -1846,7 +2093,11 @@ mod tests {
     }
 
     fn contract() -> serde_json::Value {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/audio_out.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/contracts/audio_out.json"),
+        )
+        .unwrap();
         serde_json::from_str(&raw).unwrap()
     }
 
@@ -1855,30 +2106,41 @@ mod tests {
         let c = contract();
         assert_eq!(c["absMaxDbfs"].as_f64().unwrap() as f32, ABS_MAX_DBFS);
         let cmd = |name: &str| c["commands"][name].clone();
-        let roundtrip = |v: &serde_json::Value, f: &dyn Fn(&serde_json::Value) -> serde_json::Value| {
-            assert_eq!(&f(v), v);
-        };
+        let roundtrip =
+            |v: &serde_json::Value, f: &dyn Fn(&serde_json::Value) -> serde_json::Value| {
+                assert_eq!(&f(v), v);
+            };
         let out = cmd("list_native_audio_outputs")["response"].clone();
-        roundtrip(&out, &|v| serde_json::to_value(serde_json::from_value::<Vec<AudioOutputInfo>>(v.clone()).unwrap()).unwrap());
+        roundtrip(&out, &|v| {
+            serde_json::to_value(serde_json::from_value::<Vec<AudioOutputInfo>>(v.clone()).unwrap())
+                .unwrap()
+        });
 
         let t = cmd("audio_play_tone");
         let spec: ToneSpec = serde_json::from_value(t["request"]["spec"].clone()).unwrap();
         assert_eq!(spec.kind, ToneType::Pinkband);
         assert!(PlayRequest::Tone(spec).validate().is_ok());
-        roundtrip(&t["response"], &|v| serde_json::to_value(serde_json::from_value::<PlayInfo>(v.clone()).unwrap()).unwrap());
+        roundtrip(&t["response"], &|v| {
+            serde_json::to_value(serde_json::from_value::<PlayInfo>(v.clone()).unwrap()).unwrap()
+        });
 
         let b = cmd("audio_play_buffer");
         let buffer: BufferInput = serde_json::from_value(b["request"]["buffer"].clone()).unwrap();
         let opts: BufferOpts = serde_json::from_value(b["request"]["opts"].clone()).unwrap();
         assert!(opts.looped);
         assert!(PlayRequest::Buffer(buffer, opts).validate().is_ok());
-        roundtrip(&b["response"], &|v| serde_json::to_value(serde_json::from_value::<PlayInfo>(v.clone()).unwrap()).unwrap());
+        roundtrip(&b["response"], &|v| {
+            serde_json::to_value(serde_json::from_value::<PlayInfo>(v.clone()).unwrap()).unwrap()
+        });
 
         let l = cmd("audio_set_level");
         assert!(l["request"]["handle"].is_u64() && l["request"]["levelDbfs"].is_number());
-        roundtrip(&l["response"], &|v| serde_json::to_value(serde_json::from_value::<LevelResult>(v.clone()).unwrap()).unwrap());
+        roundtrip(&l["response"], &|v| {
+            serde_json::to_value(serde_json::from_value::<LevelResult>(v.clone()).unwrap()).unwrap()
+        });
         roundtrip(&cmd("audio_out_status")["response"], &|v| {
-            serde_json::to_value(serde_json::from_value::<AudioOutStatus>(v.clone()).unwrap()).unwrap()
+            serde_json::to_value(serde_json::from_value::<AudioOutStatus>(v.clone()).unwrap())
+                .unwrap()
         });
     }
 
@@ -1903,13 +2165,26 @@ mod tests {
 
     impl Playing for FakePlaying {
         fn close(self: Box<Self>) {
-            self.log.events.lock().unwrap().push(format!("close {}", self.id));
-            self.log.renderers.lock().unwrap().retain(|(id, _, _)| *id != self.id);
+            self.log
+                .events
+                .lock()
+                .unwrap()
+                .push(format!("close {}", self.id));
+            self.log
+                .renderers
+                .lock()
+                .unwrap()
+                .retain(|(id, _, _)| *id != self.id);
         }
     }
 
     impl Backend for FakeBackend {
-        fn open(&self, _device: Option<String>, ctl: Arc<VoiceControl>, make: MakeRenderer) -> Result<(StreamInfo, Box<dyn Playing>), String> {
+        fn open(
+            &self,
+            _device: Option<String>,
+            ctl: Arc<VoiceControl>,
+            make: MakeRenderer,
+        ) -> Result<(StreamInfo, Box<dyn Playing>), String> {
             if self.fail {
                 return Err("AUDIO_OUT_DEVICE: no default audio output is available".into());
             }
@@ -1917,7 +2192,17 @@ mod tests {
             let r = make(FS, 2)?;
             self.log.events.lock().unwrap().push(format!("open {id}"));
             self.log.renderers.lock().unwrap().push((id, r, ctl));
-            Ok((StreamInfo { device_name: "Fake".into(), sample_rate: FS, channels: 2 }, Box::new(FakePlaying { log: self.log.clone(), id })))
+            Ok((
+                StreamInfo {
+                    device_name: "Fake".into(),
+                    sample_rate: FS,
+                    channels: 2,
+                },
+                Box::new(FakePlaying {
+                    log: self.log.clone(),
+                    id,
+                }),
+            ))
         }
     }
 
@@ -1946,7 +2231,13 @@ mod tests {
         let log = Arc::new(FakeLog::default());
         let clock = Arc::new(AtomicU64::new(0));
         let c = clock.clone();
-        let mut engine = Engine::with_clock(Box::new(FakeBackend { log: log.clone(), fail: false }), Box::new(move || c.load(SeqCst)));
+        let mut engine = Engine::with_clock(
+            Box::new(FakeBackend {
+                log: log.clone(),
+                fail: false,
+            }),
+            Box::new(move || c.load(SeqCst)),
+        );
         if let Some(g) = group {
             engine = engine.in_group(g);
         }
@@ -1955,7 +2246,8 @@ mod tests {
         let captured = Arc::new(Mutex::new(Vec::new()));
         let quit = Arc::new(AtomicBool::new(false));
         {
-            let (log, pump_on, captured, quit) = (log.clone(), pump_on.clone(), captured.clone(), quit.clone());
+            let (log, pump_on, captured, quit) =
+                (log.clone(), pump_on.clone(), captured.clone(), quit.clone());
             thread::spawn(move || {
                 let mut buf = vec![0.0f32; 128 * 2];
                 while !quit.load(SeqCst) {
@@ -1970,7 +2262,14 @@ mod tests {
                 }
             });
         }
-        Rig { engine, log, clock, pump_on, captured, quit }
+        Rig {
+            engine,
+            log,
+            clock,
+            pump_on,
+            captured,
+            quit,
+        }
     }
 
     fn events(r: &Rig) -> Vec<String> {
@@ -1992,7 +2291,10 @@ mod tests {
         assert_eq!(r.engine.ended_reason(info.handle), Some(EndReason::Stopped));
         assert!(r.engine.status().active.is_none());
         let err = r.engine.set_level(info.handle, -20.0).unwrap_err();
-        assert!(err.starts_with("AUDIO_OUT_NOT_PLAYING") && err.contains("stopped"), "{err}");
+        assert!(
+            err.starts_with("AUDIO_OUT_NOT_PLAYING") && err.contains("stopped"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -2006,7 +2308,10 @@ mod tests {
         assert!(!cap.is_empty());
         // Frames rendered after the stop request until the last non-zero sample.
         let last_sound = cap.iter().rposition(|&s| s != 0.0).map_or(0, |i| i / 2);
-        assert!(last_sound <= ms(50.0), "silence reached within 50 ms of samples: {last_sound}");
+        assert!(
+            last_sound <= ms(50.0),
+            "silence reached within 50 ms of samples: {last_sound}"
+        );
         assert!(cap[cap.len() - 2..].iter().all(|&s| s == 0.0));
     }
 
@@ -2019,12 +2324,23 @@ mod tests {
         }
         let info = r.engine.play(None, req).unwrap();
         assert_eq!(info.cap_dbfs, -30.0);
-        assert_eq!(r.engine.set_level(info.handle, 0.0).unwrap().level_dbfs, -30.0);
-        assert_eq!(r.engine.set_level(info.handle, -50.0).unwrap().level_dbfs, -50.0);
+        assert_eq!(
+            r.engine.set_level(info.handle, 0.0).unwrap().level_dbfs,
+            -30.0
+        );
+        assert_eq!(
+            r.engine.set_level(info.handle, -50.0).unwrap().level_dbfs,
+            -50.0
+        );
         assert!(r.engine.set_level(info.handle, f32::NAN).is_err());
         r.engine.set_level(info.handle, 100.0).unwrap();
         thread::sleep(Duration::from_millis(120));
-        let peak = r.captured.lock().unwrap().iter().fold(0.0f32, |m, s| m.max(s.abs()));
+        let peak = r
+            .captured
+            .lock()
+            .unwrap()
+            .iter()
+            .fold(0.0f32, |m, s| m.max(s.abs()));
         assert!(peak <= db_to_amp(-30.0) && peak > 0.0, "{peak}");
     }
 
@@ -2049,7 +2365,10 @@ mod tests {
             assert_eq!(r.engine.ended_reason(a.handle), Some(reason));
             assert_eq!(events(&r), vec!["open 1", "close 1"]);
         }
-        assert_eq!(stop_reason_for(&tauri::RunEvent::Exit), Some(EndReason::AppExit));
+        assert_eq!(
+            stop_reason_for(&tauri::RunEvent::Exit),
+            Some(EndReason::AppExit)
+        );
         assert_eq!(stop_reason_for(&tauri::RunEvent::Ready), None);
     }
 
@@ -2078,7 +2397,11 @@ mod tests {
         r.captured.lock().unwrap().clear();
         thread::sleep(Duration::from_millis(20));
         assert!(r.captured.lock().unwrap().iter().all(|&s| s == 0.0));
-        assert!(r.engine.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DISABLED"));
+        assert!(r
+            .engine
+            .play(None, tone(-30.0))
+            .unwrap_err()
+            .starts_with("AUDIO_OUT_DISABLED"));
         r.engine.tick();
         assert_eq!(r.engine.ended_reason(a.handle), Some(EndReason::Disabled));
         assert!(r.engine.status().disabled);
@@ -2094,8 +2417,15 @@ mod tests {
         assert_eq!(events(&r), vec!["open 1", "close 1"]);
         let st = r.engine.status();
         assert_eq!(st.recent[0].reason, EndReason::DeviceError);
-        assert_eq!(st.recent[0].message.as_deref(), Some("The device was unplugged"));
-        assert!(r.engine.set_level(a.handle, -30.0).unwrap_err().contains("deviceError"));
+        assert_eq!(
+            st.recent[0].message.as_deref(),
+            Some("The device was unplugged")
+        );
+        assert!(r
+            .engine
+            .set_level(a.handle, -30.0)
+            .unwrap_err()
+            .contains("deviceError"));
         // Not latched: a new voice can start after a device error.
         assert!(r.engine.play(None, tone(-30.0)).is_ok());
     }
@@ -2129,16 +2459,52 @@ mod tests {
         assert_eq!(r.engine.ended_reason(a.handle), Some(EndReason::Inactivity));
 
         // One-shot buffers are exempt from the inactivity mute, then finish.
-        let opts = BufferOpts { level_dbfs: -20.0, cap_dbfs: None, looped: false, ramp_ms: None };
-        let b = r.engine.play(None, PlayRequest::Buffer(BufferInput { sample_rate: FS, left: vec![0.5; 4800], right: vec![] }, opts)).unwrap();
+        let opts = BufferOpts {
+            level_dbfs: -20.0,
+            cap_dbfs: None,
+            looped: false,
+            ramp_ms: None,
+        };
+        let b = r
+            .engine
+            .play(
+                None,
+                PlayRequest::Buffer(
+                    BufferInput {
+                        sample_rate: FS,
+                        left: vec![0.5; 4800],
+                        right: vec![],
+                    },
+                    opts,
+                ),
+            )
+            .unwrap();
         r.clock.store(500_000, SeqCst);
         r.engine.tick();
         let reason = r.engine.wait_until_ended(b.handle, Duration::from_secs(2));
         assert_eq!(reason, Some(EndReason::Finished));
 
         // Looped buffers are continuous.
-        let opts = BufferOpts { level_dbfs: -20.0, cap_dbfs: None, looped: true, ramp_ms: None };
-        let c = r.engine.play(None, PlayRequest::Buffer(BufferInput { sample_rate: FS, left: vec![0.5; 480], right: vec![] }, opts)).unwrap();
+        let opts = BufferOpts {
+            level_dbfs: -20.0,
+            cap_dbfs: None,
+            looped: true,
+            ramp_ms: None,
+        };
+        let c = r
+            .engine
+            .play(
+                None,
+                PlayRequest::Buffer(
+                    BufferInput {
+                        sample_rate: FS,
+                        left: vec![0.5; 480],
+                        right: vec![],
+                    },
+                    opts,
+                ),
+            )
+            .unwrap();
         r.clock.store(561_000, SeqCst);
         r.engine.tick();
         assert_eq!(r.engine.ended_reason(c.handle), Some(EndReason::Inactivity));
@@ -2149,22 +2515,38 @@ mod tests {
         let r = rig();
         assert!(r.engine.play(None, tone(f32::NAN)).is_err());
         assert!(events(&r).is_empty());
-        let e = Engine::new(Box::new(FakeBackend { log: Arc::new(FakeLog::default()), fail: true }));
-        assert!(e.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DEVICE"));
+        let e = Engine::new(Box::new(FakeBackend {
+            log: Arc::new(FakeLog::default()),
+            fail: true,
+        }));
+        assert!(e
+            .play(None, tone(-30.0))
+            .unwrap_err()
+            .starts_with("AUDIO_OUT_DEVICE"));
         assert!(e.status().active.is_none());
     }
 
     /// Every renderer of the rig is silent (its next block is all zeros).
     fn all_silent(r: &Rig) -> bool {
-        r.log.renderers.lock().unwrap().iter().all(|(_, _, ctl)| ctl.is_silent())
+        r.log
+            .renderers
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|(_, _, ctl)| ctl.is_silent())
     }
 
     fn sounding(r: &Rig) -> bool {
         let mut buf = vec![0.0f32; 256];
-        r.log.renderers.lock().unwrap().iter_mut().any(|(_, rend, _)| {
-            rend.render_safe(&mut buf, 2);
-            buf.iter().any(|x| *x != 0.0)
-        })
+        r.log
+            .renderers
+            .lock()
+            .unwrap()
+            .iter_mut()
+            .any(|(_, rend, _)| {
+                rend.render_safe(&mut buf, 2);
+                buf.iter().any(|x| *x != 0.0)
+            })
     }
 
     /// BUG-04: two engines of one output group never sound together, so their
@@ -2179,9 +2561,15 @@ mod tests {
         thread::sleep(Duration::from_millis(30));
         assert!(sounding(&a));
         let hb = b.engine.play(None, tone(-12.0)).unwrap();
-        assert!(all_silent(&a), "the other engine's voice is silent before the new one opens");
+        assert!(
+            all_silent(&a),
+            "the other engine's voice is silent before the new one opens"
+        );
         assert!(sounding(&b));
-        assert!(!all_silent(&solo), "engines outside the group are not touched");
+        assert!(
+            !all_silent(&solo),
+            "engines outside the group are not touched"
+        );
         a.engine.tick();
         assert_eq!(a.engine.ended_reason(ha.handle), Some(EndReason::Replaced));
         assert!(a.engine.status().active.is_none());
@@ -2194,7 +2582,10 @@ mod tests {
         a.engine.stop(ha2.handle);
         let t = Instant::now();
         b.engine.play(None, tone(-20.0)).unwrap();
-        assert!(t.elapsed() < STOP_WAIT, "no fade wait for a voice that already ended");
+        assert!(
+            t.elapsed() < STOP_WAIT,
+            "no fade wait for a voice that already ended"
+        );
         solo.engine.stop(hs.handle);
     }
 
@@ -2213,7 +2604,11 @@ mod tests {
         b.engine.play(None, tone(-12.0)).unwrap();
         g.kill_all(); // what the panic guard does
         assert!(a.engine.is_disabled() && b.engine.is_disabled());
-        assert!(a.engine.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DISABLED"));
+        assert!(a
+            .engine
+            .play(None, tone(-30.0))
+            .unwrap_err()
+            .starts_with("AUDIO_OUT_DISABLED"));
         assert!(wait_for(Duration::from_secs(1), || all_silent(&b)));
     }
 
@@ -2235,7 +2630,12 @@ mod tests {
     }
 
     impl Backend for SlowBackend {
-        fn open(&self, device: Option<String>, ctl: Arc<VoiceControl>, make: MakeRenderer) -> Result<(StreamInfo, Box<dyn Playing>), String> {
+        fn open(
+            &self,
+            device: Option<String>,
+            ctl: Arc<VoiceControl>,
+            make: MakeRenderer,
+        ) -> Result<(StreamInfo, Box<dyn Playing>), String> {
             let _ = self.release.lock().unwrap().recv();
             self.inner.open(device, ctl, make)
         }
@@ -2248,7 +2648,13 @@ mod tests {
     fn stop_all_does_not_wait_for_a_hanging_open_and_wins_over_it() {
         let log = Arc::new(FakeLog::default());
         let (release, rx) = mpsc::channel();
-        let engine = Arc::new(Engine::new(Box::new(SlowBackend { inner: FakeBackend { log: log.clone(), fail: false }, release: Mutex::new(rx) })));
+        let engine = Arc::new(Engine::new(Box::new(SlowBackend {
+            inner: FakeBackend {
+                log: log.clone(),
+                fail: false,
+            },
+            release: Mutex::new(rx),
+        })));
         let player = {
             let engine = engine.clone();
             thread::spawn(move || engine.play(None, tone(-30.0)))
@@ -2256,12 +2662,20 @@ mod tests {
         thread::sleep(Duration::from_millis(50)); // the play is inside the open now
         let t = Instant::now();
         assert_eq!(engine.stop_all(EndReason::Stopped), 0);
-        assert!(t.elapsed() < Duration::from_millis(100), "stop waited {:?}", t.elapsed());
+        assert!(
+            t.elapsed() < Duration::from_millis(100),
+            "stop waited {:?}",
+            t.elapsed()
+        );
         release.send(()).unwrap();
         let err = player.join().unwrap().unwrap_err();
         assert!(err.starts_with("AUDIO_OUT_STOPPED"), "{err}");
         assert!(engine.status().active.is_none());
-        assert_eq!(log.events.lock().unwrap().clone(), vec!["open 1", "close 1"], "the late stream is closed");
+        assert_eq!(
+            log.events.lock().unwrap().clone(),
+            vec!["open 1", "close 1"],
+            "the late stream is closed"
+        );
         // a later play works normally
         release.send(()).unwrap();
         let ok = engine.play(None, tone(-30.0)).unwrap();
@@ -2275,7 +2689,10 @@ mod tests {
         install_panic_guard(); // idempotent
         let _ = thread::spawn(|| panic!("simulated crash elsewhere in the app")).join();
         assert!(engine.is_disabled());
-        assert!(engine.play(None, tone(-30.0)).unwrap_err().starts_with("AUDIO_OUT_DISABLED"));
+        assert!(engine
+            .play(None, tone(-30.0))
+            .unwrap_err()
+            .starts_with("AUDIO_OUT_DISABLED"));
         assert!(audio_out_status().disabled);
     }
 
@@ -2302,7 +2719,9 @@ mod tests {
     #[ignore = "needs a real audio output device; GitHub Windows/Linux runners have none."]
     fn device_unknown_name_is_reported() {
         let engine = Engine::new(Box::new(CpalBackend));
-        let err = engine.play(Some("No Such Output 123".into()), tone(-60.0)).unwrap_err();
+        let err = engine
+            .play(Some("No Such Output 123".into()), tone(-60.0))
+            .unwrap_err();
         assert!(err.starts_with("AUDIO_OUT_DEVICE"), "{err}");
     }
 }

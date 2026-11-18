@@ -202,7 +202,9 @@ impl<'de> Visitor<'de> for StrictVisitor {
         Ok(Value::from(v))
     }
     fn visit_f64<E: de::Error>(self, v: f64) -> Result<Value, E> {
-        serde_json::Number::from_f64(v).map(Value::Number).ok_or_else(|| E::custom("non-finite number"))
+        serde_json::Number::from_f64(v)
+            .map(Value::Number)
+            .ok_or_else(|| E::custom("non-finite number"))
     }
     fn visit_str<E>(self, v: &str) -> Result<Value, E> {
         Ok(Value::String(v.to_owned()))
@@ -250,7 +252,13 @@ pub fn parse_strict(text: &str) -> Result<Value, CertError> {
             CertError::Json(format!("line {} column {}", e.line(), e.column()))
         }
     })?;
-    de.end().map_err(|e| CertError::Json(format!("trailing data at line {} column {}", e.line(), e.column())))?;
+    de.end().map_err(|e| {
+        CertError::Json(format!(
+            "trailing data at line {} column {}",
+            e.line(),
+            e.column()
+        ))
+    })?;
     Ok(v.0)
 }
 
@@ -259,7 +267,8 @@ pub fn parse_strict(text: &str) -> Result<Value, CertError> {
 type Obj = Map<String, Value>;
 
 fn obj<'a>(v: &'a Value, path: &str) -> Result<&'a Obj, String> {
-    v.as_object().ok_or_else(|| format!("{path} must be an object"))
+    v.as_object()
+        .ok_or_else(|| format!("{path} must be an object"))
 }
 
 fn exact_keys(o: &Obj, path: &str, required: &[&str], optional: &[&str]) -> Result<(), String> {
@@ -270,14 +279,20 @@ fn exact_keys(o: &Obj, path: &str, required: &[&str], optional: &[&str]) -> Resu
     }
     for k in o.keys() {
         if !required.contains(&k.as_str()) && !optional.contains(&k.as_str()) {
-            return Err(format!("{path} has an unknown field \"{}\"", k.chars().take(40).collect::<String>()));
+            return Err(format!(
+                "{path} has an unknown field \"{}\"",
+                k.chars().take(40).collect::<String>()
+            ));
         }
     }
     Ok(())
 }
 
 fn text<'a>(o: &'a Obj, key: &str, path: &str, min: usize, max: usize) -> Result<&'a str, String> {
-    let s = o.get(key).and_then(Value::as_str).ok_or_else(|| format!("{path}.{key} must be a string"))?;
+    let s = o
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{path}.{key} must be a string"))?;
     let n = s.chars().count();
     if n < min || n > max {
         return Err(format!("{path}.{key} must be {min}–{max} characters"));
@@ -293,7 +308,10 @@ fn opt_text<'a>(o: &'a Obj, key: &str, path: &str, max: usize) -> Result<Option<
 }
 
 fn one_of(o: &Obj, key: &str, path: &str, allowed: &[&str]) -> Result<(), String> {
-    let s = o.get(key).and_then(Value::as_str).ok_or_else(|| format!("{path}.{key} must be a string"))?;
+    let s = o
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{path}.{key} must be a string"))?;
     if allowed.contains(&s) {
         Ok(())
     } else {
@@ -303,11 +321,18 @@ fn one_of(o: &Obj, key: &str, path: &str, allowed: &[&str]) -> Result<(), String
 
 /// An integer as JavaScript sees it: `1` and `1.0` are the same number (JSON.parse), so both count.
 fn as_int(v: &Value) -> Option<i64> {
-    v.as_i64().or_else(|| v.as_f64().filter(|f| f.fract() == 0.0 && f.abs() <= 9_007_199_254_740_991.0).map(|f| f as i64))
+    v.as_i64().or_else(|| {
+        v.as_f64()
+            .filter(|f| f.fract() == 0.0 && f.abs() <= 9_007_199_254_740_991.0)
+            .map(|f| f as i64)
+    })
 }
 
 fn int(o: &Obj, key: &str, path: &str, min: i64, max: i64) -> Result<i64, String> {
-    let n = o.get(key).and_then(as_int).filter(|n| (min..=max).contains(n));
+    let n = o
+        .get(key)
+        .and_then(as_int)
+        .filter(|n| (min..=max).contains(n));
     n.ok_or_else(|| format!("{path}.{key} must be an integer {min}–{max}"))
 }
 
@@ -318,8 +343,13 @@ pub fn is_decimal(s: &str) -> bool {
         Some(i) => (&b[..i], Some(&b[i + 1..])),
         None => (b, None),
     };
-    let int_ok = !int_part.is_empty() && int_part.len() <= 15 && int_part.iter().all(u8::is_ascii_digit) && (int_part == b"0" || int_part[0] != b'0');
-    let frac_ok = frac.map_or(true, |f| !f.is_empty() && f.len() <= 12 && f.iter().all(u8::is_ascii_digit));
+    let int_ok = !int_part.is_empty()
+        && int_part.len() <= 15
+        && int_part.iter().all(u8::is_ascii_digit)
+        && (int_part == b"0" || int_part[0] != b'0');
+    let frac_ok = frac.map_or(true, |f| {
+        !f.is_empty() && f.len() <= 12 && f.iter().all(u8::is_ascii_digit)
+    });
     int_ok && frac_ok
 }
 
@@ -327,7 +357,10 @@ fn decimal(o: &Obj, key: &str, path: &str, nullable: bool) -> Result<(), String>
     match o.get(key) {
         Some(Value::Null) if nullable => Ok(()),
         Some(Value::String(s)) if is_decimal(s) => Ok(()),
-        _ => Err(format!("{path}.{key} must be a decimal string{}", if nullable { " or null" } else { "" })),
+        _ => Err(format!(
+            "{path}.{key} must be a decimal string{}",
+            if nullable { " or null" } else { "" }
+        )),
     }
 }
 
@@ -339,8 +372,24 @@ pub fn is_iso_utc(s: &str) -> bool {
     }
     let digits = |r: std::ops::Range<usize>| b[r].iter().all(u8::is_ascii_digit);
     let num = |r: std::ops::Range<usize>| s[r].parse::<u32>().unwrap_or(99);
-    let shape = digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'T' && digits(11..13) && b[13] == b':' && digits(14..16) && b[16] == b':' && digits(17..19);
-    if !shape || !(1..=12).contains(&num(5..7)) || !(1..=31).contains(&num(8..10)) || num(11..13) > 23 || num(14..16) > 59 || num(17..19) > 60 {
+    let shape = digits(0..4)
+        && b[4] == b'-'
+        && digits(5..7)
+        && b[7] == b'-'
+        && digits(8..10)
+        && b[10] == b'T'
+        && digits(11..13)
+        && b[13] == b':'
+        && digits(14..16)
+        && b[16] == b':'
+        && digits(17..19);
+    if !shape
+        || !(1..=12).contains(&num(5..7))
+        || !(1..=31).contains(&num(8..10))
+        || num(11..13) > 23
+        || num(14..16) > 59
+        || num(17..19) > 60
+    {
         return false;
     }
     match b.len() {
@@ -363,7 +412,10 @@ fn iso(o: &Obj, key: &str, path: &str) -> Result<(), String> {
 }
 
 fn array<'a>(o: &'a Obj, key: &str, path: &str, max: usize) -> Result<&'a Vec<Value>, String> {
-    let a = o.get(key).and_then(Value::as_array).ok_or_else(|| format!("{path}.{key} must be an array"))?;
+    let a = o
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("{path}.{key} must be an array"))?;
     if a.len() > max {
         return Err(format!("{path}.{key} has more than {max} entries"));
     }
@@ -371,21 +423,55 @@ fn array<'a>(o: &'a Obj, key: &str, path: &str, max: usize) -> Result<&'a Vec<Va
 }
 
 fn is_hex(s: &str, len: usize) -> bool {
-    s.len() == len && s.bytes().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+    s.len() == len
+        && s.bytes()
+            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
 }
 
 /// Strict schema v1 of `payload` (mirrors `validatePayload` in app/certificate.js).
 pub fn validate_payload(payload: &Value) -> Result<(), String> {
     let p = obj(payload, "payload")?;
-    exact_keys(p, "payload", &["unit", "plan", "results", "measurements", "tester", "deckchekVersion", "schemaVersion", "issuedAt", "validUntil", "verdict", "disclaimer"], &[])?;
+    exact_keys(
+        p,
+        "payload",
+        &[
+            "unit",
+            "plan",
+            "results",
+            "measurements",
+            "tester",
+            "deckchekVersion",
+            "schemaVersion",
+            "issuedAt",
+            "validUntil",
+            "verdict",
+            "disclaimer",
+        ],
+        &[],
+    )?;
     let unit = obj(&p["unit"], "payload.unit")?;
-    exact_keys(unit, "payload.unit", &["model", "productId", "serial", "firmware", "notes", "photos"], &[])?;
+    exact_keys(
+        unit,
+        "payload.unit",
+        &[
+            "model",
+            "productId",
+            "serial",
+            "firmware",
+            "notes",
+            "photos",
+        ],
+        &[],
+    )?;
     text(unit, "model", "payload.unit", 1, MAX_TEXT)?;
     text(unit, "productId", "payload.unit", 1, MAX_TEXT)?;
     text(unit, "serial", "payload.unit", 1, MAX_TEXT)?;
     text(unit, "firmware", "payload.unit", 0, MAX_TEXT)?;
     text(unit, "notes", "payload.unit", 0, MAX_LONG_TEXT)?;
-    for (i, ph) in array(unit, "photos", "payload.unit", MAX_PHOTOS)?.iter().enumerate() {
+    for (i, ph) in array(unit, "photos", "payload.unit", MAX_PHOTOS)?
+        .iter()
+        .enumerate()
+    {
         let path = format!("payload.unit.photos[{i}]");
         let ph = obj(ph, &path)?;
         exact_keys(ph, &path, &["name", "sha256", "mime", "dataB64"], &[])?;
@@ -394,21 +480,47 @@ pub fn validate_payload(payload: &Value) -> Result<(), String> {
             return Err(format!("{path}.sha256 must be 64 lowercase hex characters"));
         }
         one_of(ph, "mime", &path, &["image/jpeg"])?;
-        let data = ph["dataB64"].as_str().ok_or_else(|| format!("{path}.dataB64 must be a string"))?;
-        if data.is_empty() || data.len() > MAX_PHOTO_B64 || data.len() % 4 != 0 || !data.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'+' || c == b'/' || c == b'=') {
-            return Err(format!("{path}.dataB64 must be base64 of at most {MAX_PHOTO_B64} characters"));
+        let data = ph["dataB64"]
+            .as_str()
+            .ok_or_else(|| format!("{path}.dataB64 must be a string"))?;
+        if data.is_empty()
+            || data.len() > MAX_PHOTO_B64
+            || data.len() % 4 != 0
+            || !data
+                .bytes()
+                .all(|c| c.is_ascii_alphanumeric() || c == b'+' || c == b'/' || c == b'=')
+        {
+            return Err(format!(
+                "{path}.dataB64 must be base64 of at most {MAX_PHOTO_B64} characters"
+            ));
         }
     }
     let plan = obj(&p["plan"], "payload.plan")?;
-    exact_keys(plan, "payload.plan", &["profileId", "profileVersion", "testIds"], &[])?;
+    exact_keys(
+        plan,
+        "payload.plan",
+        &["profileId", "profileVersion", "testIds"],
+        &[],
+    )?;
     text(plan, "profileId", "payload.plan", 1, MAX_TEXT)?;
     int(plan, "profileVersion", "payload.plan", 0, 1_000_000)?;
-    for (i, t) in array(plan, "testIds", "payload.plan", MAX_RESULTS)?.iter().enumerate() {
-        if !t.as_str().is_some_and(|s| !s.is_empty() && s.chars().count() <= MAX_TEXT) {
-            return Err(format!("payload.plan.testIds[{i}] must be a non-empty string"));
+    for (i, t) in array(plan, "testIds", "payload.plan", MAX_RESULTS)?
+        .iter()
+        .enumerate()
+    {
+        if !t
+            .as_str()
+            .is_some_and(|s| !s.is_empty() && s.chars().count() <= MAX_TEXT)
+        {
+            return Err(format!(
+                "payload.plan.testIds[{i}] must be a non-empty string"
+            ));
         }
     }
-    for (i, r) in array(p, "results", "payload", MAX_RESULTS)?.iter().enumerate() {
+    for (i, r) in array(p, "results", "payload", MAX_RESULTS)?
+        .iter()
+        .enumerate()
+    {
         let path = format!("payload.results[{i}]");
         let r = obj(r, &path)?;
         exact_keys(r, &path, &["testId", "title", "status", "detail"], &[])?;
@@ -417,10 +529,31 @@ pub fn validate_payload(payload: &Value) -> Result<(), String> {
         one_of(r, "status", &path, RESULT_STATUSES)?;
         text(r, "detail", &path, 0, MAX_LONG_TEXT)?;
     }
-    for (i, m) in array(p, "measurements", "payload", MAX_MEASUREMENTS)?.iter().enumerate() {
+    for (i, m) in array(p, "measurements", "payload", MAX_MEASUREMENTS)?
+        .iter()
+        .enumerate()
+    {
         let path = format!("payload.measurements[{i}]");
         let m = obj(m, &path)?;
-        exact_keys(m, &path, &["testId", "metricId", "label", "value", "unit", "uncertainty", "referenceLow", "referenceHigh", "methodKey", "methodVersion", "decision", "calibration"], &[])?;
+        exact_keys(
+            m,
+            &path,
+            &[
+                "testId",
+                "metricId",
+                "label",
+                "value",
+                "unit",
+                "uncertainty",
+                "referenceLow",
+                "referenceHigh",
+                "methodKey",
+                "methodVersion",
+                "decision",
+                "calibration",
+            ],
+            &[],
+        )?;
         text(m, "testId", &path, 1, MAX_TEXT)?;
         text(m, "metricId", &path, 1, MAX_TEXT)?;
         text(m, "label", &path, 0, MAX_TEXT)?;
@@ -443,10 +576,18 @@ pub fn validate_payload(payload: &Value) -> Result<(), String> {
     }
     text(p, "tester", "payload", 1, MAX_TEXT)?;
     text(p, "deckchekVersion", "payload", 0, 40)?;
-    int(p, "schemaVersion", "payload", SCHEMA_VERSION, SCHEMA_VERSION)?;
+    int(
+        p,
+        "schemaVersion",
+        "payload",
+        SCHEMA_VERSION,
+        SCHEMA_VERSION,
+    )?;
     iso(p, "issuedAt", "payload")?;
     iso(p, "validUntil", "payload")?;
-    if iso_key(p["validUntil"].as_str().unwrap_or("")) <= iso_key(p["issuedAt"].as_str().unwrap_or("")) {
+    if iso_key(p["validUntil"].as_str().unwrap_or(""))
+        <= iso_key(p["issuedAt"].as_str().unwrap_or(""))
+    {
         return Err("payload.validUntil must be after issuedAt".into());
     }
     one_of(p, "verdict", "payload", VERDICTS)?;
@@ -483,14 +624,37 @@ const MAX_OBJECT_KEYS: usize = 32;
 /// (FS-20 review); the full `validate_payload` still runs after the signature check.
 fn check_payload_bounds(payload: &Value) -> Result<(), String> {
     let p = obj(payload, "payload")?;
-    exact_keys(p, "payload", &["unit", "plan", "results", "measurements", "tester", "deckchekVersion", "schemaVersion", "issuedAt", "validUntil", "verdict", "disclaimer"], &[])?;
+    exact_keys(
+        p,
+        "payload",
+        &[
+            "unit",
+            "plan",
+            "results",
+            "measurements",
+            "tester",
+            "deckchekVersion",
+            "schemaVersion",
+            "issuedAt",
+            "validUntil",
+            "verdict",
+            "disclaimer",
+        ],
+        &[],
+    )?;
     let mut stack = vec![payload];
     while let Some(v) = stack.pop() {
         match v {
-            Value::String(s) if s.len() > MAX_PHOTO_B64 => return Err(format!("a string is longer than {MAX_PHOTO_B64} bytes")),
-            Value::Array(items) if items.len() > MAX_MEASUREMENTS => return Err(format!("an array has more than {MAX_MEASUREMENTS} entries")),
+            Value::String(s) if s.len() > MAX_PHOTO_B64 => {
+                return Err(format!("a string is longer than {MAX_PHOTO_B64} bytes"))
+            }
+            Value::Array(items) if items.len() > MAX_MEASUREMENTS => {
+                return Err(format!("an array has more than {MAX_MEASUREMENTS} entries"))
+            }
             Value::Array(items) => stack.extend(items),
-            Value::Object(map) if map.len() > MAX_OBJECT_KEYS => return Err(format!("an object has more than {MAX_OBJECT_KEYS} fields")),
+            Value::Object(map) if map.len() > MAX_OBJECT_KEYS => {
+                return Err(format!("an object has more than {MAX_OBJECT_KEYS} fields"))
+            }
             Value::Object(map) => {
                 if map.keys().any(|k| k.len() > MAX_KEY_BYTES) {
                     return Err(format!("a field name is longer than {MAX_KEY_BYTES} bytes"));
@@ -516,11 +680,21 @@ pub struct SignResult {
 }
 
 /// Validates the payload (never signs drafts or malformed payloads), hashes and signs it.
-pub fn sign_payload(conn: &Connection, key_dir: &Path, payload: &Value) -> Result<SignResult, CertError> {
+pub fn sign_payload(
+    conn: &Connection,
+    key_dir: &Path,
+    payload: &Value,
+) -> Result<SignResult, CertError> {
     validate_payload(payload).map_err(CertError::Schema)?;
     let (hash, digest) = content_hash(payload)?;
     let (signature_b64, id) = signing::sign_digest(conn, key_dir, &digest)?;
-    Ok(SignResult { content_hash: hash, signature_b64, public_key_b64: id.public_key_b64, fingerprint: id.fingerprint, protection: id.protection })
+    Ok(SignResult {
+        content_hash: hash,
+        signature_b64,
+        public_key_b64: id.public_key_b64,
+        fingerprint: id.fingerprint,
+        protection: id.protection,
+    })
 }
 
 // ------------------------------------------------------------------ verify
@@ -545,7 +719,11 @@ pub struct VerifyReport {
 }
 
 fn report(status: &str, reasons: Vec<String>) -> VerifyReport {
-    VerifyReport { status: status.into(), reasons, ..Default::default() }
+    VerifyReport {
+        status: status.into(),
+        reasons,
+        ..Default::default()
+    }
 }
 
 fn short(s: &str) -> Option<String> {
@@ -558,22 +736,61 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
         Ok(v) => v,
         Err(e) => return report("unverifiable", vec![e.to_string()]),
     };
-    let Some(file) = root.as_object() else { return report("unverifiable", vec!["not a DeckChek certificate".into()]) };
+    let Some(file) = root.as_object() else {
+        return report("unverifiable", vec!["not a DeckChek certificate".into()]);
+    };
     if file.get("format").and_then(Value::as_str) != Some(FORMAT) {
-        return report("unverifiable", vec!["not a DeckChek certificate (unknown format)".into()]);
+        return report(
+            "unverifiable",
+            vec!["not a DeckChek certificate (unknown format)".into()],
+        );
     }
     match file.get("version").and_then(as_int) {
         Some(VERSION) => {}
-        Some(v) => return report("unverifiable", vec![format!("unsupported certificate version {v}; update DeckChek to check it")]),
-        None => return report("unverifiable", vec!["unsupported certificate version".into()]),
+        Some(v) => {
+            return report(
+                "unverifiable",
+                vec![format!(
+                    "unsupported certificate version {v}; update DeckChek to check it"
+                )],
+            )
+        }
+        None => {
+            return report(
+                "unverifiable",
+                vec!["unsupported certificate version".into()],
+            )
+        }
     }
-    if let Err(e) = exact_keys(file, "certificate", &["format", "version", "payload"], &["integrity"]) {
+    if let Err(e) = exact_keys(
+        file,
+        "certificate",
+        &["format", "version", "payload"],
+        &["integrity"],
+    ) {
         return report("unverifiable", vec![e]);
     }
-    let Some(integrity) = file.get("integrity") else { return report("unverifiable", vec!["missing signature (unsigned draft or stripped integrity block)".into()]) };
+    let Some(integrity) = file.get("integrity") else {
+        return report(
+            "unverifiable",
+            vec!["missing signature (unsigned draft or stripped integrity block)".into()],
+        );
+    };
     let integrity_ok = (|| -> Result<(), String> {
         let i = obj(integrity, "integrity")?;
-        exact_keys(i, "integrity", &["alg", "hashAlg", "contentHash", "signature", "publicKey", "fingerprint"], &[])?;
+        exact_keys(
+            i,
+            "integrity",
+            &[
+                "alg",
+                "hashAlg",
+                "contentHash",
+                "signature",
+                "publicKey",
+                "fingerprint",
+            ],
+            &[],
+        )?;
         one_of(i, "alg", "integrity", &["ed25519"])?;
         one_of(i, "hashAlg", "integrity", &["sha256"])?;
         if !i["contentHash"].as_str().is_some_and(|s| is_hex(s, 64)) {
@@ -593,15 +810,26 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
     if let Err(e) = integrity_ok {
         return report("unverifiable", vec![e]);
     }
-    let Some(i) = integrity.as_object() else { return report("unverifiable", vec!["integrity must be an object".into()]) };
+    let Some(i) = integrity.as_object() else {
+        return report("unverifiable", vec!["integrity must be an object".into()]);
+    };
     let declared = i["contentHash"].as_str().unwrap_or_default().to_string();
     let fp = i["fingerprint"].as_str().unwrap_or_default().to_string();
     let pk = i["publicKey"].as_str().unwrap_or_default();
     let sig = i["signature"].as_str().unwrap_or_default();
     let payload = &file["payload"];
     let p = payload.as_object();
-    let pick = |k: &str| p.and_then(|p| p.get(k)).and_then(Value::as_str).and_then(short);
-    let unit = |k: &str| p.and_then(|p| p.get("unit")).and_then(|u| u.get(k)).and_then(Value::as_str).and_then(short);
+    let pick = |k: &str| {
+        p.and_then(|p| p.get(k))
+            .and_then(Value::as_str)
+            .and_then(short)
+    };
+    let unit = |k: &str| {
+        p.and_then(|p| p.get("unit"))
+            .and_then(|u| u.get(k))
+            .and_then(Value::as_str)
+            .and_then(short)
+    };
     let mut r = VerifyReport {
         status: "modified".into(),
         fingerprint: Some(fp.clone()),
@@ -619,7 +847,8 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
     if let Err(e) = check_payload_bounds(payload) {
         // no signed v1 payload is outside these bounds, so the hash cannot match one
         r.reasons.push("content hash mismatch".into());
-        r.reasons.push(format!("the payload is outside the schema v1 bounds: {e}"));
+        r.reasons
+            .push(format!("the payload is outside the schema v1 bounds: {e}"));
         return r;
     }
     let digest = match content_hash(payload) {
@@ -640,11 +869,13 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
     match signing::decode_fixed::<32>(pk) {
         Some(bytes) if signing::fingerprint(&bytes) == fp => {}
         Some(_) => {
-            r.reasons.push("fingerprint does not match the embedded public key".into());
+            r.reasons
+                .push("fingerprint does not match the embedded public key".into());
             return r;
         }
         None => {
-            r.reasons.push("the embedded public key is not a valid Ed25519 key".into());
+            r.reasons
+                .push("the embedded public key is not a valid Ed25519 key".into());
             return r;
         }
     }
@@ -654,7 +885,9 @@ pub fn verify_text(text: &str, now_iso: &str, is_local: impl Fn(&str) -> bool) -
     }
     if let Err(e) = validate_payload(payload) {
         r.status = "unverifiable".into();
-        r.reasons.push(format!("signed, but the payload does not follow schema v1: {e}"));
+        r.reasons.push(format!(
+            "signed, but the payload does not follow schema v1: {e}"
+        ));
         return r;
     }
     r.status = "valid".into();
@@ -681,9 +914,15 @@ fn validate_read_path(path: &str) -> Result<(PathBuf, String), CertError> {
     if p.components().any(|c| matches!(c, Component::ParentDir)) {
         return Err(CertError::BadPath("path traversal is not allowed"));
     }
-    let ext = p.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).unwrap_or_default();
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_default();
     if !["json", "html", "htm", "pdf"].contains(&ext.as_str()) {
-        return Err(CertError::BadPath("choose a .deckchek-cert.json, .html or .pdf file"));
+        return Err(CertError::BadPath(
+            "choose a .deckchek-cert.json, .html or .pdf file",
+        ));
     }
     let real = fs::canonicalize(&p).map_err(|_| CertError::BadPath("file not found"))?;
     if !fs::metadata(&real).map(|m| m.is_file()).unwrap_or(false) {
@@ -708,7 +947,9 @@ fn read_capped(path: &Path, cap: u64) -> Result<String, CertError> {
 /// The embedded certificate JSON of a DeckChek HTML certificate.
 pub fn json_from_html(html: &str) -> Result<String, CertError> {
     let start = html.find(HTML_MARKER).ok_or(CertError::NoCertificateData)? + HTML_MARKER.len();
-    let len = html[start..].find("</script>").ok_or(CertError::NoCertificateData)?;
+    let len = html[start..]
+        .find("</script>")
+        .ok_or(CertError::NoCertificateData)?;
     let json = html[start..start + len].trim();
     if json.len() as u64 > MAX_JSON_BYTES {
         return Err(CertError::TooLarge);
@@ -721,7 +962,12 @@ pub fn json_from_html(html: &str) -> Result<String, CertError> {
 fn validate_extract_envelope(root: &Value) -> Result<(), CertError> {
     let shape = (|| -> Result<(), String> {
         let file = obj(root, "certificate")?;
-        exact_keys(file, "certificate", &["format", "version", "payload"], &["integrity"])?;
+        exact_keys(
+            file,
+            "certificate",
+            &["format", "version", "payload"],
+            &["integrity"],
+        )?;
         one_of(file, "format", "certificate", &[FORMAT])?;
         int(file, "version", "certificate", VERSION, VERSION)?;
         let payload = &file["payload"];
@@ -734,7 +980,12 @@ fn validate_extract_envelope(root: &Value) -> Result<(), CertError> {
         // Unsigned drafts and stripped signatures have meaningful verification diagnostics.
         if let Some(integrity) = file.get("integrity") {
             let i = obj(integrity, "integrity")?;
-            exact_keys(i, "integrity", &["alg", "hashAlg", "contentHash", "publicKey", "fingerprint"], &["signature"])?;
+            exact_keys(
+                i,
+                "integrity",
+                &["alg", "hashAlg", "contentHash", "publicKey", "fingerprint"],
+                &["signature"],
+            )?;
             for key in ["alg", "hashAlg", "contentHash", "publicKey", "fingerprint"] {
                 text(i, key, "integrity", 0, MAX_TEXT)?;
             }
@@ -802,7 +1053,9 @@ pub struct CertificateRecord {
 
 fn check_id(s: &str, what: &'static str) -> Result<(), CertError> {
     if s.is_empty() || s.len() > 128 || s.chars().any(|c| c.is_control()) {
-        return Err(CertError::Schema(format!("{what} must be 1–128 printable characters")));
+        return Err(CertError::Schema(format!(
+            "{what} must be 1–128 printable characters"
+        )));
     }
     Ok(())
 }
@@ -810,7 +1063,9 @@ fn check_id(s: &str, what: &'static str) -> Result<(), CertError> {
 fn check_saved_path(p: &Option<String>) -> Result<Option<String>, CertError> {
     match p {
         None => Ok(None),
-        Some(s) if s.len() <= 4096 && !s.contains('\0') && Path::new(s).is_absolute() => Ok(Some(s.clone())),
+        Some(s) if s.len() <= 4096 && !s.contains('\0') && Path::new(s).is_absolute() => {
+            Ok(Some(s.clone()))
+        }
         Some(_) => Err(CertError::BadPath("saved file paths must be absolute")),
     }
 }
@@ -819,19 +1074,26 @@ fn check_saved_path(p: &Option<String>) -> Result<Option<String>, CertError> {
 pub fn store(conn: &Connection, input: &StoreInput) -> Result<CertificateSummary, CertError> {
     check_id(&input.asset_id, "assetId")?;
     check_id(&input.profile_id, "profileId")?;
-    let (pdf_path, json_path) = (check_saved_path(&input.pdf_path)?, check_saved_path(&input.json_path)?);
+    let (pdf_path, json_path) = (
+        check_saved_path(&input.pdf_path)?,
+        check_saved_path(&input.json_path)?,
+    );
     let now = crate::db::now_iso(conn).map_err(CertError::Db)?;
     let rep = verify_text(&input.file_json, &now, |fp| signing::is_local_key(conn, fp));
     if rep.status != "valid" {
         return Err(CertError::NotVerified(rep.reasons.join("; ")));
     }
     if !rep.issued_by_this_install {
-        return Err(CertError::NotVerified("it was signed by another install".into()));
+        return Err(CertError::NotVerified(
+            "it was signed by another install".into(),
+        ));
     }
     let file = parse_strict(&input.file_json)?;
     let payload = &file["payload"];
     if payload["plan"]["profileId"].as_str() != Some(input.profile_id.as_str()) {
-        return Err(CertError::Schema("profileId does not match the certificate plan".into()));
+        return Err(CertError::Schema(
+            "profileId does not match the certificate plan".into(),
+        ));
     }
     let canonical = canonical_json(&file).map_err(|e| CertError::NotCanonical(e.to_string()))?;
     let id = crate::db::new_id();
@@ -840,12 +1102,18 @@ pub fn store(conn: &Connection, input: &StoreInput) -> Result<CertificateSummary
         asset_id: input.asset_id.clone(),
         profile_id: input.profile_id.clone(),
         signing_key_id: rep.fingerprint.clone().unwrap_or_default(),
-        serial_number: payload["unit"]["serial"].as_str().unwrap_or_default().to_string(),
+        serial_number: payload["unit"]["serial"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string(),
         tester_name: payload["tester"].as_str().unwrap_or_default().to_string(),
         verdict: payload["verdict"].as_str().unwrap_or_default().to_string(),
         content_hash: rep.content_hash.clone().unwrap_or_default(),
         issued_at: payload["issuedAt"].as_str().unwrap_or_default().to_string(),
-        valid_until: payload["validUntil"].as_str().unwrap_or_default().to_string(),
+        valid_until: payload["validUntil"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string(),
         pdf_path,
         json_path,
     };
@@ -880,7 +1148,10 @@ fn summary_row(r: &rusqlite::Row) -> rusqlite::Result<CertificateSummary> {
 }
 
 /// Newest first, at most 500; all assets when `asset_id` is None.
-pub fn list(conn: &Connection, asset_id: Option<&str>) -> Result<Vec<CertificateSummary>, CertError> {
+pub fn list(
+    conn: &Connection,
+    asset_id: Option<&str>,
+) -> Result<Vec<CertificateSummary>, CertError> {
     if let Some(a) = asset_id {
         check_id(a, "assetId")?;
     }
@@ -892,9 +1163,16 @@ pub fn list(conn: &Connection, asset_id: Option<&str>) -> Result<Vec<Certificate
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<CertificateRecord>, CertError> {
     check_id(id, "id")?;
-    conn.query_row(&format!("SELECT {SUMMARY_COLS}, payload_json FROM certificate WHERE id = ?1"), [id], |r| {
-        Ok(CertificateRecord { summary: summary_row(r)?, file_json: r.get(12)? })
-    })
+    conn.query_row(
+        &format!("SELECT {SUMMARY_COLS}, payload_json FROM certificate WHERE id = ?1"),
+        [id],
+        |r| {
+            Ok(CertificateRecord {
+                summary: summary_row(r)?,
+                file_json: r.get(12)?,
+            })
+        },
+    )
     .optional()
     .map_err(db_err)
 }
@@ -902,7 +1180,8 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<CertificateRecord>, Cer
 // ------------------------------------------------------------------ commands
 
 fn open(app: &tauri::AppHandle) -> Result<crate::db::DbConn, CertError> {
-    crate::db::open_database(&crate::db::database_path(app).map_err(CertError::Db)?).map_err(CertError::Db)
+    crate::db::open_database(&crate::db::database_path(app).map_err(CertError::Db)?)
+        .map_err(CertError::Db)
 }
 
 /// Cap on the IPC payload argument before it is re-serialised (photos included).
@@ -918,7 +1197,10 @@ fn background_err(e: impl std::fmt::Display) -> CertError {
 }
 
 #[tauri::command]
-pub async fn certificate_sign(app: tauri::AppHandle, payload: Value) -> Result<SignResult, CertError> {
+pub async fn certificate_sign(
+    app: tauri::AppHandle,
+    payload: Value,
+) -> Result<SignResult, CertError> {
     crate::db::off_main(move || {
         // serde_json already bounded recursion; re-check size and depth like untrusted file input.
         let text = serde_json::to_string(&payload).map_err(|e| CertError::Json(e.to_string()))?;
@@ -927,7 +1209,8 @@ pub async fn certificate_sign(app: tauri::AppHandle, payload: Value) -> Result<S
         }
         check_depth(&text)?;
         let conn = open(&app)?;
-        let dir = signing::key_dir(&app).map_err(|_| CertError::Io("app data folder unavailable".into()))?;
+        let dir = signing::key_dir(&app)
+            .map_err(|_| CertError::Io("app data folder unavailable".into()))?;
         sign_payload(&conn, &dir, &payload)
     })
     .await
@@ -939,42 +1222,70 @@ pub async fn certificate_verify(app: tauri::AppHandle, json: String) -> VerifyRe
     // `verify_text` asks `is_local` only once the signature has verified, so answering true here
     // just marks "ask the database"; the real lookup follows with the verified fingerprint.
     let checked = tauri::async_runtime::spawn_blocking(move || {
-        let now = Connection::open_in_memory().ok().and_then(|c| crate::db::now_iso(&c).ok()).unwrap_or_default();
+        let now = Connection::open_in_memory()
+            .ok()
+            .and_then(|c| crate::db::now_iso(&c).ok())
+            .unwrap_or_default();
         verify_text(&json, &now, |_| true)
     })
     .await;
     let mut rep = match checked {
         Ok(rep) => rep,
-        Err(e) => return report("unverifiable", vec![format!("could not check the file ({e})")]),
+        Err(e) => {
+            return report(
+                "unverifiable",
+                vec![format!("could not check the file ({e})")],
+            )
+        }
     };
     if rep.issued_by_this_install {
         let fp = rep.fingerprint.clone().unwrap_or_default();
-        rep.issued_by_this_install = crate::db::off_main(move || open(&app).is_ok_and(|c| signing::is_local_key(&c, &fp))).await.unwrap_or(false);
+        rep.issued_by_this_install =
+            crate::db::off_main(move || open(&app).is_ok_and(|c| signing::is_local_key(&c, &fp)))
+                .await
+                .unwrap_or(false);
     }
     rep
 }
 
 #[tauri::command]
 pub async fn certificate_extract_json(path: String) -> Result<String, CertError> {
-    tauri::async_runtime::spawn_blocking(move || extract_json(&path)).await.map_err(background_err)?
+    tauri::async_runtime::spawn_blocking(move || extract_json(&path))
+        .await
+        .map_err(background_err)?
 }
 
 #[tauri::command]
-pub async fn certificate_store(app: tauri::AppHandle, record: StoreInput) -> Result<CertificateSummary, CertError> {
+pub async fn certificate_store(
+    app: tauri::AppHandle,
+    record: StoreInput,
+) -> Result<CertificateSummary, CertError> {
     if record.file_json.len() as u64 > MAX_JSON_BYTES {
         return Err(CertError::TooLarge);
     }
-    crate::db::off_main(move || store(&*open(&app)?, &record)).await.map_err(background_err)?
+    crate::db::off_main(move || store(&*open(&app)?, &record))
+        .await
+        .map_err(background_err)?
 }
 
 #[tauri::command]
-pub async fn certificate_list(app: tauri::AppHandle, asset_id: Option<String>) -> Result<Vec<CertificateSummary>, CertError> {
-    crate::db::off_main(move || list(&*open(&app)?, asset_id.as_deref())).await.map_err(background_err)?
+pub async fn certificate_list(
+    app: tauri::AppHandle,
+    asset_id: Option<String>,
+) -> Result<Vec<CertificateSummary>, CertError> {
+    crate::db::off_main(move || list(&*open(&app)?, asset_id.as_deref()))
+        .await
+        .map_err(background_err)?
 }
 
 #[tauri::command]
-pub async fn certificate_get(app: tauri::AppHandle, id: String) -> Result<Option<CertificateRecord>, CertError> {
-    crate::db::off_main(move || get(&*open(&app)?, &id)).await.map_err(background_err)?
+pub async fn certificate_get(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<Option<CertificateRecord>, CertError> {
+    crate::db::off_main(move || get(&*open(&app)?, &id))
+        .await
+        .map_err(background_err)?
 }
 
 #[cfg(test)]

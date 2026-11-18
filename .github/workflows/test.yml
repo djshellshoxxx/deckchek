@@ -72,7 +72,9 @@ jobs:
         with:
           fetch-depth: 1
       - name: Rust toolchain (rustup is preinstalled on the runner)
-        run: rustup toolchain install stable --profile minimal && rustup default stable
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy && rustup default stable
+      - name: Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
       - name: Cache fetched crates (not build output)
         uses: actions/cache@v4
         with:
@@ -96,8 +98,13 @@ jobs:
         run: node tools/annotate-rust-failure.mjs "$RUNNER_TEMP/rust-tests.log" || true
       - name: No compiler warnings in the app crate
         run: |
+          set -o pipefail
           cargo build --locked --manifest-path src-tauri/Cargo.toml -j 4 2>&1 | tee "$RUNNER_TEMP/build.log"
           if grep -E '^warning' "$RUNNER_TEMP/build.log" | grep -v 'generated [0-9]* warning'; then echo '::error::compiler warnings'; exit 1; fi
+      - name: Rust type checking
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml -j 4
+      - name: Clippy without warnings
+        run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -j 4 -- -D warnings
       - uses: actions/upload-artifact@v4
         if: always()
         with:

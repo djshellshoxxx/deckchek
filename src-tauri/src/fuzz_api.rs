@@ -16,7 +16,9 @@ use std::sync::OnceLock;
 use rusqlite::Connection;
 use serde_json::Value;
 
-use crate::{backup, canonical, certificate, db, dj_sessions, links, pack, photo, system_check, userfiles};
+use crate::{
+    backup, canonical, certificate, db, dj_sessions, links, pack, photo, system_check, userfiles,
+};
 
 /// Untrusted text inputs are decoded leniently, exactly as the app does for files on disk.
 fn text(data: &[u8]) -> String {
@@ -38,7 +40,10 @@ pub fn fuzz_backup_inspect(data: &[u8]) {
     let p = scratch().join("inspect.deckchek-backup");
     std::fs::write(&p, data).expect("write scratch");
     let r = backup::inspect_file(&p);
-    assert!(r.valid == r.errors.is_empty(), "inspect: valid flag and errors disagree");
+    assert!(
+        r.valid == r.errors.is_empty(),
+        "inspect: valid flag and errors disagree"
+    );
 }
 
 /// Builds a structurally valid backup around fuzzed parts so the fuzzer reaches the deep
@@ -56,13 +61,31 @@ pub fn fuzz_backup_restore(data: &[u8]) {
     };
     // Half the time start from a real migrated database and overwrite a slice of it, so SQLite
     // gets past its header check and the fuzzer explores page/schema corruption.
-    let db_payload = if sel & 1 == 1 { patch_template_db(db_bytes) } else { db_bytes.to_vec() };
+    let db_payload = if sel & 1 == 1 {
+        patch_template_db(db_bytes)
+    } else {
+        db_bytes.to_vec()
+    };
     let dir = scratch().join("restore");
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("restore dir");
     let archive = dir.join("in.deckchek-backup");
-    let schema = if sel & 2 == 2 { 1 } else { db::MIGRATIONS.len() as i64 };
-    write_backup_zip(&archive, &db_payload, if ui_bytes.is_empty() { None } else { Some(ui_bytes) }, schema, sel & 4 == 4);
+    let schema = if sel & 2 == 2 {
+        1
+    } else {
+        db::MIGRATIONS.len() as i64
+    };
+    write_backup_zip(
+        &archive,
+        &db_payload,
+        if ui_bytes.is_empty() {
+            None
+        } else {
+            Some(ui_bytes)
+        },
+        schema,
+        sel & 4 == 4,
+    );
     let ctx = backup::Ctx {
         live_db: dir.join("live.sqlite3"),
         backups_dir: dir.join("backups"),
@@ -74,12 +97,24 @@ pub fn fuzz_backup_restore(data: &[u8]) {
     // Whatever happened, the live database (if one was swapped in) must be openable and sane.
     if ctx.live_db.is_file() {
         let c = Connection::open(&ctx.live_db).expect("open restored live db");
-        let ok: String = c.query_row("PRAGMA quick_check", [], |r| r.get(0)).unwrap_or_default();
-        assert_eq!(ok, "ok", "restore swapped in a database that fails quick_check");
+        let ok: String = c
+            .query_row("PRAGMA quick_check", [], |r| r.get(0))
+            .unwrap_or_default();
+        assert_eq!(
+            ok, "ok",
+            "restore swapped in a database that fails quick_check"
+        );
         let hostile: i64 = c
-            .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type IN ('trigger','view')", [], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type IN ('trigger','view')",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
-        assert_eq!(hostile, 0, "restore accepted a database with triggers or views");
+        assert_eq!(
+            hostile, 0,
+            "restore accepted a database with triggers or views"
+        );
     }
 }
 
@@ -99,7 +134,8 @@ fn template_db() -> &'static Vec<u8> {
 fn patch_template_db(patch: &[u8]) -> Vec<u8> {
     let mut t = template_db().clone();
     if patch.len() >= 4 {
-        let off = (u32::from_le_bytes([patch[0], patch[1], patch[2], patch[3]]) as usize) % t.len().max(1);
+        let off = (u32::from_le_bytes([patch[0], patch[1], patch[2], patch[3]]) as usize)
+            % t.len().max(1);
         for (i, b) in patch[4..].iter().enumerate() {
             if let Some(slot) = t.get_mut(off + i) {
                 *slot = *b;
@@ -110,9 +146,17 @@ fn patch_template_db(patch: &[u8]) -> Vec<u8> {
 }
 
 /// Writes a backup zip whose manifest matches the given parts (sizes + sha256).
-pub fn write_backup_zip(path: &std::path::Path, db_bytes: &[u8], ui: Option<&[u8]>, schema: i64, extra_unknown: bool) {
+pub fn write_backup_zip(
+    path: &std::path::Path,
+    db_bytes: &[u8],
+    ui: Option<&[u8]>,
+    schema: i64,
+    extra_unknown: bool,
+) {
     use zip::write::SimpleFileOptions;
-    let mut files = vec![serde_json::json!({"name": "db/deckchek.sqlite3", "bytes": db_bytes.len(), "sha256": canonical::sha256_hex(db_bytes)})];
+    let mut files = vec![
+        serde_json::json!({"name": "db/deckchek.sqlite3", "bytes": db_bytes.len(), "sha256": canonical::sha256_hex(db_bytes)}),
+    ];
     if let Some(u) = ui {
         files.push(serde_json::json!({"name": "settings/ui.json", "bytes": u.len(), "sha256": canonical::sha256_hex(u)}));
     }
@@ -140,22 +184,37 @@ pub fn write_backup_zip(path: &std::path::Path, db_bytes: &[u8], ui: Option<&[u8
 
 /// Browser-workspace JSON import into a fresh, fully migrated database.
 pub fn fuzz_workspace_import(data: &[u8]) {
-    let Ok(v) = serde_json::from_slice::<Value>(data) else { return };
+    let Ok(v) = serde_json::from_slice::<Value>(data) else {
+        return;
+    };
     let mut c = Connection::open_in_memory().expect("mem db");
     c.execute_batch("PRAGMA foreign_keys=ON;").expect("fk");
     db::apply_migrations(&c).expect("migrations");
     let _ = backup::import_workspace(&mut c, &v);
-    let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap_or(0);
+    let fk: i64 = c
+        .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })
+        .unwrap_or(0);
     assert_eq!(fk, 0, "workspace import left dangling foreign keys");
 }
 
 /// Canonical JSON: output is canonical, idempotent and hash-stable.
 pub fn fuzz_canonical(data: &[u8]) {
-    let Ok(v) = canonical::parse_json_bytes(data) else { return };
+    let Ok(v) = canonical::parse_json_bytes(data) else {
+        return;
+    };
     if let Ok(s) = canonical::canonical_json(&v) {
-        assert!(canonical::is_canonical(&s), "canonical output not recognised as canonical");
+        assert!(
+            canonical::is_canonical(&s),
+            "canonical output not recognised as canonical"
+        );
         let back = canonical::parse_json(&s).expect("canonical output parses");
-        assert_eq!(canonical::canonical_json(&back).expect("re-canonicalise"), s, "canonical form not idempotent");
+        assert_eq!(
+            canonical::canonical_json(&back).expect("re-canonicalise"),
+            s,
+            "canonical form not idempotent"
+        );
     }
     let _ = canonical::is_canonical(&text(data));
 }
@@ -165,7 +224,10 @@ pub fn fuzz_jpeg(data: &[u8]) {
     // inspect_jpeg is structural only; validate_jpeg is the gate before a photo is stored.
     let _ = photo::inspect_jpeg(data);
     if let Ok(info) = photo::validate_jpeg(data) {
-        assert!(info.width > 0 && info.height > 0, "stored a JPEG with a zero dimension");
+        assert!(
+            info.width > 0 && info.height > 0,
+            "stored a JPEG with a zero dimension"
+        );
     }
 }
 
@@ -184,7 +246,11 @@ pub fn fuzz_userfiles(data: &[u8]) {
     let _ = userfiles::validate_save_path(&s, &["json", "html", "csv"]);
     let stem = userfiles::sanitize_file_stem(&s);
     assert!(stem.chars().count() <= 81, "sanitised stem too long");
-    assert!(stem.chars().all(|c| c.is_ascii_alphanumeric() || "._ -".contains(c)), "sanitised stem has a forbidden char");
+    assert!(
+        stem.chars()
+            .all(|c| c.is_ascii_alphanumeric() || "._ -".contains(c)),
+        "sanitised stem has a forbidden char"
+    );
     let _ = backup::entry_name_safe(&s);
 }
 
@@ -195,7 +261,10 @@ pub fn fuzz_dj_logs(data: &[u8]) {
         let _ = dj_sessions::parse_stamp(line);
     }
     let spans = dj_sessions::spans_from_text(&s, 1_700_000_000);
-    assert!(spans.iter().all(|(a, b)| a <= b), "session span ends before it starts");
+    assert!(
+        spans.iter().all(|(a, b)| a <= b),
+        "session span ends before it starts"
+    );
 }
 
 /// System Health parsers for script output, WER reports and logs.
@@ -218,17 +287,31 @@ pub fn fuzz_pack(data: &[u8]) {
     c.execute_batch("PRAGMA foreign_keys=ON;").expect("fk");
     db::apply_migrations(&c).expect("migrations");
     let Ok(first) = pack::import(&c, data, Some("fuzz")) else {
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0)).unwrap_or(0);
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0))
+            .unwrap_or(0);
         assert_eq!(n, 0, "a refused pack left rows behind");
         return;
     };
-    assert!(parsed.is_ok(), "import accepted bytes that parse_pack rejects");
+    assert!(
+        parsed.is_ok(),
+        "import accepted bytes that parse_pack rejects"
+    );
     let second = pack::import(&c, data, Some("fuzz")).expect("re-import of an accepted pack");
-    assert!(second.duplicate, "importing the same pack twice was not idempotent");
+    assert!(
+        second.duplicate,
+        "importing the same pack twice was not idempotent"
+    );
     pack::remove(&c, &first.pack_id).expect("remove");
-    let left: i64 = c.query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0)).unwrap_or(-1);
+    let left: i64 = c
+        .query_row("SELECT COUNT(*) FROM reference_pack", [], |r| r.get(0))
+        .unwrap_or(-1);
     assert_eq!(left, 0, "pack still listed after removal");
-    let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap_or(0);
+    let fk: i64 = c
+        .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })
+        .unwrap_or(0);
     assert_eq!(fk, 0, "pack removal left dangling foreign keys");
 }
 
@@ -238,10 +321,20 @@ pub fn fuzz_certificate(data: &[u8]) {
     let text = text(data);
     let r = certificate::verify_text(&text, "2026-10-28T00:00:00Z", |_| false);
     if r.status == "valid" {
-        assert!(r.content_hash.is_some() && r.content_hash == r.declared_hash, "VALID without matching hashes");
-        assert!(r.fingerprint.is_some(), "VALID without a signer fingerprint");
+        assert!(
+            r.content_hash.is_some() && r.content_hash == r.declared_hash,
+            "VALID without matching hashes"
+        );
+        assert!(
+            r.fingerprint.is_some(),
+            "VALID without a signer fingerprint"
+        );
     }
-    assert!(matches!(r.status.as_str(), "valid" | "modified" | "unverifiable"), "unknown status {}", r.status);
+    assert!(
+        matches!(r.status.as_str(), "valid" | "modified" | "unverifiable"),
+        "unknown status {}",
+        r.status
+    );
     if let Ok(json) = certificate::json_from_html(&text) {
         let _ = certificate::verify_text(&json, "2026-10-28T00:00:00Z", |_| false);
     }
@@ -277,23 +370,73 @@ mod smoke {
             self.0.wrapping_mul(0x2545_F491_4F6C_DD1D)
         }
         fn below(&mut self, n: usize) -> usize {
-            if n == 0 { 0 } else { (self.next() % n as u64) as usize }
+            if n == 0 {
+                0
+            } else {
+                (self.next() % n as u64) as usize
+            }
         }
     }
 
-    const INTERESTING: &[&[u8]] = &[b"\0", b"\xff\xff\xff\xff", b"..", b"../", b"\"", b"{", b"}", b"[", b"]", b"9007199254740993", b"-0", b"1e308", b"\\u0000", b"\r\n", b"%00", b"\xef\xbb\xbf", b"\xff\xfe", b"PK\x03\x04", b"\xff\xd8\xff\xe1"];
+    const INTERESTING: &[&[u8]] = &[
+        b"\0",
+        b"\xff\xff\xff\xff",
+        b"..",
+        b"../",
+        b"\"",
+        b"{",
+        b"}",
+        b"[",
+        b"]",
+        b"9007199254740993",
+        b"-0",
+        b"1e308",
+        b"\\u0000",
+        b"\r\n",
+        b"%00",
+        b"\xef\xbb\xbf",
+        b"\xff\xfe",
+        b"PK\x03\x04",
+        b"\xff\xd8\xff\xe1",
+    ];
 
     fn mutate(rng: &mut Rng, input: &[u8], max_len: usize) -> Vec<u8> {
         let mut v = input.to_vec();
         for _ in 0..1 + rng.below(8) {
             match rng.below(7) {
-                0 if !v.is_empty() => { let i = rng.below(v.len()); v[i] ^= 1 << rng.below(8); }
-                1 if !v.is_empty() => { let i = rng.below(v.len()); v[i] = rng.next() as u8; }
-                2 => { let i = rng.below(v.len() + 1); let t = INTERESTING[rng.below(INTERESTING.len())]; v.splice(i..i, t.iter().copied()); }
-                3 if !v.is_empty() => { let a = rng.below(v.len()); let b = (a + 1 + rng.below(16)).min(v.len()); v.drain(a..b); }
-                4 if !v.is_empty() => { let a = rng.below(v.len()); let b = (a + 1 + rng.below(64)).min(v.len()); let chunk = v[a..b].to_vec(); let i = rng.below(v.len() + 1); v.splice(i..i, chunk); }
-                5 => { let n = rng.below(v.len() + 1); v.truncate(n); }
-                _ => { let i = rng.below(v.len() + 1); v.insert(i, rng.next() as u8); }
+                0 if !v.is_empty() => {
+                    let i = rng.below(v.len());
+                    v[i] ^= 1 << rng.below(8);
+                }
+                1 if !v.is_empty() => {
+                    let i = rng.below(v.len());
+                    v[i] = rng.next() as u8;
+                }
+                2 => {
+                    let i = rng.below(v.len() + 1);
+                    let t = INTERESTING[rng.below(INTERESTING.len())];
+                    v.splice(i..i, t.iter().copied());
+                }
+                3 if !v.is_empty() => {
+                    let a = rng.below(v.len());
+                    let b = (a + 1 + rng.below(16)).min(v.len());
+                    v.drain(a..b);
+                }
+                4 if !v.is_empty() => {
+                    let a = rng.below(v.len());
+                    let b = (a + 1 + rng.below(64)).min(v.len());
+                    let chunk = v[a..b].to_vec();
+                    let i = rng.below(v.len() + 1);
+                    v.splice(i..i, chunk);
+                }
+                5 => {
+                    let n = rng.below(v.len() + 1);
+                    v.truncate(n);
+                }
+                _ => {
+                    let i = rng.below(v.len() + 1);
+                    v.insert(i, rng.next() as u8);
+                }
             }
         }
         v.truncate(max_len);
@@ -301,14 +444,26 @@ mod smoke {
     }
 
     fn corpus_dir(target: &str) -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fuzz").join("corpus").join(target)
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fuzz")
+            .join("corpus")
+            .join(target)
     }
 
     fn files_in(dir: PathBuf) -> Vec<Vec<u8>> {
-        let Ok(rd) = std::fs::read_dir(dir) else { return Vec::new() };
-        let mut paths: Vec<_> = rd.flatten().map(|e| e.path()).filter(|p| p.is_file()).collect();
+        let Ok(rd) = std::fs::read_dir(dir) else {
+            return Vec::new();
+        };
+        let mut paths: Vec<_> = rd
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.is_file())
+            .collect();
         paths.sort();
-        paths.into_iter().filter_map(|p| std::fs::read(p).ok()).collect()
+        paths
+            .into_iter()
+            .filter_map(|p| std::fs::read(p).ok())
+            .collect()
     }
 
     fn seeds(target: &str) -> Vec<Vec<u8>> {
@@ -319,13 +474,21 @@ mod smoke {
 
     /// Minimised crash/timeout inputs found by cargo-fuzz, replayed on every push (fast, each < 1 s).
     fn regressions(target: &str) -> Vec<Vec<u8>> {
-        files_in(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fuzz").join("regressions").join(target))
+        files_in(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("fuzz")
+                .join("regressions")
+                .join(target),
+        )
     }
 
     fn run(target: &str, iterations: usize) {
         let (_, f) = TARGETS.iter().find(|(n, _)| *n == target).expect("target");
         let seeds = seeds(target);
-        assert!(seeds.len() > 1, "no committed seed corpus for {target} (run the write_seed_corpus test)");
+        assert!(
+            seeds.len() > 1,
+            "no committed seed corpus for {target} (run the write_seed_corpus test)"
+        );
         let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ target.len() as u64);
         for s in &seeds {
             f(s);
@@ -333,7 +496,11 @@ mod smoke {
         for r in regressions(target) {
             let t0 = std::time::Instant::now();
             f(&r);
-            assert!(t0.elapsed() < std::time::Duration::from_secs(2), "{target}: regression input slow ({:?})", t0.elapsed());
+            assert!(
+                t0.elapsed() < std::time::Duration::from_secs(2),
+                "{target}: regression input slow ({:?})",
+                t0.elapsed()
+            );
         }
         for i in 0..iterations {
             let base = &seeds[rng.below(seeds.len())];
@@ -342,23 +509,59 @@ mod smoke {
             if r.is_err() {
                 let dump = scratch().join(format!("crash-{target}-{i}.bin"));
                 let _ = std::fs::write(&dump, &input);
-                panic!("fuzz smoke {target}: iteration {i} panicked; input saved to {}", dump.display());
+                panic!(
+                    "fuzz smoke {target}: iteration {i} panicked; input saved to {}",
+                    dump.display()
+                );
             }
         }
     }
 
     // Budgets keep the whole module under ~20 s on a CI runner; the deep runs are cargo-fuzz.
-    #[test] fn backup_inspect() { run("backup_inspect", 1500); }
-    #[test] fn backup_restore() { run("backup_restore", 150); }
-    #[test] fn workspace_import() { run("workspace_import", 300); }
-    #[test] fn canonical() { run("canonical", 5000); }
-    #[test] fn jpeg() { run("jpeg", 5000); }
-    #[test] fn links() { run("links", 5000); }
-    #[test] fn userfiles() { run("userfiles", 5000); }
-    #[test] fn dj_logs() { run("dj_logs", 3000); }
-    #[test] fn system_check() { run("system_check", 3000); }
-    #[test] fn pack() { run("pack", 1500); }
-    #[test] fn certificate() { run("certificate", 3000); }
+    #[test]
+    fn backup_inspect() {
+        run("backup_inspect", 1500);
+    }
+    #[test]
+    fn backup_restore() {
+        run("backup_restore", 150);
+    }
+    #[test]
+    fn workspace_import() {
+        run("workspace_import", 300);
+    }
+    #[test]
+    fn canonical() {
+        run("canonical", 5000);
+    }
+    #[test]
+    fn jpeg() {
+        run("jpeg", 5000);
+    }
+    #[test]
+    fn links() {
+        run("links", 5000);
+    }
+    #[test]
+    fn userfiles() {
+        run("userfiles", 5000);
+    }
+    #[test]
+    fn dj_logs() {
+        run("dj_logs", 3000);
+    }
+    #[test]
+    fn system_check() {
+        run("system_check", 3000);
+    }
+    #[test]
+    fn pack() {
+        run("pack", 1500);
+    }
+    #[test]
+    fn certificate() {
+        run("certificate", 3000);
+    }
 
     /// Regenerates the seed corpus from real artefacts (run with `--ignored` after format changes).
     #[test]
@@ -374,25 +577,79 @@ mod smoke {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let live = dir.join("live.sqlite3");
-        { let c = Connection::open(&live).unwrap(); db::apply_migrations(&c).unwrap(); }
+        {
+            let c = Connection::open(&live).unwrap();
+            db::apply_migrations(&c).unwrap();
+        }
         let dest = dir.join("seed.deckchek-backup");
-        backup::create_backup(&live, &dest, backup::Kind::Manual, &backup::SettingsBlob { ui: Some(serde_json::json!({"theme": "dark"})), calibration: None }, &mut |_, _| {}).unwrap();
-        put("backup_inspect", "real-backup.zip", &std::fs::read(&dest).unwrap());
+        backup::create_backup(
+            &live,
+            &dest,
+            backup::Kind::Manual,
+            &backup::SettingsBlob {
+                ui: Some(serde_json::json!({"theme": "dark"})),
+                calibration: None,
+            },
+            &mut |_, _| {},
+        )
+        .unwrap();
+        put(
+            "backup_inspect",
+            "real-backup.zip",
+            &std::fs::read(&dest).unwrap(),
+        );
         let mini = dir.join("mini.zip");
         write_backup_zip(&mini, b"not a database", Some(b"{\"a\":1}"), 1, true);
         put("backup_inspect", "mini.zip", &std::fs::read(&mini).unwrap());
-        put("backup_restore", "template-patch", &[1, 0, 0, 0, 0, b'S', b'Q', b'L']);
-        put("backup_restore", "raw-db-with-ui", b"\x00SQLite format 3\x00\xfe\xfe{\"theme\":\"light\"}");
+        put(
+            "backup_restore",
+            "template-patch",
+            &[1, 0, 0, 0, 0, b'S', b'Q', b'L'],
+        );
+        put(
+            "backup_restore",
+            "raw-db-with-ui",
+            b"\x00SQLite format 3\x00\xfe\xfe{\"theme\":\"light\"}",
+        );
         put("workspace_import", "workspace.json", br#"{"version":1,"runs":[{"id":"r1","workflow":"quick","label":"Quick","createdAt":"2026-01-01T00:00:00Z","metrics":[{"id":"rms_l","label":"RMS L","value":-12.5,"unit":"dBFS"}],"findings":[]}],"equipment":[{"id":"e1","type":"turntable","make":"Technics","model":"SL-1200MK7"}]}"#);
-        put("workspace_import", "empty.json", br#"{"version":1,"runs":[],"equipment":[]}"#);
-        if let Ok(v) = std::fs::read(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/canonical-vectors.json")) {
+        put(
+            "workspace_import",
+            "empty.json",
+            br#"{"version":1,"runs":[],"equipment":[]}"#,
+        );
+        if let Ok(v) = std::fs::read(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/fixtures/canonical-vectors.json"),
+        ) {
             put("canonical", "vectors.json", &v);
         }
-        put("canonical", "nested.json", br#"{"b":[1,2,{"z":null,"a":true}],"a":"\u00e9\n","c":-9007199254740991}"#);
-        put("jpeg", "tiny.jpg", &crate::photo::test_support::tiny_jpeg(4, 3, &[], 7));
-        put("jpeg", "exif.jpg", &[0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x08, b'E', b'x', b'i', b'f', 0, 0, 0xFF, 0xD9]);
-        put("links", "urls.txt", b"https://github.com/djshellshoxxx/deckchek/issues");
-        put("links", "allowlist.json", br#"{"version":1,"hosts":["github.com"],"allowSubdomains":["pioneerdj.com"]}"#);
+        put(
+            "canonical",
+            "nested.json",
+            br#"{"b":[1,2,{"z":null,"a":true}],"a":"\u00e9\n","c":-9007199254740991}"#,
+        );
+        put(
+            "jpeg",
+            "tiny.jpg",
+            &crate::photo::test_support::tiny_jpeg(4, 3, &[], 7),
+        );
+        put(
+            "jpeg",
+            "exif.jpg",
+            &[
+                0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x08, b'E', b'x', b'i', b'f', 0, 0, 0xFF, 0xD9,
+            ],
+        );
+        put(
+            "links",
+            "urls.txt",
+            b"https://github.com/djshellshoxxx/deckchek/issues",
+        );
+        put(
+            "links",
+            "allowlist.json",
+            br#"{"version":1,"hosts":["github.com"],"allowSubdomains":["pioneerdj.com"]}"#,
+        );
         put("links", "settings.txt", b"ms-settings:sound");
         put("userfiles", "path.txt", b"/home/user/Documents/report.html");
         put("userfiles", "win.txt", b"C:\\Users\\dj\\Desktop\\CON.json");

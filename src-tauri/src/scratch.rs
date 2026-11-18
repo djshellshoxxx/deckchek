@@ -11,7 +11,13 @@ use tauri::AppHandle;
 
 use crate::db::{database_path, new_id, now_iso, open_database};
 
-pub const EVENT_KINDS: &[&str] = &["reversal", "lock_loss", "direction_error", "skip", "recovery"];
+pub const EVENT_KINDS: &[&str] = &[
+    "reversal",
+    "lock_loss",
+    "direction_error",
+    "skip",
+    "recovery",
+];
 pub const MAX_EVENTS: usize = 20_000;
 pub const MAX_COMPONENTS_BYTES: usize = 16 * 1024;
 pub const MAX_DETAIL_BYTES: usize = 2 * 1024;
@@ -123,19 +129,27 @@ fn e2s(e: rusqlite::Error) -> String {
 
 fn valid_pattern(p: &str) -> bool {
     let b = p.as_bytes();
-    !b.is_empty() && b.len() <= 32 && b[0].is_ascii_lowercase() && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_' || *c == b'-')
+    !b.is_empty()
+        && b.len() <= 32
+        && b[0].is_ascii_lowercase()
+        && b.iter()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_' || *c == b'-')
 }
 
 fn check_opt(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(format!("{name} must be between {lo} and {hi}")),
+        Some(x) if !x.is_finite() || x < lo || x > hi => {
+            Err(format!("{name} must be between {lo} and {hi}"))
+        }
         _ => Ok(()),
     }
 }
 
 fn check_count(name: &str, v: Option<i64>) -> Result<(), String> {
     match v {
-        Some(x) if !(0..=1_000_000).contains(&x) => Err(format!("{name} must be a count between 0 and 1000000")),
+        Some(x) if !(0..=1_000_000).contains(&x) => {
+            Err(format!("{name} must be a count between 0 and 1000000"))
+        }
         _ => Ok(()),
     }
 }
@@ -178,36 +192,62 @@ pub fn validate(input: &ScratchRunInput) -> Result<(), String> {
     ] {
         check_count(name, v)?;
     }
-    if input.tonearm_note.as_ref().map_or(false, |n| n.chars().count() > MAX_NOTE_CHARS) {
-        return Err(format!("tonearmNote is limited to {MAX_NOTE_CHARS} characters"));
+    if input
+        .tonearm_note
+        .as_ref()
+        .map_or(false, |n| n.chars().count() > MAX_NOTE_CHARS)
+    {
+        return Err(format!(
+            "tonearmNote is limited to {MAX_NOTE_CHARS} characters"
+        ));
     }
-    object_json("components", input.components.as_ref(), MAX_COMPONENTS_BYTES)?;
+    object_json(
+        "components",
+        input.components.as_ref(),
+        MAX_COMPONENTS_BYTES,
+    )?;
     if input.events.len() > MAX_EVENTS {
         return Err(format!("a scratch run holds at most {MAX_EVENTS} events"));
     }
     for (i, e) in input.events.iter().enumerate() {
         if !valid_pattern(&e.pattern) {
-            return Err(format!("event {i}: pattern must match [a-z][a-z0-9_-]{{0,31}}"));
+            return Err(format!(
+                "event {i}: pattern must match [a-z][a-z0-9_-]{{0,31}}"
+            ));
         }
         if !EVENT_KINDS.contains(&e.kind.as_str()) {
-            return Err(format!("event {i}: kind must be one of {}", EVENT_KINDS.join(", ")));
+            return Err(format!(
+                "event {i}: kind must be one of {}",
+                EVENT_KINDS.join(", ")
+            ));
         }
         if !e.t_ms.is_finite() || e.t_ms < 0.0 || e.t_ms > MAX_T_MS {
             return Err(format!("event {i}: tMs must be between 0 and {MAX_T_MS}"));
         }
-        check_opt(&format!("event {i}: durationMs"), e.duration_ms, 0.0, MAX_T_MS)?;
+        check_opt(
+            &format!("event {i}: durationMs"),
+            e.duration_ms,
+            0.0,
+            MAX_T_MS,
+        )?;
         check_opt(&format!("event {i}: value"), e.value, -1e6, 1e6)?;
-        object_json(&format!("event {i}: detail"), e.detail.as_ref(), MAX_DETAIL_BYTES)?;
+        object_json(
+            &format!("event {i}: detail"),
+            e.detail.as_ref(),
+            MAX_DETAIL_BYTES,
+        )?;
     }
     Ok(())
 }
 
 fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
     // `table` is one of the fixed names below, never user input.
-    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| r.get::<_, i64>(0))
-        .optional()
-        .map(|o| o.is_some())
-        .map_err(e2s)
+    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |r| {
+        r.get::<_, i64>(0)
+    })
+    .optional()
+    .map(|o| o.is_some())
+    .map_err(e2s)
 }
 
 const RUN_COLS: &str = "r.id, r.session_id, r.setup_id, r.cartridge_asset_id, r.record_side_id, r.format, r.bpm, r.protocol_version, r.completed, r.score, \
@@ -243,7 +283,13 @@ fn run_row(r: &rusqlite::Row) -> rusqlite::Result<ScratchRun> {
 }
 
 fn get_run(conn: &Connection, id: &str) -> Result<Option<ScratchRun>, String> {
-    conn.query_row(&format!("SELECT {RUN_COLS} FROM scratch_run r WHERE r.id = ?1"), [id], run_row).optional().map_err(e2s)
+    conn.query_row(
+        &format!("SELECT {RUN_COLS} FROM scratch_run r WHERE r.id = ?1"),
+        [id],
+        run_row,
+    )
+    .optional()
+    .map_err(e2s)
 }
 
 /// Validate and store a run with its events in one transaction.
@@ -263,8 +309,16 @@ pub fn save(conn: &mut Connection, input: &ScratchRunInput) -> Result<ScratchRun
     }
     let id = new_id();
     let now = now_iso(conn)?;
-    let components = object_json("components", input.components.as_ref(), MAX_COMPONENTS_BYTES)?;
-    let note = input.tonearm_note.as_ref().map(|n| n.trim().to_string()).filter(|n| !n.is_empty());
+    let components = object_json(
+        "components",
+        input.components.as_ref(),
+        MAX_COMPONENTS_BYTES,
+    )?;
+    let note = input
+        .tonearm_note
+        .as_ref()
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty());
     let tx = conn.transaction().map_err(e2s)?;
     tx.execute(
         "INSERT INTO scratch_run (id, session_id, setup_id, cartridge_asset_id, record_side_id, format, bpm, protocol_version, completed, score,
@@ -302,7 +356,17 @@ pub fn save(conn: &mut Connection, input: &ScratchRunInput) -> Result<ScratchRun
             .map_err(e2s)?;
         for e in &input.events {
             let detail = object_json("detail", e.detail.as_ref(), MAX_DETAIL_BYTES)?;
-            stmt.execute(params![new_id(), id, e.pattern, e.kind, e.t_ms, e.duration_ms, e.value, detail]).map_err(e2s)?;
+            stmt.execute(params![
+                new_id(),
+                id,
+                e.pattern,
+                e.kind,
+                e.t_ms,
+                e.duration_ms,
+                e.value,
+                detail
+            ])
+            .map_err(e2s)?;
         }
     }
     tx.commit().map_err(e2s)?;
@@ -311,7 +375,10 @@ pub fn save(conn: &mut Connection, input: &ScratchRunInput) -> Result<ScratchRun
 
 /// Runs matching every given filter field, newest first, without their events.
 pub fn list(conn: &Connection, filter: &ScratchFilter) -> Result<Vec<ScratchRun>, String> {
-    let limit = filter.limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, MAX_LIST_LIMIT);
+    let limit = filter
+        .limit
+        .unwrap_or(DEFAULT_LIST_LIMIT)
+        .clamp(1, MAX_LIST_LIMIT);
     let mut stmt = conn
         .prepare(&format!(
             "SELECT {RUN_COLS} FROM scratch_run r
@@ -322,7 +389,14 @@ pub fn list(conn: &Connection, filter: &ScratchFilter) -> Result<Vec<ScratchRun>
         .map_err(e2s)?;
     let rows = stmt
         .query_map(
-            params![filter.cartridge_asset_id, filter.record_side_id, filter.setup_id, filter.format, filter.protocol_version, limit],
+            params![
+                filter.cartridge_asset_id,
+                filter.record_side_id,
+                filter.setup_id,
+                filter.format,
+                filter.protocol_version,
+                limit
+            ],
             run_row,
         )
         .map_err(e2s)?;
@@ -331,7 +405,9 @@ pub fn list(conn: &Connection, filter: &ScratchFilter) -> Result<Vec<ScratchRun>
 
 /// One run with its events in time order; `None` for an unknown id.
 pub fn get(conn: &Connection, id: &str) -> Result<Option<ScratchRunDetail>, String> {
-    let Some(run) = get_run(conn, id)? else { return Ok(None) };
+    let Some(run) = get_run(conn, id)? else {
+        return Ok(None);
+    };
     let mut stmt = conn
         .prepare("SELECT id, run_id, pattern, kind, t_ms, duration_ms, value, detail_json FROM scratch_event WHERE run_id = ?1 ORDER BY t_ms, rowid")
         .map_err(e2s)?;
@@ -357,7 +433,9 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<ScratchRunDetail>, Stri
 
 /// Returns whether a run was removed; its events go with it (ON DELETE CASCADE).
 pub fn delete(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute("DELETE FROM scratch_run WHERE id = ?1", [id]).map(|n| n > 0).map_err(e2s)
+    conn.execute("DELETE FROM scratch_run WHERE id = ?1", [id])
+        .map(|n| n > 0)
+        .map_err(e2s)
 }
 
 #[tauri::command]
@@ -370,7 +448,10 @@ pub async fn scratch_save(app: AppHandle, run: ScratchRunInput) -> Result<Scratc
 }
 
 #[tauri::command]
-pub async fn scratch_list(app: AppHandle, filter: Option<ScratchFilter>) -> Result<Vec<ScratchRun>, String> {
+pub async fn scratch_list(
+    app: AppHandle,
+    filter: Option<ScratchFilter>,
+) -> Result<Vec<ScratchRun>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         list(&conn, &filter.unwrap_or_default())
@@ -419,7 +500,14 @@ mod tests {
     }
 
     fn ev(kind: &str, t: f64) -> ScratchEventInput {
-        ScratchEventInput { pattern: "baby".into(), kind: kind.into(), t_ms: t, duration_ms: Some(10.0), value: Some(2.0), detail: Some(json!({"fromSign": 1})) }
+        ScratchEventInput {
+            pattern: "baby".into(),
+            kind: kind.into(),
+            t_ms: t,
+            duration_ms: Some(10.0),
+            value: Some(2.0),
+            detail: Some(json!({"fromSign": 1})),
+        }
     }
 
     fn run(cart: Option<&str>) -> ScratchRunInput {
@@ -443,27 +531,70 @@ mod tests {
             peak_velocity: Some(-2.1),
             tracking_force_g: Some(3.0),
             tonearm_note: Some("  height +2 ".into()),
-            events: vec![ev("reversal", 200.0), ev("lock_loss", 100.0), ev("recovery", 130.0)],
+            events: vec![
+                ev("reversal", 200.0),
+                ev("lock_loss", 100.0),
+                ev("recovery", 130.0),
+            ],
         }
     }
 
     #[test]
     fn migration_creates_tables_and_is_rerunnable() {
         let c = mem();
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 11).expect("0011 registered").1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 11)
+            .expect("0011 registered")
+            .1;
         c.execute_batch(sql).unwrap();
         let cols = |t: &str| -> Vec<String> {
-            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')")).unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
+            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')"))
+                .unwrap()
+                .query_map([], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
         };
         assert_eq!(
             cols("scratch_run"),
             [
-                "id", "session_id", "setup_id", "cartridge_asset_id", "record_side_id", "format", "bpm", "protocol_version", "completed", "score",
-                "components_json", "lock_losses", "longest_loss_ms", "median_recovery_ms", "direction_errors", "skips", "reversals", "peak_velocity",
-                "tracking_force_g", "tonearm_note", "created_at"
+                "id",
+                "session_id",
+                "setup_id",
+                "cartridge_asset_id",
+                "record_side_id",
+                "format",
+                "bpm",
+                "protocol_version",
+                "completed",
+                "score",
+                "components_json",
+                "lock_losses",
+                "longest_loss_ms",
+                "median_recovery_ms",
+                "direction_errors",
+                "skips",
+                "reversals",
+                "peak_velocity",
+                "tracking_force_g",
+                "tonearm_note",
+                "created_at"
             ]
         );
-        assert_eq!(cols("scratch_event"), ["id", "run_id", "pattern", "kind", "t_ms", "duration_ms", "value", "detail_json"]);
+        assert_eq!(
+            cols("scratch_event"),
+            [
+                "id",
+                "run_id",
+                "pattern",
+                "kind",
+                "t_ms",
+                "duration_ms",
+                "value",
+                "detail_json"
+            ]
+        );
         let idx: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name LIKE 'idx_scratch_%'", [], |r| r.get(0)).unwrap();
         assert_eq!(idx, 2);
     }
@@ -481,13 +612,25 @@ mod tests {
         assert_eq!(r.components["continuity"]["max"], 30);
         let d = get(&c, &r.id).unwrap().unwrap();
         assert_eq!(d.run, r);
-        assert_eq!(d.events.iter().map(|e| e.kind.as_str()).collect::<Vec<_>>(), ["lock_loss", "recovery", "reversal"], "events in time order");
-        assert!(d.events.iter().all(|e| e.run_id == r.id && e.detail["fromSign"] == 1));
-        assert_eq!(list(&c, &ScratchFilter::default()).unwrap(), vec![r.clone()]);
+        assert_eq!(
+            d.events.iter().map(|e| e.kind.as_str()).collect::<Vec<_>>(),
+            ["lock_loss", "recovery", "reversal"],
+            "events in time order"
+        );
+        assert!(d
+            .events
+            .iter()
+            .all(|e| e.run_id == r.id && e.detail["fromSign"] == 1));
+        assert_eq!(
+            list(&c, &ScratchFilter::default()).unwrap(),
+            vec![r.clone()]
+        );
         assert!(get(&c, "nope").unwrap().is_none());
         assert!(delete(&c, &r.id).unwrap());
         assert!(!delete(&c, &r.id).unwrap());
-        let left: i64 = c.query_row("SELECT COUNT(*) FROM scratch_event", [], |x| x.get(0)).unwrap();
+        let left: i64 = c
+            .query_row("SELECT COUNT(*) FROM scratch_event", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(left, 0, "events cascade with the run");
     }
 
@@ -500,23 +643,68 @@ mod tests {
         other.format = "Traktor Scratch MK2".into();
         other.protocol_version = 2;
         let b = save(&mut c, &other).unwrap();
-        let ids = |f: ScratchFilter| list(&c, &f).unwrap().into_iter().map(|r| r.id).collect::<Vec<_>>();
-        let mut cart1 = ids(ScratchFilter { cartridge_asset_id: Some("cart-1".into()), ..Default::default() });
+        let ids = |f: ScratchFilter| {
+            list(&c, &f)
+                .unwrap()
+                .into_iter()
+                .map(|r| r.id)
+                .collect::<Vec<_>>()
+        };
+        let mut cart1 = ids(ScratchFilter {
+            cartridge_asset_id: Some("cart-1".into()),
+            ..Default::default()
+        });
         cart1.sort();
         let mut want = vec![a1.id.clone(), a2.id.clone()];
         want.sort();
         assert_eq!(cart1, want);
-        assert_eq!(ids(ScratchFilter { format: Some("Traktor Scratch MK2".into()), ..Default::default() }), vec![b.id.clone()]);
-        assert_eq!(ids(ScratchFilter { protocol_version: Some(2), ..Default::default() }), vec![b.id.clone()]);
-        assert_eq!(ids(ScratchFilter { limit: Some(1), ..Default::default() }).len(), 1);
-        assert_eq!(ids(ScratchFilter { limit: Some(0), ..Default::default() }).len(), 1, "limit is clamped to at least 1");
-        assert!(ids(ScratchFilter { cartridge_asset_id: Some("cart-1' OR '1'='1".into()), ..Default::default() }).is_empty());
+        assert_eq!(
+            ids(ScratchFilter {
+                format: Some("Traktor Scratch MK2".into()),
+                ..Default::default()
+            }),
+            vec![b.id.clone()]
+        );
+        assert_eq!(
+            ids(ScratchFilter {
+                protocol_version: Some(2),
+                ..Default::default()
+            }),
+            vec![b.id.clone()]
+        );
+        assert_eq!(
+            ids(ScratchFilter {
+                limit: Some(1),
+                ..Default::default()
+            })
+            .len(),
+            1
+        );
+        assert_eq!(
+            ids(ScratchFilter {
+                limit: Some(0),
+                ..Default::default()
+            })
+            .len(),
+            1,
+            "limit is clamped to at least 1"
+        );
+        assert!(ids(ScratchFilter {
+            cartridge_asset_id: Some("cart-1' OR '1'='1".into()),
+            ..Default::default()
+        })
+        .is_empty());
     }
 
     #[test]
     fn references_are_checked_and_cleaned_up() {
         let mut c = mem();
-        for (field, msg) in [("session", "unknown session"), ("setup", "unknown setup"), ("cart", "unknown cartridge asset"), ("side", "unknown record side")] {
+        for (field, msg) in [
+            ("session", "unknown session"),
+            ("setup", "unknown setup"),
+            ("cart", "unknown cartridge asset"),
+            ("side", "unknown record side"),
+        ] {
             let mut i = run(None);
             match field {
                 "session" => i.session_id = Some("x".into()),
@@ -529,9 +717,16 @@ mod tests {
         let mut i = run(Some("cart-1"));
         i.session_id = Some("s1".into());
         let r = save(&mut c, &i).unwrap();
-        c.execute("DELETE FROM session WHERE id = 's1'", []).unwrap();
-        assert_eq!(get(&c, &r.id).unwrap().unwrap().run.session_id, None, "session delete nulls the link");
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM scratch_run", [], |x| x.get(0)).unwrap();
+        c.execute("DELETE FROM session WHERE id = 's1'", [])
+            .unwrap();
+        assert_eq!(
+            get(&c, &r.id).unwrap().unwrap().run.session_id,
+            None,
+            "session delete nulls the link"
+        );
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM scratch_run", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 1);
     }
 
@@ -553,7 +748,10 @@ mod tests {
         assert!(ok(&|i| i.score = Some(0.0)).is_ok());
         assert!(ok(&|i| i.score = Some(100.01)).is_err());
         assert!(ok(&|i| i.score = Some(-0.01)).is_err());
-        assert!(ok(&|i| i.score = None).is_ok(), "aborted run before any pattern has no score");
+        assert!(
+            ok(&|i| i.score = None).is_ok(),
+            "aborted run before any pattern has no score"
+        );
         assert!(ok(&|i| i.protocol_version = 0).is_err());
         assert!(ok(&|i| i.format = "  ".into()).is_err());
         assert!(ok(&|i| i.format = "x".repeat(81)).is_err());
@@ -562,22 +760,37 @@ mod tests {
         assert!(ok(&|i| i.longest_loss_ms = Some(f64::INFINITY)).is_err());
         assert!(ok(&|i| i.tonearm_note = Some("é".repeat(500))).is_ok());
         assert!(ok(&|i| i.tonearm_note = Some("é".repeat(501))).is_err());
-        assert!(ok(&|i| i.components = Some(json!([1, 2]))).unwrap_err().contains("object"));
-        assert!(ok(&|i| i.components = Some(json!({"x": "y".repeat(MAX_COMPONENTS_BYTES)}))).is_err());
-        assert!(ok(&|i| i.events[0].kind = "scratch".into()).unwrap_err().contains("kind"));
-        assert!(ok(&|i| i.events[0].pattern = "Baby".into()).unwrap_err().contains("pattern"));
+        assert!(ok(&|i| i.components = Some(json!([1, 2])))
+            .unwrap_err()
+            .contains("object"));
+        assert!(
+            ok(&|i| i.components = Some(json!({"x": "y".repeat(MAX_COMPONENTS_BYTES)}))).is_err()
+        );
+        assert!(ok(&|i| i.events[0].kind = "scratch".into())
+            .unwrap_err()
+            .contains("kind"));
+        assert!(ok(&|i| i.events[0].pattern = "Baby".into())
+            .unwrap_err()
+            .contains("pattern"));
         assert!(ok(&|i| i.events[0].pattern = "baby; DROP TABLE".into()).is_err());
         assert!(ok(&|i| i.events[0].t_ms = -1.0).is_err());
         assert!(ok(&|i| i.events[0].t_ms = MAX_T_MS + 1.0).is_err());
         assert!(ok(&|i| i.events[0].duration_ms = None).is_ok());
         assert!(ok(&|i| i.events[0].detail = Some(json!("text"))).is_err());
-        assert!(ok(&|i| i.events[0].detail = Some(json!({"x": "y".repeat(MAX_DETAIL_BYTES)}))).is_err());
-        assert!(ok(&|i| i.events = (0..=MAX_EVENTS).map(|k| ev("reversal", k as f64)).collect()).is_err());
+        assert!(
+            ok(&|i| i.events[0].detail = Some(json!({"x": "y".repeat(MAX_DETAIL_BYTES)}))).is_err()
+        );
+        assert!(
+            ok(&|i| i.events = (0..=MAX_EVENTS).map(|k| ev("reversal", k as f64)).collect())
+                .is_err()
+        );
         // a rejected run writes nothing
         let mut bad = run(None);
         bad.events.push(ev("bogus", 1.0));
         assert!(save(&mut c, &bad).is_err());
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM scratch_run", [], |x| x.get(0)).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM scratch_run", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 0);
     }
 
@@ -595,14 +808,22 @@ mod tests {
             assert!(ins(k, &r.id).is_ok(), "{k}");
         }
         assert!(ins("wobble", &r.id).is_err());
-        assert!(ins("reversal", "missing-run").is_err(), "event needs its run");
+        assert!(
+            ins("reversal", "missing-run").is_err(),
+            "event needs its run"
+        );
     }
 
     #[test]
     fn contract_examples_round_trip() {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/scratch.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/contracts/scratch.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
-        let input: ScratchRunInput = serde_json::from_value(v["scratch_save"]["request"]["run"].clone()).unwrap();
+        let input: ScratchRunInput =
+            serde_json::from_value(v["scratch_save"]["request"]["run"].clone()).unwrap();
         let mut c = mem();
         c.execute("INSERT INTO asset (id, nickname, created_at, updated_at) VALUES ('asset-cart-1','x','t','t')", []).unwrap();
         let mut got = serde_json::to_value(save(&mut c, &input).unwrap()).unwrap();
@@ -616,15 +837,21 @@ mod tests {
             match v {
                 Value::Number(n) => json!(n.as_f64()),
                 Value::Array(a) => Value::Array(a.iter().map(norm).collect()),
-                Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect()),
+                Value::Object(o) => {
+                    Value::Object(o.iter().map(|(k, x)| (k.clone(), norm(x))).collect())
+                }
                 x => x.clone(),
             }
         }
         assert_eq!(norm(&got), norm(want));
-        let filter: ScratchFilter = serde_json::from_value(v["scratch_list"]["request"]["filter"].clone()).unwrap();
+        let filter: ScratchFilter =
+            serde_json::from_value(v["scratch_list"]["request"]["filter"].clone()).unwrap();
         assert_eq!(filter.cartridge_asset_id.as_deref(), Some("asset-cart-1"));
         assert_eq!(list(&c, &filter).unwrap().len(), 1);
-        assert!(v["scratch_get"]["request"]["id"].is_string() && v["scratch_delete"]["request"]["id"].is_string());
+        assert!(
+            v["scratch_get"]["request"]["id"].is_string()
+                && v["scratch_delete"]["request"]["id"].is_string()
+        );
         let id = got["id"].as_str().unwrap().to_string();
         let real_id = list(&c, &ScratchFilter::default()).unwrap()[0].id.clone();
         assert_ne!(id, "");

@@ -73,11 +73,17 @@ fn check_asset_id(id: &str) -> Result<(), String> {
 
 /// Trims the note; empty becomes NULL. Line breaks and tabs are allowed, other control characters are not.
 pub fn clean_public_note(text: Option<&str>) -> Result<Option<String>, String> {
-    let Some(t) = text.map(str::trim).filter(|t| !t.is_empty()) else { return Ok(None) };
+    let Some(t) = text.map(str::trim).filter(|t| !t.is_empty()) else {
+        return Ok(None);
+    };
     if t.chars().count() > MAX_PUBLIC_NOTE_CHARS {
-        return Err(invalid(format!("the public note is longer than {MAX_PUBLIC_NOTE_CHARS} characters")));
+        return Err(invalid(format!(
+            "the public note is longer than {MAX_PUBLIC_NOTE_CHARS} characters"
+        )));
     }
-    if t.chars().any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t')) {
+    if t.chars()
+        .any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
+    {
         return Err(invalid("the public note contains control characters"));
     }
     Ok(Some(t.to_string()))
@@ -88,25 +94,42 @@ pub fn list_public_notes(conn: &Connection) -> Result<Vec<PublicNote>, String> {
         .prepare("SELECT id, public_notes FROM asset WHERE is_deleted = 0 AND public_notes IS NOT NULL ORDER BY id")
         .map_err(db_err)?;
     let rows = stmt
-        .query_map([], |r| Ok(PublicNote { asset_id: r.get(0)?, public_notes: r.get(1)? }))
+        .query_map([], |r| {
+            Ok(PublicNote {
+                asset_id: r.get(0)?,
+                public_notes: r.get(1)?,
+            })
+        })
         .map_err(db_err)?;
     rows.collect::<Result<Vec<_>, _>>().map_err(db_err)
 }
 
-pub fn set_public_note(conn: &Connection, asset_id: &str, text: Option<&str>) -> Result<PublicNote, String> {
+pub fn set_public_note(
+    conn: &Connection,
+    asset_id: &str,
+    text: Option<&str>,
+) -> Result<PublicNote, String> {
     check_asset_id(asset_id)?;
     let note = clean_public_note(text)?;
     let n = conn
-        .execute("UPDATE asset SET public_notes = ?2 WHERE id = ?1 AND is_deleted = 0", params![asset_id, note])
+        .execute(
+            "UPDATE asset SET public_notes = ?2 WHERE id = ?1 AND is_deleted = 0",
+            params![asset_id, note],
+        )
         .map_err(db_err)?;
     if n == 0 {
         return Err(invalid("unknown asset"));
     }
-    Ok(PublicNote { asset_id: asset_id.to_string(), public_notes: note })
+    Ok(PublicNote {
+        asset_id: asset_id.to_string(),
+        public_notes: note,
+    })
 }
 
 fn is_sha256_hex(s: &str) -> bool {
-    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    s.len() == 64
+        && s.bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 /// `selection` = {items:[assetId...], ...}; `privacy` = an object. Both capped at 64 KiB of JSON.
@@ -117,13 +140,23 @@ pub fn validate_export(i: &LedgerExportInput) -> Result<(String, String), String
     if !is_sha256_hex(&i.ledger_sha256) {
         return Err(invalid("ledgerSha256 must be 64 lowercase hex characters"));
     }
-    let sel = i.selection.as_object().ok_or_else(|| invalid("selection must be an object"))?;
-    let items = sel.get("items").and_then(Value::as_array).ok_or_else(|| invalid("selection.items must be an array"))?;
+    let sel = i
+        .selection
+        .as_object()
+        .ok_or_else(|| invalid("selection must be an object"))?;
+    let items = sel
+        .get("items")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("selection.items must be an array"))?;
     if items.is_empty() || items.len() > MAX_SELECTION_ITEMS {
-        return Err(invalid(format!("selection.items must hold 1-{MAX_SELECTION_ITEMS} ids")));
+        return Err(invalid(format!(
+            "selection.items must hold 1-{MAX_SELECTION_ITEMS} ids"
+        )));
     }
     for it in items {
-        let s = it.as_str().ok_or_else(|| invalid("selection.items must be strings"))?;
+        let s = it
+            .as_str()
+            .ok_or_else(|| invalid("selection.items must be strings"))?;
         check_asset_id(s)?;
     }
     if !i.privacy.is_object() {
@@ -153,27 +186,39 @@ fn row(r: &rusqlite::Row) -> rusqlite::Result<LedgerExportRow> {
 const SELECT: &str = "SELECT id, revision, created_at, selection_json, privacy_json, ledger_sha256 FROM ledger_export";
 
 pub fn next_revision(conn: &Connection) -> Result<i64, String> {
-    conn.query_row("SELECT COALESCE(MAX(revision), 0) + 1 FROM ledger_export", [], |r| r.get(0)).map_err(db_err)
+    conn.query_row(
+        "SELECT COALESCE(MAX(revision), 0) + 1 FROM ledger_export",
+        [],
+        |r| r.get(0),
+    )
+    .map_err(db_err)
 }
 
 /// Records a finished export. The revision must be exactly the next one, so two exports never share a number and
 /// the counter never skips (AC-7); a stale page gets `LEDGER_REVISION` and rebuilds with the new number.
 /// The desktop command goes through [`record_export_with_floor`], which also respects the revision floor.
 #[allow(dead_code)] // tests: the history alone (floor 0)
-pub fn record_export(conn: &mut Connection, i: &LedgerExportInput) -> Result<LedgerExportRow, String> {
+pub fn record_export(
+    conn: &mut Connection,
+    i: &LedgerExportInput,
+) -> Result<LedgerExportRow, String> {
     record_export_with_floor(conn, i, 0)
 }
 
 pub fn list_exports(conn: &Connection, limit: Option<u32>) -> Result<Vec<LedgerExportRow>, String> {
     let n = limit.unwrap_or(20).clamp(1, MAX_LIST);
-    let mut stmt = conn.prepare(&format!("{SELECT} ORDER BY revision DESC LIMIT ?1")).map_err(db_err)?;
+    let mut stmt = conn
+        .prepare(&format!("{SELECT} ORDER BY revision DESC LIMIT ?1"))
+        .map_err(db_err)?;
     let rows = stmt.query_map([n], row).map_err(db_err)?;
     rows.collect::<Result<Vec<_>, _>>().map_err(db_err)
 }
 
 #[allow(dead_code)] // used by tests; the UI reads the newest row from ledger_export_list
 pub fn get_export(conn: &Connection, id: &str) -> Result<Option<LedgerExportRow>, String> {
-    conn.query_row(&format!("{SELECT} WHERE id = ?1"), [id], row).optional().map_err(db_err)
+    conn.query_row(&format!("{SELECT} WHERE id = ?1"), [id], row)
+        .optional()
+        .map_err(db_err)
 }
 
 // ---------------------------------------------------------------- customer units (FS-33 review)
@@ -222,7 +267,11 @@ pub fn raise_floor(path: &Path, revision: i64) -> Result<(), String> {
     }
     let tmp = path.with_extension("json.tmp");
     let _ = fs::remove_file(&tmp);
-    fs::write(&tmp, serde_json::json!({ "revision": revision }).to_string()).map_err(|e| format!("LEDGER_FLOOR: {:?}", e.kind()))?;
+    fs::write(
+        &tmp,
+        serde_json::json!({ "revision": revision }).to_string(),
+    )
+    .map_err(|e| format!("LEDGER_FLOOR: {:?}", e.kind()))?;
     fs::rename(&tmp, path).map_err(|e| {
         let _ = fs::remove_file(&tmp);
         format!("LEDGER_FLOOR: {:?}", e.kind())
@@ -235,12 +284,21 @@ pub fn next_revision_with_floor(conn: &Connection, floor: i64) -> Result<i64, St
 }
 
 /// [`record_export`] against the floor: the revision must be exactly [`next_revision_with_floor`].
-pub fn record_export_with_floor(conn: &mut Connection, i: &LedgerExportInput, floor: i64) -> Result<LedgerExportRow, String> {
+pub fn record_export_with_floor(
+    conn: &mut Connection,
+    i: &LedgerExportInput,
+    floor: i64,
+) -> Result<LedgerExportRow, String> {
     let (selection, privacy) = validate_export(i)?;
-    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_err)?;
+    let tx = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(db_err)?;
     let expected = next_revision_with_floor(&tx, floor)?;
     if i.revision != expected {
-        return Err(format!("LEDGER_REVISION: the next revision is {expected}, not {}", i.revision));
+        return Err(format!(
+            "LEDGER_REVISION: the next revision is {expected}, not {}",
+            i.revision
+        ));
     }
     let id = new_id();
     let at = now_iso(&tx)?;
@@ -249,7 +307,9 @@ pub fn record_export_with_floor(conn: &mut Connection, i: &LedgerExportInput, fl
         params![id, i.revision, at, selection, privacy, i.ledger_sha256],
     )
     .map_err(db_err)?;
-    let out = tx.query_row(&format!("{SELECT} WHERE id = ?1"), [&id], row).map_err(db_err)?;
+    let out = tx
+        .query_row(&format!("{SELECT} WHERE id = ?1"), [&id], row)
+        .map_err(db_err)?;
     tx.commit().map_err(db_err)?;
     Ok(out)
 }
@@ -293,7 +353,8 @@ enum WriteFail {
 
 /// `.ledger-staging-<32 lowercase hex>`: a staging folder this module creates (a crash can leave one behind).
 pub fn is_staging_name(name: &str) -> bool {
-    name.strip_prefix(STAGING_PREFIX).is_some_and(|h| is_lower_hex(h, 32))
+    name.strip_prefix(STAGING_PREFIX)
+        .is_some_and(|h| is_lower_hex(h, 32))
 }
 
 fn uf(e: UserFileError) -> String {
@@ -301,7 +362,9 @@ fn uf(e: UserFileError) -> String {
 }
 
 fn is_lower_hex(s: &str, n: usize) -> bool {
-    s.len() == n && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    s.len() == n
+        && s.bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 /// `a<sha10>`: an item folder under `ledger/assets` (build.js ledgerItemId).
@@ -311,12 +374,20 @@ pub fn is_ledger_item_dir(name: &str) -> bool {
 
 /// `pN.jpg` (N = 1..999, no leading zero): a ledger photo inside an item folder.
 pub fn is_ledger_photo(name: &str) -> bool {
-    name.strip_prefix('p').and_then(|r| r.strip_suffix(".jpg")).is_some_and(|n| (1..=3).contains(&n.len()) && !n.starts_with('0') && n.bytes().all(|b| b.is_ascii_digit()))
+    name.strip_prefix('p')
+        .and_then(|r| r.strip_suffix(".jpg"))
+        .is_some_and(|n| {
+            (1..=3).contains(&n.len())
+                && !n.starts_with('0')
+                && n.bytes().all(|b| b.is_ascii_digit())
+        })
 }
 
 /// `c-<hash12>.deckchek-cert.json`: a certificate file under `ledger/certificates`.
 pub fn is_ledger_certificate(name: &str) -> bool {
-    name.strip_prefix("c-").and_then(|r| r.strip_suffix(".deckchek-cert.json")).is_some_and(|h| is_lower_hex(h, 12))
+    name.strip_prefix("c-")
+        .and_then(|r| r.strip_suffix(".deckchek-cert.json"))
+        .is_some_and(|h| is_lower_hex(h, 12))
 }
 
 /// `ledger.json` text -> its revision, if it is a DeckChek ledger.
@@ -334,7 +405,9 @@ fn existing_revision(root: &Path) -> Option<i64> {
     }
     let file = dir.join("ledger.json");
     match fs::symlink_metadata(&file) {
-        Ok(m) if m.is_file() && m.len() <= MAX_EXISTING_LEDGER_JSON_BYTES => ledger_revision_of(&fs::read_to_string(&file).ok()?),
+        Ok(m) if m.is_file() && m.len() <= MAX_EXISTING_LEDGER_JSON_BYTES => {
+            ledger_revision_of(&fs::read_to_string(&file).ok()?)
+        }
         _ => None,
     }
 }
@@ -356,7 +429,9 @@ fn read_dir_capped(p: &Path) -> Result<Vec<(String, fs::Metadata)>, String> {
         if out.len() >= MAX_PRUNE_ENTRIES {
             return Err(uf(UserFileError::TooLarge));
         }
-        let Some(name) = entry.file_name().to_str().map(String::from) else { continue };
+        let Some(name) = entry.file_name().to_str().map(String::from) else {
+            continue;
+        };
         let meta = fs::symlink_metadata(entry.path()).map_err(|e| uf(e.into()))?;
         out.push((name, meta));
     }
@@ -435,8 +510,15 @@ fn remove_stale(files: &[PathBuf]) -> Result<usize, String> {
     }
     let parents: HashSet<&Path> = files.iter().filter_map(|f| f.parent()).collect();
     for dir in parents {
-        let item = dir.file_name().and_then(|n| n.to_str()).is_some_and(is_ledger_item_dir);
-        if item && fs::read_dir(dir).map(|mut d| d.next().is_none()).unwrap_or(false) {
+        let item = dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(is_ledger_item_dir);
+        if item
+            && fs::read_dir(dir)
+                .map(|mut d| d.next().is_none())
+                .unwrap_or(false)
+        {
             let _ = fs::remove_dir(dir);
         }
     }
@@ -451,7 +533,9 @@ fn remove_stale(files: &[PathBuf]) -> Result<usize, String> {
 /// Removes `<root>/.ledger-staging-<hex>` folders an interrupted export left behind (best effort). A symlink with such
 /// a name is left alone and never followed; folders with any other name are not touched.
 fn remove_crashed_staging(root: &Path) {
-    let Ok(entries) = read_dir_capped(root) else { return };
+    let Ok(entries) = read_dir_capped(root) else {
+        return;
+    };
     for (name, meta) in entries {
         if is_staging_name(&name) && meta.is_dir() && !meta.file_type().is_symlink() {
             let _ = fs::remove_dir_all(root.join(&name));
@@ -461,11 +545,20 @@ fn remove_crashed_staging(root: &Path) {
 
 /// Writes a folder-mode ledger (every `relPath` starts with `ledger/`, `ledger/ledger.json` included) into `dir`.
 /// `floor` is the revision floor file, raised when the folder already holds the same or a later revision.
-pub fn write_ledger_folder(dir: &str, files: Vec<FolderFile>, floor: Option<&Path>) -> Result<LedgerWriteResult, String> {
+pub fn write_ledger_folder(
+    dir: &str,
+    files: Vec<FolderFile>,
+    floor: Option<&Path>,
+) -> Result<LedgerWriteResult, String> {
     write_ledger_folder_inner(dir, files, floor, None)
 }
 
-fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&Path>, fail: Option<WriteFail>) -> Result<LedgerWriteResult, String> {
+fn write_ledger_folder_inner(
+    dir: &str,
+    files: Vec<FolderFile>,
+    floor: Option<&Path>,
+    fail: Option<WriteFail>,
+) -> Result<LedgerWriteResult, String> {
     if dir.is_empty() || dir.contains('\0') {
         return Err(uf(UserFileError::Invalid("empty or NUL")));
     }
@@ -484,11 +577,22 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
     // Every entry under ledger/; the rest of each path is checked by userfiles::write_folder below.
     let mut rels = Vec::with_capacity(files.len());
     for f in &files {
-        let rest = f.rel_path.strip_prefix("ledger/").filter(|r| !r.is_empty()).ok_or_else(|| invalid("every file must be under ledger/"))?;
+        let rest = f
+            .rel_path
+            .strip_prefix("ledger/")
+            .filter(|r| !r.is_empty())
+            .ok_or_else(|| invalid("every file must be under ledger/"))?;
         rels.push(rest.split(['/', '\\']).collect::<Vec<_>>().join("/"));
     }
-    let json_at = rels.iter().position(|r| r == "ledger.json").ok_or_else(|| invalid("ledger/ledger.json is missing"))?;
-    let revision = files[json_at].text.as_deref().and_then(ledger_revision_of).ok_or_else(|| invalid("ledger/ledger.json is not a DeckChek ledger"))?;
+    let json_at = rels
+        .iter()
+        .position(|r| r == "ledger.json")
+        .ok_or_else(|| invalid("ledger/ledger.json is missing"))?;
+    let revision = files[json_at]
+        .text
+        .as_deref()
+        .and_then(ledger_revision_of)
+        .ok_or_else(|| invalid("ledger/ledger.json is not a DeckChek ledger"))?;
     if let Some(existing) = existing_revision(&root) {
         if existing >= revision {
             if let Some(f) = floor {
@@ -512,7 +616,11 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
     let staged: Vec<FolderFile> = files
         .into_iter()
         .zip(&rels)
-        .map(|(f, rel)| FolderFile { rel_path: format!("{staging}/{rel}"), text: f.text, base64: f.base64 })
+        .map(|(f, rel)| FolderFile {
+            rel_path: format!("{staging}/{rel}"),
+            text: f.text,
+            base64: f.base64,
+        })
         .collect();
     let cleanup = || {
         if fs::symlink_metadata(&staging_dir).is_ok_and(|m| m.is_dir()) {
@@ -525,7 +633,9 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
     }
     if fail == Some(WriteFail::AfterStage) {
         cleanup();
-        return Err(uf(UserFileError::Io("injected failure after staging".into())));
+        return Err(uf(UserFileError::Io(
+            "injected failure after staging".into(),
+        )));
     }
 
     // 2. Check every destination before changing anything in ledger/.
@@ -539,7 +649,9 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
                 cur.push(s);
                 match fs::symlink_metadata(&cur) {
                     Ok(m) if m.file_type().is_symlink() => return Err(uf(UserFileError::Symlink)),
-                    Ok(m) if !m.is_dir() => return Err(uf(UserFileError::Invalid("path segment is a file"))),
+                    Ok(m) if !m.is_dir() => {
+                        return Err(uf(UserFileError::Invalid("path segment is a file")))
+                    }
                     _ => {}
                 }
             }
@@ -563,7 +675,9 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
         });
         for (n, rel) in order.into_iter().enumerate() {
             if n == 1 && fail == Some(WriteFail::MidRename) {
-                return Err(uf(UserFileError::Io("injected failure while moving files in".into())));
+                return Err(uf(UserFileError::Io(
+                    "injected failure while moving files in".into(),
+                )));
             }
             let segs: Vec<&str> = rel.split('/').collect();
             let mut cur = ledger_dir.clone();
@@ -582,7 +696,11 @@ fn write_ledger_folder_inner(dir: &str, files: Vec<FolderFile>, floor: Option<&P
     cleanup();
     let removed = remove_stale(&result?)?;
     crate::userfiles::record_written(&ledger_dir);
-    Ok(LedgerWriteResult { written: rels.len(), removed, path: root.to_string_lossy().into_owned() })
+    Ok(LedgerWriteResult {
+        written: rels.len(),
+        removed,
+        path: root.to_string_lossy().into_owned(),
+    })
 }
 
 #[tauri::command]
@@ -606,7 +724,11 @@ pub async fn ledger_next_revision(app: AppHandle) -> Result<i64, String> {
 
 /// Folder export (see the section comment above). Off the main thread: it may write hundreds of megabytes.
 #[tauri::command]
-pub async fn ledger_write_folder(app: AppHandle, dir: String, files: Vec<FolderFile>) -> Result<LedgerWriteResult, String> {
+pub async fn ledger_write_folder(
+    app: AppHandle,
+    dir: String,
+    files: Vec<FolderFile>,
+) -> Result<LedgerWriteResult, String> {
     crate::db::off_main(move || {
         let floor = floor_path(&app)?;
         write_ledger_folder(&dir, files, Some(&floor))
@@ -625,7 +747,11 @@ pub async fn ledger_public_notes(app: AppHandle) -> Result<Vec<PublicNote>, Stri
 
 #[tauri::command]
 #[allow(non_snake_case)]
-pub async fn ledger_public_note_set(app: AppHandle, assetId: String, text: Option<String>) -> Result<PublicNote, String> {
+pub async fn ledger_public_note_set(
+    app: AppHandle,
+    assetId: String,
+    text: Option<String>,
+) -> Result<PublicNote, String> {
     crate::db::off_main(move || {
         check_asset_id(&assetId)?;
         let conn = open_database(&database_path(&app)?)?;
@@ -635,7 +761,10 @@ pub async fn ledger_public_note_set(app: AppHandle, assetId: String, text: Optio
 }
 
 #[tauri::command]
-pub async fn ledger_export_list(app: AppHandle, limit: Option<u32>) -> Result<Vec<LedgerExportRow>, String> {
+pub async fn ledger_export_list(
+    app: AppHandle,
+    limit: Option<u32>,
+) -> Result<Vec<LedgerExportRow>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         list_exports(&conn, limit)
@@ -644,7 +773,10 @@ pub async fn ledger_export_list(app: AppHandle, limit: Option<u32>) -> Result<Ve
 }
 
 #[tauri::command]
-pub async fn ledger_export_record(app: AppHandle, record: LedgerExportInput) -> Result<LedgerExportRow, String> {
+pub async fn ledger_export_record(
+    app: AppHandle,
+    record: LedgerExportInput,
+) -> Result<LedgerExportRow, String> {
     crate::db::off_main(move || {
         validate_export(&record)?;
         let floor_file = floor_path(&app)?;
@@ -691,7 +823,10 @@ mod tests {
     }
 
     fn contract() -> Value {
-        let raw = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/ledger.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/ledger.json"),
+        )
+        .unwrap();
         serde_json::from_str(&raw).unwrap()
     }
 
@@ -700,9 +835,31 @@ mod tests {
         let c = mem();
         apply_migrations(&c).unwrap();
         assert!(applied_migrations(&c).unwrap().contains(&21));
-        let cols: Vec<String> = c.prepare("SELECT name FROM pragma_table_info('ledger_export')").unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap();
-        assert_eq!(cols, ["id", "revision", "created_at", "selection_json", "privacy_json", "ledger_sha256"]);
-        let has_col: i64 = c.query_row("SELECT COUNT(*) FROM pragma_table_info('asset') WHERE name='public_notes'", [], |r| r.get(0)).unwrap();
+        let cols: Vec<String> = c
+            .prepare("SELECT name FROM pragma_table_info('ledger_export')")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            cols,
+            [
+                "id",
+                "revision",
+                "created_at",
+                "selection_json",
+                "privacy_json",
+                "ledger_sha256"
+            ]
+        );
+        let has_col: i64 = c
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('asset') WHERE name='public_notes'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(has_col, 1);
         let idx: i64 = c.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_ledger_export_revision'", [], |r| r.get(0)).unwrap();
         assert_eq!(idx, 1);
@@ -711,31 +868,74 @@ mod tests {
     #[test]
     fn every_release_fixture_upgrades_keeps_rows_and_then_records_exports() {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db");
-        let mut names: Vec<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with('v') && n.ends_with(".sql")).collect();
+        let mut names: Vec<String> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with('v') && n.ends_with(".sql"))
+            .collect();
         names.sort();
         assert!(!names.is_empty());
         for name in names {
             let mut c = Connection::open_in_memory().unwrap();
-            c.execute_batch(&std::fs::read_to_string(dir.join(&name)).unwrap()).unwrap();
-            let assets_before: i64 = c.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0)).unwrap();
+            c.execute_batch(&std::fs::read_to_string(dir.join(&name)).unwrap())
+                .unwrap();
+            let assets_before: i64 = c
+                .query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0))
+                .unwrap();
             // fixtures from v0.1.0 on already carry the ledger schema; earlier ones have neither column nor table
             let has = |c: &Connection, q: &str| c.prepare(q).is_ok();
-            let notes_before: i64 = if has(&c, "SELECT public_notes FROM asset") { c.query_row("SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL", [], |r| r.get(0)).unwrap() } else { 0 };
-            let exports_before: i64 = if has(&c, "SELECT revision FROM ledger_export") { c.query_row("SELECT COALESCE(MAX(revision), 0) FROM ledger_export", [], |r| r.get(0)).unwrap() } else { 0 };
+            let notes_before: i64 = if has(&c, "SELECT public_notes FROM asset") {
+                c.query_row(
+                    "SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+            } else {
+                0
+            };
+            let exports_before: i64 = if has(&c, "SELECT revision FROM ledger_export") {
+                c.query_row(
+                    "SELECT COALESCE(MAX(revision), 0) FROM ledger_export",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+            } else {
+                0
+            };
             c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
             apply_migrations(&c).unwrap_or_else(|e| panic!("{name}: {e}"));
             apply_migrations(&c).unwrap();
-            let assets_after: i64 = c.query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0)).unwrap();
+            let assets_after: i64 = c
+                .query_row("SELECT COUNT(*) FROM asset", [], |r| r.get(0))
+                .unwrap();
             assert_eq!(assets_before, assets_after, "{name}: asset rows preserved");
-            let notes: i64 = c.query_row("SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL", [], |r| r.get(0)).unwrap();
-            assert_eq!(notes, notes_before, "{name}: public_notes starts empty unless the fixture set it");
+            let notes: i64 = c
+                .query_row(
+                    "SELECT COUNT(*) FROM asset WHERE public_notes IS NOT NULL",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                notes, notes_before,
+                "{name}: public_notes starts empty unless the fixture set it"
+            );
             seed(&c);
-            let r = record_export(&mut c, &input(exports_before + 1)).unwrap_or_else(|e| panic!("{name}: {e}"));
+            let r = record_export(&mut c, &input(exports_before + 1))
+                .unwrap_or_else(|e| panic!("{name}: {e}"));
             assert_eq!(r.revision, exports_before + 1, "{name}");
             set_public_note(&c, "fs33-a", Some("Serviced 2025")).unwrap();
-            let ok: String = c.query_row("PRAGMA integrity_check", [], |r| r.get(0)).unwrap();
+            let ok: String = c
+                .query_row("PRAGMA integrity_check", [], |r| r.get(0))
+                .unwrap();
             assert_eq!(ok, "ok", "{name}");
-            let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
+            let fk: i64 = c
+                .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })
+                .unwrap();
             assert_eq!(fk, 0, "{name}");
         }
     }
@@ -746,16 +946,34 @@ mod tests {
         assert_eq!(next_revision(&c).unwrap(), 1);
         let a = record_export(&mut c, &input(1)).unwrap();
         assert_eq!(a.revision, 1);
-        assert_eq!(a.selection, json!({ "items": ["fs33-a"], "mode": "folder" }));
+        assert_eq!(
+            a.selection,
+            json!({ "items": ["fs33-a"], "mode": "folder" })
+        );
         assert_eq!(a.privacy["preset"], "public");
         assert_eq!(get_export(&c, &a.id).unwrap().unwrap(), a);
         assert_eq!(next_revision(&c).unwrap(), 2);
-        let b = record_export(&mut c, &LedgerExportInput { ledger_sha256: "cd".repeat(32), ..input(2) }).unwrap();
+        let b = record_export(
+            &mut c,
+            &LedgerExportInput {
+                ledger_sha256: "cd".repeat(32),
+                ..input(2)
+            },
+        )
+        .unwrap();
         assert_eq!(b.revision, 2);
         let list = list_exports(&c, None).unwrap();
-        assert_eq!(list.iter().map(|r| r.revision).collect::<Vec<_>>(), [2, 1], "newest first");
+        assert_eq!(
+            list.iter().map(|r| r.revision).collect::<Vec<_>>(),
+            [2, 1],
+            "newest first"
+        );
         assert_eq!(list_exports(&c, Some(1)).unwrap().len(), 1);
-        assert_eq!(list_exports(&c, Some(0)).unwrap().len(), 1, "limit clamps to at least 1");
+        assert_eq!(
+            list_exports(&c, Some(0)).unwrap().len(),
+            1,
+            "limit clamps to at least 1"
+        );
     }
 
     #[test]
@@ -773,19 +991,54 @@ mod tests {
     fn export_input_is_validated() {
         let mut c = mem();
         let bad = [
-            LedgerExportInput { revision: 0, ..input(1) },
-            LedgerExportInput { ledger_sha256: "AB".repeat(32), ..input(1) },
-            LedgerExportInput { ledger_sha256: "ab".into(), ..input(1) },
-            LedgerExportInput { selection: json!([]), ..input(1) },
-            LedgerExportInput { selection: json!({ "items": [] }), ..input(1) },
-            LedgerExportInput { selection: json!({ "items": [1] }), ..input(1) },
-            LedgerExportInput { selection: json!({ "items": ["a\u{0}b"] }), ..input(1) },
-            LedgerExportInput { selection: json!({ "items": vec!["x"; MAX_SELECTION_ITEMS + 1] }), ..input(1) },
-            LedgerExportInput { privacy: json!("public"), ..input(1) },
-            LedgerExportInput { privacy: json!({ "pad": "x".repeat(MAX_META_BYTES) }), ..input(1) },
+            LedgerExportInput {
+                revision: 0,
+                ..input(1)
+            },
+            LedgerExportInput {
+                ledger_sha256: "AB".repeat(32),
+                ..input(1)
+            },
+            LedgerExportInput {
+                ledger_sha256: "ab".into(),
+                ..input(1)
+            },
+            LedgerExportInput {
+                selection: json!([]),
+                ..input(1)
+            },
+            LedgerExportInput {
+                selection: json!({ "items": [] }),
+                ..input(1)
+            },
+            LedgerExportInput {
+                selection: json!({ "items": [1] }),
+                ..input(1)
+            },
+            LedgerExportInput {
+                selection: json!({ "items": ["a\u{0}b"] }),
+                ..input(1)
+            },
+            LedgerExportInput {
+                selection: json!({ "items": vec!["x"; MAX_SELECTION_ITEMS + 1] }),
+                ..input(1)
+            },
+            LedgerExportInput {
+                privacy: json!("public"),
+                ..input(1)
+            },
+            LedgerExportInput {
+                privacy: json!({ "pad": "x".repeat(MAX_META_BYTES) }),
+                ..input(1)
+            },
         ];
         for b in bad {
-            assert!(record_export(&mut c, &b).unwrap_err().starts_with("LEDGER_INVALID"), "{b:?}");
+            assert!(
+                record_export(&mut c, &b)
+                    .unwrap_err()
+                    .starts_with("LEDGER_INVALID"),
+                "{b:?}"
+            );
         }
         assert!(list_exports(&c, None).unwrap().is_empty());
     }
@@ -793,7 +1046,12 @@ mod tests {
     #[test]
     fn table_constraints_hold_for_direct_inserts() {
         let c = mem();
-        let ins = |rev: i64, sel: &str, sha: &str| c.execute("INSERT INTO ledger_export VALUES (?1, ?2, 'x', ?3, '{}', ?4)", params![new_id(), rev, sel, sha]);
+        let ins = |rev: i64, sel: &str, sha: &str| {
+            c.execute(
+                "INSERT INTO ledger_export VALUES (?1, ?2, 'x', ?3, '{}', ?4)",
+                params![new_id(), rev, sel, sha],
+            )
+        };
         assert!(ins(1, "{}", &"a".repeat(64)).is_ok());
         assert!(ins(1, "{}", &"a".repeat(64)).is_err(), "unique revision");
         assert!(ins(0, "{}", &"a".repeat(64)).is_err(), "revision >= 1");
@@ -805,25 +1063,51 @@ mod tests {
     fn public_notes_round_trip_and_validation() {
         let c = mem();
         assert!(list_public_notes(&c).unwrap().is_empty());
-        let n = set_public_note(&c, "fs33-a", Some("  Serviced by the factory in 2025.\nAll original.  ")).unwrap();
-        assert_eq!(n.public_notes.as_deref(), Some("Serviced by the factory in 2025.\nAll original."));
+        let n = set_public_note(
+            &c,
+            "fs33-a",
+            Some("  Serviced by the factory in 2025.\nAll original.  "),
+        )
+        .unwrap();
+        assert_eq!(
+            n.public_notes.as_deref(),
+            Some("Serviced by the factory in 2025.\nAll original.")
+        );
         assert_eq!(list_public_notes(&c).unwrap(), vec![n]);
-        let private: String = c.query_row("SELECT notes FROM asset WHERE id='fs33-a'", [], |r| r.get(0)).unwrap();
+        let private: String = c
+            .query_row("SELECT notes FROM asset WHERE id='fs33-a'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
         assert_eq!(private, "private", "the private note is untouched");
-        assert_eq!(set_public_note(&c, "fs33-a", Some("   ")).unwrap().public_notes, None);
+        assert_eq!(
+            set_public_note(&c, "fs33-a", Some("   "))
+                .unwrap()
+                .public_notes,
+            None
+        );
         assert!(list_public_notes(&c).unwrap().is_empty());
         assert!(set_public_note(&c, "missing", Some("x")).is_err());
-        assert!(set_public_note(&c, "fs33-gone", Some("x")).is_err(), "deleted assets are not editable");
+        assert!(
+            set_public_note(&c, "fs33-gone", Some("x")).is_err(),
+            "deleted assets are not editable"
+        );
         assert!(set_public_note(&c, "", Some("x")).is_err());
-        assert!(set_public_note(&c, "fs33-a", Some(&"x".repeat(MAX_PUBLIC_NOTE_CHARS + 1))).is_err());
+        assert!(
+            set_public_note(&c, "fs33-a", Some(&"x".repeat(MAX_PUBLIC_NOTE_CHARS + 1))).is_err()
+        );
         assert!(set_public_note(&c, "fs33-a", Some("bell\u{7}")).is_err());
-        assert!(set_public_note(&c, "fs33-a", Some(&"é".repeat(MAX_PUBLIC_NOTE_CHARS))).is_ok(), "limit counts characters");
+        assert!(
+            set_public_note(&c, "fs33-a", Some(&"é".repeat(MAX_PUBLIC_NOTE_CHARS))).is_ok(),
+            "limit counts characters"
+        );
     }
 
     #[test]
     fn contract_examples_round_trip() {
         let k = contract();
-        let req: LedgerExportInput = serde_json::from_value(k["ledger_export_record"]["request"]["record"].clone()).unwrap();
+        let req: LedgerExportInput =
+            serde_json::from_value(k["ledger_export_record"]["request"]["record"].clone()).unwrap();
         validate_export(&req).unwrap();
         let resp = &k["ledger_export_record"]["response"];
         let row = LedgerExportRow {
@@ -835,8 +1119,14 @@ mod tests {
             ledger_sha256: req.ledger_sha256.clone(),
         };
         assert_eq!(&serde_json::to_value(&row).unwrap(), resp);
-        let note = PublicNote { asset_id: "fs33-a".into(), public_notes: Some("All original.".into()) };
-        assert_eq!(serde_json::to_value(&note).unwrap(), k["ledger_public_note_set"]["response"]);
+        let note = PublicNote {
+            asset_id: "fs33-a".into(),
+            public_notes: Some("All original.".into()),
+        };
+        assert_eq!(
+            serde_json::to_value(&note).unwrap(),
+            k["ledger_public_note_set"]["response"]
+        );
         let req = &k["ledger_public_note_set"]["request"];
         assert!(req["assetId"].is_string() && req["text"].is_string());
     }
@@ -849,7 +1139,10 @@ mod tests {
         let req = &k["ledger_write_folder"]["request"];
         assert!(req["dir"].is_string());
         let files: Vec<FolderFile> = serde_json::from_value(req["files"].clone()).unwrap();
-        assert!(files.iter().any(|f| f.rel_path == "ledger/ledger.json") && files.iter().all(|f| f.rel_path.starts_with("ledger/")));
+        assert!(
+            files.iter().any(|f| f.rel_path == "ledger/ledger.json")
+                && files.iter().all(|f| f.rel_path.starts_with("ledger/"))
+        );
         let resp = &k["ledger_write_folder"]["response"];
         let out = LedgerWriteResult {
             written: resp["written"].as_u64().unwrap() as usize,
@@ -863,10 +1156,12 @@ mod tests {
         assert_eq!(r.written, out.written);
         // ledger_next_revision and ledger_customer_units take no arguments and answer a number / a list of ids
         assert_eq!(k["ledger_next_revision"]["request"], json!({}));
-        let next: i64 = serde_json::from_value(k["ledger_next_revision"]["response"].clone()).unwrap();
+        let next: i64 =
+            serde_json::from_value(k["ledger_next_revision"]["response"].clone()).unwrap();
         assert!(next >= 1);
         assert_eq!(k["ledger_customer_units"]["request"], json!({}));
-        let ids: Vec<String> = serde_json::from_value(k["ledger_customer_units"]["response"].clone()).unwrap();
+        let ids: Vec<String> =
+            serde_json::from_value(k["ledger_customer_units"]["response"].clone()).unwrap();
         for id in &ids {
             check_asset_id(id).unwrap();
         }
@@ -875,13 +1170,18 @@ mod tests {
     // ---------------------------------------------------------------- folder writes (spec §8 "write_ledger_folder")
 
     fn tmp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("deckchek-ledger-{}-{}", name, std::process::id()));
+        let d =
+            std::env::temp_dir().join(format!("deckchek-ledger-{}-{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
     }
     fn file(rel: &str) -> FolderFile {
-        FolderFile { rel_path: rel.into(), text: Some("x".into()), base64: None }
+        FolderFile {
+            rel_path: rel.into(),
+            text: Some("x".into()),
+            base64: None,
+        }
     }
 
     #[test]
@@ -890,25 +1190,53 @@ mod tests {
         let files = vec![
             file("ledger/index.html"),
             file("ledger/ledger.json"),
-            FolderFile { rel_path: "ledger/assets/a1b2c3d4/p1.jpg".into(), text: None, base64: Some("/9j/2Q==".into()) },
+            FolderFile {
+                rel_path: "ledger/assets/a1b2c3d4/p1.jpg".into(),
+                text: None,
+                base64: Some("/9j/2Q==".into()),
+            },
         ];
         let r = write_folder(&d.to_string_lossy(), &files, &LEDGER_EXTS).unwrap();
         assert_eq!(r.written, 3);
-        assert_eq!(std::fs::read(d.join("ledger/assets/a1b2c3d4/p1.jpg")).unwrap(), vec![0xff, 0xd8, 0xff, 0xd9]);
+        assert_eq!(
+            std::fs::read(d.join("ledger/assets/a1b2c3d4/p1.jpg")).unwrap(),
+            vec![0xff, 0xd8, 0xff, 0xd9]
+        );
     }
 
     #[test]
     fn ledger_folder_rejects_traversal_absolute_drive_backslash_reserved_and_other_types() {
         let d = tmp("bad");
         for bad in [
-            "../x.html", "ledger/../../x.html", "ledger\\..\\..\\x.html", "/etc/x.json", "\\x.json", "C:/x.json", "C:x.json", "c:\\x.json",
-            "\\\\server\\share\\x.json", "ledger/CON.html", "ledger/nul.json", "ledger/assets/x./p1.jpg", "ledger/p1.jpg ", "ledger/run.js",
-            "ledger/style.css", "ledger/x.exe", "ledger/a:b.jpg", "ledger//x.json",
+            "../x.html",
+            "ledger/../../x.html",
+            "ledger\\..\\..\\x.html",
+            "/etc/x.json",
+            "\\x.json",
+            "C:/x.json",
+            "C:x.json",
+            "c:\\x.json",
+            "\\\\server\\share\\x.json",
+            "ledger/CON.html",
+            "ledger/nul.json",
+            "ledger/assets/x./p1.jpg",
+            "ledger/p1.jpg ",
+            "ledger/run.js",
+            "ledger/style.css",
+            "ledger/x.exe",
+            "ledger/a:b.jpg",
+            "ledger//x.json",
         ] {
             let files = vec![file("ledger/index.html"), file(bad)];
-            assert!(write_folder(&d.to_string_lossy(), &files, &LEDGER_EXTS).is_err(), "{bad:?}");
+            assert!(
+                write_folder(&d.to_string_lossy(), &files, &LEDGER_EXTS).is_err(),
+                "{bad:?}"
+            );
         }
-        assert!(!d.join("ledger").exists(), "nothing is written when any entry is rejected");
+        assert!(
+            !d.join("ledger").exists(),
+            "nothing is written when any entry is rejected"
+        );
     }
 
     #[cfg(unix)]
@@ -917,13 +1245,24 @@ mod tests {
         let d = tmp("sym");
         let outside = tmp("sym-out");
         std::os::unix::fs::symlink(&outside, d.join("ledger")).unwrap();
-        let r = write_folder(&d.to_string_lossy(), &[file("ledger/index.html")], &LEDGER_EXTS);
+        let r = write_folder(
+            &d.to_string_lossy(),
+            &[file("ledger/index.html")],
+            &LEDGER_EXTS,
+        );
         assert_eq!(r, Err(UserFileError::Symlink));
         assert!(!outside.join("index.html").exists());
         std::fs::remove_file(d.join("ledger")).unwrap();
         std::fs::create_dir(d.join("ledger")).unwrap();
         std::os::unix::fs::symlink(outside.join("t.json"), d.join("ledger/ledger.json")).unwrap();
-        assert_eq!(write_folder(&d.to_string_lossy(), &[file("ledger/ledger.json")], &LEDGER_EXTS), Err(UserFileError::Symlink));
+        assert_eq!(
+            write_folder(
+                &d.to_string_lossy(),
+                &[file("ledger/ledger.json")],
+                &LEDGER_EXTS
+            ),
+            Err(UserFileError::Symlink)
+        );
         assert!(!outside.join("t.json").exists());
     }
 
@@ -950,8 +1289,16 @@ mod tests {
         put(root, "ledger/ledger.json", &ledger_json(rev));
         put(root, &format!("ledger/assets/{ITEM}/p1.jpg"), "old p1");
         put(root, &format!("ledger/assets/{ITEM}/p2.jpg"), "old p2");
-        put(root, &format!("ledger/assets/{GONE_ITEM}/p1.jpg"), "excluded unit photo");
-        put(root, &format!("ledger/certificates/{OLD_CERT}"), "full serial and tester name");
+        put(
+            root,
+            &format!("ledger/assets/{GONE_ITEM}/p1.jpg"),
+            "excluded unit photo",
+        );
+        put(
+            root,
+            &format!("ledger/certificates/{OLD_CERT}"),
+            "full serial and tester name",
+        );
         // not the ledger's own names: never touched
         put(root, "ledger/CNAME", "gear.example.org");
         put(root, &format!("ledger/assets/{ITEM}/notes.txt"), "mine");
@@ -961,18 +1308,40 @@ mod tests {
     }
     fn new_export(rev: i64) -> Vec<FolderFile> {
         vec![
-            FolderFile { rel_path: "ledger/index.html".into(), text: Some("new page".into()), base64: None },
-            FolderFile { rel_path: "ledger/ledger.json".into(), text: Some(ledger_json(rev)), base64: None },
-            FolderFile { rel_path: format!("ledger/assets/{ITEM}/p1.jpg"), text: None, base64: Some("/9j/2Q==".into()) },
+            FolderFile {
+                rel_path: "ledger/index.html".into(),
+                text: Some("new page".into()),
+                base64: None,
+            },
+            FolderFile {
+                rel_path: "ledger/ledger.json".into(),
+                text: Some(ledger_json(rev)),
+                base64: None,
+            },
+            FolderFile {
+                rel_path: format!("ledger/assets/{ITEM}/p1.jpg"),
+                text: None,
+                base64: Some("/9j/2Q==".into()),
+            },
         ]
     }
     fn no_staging_left(root: &Path) -> bool {
-        std::fs::read_dir(root).unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(STAGING_PREFIX))
+        std::fs::read_dir(root).unwrap().all(|e| {
+            !e.unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(STAGING_PREFIX)
+        })
     }
     fn unchanged_earlier_export(root: &Path) {
         assert_eq!(text(root, "ledger/index.html"), "old page");
-        assert_eq!(text(root, &format!("ledger/assets/{ITEM}/p1.jpg")), "old p1");
-        assert!(root.join(format!("ledger/certificates/{OLD_CERT}")).exists());
+        assert_eq!(
+            text(root, &format!("ledger/assets/{ITEM}/p1.jpg")),
+            "old p1"
+        );
+        assert!(root
+            .join(format!("ledger/certificates/{OLD_CERT}"))
+            .exists());
         assert!(no_staging_left(root), "the staging folder is removed");
     }
 
@@ -981,21 +1350,70 @@ mod tests {
         let d = tmp("prune");
         earlier_export(&d, 1);
         let r = write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap();
-        assert_eq!(r, LedgerWriteResult { written: 3, removed: 3, path: d.to_string_lossy().into_owned() });
+        assert_eq!(
+            r,
+            LedgerWriteResult {
+                written: 3,
+                removed: 3,
+                path: d.to_string_lossy().into_owned()
+            }
+        );
         assert_eq!(text(&d, "ledger/index.html"), "new page");
         assert_eq!(ledger_revision_of(&text(&d, "ledger/ledger.json")), Some(2));
-        assert_eq!(std::fs::read(d.join(format!("ledger/assets/{ITEM}/p1.jpg"))).unwrap(), vec![0xff, 0xd8, 0xff, 0xd9]);
-        assert!(!d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists(), "a photo the new export no longer has");
-        assert!(!d.join(format!("ledger/assets/{GONE_ITEM}")).exists(), "a unit no longer in the ledger");
-        assert!(!d.join(format!("ledger/certificates/{OLD_CERT}")).exists(), "a certificate no longer included");
-        for mine in ["ledger/CNAME", &format!("ledger/assets/{ITEM}/notes.txt"), "ledger/assets/custom/p1.jpg", "ledger/certificates/readme.json", "other.jpg"] {
-            assert_eq!(text(&d, mine), if mine.ends_with("CNAME") { "gear.example.org" } else { "mine" }, "{mine} is left alone");
+        assert_eq!(
+            std::fs::read(d.join(format!("ledger/assets/{ITEM}/p1.jpg"))).unwrap(),
+            vec![0xff, 0xd8, 0xff, 0xd9]
+        );
+        assert!(
+            !d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists(),
+            "a photo the new export no longer has"
+        );
+        assert!(
+            !d.join(format!("ledger/assets/{GONE_ITEM}")).exists(),
+            "a unit no longer in the ledger"
+        );
+        assert!(
+            !d.join(format!("ledger/certificates/{OLD_CERT}")).exists(),
+            "a certificate no longer included"
+        );
+        for mine in [
+            "ledger/CNAME",
+            &format!("ledger/assets/{ITEM}/notes.txt"),
+            "ledger/assets/custom/p1.jpg",
+            "ledger/certificates/readme.json",
+            "other.jpg",
+        ] {
+            assert_eq!(
+                text(&d, mine),
+                if mine.ends_with("CNAME") {
+                    "gear.example.org"
+                } else {
+                    "mine"
+                },
+                "{mine} is left alone"
+            );
         }
         assert!(no_staging_left(&d));
         // the ledger's own names, exactly
-        assert!(is_ledger_item_dir(ITEM) && !is_ledger_item_dir("a012345678") && !is_ledger_item_dir("A0123456789") && !is_ledger_item_dir("custom"));
-        assert!(is_ledger_photo("p1.jpg") && is_ledger_photo("p24.jpg") && !is_ledger_photo("p0.jpg") && !is_ledger_photo("p01.jpg") && !is_ledger_photo("photo.jpg") && !is_ledger_photo("p1.jpeg"));
-        assert!(is_ledger_certificate(OLD_CERT) && !is_ledger_certificate("c-aaaa.deckchek-cert.json") && !is_ledger_certificate("readme.json"));
+        assert!(
+            is_ledger_item_dir(ITEM)
+                && !is_ledger_item_dir("a012345678")
+                && !is_ledger_item_dir("A0123456789")
+                && !is_ledger_item_dir("custom")
+        );
+        assert!(
+            is_ledger_photo("p1.jpg")
+                && is_ledger_photo("p24.jpg")
+                && !is_ledger_photo("p0.jpg")
+                && !is_ledger_photo("p01.jpg")
+                && !is_ledger_photo("photo.jpg")
+                && !is_ledger_photo("p1.jpeg")
+        );
+        assert!(
+            is_ledger_certificate(OLD_CERT)
+                && !is_ledger_certificate("c-aaaa.deckchek-cert.json")
+                && !is_ledger_certificate("readme.json")
+        );
     }
 
     #[test]
@@ -1003,22 +1421,50 @@ mod tests {
         let d = tmp("atomic");
         earlier_export(&d, 1);
         // an I/O failure after the files were staged: ledger/ is not touched, the staging folder is removed
-        let e = write_ledger_folder_inner(&d.to_string_lossy(), new_export(2), None, Some(WriteFail::AfterStage)).unwrap_err();
+        let e = write_ledger_folder_inner(
+            &d.to_string_lossy(),
+            new_export(2),
+            None,
+            Some(WriteFail::AfterStage),
+        )
+        .unwrap_err();
         assert!(e.starts_with("LEDGER_WRITE"), "{e}");
         unchanged_earlier_export(&d);
         assert!(d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists());
         // a rejected entry (script file, path outside ledger/, traversal) changes nothing either
-        for bad in ["ledger/run.js", "other/x.json", "ledger/../x.json", "ledger/assets/../../x.jpg"] {
+        for bad in [
+            "ledger/run.js",
+            "other/x.json",
+            "ledger/../x.json",
+            "ledger/assets/../../x.jpg",
+        ] {
             let mut files = new_export(2);
-            files.push(FolderFile { rel_path: bad.into(), text: Some("x".into()), base64: None });
-            assert!(write_ledger_folder(&d.to_string_lossy(), files, None).is_err(), "{bad}");
+            files.push(FolderFile {
+                rel_path: bad.into(),
+                text: Some("x".into()),
+                base64: None,
+            });
+            assert!(
+                write_ledger_folder(&d.to_string_lossy(), files, None).is_err(),
+                "{bad}"
+            );
             unchanged_earlier_export(&d);
         }
         // a ledger.json that is not a DeckChek ledger, or none at all
         let mut files = new_export(2);
         files[1].text = Some("{}".into());
-        assert!(write_ledger_folder(&d.to_string_lossy(), files, None).unwrap_err().starts_with("LEDGER_INVALID"));
-        assert!(write_ledger_folder(&d.to_string_lossy(), new_export(2).into_iter().filter(|f| !f.rel_path.ends_with(".json")).collect(), None).is_err());
+        assert!(write_ledger_folder(&d.to_string_lossy(), files, None)
+            .unwrap_err()
+            .starts_with("LEDGER_INVALID"));
+        assert!(write_ledger_folder(
+            &d.to_string_lossy(),
+            new_export(2)
+                .into_iter()
+                .filter(|f| !f.rel_path.ends_with(".json"))
+                .collect(),
+            None
+        )
+        .is_err());
         assert!(write_ledger_folder("relative/dir", new_export(2), None).is_err());
         unchanged_earlier_export(&d);
     }
@@ -1042,12 +1488,20 @@ mod tests {
         let p2 = d.join(format!("ledger/assets/{ITEM}/p2.jpg"));
         std::fs::remove_file(&p2).unwrap();
         std::os::unix::fs::symlink(outside.join(OLD_CERT), &p2).unwrap();
-        assert!(write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap_err().contains("symbolic links"));
+        assert!(
+            write_ledger_folder(&d.to_string_lossy(), new_export(2), None)
+                .unwrap_err()
+                .contains("symbolic links")
+        );
         assert_eq!(text(&outside, OLD_CERT), "someone else's file");
         // the export root itself as a symlink
         let link = tmp("prune-sym-root").join("root");
         std::os::unix::fs::symlink(&d, &link).unwrap();
-        assert!(write_ledger_folder(&link.to_string_lossy(), new_export(2), None).unwrap_err().contains("symbolic links"));
+        assert!(
+            write_ledger_folder(&link.to_string_lossy(), new_export(2), None)
+                .unwrap_err()
+                .contains("symbolic links")
+        );
     }
 
     #[test]
@@ -1056,14 +1510,29 @@ mod tests {
         let floor = tmp("rev-floor").join(FLOOR_FILE);
         earlier_export(&d, 5);
         for rev in [3, 5] {
-            let e = write_ledger_folder(&d.to_string_lossy(), new_export(rev), Some(&floor)).unwrap_err();
-            assert!(e.starts_with("LEDGER_REVISION") && e.contains("revision 5") && e.contains("revision 6"), "{e}");
+            let e = write_ledger_folder(&d.to_string_lossy(), new_export(rev), Some(&floor))
+                .unwrap_err();
+            assert!(
+                e.starts_with("LEDGER_REVISION")
+                    && e.contains("revision 5")
+                    && e.contains("revision 6"),
+                "{e}"
+            );
             unchanged_earlier_export(&d);
         }
         assert_eq!(read_floor(&floor), 5);
         let c = mem();
-        assert_eq!(next_revision_with_floor(&c, read_floor(&floor)).unwrap(), 6, "the next attempt writes revision 6");
-        assert_eq!(write_ledger_folder(&d.to_string_lossy(), new_export(6), Some(&floor)).unwrap().written, 3);
+        assert_eq!(
+            next_revision_with_floor(&c, read_floor(&floor)).unwrap(),
+            6,
+            "the next attempt writes revision 6"
+        );
+        assert_eq!(
+            write_ledger_folder(&d.to_string_lossy(), new_export(6), Some(&floor))
+                .unwrap()
+                .written,
+            3
+        );
     }
 
     #[test]
@@ -1078,18 +1547,38 @@ mod tests {
         }
         let mut restored = mem();
         record_export_with_floor(&mut restored, &input(1), 0).unwrap();
-        assert_eq!(next_revision(&restored).unwrap(), 2, "the restored history alone would reuse revision 2");
-        assert_eq!(next_revision_with_floor(&restored, read_floor(&floor)).unwrap(), 4);
+        assert_eq!(
+            next_revision(&restored).unwrap(),
+            2,
+            "the restored history alone would reuse revision 2"
+        );
+        assert_eq!(
+            next_revision_with_floor(&restored, read_floor(&floor)).unwrap(),
+            4
+        );
         for stale in [2, 3] {
-            assert!(record_export_with_floor(&mut restored, &input(stale), read_floor(&floor)).unwrap_err().starts_with("LEDGER_REVISION"));
+            assert!(
+                record_export_with_floor(&mut restored, &input(stale), read_floor(&floor))
+                    .unwrap_err()
+                    .starts_with("LEDGER_REVISION")
+            );
         }
-        assert_eq!(record_export_with_floor(&mut restored, &input(4), read_floor(&floor)).unwrap().revision, 4);
+        assert_eq!(
+            record_export_with_floor(&mut restored, &input(4), read_floor(&floor))
+                .unwrap()
+                .revision,
+            4
+        );
         // the floor never goes down and ignores junk
         raise_floor(&floor, 2).unwrap();
         assert_eq!(read_floor(&floor), 3);
         std::fs::write(&floor, "not json").unwrap();
         assert_eq!(read_floor(&floor), 0);
-        std::fs::write(&floor, format!("{{\"revision\":7,\"pad\":\"{}\"}}", "x".repeat(2000))).unwrap();
+        std::fs::write(
+            &floor,
+            format!("{{\"revision\":7,\"pad\":\"{}\"}}", "x".repeat(2000)),
+        )
+        .unwrap();
         assert_eq!(read_floor(&floor), 0, "oversized file ignored");
         raise_floor(&floor, 8).unwrap();
         assert_eq!(read_floor(&floor), 8);
@@ -1101,13 +1590,28 @@ mod tests {
         earlier_export(&d, 1);
         // the first new file is already moved in when the next move fails: the old index.html is still the page, so
         // nothing it links to may have been deleted yet (the prune runs only after every move succeeded)
-        let e = write_ledger_folder_inner(&d.to_string_lossy(), new_export(2), None, Some(WriteFail::MidRename)).unwrap_err();
+        let e = write_ledger_folder_inner(
+            &d.to_string_lossy(),
+            new_export(2),
+            None,
+            Some(WriteFail::MidRename),
+        )
+        .unwrap_err();
         assert!(e.starts_with("LEDGER_WRITE"), "{e}");
         assert_eq!(text(&d, "ledger/index.html"), "old page");
         assert_eq!(ledger_revision_of(&text(&d, "ledger/ledger.json")), Some(1));
-        assert!(d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists(), "old photo still there");
-        assert!(d.join(format!("ledger/assets/{GONE_ITEM}/p1.jpg")).exists(), "old unit still there");
-        assert!(d.join(format!("ledger/certificates/{OLD_CERT}")).exists(), "old certificate still there");
+        assert!(
+            d.join(format!("ledger/assets/{ITEM}/p2.jpg")).exists(),
+            "old photo still there"
+        );
+        assert!(
+            d.join(format!("ledger/assets/{GONE_ITEM}/p1.jpg")).exists(),
+            "old unit still there"
+        );
+        assert!(
+            d.join(format!("ledger/certificates/{OLD_CERT}")).exists(),
+            "old certificate still there"
+        );
         assert!(no_staging_left(&d));
         // the next export completes and then prunes
         let r = write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap();
@@ -1122,15 +1626,26 @@ mod tests {
         earlier_export(&d, 1);
         let crashed = format!("{STAGING_PREFIX}{}", "0123456789abcdef0123456789abcdef");
         put(&d, &format!("{crashed}/ledger.json"), &ledger_json(9));
-        put(&d, &format!("{crashed}/assets/{ITEM}/p1.jpg"), "half written");
+        put(
+            &d,
+            &format!("{crashed}/assets/{ITEM}/p1.jpg"),
+            "half written",
+        );
         // not a name the export generates: left alone
         put(&d, &format!("{STAGING_PREFIX}mine/x.txt"), "mine");
         let r = write_ledger_folder(&d.to_string_lossy(), new_export(2), None).unwrap();
         assert_eq!(r.written, 3);
-        assert!(!d.join(&crashed).exists(), "the crashed staging folder is removed");
+        assert!(
+            !d.join(&crashed).exists(),
+            "the crashed staging folder is removed"
+        );
         assert_eq!(text(&d, &format!("{STAGING_PREFIX}mine/x.txt")), "mine");
         assert_eq!(text(&d, "ledger/index.html"), "new page");
-        assert!(is_staging_name(&crashed) && !is_staging_name(&format!("{STAGING_PREFIX}mine")) && !is_staging_name(&format!("{STAGING_PREFIX}{}", "A".repeat(32))));
+        assert!(
+            is_staging_name(&crashed)
+                && !is_staging_name(&format!("{STAGING_PREFIX}mine"))
+                && !is_staging_name(&format!("{STAGING_PREFIX}{}", "A".repeat(32)))
+        );
     }
 
     #[cfg(unix)]
@@ -1143,7 +1658,13 @@ mod tests {
         std::os::unix::fs::symlink(&outside, d.join(&name)).unwrap();
         write_ledger_folder(&d.to_string_lossy(), new_export(1), None).unwrap();
         assert_eq!(text(&outside, "keep.json"), "someone else's file");
-        assert!(std::fs::symlink_metadata(d.join(&name)).unwrap().file_type().is_symlink(), "the link itself is left alone");
+        assert!(
+            std::fs::symlink_metadata(d.join(&name))
+                .unwrap()
+                .file_type()
+                .is_symlink(),
+            "the link itself is left alone"
+        );
     }
 
     #[test]
@@ -1157,7 +1678,10 @@ mod tests {
              INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j3','2026-0003',NULL,NULL,'intake','x','2026-01-02T00:00:00Z','2026-01-02T00:00:00Z');",
         )
         .unwrap();
-        assert_eq!(customer_unit_ids(&c).unwrap(), vec!["fs33-cust".to_string()]);
+        assert_eq!(
+            customer_unit_ids(&c).unwrap(),
+            vec!["fs33-cust".to_string()]
+        );
     }
 
     #[test]
@@ -1169,11 +1693,22 @@ mod tests {
             "INSERT INTO service_job (id, job_number, customer_id, asset_id, status, reported_fault, opened_at, updated_at) VALUES ('j-self','2026-0101',NULL,'fs33-a','repairing','pitch drift','2026-02-01T00:00:00Z','2026-02-01T00:00:00Z');",
         )
         .unwrap();
-        assert_eq!(customer_unit_ids(&c).unwrap(), vec!["fs33-a".to_string()], "flagged for the wizard");
+        assert_eq!(
+            customer_unit_ids(&c).unwrap(),
+            vec!["fs33-a".to_string()],
+            "flagged for the wizard"
+        );
         // nothing about the unit changes: it is still listed with its note and can still be exported
         assert_eq!(list_public_notes(&c).unwrap().len(), 1);
-        let deleted: i64 = c.query_row("SELECT is_deleted FROM asset WHERE id='fs33-a'", [], |r| r.get(0)).unwrap();
+        let deleted: i64 = c
+            .query_row("SELECT is_deleted FROM asset WHERE id='fs33-a'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
         assert_eq!(deleted, 0);
-        assert_eq!(record_export(&mut c, &input(1)).unwrap().selection["items"], json!(["fs33-a"]));
+        assert_eq!(
+            record_export(&mut c, &input(1)).unwrap().selection["items"],
+            json!(["fs33-a"])
+        );
     }
 }

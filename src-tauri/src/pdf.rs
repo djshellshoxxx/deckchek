@@ -52,7 +52,11 @@ pub struct PdfOptions {
 
 impl Default for PdfOptions {
     fn default() -> Self {
-        Self { paper: Paper::A4, landscape: false, scale: 1.0 }
+        Self {
+            paper: Paper::A4,
+            landscape: false,
+            scale: 1.0,
+        }
     }
 }
 
@@ -99,11 +103,18 @@ impl PdfError {
 impl std::fmt::Display for PdfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unsupported => write!(f, "PDF export is not supported on this platform; use the print dialog instead"),
+            Self::Unsupported => write!(
+                f,
+                "PDF export is not supported on this platform; use the print dialog instead"
+            ),
             Self::Path(e) => write!(f, "{e}"),
             Self::InvalidOptions(why) => write!(f, "invalid PDF options: {why}"),
             Self::InvalidHtml(why) => write!(f, "invalid report: {why}"),
-            Self::Timeout => write!(f, "creating the PDF took longer than {} s", RENDER_TIMEOUT.as_secs()),
+            Self::Timeout => write!(
+                f,
+                "creating the PDF took longer than {} s",
+                RENDER_TIMEOUT.as_secs()
+            ),
             Self::Host(m) => write!(f, "print host failed: {m}"),
             Self::Webview(m) => write!(f, "webview error: {m}"),
             Self::InvalidOutput(why) => write!(f, "PDF output invalid: {why}"),
@@ -138,7 +149,9 @@ impl From<std::io::Error> for PdfError {
 
 pub fn validate_options(o: &PdfOptions) -> Result<(), PdfError> {
     if !o.scale.is_finite() || !(0.1..=2.0).contains(&o.scale) {
-        return Err(PdfError::InvalidOptions("scale must be between 0.1 and 2.0"));
+        return Err(PdfError::InvalidOptions(
+            "scale must be between 0.1 and 2.0",
+        ));
     }
     Ok(())
 }
@@ -154,7 +167,11 @@ pub fn validate_html(html: &str) -> Result<(), PdfError> {
 }
 
 /// All checks that do not need a webview; shared by every platform so they are testable on Linux.
-pub fn validate_request(html: &str, dest_path: &str, opts: &PdfOptions) -> Result<PathBuf, PdfError> {
+pub fn validate_request(
+    html: &str,
+    dest_path: &str,
+    opts: &PdfOptions,
+) -> Result<PathBuf, PdfError> {
     validate_options(opts)?;
     validate_html(html)?;
     Ok(userfiles::validate_save_path(dest_path, &["pdf"])?)
@@ -211,7 +228,10 @@ pub fn check_pdf_bytes(bytes: &[u8]) -> Result<(), PdfError> {
 /// Temporary sibling the webview prints into; renamed over `dest` only after it validates.
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn temp_path_for(dest: &Path) -> PathBuf {
-    let name = dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let name = dest
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
     dest.with_file_name(format!(".{name}.{}.deckchek-tmp.pdf", std::process::id()))
 }
 
@@ -227,7 +247,8 @@ pub enum HostMode {
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
-static HIDDEN_MODE_FAILED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static HIDDEN_MODE_FAILED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
 
 /// Mode for the next render: hidden until a hidden render failed for a webview reason.
 #[cfg_attr(not(windows), allow(dead_code))]
@@ -244,7 +265,11 @@ pub fn preferred_mode() -> HostMode {
 /// `Unsupported` errors would fail the same way off-screen, so they never switch modes.
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn should_switch_to_offscreen(mode: HostMode, err: &PdfError) -> bool {
-    mode == HostMode::Hidden && matches!(err, PdfError::Timeout | PdfError::Webview(_) | PdfError::InvalidOutput(_))
+    mode == HostMode::Hidden
+        && matches!(
+            err,
+            PdfError::Timeout | PdfError::Webview(_) | PdfError::InvalidOutput(_)
+        )
 }
 
 /// Remembers (for this process) that hidden rendering failed, so the user's Retry uses off-screen.
@@ -281,7 +306,11 @@ pub fn render_to_file<R: tauri::Runtime>(
 
 /// Non-Windows backend: validates like Windows does, then reports `Unsupported` (AC-6 fallback).
 #[cfg(not(windows))]
-fn render_unsupported(html: &str, dest_path: &str, opts: &PdfOptions) -> Result<PdfResult, PdfError> {
+fn render_unsupported(
+    html: &str,
+    dest_path: &str,
+    opts: &PdfOptions,
+) -> Result<PdfResult, PdfError> {
     validate_request(html, dest_path, opts)?;
     Err(PdfError::Unsupported)
 }
@@ -304,8 +333,8 @@ pub async fn pdf_render(
 #[cfg(windows)]
 mod host {
     use super::*;
-    use std::sync::{mpsc, Mutex, OnceLock};
     use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{mpsc, Mutex, OnceLock};
     use std::time::Instant;
     use tauri::webview::PageLoadEvent;
     use tauri::{WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -319,7 +348,10 @@ mod host {
     }
 
     fn remaining(deadline: Instant) -> Result<Duration, PdfError> {
-        deadline.checked_duration_since(Instant::now()).filter(|d| !d.is_zero()).ok_or(PdfError::Timeout)
+        deadline
+            .checked_duration_since(Instant::now())
+            .filter(|d| !d.is_zero())
+            .ok_or(PdfError::Timeout)
     }
 
     pub fn render<R: tauri::Runtime>(
@@ -337,29 +369,35 @@ mod host {
 
         let (load_tx, load_rx) = mpsc::channel::<()>();
         let load_tx = Mutex::new(load_tx);
-        let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("print-host.html".into()))
-            .title("DeckChek PDF")
-            .inner_size(900.0, 1200.0)
-            .focused(false)
-            .skip_taskbar(true)
-            .visible(mode == HostMode::Offscreen)
-            .on_navigation(is_app_url)
-            .on_page_load(move |_w, p| {
-                if p.event() == PageLoadEvent::Finished && p.url().path().ends_with("print-host.html") {
-                    if let Ok(tx) = load_tx.lock() {
-                        let _ = tx.send(());
+        let mut builder =
+            WebviewWindowBuilder::new(app, &label, WebviewUrl::App("print-host.html".into()))
+                .title("DeckChek PDF")
+                .inner_size(900.0, 1200.0)
+                .focused(false)
+                .skip_taskbar(true)
+                .visible(mode == HostMode::Offscreen)
+                .on_navigation(is_app_url)
+                .on_page_load(move |_w, p| {
+                    if p.event() == PageLoadEvent::Finished
+                        && p.url().path().ends_with("print-host.html")
+                    {
+                        if let Ok(tx) = load_tx.lock() {
+                            let _ = tx.send(());
+                        }
                     }
-                }
-            });
+                });
         if mode == HostMode::Offscreen {
             builder = builder.position(-32000.0, -32000.0);
         }
         // A popup from this window's page follows the same link policy as the main window (AUD-08).
         let builder = crate::guard_new_windows(builder, app);
-        let win = builder.build().map_err(|e| PdfError::Webview(format!("create window: {e}")))?;
+        let win = builder
+            .build()
+            .map_err(|e| PdfError::Webview(format!("create window: {e}")))?;
 
         let tmp = temp_path_for(dest);
-        let result = run_in_window(&win, &load_rx, html, &tmp, opts, deadline).and_then(|()| finish(&tmp, dest));
+        let result = run_in_window(&win, &load_rx, html, &tmp, opts, deadline)
+            .and_then(|()| finish(&tmp, dest));
         let _ = win.destroy();
         if result.is_err() {
             let _ = std::fs::remove_file(&tmp);
@@ -375,10 +413,15 @@ mod host {
         opts: &PdfOptions,
         deadline: Instant,
     ) -> Result<(), PdfError> {
-        load_rx.recv_timeout(remaining(deadline)?).map_err(|_| PdfError::Timeout)?;
-        let literal = serde_json::to_string(html).map_err(|_| PdfError::InvalidHtml("not encodable"))?;
+        load_rx
+            .recv_timeout(remaining(deadline)?)
+            .map_err(|_| PdfError::Timeout)?;
+        let literal =
+            serde_json::to_string(html).map_err(|_| PdfError::InvalidHtml("not encodable"))?;
         // render() returns the new state synchronously, so a missing host fails fast instead of timing out.
-        let js = format!("(function(){{var h=window.__dcPrintHost;return h?h.render({literal}):'missing';}})()");
+        let js = format!(
+            "(function(){{var h=window.__dcPrintHost;return h?h.render({literal}):'missing';}})()"
+        );
         match eval_string(win, js, deadline)?.as_str() {
             "loading" | "ready" => {}
             "missing" => return Err(PdfError::Host("print host script did not load".into())),
@@ -389,23 +432,34 @@ mod host {
     }
 
     /// Runs `js` and returns its result when it is a string ("" otherwise).
-    fn eval_string<R: tauri::Runtime>(win: &WebviewWindow<R>, js: String, deadline: Instant) -> Result<String, PdfError> {
+    fn eval_string<R: tauri::Runtime>(
+        win: &WebviewWindow<R>,
+        js: String,
+        deadline: Instant,
+    ) -> Result<String, PdfError> {
         let (tx, rx) = mpsc::channel::<String>();
         win.eval_with_callback(js, move |json| {
             let _ = tx.send(json);
         })
         .map_err(|e| PdfError::Webview(format!("eval: {e}")))?;
-        let json = rx.recv_timeout(remaining(deadline)?).map_err(|_| PdfError::Timeout)?;
+        let json = rx
+            .recv_timeout(remaining(deadline)?)
+            .map_err(|_| PdfError::Timeout)?;
         Ok(serde_json::from_str::<String>(&json).unwrap_or_default())
     }
 
-    fn wait_ready<R: tauri::Runtime>(win: &WebviewWindow<R>, deadline: Instant) -> Result<(), PdfError> {
+    fn wait_ready<R: tauri::Runtime>(
+        win: &WebviewWindow<R>,
+        deadline: Instant,
+    ) -> Result<(), PdfError> {
         loop {
             let state = eval_string(win, POLL_JS.to_string(), deadline)?;
             match state.as_str() {
                 "ready" => return Ok(()),
                 "loading" => {}
-                "idle" | "missing" | "" => return Err(PdfError::Host(format!("unexpected state '{state}'"))),
+                "idle" | "missing" | "" => {
+                    return Err(PdfError::Host(format!("unexpected state '{state}'")))
+                }
                 s => {
                     let msg = s.strip_prefix("error:").unwrap_or(s);
                     return Err(PdfError::Host(msg.chars().take(200).collect()));
@@ -483,7 +537,8 @@ mod win {
                     .map_err(|e| PdfError::Webview(format!("CoreWebView2: {e}")))?;
                 // ICoreWebView2_7 / Environment6 exist from runtime 1.0.1020.30; older runtimes = unsupported.
                 let core7: ICoreWebView2_7 = core.cast().map_err(|_| PdfError::Unsupported)?;
-                let env6: ICoreWebView2Environment6 = pw.environment().cast().map_err(|_| PdfError::Unsupported)?;
+                let env6: ICoreWebView2Environment6 =
+                    pw.environment().cast().map_err(|_| PdfError::Unsupported)?;
                 let settings = unsafe { env6.CreatePrintSettings() }
                     .map_err(|e| PdfError::Webview(format!("CreatePrintSettings: {e}")))?;
                 apply_settings(&settings, &opts)
@@ -560,7 +615,8 @@ mod tests {
     fn options_default_and_parse() {
         let o: PdfOptions = serde_json::from_str("{}").unwrap();
         assert_eq!(o, PdfOptions::default());
-        let o: PdfOptions = serde_json::from_str(r#"{"paper":"Letter","landscape":true,"scale":0.5}"#).unwrap();
+        let o: PdfOptions =
+            serde_json::from_str(r#"{"paper":"Letter","landscape":true,"scale":0.5}"#).unwrap();
         assert_eq!(o.paper, Paper::Letter);
         assert!(o.landscape);
         assert!(serde_json::from_str::<PdfOptions>(r#"{"paper":"A3"}"#).is_err());
@@ -570,11 +626,22 @@ mod tests {
     #[test]
     fn scale_range_enforced() {
         for bad in [0.0, 0.09, 2.01, f64::NAN, f64::INFINITY, -1.0] {
-            let o = PdfOptions { scale: bad, ..Default::default() };
-            assert_eq!(validate_options(&o).unwrap_err().code(), "invalid_options", "{bad}");
+            let o = PdfOptions {
+                scale: bad,
+                ..Default::default()
+            };
+            assert_eq!(
+                validate_options(&o).unwrap_err().code(),
+                "invalid_options",
+                "{bad}"
+            );
         }
         for ok in [0.1, 1.0, 2.0] {
-            assert!(validate_options(&PdfOptions { scale: ok, ..Default::default() }).is_ok());
+            assert!(validate_options(&PdfOptions {
+                scale: ok,
+                ..Default::default()
+            })
+            .is_ok());
         }
     }
 
@@ -587,25 +654,54 @@ mod tests {
 
     #[test]
     fn html_validation() {
-        assert_eq!(validate_html("  \n").unwrap_err(), PdfError::InvalidHtml("empty"));
+        assert_eq!(
+            validate_html("  \n").unwrap_err(),
+            PdfError::InvalidHtml("empty")
+        );
         assert!(validate_html("<p>x</p>").is_ok());
         let big = "x".repeat(MAX_HTML_BYTES + 1);
-        assert_eq!(validate_html(&big).unwrap_err(), PdfError::InvalidHtml("too large"));
+        assert_eq!(
+            validate_html(&big).unwrap_err(),
+            PdfError::InvalidHtml("too large")
+        );
     }
 
     #[test]
     fn request_refuses_bad_paths() {
         let o = PdfOptions::default();
         let d = tmp("paths");
-        assert_eq!(validate_request("<p>x</p>", "report.pdf", &o).unwrap_err().code(), "relative_path");
+        assert_eq!(
+            validate_request("<p>x</p>", "report.pdf", &o)
+                .unwrap_err()
+                .code(),
+            "relative_path"
+        );
         let txt = d.join("report.txt");
-        assert_eq!(validate_request("<p>x</p>", txt.to_str().unwrap(), &o).unwrap_err().code(), "bad_extension");
+        assert_eq!(
+            validate_request("<p>x</p>", txt.to_str().unwrap(), &o)
+                .unwrap_err()
+                .code(),
+            "bad_extension"
+        );
         let missing = d.join("nope").join("r.pdf");
-        assert_eq!(validate_request("<p>x</p>", missing.to_str().unwrap(), &o).unwrap_err().code(), "not_found");
+        assert_eq!(
+            validate_request("<p>x</p>", missing.to_str().unwrap(), &o)
+                .unwrap_err()
+                .code(),
+            "not_found"
+        );
         let con = d.join("CON.pdf");
-        assert_eq!(validate_request("<p>x</p>", con.to_str().unwrap(), &o).unwrap_err().code(), "reserved_name");
+        assert_eq!(
+            validate_request("<p>x</p>", con.to_str().unwrap(), &o)
+                .unwrap_err()
+                .code(),
+            "reserved_name"
+        );
         let good = d.join("DeckChek_Run_sl-1200_20261010-1200.pdf");
-        assert_eq!(validate_request("<p>x</p>", good.to_str().unwrap(), &o).unwrap(), good);
+        assert_eq!(
+            validate_request("<p>x</p>", good.to_str().unwrap(), &o).unwrap(),
+            good
+        );
     }
 
     #[test]
@@ -623,7 +719,11 @@ mod tests {
 
     #[test]
     fn navigation_is_locked_to_app_origin() {
-        let ok = ["tauri://localhost/print-host.html", "http://tauri.localhost/print-host.html", "https://tauri.localhost/x"];
+        let ok = [
+            "tauri://localhost/print-host.html",
+            "http://tauri.localhost/print-host.html",
+            "https://tauri.localhost/x",
+        ];
         for u in ok {
             assert!(is_app_url(&tauri::Url::parse(u).unwrap()), "{u}");
         }
@@ -653,8 +753,14 @@ mod tests {
     #[test]
     fn pdf_bytes_check() {
         assert!(check_pdf_bytes(b"%PDF-1.4\n...\n%%EOF\n").is_ok());
-        assert_eq!(check_pdf_bytes(b"<html>").unwrap_err().code(), "invalid_output");
-        assert_eq!(check_pdf_bytes(b"%PDF-1.4 truncated").unwrap_err().code(), "invalid_output");
+        assert_eq!(
+            check_pdf_bytes(b"<html>").unwrap_err().code(),
+            "invalid_output"
+        );
+        assert_eq!(
+            check_pdf_bytes(b"%PDF-1.4 truncated").unwrap_err().code(),
+            "invalid_output"
+        );
     }
 
     #[test]
@@ -663,7 +769,10 @@ mod tests {
         let t = temp_path_for(&dest);
         assert_eq!(t.parent(), dest.parent());
         let name = t.file_name().unwrap().to_str().unwrap();
-        assert!(name.starts_with(".Report.pdf.") && name.ends_with(".deckchek-tmp.pdf"), "{name}");
+        assert!(
+            name.starts_with(".Report.pdf.") && name.ends_with(".deckchek-tmp.pdf"),
+            "{name}"
+        );
     }
 
     #[test]
@@ -676,15 +785,29 @@ mod tests {
 
     #[test]
     fn contract_pdf_render_round_trips() {
-        let raw = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/pdf_render.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/pdf_render.json"),
+        )
+        .unwrap();
         let c: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(c["command"], "pdf_render");
         let req = c["request"].as_object().unwrap();
         let mut keys: Vec<&str> = req.keys().map(String::as_str).collect();
         keys.sort_unstable();
-        assert_eq!(keys, ["destPath", "html", "opts"], "argument names of the pdf_render command");
+        assert_eq!(
+            keys,
+            ["destPath", "html", "opts"],
+            "argument names of the pdf_render command"
+        );
         let opts: PdfOptions = serde_json::from_value(c["request"]["opts"].clone()).unwrap();
-        assert_eq!(opts, PdfOptions { paper: Paper::A4, landscape: false, scale: 1.0 });
+        assert_eq!(
+            opts,
+            PdfOptions {
+                paper: Paper::A4,
+                landscape: false,
+                scale: 1.0
+            }
+        );
         assert!(validate_html(req["html"].as_str().unwrap()).is_ok());
         let res: PdfResult = PdfResult {
             path: c["response"]["path"].as_str().unwrap().into(),
@@ -692,26 +815,52 @@ mod tests {
             pages: c["response"]["pages"].as_u64().map(|p| p as u32),
         };
         assert_eq!(serde_json::to_value(&res).unwrap(), c["response"]);
-        assert_eq!(serde_json::to_value(PdfError::Unsupported).unwrap(), c["errors"][0]);
-        assert_eq!(serde_json::to_value(PdfError::Timeout).unwrap(), c["errors"][1]);
+        assert_eq!(
+            serde_json::to_value(PdfError::Unsupported).unwrap(),
+            c["errors"][0]
+        );
+        assert_eq!(
+            serde_json::to_value(PdfError::Timeout).unwrap(),
+            c["errors"][1]
+        );
     }
 
     #[test]
     fn report_fixture_is_static_paged_layout() {
         let html = REPORT_FIXTURE_HTML;
         assert!(validate_html(html).is_ok());
-        assert!(html.contains("counter(pages)") && html.contains("@page") && html.contains("break-inside: avoid"));
-        assert!(html.contains("display: table-header-group"), "thead repeats");
-        assert!(!html.contains("<script") && !html.contains("<link"), "self-contained, no scripts");
-        assert!(html.matches("<tr>").count() > 100, "long enough for several pages");
+        assert!(
+            html.contains("counter(pages)")
+                && html.contains("@page")
+                && html.contains("break-inside: avoid")
+        );
+        assert!(
+            html.contains("display: table-header-group"),
+            "thead repeats"
+        );
+        assert!(
+            !html.contains("<script") && !html.contains("<link"),
+            "self-contained, no scripts"
+        );
+        assert!(
+            html.matches("<tr>").count() > 100,
+            "long enough for several pages"
+        );
     }
 
     #[test]
     fn host_mode_switches_only_for_window_failures() {
         use HostMode::*;
-        for e in [PdfError::Timeout, PdfError::Webview("x".into()), PdfError::InvalidOutput("x")] {
+        for e in [
+            PdfError::Timeout,
+            PdfError::Webview("x".into()),
+            PdfError::InvalidOutput("x"),
+        ] {
             assert!(should_switch_to_offscreen(Hidden, &e), "{e:?}");
-            assert!(!should_switch_to_offscreen(Offscreen, &e), "already off-screen: {e:?}");
+            assert!(
+                !should_switch_to_offscreen(Offscreen, &e),
+                "already off-screen: {e:?}"
+            );
         }
         for e in [
             PdfError::Unsupported,
@@ -723,7 +872,11 @@ mod tests {
         ] {
             assert!(!should_switch_to_offscreen(Hidden, &e), "{e:?}");
         }
-        assert_eq!(preferred_mode(), Hidden, "hidden until a hidden render failed");
+        assert_eq!(
+            preferred_mode(),
+            Hidden,
+            "hidden until a hidden render failed"
+        );
         note_render_result::<()>(Hidden, &Err(PdfError::Host("x".into())));
         assert_eq!(preferred_mode(), Hidden);
     }
@@ -735,9 +888,22 @@ mod tests {
         let d = tmp("stub");
         let good = d.join("r.pdf");
         let o = PdfOptions::default();
-        assert_eq!(render_unsupported("<p>x</p>", good.to_str().unwrap(), &o).unwrap_err(), PdfError::Unsupported);
-        assert_eq!(render_unsupported("<p>x</p>", "r.pdf", &o).unwrap_err().code(), "relative_path");
-        assert_eq!(render_unsupported("", good.to_str().unwrap(), &o).unwrap_err().code(), "invalid_html");
+        assert_eq!(
+            render_unsupported("<p>x</p>", good.to_str().unwrap(), &o).unwrap_err(),
+            PdfError::Unsupported
+        );
+        assert_eq!(
+            render_unsupported("<p>x</p>", "r.pdf", &o)
+                .unwrap_err()
+                .code(),
+            "relative_path"
+        );
+        assert_eq!(
+            render_unsupported("", good.to_str().unwrap(), &o)
+                .unwrap_err()
+                .code(),
+            "invalid_html"
+        );
         assert!(!good.exists(), "stub never writes a file");
     }
 }
@@ -776,7 +942,10 @@ mod windows_spike {
             let _ = ready_rx.recv_timeout(Duration::from_secs(30));
             let html = spike_fixture_html();
             let mut results = Vec::new();
-            for (mode, name) in [(HostMode::Hidden, "spike-hidden.pdf"), (HostMode::Offscreen, "spike-offscreen.pdf")] {
+            for (mode, name) in [
+                (HostMode::Hidden, "spike-hidden.pdf"),
+                (HostMode::Offscreen, "spike-offscreen.pdf"),
+            ] {
                 let dest = dir.join(name);
                 let _ = std::fs::remove_file(&dest);
                 let started = std::time::Instant::now();
@@ -789,8 +958,17 @@ mod windows_spike {
             let dest = dir.join("report-fixture.pdf");
             let _ = std::fs::remove_file(&dest);
             let started = std::time::Instant::now();
-            let r = render_to_file(&handle, REPORT_FIXTURE_HTML, dest.to_str().unwrap(), &PdfOptions::default());
-            results.push((format!("report/{:?}", preferred_mode()), r, started.elapsed()));
+            let r = render_to_file(
+                &handle,
+                REPORT_FIXTURE_HTML,
+                dest.to_str().unwrap(),
+                &PdfOptions::default(),
+            );
+            results.push((
+                format!("report/{:?}", preferred_mode()),
+                r,
+                started.elapsed(),
+            ));
             let _ = done_tx.send(results);
             handle.exit(0);
         });
@@ -802,39 +980,83 @@ mod windows_spike {
                 }
             }
             // Closing the print window leaves zero windows; only exit when the test asks.
-            RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            RunEvent::ExitRequested {
+                code: None, api, ..
+            } => api.prevent_exit(),
             _ => {}
         });
-        let results = done_rx.recv_timeout(Duration::from_secs(5)).expect("spike thread finished");
+        let results = done_rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("spike thread finished");
         for (mode, r, took) in &results {
-            println!("PDF-SPIKE mode={mode} took={}ms result={r:?}", took.as_millis());
+            println!(
+                "PDF-SPIKE mode={mode} took={}ms result={r:?}",
+                took.as_millis()
+            );
         }
         // Spike: at least one window mode must work (hidden = GO, off-screen only = GO with off-screen).
-        let spike = results[..2].iter().find_map(|(_, r, _)| r.as_ref().ok()).expect("PrintToPdf succeeded in a window mode (see PDF-SPIKE lines)");
+        let spike = results[..2]
+            .iter()
+            .find_map(|(_, r, _)| r.as_ref().ok())
+            .expect("PrintToPdf succeeded in a window mode (see PDF-SPIKE lines)");
         let bytes = std::fs::read(&spike.path).unwrap();
         assert!(bytes.starts_with(b"%PDF-"), "file starts with %PDF-");
-        assert!(bytes.len() > 5 * 1024, "PDF larger than 5 KB, got {}", bytes.len());
+        assert!(
+            bytes.len() > 5 * 1024,
+            "PDF larger than 5 KB, got {}",
+            bytes.len()
+        );
         assert_eq!(spike.bytes as usize, bytes.len());
 
         // FS-03 AC-2 on the report layout: >= 2 pages, running header and "Page X of Y" on each.
         let (_, report, took) = &results[2];
         let report = report.as_ref().expect("report fixture rendered");
-        assert!(*took < RENDER_TIMEOUT, "report rendered within the AC-7 limit");
+        assert!(
+            *took < RENDER_TIMEOUT,
+            "report rendered within the AC-7 limit"
+        );
         let bytes = std::fs::read(&report.path).unwrap();
         let doc = pdf_text::PdfDoc::parse(&bytes).expect("parse PDF");
         let pages = doc.page_texts();
-        println!("PDF-SPIKE report pages={} counter={:?}", pages.len(), report.pages);
+        println!(
+            "PDF-SPIKE report pages={} counter={:?}",
+            pages.len(),
+            report.pages
+        );
         for (i, t) in pages.iter().enumerate() {
-            println!("PDF-SPIKE report page {} text: {}", i + 1, t.chars().take(160).collect::<String>());
+            println!(
+                "PDF-SPIKE report page {} text: {}",
+                i + 1,
+                t.chars().take(160).collect::<String>()
+            );
         }
-        assert!(pages.len() >= 2, "report spans at least two pages, got {}", pages.len());
-        assert!(pdf_text::squash(&pages[1]).contains("Page2of"), "\"Page 2 of\" on page 2");
+        assert!(
+            pages.len() >= 2,
+            "report spans at least two pages, got {}",
+            pages.len()
+        );
+        assert!(
+            pdf_text::squash(&pages[1]).contains("Page2of"),
+            "\"Page 2 of\" on page 2"
+        );
         let n = pages.len();
         for (i, t) in pages.iter().enumerate() {
             let t = pdf_text::squash(t);
-            assert!(t.contains(&format!("Page{}of{n}", i + 1)), "page {} footer counter", i + 1);
-            assert!(t.contains("DeckChek") && t.contains("TechnicsSL-1200MK4"), "page {} running header", i + 1);
-            assert!(t.contains("Generated"), "page {} footer generated time", i + 1);
+            assert!(
+                t.contains(&format!("Page{}of{n}", i + 1)),
+                "page {} footer counter",
+                i + 1
+            );
+            assert!(
+                t.contains("DeckChek") && t.contains("TechnicsSL-1200MK4"),
+                "page {} running header",
+                i + 1
+            );
+            assert!(
+                t.contains("Generated"),
+                "page {} footer generated time",
+                i + 1
+            );
         }
     }
 }

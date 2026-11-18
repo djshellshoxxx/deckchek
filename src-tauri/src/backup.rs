@@ -70,7 +70,13 @@ pub struct Limits {
     pub ratio_floor: u64,
 }
 
-pub const LIMITS: Limits = Limits { db: MAX_DB_BYTES, other: MAX_OTHER_BYTES, total: MAX_TOTAL_BYTES, ratio: MAX_RATIO, ratio_floor: RATIO_FLOOR };
+pub const LIMITS: Limits = Limits {
+    db: MAX_DB_BYTES,
+    other: MAX_OTHER_BYTES,
+    total: MAX_TOTAL_BYTES,
+    ratio: MAX_RATIO,
+    ratio_floor: RATIO_FLOOR,
+};
 const MAX_ENTRIES: usize = 100_000;
 
 /// Online-backup step size and pause (FS-08 §6; tunable).
@@ -99,7 +105,10 @@ pub struct BackupError {
 
 impl BackupError {
     fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self { code, message: message.into() }
+        Self {
+            code,
+            message: message.into(),
+        }
     }
 }
 
@@ -136,11 +145,17 @@ fn io_err(doing: &str, e: io::Error) -> BackupError {
 }
 
 fn sql_err(doing: &str, e: rusqlite::Error) -> BackupError {
-    BackupError::new("database", format!("Database error while trying to {doing}: {e}"))
+    BackupError::new(
+        "database",
+        format!("Database error while trying to {doing}: {e}"),
+    )
 }
 
 fn bad_zip() -> BackupError {
-    BackupError::new("bad_zip", "This file is not a valid DeckChek backup (the zip archive is damaged or not a zip file).")
+    BackupError::new(
+        "bad_zip",
+        "This file is not a valid DeckChek backup (the zip archive is damaged or not a zip file).",
+    )
 }
 
 // ---------------------------------------------------------------- types
@@ -274,7 +289,12 @@ pub struct ScheduleSettings {
 
 impl Default for ScheduleSettings {
     fn default() -> Self {
-        Self { mode: Mode::Off, keep: DEFAULT_KEEP, last_auto_at: None, last_auto_ms: None }
+        Self {
+            mode: Mode::Off,
+            keep: DEFAULT_KEEP,
+            last_auto_at: None,
+            last_auto_ms: None,
+        }
     }
 }
 
@@ -330,7 +350,10 @@ pub enum FailPoint {
 // ---------------------------------------------------------------- time
 
 pub fn now_ms() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 /// (year, month, day, hour, minute, second, millis) in UTC.
@@ -347,7 +370,12 @@ fn civil(ms: i64) -> (i64, u32, u32, u32, u32, u32, u32) {
     let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
     let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
     let y = yoe + era * 400 + i64::from(m <= 2);
-    let (h, mi, s, milli) = ((rem / 3_600_000) as u32, (rem / 60_000 % 60) as u32, (rem / 1000 % 60) as u32, (rem % 1000) as u32);
+    let (h, mi, s, milli) = (
+        (rem / 3_600_000) as u32,
+        (rem / 60_000 % 60) as u32,
+        (rem / 1000 % 60) as u32,
+        (rem % 1000) as u32,
+    );
     (y, m, d, h, mi, s, milli)
 }
 
@@ -368,17 +396,33 @@ fn current_schema_version() -> i64 {
 }
 
 fn schema_version(conn: &Connection) -> Result<i64, BackupError> {
-    conn.query_row("SELECT COALESCE(MAX(version), 0) FROM schema_migration WHERE version < 1000", [], |r| r.get(0))
-        .map_err(|_| BackupError::new("corrupt_db", "The backup's database is not a DeckChek database (no schema version)."))
+    conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_migration WHERE version < 1000",
+        [],
+        |r| r.get(0),
+    )
+    .map_err(|_| {
+        BackupError::new(
+            "corrupt_db",
+            "The backup's database is not a DeckChek database (no schema version).",
+        )
+    })
 }
 
 /// A restored database is untrusted until verified: its schema must not be able to run code
 /// (triggers, views calling functions) when migrations or the app touch it. Defensive mode also
 /// blocks writes that could corrupt the file format (`writable_schema`, raw page edits).
 fn harden_untrusted(conn: &Connection) -> Result<(), BackupError> {
-    let bad = |_| BackupError::new("corrupt_db", "The backup's database cannot be opened safely.");
-    conn.execute_batch("PRAGMA trusted_schema=OFF;").map_err(bad)?;
-    conn.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true).map_err(bad)?;
+    let bad = |_| {
+        BackupError::new(
+            "corrupt_db",
+            "The backup's database cannot be opened safely.",
+        )
+    };
+    conn.execute_batch("PRAGMA trusted_schema=OFF;")
+        .map_err(bad)?;
+    conn.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true)
+        .map_err(bad)?;
     Ok(())
 }
 
@@ -386,7 +430,11 @@ fn harden_untrusted(conn: &Connection) -> Result<(), BackupError> {
 /// by DeckChek (or was edited) and is refused before any migration runs against it.
 fn reject_schema_code(conn: &Connection) -> Result<(), BackupError> {
     let n: i64 = conn
-        .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type IN ('trigger','view')", [], |r| r.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type IN ('trigger','view')",
+            [],
+            |r| r.get(0),
+        )
         .map_err(|_| BackupError::new("corrupt_db", "The backup's database cannot be read."))?;
     if n > 0 {
         return Err(BackupError::new("unsafe_db", "The backup's database contains triggers or views that DeckChek never creates, so it was refused. Your current data was not changed."));
@@ -403,21 +451,30 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
     let rows = |sql: &str, arg: &str| -> rusqlite::Result<Vec<Vec<Sql>>> {
         let mut st = conn.prepare(sql)?;
         let n = st.column_count();
-        let it = st.query_map([arg], |r| (0..n).map(|i| r.get_ref(i).map(db::owned_value)).collect::<rusqlite::Result<Vec<_>>>())?;
+        let it = st.query_map([arg], |r| {
+            (0..n)
+                .map(|i| r.get_ref(i).map(db::owned_value))
+                .collect::<rusqlite::Result<Vec<_>>>()
+        })?;
         it.collect()
     };
     let objects = rows("SELECT type, name, tbl_name FROM sqlite_master WHERE substr(name, 1, 7) <> ?1 ORDER BY type, name", "sqlite_")?;
     let mut out = Vec::new();
     for o in objects {
         out.push(format!("{o:?}"));
-        let (Sql::Text(ty), Sql::Text(name)) = (&o[0], &o[1]) else { continue };
+        let (Sql::Text(ty), Sql::Text(name)) = (&o[0], &o[1]) else {
+            continue;
+        };
         if ty != "table" {
             continue;
         }
         for c in rows("SELECT * FROM pragma_table_xinfo(?1)", name)? {
             out.push(format!("  column {c:?}"));
         }
-        for i in rows("SELECT name, \"unique\", origin, partial FROM pragma_index_list(?1) ORDER BY name", name)? {
+        for i in rows(
+            "SELECT name, \"unique\", origin, partial FROM pragma_index_list(?1) ORDER BY name",
+            name,
+        )? {
             out.push(format!("  index {i:?}"));
             if let Sql::Text(idx) = &i[0] {
                 for k in rows("SELECT * FROM pragma_index_xinfo(?1)", idx)? {
@@ -435,7 +492,12 @@ fn schema_shape(conn: &Connection) -> rusqlite::Result<Vec<String>> {
 fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
     let unreadable = |_| BackupError::new("corrupt_db", "The backup's database cannot be read.");
     let template = Connection::open_in_memory().map_err(unreadable)?;
-    db::apply_migrations(&template).map_err(|e| BackupError::new("migration_failed", format!("Preparing the schema check failed: {e}. Your current data was not changed.")))?;
+    db::apply_migrations(&template).map_err(|e| {
+        BackupError::new(
+            "migration_failed",
+            format!("Preparing the schema check failed: {e}. Your current data was not changed."),
+        )
+    })?;
     if schema_shape(conn).map_err(unreadable)? != schema_shape(&template).map_err(unreadable)? {
         return Err(BackupError::new("unsafe_db", "The backup's database has tables, columns or indexes that DeckChek never creates, so it was refused. Your current data was not changed."));
     }
@@ -448,9 +510,15 @@ fn reject_unexpected_schema(conn: &Connection) -> Result<(), BackupError> {
 fn reject_text_not_utf8(conn: &Connection) -> Result<(), BackupError> {
     let unreadable = |_| BackupError::new("corrupt_db", "The backup's database cannot be read.");
     let mut st = conn.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND substr(name, 1, 7) <> 'sqlite_' ORDER BY name").map_err(unreadable)?;
-    let tables = st.query_map([], |r| r.get::<_, String>(0)).map_err(unreadable)?.collect::<rusqlite::Result<Vec<_>>>().map_err(unreadable)?;
+    let tables = st
+        .query_map([], |r| r.get::<_, String>(0))
+        .map_err(unreadable)?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(unreadable)?;
     for table in tables {
-        let mut q = conn.prepare(&format!("SELECT * FROM \"{}\"", table.replace('"', "\"\""))).map_err(unreadable)?;
+        let mut q = conn
+            .prepare(&format!("SELECT * FROM \"{}\"", table.replace('"', "\"\"")))
+            .map_err(unreadable)?;
         let n = q.column_count();
         let mut rows = q.query([]).map_err(unreadable)?;
         while let Some(row) = rows.next().map_err(unreadable)? {
@@ -467,7 +535,9 @@ fn reject_text_not_utf8(conn: &Connection) -> Result<(), BackupError> {
 }
 
 fn integrity_ok(conn: &Connection) -> bool {
-    conn.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0)).map(|s| s == "ok").unwrap_or(false)
+    conn.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
+        .map(|s| s == "ok")
+        .unwrap_or(false)
 }
 
 fn sha_hex(bytes: &[u8]) -> String {
@@ -484,7 +554,9 @@ fn sha_file(path: &Path) -> Result<(u64, String), BackupError> {
     let mut buf = vec![0u8; 64 * 1024];
     let mut total = 0u64;
     loop {
-        let n = f.read(&mut buf).map_err(|e| io_err("read the database snapshot", e))?;
+        let n = f
+            .read(&mut buf)
+            .map_err(|e| io_err("read the database snapshot", e))?;
         if n == 0 {
             break;
         }
@@ -522,23 +594,43 @@ impl Drop for TempFiles {
 /// An entry name is safe when it is relative, forward-slashed and free of `.`/`..`
 /// segments, drive letters, colons and NULs. One trailing `/` (a folder entry) is allowed.
 pub fn entry_name_safe(name: &str) -> bool {
-    if name.is_empty() || name.contains('\0') || name.contains('\\') || name.contains(':') || name.starts_with('/') {
+    if name.is_empty()
+        || name.contains('\0')
+        || name.contains('\\')
+        || name.contains(':')
+        || name.starts_with('/')
+    {
         return false;
     }
     let trimmed = name.strip_suffix('/').unwrap_or(name);
-    !trimmed.is_empty() && trimmed.split('/').all(|s| !s.is_empty() && s != "." && s != "..")
+    !trimmed.is_empty()
+        && trimmed
+            .split('/')
+            .all(|s| !s.is_empty() && s != "." && s != "..")
 }
 
 /// Streams one entry into `sink`. Refuses entries whose declared size exceeds `max`,
 /// entries declared above the ratio floor that compress beyond the ratio limit, and
 /// any entry that inflates past its declared size (lying header). Returns (bytes, sha256 hex).
-fn read_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, max: u64, lim: &Limits, sink: &mut dyn Write) -> Result<(u64, String), BackupError> {
-    let mut f = archive
-        .by_name(name)
-        .map_err(|_| BackupError::new("missing_entry", format!("The backup is incomplete: {name} is missing.")))?;
+fn read_entry<R: Read + Seek>(
+    archive: &mut ZipArchive<R>,
+    name: &str,
+    max: u64,
+    lim: &Limits,
+    sink: &mut dyn Write,
+) -> Result<(u64, String), BackupError> {
+    let mut f = archive.by_name(name).map_err(|_| {
+        BackupError::new(
+            "missing_entry",
+            format!("The backup is incomplete: {name} is missing."),
+        )
+    })?;
     let declared = f.size();
     if declared > max {
-        return Err(BackupError::new("too_large", format!("The backup entry {name} is larger than DeckChek accepts and was refused.")));
+        return Err(BackupError::new(
+            "too_large",
+            format!("The backup entry {name} is larger than DeckChek accepts and was refused."),
+        ));
     }
     let compressed = f.compressed_size().max(1);
     if declared > lim.ratio_floor && declared > compressed.saturating_mul(lim.ratio) {
@@ -548,19 +640,33 @@ fn read_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, max: u64,
     let mut buf = vec![0u8; 64 * 1024];
     let mut total = 0u64;
     loop {
-        let n = f.read(&mut buf).map_err(|_| BackupError::new("corrupt", format!("The backup entry {name} is damaged and cannot be read.")))?;
+        let n = f.read(&mut buf).map_err(|_| {
+            BackupError::new(
+                "corrupt",
+                format!("The backup entry {name} is damaged and cannot be read."),
+            )
+        })?;
         if n == 0 {
             break;
         }
         total += n as u64;
         if total > declared {
-            return Err(BackupError::new("size_mismatch", format!("The backup entry {name} expands beyond its declared size and was refused.")));
+            return Err(BackupError::new(
+                "size_mismatch",
+                format!(
+                    "The backup entry {name} expands beyond its declared size and was refused."
+                ),
+            ));
         }
         h.update(&buf[..n]);
-        sink.write_all(&buf[..n]).map_err(|e| io_err("extract the backup", e))?;
+        sink.write_all(&buf[..n])
+            .map_err(|e| io_err("extract the backup", e))?;
     }
     if total != declared {
-        return Err(BackupError::new("corrupt", format!("The backup entry {name} is shorter than its declared size.")));
+        return Err(BackupError::new(
+            "corrupt",
+            format!("The backup entry {name} is shorter than its declared size."),
+        ));
     }
     Ok((total, hex(&h.finalize())))
 }
@@ -577,25 +683,42 @@ fn known_limit(name: &str, lim: &Limits) -> Option<u64> {
 /// `photos/<64 lowercase hex>.jpg` -> the hash; every other name is not a photo entry.
 fn photo_entry_sha(name: &str) -> Option<&str> {
     let sha = name.strip_prefix(PHOTO_PREFIX)?.strip_suffix(".jpg")?;
-    (sha.len() == 64 && sha.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))).then_some(sha)
+    (sha.len() == 64
+        && sha
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+    .then_some(sha)
 }
 
 /// Photos referenced by the snapshot's `photo` table whose file is present and still matches its
 /// hash: (archive entry name, file path, bytes). Missing or damaged files are left out, not fatal.
-fn photo_files(snap: &Path, photos_dir: &Path) -> Result<(Vec<(String, PathBuf, ManifestFile)>, usize), BackupError> {
-    let c = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| sql_err("read snapshot photos", e))?;
+fn photo_files(
+    snap: &Path,
+    photos_dir: &Path,
+) -> Result<(Vec<(String, PathBuf, ManifestFile)>, usize), BackupError> {
+    let c = Connection::open_with_flags(snap, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|e| sql_err("read snapshot photos", e))?;
     // Migration 0013 introduced the photo store. Old snapshots legitimately
     // have no photo table; do not migrate the snapshot or hide a missing table
     // in a schema that claims that migration has already run.
     if schema_version(&c)? < 13 {
-        let exists: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'photo' COLLATE NOCASE)", [], |r| r.get(0))
+        let exists: bool = c
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'photo' COLLATE NOCASE)",
+                [],
+                |r| r.get(0),
+            )
             .map_err(|e| sql_err("read snapshot photos", e))?;
         if !exists {
             return Ok((Vec::new(), 0));
         }
     }
-    let mut st = c.prepare("SELECT sha256 FROM photo ORDER BY sha256").map_err(|e| sql_err("read snapshot photos", e))?;
-    let rows = st.query_map([], |r| r.get::<_, String>(0)).map_err(|e| sql_err("read snapshot photos", e))?;
+    let mut st = c
+        .prepare("SELECT sha256 FROM photo ORDER BY sha256")
+        .map_err(|e| sql_err("read snapshot photos", e))?;
+    let rows = st
+        .query_map([], |r| r.get::<_, String>(0))
+        .map_err(|e| sql_err("read snapshot photos", e))?;
     let mut out = Vec::new();
     let mut skipped = 0;
     for sha in rows {
@@ -607,7 +730,17 @@ fn photo_files(snap: &Path, photos_dir: &Path) -> Result<(Vec<(String, PathBuf, 
         }
         let path = photos_dir.join(format!("{sha}.jpg"));
         match sha_file(&path) {
-            Ok((bytes, hash)) if hash == sha && bytes <= crate::photo::MAX_PHOTO_BYTES as u64 => out.push((name.clone(), path, ManifestFile { name, bytes, sha256: hash })),
+            Ok((bytes, hash)) if hash == sha && bytes <= crate::photo::MAX_PHOTO_BYTES as u64 => {
+                out.push((
+                    name.clone(),
+                    path,
+                    ManifestFile {
+                        name,
+                        bytes,
+                        sha256: hash,
+                    },
+                ))
+            }
             _ => skipped += 1,
         }
     }
@@ -618,10 +751,16 @@ fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupErr
     let f = File::open(path).map_err(|e| io_err("open the backup file", e))?;
     let archive = ZipArchive::new(f).map_err(|_| bad_zip())?;
     if archive.len() > MAX_ENTRIES {
-        return Err(BackupError::new("too_large", "The backup holds too many entries and was refused."));
+        return Err(BackupError::new(
+            "too_large",
+            "The backup holds too many entries and was refused.",
+        ));
     }
     if archive.file_names().any(|n| !entry_name_safe(n)) {
-        return Err(BackupError::new("unsafe_entry", "The backup contains an unsafe file name (absolute path or '..') and was refused."));
+        return Err(BackupError::new(
+            "unsafe_entry",
+            "The backup contains an unsafe file name (absolute path or '..') and was refused.",
+        ));
     }
     let mut archive = archive;
     let mut declared = 0u64;
@@ -629,7 +768,10 @@ fn open_archive(path: &Path, lim: &Limits) -> Result<ZipArchive<File>, BackupErr
         declared = declared.saturating_add(archive.by_index_raw(i).map_err(|_| bad_zip())?.size());
     }
     if declared > lim.total {
-        return Err(BackupError::new("too_large", "The backup declares more data than DeckChek accepts and was refused."));
+        return Err(BackupError::new(
+            "too_large",
+            "The backup declares more data than DeckChek accepts and was refused.",
+        ));
     }
     Ok(archive)
 }
@@ -647,21 +789,43 @@ fn verify_archive(path: &Path) -> Result<Manifest, BackupError> {
 fn verify_archive_with(path: &Path, lim: &Limits) -> Result<Manifest, BackupError> {
     let mut archive = open_archive(path, lim)?;
     let mut raw = Vec::new();
-    read_entry(&mut archive, MANIFEST, lim.other, lim, &mut raw)
-        .map_err(|e| if e.code == "missing_entry" { BackupError::new("missing_manifest", "This file is not a DeckChek backup (manifest.json is missing).") } else { e })?;
+    read_entry(&mut archive, MANIFEST, lim.other, lim, &mut raw).map_err(|e| {
+        if e.code == "missing_entry" {
+            BackupError::new(
+                "missing_manifest",
+                "This file is not a DeckChek backup (manifest.json is missing).",
+            )
+        } else {
+            e
+        }
+    })?;
     let bad_manifest = || BackupError::new("bad_manifest", "The backup's manifest is malformed.");
     let v: Value = serde_json::from_slice(&raw).map_err(|_| bad_manifest())?;
     if v.get("format").and_then(Value::as_str) != Some(FORMAT) {
-        return Err(BackupError::new("bad_manifest", "This file is not a DeckChek backup (unknown format)."));
+        return Err(BackupError::new(
+            "bad_manifest",
+            "This file is not a DeckChek backup (unknown format).",
+        ));
     }
-    let fv = v.get("formatVersion").and_then(Value::as_i64).ok_or_else(bad_manifest)?;
+    let fv = v
+        .get("formatVersion")
+        .and_then(Value::as_i64)
+        .ok_or_else(bad_manifest)?;
     if fv > FORMAT_VERSION {
-        return Err(BackupError::new("format_too_new", format!("This backup uses a newer backup format (v{fv}). Update DeckChek to restore it.")));
+        return Err(BackupError::new(
+            "format_too_new",
+            format!(
+                "This backup uses a newer backup format (v{fv}). Update DeckChek to restore it."
+            ),
+        ));
     }
     if fv != FORMAT_VERSION {
         return Err(bad_manifest());
     }
-    let sv = v.get("schemaVersion").and_then(Value::as_i64).ok_or_else(bad_manifest)?;
+    let sv = v
+        .get("schemaVersion")
+        .and_then(Value::as_i64)
+        .ok_or_else(bad_manifest)?;
     if sv > current_schema_version() {
         return Err(BackupError::new("too_new", too_new_message(sv)));
     }
@@ -672,18 +836,32 @@ fn verify_archive_with(path: &Path, lim: &Limits) -> Result<Manifest, BackupErro
     let mut seen = std::collections::HashSet::new();
     for f in &manifest.files {
         if !entry_name_safe(&f.name) || !seen.insert(f.name.as_str()) {
-            return Err(BackupError::new("bad_manifest", "The backup's manifest lists an unsafe or duplicate file name."));
+            return Err(BackupError::new(
+                "bad_manifest",
+                "The backup's manifest lists an unsafe or duplicate file name.",
+            ));
         }
     }
     if !seen.contains(DB_ENTRY) {
-        return Err(BackupError::new("bad_manifest", "The backup's manifest does not list the database."));
+        return Err(BackupError::new(
+            "bad_manifest",
+            "The backup's manifest does not list the database.",
+        ));
     }
     for f in &manifest.files {
         // Unknown names (later additive formats, e.g. photos/) are neither read nor used.
-        let Some(limit) = known_limit(&f.name, lim) else { continue };
+        let Some(limit) = known_limit(&f.name, lim) else {
+            continue;
+        };
         let (bytes, sha) = read_entry(&mut archive, &f.name, limit, lim, &mut io::sink())?;
         if bytes != f.bytes || !sha.eq_ignore_ascii_case(&f.sha256) {
-            return Err(BackupError::new("checksum", format!("The backup is damaged: {} does not match its checksum.", f.name)));
+            return Err(BackupError::new(
+                "checksum",
+                format!(
+                    "The backup is damaged: {} does not match its checksum.",
+                    f.name
+                ),
+            ));
         }
     }
     Ok(manifest)
@@ -719,16 +897,25 @@ pub fn inspect_file(path: &Path) -> InspectResult {
 
 /// Copies `live` into `dst_path` with the SQLite online backup API, so the copy is a
 /// transactionally consistent snapshot even while other connections write.
-fn snapshot_db(live: &Path, dst_path: &Path, progress: &mut dyn FnMut(u64, u64)) -> Result<(), BackupError> {
-    let src = Connection::open_with_flags(live, OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX)
-        .map_err(|e| sql_err("open the database for backup", e))?;
+fn snapshot_db(
+    live: &Path,
+    dst_path: &Path,
+    progress: &mut dyn FnMut(u64, u64),
+) -> Result<(), BackupError> {
+    let src = Connection::open_with_flags(
+        live,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|e| sql_err("open the database for backup", e))?;
     // backup_step uses the source connection's busy handler; without one a steady writer
     // (rollback journal on Windows) makes every step return Busy and the backup gives up.
-    src.busy_timeout(Duration::from_secs(5)).map_err(|e| sql_err("open the database for backup", e))?;
+    src.busy_timeout(Duration::from_secs(5))
+        .map_err(|e| sql_err("open the database for backup", e))?;
     let mut dst = Connection::open(dst_path).map_err(|e| sql_err("create the snapshot", e))?;
     {
         let b = Backup::new(&src, &mut dst).map_err(|e| sql_err("start the backup", e))?;
-        let (mut busy, mut restarts, mut last_remaining, mut pages) = (0u32, 0u32, i32::MAX, PAGES_PER_STEP);
+        let (mut busy, mut restarts, mut last_remaining, mut pages) =
+            (0u32, 0u32, i32::MAX, PAGES_PER_STEP);
         loop {
             match b.step(pages).map_err(|e| sql_err("copy the database", e))? {
                 StepResult::Done => break,
@@ -743,7 +930,10 @@ fn snapshot_db(live: &Path, dst_path: &Path, progress: &mut dyn FnMut(u64, u64))
                         }
                     }
                     last_remaining = p.remaining;
-                    progress((p.pagecount - p.remaining).max(0) as u64, p.pagecount.max(0) as u64);
+                    progress(
+                        (p.pagecount - p.remaining).max(0) as u64,
+                        p.pagecount.max(0) as u64,
+                    );
                     std::thread::sleep(STEP_PAUSE);
                 }
                 StepResult::Busy | StepResult::Locked => {
@@ -762,10 +952,15 @@ fn snapshot_db(live: &Path, dst_path: &Path, progress: &mut dyn FnMut(u64, u64))
         progress(p.pagecount.max(0) as u64, p.pagecount.max(0) as u64);
     }
     if !integrity_ok(&dst) {
-        return Err(BackupError::new("corrupt_db", "The database snapshot failed its integrity check; the backup was not made."));
+        return Err(BackupError::new(
+            "corrupt_db",
+            "The database snapshot failed its integrity check; the backup was not made.",
+        ));
     }
-    dst.execute_batch("VACUUM;").map_err(|e| sql_err("compact the snapshot", e))?;
-    dst.close().map_err(|(_, e)| sql_err("close the snapshot", e))?;
+    dst.execute_batch("VACUUM;")
+        .map_err(|e| sql_err("compact the snapshot", e))?;
+    dst.close()
+        .map_err(|(_, e)| sql_err("close the snapshot", e))?;
     Ok(())
 }
 
@@ -796,25 +991,43 @@ fn midi_maps_json(conn: &Connection) -> Result<Value, BackupError> {
             }))
         })
         .map_err(|e| sql_err("read MIDI maps", e))?;
-    let maps = rows.collect::<rusqlite::Result<Vec<_>>>().map_err(|e| sql_err("read MIDI maps", e))?;
+    let maps = rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| sql_err("read MIDI maps", e))?;
     Ok(json!({ "version": 1, "maps": maps }))
 }
 
 /// Refuses destinations that would overwrite the live database or its journal files.
 fn check_dest(live: &Path, dest: &Path) -> Result<(), BackupError> {
-    let has_ext = dest.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case(EXT));
+    let has_ext = dest
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case(EXT));
     if !has_ext {
-        return Err(BackupError::new("invalid_path", format!("Backups must be saved as .{EXT} files.")));
+        return Err(BackupError::new(
+            "invalid_path",
+            format!("Backups must be saved as .{EXT} files."),
+        ));
     }
-    let canon = |p: &Path| p.parent().and_then(|d| fs::canonicalize(d).ok()).map(|d| d.join(p.file_name().unwrap_or_default()));
+    let canon = |p: &Path| {
+        p.parent()
+            .and_then(|d| fs::canonicalize(d).ok())
+            .map(|d| d.join(p.file_name().unwrap_or_default()))
+    };
     let (d, l) = (canon(dest), canon(live));
     let same_dir_live = matches!((&d, &l), (Some(d), Some(l)) if d.parent() == l.parent()
         && d.file_name().and_then(|n| n.to_str()).zip(l.file_name().and_then(|n| n.to_str())).is_some_and(|(dn, ln)| dn.to_ascii_lowercase().starts_with(&ln.to_ascii_lowercase())));
     if same_dir_live {
-        return Err(BackupError::new("invalid_path", "A backup cannot be written over the live database."));
+        return Err(BackupError::new(
+            "invalid_path",
+            "A backup cannot be written over the live database.",
+        ));
     }
     if dest.is_dir() {
-        return Err(BackupError::new("invalid_path", "Choose a file name, not a folder."));
+        return Err(BackupError::new(
+            "invalid_path",
+            "Choose a file name, not a folder.",
+        ));
     }
     Ok(())
 }
@@ -829,16 +1042,32 @@ fn free_space(path: &Path) -> Option<u64> {
     use std::os::windows::ffi::OsStrExt;
     #[link(name = "kernel32")]
     extern "system" {
-        fn GetDiskFreeSpaceExW(dir: *const u16, available: *mut u64, total: *mut u64, free: *mut u64) -> i32;
+        fn GetDiskFreeSpaceExW(
+            dir: *const u16,
+            available: *mut u64,
+            total: *mut u64,
+            free: *mut u64,
+        ) -> i32;
     }
     let mut dir = path;
     while !dir.is_dir() {
         dir = dir.parent()?;
     }
-    let wide: Vec<u16> = dir.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let wide: Vec<u16> = dir
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
     let mut available = 0u64;
     // SAFETY: `wide` is NUL-terminated and outlives the call; the out pointers are valid or null.
-    let ok = unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut available, std::ptr::null_mut(), std::ptr::null_mut()) };
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
     (ok != 0).then_some(available)
 }
 
@@ -861,26 +1090,51 @@ fn ensure_space(free: Option<u64>, needed: u64, doing: &str) -> Result<(), Backu
 
 /// Backup writes a snapshot copy and then the zip next to `dest`: about twice the database.
 fn check_backup_space(dest: &Path, live_bytes: u64) -> Result<(), BackupError> {
-    ensure_space(free_space(dest.parent().unwrap_or(dest)), live_bytes.saturating_mul(2), "create the backup")
+    ensure_space(
+        free_space(dest.parent().unwrap_or(dest)),
+        live_bytes.saturating_mul(2),
+        "create the backup",
+    )
 }
 
 /// Writes a verified backup of `live` to `dest`. The caller holds the connection
 /// gate (read for normal backups, write during restore). Nothing at `dest` changes
 /// unless the finished archive re-verifies.
-pub fn create_backup(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBlob, progress: &mut dyn FnMut(u64, u64)) -> Result<CreateResult, BackupError> {
+pub fn create_backup(
+    live: &Path,
+    dest: &Path,
+    kind: Kind,
+    settings: &SettingsBlob,
+    progress: &mut dyn FnMut(u64, u64),
+) -> Result<CreateResult, BackupError> {
     create_backup_with(live, dest, kind, settings, progress, &mut || {})
 }
 
 /// The hook runs after the SQLite snapshot has closed; tests synchronize an
 /// unlink here to verify that the snapshot's photo bytes remain protected.
-fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsBlob, progress: &mut dyn FnMut(u64, u64), after_snapshot: &mut dyn FnMut()) -> Result<CreateResult, BackupError> {
+fn create_backup_with(
+    live: &Path,
+    dest: &Path,
+    kind: Kind,
+    settings: &SettingsBlob,
+    progress: &mut dyn FnMut(u64, u64),
+    after_snapshot: &mut dyn FnMut(),
+) -> Result<CreateResult, BackupError> {
     check_dest(live, dest)?;
     if !live.is_file() {
-        return Err(BackupError::new("no_database", "There is no database to back up yet."));
+        return Err(BackupError::new(
+            "no_database",
+            "There is no database to back up yet.",
+        ));
     }
-    let live_bytes = fs::metadata(live).map_err(|e| io_err("read the database", e))?.len();
+    let live_bytes = fs::metadata(live)
+        .map_err(|e| io_err("read the database", e))?
+        .len();
     if live_bytes > MAX_DB_BYTES {
-        return Err(BackupError::new("too_large", "The database is larger than 2 GiB and cannot be backed up to a single file."));
+        return Err(BackupError::new(
+            "too_large",
+            "The database is larger than 2 GiB and cannot be backed up to a single file.",
+        ));
     }
     check_backup_space(dest, live_bytes)?;
     // DB gate -> photo file gate -> SQLite locks. Keep bytes referenced by the
@@ -889,7 +1143,11 @@ fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsB
     let _photos = crate::photo::snapshot_files();
     let snap = sidecar(dest, ".snapshot");
     let partial = sidecar(dest, ".partial");
-    let mut temps = TempFiles(vec![snap.clone(), sidecar(&snap, "-journal"), partial.clone()]);
+    let mut temps = TempFiles(vec![
+        snap.clone(),
+        sidecar(&snap, "-journal"),
+        partial.clone(),
+    ]);
     for p in &temps.0 {
         remove_quietly(p);
     }
@@ -897,7 +1155,8 @@ fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsB
     after_snapshot();
 
     let (counts_db, schema, midi) = {
-        let c = Connection::open_with_flags(&snap, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| sql_err("read the snapshot", e))?;
+        let c = Connection::open_with_flags(&snap, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|e| sql_err("read the snapshot", e))?;
         let counts = Counts {
             runs: count(&c, "SELECT COUNT(*) FROM session"),
             assets: count(&c, "SELECT COUNT(*) FROM asset WHERE is_deleted = 0"),
@@ -906,28 +1165,59 @@ fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsB
         };
         (counts, schema_version(&c)?, midi_maps_json(&c)?)
     };
-    let counts = Counts { profiles: calibration_count(settings.calibration.as_ref()), ..counts_db };
-    let (photos, skipped_photos) = photo_files(&snap, &live.parent().unwrap_or(Path::new(".")).join("photos"))?;
-    let warnings = if skipped_photos == 0 { Vec::new() } else {
-        vec![format!("{skipped_photos} photo(s) were missing or damaged and were omitted from this backup.")]
+    let counts = Counts {
+        profiles: calibration_count(settings.calibration.as_ref()),
+        ..counts_db
+    };
+    let (photos, skipped_photos) = photo_files(
+        &snap,
+        &live.parent().unwrap_or(Path::new(".")).join("photos"),
+    )?;
+    let warnings = if skipped_photos == 0 {
+        Vec::new()
+    } else {
+        vec![format!(
+            "{skipped_photos} photo(s) were missing or damaged and were omitted from this backup."
+        )]
     };
 
     let mut blobs: Vec<(&str, Vec<u8>)> = Vec::new();
     if let Some(ui) = settings.ui.as_ref().filter(|v| !v.is_null()) {
-        blobs.push((UI_ENTRY, serde_json::to_vec(ui).map_err(|e| BackupError::new("bad_settings", e.to_string()))?));
+        blobs.push((
+            UI_ENTRY,
+            serde_json::to_vec(ui).map_err(|e| BackupError::new("bad_settings", e.to_string()))?,
+        ));
     }
     if let Some(cal) = settings.calibration.as_ref().filter(|v| !v.is_null()) {
-        blobs.push((CAL_ENTRY, serde_json::to_vec(cal).map_err(|e| BackupError::new("bad_settings", e.to_string()))?));
+        blobs.push((
+            CAL_ENTRY,
+            serde_json::to_vec(cal).map_err(|e| BackupError::new("bad_settings", e.to_string()))?,
+        ));
     }
-    blobs.push((MIDI_ENTRY, serde_json::to_vec_pretty(&midi).map_err(|e| BackupError::new("bad_settings", e.to_string()))?));
+    blobs.push((
+        MIDI_ENTRY,
+        serde_json::to_vec_pretty(&midi)
+            .map_err(|e| BackupError::new("bad_settings", e.to_string()))?,
+    ));
     if let Some((name, _)) = blobs.iter().find(|(_, b)| b.len() as u64 > MAX_OTHER_BYTES) {
-        return Err(BackupError::new("too_large", format!("{name} is larger than 64 MiB and cannot be backed up.")));
+        return Err(BackupError::new(
+            "too_large",
+            format!("{name} is larger than 64 MiB and cannot be backed up."),
+        ));
     }
 
     let (db_bytes, db_sha) = sha_file(&snap)?;
     let created_ms = now_ms();
-    let mut files = vec![ManifestFile { name: DB_ENTRY.into(), bytes: db_bytes, sha256: db_sha }];
-    files.extend(blobs.iter().map(|(n, b)| ManifestFile { name: (*n).into(), bytes: b.len() as u64, sha256: sha_hex(b) }));
+    let mut files = vec![ManifestFile {
+        name: DB_ENTRY.into(),
+        bytes: db_bytes,
+        sha256: db_sha,
+    }];
+    files.extend(blobs.iter().map(|(n, b)| ManifestFile {
+        name: (*n).into(),
+        bytes: b.len() as u64,
+        sha256: sha_hex(b),
+    }));
     files.extend(photos.iter().map(|(_, _, f)| f.clone()));
     let manifest = Manifest {
         format: FORMAT.into(),
@@ -942,14 +1232,36 @@ fn create_backup_with(live: &Path, dest: &Path, kind: Kind, settings: &SettingsB
 
     write_archive(&partial, &manifest, &snap, &blobs, &photos)?;
     remove_quietly(&snap);
-    verify_archive(&partial).map_err(|e| BackupError::new("verify_failed", format!("The new backup did not verify ({}); nothing was saved.", e.message)))?;
+    verify_archive(&partial).map_err(|e| {
+        BackupError::new(
+            "verify_failed",
+            format!(
+                "The new backup did not verify ({}); nothing was saved.",
+                e.message
+            ),
+        )
+    })?;
     fs::rename(&partial, dest).map_err(|e| io_err("save the backup file", e))?;
     temps.disarm();
     let bytes = fs::metadata(dest).map(|m| m.len()).unwrap_or(0);
-    Ok(CreateResult { path: dest.to_string_lossy().into_owned(), bytes, created_at: manifest.created_at, kind, counts, schema_version: schema, warnings })
+    Ok(CreateResult {
+        path: dest.to_string_lossy().into_owned(),
+        bytes,
+        created_at: manifest.created_at,
+        kind,
+        counts,
+        schema_version: schema,
+        warnings,
+    })
 }
 
-fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(&str, Vec<u8>)], photos: &[(String, PathBuf, ManifestFile)]) -> Result<(), BackupError> {
+fn write_archive(
+    partial: &Path,
+    manifest: &Manifest,
+    db_file: &Path,
+    blobs: &[(&str, Vec<u8>)],
+    photos: &[(String, PathBuf, ManifestFile)],
+) -> Result<(), BackupError> {
     let write_err = |e: zip::result::ZipError| match e {
         zip::result::ZipError::Io(io) => io_err("write the backup file", io),
         other => BackupError::new("io", format!("Could not write the backup file ({other}).")),
@@ -959,14 +1271,21 @@ fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(
     let opts = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
     // The manifest goes first so a reader can describe the backup from the first entry.
     zw.start_file(MANIFEST, opts).map_err(write_err)?;
-    let mjson = serde_json::to_vec_pretty(manifest).map_err(|e| BackupError::new("io", e.to_string()))?;
-    zw.write_all(&mjson).map_err(|e| io_err("write the backup file", e))?;
-    zw.start_file(DB_ENTRY, opts.large_file(manifest.files[0].bytes >= u64::from(u32::MAX))).map_err(write_err)?;
+    let mjson =
+        serde_json::to_vec_pretty(manifest).map_err(|e| BackupError::new("io", e.to_string()))?;
+    zw.write_all(&mjson)
+        .map_err(|e| io_err("write the backup file", e))?;
+    zw.start_file(
+        DB_ENTRY,
+        opts.large_file(manifest.files[0].bytes >= u64::from(u32::MAX)),
+    )
+    .map_err(write_err)?;
     let mut db = File::open(db_file).map_err(|e| io_err("read the database snapshot", e))?;
     io::copy(&mut db, &mut zw).map_err(|e| io_err("write the backup file", e))?;
     for (name, bytes) in blobs {
         zw.start_file(*name, opts).map_err(write_err)?;
-        zw.write_all(bytes).map_err(|e| io_err("write the backup file", e))?;
+        zw.write_all(bytes)
+            .map_err(|e| io_err("write the backup file", e))?;
     }
     for (name, path, _) in photos {
         zw.start_file(name.as_str(), opts).map_err(write_err)?;
@@ -974,8 +1293,11 @@ fn write_archive(partial: &Path, manifest: &Manifest, db_file: &Path, blobs: &[(
         io::copy(&mut f, &mut zw).map_err(|e| io_err("write the backup file", e))?;
     }
     let buf = zw.finish().map_err(write_err)?;
-    let file = buf.into_inner().map_err(|e| io_err("write the backup file", e.into_error()))?;
-    file.sync_all().map_err(|e| io_err("write the backup file", e))?;
+    let file = buf
+        .into_inner()
+        .map_err(|e| io_err("write the backup file", e.into_error()))?;
+    file.sync_all()
+        .map_err(|e| io_err("write the backup file", e))?;
     Ok(())
 }
 
@@ -993,12 +1315,22 @@ fn unique_path(dir: &Path, prefix: &str, ms: i64) -> PathBuf {
 
 // ---------------------------------------------------------------- restore
 
-fn read_settings_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, m: &Manifest, name: &str, warnings: &mut Vec<String>) -> Result<Value, BackupError> {
-    let Some(f) = m.files.iter().find(|f| f.name == name) else { return Ok(Value::Null) };
+fn read_settings_entry<R: Read + Seek>(
+    archive: &mut ZipArchive<R>,
+    m: &Manifest,
+    name: &str,
+    warnings: &mut Vec<String>,
+) -> Result<Value, BackupError> {
+    let Some(f) = m.files.iter().find(|f| f.name == name) else {
+        return Ok(Value::Null);
+    };
     let mut raw = Vec::new();
     let (bytes, sha) = read_entry(archive, name, MAX_OTHER_BYTES, &LIMITS, &mut raw)?;
     if bytes != f.bytes || !sha.eq_ignore_ascii_case(&f.sha256) {
-        return Err(BackupError::new("checksum", format!("The backup is damaged: {name} does not match its checksum.")));
+        return Err(BackupError::new(
+            "checksum",
+            format!("The backup is damaged: {name} does not match its checksum."),
+        ));
     }
     let v: Value = match serde_json::from_slice(&raw) {
         Ok(v) => v,
@@ -1009,7 +1341,9 @@ fn read_settings_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, m: &Manifest
     };
     let ok = match name {
         UI_ENTRY => v.is_object(),
-        CAL_ENTRY => v.as_object().is_some_and(|m| m.values().all(Value::is_string)),
+        CAL_ENTRY => v
+            .as_object()
+            .is_some_and(|m| m.values().all(Value::is_string)),
         _ => true,
     };
     if ok {
@@ -1035,9 +1369,18 @@ const SIDECARS: [&str; 4] = ["", "-journal", "-wal", "-shm"];
 /// temp copy → take the gate write guard → safety backup of the live DB → rename swap
 /// with rollback. Any failure before the swap leaves the live files untouched; a failure
 /// during or after the swap renames the originals back.
-pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsBlob, fail: Option<FailPoint>) -> Result<RestoreResult, BackupError> {
+pub fn restore_backup(
+    ctx: &Ctx,
+    path: &Path,
+    confirm: bool,
+    current: &SettingsBlob,
+    fail: Option<FailPoint>,
+) -> Result<RestoreResult, BackupError> {
     if !confirm {
-        return Err(BackupError::new("not_confirmed", "Restore needs confirmation: it replaces your current data."));
+        return Err(BackupError::new(
+            "not_confirmed",
+            "Restore needs confirmation: it replaces your current data.",
+        ));
     }
     if (ctx.capture_running)() {
         return Err(capture_blocked());
@@ -1045,7 +1388,10 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     // Atomically reserve activity before preparing files or waiting on the DB
     // gate. The reservation holds no mutex; capture cleanup never needs the DB
     // gate, and every capture acquire observes this flag under its own mutex.
-    let _activity = ctx.activity.reserve_restore().map_err(|()| capture_blocked())?;
+    let _activity = ctx
+        .activity
+        .reserve_restore()
+        .map_err(|()| capture_blocked())?;
     let manifest = verify_archive(path)?;
     let live = ctx.live_db.as_path();
     let tmp = restore_tmp(live);
@@ -1057,16 +1403,26 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     let mut warnings = Vec::new();
     let (ui, cal) = {
         let mut archive = open_archive(path, &LIMITS)?;
-        let entry = manifest.files.iter().find(|f| f.name == DB_ENTRY).expect("verified manifest lists the DB");
+        let entry = manifest
+            .files
+            .iter()
+            .find(|f| f.name == DB_ENTRY)
+            .expect("verified manifest lists the DB");
         // The extracted copy is written next to the live database; refuse before touching anything.
         ensure_space(free_space(live), entry.bytes, "restore the backup")?;
-        let mut out = BufWriter::new(File::create(&tmp).map_err(|e| io_err("extract the backup", e))?);
+        let mut out =
+            BufWriter::new(File::create(&tmp).map_err(|e| io_err("extract the backup", e))?);
         let (bytes, sha) = read_entry(&mut archive, DB_ENTRY, MAX_DB_BYTES, &LIMITS, &mut out)?;
-        let f = out.into_inner().map_err(|e| io_err("extract the backup", e.into_error()))?;
+        let f = out
+            .into_inner()
+            .map_err(|e| io_err("extract the backup", e.into_error()))?;
         f.sync_all().map_err(|e| io_err("extract the backup", e))?;
         drop(f);
         if bytes != entry.bytes || !sha.eq_ignore_ascii_case(&entry.sha256) {
-            return Err(BackupError::new("checksum", "The backup changed or is damaged: the database does not match its checksum."));
+            return Err(BackupError::new(
+                "checksum",
+                "The backup changed or is damaged: the database does not match its checksum.",
+            ));
         }
         let ui = read_settings_entry(&mut archive, &manifest, UI_ENTRY, &mut warnings)?;
         let cal = read_settings_entry(&mut archive, &manifest, CAL_ENTRY, &mut warnings)?;
@@ -1075,8 +1431,10 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 
     let current_v = current_schema_version();
     let from = {
-        let conn = Connection::open_with_flags(&tmp, OpenFlags::SQLITE_OPEN_READ_WRITE)
-            .map_err(|_| BackupError::new("corrupt_db", "The backup's database cannot be opened."))?;
+        let conn =
+            Connection::open_with_flags(&tmp, OpenFlags::SQLITE_OPEN_READ_WRITE).map_err(|_| {
+                BackupError::new("corrupt_db", "The backup's database cannot be opened.")
+            })?;
         harden_untrusted(&conn)?;
         if !integrity_ok(&conn) {
             return Err(BackupError::new("corrupt_db", "The backup's database is damaged (integrity check failed). Your current data was not changed."));
@@ -1087,18 +1445,31 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
             return Err(BackupError::new("too_new", too_new_message(from)));
         }
         if fail == Some(FailPoint::Migration) {
-            return Err(BackupError::new("migration_failed", "Upgrading the backup failed (injected). Your current data was not changed."));
+            return Err(BackupError::new(
+                "migration_failed",
+                "Upgrading the backup failed (injected). Your current data was not changed.",
+            ));
         }
-        db::apply_migrations(&conn).map_err(|e| BackupError::new("migration_failed", format!("Upgrading the backup failed: {e}. Your current data was not changed.")))?;
+        db::apply_migrations(&conn).map_err(|e| {
+            BackupError::new(
+                "migration_failed",
+                format!("Upgrading the backup failed: {e}. Your current data was not changed."),
+            )
+        })?;
         if !integrity_ok(&conn) || schema_version(&conn)? != current_v {
-            return Err(BackupError::new("migration_failed", "The upgraded backup failed its checks. Your current data was not changed."));
+            return Err(BackupError::new(
+                "migration_failed",
+                "The upgraded backup failed its checks. Your current data was not changed.",
+            ));
         }
         reject_unexpected_schema(&conn)?;
         reject_text_not_utf8(&conn)?;
         // backup_log paths name files of the machine and time the backup came from; they are
         // never probed or offered here (AUD-02).
-        conn.execute("DELETE FROM backup_log", []).map_err(|e| sql_err("clear the restored backup log", e))?;
-        conn.close().map_err(|(_, e)| sql_err("close the restored copy", e))?;
+        conn.execute("DELETE FROM backup_log", [])
+            .map_err(|e| sql_err("clear the restored backup log", e))?;
+        conn.close()
+            .map_err(|(_, e)| sql_err("close the restored copy", e))?;
         from
     };
 
@@ -1110,19 +1481,36 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
     let safety = if live.is_file() {
         fs::create_dir_all(&ctx.backups_dir).map_err(|e| io_err("create the backups folder", e))?;
         let dest = unique_path(&ctx.backups_dir, "auto-pre-restore-", now_ms());
-        let r = create_backup(live, &dest, Kind::PreRestore, current, &mut |_, _| {})
-            .map_err(|e| BackupError::new(e.code, format!("The safety backup failed, so nothing was restored: {}", e.message)))?;
+        let r =
+            create_backup(live, &dest, Kind::PreRestore, current, &mut |_, _| {}).map_err(|e| {
+                BackupError::new(
+                    e.code,
+                    format!(
+                        "The safety backup failed, so nothing was restored: {}",
+                        e.message
+                    ),
+                )
+            })?;
         Some(r.path)
     } else {
         None
     };
     if fail == Some(FailPoint::AfterSafetyBackup) {
-        return Err(BackupError::new("io", "Restore failed after the safety backup (injected). Your current data was not changed."));
+        return Err(BackupError::new(
+            "io",
+            "Restore failed after the safety backup (injected). Your current data was not changed.",
+        ));
     }
 
     swap_in(live, &tmp, fail)?;
     temps.disarm();
-    restore_photos(path, &manifest, live, &live.parent().unwrap_or(Path::new(".")).join("photos"), &mut warnings);
+    restore_photos(
+        path,
+        &manifest,
+        live,
+        &live.parent().unwrap_or(Path::new(".")).join("photos"),
+        &mut warnings,
+    );
     Ok(RestoreResult {
         restored_from: path.to_string_lossy().into_owned(),
         upgraded_from: (from < current_v).then_some(from),
@@ -1140,19 +1528,34 @@ pub fn restore_backup(ctx: &Ctx, path: &Path, confirm: bool, current: &SettingsB
 /// [`crate::photo::validate_jpeg`] (no metadata, size and edge limits), as an attached photo would
 /// (AUD-05). Best effort after the database swap: skipped photos are counted in one warning,
 /// never an error, because the restored database is already in place.
-fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_dir: &Path, warnings: &mut Vec<String>) {
+fn restore_photos(
+    path: &Path,
+    manifest: &Manifest,
+    restored_db: &Path,
+    photos_dir: &Path,
+    warnings: &mut Vec<String>,
+) {
     let _files = crate::photo::mutate_files();
-    let all: Vec<(&ManifestFile, &str)> = manifest.files.iter().filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha))).collect();
+    let all: Vec<(&ManifestFile, &str)> = manifest
+        .files
+        .iter()
+        .filter_map(|f| photo_entry_sha(&f.name).map(|sha| (f, sha)))
+        .collect();
     let referenced = referenced_photo_shas(restored_db);
     let included: std::collections::HashSet<&str> = all.iter().map(|(_, sha)| *sha).collect();
-    let absent = referenced.iter().filter(|sha| !included.contains(sha.as_str())).count();
+    let absent = referenced
+        .iter()
+        .filter(|sha| !included.contains(sha.as_str()))
+        .count();
     if absent > 0 {
         warnings.push(format!("{absent} referenced photo(s) are absent from this backup; existing local copies, if any, were kept."));
     }
     if all.is_empty() {
         return;
     }
-    let (wanted, unreferenced): (Vec<_>, Vec<_>) = all.into_iter().partition(|(_, sha)| referenced.contains(*sha));
+    let (wanted, unreferenced): (Vec<_>, Vec<_>) = all
+        .into_iter()
+        .partition(|(_, sha)| referenced.contains(*sha));
     let mut failed = unreferenced.len();
     let result = (|| -> Result<(), BackupError> {
         if wanted.is_empty() {
@@ -1169,13 +1572,26 @@ fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_d
             let one = (|| -> Result<(), BackupError> {
                 // read_entry caps the entry at MAX_PHOTO_BYTES before anything is buffered
                 let mut bytes = Vec::new();
-                let (n, hash) = read_entry(&mut archive, &f.name, crate::photo::MAX_PHOTO_BYTES as u64, &LIMITS, &mut bytes)?;
+                let (n, hash) = read_entry(
+                    &mut archive,
+                    &f.name,
+                    crate::photo::MAX_PHOTO_BYTES as u64,
+                    &LIMITS,
+                    &mut bytes,
+                )?;
                 if n != f.bytes || !hash.eq_ignore_ascii_case(&f.sha256) || hash != sha {
-                    return Err(BackupError::new("checksum", "a photo does not match its checksum"));
+                    return Err(BackupError::new(
+                        "checksum",
+                        "a photo does not match its checksum",
+                    ));
                 }
-                crate::photo::validate_jpeg(&bytes).map_err(|_| BackupError::new("bad_photo", "a photo is not a JPEG the photo store accepts"))?;
+                crate::photo::validate_jpeg(&bytes).map_err(|_| {
+                    BackupError::new("bad_photo", "a photo is not a JPEG the photo store accepts")
+                })?;
                 let mut out = File::create(&tmp).map_err(|e| io_err("restore a photo", e))?;
-                out.write_all(&bytes).and_then(|()| out.sync_all()).map_err(|e| io_err("restore a photo", e))?;
+                out.write_all(&bytes)
+                    .and_then(|()| out.sync_all())
+                    .map_err(|e| io_err("restore a photo", e))?;
                 drop(out);
                 fs::rename(&tmp, &target).map_err(|e| io_err("restore a photo", e))
             })();
@@ -1189,15 +1605,23 @@ fn restore_photos(path: &Path, manifest: &Manifest, restored_db: &Path, photos_d
     if let Err(e) = result {
         warnings.push(format!("The photos could not be restored: {}", e.message));
     } else if failed > 0 {
-        warnings.push(format!("{failed} photo(s) could not be restored; the rest of the backup was restored."));
+        warnings.push(format!(
+            "{failed} photo(s) could not be restored; the rest of the backup was restored."
+        ));
     }
 }
 
 /// The `photo.sha256` values of the database at `db_path` (empty when it cannot be read).
 fn referenced_photo_shas(db_path: &Path) -> std::collections::HashSet<String> {
-    let Ok(c) = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY) else { return Default::default() };
-    let Ok(mut st) = c.prepare("SELECT sha256 FROM photo") else { return Default::default() };
-    st.query_map([], |r| r.get::<_, String>(0)).map(|rows| rows.flatten().collect()).unwrap_or_default()
+    let Ok(c) = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY) else {
+        return Default::default();
+    };
+    let Ok(mut st) = c.prepare("SELECT sha256 FROM photo") else {
+        return Default::default();
+    };
+    st.query_map([], |r| r.get::<_, String>(0))
+        .map(|rows| rows.flatten().collect())
+        .unwrap_or_default()
 }
 
 /// live (+ journal/wal/shm) → `.restore-bak`, tmp → live, verify; any error rolls back.
@@ -1227,18 +1651,28 @@ fn swap_in(live: &Path, tmp: &Path, fail: Option<FailPoint>) -> Result<(), Backu
     }
     if fail == Some(FailPoint::MidSwap) {
         rollback(&moved, false);
-        return Err(BackupError::new("io", "Restore failed while swapping files (injected). Your current data was restored."));
+        return Err(BackupError::new(
+            "io",
+            "Restore failed while swapping files (injected). Your current data was restored.",
+        ));
     }
     if let Err(e) = fs::rename(tmp, live) {
         rollback(&moved, false);
         return Err(io_err("put the restored database in place", e));
     }
     let verified = Connection::open_with_flags(live, OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map(|c| c.query_row("PRAGMA quick_check", [], |r| r.get::<_, String>(0)).map(|s| s == "ok").unwrap_or(false))
+        .map(|c| {
+            c.query_row("PRAGMA quick_check", [], |r| r.get::<_, String>(0))
+                .map(|s| s == "ok")
+                .unwrap_or(false)
+        })
         .unwrap_or(false);
     if !verified || fail == Some(FailPoint::AfterSwap) {
         rollback(&moved, true);
-        return Err(BackupError::new("io", "The restored database could not be opened in place; your current data was put back."));
+        return Err(BackupError::new(
+            "io",
+            "The restored database could not be opened in place; your current data was put back.",
+        ));
     }
     for s in SIDECARS {
         remove_quietly(&sidecar(&bak, s));
@@ -1280,7 +1714,9 @@ pub fn recover_on_startup(ctx: &Ctx) -> Vec<String> {
     if let Ok(rd) = fs::read_dir(&ctx.backups_dir) {
         for e in rd.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
-            let stale = [".partial", ".snapshot", ".snapshot-journal"].iter().any(|s| name.ends_with(&format!(".{EXT}{s}")));
+            let stale = [".partial", ".snapshot", ".snapshot-journal"]
+                .iter()
+                .any(|s| name.ends_with(&format!(".{EXT}{s}")));
             if stale && e.path().is_file() {
                 remove_quietly(&e.path());
                 notes.push(format!("removed unfinished backup {name}"));
@@ -1313,10 +1749,20 @@ fn entry_for(path: &Path) -> Option<BackupEntry> {
     let meta = fs::metadata(path).ok().filter(|m| m.is_file())?;
     let name = path.file_name()?.to_string_lossy().into_owned();
     let manifest = read_manifest_quick(path);
-    let mtime = meta.modified().ok().and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_millis() as i64).unwrap_or(0);
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
     Some(BackupEntry {
-        kind: manifest.as_ref().map(|m| m.kind.clone()).unwrap_or_else(|| kind_from_name(&name).into()),
-        created_at: manifest.map(|m| m.created_at).unwrap_or_else(|| iso_utc(mtime)),
+        kind: manifest
+            .as_ref()
+            .map(|m| m.kind.clone())
+            .unwrap_or_else(|| kind_from_name(&name).into()),
+        created_at: manifest
+            .map(|m| m.created_at)
+            .unwrap_or_else(|| iso_utc(mtime)),
         name,
         path: path.to_string_lossy().into_owned(),
         bytes: meta.len(),
@@ -1336,7 +1782,8 @@ pub fn list_backups(ctx: &Ctx, conn: Option<&Connection>) -> Vec<BackupEntry> {
 fn logged_path_ok(path: &str) -> bool {
     let b = path.as_bytes();
     let sep = |c: u8| c == b'/' || c == b'\\';
-    if b.is_empty() || b.len() > 4096 || b.contains(&0) || (b.len() >= 2 && sep(b[0]) && sep(b[1])) {
+    if b.is_empty() || b.len() > 4096 || b.contains(&0) || (b.len() >= 2 && sep(b[0]) && sep(b[1]))
+    {
         return false;
     }
     let drive = b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && sep(b[2]);
@@ -1350,20 +1797,31 @@ fn logged_path_ok(path: &str) -> bool {
     #[cfg(windows)]
     {
         use std::path::{Component, Prefix};
-        if !matches!(p.components().next(), Some(Component::Prefix(pre)) if matches!(pre.kind(), Prefix::Disk(_))) {
+        if !matches!(p.components().next(), Some(Component::Prefix(pre)) if matches!(pre.kind(), Prefix::Disk(_)))
+        {
             return false;
         }
     }
-    p.is_absolute() && p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case(EXT))
+    p.is_absolute()
+        && p.extension()
+            .and_then(|x| x.to_str())
+            .is_some_and(|x| x.eq_ignore_ascii_case(EXT))
 }
 
 /// [`list_backups`] with the per-file probe injectable (tests record which paths are touched).
-fn list_backups_with(ctx: &Ctx, conn: Option<&Connection>, probe: &mut dyn FnMut(&Path) -> Option<BackupEntry>) -> Vec<BackupEntry> {
+fn list_backups_with(
+    ctx: &Ctx,
+    conn: Option<&Connection>,
+    probe: &mut dyn FnMut(&Path) -> Option<BackupEntry>,
+) -> Vec<BackupEntry> {
     let mut out: Vec<BackupEntry> = Vec::new();
     if let Ok(rd) = fs::read_dir(&ctx.backups_dir) {
         for e in rd.flatten() {
             let p = e.path();
-            if p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case(EXT)) {
+            if p.extension()
+                .and_then(|x| x.to_str())
+                .is_some_and(|x| x.eq_ignore_ascii_case(EXT))
+            {
                 out.extend(probe(&p));
             }
         }
@@ -1376,7 +1834,11 @@ fn list_backups_with(ctx: &Ctx, conn: Option<&Connection>, probe: &mut dyn FnMut
             }
         }
     }
-    out.sort_by(|a, b| b.created_at.cmp(&a.created_at).then_with(|| b.name.cmp(&a.name)));
+    out.sort_by(|a, b| {
+        b.created_at
+            .cmp(&a.created_at)
+            .then_with(|| b.name.cmp(&a.name))
+    });
     out
 }
 
@@ -1420,23 +1882,39 @@ pub fn log_backup(conn: &Connection, r: &CreateResult, ok: bool) -> Result<(), B
 }
 
 fn logged_paths(conn: &Connection) -> Vec<String> {
-    let Ok(mut stmt) = conn.prepare("SELECT DISTINCT path FROM backup_log WHERE ok = 1 ORDER BY created_at DESC LIMIT 200") else { return vec![] };
-    stmt.query_map([], |r| r.get(0)).map(|rows| rows.flatten().collect()).unwrap_or_default()
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT DISTINCT path FROM backup_log WHERE ok = 1 ORDER BY created_at DESC LIMIT 200",
+    ) else {
+        return vec![];
+    };
+    stmt.query_map([], |r| r.get(0))
+        .map(|rows| rows.flatten().collect())
+        .unwrap_or_default()
 }
 
 // ---------------------------------------------------------------- schedule
 
 pub fn get_schedule(conn: &Connection) -> Result<ScheduleSettings, BackupError> {
-    let entry = crate::app_state::get(conn, SETTINGS_KEY).map_err(|e| BackupError::new("database", e))?;
-    Ok(entry.and_then(|e| serde_json::from_value::<ScheduleSettings>(e.value).ok()).unwrap_or_default())
+    let entry =
+        crate::app_state::get(conn, SETTINGS_KEY).map_err(|e| BackupError::new("database", e))?;
+    Ok(entry
+        .and_then(|e| serde_json::from_value::<ScheduleSettings>(e.value).ok())
+        .unwrap_or_default())
 }
 
 /// Stores mode/keep (and last-run fields when `last` is given), preserving any other
 /// keys the UI keeps under `app_state['backup']` (e.g. reminder choices).
-pub fn set_schedule(conn: &Connection, input: Option<&ScheduleInput>, last: Option<i64>) -> Result<ScheduleSettings, BackupError> {
+pub fn set_schedule(
+    conn: &Connection,
+    input: Option<&ScheduleInput>,
+    last: Option<i64>,
+) -> Result<ScheduleSettings, BackupError> {
     if let Some(i) = input {
         if i.keep < 1 || i.keep > MAX_KEEP {
-            return Err(BackupError::new("invalid_settings", format!("Keep must be between 1 and {MAX_KEEP}.")));
+            return Err(BackupError::new(
+                "invalid_settings",
+                format!("Keep must be between 1 and {MAX_KEEP}."),
+            ));
         }
     }
     let mut obj = crate::app_state::get(conn, SETTINGS_KEY)
@@ -1446,13 +1924,17 @@ pub fn set_schedule(conn: &Connection, input: Option<&ScheduleInput>, last: Opti
     let cur = get_schedule(conn)?;
     let mode = input.map(|i| i.mode).unwrap_or(cur.mode);
     let keep = input.map(|i| i.keep).unwrap_or(cur.keep);
-    obj.insert("mode".into(), serde_json::to_value(mode).unwrap_or(Value::Null));
+    obj.insert(
+        "mode".into(),
+        serde_json::to_value(mode).unwrap_or(Value::Null),
+    );
     obj.insert("keep".into(), json!(keep));
     if let Some(ms) = last {
         obj.insert("lastAutoAt".into(), json!(iso_utc(ms)));
         obj.insert("lastAutoMs".into(), json!(ms));
     }
-    crate::app_state::set(conn, SETTINGS_KEY, &Value::Object(obj)).map_err(|e| BackupError::new("database", e))?;
+    crate::app_state::set(conn, SETTINGS_KEY, &Value::Object(obj))
+        .map_err(|e| BackupError::new("database", e))?;
     get_schedule(conn)
 }
 
@@ -1469,7 +1951,10 @@ pub fn is_due(mode: Mode, last_ms: Option<i64>, now: i64) -> bool {
 fn read_settings_cache(dir: &Path) -> SettingsBlob {
     let p = dir.join(SETTINGS_CACHE);
     match fs::metadata(&p) {
-        Ok(m) if m.len() <= MAX_OTHER_BYTES => fs::read(&p).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default(),
+        Ok(m) if m.len() <= MAX_OTHER_BYTES => fs::read(&p)
+            .ok()
+            .and_then(|b| serde_json::from_slice(&b).ok())
+            .unwrap_or_default(),
         _ => SettingsBlob::default(),
     }
 }
@@ -1486,7 +1971,10 @@ fn write_settings_cache(dir: &Path, s: &SettingsBlob) {
 // ---------------------------------------------------------------- workspace import
 
 fn str_field<'a>(v: &'a Value, keys: &[&str]) -> Option<&'a str> {
-    keys.iter().find_map(|k| v.get(*k).and_then(Value::as_str)).map(str::trim).filter(|s| !s.is_empty())
+    keys.iter()
+        .find_map(|k| v.get(*k).and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
 }
 
 /// Caps for imported equipment, matching the phone-import limits (`app/phone-run.js`: nickname 120,
@@ -1501,7 +1989,9 @@ const MAX_EQUIPMENT_NOTES: usize = 2000;
 fn equipment_fields_ok(id: &str, name: &str, serial: Option<&str>, notes: Option<&str>) -> bool {
     let within = |s: Option<&str>, max: usize| s.is_none_or(|s| s.chars().count() <= max);
     id.len() <= MAX_EQUIPMENT_ID
-        && id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
         && within(Some(name), MAX_EQUIPMENT_NAME)
         && within(serial, MAX_EQUIPMENT_SERIAL)
         && within(notes, MAX_EQUIPMENT_NOTES)
@@ -1509,16 +1999,42 @@ fn equipment_fields_ok(id: &str, name: &str, serial: Option<&str>, notes: Option
 
 /// Imports a browser-mode workspace (`version: 1`) shaped by `workspaceToImportPayload`.
 /// Runs whose id already exists are skipped; each run is written atomically.
-pub fn import_workspace(conn: &mut Connection, payload: &Value) -> Result<ImportResult, BackupError> {
+pub fn import_workspace(
+    conn: &mut Connection,
+    payload: &Value,
+) -> Result<ImportResult, BackupError> {
     if payload.get("version").and_then(Value::as_i64) != Some(1) {
-        return Err(BackupError::new("bad_workspace", "Unsupported or invalid DeckChek workspace file."));
+        return Err(BackupError::new(
+            "bad_workspace",
+            "Unsupported or invalid DeckChek workspace file.",
+        ));
     }
-    let runs = payload.get("runs").and_then(Value::as_array).ok_or_else(|| BackupError::new("bad_workspace", "Unsupported or invalid DeckChek workspace file."))?;
-    let equipment = payload.get("equipment").and_then(Value::as_array).cloned().unwrap_or_default();
+    let runs = payload
+        .get("runs")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            BackupError::new(
+                "bad_workspace",
+                "Unsupported or invalid DeckChek workspace file.",
+            )
+        })?;
+    let equipment = payload
+        .get("equipment")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     if runs.len() > MAX_IMPORT_RUNS || equipment.len() > MAX_IMPORT_RUNS {
-        return Err(BackupError::new("too_large", "The workspace holds too many items to import."));
+        return Err(BackupError::new(
+            "too_large",
+            "The workspace holds too many items to import.",
+        ));
     }
-    let mut res = ImportResult { runs_imported: 0, runs_skipped: 0, runs_invalid: 0, equipment_imported: 0 };
+    let mut res = ImportResult {
+        runs_imported: 0,
+        runs_skipped: 0,
+        runs_invalid: 0,
+        equipment_imported: 0,
+    };
     let mut seen = std::collections::HashSet::new();
     for r in runs {
         let Ok(run) = serde_json::from_value::<PersistRun>(r.clone()) else {
@@ -1545,8 +2061,16 @@ pub fn import_workspace(conn: &mut Connection, payload: &Value) -> Result<Import
     }
     let now = db::now_iso(conn).map_err(|e| BackupError::new("database", e))?;
     for e in &equipment {
-        let (Some(id), Some(name)) = (str_field(e, &["id"]), str_field(e, &["nickname", "name", "label", "model"])) else { continue };
-        let (serial, notes) = (str_field(e, &["serialNumber", "serial"]), str_field(e, &["notes"]));
+        let (Some(id), Some(name)) = (
+            str_field(e, &["id"]),
+            str_field(e, &["nickname", "name", "label", "model"]),
+        ) else {
+            continue;
+        };
+        let (serial, notes) = (
+            str_field(e, &["serialNumber", "serial"]),
+            str_field(e, &["notes"]),
+        );
         if !equipment_fields_ok(id, name, serial, notes) {
             continue;
         }
@@ -1568,12 +2092,28 @@ static OP_LOCK: Mutex<()> = Mutex::new(());
 
 fn app_ctx(app: &AppHandle) -> Result<Ctx, BackupError> {
     let live = db::database_path(app).map_err(|e| BackupError::new("io", e))?;
-    let dir = app.path().app_data_dir().map_err(|e| BackupError::new("io", e.to_string()))?.join("backups");
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| BackupError::new("io", e.to_string()))?
+        .join("backups");
     fs::create_dir_all(&dir).map_err(|e| io_err("create the backups folder", e))?;
-    let capture = app.try_state::<crate::capture::LiveCaptureState>().map(|s| s.inner().clone());
-    let activity = capture.as_ref().map(|s| s.lease.clone()).unwrap_or_default();
-    let capture_running: CaptureCheck = std::sync::Arc::new(move || capture.as_ref().is_some_and(crate::capture::is_running));
-    Ok(Ctx { live_db: live, backups_dir: dir, gate: db::gate(), capture_running, activity })
+    let capture = app
+        .try_state::<crate::capture::LiveCaptureState>()
+        .map(|s| s.inner().clone());
+    let activity = capture
+        .as_ref()
+        .map(|s| s.lease.clone())
+        .unwrap_or_default();
+    let capture_running: CaptureCheck =
+        std::sync::Arc::new(move || capture.as_ref().is_some_and(crate::capture::is_running));
+    Ok(Ctx {
+        live_db: live,
+        backups_dir: dir,
+        gate: db::gate(),
+        capture_running,
+        activity,
+    })
 }
 
 /// Opens (creating and migrating if needed) the live DB through the gate.
@@ -1582,7 +2122,13 @@ fn open_live(ctx: &Ctx) -> Result<db::DbConn, BackupError> {
 }
 
 /// Backup with gate read guard, then log + retention. Used by commands and the scheduler.
-fn run_backup(ctx: &Ctx, dest: &Path, kind: Kind, settings: &SettingsBlob, progress: &mut dyn FnMut(u64, u64)) -> Result<CreateResult, BackupError> {
+fn run_backup(
+    ctx: &Ctx,
+    dest: &Path,
+    kind: Kind,
+    settings: &SettingsBlob,
+    progress: &mut dyn FnMut(u64, u64),
+) -> Result<CreateResult, BackupError> {
     drop(open_live(ctx)?); // make sure the DB exists and is migrated
     let result = {
         let _read = ctx.gate.read().unwrap_or_else(PoisonError::into_inner);
@@ -1601,31 +2147,56 @@ fn run_backup(ctx: &Ctx, dest: &Path, kind: Kind, settings: &SettingsBlob, progr
     Ok(result)
 }
 
-async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, BackupError> + Send + 'static) -> Result<T, BackupError> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| BackupError::new("io", format!("background task failed: {e}")))?
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, BackupError> + Send + 'static,
+) -> Result<T, BackupError> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| BackupError::new("io", format!("background task failed: {e}")))?
 }
 
 fn validated_open_path(path: &str) -> Result<PathBuf, BackupError> {
     let p = userfiles::validate_save_path(path, &[EXT])?;
     if !p.is_file() {
-        return Err(BackupError::new("not_found", "The backup file was not found."));
+        return Err(BackupError::new(
+            "not_found",
+            "The backup file was not found.",
+        ));
     }
     Ok(p)
 }
 
 #[tauri::command]
-pub async fn backup_create(app: AppHandle, dest_path: Option<String>, kind: Option<String>, settings: Option<SettingsBlob>) -> Result<CreateResult, BackupError> {
+pub async fn backup_create(
+    app: AppHandle,
+    dest_path: Option<String>,
+    kind: Option<String>,
+    settings: Option<SettingsBlob>,
+) -> Result<CreateResult, BackupError> {
     blocking(move || {
         let _op = OP_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
         let ctx = app_ctx(&app)?;
         let kind = match kind.as_deref().unwrap_or("manual") {
             "manual" => Kind::Manual,
             "auto" => Kind::Auto,
-            other => return Err(BackupError::new("invalid_kind", format!("Unknown backup kind '{other}'."))),
+            other => {
+                return Err(BackupError::new(
+                    "invalid_kind",
+                    format!("Unknown backup kind '{other}'."),
+                ))
+            }
         };
         let dest = match dest_path {
             Some(p) => userfiles::validate_save_path(&p, &[EXT])?,
-            None => unique_path(&ctx.backups_dir, if kind == Kind::Auto { "auto-" } else { "DeckChek-backup-" }, now_ms()),
+            None => unique_path(
+                &ctx.backups_dir,
+                if kind == Kind::Auto {
+                    "auto-"
+                } else {
+                    "DeckChek-backup-"
+                },
+                now_ms(),
+            ),
         };
         let settings = settings.unwrap_or_default();
         if settings.ui.is_some() || settings.calibration.is_some() {
@@ -1633,7 +2204,10 @@ pub async fn backup_create(app: AppHandle, dest_path: Option<String>, kind: Opti
         }
         let emitter = app.clone();
         let mut progress = move |done: u64, total: u64| {
-            let _ = emitter.emit("backup://progress", json!({ "pages_done": done, "pages_total": total }));
+            let _ = emitter.emit(
+                "backup://progress",
+                json!({ "pages_done": done, "pages_total": total }),
+            );
         };
         run_backup(&ctx, &dest, kind, &settings, &mut progress)
     })
@@ -1650,7 +2224,12 @@ pub async fn backup_inspect(path: String) -> Result<InspectResult, BackupError> 
 }
 
 #[tauri::command]
-pub async fn backup_restore(app: AppHandle, path: String, confirm: bool, settings: Option<SettingsBlob>) -> Result<RestoreResult, BackupError> {
+pub async fn backup_restore(
+    app: AppHandle,
+    path: String,
+    confirm: bool,
+    settings: Option<SettingsBlob>,
+) -> Result<RestoreResult, BackupError> {
     blocking(move || {
         let _op = OP_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
         let ctx = app_ctx(&app)?;
@@ -1660,7 +2239,15 @@ pub async fn backup_restore(app: AppHandle, path: String, confirm: bool, setting
         if let Ok(conn) = open_live(&ctx) {
             if let Some(safety) = &result.safety_backup {
                 if let Some(entry) = entry_for(Path::new(safety)) {
-                    let r = CreateResult { path: entry.path, bytes: entry.bytes, created_at: entry.created_at, kind: Kind::PreRestore, counts: Counts::default(), schema_version: result.schema_version, warnings: Vec::new() };
+                    let r = CreateResult {
+                        path: entry.path,
+                        bytes: entry.bytes,
+                        created_at: entry.created_at,
+                        kind: Kind::PreRestore,
+                        counts: Counts::default(),
+                        schema_version: result.schema_version,
+                        warnings: Vec::new(),
+                    };
                     let _ = log_backup(&conn, &r, true);
                 }
             }
@@ -1684,8 +2271,12 @@ pub async fn backup_list(app: AppHandle) -> Result<Vec<BackupEntry>, BackupError
 
 /// Off the main thread through the DB command lane (AUD-03): these wait on the gate and
 /// on `SQLITE_BUSY` while a scheduled backup or a restore holds the database.
-async fn db_lane<T: Send + 'static>(f: impl FnOnce() -> Result<T, BackupError> + Send + 'static) -> Result<T, BackupError> {
-    crate::db::off_main(f).await.map_err(|e| BackupError::new("io", e))?
+async fn db_lane<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, BackupError> + Send + 'static,
+) -> Result<T, BackupError> {
+    crate::db::off_main(f)
+        .await
+        .map_err(|e| BackupError::new("io", e))?
 }
 
 #[tauri::command]
@@ -1698,7 +2289,10 @@ pub async fn backup_settings_get(app: AppHandle) -> Result<ScheduleSettings, Bac
 }
 
 #[tauri::command]
-pub async fn backup_settings_set(app: AppHandle, settings: ScheduleInput) -> Result<ScheduleSettings, BackupError> {
+pub async fn backup_settings_set(
+    app: AppHandle,
+    settings: ScheduleInput,
+) -> Result<ScheduleSettings, BackupError> {
     db_lane(move || {
         let ctx = app_ctx(&app)?;
         set_schedule(&*open_live(&ctx)?, Some(&settings), None)
@@ -1707,7 +2301,10 @@ pub async fn backup_settings_set(app: AppHandle, settings: ScheduleInput) -> Res
 }
 
 #[tauri::command]
-pub async fn backup_import_workspace(app: AppHandle, json: Value) -> Result<ImportResult, BackupError> {
+pub async fn backup_import_workspace(
+    app: AppHandle,
+    json: Value,
+) -> Result<ImportResult, BackupError> {
     blocking(move || {
         let ctx = app_ctx(&app)?;
         let mut conn = open_live(&ctx)?;
@@ -1725,17 +2322,33 @@ pub fn run_scheduled_if_due(ctx: &Ctx) -> Result<Option<CreateResult>, BackupErr
         return Ok(None);
     }
     let dest = unique_path(&ctx.backups_dir, "auto-", now_ms());
-    run_backup(ctx, &dest, Kind::Auto, &read_settings_cache(&ctx.backups_dir), &mut |_, _| {}).map(Some)
+    run_backup(
+        ctx,
+        &dest,
+        Kind::Auto,
+        &read_settings_cache(&ctx.backups_dir),
+        &mut |_, _| {},
+    )
+    .map(Some)
 }
 
 fn run_on_exit(ctx: Ctx) {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let _op = OP_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
-        let due = open_live(&ctx).ok().and_then(|c| get_schedule(&c).ok()).is_some_and(|s| s.mode == Mode::OnExit);
+        let due = open_live(&ctx)
+            .ok()
+            .and_then(|c| get_schedule(&c).ok())
+            .is_some_and(|s| s.mode == Mode::OnExit);
         if due {
             let dest = unique_path(&ctx.backups_dir, "auto-", now_ms());
-            let _ = run_backup(&ctx, &dest, Kind::Auto, &read_settings_cache(&ctx.backups_dir), &mut |_, _| {});
+            let _ = run_backup(
+                &ctx,
+                &dest,
+                Kind::Auto,
+                &read_settings_cache(&ctx.backups_dir),
+                &mut |_, _| {},
+            );
         }
         let _ = tx.send(());
     });
@@ -1755,7 +2368,8 @@ pub fn setup(app: &AppHandle) {
 }
 
 /// Set once the on-exit backup has been attempted; ExitRequested and Exit both lead here.
-static EXIT_BACKUP_CLAIMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static EXIT_BACKUP_CLAIMED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
 
 /// True exactly once per flag: the first caller owns the on-exit backup.
 fn claim_exit_backup(flag: &std::sync::atomic::AtomicBool) -> bool {
@@ -1763,7 +2377,10 @@ fn claim_exit_backup(flag: &std::sync::atomic::AtomicBool) -> bool {
 }
 
 fn is_exit_event(ev: &tauri::RunEvent) -> bool {
-    matches!(ev, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit)
+    matches!(
+        ev,
+        tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+    )
 }
 
 /// Call from the `.run(|app, event| ..)` callback in `lib.rs`: on-exit backup (FS-08 §4, at most 5 s).
@@ -1783,11 +2400,20 @@ mod tests {
     #[test]
     fn free_space_check_is_clear_and_skipped_when_unknown() {
         const MB: u64 = 1_048_576;
-        assert!(ensure_space(None, u64::MAX / 2, "x").is_ok(), "unknown free space must not block");
+        assert!(
+            ensure_space(None, u64::MAX / 2, "x").is_ok(),
+            "unknown free space must not block"
+        );
         assert!(ensure_space(Some(100 * MB), 50 * MB, "x").is_ok());
         let e = ensure_space(Some(40 * MB), 50 * MB, "create the backup").unwrap_err();
         assert_eq!(e.code, "disk_full");
-        assert!(e.message.contains("create the backup") && e.message.contains("66 MB needed") && e.message.contains("40 MB available"), "{}", e.message);
+        assert!(
+            e.message.contains("create the backup")
+                && e.message.contains("66 MB needed")
+                && e.message.contains("40 MB available"),
+            "{}",
+            e.message
+        );
         // exactly enough (needed + margin) passes
         assert!(ensure_space(Some(50 * MB + SPACE_MARGIN), 50 * MB, "x").is_ok());
         assert!(ensure_space(Some(50 * MB + SPACE_MARGIN - 1), 50 * MB, "x").is_err());
@@ -1797,7 +2423,10 @@ mod tests {
     fn exit_backup_is_claimed_once_and_only_for_exit_events() {
         let flag = std::sync::atomic::AtomicBool::new(false);
         assert!(claim_exit_backup(&flag));
-        assert!(!claim_exit_backup(&flag), "ExitRequested then Exit must not back up twice");
+        assert!(
+            !claim_exit_backup(&flag),
+            "ExitRequested then Exit must not back up twice"
+        );
         assert!(is_exit_event(&tauri::RunEvent::Exit));
         assert!(!is_exit_event(&tauri::RunEvent::Ready));
     }
@@ -1812,12 +2441,22 @@ mod tests {
     impl Env {
         fn new(tag: &str) -> Self {
             // Spaces and non-ASCII in the folder names exercise path handling on every OS.
-            let root = std::env::temp_dir().join(format!("deckchek backup ü {tag}-{}-{}", std::process::id(), db::new_id()));
+            let root = std::env::temp_dir().join(format!(
+                "deckchek backup ü {tag}-{}-{}",
+                std::process::id(),
+                db::new_id()
+            ));
             fs::create_dir_all(root.join("app data")).unwrap();
             fs::create_dir_all(root.join("app data").join("backups")).unwrap();
             fs::create_dir_all(root.join("out")).unwrap();
             let gate: &'static RwLock<()> = Box::leak(Box::new(RwLock::new(())));
-            let ctx = Ctx { live_db: root.join("app data").join("deckchek.sqlite3"), backups_dir: root.join("app data").join("backups"), gate, capture_running: no_capture(), activity: Default::default() };
+            let ctx = Ctx {
+                live_db: root.join("app data").join("deckchek.sqlite3"),
+                backups_dir: root.join("app data").join("backups"),
+                gate,
+                capture_running: no_capture(),
+                activity: Default::default(),
+            };
             Env { root, ctx }
         }
         fn out(&self, name: &str) -> PathBuf {
@@ -1840,7 +2479,16 @@ mod tests {
             test: "Stereo balance".into(),
             created_at: "2026-10-10T08:00:00Z".into(),
             score: Some(80.0),
-            measurements: vec![PersistMeasurement { metric_id: "balance".into(), label: None, value: 0.4, unit: "dB".into(), origin: None, confidence: Some(0.9), uncertainty: None, quality_flags: None }],
+            measurements: vec![PersistMeasurement {
+                metric_id: "balance".into(),
+                label: None,
+                value: 0.4,
+                unit: "dB".into(),
+                origin: None,
+                confidence: Some(0.9),
+                uncertainty: None,
+                quality_flags: None,
+            }],
             ..Default::default()
         }
     }
@@ -1858,22 +2506,32 @@ mod tests {
     }
 
     fn fixture_sql() -> String {
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db/v0.04.sql")).unwrap()
+        fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db/v0.04.sql"),
+        )
+        .unwrap()
     }
 
     fn rows(path: &Path, table: &str) -> i64 {
         let c = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).unwrap()
+        c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
+            .unwrap()
     }
 
     #[test]
     fn regression_restore_refuses_backup_with_triggers_or_views() {
-        for ddl in ["CREATE TRIGGER wipe AFTER INSERT ON session BEGIN DELETE FROM asset; END;", "CREATE VIEW v AS SELECT 1;"] {
+        for ddl in [
+            "CREATE TRIGGER wipe AFTER INSERT ON session BEGIN DELETE FROM asset; END;",
+            "CREATE VIEW v AS SELECT 1;",
+        ] {
             let env = Env::new("hostile");
             make_db(env.live(), "live", 2);
             let other = env.out("other.sqlite3");
             make_db(&other, "other", 1);
-            Connection::open(&other).unwrap().execute_batch(ddl).unwrap();
+            Connection::open(&other)
+                .unwrap()
+                .execute_batch(ddl)
+                .unwrap();
             let dest = env.out("hostile.deckchek-backup");
             create_backup(&other, &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
             let before = rows(env.live(), "session");
@@ -1891,7 +2549,13 @@ mod tests {
         make_db(env.live(), "live", 2);
         let other = env.out("other.sqlite3");
         make_db(&other, "other", 1);
-        Connection::open(&other).unwrap().execute("UPDATE asset SET nickname = CAST(X'4465636BFF41' AS TEXT)", []).unwrap();
+        Connection::open(&other)
+            .unwrap()
+            .execute(
+                "UPDATE asset SET nickname = CAST(X'4465636BFF41' AS TEXT)",
+                [],
+            )
+            .unwrap();
         let dest = backup_of(&env, &other, "not-utf8.deckchek-backup");
         let before = rows(env.live(), "session");
         let err = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap_err();
@@ -1903,8 +2567,10 @@ mod tests {
     #[test]
     fn regression_schema_shape_reads_names_that_are_not_utf8() {
         let c = Connection::open_in_memory().unwrap();
-        c.execute_batch("CREATE TABLE t (a TEXT); CREATE INDEX i ON t(a);").unwrap();
-        c.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, false).unwrap();
+        c.execute_batch("CREATE TABLE t (a TEXT); CREATE INDEX i ON t(a);")
+            .unwrap();
+        c.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, false)
+            .unwrap();
         c.execute_batch("PRAGMA writable_schema=ON; UPDATE sqlite_master SET name = CAST(X'69FF' AS TEXT) WHERE name = 'i'; PRAGMA writable_schema=OFF;").unwrap();
         let shape = schema_shape(&c).unwrap();
         assert!(shape.iter().any(|l| l.contains('\u{FFFD}')), "{shape:?}");
@@ -1913,7 +2579,9 @@ mod tests {
     fn settings() -> SettingsBlob {
         SettingsBlob {
             ui: Some(json!({ "theme": "dark", "sampleRate": 48000 })),
-            calibration: Some(json!({ "audio 8 dj|48000": "{\"sampleRate\":48000}", "default|44100": "{}" })),
+            calibration: Some(
+                json!({ "audio 8 dj|48000": "{\"sampleRate\":48000}", "default|44100": "{}" }),
+            ),
         }
     }
 
@@ -1934,7 +2602,10 @@ mod tests {
     }
 
     fn manifest_bytes(schema: i64, format_version: i64, files: &[(&str, &[u8])]) -> Vec<u8> {
-        let files: Vec<Value> = files.iter().map(|(n, b)| json!({ "name": n, "bytes": b.len(), "sha256": sha_hex(b) })).collect();
+        let files: Vec<Value> = files
+            .iter()
+            .map(|(n, b)| json!({ "name": n, "bytes": b.len(), "sha256": sha_hex(b) }))
+            .collect();
         serde_json::to_vec(&json!({
             "format": "deckchek-backup", "formatVersion": format_version, "createdAt": "2026-10-10T08:00:00.000Z", "kind": "manual",
             "appVersion": "0.0.4", "schemaVersion": schema, "counts": { "runs": 1 }, "files": files,
@@ -1959,8 +2630,14 @@ mod tests {
 
     fn no_restore_leftovers(env: &Env) {
         for s in SIDECARS {
-            assert!(!sidecar(&restore_tmp(env.live()), s).exists(), "restore-tmp{s} left behind");
-            assert!(!sidecar(&restore_bak(env.live()), s).exists(), "restore-bak{s} left behind");
+            assert!(
+                !sidecar(&restore_tmp(env.live()), s).exists(),
+                "restore-tmp{s} left behind"
+            );
+            assert!(
+                !sidecar(&restore_bak(env.live()), s).exists(),
+                "restore-bak{s} left behind"
+            );
         }
     }
 
@@ -1972,14 +2649,32 @@ mod tests {
         make_db(env.live(), "r", 3);
         let mut calls = Vec::new();
         let dest = env.out("DeckChek-backup-20261010-0800.deckchek-backup");
-        let r = create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |d, t| calls.push((d, t))).unwrap();
-        assert_eq!(r.counts, Counts { runs: 3, assets: 1, profiles: 2, midi_maps: 1 });
+        let r = create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |d, t| {
+            calls.push((d, t))
+        })
+        .unwrap();
+        assert_eq!(
+            r.counts,
+            Counts {
+                runs: 3,
+                assets: 1,
+                profiles: 2,
+                midi_maps: 1
+            }
+        );
         assert_eq!(r.schema_version, current_schema_version());
         assert_eq!(r.bytes, fs::metadata(&dest).unwrap().len());
-        assert!(calls.last().is_some_and(|(d, t)| d == t && *t > 0), "progress ends at 100%");
+        assert!(
+            calls.last().is_some_and(|(d, t)| d == t && *t > 0),
+            "progress ends at 100%"
+        );
 
         let mut a = ZipArchive::new(File::open(&dest).unwrap()).unwrap();
-        assert_eq!(a.by_index(0).unwrap().name(), MANIFEST, "manifest is the first entry");
+        assert_eq!(
+            a.by_index(0).unwrap().name(),
+            MANIFEST,
+            "manifest is the first entry"
+        );
         let names: Vec<String> = a.file_names().map(String::from).collect();
         for n in [MANIFEST, DB_ENTRY, UI_ENTRY, CAL_ENTRY, MIDI_ENTRY] {
             assert!(names.iter().any(|x| x == n), "{n}");
@@ -1987,7 +2682,10 @@ mod tests {
         let insp = inspect_file(&dest);
         assert!(insp.valid, "{:?}", insp.errors);
         let m = insp.manifest.unwrap();
-        assert_eq!((m.format.as_str(), m.format_version, m.kind.as_str()), ("deckchek-backup", 1, "manual"));
+        assert_eq!(
+            (m.format.as_str(), m.format_version, m.kind.as_str()),
+            ("deckchek-backup", 1, "manual")
+        );
         assert_eq!(m.app_version, env!("CARGO_PKG_VERSION"));
         assert!(!insp.needs_migration && !insp.too_new);
 
@@ -2002,13 +2700,24 @@ mod tests {
 
         // the MIDI maps are exported for readability
         let mut raw = Vec::new();
-        a.by_name(MIDI_ENTRY).unwrap().read_to_end(&mut raw).unwrap();
+        a.by_name(MIDI_ENTRY)
+            .unwrap()
+            .read_to_end(&mut raw)
+            .unwrap();
         let midi: Value = serde_json::from_slice(&raw).unwrap();
         assert_eq!(midi["maps"][0]["map"]["cc"], 1);
 
         // no temp files next to the destination
-        let left: Vec<_> = fs::read_dir(env.root.join("out")).unwrap().flatten().map(|e| e.file_name()).collect();
-        assert_eq!(left.len(), 2, "only the backup and the extracted copy: {left:?}");
+        let left: Vec<_> = fs::read_dir(env.root.join("out"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
+        assert_eq!(
+            left.len(),
+            2,
+            "only the backup and the extracted copy: {left:?}"
+        );
     }
 
     #[test]
@@ -2016,7 +2725,14 @@ mod tests {
         let env = Env::new("nosettings");
         make_db(env.live(), "r", 1);
         let dest = env.out("plain.deckchek-backup");
-        let r = create_backup(env.live(), &dest, Kind::Auto, &SettingsBlob::default(), &mut |_, _| {}).unwrap();
+        let r = create_backup(
+            env.live(),
+            &dest,
+            Kind::Auto,
+            &SettingsBlob::default(),
+            &mut |_, _| {},
+        )
+        .unwrap();
         assert_eq!(r.counts.profiles, 0);
         let m = inspect_file(&dest).manifest.unwrap();
         let names: Vec<&str> = m.files.iter().map(|f| f.name.as_str()).collect();
@@ -2030,18 +2746,55 @@ mod tests {
         make_db(env.live(), "r", 1);
         let noop = &mut |_: u64, _: u64| {};
         let s = SettingsBlob::default();
-        for bad in [env.out("x.zip"), env.out("x"), env.live().to_path_buf(), env.ctx.live_db.with_file_name("deckchek.sqlite3.deckchek-backup")] {
+        for bad in [
+            env.out("x.zip"),
+            env.out("x"),
+            env.live().to_path_buf(),
+            env.ctx
+                .live_db
+                .with_file_name("deckchek.sqlite3.deckchek-backup"),
+        ] {
             let e = create_backup(env.live(), &bad, Kind::Manual, &s, noop).unwrap_err();
             assert_eq!(e.code, "invalid_path", "{bad:?}");
         }
         fs::create_dir(env.out("dir.deckchek-backup")).unwrap();
-        assert_eq!(create_backup(env.live(), &env.out("dir.deckchek-backup"), Kind::Manual, &s, noop).unwrap_err().code, "invalid_path");
+        assert_eq!(
+            create_backup(
+                env.live(),
+                &env.out("dir.deckchek-backup"),
+                Kind::Manual,
+                &s,
+                noop
+            )
+            .unwrap_err()
+            .code,
+            "invalid_path"
+        );
         let missing = Env::new("dest-missing");
-        assert_eq!(create_backup(missing.live(), &missing.out("a.deckchek-backup"), Kind::Manual, &s, noop).unwrap_err().code, "no_database");
+        assert_eq!(
+            create_backup(
+                missing.live(),
+                &missing.out("a.deckchek-backup"),
+                Kind::Manual,
+                &s,
+                noop
+            )
+            .unwrap_err()
+            .code,
+            "no_database"
+        );
         // the userfiles rules apply to command paths
         assert!(validated_open_path("relative.deckchek-backup").is_err());
-        assert!(validated_open_path(&env.out("..").join("x.deckchek-backup").to_string_lossy()).is_err());
-        assert_eq!(validated_open_path(&env.out("nope.deckchek-backup").to_string_lossy()).unwrap_err().code, "not_found");
+        assert!(
+            validated_open_path(&env.out("..").join("x.deckchek-backup").to_string_lossy())
+                .is_err()
+        );
+        assert_eq!(
+            validated_open_path(&env.out("nope.deckchek-backup").to_string_lossy())
+                .unwrap_err()
+                .code,
+            "not_found"
+        );
     }
 
     // ---------- AC-2: consistent snapshot while another connection writes ----------
@@ -2055,7 +2808,8 @@ mod tests {
             let c = Connection::open(env.live()).unwrap();
             c.execute_batch("CREATE TABLE filler (b BLOB);").unwrap();
             for _ in 0..30 {
-                c.execute("INSERT INTO filler (b) VALUES (randomblob(100000))", []).unwrap();
+                c.execute("INSERT INTO filler (b) VALUES (randomblob(100000))", [])
+                    .unwrap();
             }
         }
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -2080,7 +2834,13 @@ mod tests {
         // "busy" is the documented try-again answer; a starved reader on a loaded Windows runner may get it
         let mut attempt = 0;
         let r = loop {
-            match create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}) {
+            match create_backup(
+                env.live(),
+                &dest,
+                Kind::Manual,
+                &SettingsBlob::default(),
+                &mut |_, _| {},
+            ) {
                 Err(e) if e.code == "busy" && attempt < 3 => {
                     attempt += 1;
                     std::thread::sleep(Duration::from_millis(100));
@@ -2097,8 +2857,16 @@ mod tests {
         let c = Connection::open(&db).unwrap();
         assert!(integrity_ok(&c));
         // each run commits its session and measurement together: a torn snapshot would differ
-        let sessions: i64 = c.query_row("SELECT COUNT(*) FROM session", [], |x| x.get(0)).unwrap();
-        let measured: i64 = c.query_row("SELECT COUNT(DISTINCT session_id) FROM measurement", [], |x| x.get(0)).unwrap();
+        let sessions: i64 = c
+            .query_row("SELECT COUNT(*) FROM session", [], |x| x.get(0))
+            .unwrap();
+        let measured: i64 = c
+            .query_row(
+                "SELECT COUNT(DISTINCT session_id) FROM measurement",
+                [],
+                |x| x.get(0),
+            )
+            .unwrap();
         assert_eq!(sessions, measured);
         assert_eq!(sessions, r.counts.runs);
         assert!(sessions >= 20);
@@ -2145,7 +2913,10 @@ mod tests {
         let m = manifest_bytes(2, 99, &[(DB_ENTRY, &db_bytes)]);
         write_zip(&fv99, &[(MANIFEST, &m), (DB_ENTRY, &db_bytes)]);
         let r = inspect_file(&fv99);
-        assert_eq!((r.error_code.as_deref(), r.too_new), (Some("format_too_new"), true));
+        assert_eq!(
+            (r.error_code.as_deref(), r.too_new),
+            (Some("format_too_new"), true)
+        );
 
         // AC-6: newer schema is refused with the spec's message
         let newer = env.out("newer.deckchek-backup");
@@ -2155,7 +2926,16 @@ mod tests {
         assert_eq!(r.errors, vec!["This backup was made by a newer DeckChek (schema v9999). Update the app to restore it.".to_string()]);
 
         let foreign = env.out("foreign.deckchek-backup");
-        write_zip(&foreign, &[(MANIFEST, br#"{"format":"something-else","formatVersion":1}"#), (DB_ENTRY, &db_bytes)]);
+        write_zip(
+            &foreign,
+            &[
+                (
+                    MANIFEST,
+                    br#"{"format":"something-else","formatVersion":1}"#,
+                ),
+                (DB_ENTRY, &db_bytes),
+            ],
+        );
         assert_eq!(code(&foreign), "bad_manifest");
 
         let no_db = env.out("nodb.deckchek-backup");
@@ -2177,10 +2957,30 @@ mod tests {
 
     #[test]
     fn entry_names_are_checked() {
-        for ok in ["manifest.json", "db/deckchek.sqlite3", "photos/ab12.jpg", "photos/"] {
+        for ok in [
+            "manifest.json",
+            "db/deckchek.sqlite3",
+            "photos/ab12.jpg",
+            "photos/",
+        ] {
             assert!(entry_name_safe(ok), "{ok}");
         }
-        for bad in ["", "../evil", "/etc/passwd", "C:/x", "c:x", "a\\..\\b", "db\\deckchek.sqlite3", "ok/../../x", "./x", "a//b", "a/./b", "x\0", "file:stream", "/"] {
+        for bad in [
+            "",
+            "../evil",
+            "/etc/passwd",
+            "C:/x",
+            "c:x",
+            "a\\..\\b",
+            "db\\deckchek.sqlite3",
+            "ok/../../x",
+            "./x",
+            "a//b",
+            "a/./b",
+            "x\0",
+            "file:stream",
+            "/",
+        ] {
             assert!(!entry_name_safe(bad), "{bad:?}");
         }
     }
@@ -2198,11 +2998,27 @@ mod tests {
             fs::read(&p).unwrap()
         };
         let before = fs::read(env.live()).unwrap();
-        for (i, evil) in ["../evil", "../../evil.txt", "/tmp/deckchek-evil", "C:/evil", "db\\..\\..\\evil"].iter().enumerate() {
+        for (i, evil) in [
+            "../evil",
+            "../../evil.txt",
+            "/tmp/deckchek-evil",
+            "C:/evil",
+            "db\\..\\..\\evil",
+        ]
+        .iter()
+        .enumerate()
+        {
             let p = env.out(&format!("slip{i}.deckchek-backup"));
             let m = manifest_bytes(current_schema_version(), 1, &[(DB_ENTRY, &db_bytes)]);
-            write_zip(&p, &[(MANIFEST, &m), (DB_ENTRY, &db_bytes), (evil, b"pwned")]);
-            assert_eq!(inspect_file(&p).error_code.as_deref(), Some("unsafe_entry"), "{evil}");
+            write_zip(
+                &p,
+                &[(MANIFEST, &m), (DB_ENTRY, &db_bytes), (evil, b"pwned")],
+            );
+            assert_eq!(
+                inspect_file(&p).error_code.as_deref(),
+                Some("unsafe_entry"),
+                "{evil}"
+            );
             let e = restore_backup(&env.ctx, &p, true, &SettingsBlob::default(), None).unwrap_err();
             assert_eq!(e.code, "unsafe_entry");
         }
@@ -2213,7 +3029,14 @@ mod tests {
         // an unknown but safe entry is ignored, not extracted
         let extra = env.out("extra.deckchek-backup");
         let m = manifest_bytes(current_schema_version(), 1, &[(DB_ENTRY, &db_bytes)]);
-        write_zip(&extra, &[(MANIFEST, &m), (DB_ENTRY, &db_bytes), ("photos/x.jpg", b"jpeg")]);
+        write_zip(
+            &extra,
+            &[
+                (MANIFEST, &m),
+                (DB_ENTRY, &db_bytes),
+                ("photos/x.jpg", b"jpeg"),
+            ],
+        );
         assert!(inspect_file(&extra).valid);
     }
 
@@ -2233,7 +3056,13 @@ mod tests {
         let mut i = 0;
         while i + 46 <= zip.len() {
             let sig = &zip[i..i + 4];
-            let (name_at, size_at) = if sig == b"PK\x03\x04" { (30, 22) } else if sig == b"PK\x01\x02" { (46, 24) } else { (0, 0) };
+            let (name_at, size_at) = if sig == b"PK\x03\x04" {
+                (30, 22)
+            } else if sig == b"PK\x01\x02" {
+                (46, 24)
+            } else {
+                (0, 0)
+            };
             if name_at > 0 {
                 let len_at = if name_at == 30 { 26 } else { 28 };
                 let n = u16::from_le_bytes([zip[i + len_at], zip[i + len_at + 1]]) as usize;
@@ -2252,7 +3081,13 @@ mod tests {
         let env = Env::new("caps");
         let db_bytes = small_db_bytes(&env);
         // shrunken limits exercise the same code paths as the production ones
-        let lim = Limits { db: MAX_DB_BYTES, other: 1024 * 1024, total: 3 * 1024 * 1024, ratio: 100, ratio_floor: 1024 * 1024 };
+        let lim = Limits {
+            db: MAX_DB_BYTES,
+            other: 1024 * 1024,
+            total: 3 * 1024 * 1024,
+            ratio: 100,
+            ratio_floor: 1024 * 1024,
+        };
         let code = |p: &Path| verify_archive_with(p, &lim).unwrap_err().code;
 
         let big = vec![b' '; 1024 * 1024 + 1];
@@ -2266,8 +3101,22 @@ mod tests {
 
         let chunk = vec![b' '; 1024 * 1024];
         let p = env.out("total.deckchek-backup");
-        crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &chunk), (CAL_ENTRY, &chunk), (MIDI_ENTRY, &chunk), ("photos/a.jpg", &chunk)]);
-        assert_eq!(code(&p), "too_large", "total declared cap counts every entry, known or not");
+        crafted(
+            &p,
+            2,
+            &[
+                (DB_ENTRY, &db_bytes),
+                (UI_ENTRY, &chunk),
+                (CAL_ENTRY, &chunk),
+                (MIDI_ENTRY, &chunk),
+                ("photos/a.jpg", &chunk),
+            ],
+        );
+        assert_eq!(
+            code(&p),
+            "too_large",
+            "total declared cap counts every entry, known or not"
+        );
 
         // ratio limit applies above the floor only
         let db_zeros = vec![0u8; 2 * 1024 * 1024];
@@ -2277,14 +3126,26 @@ mod tests {
         let under_floor = vec![0u8; 1024 * 1024];
         let p = env.out("underfloor.deckchek-backup");
         crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (UI_ENTRY, &under_floor)]);
-        assert!(verify_archive_with(&p, &lim).is_ok(), "1000:1 data below the floor is accepted");
+        assert!(
+            verify_archive_with(&p, &lim).is_ok(),
+            "1000:1 data below the floor is accepted"
+        );
 
         // production limits: highly compressible entries well past 1 MiB are accepted
         let p = env.out("zeros.deckchek-backup");
         let zeros = vec![0u8; 8 * 1024 * 1024];
         crafted(&p, 2, &[(DB_ENTRY, &db_bytes), (CAL_ENTRY, &zeros)]);
         assert!(inspect_file(&p).valid);
-        assert_eq!((LIMITS.db, LIMITS.other, LIMITS.total, LIMITS.ratio, LIMITS.ratio_floor), (2 << 30, 64 << 20, (2 << 30) + (512 << 20), 1000, 256 << 20));
+        assert_eq!(
+            (
+                LIMITS.db,
+                LIMITS.other,
+                LIMITS.total,
+                LIMITS.ratio,
+                LIMITS.ratio_floor
+            ),
+            (2 << 30, 64 << 20, (2 << 30) + (512 << 20), 1000, 256 << 20)
+        );
     }
 
     #[test]
@@ -2297,14 +3158,25 @@ mod tests {
         let bomb = vec![0u8; 16 * 1024 * 1024];
         for (entry, label) in [(UI_ENTRY, "settings"), (DB_ENTRY, "database")] {
             let p = env.out(&format!("lying-{label}.deckchek-backup"));
-            let files: Vec<(&str, &[u8])> = if entry == DB_ENTRY { vec![(DB_ENTRY, &bomb)] } else { vec![(DB_ENTRY, &db_bytes), (UI_ENTRY, &bomb)] };
+            let files: Vec<(&str, &[u8])> = if entry == DB_ENTRY {
+                vec![(DB_ENTRY, &bomb)]
+            } else {
+                vec![(DB_ENTRY, &db_bytes), (UI_ENTRY, &bomb)]
+            };
             crafted(&p, current_schema_version(), &files);
             let mut raw = fs::read(&p).unwrap();
             patch_declared_size(&mut raw, entry, 1024);
             fs::write(&p, &raw).unwrap();
             let r = inspect_file(&p);
             assert!(!r.valid, "{label}");
-            assert!(matches!(r.error_code.as_deref(), Some("size_mismatch") | Some("corrupt") | Some("checksum")), "{label}: {:?}", r.error_code);
+            assert!(
+                matches!(
+                    r.error_code.as_deref(),
+                    Some("size_mismatch") | Some("corrupt") | Some("checksum")
+                ),
+                "{label}: {:?}",
+                r.error_code
+            );
             assert!(restore_backup(&env.ctx, &p, true, &SettingsBlob::default(), None).is_err());
             assert_eq!(fs::read(env.live()).unwrap(), before);
             no_restore_leftovers(&env);
@@ -2312,7 +3184,8 @@ mod tests {
         // the overrun check itself (not CRC or checksum) is what stops the read
         let p = env.out("lying-settings.deckchek-backup");
         let mut a = ZipArchive::new(File::open(&p).unwrap()).unwrap();
-        let e = read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut io::sink()).unwrap_err();
+        let e =
+            read_entry(&mut a, UI_ENTRY, MAX_OTHER_BYTES, &LIMITS, &mut io::sink()).unwrap_err();
         assert_eq!(e.code, "size_mismatch");
     }
 
@@ -2335,20 +3208,30 @@ mod tests {
         let r = restore_backup(&env.ctx, &dest, true, &SettingsBlob::default(), None).unwrap();
         assert!(r.safety_backup.is_some());
         assert_eq!(rows(env.live(), "session"), 3);
-        assert_eq!(rows(env.live(), "asset WHERE nickname = 'Filler' AND length(notes) = 250000"), 40);
+        assert_eq!(
+            rows(
+                env.live(),
+                "asset WHERE nickname = 'Filler' AND length(notes) = 250000"
+            ),
+            40
+        );
 
         // VACUUM-less file with a large zero freelist, packed as-is into an archive
         let loose = env.out("loose.sqlite3");
         make_db(&loose, "loose", 4);
         {
             let c = Connection::open(&loose).unwrap();
-            c.execute_batch("PRAGMA secure_delete=ON; CREATE TABLE filler (b BLOB);").unwrap();
+            c.execute_batch("PRAGMA secure_delete=ON; CREATE TABLE filler (b BLOB);")
+                .unwrap();
             for _ in 0..40 {
-                c.execute("INSERT INTO filler (b) VALUES (randomblob(250000))", []).unwrap();
+                c.execute("INSERT INTO filler (b) VALUES (randomblob(250000))", [])
+                    .unwrap();
             }
             // dropped rather than emptied: restore refuses tables DeckChek never creates (AUD-04)
             c.execute_batch("DROP TABLE filler;").unwrap();
-            let free: i64 = c.query_row("PRAGMA freelist_count", [], |x| x.get(0)).unwrap();
+            let free: i64 = c
+                .query_row("PRAGMA freelist_count", [], |x| x.get(0))
+                .unwrap();
             assert!(free > 2000, "freelist {free}");
         }
         let bytes = fs::read(&loose).unwrap();
@@ -2362,25 +3245,49 @@ mod tests {
 
     #[test]
     fn restore_is_refused_while_a_capture_runs() {
-        assert!(!crate::capture::is_running(&crate::capture::LiveCaptureState::default()));
+        assert!(!crate::capture::is_running(
+            &crate::capture::LiveCaptureState::default()
+        ));
         let env = Env::new("capture");
         make_db(env.live(), "live", 3);
         let src = env.out("src.sqlite3");
         make_db(&src, "src", 1);
         let good = backup_of(&env, &src, "good.deckchek-backup");
         let before = fs::read(env.live()).unwrap();
-        let running = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: std::sync::Arc::new(|| true) };
+        let running = Ctx {
+            live_db: env.ctx.live_db.clone(),
+            backups_dir: env.ctx.backups_dir.clone(),
+            gate: env.ctx.gate,
+            activity: env.ctx.activity.clone(),
+            capture_running: std::sync::Arc::new(|| true),
+        };
         let e = restore_backup(&running, &good, true, &SettingsBlob::default(), None).unwrap_err();
         assert_eq!(e.code, "capture_running");
         assert!(e.message.starts_with("Stop the capture before restoring"));
         assert_eq!(fs::read(env.live()).unwrap(), before);
-        assert!(fs::read_dir(&env.ctx.backups_dir).unwrap().next().is_none(), "no safety backup either");
+        assert!(
+            fs::read_dir(&env.ctx.backups_dir).unwrap().next().is_none(),
+            "no safety backup either"
+        );
         no_restore_leftovers(&env);
         // a capture that starts while the copy is being prepared is caught at the swap
         let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let c2 = calls.clone();
-        let late = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: std::sync::Arc::new(move || c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0) };
-        assert_eq!(restore_backup(&late, &good, true, &SettingsBlob::default(), None).unwrap_err().code, "capture_running");
+        let late = Ctx {
+            live_db: env.ctx.live_db.clone(),
+            backups_dir: env.ctx.backups_dir.clone(),
+            gate: env.ctx.gate,
+            activity: env.ctx.activity.clone(),
+            capture_running: std::sync::Arc::new(move || {
+                c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0
+            }),
+        };
+        assert_eq!(
+            restore_backup(&late, &good, true, &SettingsBlob::default(), None)
+                .unwrap_err()
+                .code,
+            "capture_running"
+        );
         assert_eq!(fs::read(env.live()).unwrap(), before);
         no_restore_leftovers(&env);
     }
@@ -2402,27 +3309,61 @@ mod tests {
         ctx.capture_running = Arc::new(move || {
             if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 1 {
                 reached_tx.send(()).unwrap(); // final idle check, DB gate + reservation held
-                resume_rx.lock().unwrap().recv_timeout(Duration::from_secs(5)).unwrap();
+                resume_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(Duration::from_secs(5))
+                    .unwrap();
             }
             false
         });
         let archive = good.clone();
-        let worker = std::thread::spawn(move || restore_backup(&ctx, &archive, true, &settings(), None));
+        let worker =
+            std::thread::spawn(move || restore_backup(&ctx, &archive, true, &settings(), None));
         reached_rx.recv_timeout(Duration::from_secs(5)).unwrap();
         let gate_held = env.ctx.gate.try_read().is_err();
-        let all_blocked = [LeaseKind::Live, LeaseKind::Stream, LeaseKind::Bounded, LeaseKind::External]
-            .into_iter().all(|kind| env.ctx.activity.acquire("during-restore", None, kind).is_err());
+        let all_blocked = [
+            LeaseKind::Live,
+            LeaseKind::Stream,
+            LeaseKind::Bounded,
+            LeaseKind::External,
+        ]
+        .into_iter()
+        .all(|kind| {
+            env.ctx
+                .activity
+                .acquire("during-restore", None, kind)
+                .is_err()
+        });
         resume_tx.send(()).unwrap();
         worker.join().unwrap().unwrap();
         assert!(gate_held && all_blocked);
         assert_eq!(rows(env.live(), "session"), 2);
-        for fail in [FailPoint::Migration, FailPoint::AfterSafetyBackup, FailPoint::MidSwap, FailPoint::AfterSwap] {
+        for fail in [
+            FailPoint::Migration,
+            FailPoint::AfterSafetyBackup,
+            FailPoint::MidSwap,
+            FailPoint::AfterSwap,
+        ] {
             assert!(restore_backup(&env.ctx, &good, true, &settings(), Some(fail)).is_err());
-            let grant = env.ctx.activity.acquire("after-error", None, LeaseKind::Bounded).unwrap();
+            let grant = env
+                .ctx
+                .activity
+                .acquire("after-error", None, LeaseKind::Bounded)
+                .unwrap();
             assert!(env.ctx.activity.release(grant.lease_id));
         }
-        let grant = env.ctx.activity.acquire("already-running", None, LeaseKind::Live).unwrap();
-        assert_eq!(restore_backup(&env.ctx, &good, true, &settings(), None).unwrap_err().code, "capture_running");
+        let grant = env
+            .ctx
+            .activity
+            .acquire("already-running", None, LeaseKind::Live)
+            .unwrap();
+        assert_eq!(
+            restore_backup(&env.ctx, &good, true, &settings(), None)
+                .unwrap_err()
+                .code,
+            "capture_running"
+        );
         env.ctx.activity.release(grant.lease_id);
         no_restore_leftovers(&env);
     }
@@ -2438,16 +3379,26 @@ mod tests {
             let c = Connection::open(&src).unwrap();
             c.execute_batch(&fixture_sql()).unwrap();
         }
-        let fixture_counts: Vec<(String, i64)> = ["session", "asset", "measurement", "asset_midi_map", "device_profile", "maintenance_event"]
-            .iter()
-            .map(|t| (t.to_string(), rows(&src, t)))
-            .collect();
+        let fixture_counts: Vec<(String, i64)> = [
+            "session",
+            "asset",
+            "measurement",
+            "asset_midi_map",
+            "device_profile",
+            "maintenance_event",
+        ]
+        .iter()
+        .map(|t| (t.to_string(), rows(&src, t)))
+        .collect();
         let backup = backup_of(&env, &src, "old.deckchek-backup");
         let insp = inspect_file(&backup);
         assert!(insp.valid && insp.needs_migration);
         assert_eq!(insp.manifest.as_ref().unwrap().schema_version, 2);
 
-        let current = SettingsBlob { ui: Some(json!({ "theme": "light" })), calibration: None };
+        let current = SettingsBlob {
+            ui: Some(json!({ "theme": "light" })),
+            calibration: None,
+        };
         let r = restore_backup(&env.ctx, &backup, true, &current, None).unwrap();
         assert_eq!(r.upgraded_from, Some(2));
         assert_eq!(r.schema_version, current_schema_version());
@@ -2460,14 +3411,23 @@ mod tests {
         let c = Connection::open(env.live()).unwrap();
         assert!(integrity_ok(&c));
         assert_eq!(schema_version(&c).unwrap(), current_schema_version());
-        assert!(c.query_row("SELECT COUNT(*) FROM backup_log", [], |x| x.get::<_, i64>(0)).is_ok(), "0005 applied");
+        assert!(
+            c.query_row("SELECT COUNT(*) FROM backup_log", [], |x| x
+                .get::<_, i64>(0))
+                .is_ok(),
+            "0005 applied"
+        );
         drop(c);
         no_restore_leftovers(&env);
 
         // the safety backup holds the data that was live before, with the current settings
         let safety = PathBuf::from(r.safety_backup.unwrap());
         assert!(safety.starts_with(&env.ctx.backups_dir));
-        assert!(safety.file_name().unwrap().to_string_lossy().starts_with("auto-pre-restore-"));
+        assert!(safety
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("auto-pre-restore-"));
         let m = inspect_file(&safety).manifest.unwrap();
         assert_eq!((m.kind.as_str(), m.counts.runs), ("pre_restore", 4));
         let back = restore_backup(&env.ctx, &safety, true, &SettingsBlob::default(), None).unwrap();
@@ -2482,10 +3442,18 @@ mod tests {
         let src = env.out("src.sqlite3");
         make_db(&src, "src", 2);
         let backup = backup_of(&env, &src, "b.deckchek-backup");
-        assert_eq!(restore_backup(&env.ctx, &backup, false, &SettingsBlob::default(), None).unwrap_err().code, "not_confirmed");
+        assert_eq!(
+            restore_backup(&env.ctx, &backup, false, &SettingsBlob::default(), None)
+                .unwrap_err()
+                .code,
+            "not_confirmed"
+        );
         assert!(!env.live().exists());
         let r = restore_backup(&env.ctx, &backup, true, &SettingsBlob::default(), None).unwrap();
-        assert_eq!(r.safety_backup, None, "nothing to protect on a fresh install");
+        assert_eq!(
+            r.safety_backup, None,
+            "nothing to protect on a fresh install"
+        );
         assert_eq!(rows(env.live(), "session"), 2);
     }
 
@@ -2495,17 +3463,27 @@ mod tests {
         let src = env.out("src.sqlite3");
         make_db(&src, "src", 1);
         let dest = env.out("s.deckchek-backup");
-        let odd = SettingsBlob { ui: Some(json!([1, 2])), calibration: Some(json!({ "k": 5 })) };
+        let odd = SettingsBlob {
+            ui: Some(json!([1, 2])),
+            calibration: Some(json!({ "k": 5 })),
+        };
         create_backup(&src, &dest, Kind::Manual, &odd, &mut |_, _| {}).unwrap();
         let r = restore_backup(&env.ctx, &dest, true, &SettingsBlob::default(), None).unwrap();
-        assert_eq!((r.settings.clone(), r.calibration_profiles.clone()), (Value::Null, Value::Null));
+        assert_eq!(
+            (r.settings.clone(), r.calibration_profiles.clone()),
+            (Value::Null, Value::Null)
+        );
         assert_eq!(r.warnings.len(), 2);
     }
 
     // ---------- failure injection: the live DB stays byte-identical ----------
 
     fn assert_untouched(env: &Env, before: &[u8], label: &str) {
-        assert_eq!(fs::read(env.live()).unwrap(), before, "{label}: live DB must be byte-identical");
+        assert_eq!(
+            fs::read(env.live()).unwrap(),
+            before,
+            "{label}: live DB must be byte-identical"
+        );
         no_restore_leftovers(env);
         assert_eq!(rows(env.live(), "session"), 3, "{label}");
     }
@@ -2521,7 +3499,12 @@ mod tests {
         let none = SettingsBlob::default();
 
         // injected failures at every stage, before and during the swap
-        for fp in [FailPoint::Migration, FailPoint::AfterSafetyBackup, FailPoint::MidSwap, FailPoint::AfterSwap] {
+        for fp in [
+            FailPoint::Migration,
+            FailPoint::AfterSafetyBackup,
+            FailPoint::MidSwap,
+            FailPoint::AfterSwap,
+        ] {
             let e = restore_backup(&env.ctx, &good, true, &none, Some(fp)).unwrap_err();
             assert!(!e.message.is_empty());
             assert_untouched(&env, &before, &format!("{fp:?}"));
@@ -2531,7 +3514,12 @@ mod tests {
         let junk_db = vec![0x42u8; 8192];
         let corrupt = env.out("corrupt.deckchek-backup");
         crafted(&corrupt, current_schema_version(), &[(DB_ENTRY, &junk_db)]);
-        assert_eq!(restore_backup(&env.ctx, &corrupt, true, &none, None).unwrap_err().code, "corrupt_db");
+        assert_eq!(
+            restore_backup(&env.ctx, &corrupt, true, &none, None)
+                .unwrap_err()
+                .code,
+            "corrupt_db"
+        );
         assert_untouched(&env, &before, "corrupt db");
 
         // truncated SQLite file (header intact, pages missing)
@@ -2551,27 +3539,60 @@ mod tests {
         {
             let c = Connection::open(&v2).unwrap();
             c.execute_batch(&fixture_sql()).unwrap();
-            c.execute_batch("ALTER TABLE device_test_result ADD COLUMN media_id TEXT;").unwrap();
+            c.execute_batch("ALTER TABLE device_test_result ADD COLUMN media_id TEXT;")
+                .unwrap();
         }
         let blocked = backup_of(&env, &v2, "blocked.deckchek-backup");
-        assert_eq!(restore_backup(&env.ctx, &blocked, true, &none, None).unwrap_err().code, "migration_failed");
+        assert_eq!(
+            restore_backup(&env.ctx, &blocked, true, &none, None)
+                .unwrap_err()
+                .code,
+            "migration_failed"
+        );
         assert_untouched(&env, &before, "migration error");
 
         // DB inside says a newer schema than the manifest claims
         let newer_db = env.out("newer.sqlite3");
         make_db(&newer_db, "n", 1);
-        Connection::open(&newer_db).unwrap().execute("INSERT INTO schema_migration (version, applied_at) VALUES (999, 'x')", []).unwrap();
+        Connection::open(&newer_db)
+            .unwrap()
+            .execute(
+                "INSERT INTO schema_migration (version, applied_at) VALUES (999, 'x')",
+                [],
+            )
+            .unwrap();
         // (create_backup refuses to write it: its own verification sees schema v999)
-        assert_eq!(create_backup(&newer_db, &env.out("n.deckchek-backup"), Kind::Manual, &none, &mut |_, _| {}).unwrap_err().code, "verify_failed");
+        assert_eq!(
+            create_backup(
+                &newer_db,
+                &env.out("n.deckchek-backup"),
+                Kind::Manual,
+                &none,
+                &mut |_, _| {}
+            )
+            .unwrap_err()
+            .code,
+            "verify_failed"
+        );
         let liar_db = fs::read(&newer_db).unwrap();
         let liar = env.out("honest.deckchek-backup");
         crafted(&liar, 999, &[(DB_ENTRY, &liar_db)]);
         let lying = env.out("lying.deckchek-backup");
         crafted(&lying, current_schema_version(), &[(DB_ENTRY, &liar_db)]);
-        assert_eq!(restore_backup(&env.ctx, &lying, true, &none, None).unwrap_err().code, "too_new");
+        assert_eq!(
+            restore_backup(&env.ctx, &lying, true, &none, None)
+                .unwrap_err()
+                .code,
+            "too_new"
+        );
         assert_untouched(&env, &before, "db newer than manifest");
         // and a manifest that is honest about it is refused at inspect (AC-6)
-        assert_eq!(restore_backup(&env.ctx, &liar, true, &none, None).unwrap_err().code, "too_new");
+        assert_eq!(
+            restore_backup(&env.ctx, &liar, true, &none, None)
+                .unwrap_err()
+                .code,
+            "too_new"
+        );
         assert_untouched(&env, &before, "too new");
 
         // checksum mismatch and bad zip (AC-9)
@@ -2580,17 +3601,33 @@ mod tests {
         evil[100] ^= 1;
         let m = manifest_bytes(2, 1, &[(DB_ENTRY, &liar_db)]);
         write_zip(&tampered, &[(MANIFEST, &m), (DB_ENTRY, &evil)]);
-        assert_eq!(restore_backup(&env.ctx, &tampered, true, &none, None).unwrap_err().code, "checksum");
+        assert_eq!(
+            restore_backup(&env.ctx, &tampered, true, &none, None)
+                .unwrap_err()
+                .code,
+            "checksum"
+        );
         assert_untouched(&env, &before, "checksum");
         let junk = env.out("junk.deckchek-backup");
         fs::write(&junk, b"not a zip").unwrap();
-        assert_eq!(restore_backup(&env.ctx, &junk, true, &none, None).unwrap_err().code, "bad_zip");
+        assert_eq!(
+            restore_backup(&env.ctx, &junk, true, &none, None)
+                .unwrap_err()
+                .code,
+            "bad_zip"
+        );
         assert_untouched(&env, &before, "bad zip");
 
         // safety backup cannot be written (backups "folder" is a file): nothing restored
         let blocked_dir = env.root.join("not-a-dir");
         fs::write(&blocked_dir, b"x").unwrap();
-        let ctx2 = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: blocked_dir.join("backups"), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: no_capture() };
+        let ctx2 = Ctx {
+            live_db: env.ctx.live_db.clone(),
+            backups_dir: blocked_dir.join("backups"),
+            gate: env.ctx.gate,
+            activity: env.ctx.activity.clone(),
+            capture_running: no_capture(),
+        };
         assert!(restore_backup(&ctx2, &good, true, &none, None).is_err());
         assert_untouched(&env, &before, "safety backup failed");
 
@@ -2617,11 +3654,22 @@ mod tests {
         let good = backup_of(&env, &src, "good.deckchek-backup");
         let reader = env.ctx.gate.read().unwrap();
         let handle = {
-            let ctx = Ctx { live_db: env.ctx.live_db.clone(), backups_dir: env.ctx.backups_dir.clone(), gate: env.ctx.gate, activity: env.ctx.activity.clone(), capture_running: no_capture() };
-            std::thread::spawn(move || restore_backup(&ctx, &good, true, &SettingsBlob::default(), None).map(|_| ()))
+            let ctx = Ctx {
+                live_db: env.ctx.live_db.clone(),
+                backups_dir: env.ctx.backups_dir.clone(),
+                gate: env.ctx.gate,
+                activity: env.ctx.activity.clone(),
+                capture_running: no_capture(),
+            };
+            std::thread::spawn(move || {
+                restore_backup(&ctx, &good, true, &SettingsBlob::default(), None).map(|_| ())
+            })
         };
         std::thread::sleep(Duration::from_millis(300));
-        assert!(!handle.is_finished(), "restore must wait while a connection holds the gate");
+        assert!(
+            !handle.is_finished(),
+            "restore must wait while a connection holds the gate"
+        );
         assert_eq!(rows(env.live(), "session"), 1);
         drop(reader);
         handle.join().unwrap().unwrap();
@@ -2636,13 +3684,21 @@ mod tests {
         // crash between "live -> bak" and "tmp -> live"
         fs::rename(env.live(), restore_bak(env.live())).unwrap();
         fs::write(restore_tmp(env.live()), b"half-written").unwrap();
-        fs::write(env.ctx.backups_dir.join("auto-x.deckchek-backup.partial"), b"x").unwrap();
+        fs::write(
+            env.ctx.backups_dir.join("auto-x.deckchek-backup.partial"),
+            b"x",
+        )
+        .unwrap();
         fs::write(env.ctx.backups_dir.join("keep.deckchek-backup"), b"x").unwrap();
         let notes = recover_on_startup(&env.ctx);
         assert!(notes.len() >= 3, "{notes:?}");
         assert_eq!(fs::read(env.live()).unwrap(), before);
         no_restore_leftovers(&env);
-        assert!(!env.ctx.backups_dir.join("auto-x.deckchek-backup.partial").exists());
+        assert!(!env
+            .ctx
+            .backups_dir
+            .join("auto-x.deckchek-backup.partial")
+            .exists());
         assert!(env.ctx.backups_dir.join("keep.deckchek-backup").exists());
         // crash after the swap finished: the leftover old copy is removed, live kept
         fs::write(restore_bak(env.live()), b"old").unwrap();
@@ -2668,11 +3724,31 @@ mod tests {
         let mut autos = Vec::new();
         for day in 1..=9 {
             // file names deliberately out of date order: sorting uses the manifest createdAt
-            autos.push(fake_backup(dir, &format!("auto-{}.deckchek-backup", 10 - day), "auto", &format!("2026-10-{day:02}T00:00:00.000Z")));
+            autos.push(fake_backup(
+                dir,
+                &format!("auto-{}.deckchek-backup", 10 - day),
+                "auto",
+                &format!("2026-10-{day:02}T00:00:00.000Z"),
+            ));
         }
-        let pre = fake_backup(dir, "auto-pre-restore-1.deckchek-backup", "pre_restore", "2026-10-10T00:00:00.000Z");
-        let manual_old = fake_backup(dir, "DeckChek-backup-old.deckchek-backup", "manual", "2020-01-01T00:00:00.000Z");
-        let manual_named_auto = fake_backup(dir, "auto-mine.deckchek-backup", "manual", "2019-01-01T00:00:00.000Z");
+        let pre = fake_backup(
+            dir,
+            "auto-pre-restore-1.deckchek-backup",
+            "pre_restore",
+            "2026-10-10T00:00:00.000Z",
+        );
+        let manual_old = fake_backup(
+            dir,
+            "DeckChek-backup-old.deckchek-backup",
+            "manual",
+            "2020-01-01T00:00:00.000Z",
+        );
+        let manual_named_auto = fake_backup(
+            dir,
+            "auto-mine.deckchek-backup",
+            "manual",
+            "2019-01-01T00:00:00.000Z",
+        );
         let unreadable = dir.join("auto-broken.deckchek-backup");
         fs::write(&unreadable, b"not a zip").unwrap();
 
@@ -2691,9 +3767,17 @@ mod tests {
         assert!(manual_old.exists() && manual_named_auto.exists());
 
         let list = list_backups(&env.ctx, None);
-        let newest_valid = list.iter().find(|e| e.name != "auto-broken.deckchek-backup").unwrap();
-        assert_eq!((newest_valid.name.as_str(), newest_valid.kind.as_str()), ("auto-pre-restore-1.deckchek-backup", "pre_restore"));
-        assert!(list.iter().any(|e| e.kind == "manual" && e.name == "auto-mine.deckchek-backup"));
+        let newest_valid = list
+            .iter()
+            .find(|e| e.name != "auto-broken.deckchek-backup")
+            .unwrap();
+        assert_eq!(
+            (newest_valid.name.as_str(), newest_valid.kind.as_str()),
+            ("auto-pre-restore-1.deckchek-backup", "pre_restore")
+        );
+        assert!(list
+            .iter()
+            .any(|e| e.kind == "manual" && e.name == "auto-mine.deckchek-backup"));
     }
 
     // ---------- schedule, log, import ----------
@@ -2715,7 +3799,10 @@ mod tests {
         assert!(is_due(Mode::Daily, Some(now - DAY_MS), now));
         assert!(!is_due(Mode::Weekly, Some(now - 7 * DAY_MS + 1), now));
         assert!(is_due(Mode::Weekly, Some(now - 7 * DAY_MS), now));
-        assert!(is_due(Mode::Daily, Some(now + DAY_MS), now), "clock moved back: run");
+        assert!(
+            is_due(Mode::Daily, Some(now + DAY_MS), now),
+            "clock moved back: run"
+        );
     }
 
     #[test]
@@ -2724,19 +3811,53 @@ mod tests {
         assert_eq!(get_schedule(&c).unwrap(), ScheduleSettings::default());
         assert_eq!(get_schedule(&c).unwrap().keep, 7);
         crate::app_state::set(&c, "backup", &json!({ "remindLater": "2026-11-01" })).unwrap();
-        let s = set_schedule(&c, Some(&ScheduleInput { mode: Mode::Weekly, keep: 3 }), None).unwrap();
+        let s = set_schedule(
+            &c,
+            Some(&ScheduleInput {
+                mode: Mode::Weekly,
+                keep: 3,
+            }),
+            None,
+        )
+        .unwrap();
         assert_eq!((s.mode, s.keep, s.last_auto_ms), (Mode::Weekly, 3, None));
         let s = set_schedule(&c, None, Some(86_400_000)).unwrap();
-        assert_eq!((s.mode, s.last_auto_ms, s.last_auto_at.as_deref()), (Mode::Weekly, Some(86_400_000), Some("1970-01-02T00:00:00.000Z")));
+        assert_eq!(
+            (s.mode, s.last_auto_ms, s.last_auto_at.as_deref()),
+            (
+                Mode::Weekly,
+                Some(86_400_000),
+                Some("1970-01-02T00:00:00.000Z")
+            )
+        );
         let raw = crate::app_state::get(&c, "backup").unwrap().unwrap().value;
-        assert_eq!(raw["remindLater"], "2026-11-01", "unknown keys are preserved");
+        assert_eq!(
+            raw["remindLater"], "2026-11-01",
+            "unknown keys are preserved"
+        );
         assert_eq!(raw["mode"], "weekly");
         for keep in [0, MAX_KEEP + 1] {
-            assert_eq!(set_schedule(&c, Some(&ScheduleInput { mode: Mode::Daily, keep }), None).unwrap_err().code, "invalid_settings");
+            assert_eq!(
+                set_schedule(
+                    &c,
+                    Some(&ScheduleInput {
+                        mode: Mode::Daily,
+                        keep
+                    }),
+                    None
+                )
+                .unwrap_err()
+                .code,
+                "invalid_settings"
+            );
         }
-        let input: ScheduleInput = serde_json::from_value(json!({ "mode": "onExit", "keep": 7 })).unwrap();
+        let input: ScheduleInput =
+            serde_json::from_value(json!({ "mode": "onExit", "keep": 7 })).unwrap();
         assert_eq!(input.mode, Mode::OnExit);
-        assert!(serde_json::from_value::<ScheduleInput>(json!({ "mode": "hourly", "keep": 7 })).is_err());
+        assert!(
+            serde_json::from_value::<ScheduleInput>(json!({ "mode": "hourly", "keep": 7 }))
+                .is_err()
+        );
     }
 
     #[test]
@@ -2744,17 +3865,48 @@ mod tests {
         let env = Env::new("log");
         make_db(env.live(), "r", 1);
         let dest = env.out("elsewhere.deckchek-backup");
-        let r = create_backup(env.live(), &dest, Kind::Manual, &SettingsBlob::default(), &mut |_, _| {}).unwrap();
+        let r = create_backup(
+            env.live(),
+            &dest,
+            Kind::Manual,
+            &SettingsBlob::default(),
+            &mut |_, _| {},
+        )
+        .unwrap();
         let c = Connection::open(env.live()).unwrap();
         log_backup(&c, &r, true).unwrap();
-        let (kind, path, bytes, schema, ok): (String, String, i64, i64, i64) =
-            c.query_row("SELECT kind, path, bytes, schema_version, ok FROM backup_log", [], |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?))).unwrap();
-        assert_eq!((kind.as_str(), path.as_str(), bytes as u64, schema, ok), ("manual", r.path.as_str(), r.bytes, current_schema_version(), 1));
+        let (kind, path, bytes, schema, ok): (String, String, i64, i64, i64) = c
+            .query_row(
+                "SELECT kind, path, bytes, schema_version, ok FROM backup_log",
+                [],
+                |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            (kind.as_str(), path.as_str(), bytes as u64, schema, ok),
+            (
+                "manual",
+                r.path.as_str(),
+                r.bytes,
+                current_schema_version(),
+                1
+            )
+        );
         let list = list_backups(&env.ctx, Some(&c));
         assert_eq!(list.len(), 1);
-        assert_eq!((list[0].kind.as_str(), list[0].bytes, list[0].created_at.as_str()), ("manual", r.bytes, r.created_at.as_str()));
+        assert_eq!(
+            (
+                list[0].kind.as_str(),
+                list[0].bytes,
+                list[0].created_at.as_str()
+            ),
+            ("manual", r.bytes, r.created_at.as_str())
+        );
         fs::remove_file(&dest).unwrap();
-        assert!(list_backups(&env.ctx, Some(&c)).is_empty(), "deleted files drop out of the list");
+        assert!(
+            list_backups(&env.ctx, Some(&c)).is_empty(),
+            "deleted files drop out of the list"
+        );
     }
 
     #[test]
@@ -2773,16 +3925,39 @@ mod tests {
             "equipment": [{ "id": "eq-1", "name": "SL-1200MK4", "serialNumber": "GH1" }, { "id": "eq-1", "name": "dup" }, { "name": "no id" }]
         });
         let r = import_workspace(&mut c, &payload).unwrap();
-        assert_eq!(r, ImportResult { runs_imported: 1, runs_skipped: 2, runs_invalid: 2, equipment_imported: 1 });
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM session", [], |x| x.get(0)).unwrap();
+        assert_eq!(
+            r,
+            ImportResult {
+                runs_imported: 1,
+                runs_skipped: 2,
+                runs_invalid: 2,
+                equipment_imported: 1
+            }
+        );
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM session", [], |x| x.get(0))
+            .unwrap();
         assert_eq!(n, 2);
-        let serial: String = c.query_row("SELECT serial_number FROM asset WHERE id = 'eq-1'", [], |x| x.get(0)).unwrap();
+        let serial: String = c
+            .query_row(
+                "SELECT serial_number FROM asset WHERE id = 'eq-1'",
+                [],
+                |x| x.get(0),
+            )
+            .unwrap();
         assert_eq!(serial, "GH1");
         // re-import is a no-op
         let again = import_workspace(&mut c, &payload).unwrap();
         assert_eq!((again.runs_imported, again.equipment_imported), (0, 0));
-        for bad in [json!({ "version": 2, "runs": [] }), json!({ "version": 1 }), json!([])] {
-            assert_eq!(import_workspace(&mut c, &bad).unwrap_err().code, "bad_workspace");
+        for bad in [
+            json!({ "version": 2, "runs": [] }),
+            json!({ "version": 1 }),
+            json!([]),
+        ] {
+            assert_eq!(
+                import_workspace(&mut c, &bad).unwrap_err().code,
+                "bad_workspace"
+            );
         }
     }
 
@@ -2794,23 +3969,45 @@ mod tests {
         assert_eq!(file_stamp(1_791_633_845_123), "20261010-120405");
         let dir = std::env::temp_dir();
         let p = unique_path(&dir, "auto-", 0);
-        assert!(p.file_name().unwrap().to_string_lossy().starts_with("auto-19700101-000000"));
+        assert!(p
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("auto-19700101-000000"));
     }
 
     #[test]
     fn manifest_contract_round_trips_with_the_js_example() {
-        let raw = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/backup-manifest.json")).unwrap();
+        let raw = fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/backup-manifest.json"),
+        )
+        .unwrap();
         let v: Value = serde_json::from_str(&raw).unwrap();
         let m: Manifest = serde_json::from_value(v.clone()).unwrap();
-        assert_eq!(m.counts, Counts { runs: 128, assets: 12, profiles: 3, midi_maps: 4 });
-        assert_eq!(serde_json::to_value(&m).unwrap(), v, "field names match exactly");
+        assert_eq!(
+            m.counts,
+            Counts {
+                runs: 128,
+                assets: 12,
+                profiles: 3,
+                midi_maps: 4
+            }
+        );
+        assert_eq!(
+            serde_json::to_value(&m).unwrap(),
+            v,
+            "field names match exactly"
+        );
     }
 
     #[test]
     fn errors_serialize_with_code_and_message() {
         let v = serde_json::to_value(BackupError::new("too_new", "m")).unwrap();
         assert_eq!(v, json!({ "code": "too_new", "message": "m" }));
-        let e = io_err("save the backup", io::Error::new(io::ErrorKind::StorageFull, "/home/secret/path"));
+        let e = io_err(
+            "save the backup",
+            io::Error::new(io::ErrorKind::StorageFull, "/home/secret/path"),
+        );
         assert_eq!(e.code, "disk_full");
         assert!(!e.message.contains("secret"));
     }
@@ -2830,18 +4027,28 @@ mod tests {
         let (files, skipped) = photo_files(&legacy, &photos).unwrap();
         assert!(files.is_empty());
         assert_eq!(skipped, 0, "a pre-photo schema has no omitted photos");
-        assert_eq!(schema_version(&Connection::open(&legacy).unwrap()).unwrap(), 2, "reading photos must not upgrade a snapshot");
+        assert_eq!(
+            schema_version(&Connection::open(&legacy).unwrap()).unwrap(),
+            2,
+            "reading photos must not upgrade a snapshot"
+        );
 
         // An old version does not excuse an unexpected SQL failure when a
         // photo object exists, such as an edited table without its hash column.
-        Connection::open(&legacy).unwrap().execute_batch("CREATE TABLE Photo (unexpected TEXT);").unwrap();
+        Connection::open(&legacy)
+            .unwrap()
+            .execute_batch("CREATE TABLE Photo (unexpected TEXT);")
+            .unwrap();
         let malformed = photo_files(&legacy, &photos).unwrap_err();
         assert_eq!(malformed.code, "database");
         assert!(malformed.message.contains("sha256"));
 
         let current = env.out("current.sqlite3");
         make_db(&current, "current", 1);
-        Connection::open(&current).unwrap().execute_batch("DROP TABLE photo;").unwrap();
+        Connection::open(&current)
+            .unwrap()
+            .execute_batch("DROP TABLE photo;")
+            .unwrap();
         let missing = photo_files(&current, &photos).unwrap_err();
         assert_eq!(missing.code, "database");
         assert!(missing.message.contains("no such table"));
@@ -2873,11 +4080,22 @@ mod tests {
         let dest = env.out("photos.deckchek-backup");
         create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
         let m = verify_archive(&dest).unwrap();
-        let names: Vec<&str> = m.files.iter().map(|f| f.name.as_str()).filter(|n| n.starts_with("photos/")).collect();
-        let mut want = vec![format!("photos/{}.jpg", a.sha256), format!("photos/{}.jpg", b.sha256)];
+        let names: Vec<&str> = m
+            .files
+            .iter()
+            .map(|f| f.name.as_str())
+            .filter(|n| n.starts_with("photos/"))
+            .collect();
+        let mut want = vec![
+            format!("photos/{}.jpg", a.sha256),
+            format!("photos/{}.jpg", b.sha256),
+        ];
         want.sort();
         assert_eq!(names, want.iter().map(String::as_str).collect::<Vec<_>>());
-        assert_eq!(m.format_version, 1, "additive: the format version does not change");
+        assert_eq!(
+            m.format_version, 1,
+            "additive: the format version does not change"
+        );
 
         // lose the files and the rows' owner, then restore: the files come back, byte for byte
         let photos = env.live().parent().unwrap().join("photos");
@@ -2885,7 +4103,10 @@ mod tests {
         fs::remove_dir_all(&photos).unwrap();
         let r = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
         assert!(r.warnings.is_empty(), "{:?}", r.warnings);
-        assert_eq!(fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(), original);
+        assert_eq!(
+            fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(),
+            original
+        );
         assert!(photos.join(format!("{}.jpg", b.sha256)).is_file());
         let conn = db::open_database(env.live()).unwrap();
         let rows = crate::photo::list(&conn, "asset", "asset-1").unwrap();
@@ -2903,11 +4124,22 @@ mod tests {
         fs::remove_file(photos.join(format!("{}.jpg", a.sha256))).unwrap();
         fs::write(photos.join(format!("{}.jpg", b.sha256)), b"damaged").unwrap();
         let dest = env.out("skip.deckchek-backup");
-        let created = create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
-        assert_eq!(created.warnings, ["2 photo(s) were missing or damaged and were omitted from this backup."]);
-        assert!(verify_archive(&dest).unwrap().files.iter().all(|f| !f.name.starts_with("photos/")));
+        let created =
+            create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
+        assert_eq!(
+            created.warnings,
+            ["2 photo(s) were missing or damaged and were omitted from this backup."]
+        );
+        assert!(verify_archive(&dest)
+            .unwrap()
+            .files
+            .iter()
+            .all(|f| !f.name.starts_with("photos/")));
         let restored = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
-        assert!(restored.warnings.iter().any(|w| w.starts_with("2 referenced photo(s) are absent")));
+        assert!(restored
+            .warnings
+            .iter()
+            .any(|w| w.starts_with("2 referenced photo(s) are absent")));
     }
 
     #[test]
@@ -2915,7 +4147,12 @@ mod tests {
         let env = Env::new("photo-repair");
         make_db(env.live(), "p", 1);
         let photo = attach_photo(&env, "asset-1", 8);
-        let path = env.live().parent().unwrap().join("photos").join(format!("{}.jpg", photo.sha256));
+        let path = env
+            .live()
+            .parent()
+            .unwrap()
+            .join("photos")
+            .join(format!("{}.jpg", photo.sha256));
         let original = fs::read(&path).unwrap();
         let dest = env.out("repair.deckchek-backup");
         create_backup(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}).unwrap();
@@ -2948,7 +4185,8 @@ mod tests {
                 c.execute_batch("PRAGMA foreign_keys=ON").unwrap();
                 let tx = c.transaction().unwrap();
                 // Same SQL/commit/file order as unlink, with a commit barrier.
-                let (_, pending) = crate::photo::unlink_owner(&tx, &photos, "asset", "asset-1").unwrap();
+                let (_, pending) =
+                    crate::photo::unlink_owner(&tx, &photos, "asset", "asset-1").unwrap();
                 tx.commit().unwrap();
                 committed_tx.send(()).unwrap();
                 let removed = pending.remove_after_commit(&c);
@@ -2956,17 +4194,32 @@ mod tests {
             })
         };
         let dest = env.out("race.deckchek-backup");
-        let created = create_backup_with(env.live(), &dest, Kind::Manual, &settings(), &mut |_, _| {}, &mut || {
-            start_tx.send(()).unwrap();
-            committed_rx.recv_timeout(Duration::from_secs(5)).unwrap();
-            assert!(file.is_file(), "committing unlink must not remove the snapshot's bytes yet");
-            assert!(removed_rx.try_recv().is_err());
-        }).unwrap();
+        let created = create_backup_with(
+            env.live(),
+            &dest,
+            Kind::Manual,
+            &settings(),
+            &mut |_, _| {},
+            &mut || {
+                start_tx.send(()).unwrap();
+                committed_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                assert!(
+                    file.is_file(),
+                    "committing unlink must not remove the snapshot's bytes yet"
+                );
+                assert!(removed_rx.try_recv().is_err());
+            },
+        )
+        .unwrap();
         assert!(created.warnings.is_empty());
         assert_eq!(removed_rx.recv_timeout(Duration::from_secs(5)).unwrap(), 1);
         worker.join().unwrap();
         assert!(!file.exists());
-        assert!(verify_archive(&dest).unwrap().files.iter().any(|f| f.name == format!("photos/{}.jpg", photo.sha256)));
+        assert!(verify_archive(&dest)
+            .unwrap()
+            .files
+            .iter()
+            .any(|f| f.name == format!("photos/{}.jpg", photo.sha256)));
         let restored = restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
         assert!(restored.warnings.is_empty());
         assert!(file.exists());
@@ -2985,20 +4238,49 @@ mod tests {
 
         // a photo entry whose bytes differ from the manifest's hash is a checksum failure
         let name = format!("photos/{}.jpg", a.sha256);
-        let m = manifest_bytes(2, 1, &[(DB_ENTRY, &db_bytes), (name.as_str(), b"the manifest hashes these bytes")]);
-        write_zip(&env.out("tamper2.deckchek-backup"), &[(MANIFEST, &m), (DB_ENTRY, &db_bytes), (name.as_str(), b"but these were stored")]);
-        assert_eq!(verify_archive(&env.out("tamper2.deckchek-backup")).unwrap_err().code, "checksum");
+        let m = manifest_bytes(
+            2,
+            1,
+            &[
+                (DB_ENTRY, &db_bytes),
+                (name.as_str(), b"the manifest hashes these bytes"),
+            ],
+        );
+        write_zip(
+            &env.out("tamper2.deckchek-backup"),
+            &[
+                (MANIFEST, &m),
+                (DB_ENTRY, &db_bytes),
+                (name.as_str(), b"but these were stored"),
+            ],
+        );
+        assert_eq!(
+            verify_archive(&env.out("tamper2.deckchek-backup"))
+                .unwrap_err()
+                .code,
+            "checksum"
+        );
 
         // names that are not photos/<sha256>.jpg are neither read nor extracted
         // This subcase has no expected photos; missing referenced photos have
         // their own regression above and must now produce an explicit warning.
         {
             let c = Connection::open(&db_copy).unwrap();
-            c.execute_batch("DELETE FROM photo_link; DELETE FROM photo;").unwrap();
+            c.execute_batch("DELETE FROM photo_link; DELETE FROM photo;")
+                .unwrap();
         }
         let db_without_photos = fs::read(&db_copy).unwrap();
         let other = env.out("other.deckchek-backup");
-        crafted(&other, 2, &[(DB_ENTRY, &db_without_photos), ("photos/notes.txt", b"hi"), ("photos/a.jpg", b"hi"), ("photos/UPPER.jpg", b"hi")]);
+        crafted(
+            &other,
+            2,
+            &[
+                (DB_ENTRY, &db_without_photos),
+                ("photos/notes.txt", b"hi"),
+                ("photos/a.jpg", b"hi"),
+                ("photos/UPPER.jpg", b"hi"),
+            ],
+        );
         verify_archive(&other).unwrap();
         let photos = env.live().parent().unwrap().join("photos");
         fs::remove_dir_all(&photos).unwrap();
@@ -3007,9 +4289,21 @@ mod tests {
         assert!(!photos.exists(), "nothing under photos/ was extracted");
 
         // path tricks in the manifest are refused before anything is read
-        let m = manifest_bytes(2, 1, &[(DB_ENTRY, &db_bytes), ("photos/../../evil.jpg", b"x")]);
-        write_zip(&env.out("evil.deckchek-backup"), &[(MANIFEST, &m), (DB_ENTRY, &db_bytes)]);
-        assert_eq!(verify_archive(&env.out("evil.deckchek-backup")).unwrap_err().code, "bad_manifest");
+        let m = manifest_bytes(
+            2,
+            1,
+            &[(DB_ENTRY, &db_bytes), ("photos/../../evil.jpg", b"x")],
+        );
+        write_zip(
+            &env.out("evil.deckchek-backup"),
+            &[(MANIFEST, &m), (DB_ENTRY, &db_bytes)],
+        );
+        assert_eq!(
+            verify_archive(&env.out("evil.deckchek-backup"))
+                .unwrap_err()
+                .code,
+            "bad_manifest"
+        );
     }
 
     // ---------- audit regressions (AUD-02, AUD-04, AUD-05, AUD-09) ----------
@@ -3028,18 +4322,34 @@ mod tests {
         make_db(env.live(), "l", 1);
         let real = backup_of(&env, env.live(), "real.deckchek-backup");
         // the same file reached through a `..` segment, and a non-backup file that exists
-        let dotted = env.root.join("out").join("..").join("out").join("real.deckchek-backup");
+        let dotted = env
+            .root
+            .join("out")
+            .join("..")
+            .join("out")
+            .join("real.deckchek-backup");
         let other = env.out("secret.txt");
         fs::write(&other, b"not a backup").unwrap();
         let c = Connection::open(env.live()).unwrap();
-        for p in [dotted.to_string_lossy().into_owned(), other.to_string_lossy().into_owned(), "real.deckchek-backup".into()] {
+        for p in [
+            dotted.to_string_lossy().into_owned(),
+            other.to_string_lossy().into_owned(),
+            "real.deckchek-backup".into(),
+        ] {
             insert_log_path(&c, &p);
         }
         let list = list_backups(&env.ctx, Some(&c));
-        assert!(list.is_empty(), "nothing but plain local backup paths may be listed: {list:?}");
+        assert!(
+            list.is_empty(),
+            "nothing but plain local backup paths may be listed: {list:?}"
+        );
         insert_log_path(&c, &real.to_string_lossy());
         let list = list_backups(&env.ctx, Some(&c));
-        assert_eq!(list.len(), 1, "a plain local backup saved elsewhere is still listed");
+        assert_eq!(
+            list.len(),
+            1,
+            "a plain local backup saved elsewhere is still listed"
+        );
         assert_eq!(Path::new(&list[0].path), real.as_path());
     }
 
@@ -3069,7 +4379,11 @@ mod tests {
         for p in hostile {
             insert_log_path(&c, p);
         }
-        let local = if cfg!(windows) { r"C:\Backups\ok.deckchek-backup" } else { "/backups/ok.deckchek-backup" };
+        let local = if cfg!(windows) {
+            r"C:\Backups\ok.deckchek-backup"
+        } else {
+            "/backups/ok.deckchek-backup"
+        };
         insert_log_path(&c, local);
         let mut probed: Vec<PathBuf> = Vec::new();
         list_backups_with(&env.ctx, Some(&c), &mut |p: &Path| {
@@ -3078,10 +4392,17 @@ mod tests {
         });
         for h in hostile {
             assert!(!logged_path_ok(h), "{h:?} must be refused");
-            assert!(!probed.iter().any(|p| p == Path::new(h)), "{h:?} must never be probed");
+            assert!(
+                !probed.iter().any(|p| p == Path::new(h)),
+                "{h:?} must never be probed"
+            );
         }
         assert!(logged_path_ok(local));
-        assert_eq!(probed, vec![PathBuf::from(local)], "only the plain local path is probed");
+        assert_eq!(
+            probed,
+            vec![PathBuf::from(local)],
+            "only the plain local path is probed"
+        );
     }
 
     #[test]
@@ -3096,7 +4417,8 @@ mod tests {
                 continue;
             }
             let c = Connection::open_in_memory().unwrap();
-            c.execute_batch(&fs::read_to_string(e.path()).unwrap()).unwrap();
+            c.execute_batch(&fs::read_to_string(e.path()).unwrap())
+                .unwrap();
             apply_migrations(&c).unwrap();
             reject_unexpected_schema(&c).unwrap_or_else(|err| panic!("{name}: {}", err.message));
             n += 1;
@@ -3112,21 +4434,37 @@ mod tests {
         make_db(&other, "other", 1);
         {
             let c = Connection::open(&other).unwrap();
-            for p in [r"\\203.0.113.9\s\a.deckchek-backup", "//host/s/b.deckchek-backup", r"\\?\UNC\h\s\c.deckchek-backup", r"\\attacker@SSL\s\x.deckchek-backup"] {
+            for p in [
+                r"\\203.0.113.9\s\a.deckchek-backup",
+                "//host/s/b.deckchek-backup",
+                r"\\?\UNC\h\s\c.deckchek-backup",
+                r"\\attacker@SSL\s\x.deckchek-backup",
+            ] {
                 insert_log_path(&c, p);
             }
         }
         let dest = backup_of(&env, &other, "hostile-log.deckchek-backup");
         restore_backup(&env.ctx, &dest, true, &settings(), None).unwrap();
-        assert_eq!(rows(env.live(), "backup_log"), 0, "paths from another database are never kept");
+        assert_eq!(
+            rows(env.live(), "backup_log"),
+            0,
+            "paths from another database are never kept"
+        );
     }
 
     /// Backs up `live_src` after running `ddl` on a copy whose schema version still claims current.
     fn hostile_schema_backup(env: &Env, ddl: &str) -> PathBuf {
         let other = env.out(&format!("schema-{}.sqlite3", db::new_id()));
         make_db(&other, "other", 1);
-        Connection::open(&other).unwrap().execute_batch(ddl).unwrap();
-        backup_of(env, &other, &format!("schema-{}.deckchek-backup", db::new_id()))
+        Connection::open(&other)
+            .unwrap()
+            .execute_batch(ddl)
+            .unwrap();
+        backup_of(
+            env,
+            &other,
+            &format!("schema-{}.deckchek-backup", db::new_id()),
+        )
     }
 
     #[test]
@@ -3163,7 +4501,12 @@ mod tests {
 
         // one unreferenced valid JPEG and one referenced JPEG carrying an EXIF (APP1) segment
         let unref = crate::photo::test_support::tiny_jpeg(40, 30, &[], 22);
-        let exif = crate::photo::test_support::tiny_jpeg(40, 30, &[0xFF, 0xE1, 0, 8, b'E', b'x', b'i', b'f', 0, 0], 23);
+        let exif = crate::photo::test_support::tiny_jpeg(
+            40,
+            30,
+            &[0xFF, 0xE1, 0, 8, b'E', b'x', b'i', b'f', 0, 0],
+            23,
+        );
         let (unref_sha, exif_sha) = (sha_hex(&unref), sha_hex(&exif));
         let db_copy = env.out("db.sqlite3");
         extract_db(&dest, &db_copy);
@@ -3172,17 +4515,48 @@ mod tests {
             .execute("INSERT INTO photo (id, sha256, mime, width, height, bytes, created_at) VALUES ('p-exif', ?1, 'image/jpeg', 40, 30, ?2, 't')", params![exif_sha, exif.len() as i64])
             .unwrap();
         let db_bytes = fs::read(&db_copy).unwrap();
-        let (na, nu, ne) = (format!("photos/{}.jpg", a.sha256), format!("photos/{unref_sha}.jpg"), format!("photos/{exif_sha}.jpg"));
+        let (na, nu, ne) = (
+            format!("photos/{}.jpg", a.sha256),
+            format!("photos/{unref_sha}.jpg"),
+            format!("photos/{exif_sha}.jpg"),
+        );
         let hostile = env.out("hostile-photos.deckchek-backup");
-        crafted(&hostile, current_schema_version(), &[(DB_ENTRY, &db_bytes), (na.as_str(), &a_bytes), (nu.as_str(), &unref), (ne.as_str(), &exif)]);
+        crafted(
+            &hostile,
+            current_schema_version(),
+            &[
+                (DB_ENTRY, &db_bytes),
+                (na.as_str(), &a_bytes),
+                (nu.as_str(), &unref),
+                (ne.as_str(), &exif),
+            ],
+        );
 
         fs::remove_dir_all(&photos).unwrap();
         let r = restore_backup(&env.ctx, &hostile, true, &settings(), None).unwrap();
-        assert_eq!(fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(), a_bytes, "the referenced valid photo is restored");
-        assert!(!photos.join(format!("{unref_sha}.jpg")).exists(), "unreferenced photos are not written");
-        assert!(!photos.join(format!("{exif_sha}.jpg")).exists(), "photos failing validate_jpeg are not written");
-        assert!(r.warnings.iter().any(|w| w.starts_with("2 photo(s)")), "{:?}", r.warnings);
-        let left: Vec<_> = fs::read_dir(&photos).unwrap().flatten().map(|e| e.file_name()).collect();
+        assert_eq!(
+            fs::read(photos.join(format!("{}.jpg", a.sha256))).unwrap(),
+            a_bytes,
+            "the referenced valid photo is restored"
+        );
+        assert!(
+            !photos.join(format!("{unref_sha}.jpg")).exists(),
+            "unreferenced photos are not written"
+        );
+        assert!(
+            !photos.join(format!("{exif_sha}.jpg")).exists(),
+            "photos failing validate_jpeg are not written"
+        );
+        assert!(
+            r.warnings.iter().any(|w| w.starts_with("2 photo(s)")),
+            "{:?}",
+            r.warnings
+        );
+        let left: Vec<_> = fs::read_dir(&photos)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
         assert_eq!(left.len(), 1, "no temp files left: {left:?}");
     }
 
@@ -3199,11 +4573,20 @@ mod tests {
             { "id": "m", "model": long(121) },
         ]});
         let r = import_workspace(&mut c, &payload).unwrap();
-        assert_eq!(r.equipment_imported, 0, "every oversized or unsafe item is skipped");
+        assert_eq!(
+            r.equipment_imported, 0,
+            "every oversized or unsafe item is skipped"
+        );
         let at_caps = json!({ "version": 1, "runs": [], "equipment": [
             { "id": long(64), "nickname": long(120), "serialNumber": long(80), "notes": long(2000) },
             { "id": "f0e1d2c3-b4a5-4697-8899-aabbccddeeff", "nickname": "Deck 2" },
         ]});
-        assert_eq!(import_workspace(&mut c, &at_caps).unwrap().equipment_imported, 2, "values at the caps are accepted");
+        assert_eq!(
+            import_workspace(&mut c, &at_caps)
+                .unwrap()
+                .equipment_imported,
+            2,
+            "values at the caps are accepted"
+        );
     }
 }

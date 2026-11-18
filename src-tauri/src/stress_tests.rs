@@ -12,14 +12,28 @@ use crate::db::{self, PersistMeasurement, PersistRun};
 
 fn peak_rss_mb() -> Option<u64> {
     let s = std::fs::read_to_string("/proc/self/status").ok()?;
-    let kb: u64 = s.lines().find(|l| l.starts_with("VmHWM:"))?.split_whitespace().nth(1)?.parse().ok()?;
+    let kb: u64 = s
+        .lines()
+        .find(|l| l.starts_with("VmHWM:"))?
+        .split_whitespace()
+        .nth(1)?
+        .parse()
+        .ok()?;
     Some(kb / 1024)
 }
 
 fn report(name: &str, t0: Instant, budget_ms: u128) {
     let ms = t0.elapsed().as_millis();
-    println!("STRESS {{\"name\":\"{name}\",\"ms\":{ms},\"peakRssMb\":{},\"budgetMs\":{budget_ms}}}", peak_rss_mb().map(|v| v.to_string()).unwrap_or_else(|| "null".into()));
-    assert!(ms <= budget_ms, "{name}: {ms} ms over budget {budget_ms} ms");
+    println!(
+        "STRESS {{\"name\":\"{name}\",\"ms\":{ms},\"peakRssMb\":{},\"budgetMs\":{budget_ms}}}",
+        peak_rss_mb()
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "null".into())
+    );
+    assert!(
+        ms <= budget_ms,
+        "{name}: {ms} ms over budget {budget_ms} ms"
+    );
 }
 
 fn tmp(tag: &str) -> PathBuf {
@@ -36,7 +50,16 @@ fn run(i: usize, measurements: usize) -> PersistRun {
         created_at: format!("2026-01-01T00:{:02}:{:02}Z", (i / 60) % 60, i % 60),
         score: Some(80.0),
         measurements: (0..measurements)
-            .map(|k| PersistMeasurement { metric_id: format!("metric_{k}"), label: Some(format!("Metric {k} ü")), value: i as f64 + k as f64 / 10.0, unit: "dB".into(), origin: None, confidence: Some(0.9), uncertainty: None, quality_flags: None })
+            .map(|k| PersistMeasurement {
+                metric_id: format!("metric_{k}"),
+                label: Some(format!("Metric {k} ü")),
+                value: i as f64 + k as f64 / 10.0,
+                unit: "dB".into(),
+                origin: None,
+                confidence: Some(0.9),
+                uncertainty: None,
+                quality_flags: None,
+            })
             .collect(),
         ..Default::default()
     }
@@ -63,25 +86,42 @@ fn stress_persist_list_backup_restore_large_history() {
         assert_eq!(listed.len(), 500);
         // Re-saving the same run twice is idempotent (no duplicate measurements).
         db::persist_run(&mut c, &run(7, 30)).unwrap();
-        let m: i64 = c.query_row("SELECT COUNT(*) FROM measurement", [], |r| r.get(0)).unwrap();
+        let m: i64 = c
+            .query_row("SELECT COUNT(*) FROM measurement", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(m, (n * 30) as i64);
     }
     let size_mb = std::fs::metadata(&live).unwrap().len() / 1_000_000;
     println!("STRESS-INFO database size {size_mb} MB");
     let dest = dir.join("big.deckchek-backup");
     let t0 = Instant::now();
-    backup::create_backup(&live, &dest, backup::Kind::Manual, &backup::SettingsBlob::default(), &mut |_, _| {}).unwrap();
+    backup::create_backup(
+        &live,
+        &dest,
+        backup::Kind::Manual,
+        &backup::SettingsBlob::default(),
+        &mut |_, _| {},
+    )
+    .unwrap();
     report("create backup of large DB", t0, 60_000);
     let t0 = Instant::now();
     let inspected = backup::inspect_file(&dest);
     report("inspect backup of large DB", t0, 30_000);
     assert!(inspected.valid, "{:?}", inspected.errors);
-    let ctx = backup::Ctx { live_db: dir.join("restored.sqlite3"), backups_dir: dir.join("backups"), gate: Box::leak(Box::new(std::sync::RwLock::new(()))), capture_running: std::sync::Arc::new(|| false), activity: Default::default() };
+    let ctx = backup::Ctx {
+        live_db: dir.join("restored.sqlite3"),
+        backups_dir: dir.join("backups"),
+        gate: Box::leak(Box::new(std::sync::RwLock::new(()))),
+        capture_running: std::sync::Arc::new(|| false),
+        activity: Default::default(),
+    };
     let t0 = Instant::now();
     backup::restore_backup(&ctx, &dest, true, &backup::SettingsBlob::default(), None).unwrap();
     report("restore large backup", t0, 120_000);
     let c = Connection::open(&ctx.live_db).unwrap();
-    let runs: i64 = c.query_row("SELECT COUNT(*) FROM session", [], |r| r.get(0)).unwrap();
+    let runs: i64 = c
+        .query_row("SELECT COUNT(*) FROM session", [], |r| r.get(0))
+        .unwrap();
     assert_eq!(runs, n as i64);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -102,7 +142,10 @@ fn stress_workspace_import_at_the_cap() {
     report("import_workspace 10000 runs (cap)", t0, 240_000);
     assert_eq!(r.runs_imported, 10_000);
     let over = serde_json::json!({"version": 1, "runs": vec![serde_json::json!({"id": "x"}); 10_001], "equipment": []});
-    assert_eq!(backup::import_workspace(&mut c, &over).unwrap_err().code, "too_large");
+    assert_eq!(
+        backup::import_workspace(&mut c, &over).unwrap_err().code,
+        "too_large"
+    );
 }
 
 #[test]
@@ -131,7 +174,14 @@ fn stress_concurrent_readers_during_backup() {
         .collect();
     for k in 0..3 {
         let dest = dir.join(format!("b{k}.deckchek-backup"));
-        backup::create_backup(&live, &dest, backup::Kind::Manual, &backup::SettingsBlob::default(), &mut |_, _| {}).unwrap();
+        backup::create_backup(
+            &live,
+            &dest,
+            backup::Kind::Manual,
+            &backup::SettingsBlob::default(),
+            &mut |_, _| {},
+        )
+        .unwrap();
         assert!(backup::inspect_file(&dest).valid);
     }
     for r in readers {

@@ -17,7 +17,18 @@ use crate::db::{database_path, new_id, now_iso, open_database};
 
 pub const KINDS: &[&str] = &["test_record", "timecode", "tone_file"];
 pub const PURPOSES: &[&str] = &[
-    "reference_tone", "speed_tone", "sweep", "tracking", "anti_skate", "wow_flutter", "vta", "balance", "square_wave", "noise", "silence", "other",
+    "reference_tone",
+    "speed_tone",
+    "sweep",
+    "tracking",
+    "anti_skate",
+    "wow_flutter",
+    "vta",
+    "balance",
+    "square_wave",
+    "noise",
+    "silence",
+    "other",
 ];
 pub const LEVEL_UNITS: &[&str] = &["cm/s_rms", "um_peak", "db", "dbfs"];
 pub const CONFIDENCE: &[&str] = &["confirmed", "unverified"];
@@ -39,7 +50,10 @@ fn e2s(e: rusqlite::Error) -> String {
 }
 
 fn s<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
-    v.get(key).and_then(Value::as_str).map(str::trim).filter(|x| !x.is_empty())
+    v.get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|x| !x.is_empty())
 }
 
 fn https(u: &str) -> bool {
@@ -47,11 +61,20 @@ fn https(u: &str) -> bool {
 }
 
 fn pos(v: &Value) -> bool {
-    v.as_f64().map(|n| n.is_finite() && n > 0.0).unwrap_or(false)
+    v.as_f64()
+        .map(|n| n.is_finite() && n > 0.0)
+        .unwrap_or(false)
 }
 
 fn kebab(id: &str) -> bool {
-    !id.is_empty() && id.len() <= 64 && !id.starts_with('-') && !id.ends_with('-') && !id.contains("--") && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    !id.is_empty()
+        && id.len() <= 64
+        && !id.starts_with('-')
+        && !id.ends_with('-')
+        && !id.contains("--")
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// Validate a profile; returns every problem as `field: message`. Mirrors `validateMediaProfile` in app/media-library.js.
@@ -67,7 +90,11 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
     if builtin && !s(p, "id").map(kebab).unwrap_or(false) {
         err("id", "built-in ids must be kebab-case, up to 64 characters");
     }
-    if p.get("version").and_then(Value::as_i64).map(|v| v < 1).unwrap_or(true) {
+    if p.get("version")
+        .and_then(Value::as_i64)
+        .map(|v| v < 1)
+        .unwrap_or(true)
+    {
         err("version", "must be an integer >= 1");
     }
     let kind = s(p, "kind").unwrap_or("");
@@ -77,7 +104,10 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
     if s(p, "name").is_none() {
         err("name", "is required");
     }
-    if !s(p, "confidence").map(|c| CONFIDENCE.contains(&c)).unwrap_or(false) {
+    if !s(p, "confidence")
+        .map(|c| CONFIDENCE.contains(&c))
+        .unwrap_or(false)
+    {
         err("confidence", "must be confirmed or unverified");
     }
     if let Some(r) = obj.get("playbackRpm").filter(|v| !v.is_null()) {
@@ -86,7 +116,11 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
         }
     }
     for k in ["name", "manufacturer", "rias", "notes", "productProfileId"] {
-        if p.get(k).and_then(Value::as_str).map(|x| x.chars().count() > MAX_STRING).unwrap_or(false) {
+        if p.get(k)
+            .and_then(Value::as_str)
+            .map(|x| x.chars().count() > MAX_STRING)
+            .unwrap_or(false)
+        {
             err(k, "is too long");
         }
     }
@@ -100,14 +134,21 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
             for (i, t) in tracks.iter().take(MAX_TRACKS).enumerate() {
                 let f = |k: &str| format!("tracks[{i}].{k}");
                 match s(t, "key") {
-                    Some(k) if k.len() <= 32 && k.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') => {
+                    Some(k)
+                        if k.len() <= 32
+                            && k.bytes()
+                                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') =>
+                    {
                         if !seen.insert(k.to_string()) {
                             err(&f("key"), "duplicate track key");
                         }
                     }
                     _ => err(&f("key"), "must be 1-32 letters, digits, - or _"),
                 }
-                if !s(t, "purpose").map(|x| PURPOSES.contains(&x)).unwrap_or(false) {
+                if !s(t, "purpose")
+                    .map(|x| PURPOSES.contains(&x))
+                    .unwrap_or(false)
+                {
                     err(&f("purpose"), "unknown purpose");
                 }
                 if let Some(v) = t.get("trackNo").filter(|v| !v.is_null()) {
@@ -121,15 +162,27 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
                     }
                 }
                 if let Some(l) = t.get("level").filter(|v| !v.is_null()) {
-                    if l.get("value").and_then(Value::as_f64).map(|n| !n.is_finite()).unwrap_or(true) {
+                    if l.get("value")
+                        .and_then(Value::as_f64)
+                        .map(|n| !n.is_finite())
+                        .unwrap_or(true)
+                    {
                         err(&f("level.value"), "must be a number");
                     }
-                    if !l.get("unit").and_then(Value::as_str).map(|u| LEVEL_UNITS.contains(&u)).unwrap_or(false) {
+                    if !l
+                        .get("unit")
+                        .and_then(Value::as_str)
+                        .map(|u| LEVEL_UNITS.contains(&u))
+                        .unwrap_or(false)
+                    {
                         err(&f("level.unit"), "unknown unit");
                     }
                 }
                 if let Some(v) = t.get("durationS").filter(|v| !v.is_null()) {
-                    if v.as_f64().map(|n| !n.is_finite() || n < 0.0).unwrap_or(true) {
+                    if v.as_f64()
+                        .map(|n| !n.is_finite() || n < 0.0)
+                        .unwrap_or(true)
+                    {
                         err(&f("durationS"), "must be >= 0");
                     }
                 }
@@ -144,7 +197,11 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
                     }
                 }
                 for k in ["label", "notes", "side"] {
-                    if t.get(k).and_then(Value::as_str).map(|x| x.chars().count() > MAX_STRING).unwrap_or(false) {
+                    if t.get(k)
+                        .and_then(Value::as_str)
+                        .map(|x| x.chars().count() > MAX_STRING)
+                        .unwrap_or(false)
+                    {
                         err(&f(k), "is too long");
                     }
                 }
@@ -161,7 +218,10 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
                     }
                 }
             }
-            _ => err("timecode.formatName", "timecode media need timecode.formatName"),
+            _ => err(
+                "timecode.formatName",
+                "timecode media need timecode.formatName",
+            ),
         }
     } else if tc.is_some() {
         err("timecode", "only allowed on kind timecode");
@@ -185,8 +245,17 @@ pub fn validate_profile(p: &Value, builtin: bool) -> Vec<String> {
 }
 
 fn replace_tracks(conn: &Connection, media_id: &str, profile: &Value) -> Result<(), String> {
-    conn.execute("DELETE FROM test_media_track WHERE media_id = ?1", [media_id]).map_err(e2s)?;
-    for t in profile.get("tracks").and_then(Value::as_array).into_iter().flatten() {
+    conn.execute(
+        "DELETE FROM test_media_track WHERE media_id = ?1",
+        [media_id],
+    )
+    .map_err(e2s)?;
+    for t in profile
+        .get("tracks")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         let key = s(t, "key").unwrap_or_default();
         let level = t.get("level").filter(|l| l.is_object());
         conn.execute(
@@ -212,17 +281,37 @@ fn replace_tracks(conn: &Connection, media_id: &str, profile: &Value) -> Result<
 
 /// Populate dvs_media_profile/dvs_media_side for a timecode medium linked to a product.
 /// Side durations are the frontend-resolved `lengthCycles / resolution` from TIMECODE_FORMATS.
-fn sync_dvs(conn: &Connection, media_id: &str, product_id: &str, profile: &Value, facts: &Value) -> Result<(), String> {
-    let sides: Vec<&Value> = facts.get("sides").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default();
+fn sync_dvs(
+    conn: &Connection,
+    media_id: &str,
+    product_id: &str,
+    profile: &Value,
+    facts: &Value,
+) -> Result<(), String> {
+    let sides: Vec<&Value> = facts
+        .get("sides")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().collect())
+        .unwrap_or_default();
     if sides.is_empty() {
         return Ok(());
     }
-    let cd = sides.iter().all(|x| s(x, "label").map(|l| l.eq_ignore_ascii_case("cd")).unwrap_or(false));
-    let family = s(facts, "vendor").or_else(|| s(profile, "manufacturer")).or_else(|| s(profile, "name")).unwrap_or("unknown");
+    let cd = sides.iter().all(|x| {
+        s(x, "label")
+            .map(|l| l.eq_ignore_ascii_case("cd"))
+            .unwrap_or(false)
+    });
+    let family = s(facts, "vendor")
+        .or_else(|| s(profile, "manufacturer"))
+        .or_else(|| s(profile, "name"))
+        .unwrap_or("unknown");
     let doc = profile
         .get("sources")
         .and_then(Value::as_array)
-        .and_then(|a| a.iter().find(|x| x.get("verified").and_then(Value::as_bool) == Some(true)))
+        .and_then(|a| {
+            a.iter()
+                .find(|x| x.get("verified").and_then(Value::as_bool) == Some(true))
+        })
         .and_then(|x| s(x, "url"));
     conn.execute(
         "INSERT INTO dvs_media_profile (product_id, family, version, medium_type, analyzer_key, documentation_url, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
@@ -239,10 +328,16 @@ fn sync_dvs(conn: &Connection, media_id: &str, product_id: &str, profile: &Value
         ],
     )
     .map_err(e2s)?;
-    conn.execute("DELETE FROM dvs_media_side WHERE profile_id = ?1 AND id LIKE ?2", params![product_id, format!("{media_id}:side:%")]).map_err(e2s)?;
+    conn.execute(
+        "DELETE FROM dvs_media_side WHERE profile_id = ?1 AND id LIKE ?2",
+        params![product_id, format!("{media_id}:side:%")],
+    )
+    .map_err(e2s)?;
     let rpm = facts.get("atRpm").and_then(Value::as_f64);
     for side in sides {
-        let Some(label) = s(side, "label") else { continue };
+        let Some(label) = s(side, "label") else {
+            continue;
+        };
         conn.execute(
             "INSERT INTO dvs_media_side (id, profile_id, side_label, nominal_rpm, duration_sec, public_code, absolute_position_supported, relative_supported) VALUES (?1, ?2, ?3, ?4, ?5, NULL, NULL, NULL)",
             params![format!("{media_id}:side:{label}"), product_id, label, rpm, side.get("durationSec").and_then(Value::as_f64)],
@@ -261,23 +356,43 @@ pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<SyncSu
     let mut shipped: Vec<String> = Vec::new();
     for raw in profiles {
         let mut profile = raw.clone();
-        let facts = profile.as_object_mut().and_then(|o| o.remove("timecodeFacts")).unwrap_or(Value::Null);
+        let facts = profile
+            .as_object_mut()
+            .and_then(|o| o.remove("timecodeFacts"))
+            .unwrap_or(Value::Null);
         let problems = validate_profile(&profile, true);
         let id = s(&profile, "id").unwrap_or("?").to_string();
         if !problems.is_empty() {
             return Err(format!("{id}: {}", problems.join("; ")));
         }
-        let source: Option<String> = tx.query_row("SELECT source FROM test_media WHERE id = ?1", [&id], |r| r.get(0)).optional().map_err(e2s)?;
+        let source: Option<String> = tx
+            .query_row("SELECT source FROM test_media WHERE id = ?1", [&id], |r| {
+                r.get(0)
+            })
+            .optional()
+            .map_err(e2s)?;
         if source.as_deref() == Some("custom") {
             return Err(format!("{id}: id-collision with a custom medium"));
         }
         let product_id: Option<String> = match s(&profile, "productProfileId") {
-            Some(pp) => tx.query_row("SELECT product_id FROM device_profile WHERE id = ?1", [pp], |r| r.get(0)).optional().map_err(e2s)?.flatten(),
+            Some(pp) => tx
+                .query_row(
+                    "SELECT product_id FROM device_profile WHERE id = ?1",
+                    [pp],
+                    |r| r.get(0),
+                )
+                .optional()
+                .map_err(e2s)?
+                .flatten(),
             None => None,
         };
         let json = serde_json::to_string(&profile).map_err(|e| e.to_string())?;
         let existing: Option<(String, Option<String>, i64)> = tx
-            .query_row("SELECT profile_json, product_id, retired FROM test_media WHERE id = ?1", [&id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .query_row(
+                "SELECT profile_json, product_id, retired FROM test_media WHERE id = ?1",
+                [&id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
             .optional()
             .map_err(e2s)?;
         match &existing {
@@ -308,12 +423,18 @@ pub fn sync_profiles(conn: &mut Connection, profiles: &[Value]) -> Result<SyncSu
     }
     if !shipped.is_empty() {
         let stale: Vec<String> = {
-            let mut stmt = tx.prepare("SELECT id FROM test_media WHERE source = 'builtin' AND retired = 0").map_err(e2s)?;
+            let mut stmt = tx
+                .prepare("SELECT id FROM test_media WHERE source = 'builtin' AND retired = 0")
+                .map_err(e2s)?;
             let it = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(e2s)?;
             it.collect::<rusqlite::Result<Vec<_>>>().map_err(e2s)?
         };
         for id in stale.into_iter().filter(|id| !shipped.contains(id)) {
-            tx.execute("UPDATE test_media SET retired = 1, updated_at = ?2 WHERE id = ?1", params![id, now]).map_err(e2s)?;
+            tx.execute(
+                "UPDATE test_media SET retired = 1, updated_at = ?2 WHERE id = ?1",
+                params![id, now],
+            )
+            .map_err(e2s)?;
             sum.retired += 1;
         }
     }
@@ -347,7 +468,10 @@ pub fn list(conn: &Connection, include_retired: bool) -> Result<Vec<Value>, Stri
 pub fn custom_save(conn: &mut Connection, profile: &Value) -> Result<String, String> {
     let text = serde_json::to_string(profile).map_err(|e| e.to_string())?;
     if text.len() > MAX_JSON_BYTES {
-        return Err(format!("profile is {} bytes; the limit is {MAX_JSON_BYTES}", text.len()));
+        return Err(format!(
+            "profile is {} bytes; the limit is {MAX_JSON_BYTES}",
+            text.len()
+        ));
     }
     let problems = validate_profile(profile, false);
     if !problems.is_empty() {
@@ -358,7 +482,14 @@ pub fn custom_save(conn: &mut Connection, profile: &Value) -> Result<String, Str
     let mut id = new_id();
     let mut edit = false;
     if let Some(given) = s(profile, "id") {
-        let row: Option<String> = tx.query_row("SELECT source FROM test_media WHERE id = ?1", [given], |r| r.get(0)).optional().map_err(e2s)?;
+        let row: Option<String> = tx
+            .query_row(
+                "SELECT source FROM test_media WHERE id = ?1",
+                [given],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(e2s)?;
         match row.as_deref() {
             Some("builtin") => return Err("id-collision: id belongs to a built-in medium".into()),
             Some(_) => {
@@ -392,18 +523,34 @@ pub fn custom_save(conn: &mut Connection, profile: &Value) -> Result<String, Str
 /// Delete a custom medium. One that saved results still reference is retired instead (hidden, history intact).
 /// Returns "deleted" or "retired". Built-ins cannot be deleted.
 pub fn custom_delete(conn: &Connection, id: &str) -> Result<&'static str, String> {
-    let source: Option<String> = conn.query_row("SELECT source FROM test_media WHERE id = ?1", [id], |r| r.get(0)).optional().map_err(e2s)?;
+    let source: Option<String> = conn
+        .query_row("SELECT source FROM test_media WHERE id = ?1", [id], |r| {
+            r.get(0)
+        })
+        .optional()
+        .map_err(e2s)?;
     match source.as_deref() {
         None => Err(format!("unknown medium '{id}'")),
         Some("builtin") => Err("built-in media are read-only; duplicate and edit instead".into()),
         Some(_) => {
-            let used: i64 = conn.query_row("SELECT COUNT(*) FROM device_test_result WHERE media_id = ?1", [id], |r| r.get(0)).map_err(e2s)?;
+            let used: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM device_test_result WHERE media_id = ?1",
+                    [id],
+                    |r| r.get(0),
+                )
+                .map_err(e2s)?;
             if used > 0 {
                 let now = now_iso(conn)?;
-                conn.execute("UPDATE test_media SET retired = 1, owned = 0, updated_at = ?2 WHERE id = ?1", params![id, now]).map_err(e2s)?;
+                conn.execute(
+                    "UPDATE test_media SET retired = 1, owned = 0, updated_at = ?2 WHERE id = ?1",
+                    params![id, now],
+                )
+                .map_err(e2s)?;
                 Ok("retired")
             } else {
-                conn.execute("DELETE FROM test_media WHERE id = ?1", [id]).map_err(e2s)?;
+                conn.execute("DELETE FROM test_media WHERE id = ?1", [id])
+                    .map_err(e2s)?;
                 Ok("deleted")
             }
         }
@@ -412,56 +559,61 @@ pub fn custom_delete(conn: &Connection, id: &str) -> Result<&'static str, String
 
 pub fn owned_set(conn: &Connection, media_id: &str, owned: bool) -> Result<(), String> {
     let now = now_iso(conn)?;
-    let n = conn.execute("UPDATE test_media SET owned = ?2, updated_at = ?3 WHERE id = ?1", params![media_id, owned as i64, now]).map_err(e2s)?;
+    let n = conn
+        .execute(
+            "UPDATE test_media SET owned = ?2, updated_at = ?3 WHERE id = ?1",
+            params![media_id, owned as i64, now],
+        )
+        .map_err(e2s)?;
     if n == 0 {
         return Err(format!("unknown medium '{media_id}'"));
     }
     Ok(())
 }
 
-fn with_db<T>(app: &AppHandle, f: impl FnOnce(&mut Connection) -> Result<T, String>) -> Result<T, String> {
+fn with_db<T>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut Connection) -> Result<T, String>,
+) -> Result<T, String> {
     let mut conn = open_database(&database_path(app)?)?;
     f(&mut conn)
 }
 
 #[tauri::command]
-pub async fn media_profiles_sync(app: AppHandle, profiles: Vec<Value>) -> Result<SyncSummary, String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| sync_profiles(c, &profiles))
-    })
-    .await?
+pub async fn media_profiles_sync(
+    app: AppHandle,
+    profiles: Vec<Value>,
+) -> Result<SyncSummary, String> {
+    crate::db::off_main(move || with_db(&app, |c| sync_profiles(c, &profiles))).await?
 }
 
 #[tauri::command]
-pub async fn media_list(app: AppHandle, include_retired: Option<bool>) -> Result<Vec<Value>, String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| list(c, include_retired.unwrap_or(false)))
-    })
-    .await?
+pub async fn media_list(
+    app: AppHandle,
+    include_retired: Option<bool>,
+) -> Result<Vec<Value>, String> {
+    crate::db::off_main(move || with_db(&app, |c| list(c, include_retired.unwrap_or(false))))
+        .await?
 }
 
 #[tauri::command]
 pub async fn media_custom_save(app: AppHandle, profile: Value) -> Result<Value, String> {
     crate::db::off_main(move || {
-        with_db(&app, |c| custom_save(c, &profile).map(|id| json!({ "id": id })))
+        with_db(&app, |c| {
+            custom_save(c, &profile).map(|id| json!({ "id": id }))
+        })
     })
     .await?
 }
 
 #[tauri::command]
 pub async fn media_custom_delete(app: AppHandle, id: String) -> Result<(), String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| custom_delete(c, &id).map(|_| ()))
-    })
-    .await?
+    crate::db::off_main(move || with_db(&app, |c| custom_delete(c, &id).map(|_| ()))).await?
 }
 
 #[tauri::command]
 pub async fn media_owned_set(app: AppHandle, media_id: String, owned: bool) -> Result<(), String> {
-    crate::db::off_main(move || {
-        with_db(&app, |c| owned_set(c, &media_id, owned))
-    })
-    .await?
+    crate::db::off_main(move || with_db(&app, |c| owned_set(c, &media_id, owned))).await?
 }
 
 #[cfg(test)]
@@ -493,17 +645,38 @@ mod tests {
     }
 
     fn repo_json(rel: &str) -> Value {
-        serde_json::from_str(&std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join(rel)).unwrap()).unwrap()
+        serde_json::from_str(
+            &std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join(rel))
+                .unwrap(),
+        )
+        .unwrap()
     }
 
     #[test]
     fn migration_creates_tables_and_result_columns() {
         let c = mem();
         for t in ["test_media", "test_media_track"] {
-            assert_eq!(count(&c, &format!("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{t}'")), 1, "{t}");
+            assert_eq!(
+                count(
+                    &c,
+                    &format!(
+                        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{t}'"
+                    )
+                ),
+                1,
+                "{t}"
+            );
         }
-        let cols: Vec<String> = c.prepare("PRAGMA table_info(device_test_result)").unwrap().query_map([], |r| r.get::<_, String>(1)).unwrap().map(Result::unwrap).collect();
-        assert!(cols.contains(&"media_id".to_string()) && cols.contains(&"media_track_key".to_string()));
+        let cols: Vec<String> = c
+            .prepare("PRAGMA table_info(device_test_result)")
+            .unwrap()
+            .query_map([], |r| r.get::<_, String>(1))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        assert!(
+            cols.contains(&"media_id".to_string()) && cols.contains(&"media_track_key".to_string())
+        );
         assert!(c.execute("INSERT INTO test_media (id, source, kind, name, version, profile_json, created_at, updated_at) VALUES ('x','alien','test_record','n',1,'{}','t','t')", []).is_err());
     }
 
@@ -511,17 +684,50 @@ mod tests {
     fn sync_inserts_updates_and_is_idempotent() {
         let mut c = mem();
         let first = sync_profiles(&mut c, &[rec("disc-a", 1), rec("disc-b", 1)]).unwrap();
-        assert_eq!(first, SyncSummary { inserted: 2, updated: 0, unchanged: 0, retired: 0 });
+        assert_eq!(
+            first,
+            SyncSummary {
+                inserted: 2,
+                updated: 0,
+                unchanged: 0,
+                retired: 0
+            }
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media_track"), 4);
         let again = sync_profiles(&mut c, &[rec("disc-a", 1), rec("disc-b", 1)]).unwrap();
-        assert_eq!(again, SyncSummary { inserted: 0, updated: 0, unchanged: 2, retired: 0 });
+        assert_eq!(
+            again,
+            SyncSummary {
+                inserted: 0,
+                updated: 0,
+                unchanged: 2,
+                retired: 0
+            }
+        );
         // newer version of A: updated, tracks replaced
         let mut a2 = rec("disc-a", 2);
         a2["tracks"].as_array_mut().unwrap().pop();
         let up = sync_profiles(&mut c, &[a2, rec("disc-b", 1)]).unwrap();
-        assert_eq!(up, SyncSummary { inserted: 0, updated: 1, unchanged: 1, retired: 0 });
-        assert_eq!(count(&c, "SELECT version FROM test_media WHERE id='disc-a'"), 2);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media_track WHERE media_id='disc-a'"), 1);
+        assert_eq!(
+            up,
+            SyncSummary {
+                inserted: 0,
+                updated: 1,
+                unchanged: 1,
+                retired: 0
+            }
+        );
+        assert_eq!(
+            count(&c, "SELECT version FROM test_media WHERE id='disc-a'"),
+            2
+        );
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM test_media_track WHERE media_id='disc-a'"
+            ),
+            1
+        );
         let (f, lv, u): (f64, f64, String) = c.query_row("SELECT frequency_hz, level_value, level_unit FROM test_media_track WHERE id='disc-b:t5'", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
         assert_eq!((f, lv, u.as_str()), (1000.0, 5.0, "cm/s_rms"));
     }
@@ -537,13 +743,35 @@ mod tests {
         c.execute("INSERT INTO device_profile (id, product_id, json, version, loaded_at) VALUES ('p', NULL, '{}', 1, 't')", []).unwrap();
         c.execute("INSERT INTO asset (id, nickname, is_deleted, created_at, updated_at) VALUES ('as', 'x', 0, 't', 't')", []).unwrap();
         c.execute("INSERT INTO device_test_result (id, asset_id, profile_id, test_id, status, created_at, media_id, media_track_key) VALUES ('r1','as','p','speed','pass','t','disc-a','t5')", []).unwrap();
-        let custom_json_before: String = c.query_row("SELECT profile_json FROM test_media WHERE id = ?1", [&cid], |r| r.get(0)).unwrap();
+        let custom_json_before: String = c
+            .query_row(
+                "SELECT profile_json FROM test_media WHERE id = ?1",
+                [&cid],
+                |r| r.get(0),
+            )
+            .unwrap();
         let up = sync_profiles(&mut c, &[rec("disc-a", 2), rec("disc-c", 1)]).unwrap();
         assert_eq!((up.inserted, up.updated, up.retired), (1, 1, 0));
-        let custom_json_after: String = c.query_row("SELECT profile_json FROM test_media WHERE id = ?1", [&cid], |r| r.get(0)).unwrap();
+        let custom_json_after: String = c
+            .query_row(
+                "SELECT profile_json FROM test_media WHERE id = ?1",
+                [&cid],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert_eq!(custom_json_before, custom_json_after);
-        assert_eq!(count(&c, "SELECT owned FROM test_media WHERE id='disc-a'"), 1, "ownership survives a built-in update");
-        assert_eq!(count(&c, &format!("SELECT owned FROM test_media WHERE id='{cid}'")), 1);
+        assert_eq!(
+            count(&c, "SELECT owned FROM test_media WHERE id='disc-a'"),
+            1,
+            "ownership survives a built-in update"
+        );
+        assert_eq!(
+            count(
+                &c,
+                &format!("SELECT owned FROM test_media WHERE id='{cid}'")
+            ),
+            1
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result WHERE media_id='disc-a' AND media_track_key='t5'"), 1);
     }
 
@@ -556,10 +784,17 @@ mod tests {
         assert_eq!((r.retired, r.unchanged), (1, 1));
         assert_eq!(list(&c, false).unwrap().len(), 1);
         assert_eq!(list(&c, true).unwrap().len(), 2);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media WHERE id='disc-b'"), 1, "retired, never deleted");
+        assert_eq!(
+            count(&c, "SELECT COUNT(*) FROM test_media WHERE id='disc-b'"),
+            1,
+            "retired, never deleted"
+        );
         let back = sync_profiles(&mut c, &[rec("disc-a", 1), rec("disc-b", 1)]).unwrap();
         assert_eq!((back.updated, back.unchanged), (1, 1));
-        assert_eq!(count(&c, "SELECT retired FROM test_media WHERE id='disc-b'"), 0);
+        assert_eq!(
+            count(&c, "SELECT retired FROM test_media WHERE id='disc-b'"),
+            0
+        );
     }
 
     #[test]
@@ -569,7 +804,11 @@ mod tests {
         bad["kind"] = json!("cd");
         let err = sync_profiles(&mut c, &[rec("disc-a", 1), bad]).unwrap_err();
         assert!(err.contains("disc-b") && err.contains("kind"), "{err}");
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media"), 0, "all or nothing");
+        assert_eq!(
+            count(&c, "SELECT COUNT(*) FROM test_media"),
+            0,
+            "all or nothing"
+        );
         let cid = custom_save(&mut c, &custom("Mine")).unwrap();
         let mut clash = rec("x", 1);
         clash["id"] = json!(cid);
@@ -591,13 +830,26 @@ mod tests {
         let mut p2 = custom("A2");
         p2["id"] = json!(id);
         assert_eq!(custom_save(&mut c, &p2).unwrap(), id);
-        let row = list(&c, false).unwrap().into_iter().find(|r| r["id"] == json!(id)).unwrap();
-        assert_eq!((row["name"].as_str(), row["owned"].as_bool(), row["source"].as_str()), (Some("A2"), Some(true), Some("custom")));
+        let row = list(&c, false)
+            .unwrap()
+            .into_iter()
+            .find(|r| r["id"] == json!(id))
+            .unwrap();
+        assert_eq!(
+            (
+                row["name"].as_str(),
+                row["owned"].as_bool(),
+                row["source"].as_str()
+            ),
+            (Some("A2"), Some(true), Some("custom"))
+        );
         assert_eq!(row["profile"]["id"], json!(id));
         // built-in id rejected, built-in not deletable
         let mut clash = custom("X");
         clash["id"] = json!("disc-a");
-        assert!(custom_save(&mut c, &clash).unwrap_err().contains("id-collision"));
+        assert!(custom_save(&mut c, &clash)
+            .unwrap_err()
+            .contains("id-collision"));
         assert!(custom_delete(&c, "disc-a").is_err());
         assert!(custom_delete(&c, "nope").is_err());
         assert!(owned_set(&c, "nope", true).is_err());
@@ -606,11 +858,20 @@ mod tests {
         inv["tracks"] = json!([{"key":"a","purpose":"nope","frequencyHz":-1}]);
         let before = count(&c, "SELECT COUNT(*) FROM test_media");
         let e = custom_save(&mut c, &inv).unwrap_err();
-        assert!(e.contains("tracks[0].purpose") && e.contains("tracks[0].frequencyHz"), "{e}");
+        assert!(
+            e.contains("tracks[0].purpose") && e.contains("tracks[0].frequencyHz"),
+            "{e}"
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media"), before);
         // delete cascades tracks
         assert_eq!(custom_delete(&c, &id).unwrap(), "deleted");
-        assert_eq!(count(&c, &format!("SELECT COUNT(*) FROM test_media_track WHERE media_id='{id}'")), 0);
+        assert_eq!(
+            count(
+                &c,
+                &format!("SELECT COUNT(*) FROM test_media_track WHERE media_id='{id}'")
+            ),
+            0
+        );
     }
 
     #[test]
@@ -624,14 +885,24 @@ mod tests {
         assert!(list(&c, false).unwrap().is_empty());
         assert_eq!(list(&c, true).unwrap().len(), 1);
         c.execute_batch("PRAGMA foreign_key_check;").unwrap();
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result WHERE media_id IS NOT NULL"), 1);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM device_test_result WHERE media_id IS NOT NULL"
+            ),
+            1
+        );
     }
 
     #[test]
     fn size_and_track_caps() {
         let mut c = mem();
         let mut many = custom("Many");
-        many["tracks"] = Value::Array((0..101).map(|i| json!({"key": format!("k{i}"), "purpose": "other"})).collect());
+        many["tracks"] = Value::Array(
+            (0..101)
+                .map(|i| json!({"key": format!("k{i}"), "purpose": "other"}))
+                .collect(),
+        );
         assert!(custom_save(&mut c, &many).unwrap_err().contains("100"));
         let mut big = custom("Big");
         big["notes"] = json!("x".repeat(MAX_JSON_BYTES));
@@ -652,15 +923,36 @@ mod tests {
             {"label":"A","durationSec":712.0},{"label":"B","durationSec":922.0}]});
         let r = sync_profiles(&mut c, &[p.clone()]).unwrap();
         assert_eq!(r.inserted, 1);
-        let pid: String = c.query_row("SELECT product_id FROM test_media WHERE id='serato-cv025'", [], |r| r.get(0)).unwrap();
+        let pid: String = c
+            .query_row(
+                "SELECT product_id FROM test_media WHERE id='serato-cv025'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert!(!pid.is_empty());
         let sides: Vec<(String, f64, f64)> = c.prepare("SELECT side_label, duration_sec, nominal_rpm FROM dvs_media_side WHERE profile_id=?1 ORDER BY side_label").unwrap()
             .query_map([&pid], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap().map(Result::unwrap).collect();
-        assert_eq!(sides, vec![("A".to_string(), 712.0, 33.333333), ("B".to_string(), 922.0, 33.333333)]);
+        assert_eq!(
+            sides,
+            vec![
+                ("A".to_string(), 712.0, 33.333333),
+                ("B".to_string(), 922.0, 33.333333)
+            ]
+        );
         let (fam, kind, key): (String, String, String) = c.query_row("SELECT family, medium_type, analyzer_key FROM dvs_media_profile WHERE product_id=?1", [&pid], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
-        assert_eq!((fam.as_str(), kind.as_str(), key.as_str()), ("Serato", "vinyl", "Serato CV02.5"));
+        assert_eq!(
+            (fam.as_str(), kind.as_str(), key.as_str()),
+            ("Serato", "vinyl", "Serato CV02.5")
+        );
         // timecodeFacts are not persisted in profile_json; re-sync is idempotent (no duplicate sides)
-        let stored: String = c.query_row("SELECT profile_json FROM test_media WHERE id='serato-cv025'", [], |r| r.get(0)).unwrap();
+        let stored: String = c
+            .query_row(
+                "SELECT profile_json FROM test_media WHERE id='serato-cv025'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
         assert!(!stored.contains("timecodeFacts"));
         assert_eq!(sync_profiles(&mut c, &[p]).unwrap().unchanged, 1);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM dvs_media_side"), 2);
@@ -672,9 +964,21 @@ mod tests {
         let mut p = repo_json("app/media/profiles/serato-cv025.json");
         p["timecodeFacts"] = json!({"formatName":"Serato CV02.5","carrierHz":1000,"atRpm":33.333333,"sides":[{"label":"A","durationSec":712.0}]});
         sync_profiles(&mut c, &[p.clone()]).unwrap();
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM test_media WHERE product_id IS NULL"), 1);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM test_media WHERE product_id IS NULL"
+            ),
+            1
+        );
         assert_eq!(count(&c, "SELECT COUNT(*) FROM dvs_media_side"), 0);
-        crate::devices::sync_profiles(&mut c, &[repo_json("app/devices/profiles/serato-control-vinyl-cv025.json")]).unwrap();
+        crate::devices::sync_profiles(
+            &mut c,
+            &[repo_json(
+                "app/devices/profiles/serato-control-vinyl-cv025.json",
+            )],
+        )
+        .unwrap();
         let r = sync_profiles(&mut c, &[p]).unwrap();
         assert_eq!(r.updated, 1);
         assert_eq!(count(&c, "SELECT COUNT(*) FROM dvs_media_side"), 1);
@@ -686,25 +990,58 @@ mod tests {
         let ids = idx["profiles"].as_array().unwrap();
         assert!(ids.len() >= 15);
         let mut c = mem();
-        let profiles: Vec<Value> = ids.iter().map(|id| repo_json(&format!("app/media/profiles/{}.json", id.as_str().unwrap()))).collect();
+        let profiles: Vec<Value> = ids
+            .iter()
+            .map(|id| repo_json(&format!("app/media/profiles/{}.json", id.as_str().unwrap())))
+            .collect();
         for p in &profiles {
-            assert_eq!(validate_profile(p, true), Vec::<String>::new(), "{}", p["id"]);
+            assert_eq!(
+                validate_profile(p, true),
+                Vec::<String>::new(),
+                "{}",
+                p["id"]
+            );
         }
-        assert_eq!(sync_profiles(&mut c, &profiles).unwrap().inserted, ids.len());
+        assert_eq!(
+            sync_profiles(&mut c, &profiles).unwrap().inserted,
+            ids.len()
+        );
     }
 
     #[test]
     fn upgrade_from_v004_fixture_adds_media_tables_and_keeps_rows() {
         let c = Connection::open_in_memory().unwrap();
         c.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
-        let sql = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db/v0.04.sql")).unwrap();
+        let sql = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/db/v0.04.sql"),
+        )
+        .unwrap();
         c.execute_batch(&sql).unwrap();
         let before = count(&c, "SELECT COUNT(*) FROM device_test_result");
         apply_migrations(&c).unwrap();
         assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result"), before);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM sqlite_master WHERE name='test_media'"), 1);
-        assert_eq!(count(&c, "SELECT COUNT(*) FROM device_test_result WHERE media_id IS NOT NULL"), 0);
-        assert_eq!(c.prepare("PRAGMA foreign_key_check").unwrap().query_map([], |_| Ok(())).unwrap().count(), 0);
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM sqlite_master WHERE name='test_media'"
+            ),
+            1
+        );
+        assert_eq!(
+            count(
+                &c,
+                "SELECT COUNT(*) FROM device_test_result WHERE media_id IS NOT NULL"
+            ),
+            0
+        );
+        assert_eq!(
+            c.prepare("PRAGMA foreign_key_check")
+                .unwrap()
+                .query_map([], |_| Ok(()))
+                .unwrap()
+                .count(),
+            0
+        );
         apply_migrations(&c).unwrap();
     }
 }

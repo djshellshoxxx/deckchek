@@ -44,8 +44,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::audio_out::{self, BufferInput, BufferOpts, EndReason, Engine, Fault, MakeRenderer, PlayRequest, Playing, VoiceControl};
-use crate::capture::{self, Accumulator, CaptureError, CaptureLease, CaptureQuality, LiveCaptureState, Shared};
+use crate::audio_out::{
+    self, BufferInput, BufferOpts, EndReason, Engine, Fault, MakeRenderer, PlayRequest, Playing,
+    VoiceControl,
+};
+use crate::capture::{
+    self, Accumulator, CaptureError, CaptureLease, CaptureQuality, LiveCaptureState, Shared,
+};
 use crate::db::{database_path, new_id, now_iso, open_database};
 
 // ------------------------------------------------------------------ constants
@@ -113,7 +118,11 @@ impl Probe {
 
     /// Entries needed for `seconds` of callbacks at up to `rate` Hz.
     pub fn capacity_for(seconds: f64, rate: u32) -> usize {
-        let s = if seconds.is_finite() { seconds.max(0.0) } else { 0.0 };
+        let s = if seconds.is_finite() {
+            seconds.max(0.0)
+        } else {
+            0.0
+        };
         ((s + 2.0) * rate as f64 / MIN_EXPECTED_CALLBACK_FRAMES) as usize + 256
     }
 
@@ -124,7 +133,11 @@ impl Probe {
 
     pub fn record_at(&self, frames: usize, now_us: u64) {
         let n = self.count.fetch_add(1, Relaxed) as usize;
-        let gap = if n == 0 { 0 } else { now_us.saturating_sub(self.last_us.load(Relaxed)) };
+        let gap = if n == 0 {
+            0
+        } else {
+            now_us.saturating_sub(self.last_us.load(Relaxed))
+        };
         self.last_us.store(now_us, Relaxed);
         if n < self.frames.len() {
             self.frames[n].store(frames.min(u32::MAX as usize) as u32, Relaxed);
@@ -146,7 +159,11 @@ impl Probe {
     pub fn snapshot(&self) -> (Vec<u32>, Vec<u32>) {
         let n = (self.callbacks() as usize).min(self.frames.len());
         let frames = self.frames[..n].iter().map(|a| a.load(Relaxed)).collect();
-        let gaps = self.gaps_us[..n].iter().skip(1).map(|a| a.load(Relaxed)).collect();
+        let gaps = self.gaps_us[..n]
+            .iter()
+            .skip(1)
+            .map(|a| a.load(Relaxed))
+            .collect();
         (frames, gaps)
     }
 }
@@ -189,16 +206,30 @@ pub fn xrun_threshold_ms(period_ms: f64, floor_ms: Option<f64>) -> f64 {
     }
 }
 
-pub fn callback_stats(frames: &[u32], gaps_us: &[u32], callbacks: u64, rate: u32, floor_ms: Option<f64>) -> CallbackStats {
+pub fn callback_stats(
+    frames: &[u32],
+    gaps_us: &[u32],
+    callbacks: u64,
+    rate: u32,
+    floor_ms: Option<f64>,
+) -> CallbackStats {
     let mut f = frames.to_vec();
     f.sort_unstable();
-    let gaps: Vec<u32> = gaps_us.iter().skip(WARMUP_GAPS.min(gaps_us.len().saturating_sub(1))).copied().collect();
+    let gaps: Vec<u32> = gaps_us
+        .iter()
+        .skip(WARMUP_GAPS.min(gaps_us.len().saturating_sub(1)))
+        .copied()
+        .collect();
     let mut g = gaps.clone();
     g.sort_unstable();
     let actual = percentile(&f, 0.5);
-    let period_ms = actual.filter(|_| rate > 0).map(|a| a as f64 * 1000.0 / rate as f64);
+    let period_ms = actual
+        .filter(|_| rate > 0)
+        .map(|a| a as f64 * 1000.0 / rate as f64);
     let threshold = period_ms.map(|p| xrun_threshold_ms(p, floor_ms));
-    let gap_xruns = threshold.map(|t| g.iter().filter(|&&x| x as f64 / 1000.0 > t).count() as u64).unwrap_or(0);
+    let gap_xruns = threshold
+        .map(|t| g.iter().filter(|&&x| x as f64 / 1000.0 > t).count() as u64)
+        .unwrap_or(0);
     let ms = |v: Option<u32>| v.map(|x| x as f64 / 1000.0);
     CallbackStats {
         callbacks,
@@ -243,11 +274,18 @@ pub enum ModeReason {
 }
 
 /// Per-direction decision (see module docs).
-pub fn classify_direction(requested: Option<u32>, fixed_rejected: bool, opened: bool, actual: Option<u32>) -> (BufferMode, ModeReason) {
+pub fn classify_direction(
+    requested: Option<u32>,
+    fixed_rejected: bool,
+    opened: bool,
+    actual: Option<u32>,
+) -> (BufferMode, ModeReason) {
     if !opened {
         return (BufferMode::Unavailable, ModeReason::OpenFailed);
     }
-    let Some(actual) = actual else { return (BufferMode::Unavailable, ModeReason::NoCallbacks) };
+    let Some(actual) = actual else {
+        return (BufferMode::Unavailable, ModeReason::NoCallbacks);
+    };
     match requested {
         None => (BufferMode::HostChosen, ModeReason::DefaultRequested),
         Some(_) if fixed_rejected => (BufferMode::HostChosen, ModeReason::FixedRejected),
@@ -282,7 +320,10 @@ pub enum Duplex {
 }
 
 pub fn duplex_of(input: BufferMode, output: BufferMode) -> Duplex {
-    match (input != BufferMode::Unavailable, output != BufferMode::Unavailable) {
+    match (
+        input != BufferMode::Unavailable,
+        output != BufferMode::Unavailable,
+    ) {
         (true, true) => Duplex::Full,
         (true, false) => Duplex::InputOnly,
         (false, true) => Duplex::OutputOnly,
@@ -320,12 +361,28 @@ pub struct OpenNotes {
     pub open_error: Option<String>,
 }
 
-fn direction_report(dir: &str, requested: Option<u32>, notes: &OpenNotes, probe: &Probe, shared: &Shared, floor_ms: Option<f64>) -> DirectionReport {
+fn direction_report(
+    dir: &str,
+    requested: Option<u32>,
+    notes: &OpenNotes,
+    probe: &Probe,
+    shared: &Shared,
+    floor_ms: Option<f64>,
+) -> DirectionReport {
     let opened = notes.meta.is_some();
     let rate = notes.meta.as_ref().map(|m| m.sample_rate).unwrap_or(0);
     let (frames, gaps) = probe.snapshot();
-    let stats = if opened { callback_stats(&frames, &gaps, probe.callbacks(), rate, floor_ms) } else { CallbackStats::default() };
-    let (mode, mode_reason) = classify_direction(requested, notes.fixed_error.is_some(), opened, stats.actual_frames);
+    let stats = if opened {
+        callback_stats(&frames, &gaps, probe.callbacks(), rate, floor_ms)
+    } else {
+        CallbackStats::default()
+    };
+    let (mode, mode_reason) = classify_direction(
+        requested,
+        notes.fixed_error.is_some(),
+        opened,
+        stats.actual_frames,
+    );
     DirectionReport {
         direction: dir.to_string(),
         opened,
@@ -382,7 +439,9 @@ impl AlignRecorder {
 
     pub fn pairs(&self) -> Vec<(u64, u64)> {
         let n = self.n.load(Relaxed).min(self.out.len());
-        (0..n).map(|i| (self.out[i].load(Relaxed), self.inp[i].load(Relaxed))).collect()
+        (0..n)
+            .map(|i| (self.out[i].load(Relaxed), self.inp[i].load(Relaxed)))
+            .collect()
     }
 }
 
@@ -397,16 +456,32 @@ pub struct Alignment {
 }
 
 /// Median of `delivered - rendered * in_rate / out_rate` over all pairs.
-pub fn alignment_from_pairs(pairs: &[(u64, u64)], in_rate: u32, out_rate: u32) -> Option<Alignment> {
+pub fn alignment_from_pairs(
+    pairs: &[(u64, u64)],
+    in_rate: u32,
+    out_rate: u32,
+) -> Option<Alignment> {
     if pairs.is_empty() || in_rate == 0 || out_rate == 0 {
         return None;
     }
     let k = in_rate as f64 / out_rate as f64;
-    let mut v: Vec<f64> = pairs.iter().map(|&(o, i)| i as f64 - o as f64 * k).collect();
+    let mut v: Vec<f64> = pairs
+        .iter()
+        .map(|&(o, i)| i as f64 - o as f64 * k)
+        .collect();
     v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = v.len() / 2;
-    let median = if v.len() % 2 == 1 { v[mid] } else { 0.5 * (v[mid - 1] + v[mid]) };
-    Some(Alignment { frames: median, min_frames: v[0], max_frames: v[v.len() - 1], pairs: v.len() })
+    let median = if v.len() % 2 == 1 {
+        v[mid]
+    } else {
+        0.5 * (v[mid - 1] + v[mid])
+    };
+    Some(Alignment {
+        frames: median,
+        min_frames: v[0],
+        max_frames: v[v.len() - 1],
+        pairs: v.len(),
+    })
 }
 
 // ------------------------------------------------------------- CPU load
@@ -444,7 +519,9 @@ fn lower_thread_priority() {}
 
 impl LoadGuard {
     pub fn start(pct: u32) -> Self {
-        let logical = thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+        let logical = thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
         Self::with_threads(load_thread_count(logical, pct))
     }
 
@@ -460,7 +537,9 @@ impl LoadGuard {
                         let mut x: u64 = 0x9E37_79B9_7F4A_7C15 ^ i as u64;
                         while !stop.load(Relaxed) {
                             for _ in 0..2_000 {
-                                x = x.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+                                x = x
+                                    .wrapping_mul(6_364_136_223_846_793_005)
+                                    .wrapping_add(1_442_695_040_888_963_407);
                             }
                             std::hint::black_box(x);
                         }
@@ -521,7 +600,10 @@ pub struct StreamHandle {
 
 impl StreamHandle {
     pub fn new(stop: Arc<AtomicBool>, thread: JoinHandle<()>) -> Self {
-        Self { stop, thread: Some(thread) }
+        Self {
+            stop,
+            thread: Some(thread),
+        }
     }
 
     pub fn close(mut self) {
@@ -552,8 +634,22 @@ impl Playing for StreamHandle {
 /// `make` is called before Ok is returned. One attempt per call: the caller
 /// falls back from Fixed to Default.
 pub trait StreamFactory: Send + Sync {
-    fn open_input(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeInput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String>;
-    fn open_output(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeOutput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String>;
+    fn open_input(
+        &self,
+        device: Option<&str>,
+        rate: Option<u32>,
+        buffer: Option<u32>,
+        make: MakeInput,
+        on_error: ErrCb,
+    ) -> Result<(StreamMeta, StreamHandle), String>;
+    fn open_output(
+        &self,
+        device: Option<&str>,
+        rate: Option<u32>,
+        buffer: Option<u32>,
+        make: MakeOutput,
+        on_error: ErrCb,
+    ) -> Result<(StreamMeta, StreamHandle), String>;
 }
 
 // ---------------------------------------------------- output via audio_out
@@ -577,15 +673,25 @@ struct TunerBackend {
 }
 
 impl audio_out::Backend for TunerBackend {
-    fn open(&self, device: Option<String>, ctl: Arc<VoiceControl>, make: MakeRenderer) -> Result<(audio_out::StreamInfo, Box<dyn Playing>), String> {
+    fn open(
+        &self,
+        device: Option<String>,
+        ctl: Arc<VoiceControl>,
+        make: MakeRenderer,
+    ) -> Result<(audio_out::StreamInfo, Box<dyn Playing>), String> {
         let plan = lock(&self.plan).clone();
-        let probe = plan.probe.clone().unwrap_or_else(|| Arc::new(Probe::with_capacity(0)));
+        let probe = plan
+            .probe
+            .clone()
+            .unwrap_or_else(|| Arc::new(Probe::with_capacity(0)));
         let shared = plan.shared.clone().unwrap_or_default();
         let align = plan.align.clone();
         let cancel = plan.cancel.clone();
         let make_out: MakeOutput = Box::new(move |rate, channels| {
             if cancel.as_ref().is_some_and(|c| c.load(Relaxed)) {
-                return Err("AUDIO_OUT_STOPPED: the capture owner was cancelled while output opened".into());
+                return Err(
+                    "AUDIO_OUT_STOPPED: the capture owner was cancelled while output opened".into(),
+                );
             }
             let mut renderer = make(rate, channels)?;
             let mut rendered: u64 = 0;
@@ -614,10 +720,20 @@ impl audio_out::Backend for TunerBackend {
             ctl_e.report_fault(Fault::Device, msg.clone());
             shared_e.record_error(msg);
         });
-        let (meta, handle) = self.factory.open_output(device.as_deref(), plan.rate, plan.buffer, make_out, on_error)?;
+        let (meta, handle) = self.factory.open_output(
+            device.as_deref(),
+            plan.rate,
+            plan.buffer,
+            make_out,
+            on_error,
+        )?;
         lock(&self.plan).meta = Some(meta.clone());
         Ok((
-            audio_out::StreamInfo { device_name: meta.device_name, sample_rate: meta.sample_rate, channels: meta.channels },
+            audio_out::StreamInfo {
+                device_name: meta.device_name,
+                sample_rate: meta.sample_rate,
+                channels: meta.channels,
+            },
             Box::new(handle),
         ))
     }
@@ -756,9 +872,9 @@ fn invalid(msg: impl std::fmt::Display) -> CaptureError {
 
 pub fn validate_buffer(frames: Option<u32>) -> Result<(), CaptureError> {
     match frames {
-        Some(n) if !(MIN_BUFFER_FRAMES..=MAX_BUFFER_FRAMES).contains(&n) => {
-            Err(invalid(format!("bufferFrames must be between {MIN_BUFFER_FRAMES} and {MAX_BUFFER_FRAMES}")))
-        }
+        Some(n) if !(MIN_BUFFER_FRAMES..=MAX_BUFFER_FRAMES).contains(&n) => Err(invalid(format!(
+            "bufferFrames must be between {MIN_BUFFER_FRAMES} and {MAX_BUFFER_FRAMES}"
+        ))),
         _ => Ok(()),
     }
 }
@@ -780,10 +896,19 @@ struct LeaseGuard<'a> {
 }
 
 impl<'a> LeaseGuard<'a> {
-    fn acquire(lease: &'a CaptureLease, engine: &'a Engine, device: Option<String>) -> Result<Self, CaptureError> {
+    fn acquire(
+        lease: &'a CaptureLease,
+        engine: &'a Engine,
+        device: Option<String>,
+    ) -> Result<Self, CaptureError> {
         let cancel = Arc::new(AtomicBool::new(false));
         let g = lease.acquire_managed(HOLDER, device, cancel.clone())?;
-        Ok(Self { lease, engine, id: g.lease_id, cancel })
+        Ok(Self {
+            lease,
+            engine,
+            id: g.lease_id,
+            cancel,
+        })
     }
 
     fn still_held(&self) -> bool {
@@ -837,18 +962,36 @@ impl Tuner {
     /// it like the global engine (BUG-04). The other voice is silenced only
     /// when the tuner actually plays, i.e. after the run slot and the capture
     /// lease are held (BUG-10).
-    pub fn grouped(factory: Arc<dyn StreamFactory>, host_api: impl Into<String>, group: Arc<audio_out::OutputGroup>) -> Self {
+    pub fn grouped(
+        factory: Arc<dyn StreamFactory>,
+        host_api: impl Into<String>,
+        group: Arc<audio_out::OutputGroup>,
+    ) -> Self {
         Self::build(factory, host_api.into(), Some(group))
     }
 
-    fn build(factory: Arc<dyn StreamFactory>, host_api: String, group: Option<Arc<audio_out::OutputGroup>>) -> Self {
+    fn build(
+        factory: Arc<dyn StreamFactory>,
+        host_api: String,
+        group: Option<Arc<audio_out::OutputGroup>>,
+    ) -> Self {
         let plan = Arc::new(Mutex::new(OutPlan::default()));
-        let backend = Box::new(TunerBackend { factory: factory.clone(), plan: plan.clone() });
+        let backend = Box::new(TunerBackend {
+            factory: factory.clone(),
+            plan: plan.clone(),
+        });
         let engine = match group {
             Some(g) => Engine::grouped(backend, g),
             None => Engine::new(backend),
         };
-        Self { factory, plan, engine, running: AtomicBool::new(false), abort_gen: AtomicU64::new(0), host_api }
+        Self {
+            factory,
+            plan,
+            engine,
+            running: AtomicBool::new(false),
+            abort_gen: AtomicU64::new(0),
+            host_api,
+        }
     }
 
     /// Esc (FS-11 AC-7): the running step ends at its next poll (<= 5 ms), the
@@ -865,13 +1008,23 @@ impl Tuner {
 
     fn begin(&self) -> Result<RunningGuard<'_>, CaptureError> {
         if self.running.swap(true, Relaxed) {
-            return Err(CaptureError::Message("LATENCY_BUSY: a latency or stress run is already in progress".into()));
+            return Err(CaptureError::Message(
+                "LATENCY_BUSY: a latency or stress run is already in progress".into(),
+            ));
         }
         Ok(RunningGuard(&self.running))
     }
 
     /// Opens the input, trying Fixed first and falling back to Default.
-    fn open_input(&self, device: Option<&str>, rate: Option<u32>, requested: Option<u32>, probe: &Arc<Probe>, shared: &Arc<Shared>, cancel: &AtomicBool) -> (Option<InputSide>, OpenNotes) {
+    fn open_input(
+        &self,
+        device: Option<&str>,
+        rate: Option<u32>,
+        requested: Option<u32>,
+        probe: &Arc<Probe>,
+        shared: &Arc<Shared>,
+        cancel: &AtomicBool,
+    ) -> (Option<InputSide>, OpenNotes) {
         let mut notes = OpenNotes::default();
         let attempt = |buffer: Option<u32>| -> Result<(StreamMeta, InputSide), String> {
             if cancel.load(Relaxed) {
@@ -880,7 +1033,9 @@ impl Tuner {
             let (tx, rx) = mpsc::channel::<Consumer<f32>>();
             let (probe, shared_cb) = (probe.clone(), shared.clone());
             let make: MakeInput = Box::new(move |rate, channels| {
-                let (mut producer, consumer) = RingBuffer::<f32>::new((rate.max(8000) as usize) * (channels.max(1) as usize) * 2);
+                let (mut producer, consumer) = RingBuffer::<f32>::new(
+                    (rate.max(8000) as usize) * (channels.max(1) as usize) * 2,
+                );
                 let _ = tx.send(consumer);
                 let origin = Instant::now();
                 Box::new(move |data: &[f32], ch: usize| {
@@ -891,13 +1046,23 @@ impl Tuner {
                 })
             });
             let shared_e = shared.clone();
-            let on_error: ErrCb = Arc::new(move |msg: String, fatal: bool| if fatal { shared_e.record_fatal(msg) } else { shared_e.record_error(msg) });
-            let (meta, handle) = self.factory.open_input(device, rate, buffer, make, on_error)?;
+            let on_error: ErrCb = Arc::new(move |msg: String, fatal: bool| {
+                if fatal {
+                    shared_e.record_fatal(msg)
+                } else {
+                    shared_e.record_error(msg)
+                }
+            });
+            let (meta, handle) = self
+                .factory
+                .open_input(device, rate, buffer, make, on_error)?;
             if cancel.load(Relaxed) {
                 handle.close();
                 return Err("capture owner was cancelled while input opened".into());
             }
-            let consumer = rx.try_recv().map_err(|_| "input stream opened without a capture ring".to_string())?;
+            let consumer = rx
+                .try_recv()
+                .map_err(|_| "input stream opened without a capture ring".to_string())?;
             Ok((meta, InputSide { handle, consumer }))
         };
         let first = attempt(requested);
@@ -926,14 +1091,36 @@ impl Tuner {
     }
 
     /// Plays through the audio_out engine, trying Fixed first, then Default.
-    fn play(&self, device: Option<String>, rate: Option<u32>, requested: Option<u32>, req: PlayRequest, probe: &Arc<Probe>, shared: &Arc<Shared>, align: Option<Arc<AlignRecorder>>, cancel: &Arc<AtomicBool>) -> (Option<u64>, OpenNotes) {
+    fn play(
+        &self,
+        device: Option<String>,
+        rate: Option<u32>,
+        requested: Option<u32>,
+        req: PlayRequest,
+        probe: &Arc<Probe>,
+        shared: &Arc<Shared>,
+        align: Option<Arc<AlignRecorder>>,
+        cancel: &Arc<AtomicBool>,
+    ) -> (Option<u64>, OpenNotes) {
         let mut notes = OpenNotes::default();
         let attempt = |buffer: Option<u32>| -> Result<u64, String> {
             if cancel.load(Relaxed) {
-                return Err("AUDIO_OUT_STOPPED: capture owner was cancelled before output opened".into());
+                return Err(
+                    "AUDIO_OUT_STOPPED: capture owner was cancelled before output opened".into(),
+                );
             }
-            *lock(&self.plan) = OutPlan { rate, buffer, probe: Some(probe.clone()), shared: Some(shared.clone()), align: align.clone(), meta: None, cancel: Some(cancel.clone()) };
-            self.engine.play(device.clone(), req.clone()).map(|info| info.handle)
+            *lock(&self.plan) = OutPlan {
+                rate,
+                buffer,
+                probe: Some(probe.clone()),
+                shared: Some(shared.clone()),
+                align: align.clone(),
+                meta: None,
+                cancel: Some(cancel.clone()),
+            };
+            self.engine
+                .play(device.clone(), req.clone())
+                .map(|info| info.handle)
         };
         let first = attempt(requested);
         let result = match (first, requested) {
@@ -941,7 +1128,11 @@ impl Tuner {
                 notes.ran_fixed = requested.is_some();
                 Ok(h)
             }
-            (Err(e), Some(_)) if !e.starts_with("AUDIO_OUT_INVALID") && !e.starts_with("AUDIO_OUT_DISABLED") && !e.starts_with("AUDIO_OUT_STOPPED") => {
+            (Err(e), Some(_))
+                if !e.starts_with("AUDIO_OUT_INVALID")
+                    && !e.starts_with("AUDIO_OUT_DISABLED")
+                    && !e.starts_with("AUDIO_OUT_STOPPED") =>
+            {
                 notes.fixed_error = Some(e);
                 attempt(None)
             }
@@ -959,7 +1150,12 @@ impl Tuner {
         }
     }
 
-    pub fn stress(&self, lease: &CaptureLease, r: &StressRequest, progress: &dyn Fn(&Progress)) -> Result<StressResult, CaptureError> {
+    pub fn stress(
+        &self,
+        lease: &CaptureLease,
+        r: &StressRequest,
+        progress: &dyn Fn(&Progress),
+    ) -> Result<StressResult, CaptureError> {
         validate_buffer(r.buffer_frames)?;
         let seconds = clamp_seconds(r.seconds);
         let load_pct = r.cpu_load_pct.min(100);
@@ -968,25 +1164,58 @@ impl Tuner {
         let lease = LeaseGuard::acquire(lease, &self.engine, r.device_name.clone())?;
 
         let cap = Probe::capacity_for(seconds, 96_000);
-        let (in_probe, out_probe) = (Arc::new(Probe::with_capacity(cap)), Arc::new(Probe::with_capacity(cap)));
+        let (in_probe, out_probe) = (
+            Arc::new(Probe::with_capacity(cap)),
+            Arc::new(Probe::with_capacity(cap)),
+        );
         let (in_shared, out_shared) = (Arc::new(Shared::default()), Arc::new(Shared::default()));
 
-        let (input, in_notes) = self.open_input(r.device_name.as_deref(), r.sample_rate, r.buffer_frames, &in_probe, &in_shared, &lease.cancel);
-        let out_rate = in_notes.meta.as_ref().map(|m| m.sample_rate).or(r.sample_rate);
+        let (input, in_notes) = self.open_input(
+            r.device_name.as_deref(),
+            r.sample_rate,
+            r.buffer_frames,
+            &in_probe,
+            &in_shared,
+            &lease.cancel,
+        );
+        let out_rate = in_notes
+            .meta
+            .as_ref()
+            .map(|m| m.sample_rate)
+            .or(r.sample_rate);
         let silence_rate = out_rate.unwrap_or(48_000);
         let silence = PlayRequest::Buffer(
-            BufferInput { sample_rate: silence_rate, left: vec![0.0; silence_rate as usize], right: vec![] },
-            BufferOpts { level_dbfs: audio_out::SILENCE_DBFS, cap_dbfs: None, looped: true, ramp_ms: None },
+            BufferInput {
+                sample_rate: silence_rate,
+                left: vec![0.0; silence_rate as usize],
+                right: vec![],
+            },
+            BufferOpts {
+                level_dbfs: audio_out::SILENCE_DBFS,
+                cap_dbfs: None,
+                looped: true,
+                ramp_ms: None,
+            },
         );
         let (handle, out_notes) = if self.abort_gen.load(Relaxed) == gen && lease.still_held() {
-            self.play(r.out_device.clone(), out_rate, r.buffer_frames, silence, &out_probe, &out_shared, None, &lease.cancel)
+            self.play(
+                r.out_device.clone(),
+                out_rate,
+                r.buffer_frames,
+                silence,
+                &out_probe,
+                &out_shared,
+                None,
+                &lease.cancel,
+            )
         } else {
             (None, OpenNotes::default())
         };
 
         let mut input = input;
         let any = input.is_some() || handle.is_some();
-        let load = (any && lease.still_held() && self.abort_gen.load(Relaxed) == gen).then(|| LoadGuard::start(load_pct));
+        let load = (any && lease.still_held() && self.abort_gen.load(Relaxed) == gen)
+            .then(|| LoadGuard::start(load_pct));
         let load_threads = load.as_ref().map(|l| l.threads()).unwrap_or(0);
         let started = Instant::now();
         let mut last_progress: Option<Instant> = None;
@@ -1024,7 +1253,12 @@ impl Tuner {
                 }
                 if last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_INTERVAL) {
                     last_progress = Some(Instant::now());
-                    progress(&Progress { phase: "stress".into(), step: r.step, frames: frames_hint, elapsed_sec: elapsed.as_secs_f64() });
+                    progress(&Progress {
+                        phase: "stress".into(),
+                        step: r.step,
+                        frames: frames_hint,
+                        elapsed_sec: elapsed.as_secs_f64(),
+                    });
                 }
                 thread::sleep(LOOP_SLEEP);
             }
@@ -1038,8 +1272,22 @@ impl Tuner {
         }
         drop(lease);
 
-        let inp = direction_report("input", r.buffer_frames, &in_notes, &in_probe, &in_shared, r.gap_floor_ms);
-        let out = direction_report("output", r.buffer_frames, &out_notes, &out_probe, &out_shared, r.gap_floor_ms);
+        let inp = direction_report(
+            "input",
+            r.buffer_frames,
+            &in_notes,
+            &in_probe,
+            &in_shared,
+            r.gap_floor_ms,
+        );
+        let out = direction_report(
+            "output",
+            r.buffer_frames,
+            &out_notes,
+            &out_probe,
+            &out_shared,
+            r.gap_floor_ms,
+        );
         let in_q = in_shared.snapshot();
         let mut stream_errors = in_q.stream_error_messages.clone();
         stream_errors.extend(out.stream_errors.iter().cloned());
@@ -1069,15 +1317,24 @@ impl Tuner {
         })
     }
 
-    pub fn round_trip(&self, lease: &CaptureLease, r: &RoundTripRequest, progress: &dyn Fn(&Progress)) -> Result<RoundTripResult, CaptureError> {
+    pub fn round_trip(
+        &self,
+        lease: &CaptureLease,
+        r: &RoundTripRequest,
+        progress: &dyn Fn(&Progress),
+    ) -> Result<RoundTripResult, CaptureError> {
         validate_buffer(r.buffer_frames)?;
         let stim = &r.stimulus;
         if !(audio_out::MIN_BUFFER_RATE..=audio_out::MAX_BUFFER_RATE).contains(&stim.sample_rate) {
-            return Err(invalid("stimulus sampleRate must be between 8000 and 384000 Hz"));
+            return Err(invalid(
+                "stimulus sampleRate must be between 8000 and 384000 Hz",
+            ));
         }
         let stim_secs = stim.left.len() as f64 / stim.sample_rate as f64;
         if stim.left.is_empty() || stim_secs > MAX_STIMULUS_SECONDS {
-            return Err(invalid(format!("stimulus must be 1 sample to {MAX_STIMULUS_SECONDS} s long")));
+            return Err(invalid(format!(
+                "stimulus must be 1 sample to {MAX_STIMULUS_SECONDS} s long"
+            )));
         }
         if !stim.right.is_empty() && stim.right.len() != stim.left.len() {
             return Err(invalid("stimulus left and right must have the same length"));
@@ -1087,16 +1344,30 @@ impl Tuner {
             return Err(invalid("levelDbfs must be a number"));
         }
         let level = level.clamp(MIN_LEVEL_DBFS, audio_out::ABS_MAX_DBFS);
-        let tail = r.tail_sec.filter(|t| t.is_finite()).unwrap_or(DEFAULT_TAIL_SECONDS).clamp(0.1, 3.0);
+        let tail = r
+            .tail_sec
+            .filter(|t| t.is_finite())
+            .unwrap_or(DEFAULT_TAIL_SECONDS)
+            .clamp(0.1, 3.0);
         let _running = self.begin()?;
         let gen = self.abort_gen.load(Relaxed);
         let lease = LeaseGuard::acquire(lease, &self.engine, r.device_name.clone())?;
 
         let run_secs = stim_secs + tail + 1.0;
         let cap = Probe::capacity_for(run_secs, 96_000);
-        let (in_probe, out_probe) = (Arc::new(Probe::with_capacity(cap)), Arc::new(Probe::with_capacity(cap)));
+        let (in_probe, out_probe) = (
+            Arc::new(Probe::with_capacity(cap)),
+            Arc::new(Probe::with_capacity(cap)),
+        );
         let (in_shared, out_shared) = (Arc::new(Shared::default()), Arc::new(Shared::default()));
-        let (input, in_notes) = self.open_input(r.device_name.as_deref(), Some(stim.sample_rate), r.buffer_frames, &in_probe, &in_shared, &lease.cancel);
+        let (input, in_notes) = self.open_input(
+            r.device_name.as_deref(),
+            Some(stim.sample_rate),
+            r.buffer_frames,
+            &in_probe,
+            &in_shared,
+            &lease.cancel,
+        );
 
         let mut handle = None;
         let mut out_notes = OpenNotes::default();
@@ -1104,7 +1375,11 @@ impl Tuner {
         let mut acc = None;
         let mut input = input;
         if let Some(meta) = &in_notes.meta {
-            let chosen = match crate::audio::resolve_pairs(r.pairs.as_deref(), meta.channels, &meta.device_name) {
+            let chosen = match crate::audio::resolve_pairs(
+                r.pairs.as_deref(),
+                meta.channels,
+                &meta.device_name,
+            ) {
                 Ok(p) => p,
                 Err(message) => {
                     if let Some(side) = input.take() {
@@ -1113,13 +1388,30 @@ impl Tuner {
                     return Err(invalid(&message));
                 }
             };
-            acc = Some(Accumulator::with_pairs((meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize, &chosen[..1]));
+            acc = Some(Accumulator::with_pairs(
+                (meta.sample_rate as f64 * (run_secs + 1.0)).ceil() as usize,
+                &chosen[..1],
+            ));
             let req = PlayRequest::Buffer(
                 stim.clone(),
-                BufferOpts { level_dbfs: level, cap_dbfs: None, looped: false, ramp_ms: Some(audio_out::MIN_RAMP_MS) },
+                BufferOpts {
+                    level_dbfs: level,
+                    cap_dbfs: None,
+                    looped: false,
+                    ramp_ms: Some(audio_out::MIN_RAMP_MS),
+                },
             );
             let (h, notes) = if self.abort_gen.load(Relaxed) == gen && lease.still_held() {
-                self.play(r.out_device.clone(), Some(meta.sample_rate), r.buffer_frames, req, &out_probe, &out_shared, Some(align.clone()), &lease.cancel)
+                self.play(
+                    r.out_device.clone(),
+                    Some(meta.sample_rate),
+                    r.buffer_frames,
+                    req,
+                    &out_probe,
+                    &out_shared,
+                    Some(align.clone()),
+                    &lease.cancel,
+                )
             } else {
                 (None, OpenNotes::default())
             };
@@ -1140,8 +1432,14 @@ impl Tuner {
         } else {
             match (input.as_mut(), handle) {
                 (Some(side), Some(h)) => {
-                    let acc = acc.as_mut().expect("accumulator exists when the input opened");
-                    let channels = in_notes.meta.as_ref().map(|m| m.channels as usize).unwrap_or(2);
+                    let acc = acc
+                        .as_mut()
+                        .expect("accumulator exists when the input opened");
+                    let channels = in_notes
+                        .meta
+                        .as_ref()
+                        .map(|m| m.channels as usize)
+                        .unwrap_or(2);
                     loop {
                         acc.drain(&mut side.consumer, channels);
                         self.engine.tick();
@@ -1165,7 +1463,9 @@ impl Tuner {
                                     break RunEnd::Completed;
                                 }
                             }
-                            Some(EndReason::DeviceError) | Some(EndReason::RenderFault) | Some(EndReason::Disabled) => break RunEnd::DeviceLost,
+                            Some(EndReason::DeviceError)
+                            | Some(EndReason::RenderFault)
+                            | Some(EndReason::Disabled) => break RunEnd::DeviceLost,
                             Some(_) => break RunEnd::Aborted,
                             None => {}
                         }
@@ -1174,7 +1474,12 @@ impl Tuner {
                         }
                         if last_progress.is_none_or(|t| t.elapsed() >= PROGRESS_INTERVAL) {
                             last_progress = Some(Instant::now());
-                            progress(&Progress { phase: "roundtrip".into(), step: r.step, frames: r.buffer_frames, elapsed_sec: started.elapsed().as_secs_f64() });
+                            progress(&Progress {
+                                phase: "roundtrip".into(),
+                                step: r.step,
+                                frames: r.buffer_frames,
+                                elapsed_sec: started.elapsed().as_secs_f64(),
+                            });
                         }
                         thread::sleep(LOOP_SLEEP);
                     }
@@ -1183,7 +1488,11 @@ impl Tuner {
                     // Duplex unavailable (spike outcome D): still learn the input's
                     // period, so the report says what the open side runs.
                     let t = Instant::now();
-                    while in_probe.callbacks() < 3 && t.elapsed() < PROBE_ONLY_WAIT && self.abort_gen.load(Relaxed) == gen && lease.still_held() {
+                    while in_probe.callbacks() < 3
+                        && t.elapsed() < PROBE_ONLY_WAIT
+                        && self.abort_gen.load(Relaxed) == gen
+                        && lease.still_held()
+                    {
                         thread::sleep(LOOP_SLEEP);
                     }
                     if !lease.still_held() {
@@ -1201,7 +1510,11 @@ impl Tuner {
             self.engine.stop(h);
         }
         if let Some(mut side) = input.take() {
-            let channels = in_notes.meta.as_ref().map(|m| m.channels as usize).unwrap_or(2);
+            let channels = in_notes
+                .meta
+                .as_ref()
+                .map(|m| m.channels as usize)
+                .unwrap_or(2);
             side.handle.close();
             if let Some(acc) = acc.as_mut() {
                 acc.drain(&mut side.consumer, channels);
@@ -1209,8 +1522,22 @@ impl Tuner {
         }
         drop(lease);
 
-        let inp = direction_report("input", r.buffer_frames, &in_notes, &in_probe, &in_shared, None);
-        let out = direction_report("output", r.buffer_frames, &out_notes, &out_probe, &out_shared, None);
+        let inp = direction_report(
+            "input",
+            r.buffer_frames,
+            &in_notes,
+            &in_probe,
+            &in_shared,
+            None,
+        );
+        let out = direction_report(
+            "output",
+            r.buffer_frames,
+            &out_notes,
+            &out_probe,
+            &out_shared,
+            None,
+        );
         if let Some(acc) = &acc {
             acc.publish(&in_shared);
         }
@@ -1222,13 +1549,25 @@ impl Tuner {
             _ => None,
         };
         let captured = match (ended, acc, in_rate) {
-            (RunEnd::Completed, Some(acc), Some(rate)) => acc.into_tracks().into_iter().next().map(|(_, left, right)| Captured { sample_rate: rate, left, right }),
+            (RunEnd::Completed, Some(acc), Some(rate)) => {
+                acc.into_tracks()
+                    .into_iter()
+                    .next()
+                    .map(|(_, left, right)| Captured {
+                        sample_rate: rate,
+                        left,
+                        right,
+                    })
+            }
             _ => None,
         };
         Ok(RoundTripResult {
             captured,
             quality,
-            reported_buffer_frames: ReportedFrames { input: inp.stats.actual_frames, out: out.stats.actual_frames },
+            reported_buffer_frames: ReportedFrames {
+                input: inp.stats.actual_frames,
+                out: out.stats.actual_frames,
+            },
             alignment,
             output_sample_rate: out_rate,
             output_level_dbfs: out_rate.map(|_| level),
@@ -1264,40 +1603,74 @@ fn find_device(input: bool, name: Option<&str>) -> Result<cpal::Device, String> 
             .find(|d| d.name().ok().as_deref() == Some(target))
             .ok_or_else(|| format!("Audio {label} not found: {target}"));
     }
-    let d = if input { host.default_input_device() } else { host.default_output_device() };
+    let d = if input {
+        host.default_input_device()
+    } else {
+        host.default_output_device()
+    };
     d.ok_or_else(|| format!("No default audio {label} is available."))
 }
 
 /// Default config, or the closest one supporting `rate`.
-fn pick_config(device: &cpal::Device, input: bool, rate: Option<u32>) -> Result<cpal::SupportedStreamConfig, String> {
+fn pick_config(
+    device: &cpal::Device,
+    input: bool,
+    rate: Option<u32>,
+) -> Result<cpal::SupportedStreamConfig, String> {
     use cpal::traits::DeviceTrait;
     use cpal::SampleFormat;
-    let default = if input { device.default_input_config() } else { device.default_output_config() }.map_err(|e| e.to_string())?;
+    let default = if input {
+        device.default_input_config()
+    } else {
+        device.default_output_config()
+    }
+    .map_err(|e| e.to_string())?;
     let Some(rate) = rate else { return Ok(default) };
     if default.sample_rate().0 == rate {
         return Ok(default);
     }
-    let usable = |f: SampleFormat| matches!(f, SampleFormat::F32 | SampleFormat::I16 | SampleFormat::U16 | SampleFormat::I32);
+    let usable = |f: SampleFormat| {
+        matches!(
+            f,
+            SampleFormat::F32 | SampleFormat::I16 | SampleFormat::U16 | SampleFormat::I32
+        )
+    };
     let ranges: Vec<cpal::SupportedStreamConfigRange> = if input {
-        device.supported_input_configs().map_err(|e| e.to_string())?.collect()
+        device
+            .supported_input_configs()
+            .map_err(|e| e.to_string())?
+            .collect()
     } else {
-        device.supported_output_configs().map_err(|e| e.to_string())?.collect()
+        device
+            .supported_output_configs()
+            .map_err(|e| e.to_string())?
+            .collect()
     };
     let mut best: Option<(u8, cpal::SupportedStreamConfigRange)> = None;
     for range in ranges {
-        if range.min_sample_rate().0 > rate || range.max_sample_rate().0 < rate || !usable(range.sample_format()) || range.channels() == 0 {
+        if range.min_sample_rate().0 > rate
+            || range.max_sample_rate().0 < rate
+            || !usable(range.sample_format())
+            || range.channels() == 0
+        {
             continue;
         }
-        let score = 2 * (range.channels() == default.channels()) as u8 + (range.sample_format() == default.sample_format()) as u8;
+        let score = 2 * (range.channels() == default.channels()) as u8
+            + (range.sample_format() == default.sample_format()) as u8;
         if best.as_ref().is_none_or(|(s, _)| score > *s) {
             best = Some((score, range));
         }
     }
     // The rate is a preference: fall back to the default rate rather than fail.
-    Ok(best.map(|(_, r)| r.with_sample_rate(cpal::SampleRate(rate))).unwrap_or(default))
+    Ok(best
+        .map(|(_, r)| r.with_sample_rate(cpal::SampleRate(rate)))
+        .unwrap_or(default))
 }
 
-fn stream_config(supported: &cpal::SupportedStreamConfig, buffer: Option<u32>) -> cpal::StreamConfig {
+fn stream_config(
+    supported: &cpal::SupportedStreamConfig,
+    buffer: Option<u32>,
+) -> cpal::StreamConfig {
     let mut c: cpal::StreamConfig = supported.config();
     c.buffer_size = match buffer {
         Some(n) => cpal::BufferSize::Fixed(n),
@@ -1371,7 +1744,10 @@ fn build_output<T: cpal::SizedSample + cpal::FromSample<f32> + Send + 'static>(
 
 /// Runs `build` on a dedicated thread that keeps the stream alive until the
 /// handle is closed.
-fn spawn_stream(name: &str, build: impl FnOnce() -> Result<(cpal::Stream, StreamMeta), String> + Send + 'static) -> Result<(StreamMeta, StreamHandle), String> {
+fn spawn_stream(
+    name: &str,
+    build: impl FnOnce() -> Result<(cpal::Stream, StreamMeta), String> + Send + 'static,
+) -> Result<(StreamMeta, StreamHandle), String> {
     use cpal::traits::StreamTrait;
     let (tx, rx) = mpsc::channel();
     let stop = Arc::new(AtomicBool::new(false));
@@ -1412,7 +1788,14 @@ fn spawn_stream(name: &str, build: impl FnOnce() -> Result<(cpal::Stream, Stream
 }
 
 impl StreamFactory for CpalFactory {
-    fn open_input(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeInput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+    fn open_input(
+        &self,
+        device: Option<&str>,
+        rate: Option<u32>,
+        buffer: Option<u32>,
+        make: MakeInput,
+        on_error: ErrCb,
+    ) -> Result<(StreamMeta, StreamHandle), String> {
         let name = device.map(str::to_string);
         spawn_stream("deckchek-latency-in", move || {
             use cpal::traits::DeviceTrait;
@@ -1427,16 +1810,36 @@ impl StreamFactory for CpalFactory {
             let cb = make(config.sample_rate.0, config.channels);
             let stream = match supported.sample_format() {
                 SampleFormat::F32 => build_input::<f32>(&dev, &config, cb, on_error, |v| v),
-                SampleFormat::I16 => build_input::<i16>(&dev, &config, cb, on_error, crate::audio::sample_i16),
-                SampleFormat::U16 => build_input::<u16>(&dev, &config, cb, on_error, crate::audio::sample_u16),
-                SampleFormat::I32 => build_input::<i32>(&dev, &config, cb, on_error, |v| v as f32 / 2_147_483_648.0),
+                SampleFormat::I16 => {
+                    build_input::<i16>(&dev, &config, cb, on_error, crate::audio::sample_i16)
+                }
+                SampleFormat::U16 => {
+                    build_input::<u16>(&dev, &config, cb, on_error, crate::audio::sample_u16)
+                }
+                SampleFormat::I32 => {
+                    build_input::<i32>(&dev, &config, cb, on_error, |v| v as f32 / 2_147_483_648.0)
+                }
                 other => Err(format!("Input sample format {other:?} is not supported.")),
             }?;
-            Ok((stream, StreamMeta { device_name, sample_rate: config.sample_rate.0, channels: config.channels }))
+            Ok((
+                stream,
+                StreamMeta {
+                    device_name,
+                    sample_rate: config.sample_rate.0,
+                    channels: config.channels,
+                },
+            ))
         })
     }
 
-    fn open_output(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeOutput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+    fn open_output(
+        &self,
+        device: Option<&str>,
+        rate: Option<u32>,
+        buffer: Option<u32>,
+        make: MakeOutput,
+        on_error: ErrCb,
+    ) -> Result<(StreamMeta, StreamHandle), String> {
         let name = device.map(str::to_string);
         spawn_stream("deckchek-latency-out", move || {
             use cpal::traits::DeviceTrait;
@@ -1456,7 +1859,14 @@ impl StreamFactory for CpalFactory {
                 SampleFormat::I32 => build_output::<i32>(&dev, &config, cb, on_error),
                 other => Err(format!("Output sample format {other:?} is not supported.")),
             }?;
-            Ok((stream, StreamMeta { device_name, sample_rate: config.sample_rate.0, channels: config.channels }))
+            Ok((
+                stream,
+                StreamMeta {
+                    device_name,
+                    sample_rate: config.sample_rate.0,
+                    channels: config.channels,
+                },
+            ))
         })
     }
 }
@@ -1476,8 +1886,18 @@ pub struct BufferRange {
 
 pub fn buffer_range(b: &cpal::SupportedBufferSize) -> BufferRange {
     match b {
-        cpal::SupportedBufferSize::Range { min, max } => BufferRange { min_frames: Some(*min), max_frames: Some(*max), default: None, known: true },
-        cpal::SupportedBufferSize::Unknown => BufferRange { min_frames: None, max_frames: None, default: None, known: false },
+        cpal::SupportedBufferSize::Range { min, max } => BufferRange {
+            min_frames: Some(*min),
+            max_frames: Some(*max),
+            default: None,
+            known: true,
+        },
+        cpal::SupportedBufferSize::Unknown => BufferRange {
+            min_frames: None,
+            max_frames: None,
+            default: None,
+            known: false,
+        },
     }
 }
 
@@ -1510,7 +1930,11 @@ fn device_buffer_info(device_name: Option<String>, out_device: Option<String>) -
         supports_fixed: false,
         errors: vec![],
     };
-    match find_device(true, device_name.as_deref()).and_then(|d| d.default_input_config().map(|c| (d, c)).map_err(|e| e.to_string())) {
+    match find_device(true, device_name.as_deref()).and_then(|d| {
+        d.default_input_config()
+            .map(|c| (d, c))
+            .map_err(|e| e.to_string())
+    }) {
         Ok((d, c)) => {
             info.device_name = d.name().ok();
             info.sample_rate = Some(c.sample_rate().0);
@@ -1519,7 +1943,11 @@ fn device_buffer_info(device_name: Option<String>, out_device: Option<String>) -
         Err(e) => errors.push(format!("input: {e}")),
     }
     let out_name = out_device.or(device_name);
-    match find_device(false, out_name.as_deref()).and_then(|d| d.default_output_config().map(|c| (d, c)).map_err(|e| e.to_string())) {
+    match find_device(false, out_name.as_deref()).and_then(|d| {
+        d.default_output_config()
+            .map(|c| (d, c))
+            .map_err(|e| e.to_string())
+    }) {
         Ok((d, c)) => {
             info.output_device_name = d.name().ok();
             info.sample_rate = info.sample_rate.or(Some(c.sample_rate().0));
@@ -1537,7 +1965,13 @@ fn device_buffer_info(device_name: Option<String>, out_device: Option<String>) -
 static TUNER: OnceLock<Tuner> = OnceLock::new();
 
 pub fn global() -> &'static Tuner {
-    TUNER.get_or_init(|| Tuner::grouped(Arc::new(CpalFactory), cpal::default_host().id().name(), audio_out::output_group().clone()))
+    TUNER.get_or_init(|| {
+        Tuner::grouped(
+            Arc::new(CpalFactory),
+            cpal::default_host().id().name(),
+            audio_out::output_group().clone(),
+        )
+    })
 }
 
 /// Chained panic hook: a panic anywhere silences the tuner's output (its own
@@ -1631,12 +2065,17 @@ const MAX_NAMED: usize = 20;
 fn is_guid(s: &str) -> bool {
     let parts: Vec<&str> = s.split('-').collect();
     parts.len() == 5
-        && parts.iter().zip([8, 4, 4, 4, 12]).all(|(p, n)| p.len() == n && p.chars().all(|c| c.is_ascii_hexdigit()))
+        && parts
+            .iter()
+            .zip([8, 4, 4, 4, 12])
+            .all(|(p, n)| p.len() == n && p.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
 fn find_guid(line: &str) -> Option<String> {
-    line.split(|c: char| c.is_whitespace() || c == ':' || c == '(' || c == ')').find(|t| is_guid(t)).map(|t| t.to_ascii_lowercase())
+    line.split(|c: char| c.is_whitespace() || c == ':' || c == '(' || c == ')')
+        .find(|t| is_guid(t))
+        .map(|t| t.to_ascii_lowercase())
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
@@ -1678,20 +2117,32 @@ pub fn parse_powercfg_setting(text: &str, key: &str) -> AcDc {
         }
     }
     let has_key = |b: &Vec<&str>| {
-        b.iter().any(|l| l.split(|c: char| c.is_whitespace() || c == ':' || c == '(' || c == ')').any(|t| t.eq_ignore_ascii_case(&key)))
+        b.iter().any(|l| {
+            l.split(|c: char| c.is_whitespace() || c == ':' || c == '(' || c == ')')
+                .any(|t| t.eq_ignore_ascii_case(&key))
+        })
     };
-    let Some(block) = blocks.iter().find(|b| has_key(b)) else { return AcDc::default() };
+    let Some(block) = blocks.iter().find(|b| has_key(b)) else {
+        return AcDc::default();
+    };
     let hex: Vec<u32> = block.iter().filter_map(|l| hex_value(l)).collect();
     if hex.len() < 2 {
         return AcDc::default();
     }
-    AcDc { ac: Some(hex[hex.len() - 2]), dc: Some(hex[hex.len() - 1]) }
+    AcDc {
+        ac: Some(hex[hex.len() - 2]),
+        dc: Some(hex[hex.len() - 1]),
+    }
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
 fn parse_number(s: &str) -> Option<f64> {
     let t = s.trim();
-    let t = if t.contains(',') && !t.contains('.') { t.replace(',', ".") } else { t.to_string() };
+    let t = if t.contains(',') && !t.contains('.') {
+        t.replace(',', ".")
+    } else {
+        t.to_string()
+    };
     t.parse::<f64>().ok().filter(|v| v.is_finite())
 }
 
@@ -1723,8 +2174,16 @@ pub fn parse_ps_facts(text: &str) -> PsFacts {
     for line in text.lines() {
         let cols: Vec<&str> = line.trim_end_matches('\r').split('\t').collect();
         match cols.as_slice() {
-            ["WIFI", name, status] if f.wifi.len() < MAX_NAMED => f.wifi.push(NamedStatus { name: name.trim().into(), status: status.trim().into() }),
-            ["BT", name, status] if f.bluetooth.len() < MAX_NAMED => f.bluetooth.push(NamedStatus { name: name.trim().into(), status: status.trim().into() }),
+            ["WIFI", name, status] if f.wifi.len() < MAX_NAMED => f.wifi.push(NamedStatus {
+                name: name.trim().into(),
+                status: status.trim().into(),
+            }),
+            ["BT", name, status] if f.bluetooth.len() < MAX_NAMED => {
+                f.bluetooth.push(NamedStatus {
+                    name: name.trim().into(),
+                    status: status.trim().into(),
+                })
+            }
             ["BATTERY", s] => {
                 let v = battery_on_battery(s);
                 f.on_battery = match (f.on_battery, v) {
@@ -1744,7 +2203,11 @@ pub fn parse_ps_facts(text: &str) -> PsFacts {
     }
     if n > 0 {
         let r = |v: f64| (v / n as f64 * 100.0).round() / 100.0;
-        f.dpc = DpcProxy { dpc_pct: Some(r(dpc_sum)), interrupt_pct: Some(r(int_sum)), samples: n };
+        f.dpc = DpcProxy {
+            dpc_pct: Some(r(dpc_sum)),
+            interrupt_pct: Some(r(int_sum)),
+            samples: n,
+        };
     }
     f
 }
@@ -1752,13 +2215,23 @@ pub fn parse_ps_facts(text: &str) -> PsFacts {
 #[cfg_attr(not(windows), allow(dead_code))]
 /// Wake-up error statistics of `requested_ms` sleeps.
 pub fn jitter_stats(wake_errors_ms: &[f64]) -> Option<JitterStats> {
-    let mut v: Vec<f64> = wake_errors_ms.iter().copied().filter(|x| x.is_finite()).map(|x| x.max(0.0)).collect();
+    let mut v: Vec<f64> = wake_errors_ms
+        .iter()
+        .copied()
+        .filter(|x| x.is_finite())
+        .map(|x| x.max(0.0))
+        .collect();
     if v.is_empty() {
         return None;
     }
     v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let idx = (((v.len() - 1) as f64) * 0.99).round() as usize;
-    Some(JitterStats { samples: v.len(), mean_ms: v.iter().sum::<f64>() / v.len() as f64, p99_ms: v[idx], max_ms: v[v.len() - 1] })
+    Some(JitterStats {
+        samples: v.len(),
+        mean_ms: v.iter().sum::<f64>() / v.len() as f64,
+        p99_ms: v[idx],
+        max_ms: v[v.len() - 1],
+    })
 }
 
 #[cfg_attr(not(windows), allow(dead_code))]
@@ -1786,16 +2259,34 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
         cmd.creation_flags(CREATE_NO_WINDOW);
         crate::system_check::run_with_timeout(cmd, Duration::from_secs(secs))
     };
-    let mut s = TuningScan { supported: true, ..Default::default() };
+    let mut s = TuningScan {
+        supported: true,
+        ..Default::default()
+    };
     match run("powercfg.exe", &["/getactivescheme"], 15) {
         Ok(t) => s.active_plan = parse_active_scheme(&t),
         Err(e) => s.errors.push(format!("powercfg /getactivescheme: {e}")),
     }
-    match run("powercfg.exe", &["/query", "SCHEME_CURRENT", USB_SUBGROUP, USB_SELECTIVE_SUSPEND], 15) {
+    match run(
+        "powercfg.exe",
+        &[
+            "/query",
+            "SCHEME_CURRENT",
+            USB_SUBGROUP,
+            USB_SELECTIVE_SUSPEND,
+        ],
+        15,
+    ) {
         Ok(t) => s.usb_selective_suspend = parse_powercfg_setting(&t, USB_SELECTIVE_SUSPEND),
-        Err(e) => s.errors.push(format!("powercfg USB selective suspend: {e}")),
+        Err(e) => s
+            .errors
+            .push(format!("powercfg USB selective suspend: {e}")),
     }
-    match run("powercfg.exe", &["/query", "SCHEME_CURRENT", "SUB_PROCESSOR"], 15) {
+    match run(
+        "powercfg.exe",
+        &["/query", "SCHEME_CURRENT", "SUB_PROCESSOR"],
+        15,
+    ) {
         Ok(t) => {
             s.min_processor_state = parse_powercfg_setting(&t, "PROCTHROTTLEMIN");
             s.min_cores = parse_powercfg_setting(&t, "CPMINCORES");
@@ -1820,7 +2311,18 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
            if ($dt -gt 0) {{ 'DPC' + $t + (100.0*$dd/$dt).ToString($inv) + $t + (100.0*$di/$dt).ToString($inv) }}; $prev = $cur }}",
         n = dpc_seconds
     );
-    match run("powershell.exe", &["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script.as_str()], 20 + dpc_seconds as u64) {
+    match run(
+        "powershell.exe",
+        &[
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script.as_str(),
+        ],
+        20 + dpc_seconds as u64,
+    ) {
         Ok(t) => {
             let f = parse_ps_facts(&t);
             s.wifi = f.wifi;
@@ -1828,7 +2330,9 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
             s.on_battery = f.on_battery;
             s.dpc_proxy = f.dpc;
             if s.dpc_proxy.samples == 0 {
-                s.errors.push("DPC counters unavailable (no processor performance data returned).".into());
+                s.errors.push(
+                    "DPC counters unavailable (no processor performance data returned).".into(),
+                );
             }
         }
         Err(e) => s.errors.push(format!("PowerShell scan: {e}")),
@@ -1839,7 +2343,10 @@ fn scan_blocking(dpc_seconds: u32) -> TuningScan {
 
 #[cfg(not(windows))]
 fn scan_blocking(_dpc_seconds: u32) -> TuningScan {
-    TuningScan { supported: false, ..Default::default() }
+    TuningScan {
+        supported: false,
+        ..Default::default()
+    }
 }
 
 // ------------------------------------------------------------ persistence
@@ -1936,12 +2443,16 @@ fn db_err(e: rusqlite::Error) -> String {
 }
 
 fn clean(v: &Option<String>) -> Option<String> {
-    v.as_ref().map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
+    v.as_ref()
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
 }
 
 fn check_num(name: &str, v: Option<f64>, lo: f64, hi: f64) -> Result<(), String> {
     match v {
-        Some(x) if !x.is_finite() || x < lo || x > hi => Err(bad(format!("{name} must be a finite number between {lo} and {hi}"))),
+        Some(x) if !x.is_finite() || x < lo || x > hi => Err(bad(format!(
+            "{name} must be a finite number between {lo} and {hi}"
+        ))),
         _ => Ok(()),
     }
 }
@@ -1980,8 +2491,13 @@ pub fn validate_run(i: &LatencyRunInput) -> Result<String, String> {
     check_num("expandedUMs", i.expanded_u_ms, 0.0, 10_000.0)?;
     check_num("reportedMs", i.reported_ms, 0.0, 10_000.0)?;
     check_num("maxGapMs", i.max_gap_ms, 0.0, 600_000.0)?;
-    if i.verdict.as_ref().is_some_and(|v| v.chars().count() > MAX_VERDICT_CHARS) {
-        return Err(bad(format!("verdict is limited to {MAX_VERDICT_CHARS} characters")));
+    if i.verdict
+        .as_ref()
+        .is_some_and(|v| v.chars().count() > MAX_VERDICT_CHARS)
+    {
+        return Err(bad(format!(
+            "verdict is limited to {MAX_VERDICT_CHARS} characters"
+        )));
     }
     let detail = match &i.detail {
         None | Some(Value::Null) => "{}".to_string(),
@@ -1989,14 +2505,23 @@ pub fn validate_run(i: &LatencyRunInput) -> Result<String, String> {
         Some(_) => return Err(bad("detail must be an object")),
     };
     if detail.len() > MAX_DETAIL_BYTES {
-        return Err(bad(format!("detail is limited to {MAX_DETAIL_BYTES} bytes")));
+        return Err(bad(format!(
+            "detail is limited to {MAX_DETAIL_BYTES} bytes"
+        )));
     }
     Ok(detail)
 }
 
 fn exists(conn: &Connection, table: &str, id: &str) -> Result<bool, String> {
     // `table` is one of the literals used below, never user input.
-    conn.query_row(&format!("SELECT 1 FROM {table} WHERE id = ?1"), [id], |_| Ok(())).optional().map(|o| o.is_some()).map_err(db_err)
+    conn.query_row(
+        &format!("SELECT 1 FROM {table} WHERE id = ?1"),
+        [id],
+        |_| Ok(()),
+    )
+    .optional()
+    .map(|o| o.is_some())
+    .map_err(db_err)
 }
 
 const RUN_COLS: &str = "id, session_id, setup_id, device_name, host_api, sample_rate_hz, kind, buffer_frames, cpu_load_pct, measured_ms, std_ms, \
@@ -2020,7 +2545,8 @@ fn run_row(r: &rusqlite::Row) -> rusqlite::Result<LatencyRun> {
         xruns: r.get(13)?,
         max_gap_ms: r.get(14)?,
         verdict: r.get(15)?,
-        detail: serde_json::from_str(&r.get::<_, String>(16)?).unwrap_or_else(|_| Value::Object(Default::default())),
+        detail: serde_json::from_str(&r.get::<_, String>(16)?)
+            .unwrap_or_else(|_| Value::Object(Default::default())),
         created_at: r.get(17)?,
     })
 }
@@ -2065,7 +2591,13 @@ pub fn save_run(conn: &Connection, i: &LatencyRunInput) -> Result<LatencyRun, St
 }
 
 pub fn get_run(conn: &Connection, id: &str) -> Result<Option<LatencyRun>, String> {
-    conn.query_row(&format!("SELECT {RUN_COLS} FROM latency_run WHERE id = ?1"), [id], run_row).optional().map_err(db_err)
+    conn.query_row(
+        &format!("SELECT {RUN_COLS} FROM latency_run WHERE id = ?1"),
+        [id],
+        run_row,
+    )
+    .optional()
+    .map_err(db_err)
 }
 
 /// Newest first; filters combine with AND.
@@ -2075,25 +2607,41 @@ pub fn list_runs(conn: &Connection, f: &LatencyRunFilter) -> Result<Vec<LatencyR
             return Err(bad(format!("kind must be one of {}", KINDS.join(", "))));
         }
     }
-    let limit = f.limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, MAX_LIST_LIMIT);
+    let limit = f
+        .limit
+        .unwrap_or(DEFAULT_LIST_LIMIT)
+        .clamp(1, MAX_LIST_LIMIT);
     let mut stmt = conn
         .prepare(&format!(
             "SELECT {RUN_COLS} FROM latency_run WHERE (?1 IS NULL OR device_name = ?1) AND (?2 IS NULL OR kind = ?2) AND (?3 IS NULL OR session_id = ?3)
              ORDER BY created_at DESC, id LIMIT ?4"
         ))
         .map_err(db_err)?;
-    let rows = stmt.query_map(params![clean(&f.device_name), f.kind, clean(&f.session_id), limit], run_row).map_err(db_err)?;
+    let rows = stmt
+        .query_map(
+            params![clean(&f.device_name), f.kind, clean(&f.session_id), limit],
+            run_row,
+        )
+        .map_err(db_err)?;
     rows.collect::<rusqlite::Result<Vec<_>>>().map_err(db_err)
 }
 
 pub fn delete_run(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute("DELETE FROM latency_run WHERE id = ?1", [id]).map(|n| n > 0).map_err(db_err)
+    conn.execute("DELETE FROM latency_run WHERE id = ?1", [id])
+        .map(|n| n > 0)
+        .map_err(db_err)
 }
 
-pub fn save_recommendation(conn: &Connection, i: &RecommendationInput) -> Result<Recommendation, String> {
+pub fn save_recommendation(
+    conn: &Connection,
+    i: &RecommendationInput,
+) -> Result<Recommendation, String> {
     check_name("deviceName", &i.device_name)?;
     if !SOFTWARE.contains(&i.software.as_str()) {
-        return Err(bad(format!("software must be one of {}", SOFTWARE.join(", "))));
+        return Err(bad(format!(
+            "software must be one of {}",
+            SOFTWARE.join(", ")
+        )));
     }
     check_int("frames", Some(i.frames), 1, 65_536)?;
     check_num("ms", Some(i.ms), 0.0, 10_000.0)?;
@@ -2110,11 +2658,22 @@ pub fn save_recommendation(conn: &Connection, i: &RecommendationInput) -> Result
         params![id, i.device_name.trim(), i.software, i.frames, i.ms, based, now],
     )
     .map_err(db_err)?;
-    Ok(Recommendation { id, device_name: i.device_name.trim().into(), software: i.software.clone(), frames: i.frames, ms: i.ms, based_on_run_id: based, created_at: now })
+    Ok(Recommendation {
+        id,
+        device_name: i.device_name.trim().into(),
+        software: i.software.clone(),
+        frames: i.frames,
+        ms: i.ms,
+        based_on_run_id: based,
+        created_at: now,
+    })
 }
 
 /// Latest recommendation per software for a device.
-pub fn latest_recommendations(conn: &Connection, device_name: &str) -> Result<Vec<Recommendation>, String> {
+pub fn latest_recommendations(
+    conn: &Connection,
+    device_name: &str,
+) -> Result<Vec<Recommendation>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT id, device_name, software, frames, ms, based_on_run_id, created_at FROM buffer_recommendation r
@@ -2141,12 +2700,19 @@ pub fn latest_recommendations(conn: &Connection, device_name: &str) -> Result<Ve
 
 // ---------------------------------------------------------------- commands
 
-async fn blocking<T: Send + 'static, E: Send + 'static + From<String>>(f: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<T, E> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| E::from(e.to_string()))?
+async fn blocking<T: Send + 'static, E: Send + 'static + From<String>>(
+    f: impl FnOnce() -> Result<T, E> + Send + 'static,
+) -> Result<T, E> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| E::from(e.to_string()))?
 }
 
 #[tauri::command]
-pub async fn audio_device_buffer_info(device_name: Option<String>, out_device: Option<String>) -> Result<DeviceBufferInfo, String> {
+pub async fn audio_device_buffer_info(
+    device_name: Option<String>,
+    out_device: Option<String>,
+) -> Result<DeviceBufferInfo, String> {
     blocking(move || Ok(device_buffer_info(device_name, out_device))).await
 }
 
@@ -2164,12 +2730,20 @@ pub async fn latency_play_and_capture(
     pairs: Option<Vec<u16>>,
 ) -> Result<RoundTripResult, CaptureError> {
     let lease = state.lease.clone();
-    let req = RoundTripRequest { device_name, out_device, stimulus, buffer_frames, level_dbfs, tail_sec: None, step, pairs };
+    let req = RoundTripRequest {
+        device_name,
+        out_device,
+        stimulus,
+        buffer_frames,
+        level_dbfs,
+        tail_sec: None,
+        step,
+        pairs,
+    };
     // One DeckChek voice at a time: the tuner's engine shares the global output
     // group, so its play fades out the global voice, but only once the run has
     // the run slot and the capture lease (a busy input leaves the tone alone).
-    blocking(move || global().round_trip(&lease, &req, &emitter(app)))
-    .await
+    blocking(move || global().round_trip(&lease, &req, &emitter(app))).await
 }
 
 #[tauri::command]
@@ -2187,9 +2761,17 @@ pub async fn stress_run(
     step: Option<u32>,
 ) -> Result<StressResult, CaptureError> {
     let lease = state.lease.clone();
-    let req = StressRequest { device_name, out_device, buffer_frames, seconds, cpu_load_pct, gap_floor_ms, sample_rate, step };
-    blocking(move || global().stress(&lease, &req, &emitter(app)))
-    .await
+    let req = StressRequest {
+        device_name,
+        out_device,
+        buffer_frames,
+        seconds,
+        cpu_load_pct,
+        gap_floor_ms,
+        sample_rate,
+        step,
+    };
+    blocking(move || global().stress(&lease, &req, &emitter(app))).await
 }
 
 /// Esc: ends the running step, silences the output, stops the load threads.
@@ -2214,7 +2796,10 @@ pub async fn windows_tuning_scan(dpc_seconds: Option<u32>) -> Result<TuningScan,
 }
 
 #[tauri::command]
-pub async fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<LatencyRun, String> {
+pub async fn latency_run_save(
+    app: AppHandle,
+    input: LatencyRunInput,
+) -> Result<LatencyRun, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         save_run(&conn, &input)
@@ -2223,7 +2808,10 @@ pub async fn latency_run_save(app: AppHandle, input: LatencyRunInput) -> Result<
 }
 
 #[tauri::command]
-pub async fn latency_run_list(app: AppHandle, filter: Option<LatencyRunFilter>) -> Result<Vec<LatencyRun>, String> {
+pub async fn latency_run_list(
+    app: AppHandle,
+    filter: Option<LatencyRunFilter>,
+) -> Result<Vec<LatencyRun>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         list_runs(&conn, &filter.unwrap_or_default())
@@ -2241,7 +2829,10 @@ pub async fn latency_run_delete(app: AppHandle, id: String) -> Result<bool, Stri
 }
 
 #[tauri::command]
-pub async fn buffer_recommendation_save(app: AppHandle, input: RecommendationInput) -> Result<Recommendation, String> {
+pub async fn buffer_recommendation_save(
+    app: AppHandle,
+    input: RecommendationInput,
+) -> Result<Recommendation, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         save_recommendation(&conn, &input)
@@ -2250,7 +2841,10 @@ pub async fn buffer_recommendation_save(app: AppHandle, input: RecommendationInp
 }
 
 #[tauri::command]
-pub async fn buffer_recommendation_latest(app: AppHandle, device_name: String) -> Result<Vec<Recommendation>, String> {
+pub async fn buffer_recommendation_latest(
+    app: AppHandle,
+    device_name: String,
+) -> Result<Vec<Recommendation>, String> {
     crate::db::off_main(move || {
         let conn = open_database(&database_path(&app)?)?;
         latest_recommendations(&conn, &device_name)
@@ -2290,7 +2884,10 @@ mod tests {
             match (self, req) {
                 (Policy::Fail, _) => Err("device unavailable (fake)".into()),
                 (Policy::Silent, _) => Ok(None),
-                (Policy::RejectFixed(_), Some(_)) => Err("The requested stream configuration is not supported by the device. (fake)".into()),
+                (Policy::RejectFixed(_), Some(_)) => Err(
+                    "The requested stream configuration is not supported by the device. (fake)"
+                        .into(),
+                ),
                 (Policy::RejectFixed(p), None) | (Policy::Ignore(p), _) => Ok(Some(p)),
                 (_, None) => Ok(Some(480)),
                 (Policy::Honour, Some(n)) => Ok(Some(n)),
@@ -2336,7 +2933,13 @@ mod tests {
             Self::with(input, output, 37, 1.0, 0.25)
         }
 
-        fn with(input: Policy, output: Policy, loop_frames: u64, loop_gain: f32, speed: f64) -> Arc<Self> {
+        fn with(
+            input: Policy,
+            output: Policy,
+            loop_frames: u64,
+            loop_gain: f32,
+            speed: f64,
+        ) -> Arc<Self> {
             let dev = Arc::new(Mutex::new(Dev::default()));
             let quit = Arc::new(AtomicBool::new(false));
             let clock = {
@@ -2350,7 +2953,13 @@ mod tests {
                         if d.output.as_ref().is_some_and(|s| s.stop.load(Relaxed)) {
                             d.output = None;
                         }
-                        let next = [d.input.as_ref().map(|s| s.next), d.output.as_ref().map(|s| s.next)].into_iter().flatten().min();
+                        let next = [
+                            d.input.as_ref().map(|s| s.next),
+                            d.output.as_ref().map(|s| s.next),
+                        ]
+                        .into_iter()
+                        .flatten()
+                        .min();
                         let Some(next) = next else {
                             drop(d);
                             thread::sleep(Duration::from_millis(1));
@@ -2387,7 +2996,11 @@ mod tests {
                                 let p = s.period as u64;
                                 let mut data = Vec::with_capacity(p as usize * 2);
                                 for tau in t - p..t {
-                                    let v = tau.checked_sub(loop_frames).and_then(|x| d.played.get(x as usize).copied()).unwrap_or(0.0) * loop_gain;
+                                    let v = tau
+                                        .checked_sub(loop_frames)
+                                        .and_then(|x| d.played.get(x as usize).copied())
+                                        .unwrap_or(0.0)
+                                        * loop_gain;
                                     data.push(v);
                                     data.push(v);
                                 }
@@ -2404,7 +3017,13 @@ mod tests {
                     }
                 })
             };
-            Arc::new(Self { input, output, dev, quit, clock: Some(clock) })
+            Arc::new(Self {
+                input,
+                output,
+                dev,
+                quit,
+                clock: Some(clock),
+            })
         }
 
         fn stall_at(&self, frames: u64, dur: Duration) {
@@ -2437,28 +3056,66 @@ mod tests {
     }
 
     impl StreamFactory for Fake {
-        fn open_input(&self, _device: Option<&str>, _rate: Option<u32>, buffer: Option<u32>, make: MakeInput, _on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+        fn open_input(
+            &self,
+            _device: Option<&str>,
+            _rate: Option<u32>,
+            buffer: Option<u32>,
+            make: MakeInput,
+            _on_error: ErrCb,
+        ) -> Result<(StreamMeta, StreamHandle), String> {
             let period = self.input.period(buffer)?;
             let cb = make(RATE, 2);
             let (stop, handle) = Self::handle();
             if let Some(p) = period {
                 let mut d = lock(&self.dev);
                 let next = Self::first_due(d.t, p);
-                d.input = Some(Slot { period: p, cb, stop, next });
+                d.input = Some(Slot {
+                    period: p,
+                    cb,
+                    stop,
+                    next,
+                });
             }
-            Ok((StreamMeta { device_name: "Fake In".into(), sample_rate: RATE, channels: 2 }, handle))
+            Ok((
+                StreamMeta {
+                    device_name: "Fake In".into(),
+                    sample_rate: RATE,
+                    channels: 2,
+                },
+                handle,
+            ))
         }
 
-        fn open_output(&self, _device: Option<&str>, _rate: Option<u32>, buffer: Option<u32>, make: MakeOutput, _on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+        fn open_output(
+            &self,
+            _device: Option<&str>,
+            _rate: Option<u32>,
+            buffer: Option<u32>,
+            make: MakeOutput,
+            _on_error: ErrCb,
+        ) -> Result<(StreamMeta, StreamHandle), String> {
             let period = self.output.period(buffer)?;
             let cb = make(RATE, 2)?;
             let (stop, handle) = Self::handle();
             if let Some(p) = period {
                 let mut d = lock(&self.dev);
                 let next = Self::first_due(d.t, p);
-                d.output = Some(Slot { period: p, cb, stop, next });
+                d.output = Some(Slot {
+                    period: p,
+                    cb,
+                    stop,
+                    next,
+                });
             }
-            Ok((StreamMeta { device_name: "Fake Out".into(), sample_rate: RATE, channels: 2 }, handle))
+            Ok((
+                StreamMeta {
+                    device_name: "Fake Out".into(),
+                    sample_rate: RATE,
+                    channels: 2,
+                },
+                handle,
+            ))
         }
     }
 
@@ -2469,7 +3126,11 @@ mod tests {
     /// Driver barriers exercise cancellation at input open, after an output
     /// callback was constructed, and while input close awaits acknowledgment.
     #[derive(Clone, Copy)]
-    enum DriverBarrier { InputOpen, OutputOpen, InputClose }
+    enum DriverBarrier {
+        InputOpen,
+        OutputOpen,
+        InputClose,
+    }
 
     struct DelayedDriver {
         inner: Arc<Fake>,
@@ -2484,23 +3145,46 @@ mod tests {
         fn new(at: DriverBarrier) -> (Arc<Self>, mpsc::Receiver<()>, mpsc::SyncSender<()>) {
             let (reached, receiver) = mpsc::sync_channel(1);
             let (resume, sender) = mpsc::sync_channel(1);
-            (Arc::new(Self {
-                inner: Fake::new(Policy::Honour, Policy::Honour), at, reached,
-                resume: Mutex::new(sender), output_opens: AtomicU64::new(0), late_output_silent: AtomicBool::new(false),
-            }), receiver, resume)
+            (
+                Arc::new(Self {
+                    inner: Fake::new(Policy::Honour, Policy::Honour),
+                    at,
+                    reached,
+                    resume: Mutex::new(sender),
+                    output_opens: AtomicU64::new(0),
+                    late_output_silent: AtomicBool::new(false),
+                }),
+                receiver,
+                resume,
+            )
         }
 
         fn wait(&self) {
             self.reached.send(()).unwrap();
-            lock(&self.resume).recv_timeout(Duration::from_secs(5)).unwrap();
+            lock(&self.resume)
+                .recv_timeout(Duration::from_secs(5))
+                .unwrap();
         }
     }
 
     impl StreamFactory for DelayedDriver {
-        fn open_input(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeInput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
-            if matches!(self.at, DriverBarrier::InputOpen) { self.wait(); }
-            let (meta, handle) = self.inner.open_input(device, rate, buffer, make, on_error)?;
-            if !matches!(self.at, DriverBarrier::InputClose) { return Ok((meta, handle)); }
+        fn open_input(
+            &self,
+            device: Option<&str>,
+            rate: Option<u32>,
+            buffer: Option<u32>,
+            make: MakeInput,
+            on_error: ErrCb,
+        ) -> Result<(StreamMeta, StreamHandle), String> {
+            if matches!(self.at, DriverBarrier::InputOpen) {
+                self.wait();
+            }
+            let (meta, handle) = self
+                .inner
+                .open_input(device, rate, buffer, make, on_error)?;
+            if !matches!(self.at, DriverBarrier::InputClose) {
+                return Ok((meta, handle));
+            }
             // The native close cannot return until this driver acknowledgment.
             let reached = self.reached.clone();
             let (resume_tx, resume_rx) = mpsc::sync_channel(1);
@@ -2511,7 +3195,9 @@ mod tests {
             let stop = Arc::new(AtomicBool::new(false));
             let stopping = stop.clone();
             let thread = thread::spawn(move || {
-                while !stopping.load(Relaxed) { thread::sleep(Duration::from_millis(1)); }
+                while !stopping.load(Relaxed) {
+                    thread::sleep(Duration::from_millis(1));
+                }
                 reached.send(()).unwrap();
                 resume.recv_timeout(Duration::from_secs(5)).unwrap();
                 handle.close();
@@ -2519,7 +3205,14 @@ mod tests {
             Ok((meta, StreamHandle::new(stop, thread)))
         }
 
-        fn open_output(&self, device: Option<&str>, rate: Option<u32>, buffer: Option<u32>, make: MakeOutput, on_error: ErrCb) -> Result<(StreamMeta, StreamHandle), String> {
+        fn open_output(
+            &self,
+            device: Option<&str>,
+            rate: Option<u32>,
+            buffer: Option<u32>,
+            make: MakeOutput,
+            on_error: ErrCb,
+        ) -> Result<(StreamMeta, StreamHandle), String> {
             self.output_opens.fetch_add(1, Relaxed);
             if !matches!(self.at, DriverBarrier::OutputOpen) {
                 return self.inner.open_output(device, rate, buffer, make, on_error);
@@ -2528,14 +3221,27 @@ mod tests {
             self.wait();
             let mut out = [1.0; 32];
             callback(&mut out, 2);
-            self.late_output_silent.store(out.iter().all(|x| *x == 0.0), Relaxed);
+            self.late_output_silent
+                .store(out.iter().all(|x| *x == 0.0), Relaxed);
             let (_, handle) = Fake::handle();
-            Ok((StreamMeta { device_name: "Delayed Out".into(), sample_rate: RATE, channels: 2 }, handle))
+            Ok((
+                StreamMeta {
+                    device_name: "Delayed Out".into(),
+                    sample_rate: RATE,
+                    channels: 2,
+                },
+                handle,
+            ))
         }
     }
 
     fn stress_req(frames: Option<u32>, seconds: f64, load: u32) -> StressRequest {
-        StressRequest { buffer_frames: frames, seconds, cpu_load_pct: load, ..Default::default() }
+        StressRequest {
+            buffer_frames: frames,
+            seconds,
+            cpu_load_pct: load,
+            ..Default::default()
+        }
     }
 
     fn no_progress(_: &Progress) {}
@@ -2543,15 +3249,34 @@ mod tests {
     fn impulse_stimulus(at: usize, len: usize, value: f32) -> BufferInput {
         let mut left = vec![0.0f32; len];
         left[at] = value;
-        BufferInput { sample_rate: RATE, left, right: vec![] }
+        BufferInput {
+            sample_rate: RATE,
+            left,
+            right: vec![],
+        }
     }
 
     fn rt_req(stim: BufferInput, frames: Option<u32>, level: Option<f32>) -> RoundTripRequest {
-        RoundTripRequest { device_name: None, out_device: None, stimulus: stim, buffer_frames: frames, level_dbfs: level, tail_sec: Some(0.1), step: None, pairs: None }
+        RoundTripRequest {
+            device_name: None,
+            out_device: None,
+            stimulus: stim,
+            buffer_frames: frames,
+            level_dbfs: level,
+            tail_sec: Some(0.1),
+            step: None,
+            pairs: None,
+        }
     }
 
     fn peak_index(v: &[f32]) -> (usize, f32) {
-        v.iter().enumerate().fold((0, 0.0f32), |(bi, bv), (i, &x)| if x.abs() > bv { (i, x.abs()) } else { (bi, bv) })
+        v.iter().enumerate().fold((0, 0.0f32), |(bi, bv), (i, &x)| {
+            if x.abs() > bv {
+                (i, x.abs())
+            } else {
+                (bi, bv)
+            }
+        })
     }
 
     // ------------------------------------------------------- pure functions
@@ -2589,27 +3314,54 @@ mod tests {
         assert_eq!(s.xrun_threshold_ms, Some(15.0));
         assert_eq!(s.gap_ms_max, Some(15.001));
         // the idle floor lifts the threshold above the burst
-        assert_eq!(callback_stats(&frames, &gaps, 20, RATE, Some(16.0)).gap_xruns, 0);
-        assert_eq!(callback_stats(&[], &[], 0, RATE, None), CallbackStats::default());
+        assert_eq!(
+            callback_stats(&frames, &gaps, 20, RATE, Some(16.0)).gap_xruns,
+            0
+        );
+        assert_eq!(
+            callback_stats(&[], &[], 0, RATE, None),
+            CallbackStats::default()
+        );
     }
 
     #[test]
     fn median_frames_is_the_actual_period_even_with_irregular_packets() {
         let frames = [441u32, 480, 480, 480, 528, 480, 432];
         let s = callback_stats(&frames, &[], 7, RATE, None);
-        assert_eq!((s.actual_frames, s.actual_frames_min, s.actual_frames_max), (Some(480), Some(432), Some(528)));
+        assert_eq!(
+            (s.actual_frames, s.actual_frames_min, s.actual_frames_max),
+            (Some(480), Some(432), Some(528))
+        );
     }
 
     #[test]
     fn classify_direction_covers_every_spike_outcome() {
         use BufferMode::*;
         use ModeReason::*;
-        assert_eq!(classify_direction(Some(256), false, true, Some(256)), (Honoured, Matched));
-        assert_eq!(classify_direction(Some(256), false, true, Some(480)), (Adjusted, Differs));
-        assert_eq!(classify_direction(Some(256), true, true, Some(480)), (HostChosen, FixedRejected));
-        assert_eq!(classify_direction(None, false, true, Some(480)), (HostChosen, DefaultRequested));
-        assert_eq!(classify_direction(Some(256), true, false, None), (Unavailable, OpenFailed));
-        assert_eq!(classify_direction(Some(256), false, true, None), (Unavailable, NoCallbacks));
+        assert_eq!(
+            classify_direction(Some(256), false, true, Some(256)),
+            (Honoured, Matched)
+        );
+        assert_eq!(
+            classify_direction(Some(256), false, true, Some(480)),
+            (Adjusted, Differs)
+        );
+        assert_eq!(
+            classify_direction(Some(256), true, true, Some(480)),
+            (HostChosen, FixedRejected)
+        );
+        assert_eq!(
+            classify_direction(None, false, true, Some(480)),
+            (HostChosen, DefaultRequested)
+        );
+        assert_eq!(
+            classify_direction(Some(256), true, false, None),
+            (Unavailable, OpenFailed)
+        );
+        assert_eq!(
+            classify_direction(Some(256), false, true, None),
+            (Unavailable, NoCallbacks)
+        );
     }
 
     #[test]
@@ -2623,15 +3375,29 @@ mod tests {
         assert_eq!(duplex_of(Honoured, Unavailable), Duplex::InputOnly);
         assert_eq!(duplex_of(Unavailable, HostChosen), Duplex::OutputOnly);
         assert_eq!(duplex_of(Unavailable, Unavailable), Duplex::Neither);
-        assert_eq!(serde_json::to_value(Duplex::Neither).unwrap(), json!("none"));
-        assert_eq!(serde_json::to_value(BufferMode::HostChosen).unwrap(), json!("hostChosen"));
+        assert_eq!(
+            serde_json::to_value(Duplex::Neither).unwrap(),
+            json!("none")
+        );
+        assert_eq!(
+            serde_json::to_value(BufferMode::HostChosen).unwrap(),
+            json!("hostChosen")
+        );
     }
 
     #[test]
     fn alignment_is_the_median_offset_in_input_frames() {
         assert_eq!(alignment_from_pairs(&[], RATE, RATE), None);
-        let a = alignment_from_pairs(&[(0, 1000), (256, 1256), (512, 1512), (768, 1800)], RATE, RATE).unwrap();
-        assert_eq!((a.frames, a.min_frames, a.max_frames, a.pairs), (1000.0, 1000.0, 1032.0, 4));
+        let a = alignment_from_pairs(
+            &[(0, 1000), (256, 1256), (512, 1512), (768, 1800)],
+            RATE,
+            RATE,
+        )
+        .unwrap();
+        assert_eq!(
+            (a.frames, a.min_frames, a.max_frames, a.pairs),
+            (1000.0, 1000.0, 1032.0, 4)
+        );
         // output at 96 kHz, input at 48 kHz: rendered frames count half
         let b = alignment_from_pairs(&[(0, 500), (960, 980), (1920, 1460)], RATE, 96_000).unwrap();
         assert_eq!(b.frames, 500.0);
@@ -2663,7 +3429,12 @@ mod tests {
     fn buffer_range_maps_cpal_ranges() {
         assert_eq!(
             buffer_range(&cpal::SupportedBufferSize::Range { min: 64, max: 4096 }),
-            BufferRange { min_frames: Some(64), max_frames: Some(4096), default: None, known: true }
+            BufferRange {
+                min_frames: Some(64),
+                max_frames: Some(4096),
+                default: None,
+                known: true
+            }
         );
         assert!(!buffer_range(&cpal::SupportedBufferSize::Unknown).known);
     }
@@ -2677,37 +3448,114 @@ mod tests {
     // ----------------------------------------------------------- scan parsers
 
     fn fixture(name: &str) -> String {
-        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/latency").join(name)).unwrap()
+        std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/fixtures/latency")
+                .join(name),
+        )
+        .unwrap()
     }
 
     #[test]
     fn active_scheme_parses_in_english_and_german() {
-        assert_eq!(parse_active_scheme(&fixture("powercfg-active-en.txt")), Some(ActivePlan { name: "Balanced".into(), guid: "381b4222-f694-41f0-9685-ff5bb260df2e".into() }));
-        assert_eq!(parse_active_scheme(&fixture("powercfg-active-de.txt")).unwrap().guid, "8c5e7fda-e8bf-4a96-9a85-cd73a8a2b7a0");
+        assert_eq!(
+            parse_active_scheme(&fixture("powercfg-active-en.txt")),
+            Some(ActivePlan {
+                name: "Balanced".into(),
+                guid: "381b4222-f694-41f0-9685-ff5bb260df2e".into()
+            })
+        );
+        assert_eq!(
+            parse_active_scheme(&fixture("powercfg-active-de.txt"))
+                .unwrap()
+                .guid,
+            "8c5e7fda-e8bf-4a96-9a85-cd73a8a2b7a0"
+        );
         assert_eq!(parse_active_scheme("garbage"), None);
     }
 
     #[test]
     fn powercfg_settings_parse_by_guid_or_alias_in_any_locale() {
-        assert_eq!(parse_powercfg_setting(&fixture("powercfg-usb-en.txt"), USB_SELECTIVE_SUSPEND), AcDc { ac: Some(1), dc: Some(1) });
-        assert_eq!(parse_powercfg_setting(&fixture("powercfg-usb-de.txt"), USB_SELECTIVE_SUSPEND), AcDc { ac: Some(0), dc: Some(1) });
+        assert_eq!(
+            parse_powercfg_setting(&fixture("powercfg-usb-en.txt"), USB_SELECTIVE_SUSPEND),
+            AcDc {
+                ac: Some(1),
+                dc: Some(1)
+            }
+        );
+        assert_eq!(
+            parse_powercfg_setting(&fixture("powercfg-usb-de.txt"), USB_SELECTIVE_SUSPEND),
+            AcDc {
+                ac: Some(0),
+                dc: Some(1)
+            }
+        );
         let p = fixture("powercfg-processor-en.txt");
-        assert_eq!(parse_powercfg_setting(&p, "PROCTHROTTLEMIN"), AcDc { ac: Some(5), dc: Some(5) }, "not PROCTHROTTLEMIN1");
-        assert_eq!(parse_powercfg_setting(&p, "CPMINCORES"), AcDc { ac: Some(100), dc: Some(10) });
-        assert_eq!(parse_powercfg_setting(&fixture("powercfg-processor-de.txt"), "PROCTHROTTLEMIN"), AcDc { ac: Some(100), dc: Some(5) });
-        assert_eq!(parse_powercfg_setting(&fixture("powercfg-processor-de.txt"), "CPMINCORES"), AcDc::default(), "hidden setting = unknown");
+        assert_eq!(
+            parse_powercfg_setting(&p, "PROCTHROTTLEMIN"),
+            AcDc {
+                ac: Some(5),
+                dc: Some(5)
+            },
+            "not PROCTHROTTLEMIN1"
+        );
+        assert_eq!(
+            parse_powercfg_setting(&p, "CPMINCORES"),
+            AcDc {
+                ac: Some(100),
+                dc: Some(10)
+            }
+        );
+        assert_eq!(
+            parse_powercfg_setting(&fixture("powercfg-processor-de.txt"), "PROCTHROTTLEMIN"),
+            AcDc {
+                ac: Some(100),
+                dc: Some(5)
+            }
+        );
+        assert_eq!(
+            parse_powercfg_setting(&fixture("powercfg-processor-de.txt"), "CPMINCORES"),
+            AcDc::default(),
+            "hidden setting = unknown"
+        );
     }
 
     #[test]
     fn powershell_facts_parse_with_dot_and_comma_decimals() {
         let en = parse_ps_facts(&fixture("ps-scan-en.txt"));
-        assert_eq!(en.wifi, vec![NamedStatus { name: "WLAN".into(), status: "Up".into() }, NamedStatus { name: "Wi-Fi 2".into(), status: "Disconnected".into() }]);
+        assert_eq!(
+            en.wifi,
+            vec![
+                NamedStatus {
+                    name: "WLAN".into(),
+                    status: "Up".into()
+                },
+                NamedStatus {
+                    name: "Wi-Fi 2".into(),
+                    status: "Disconnected".into()
+                }
+            ]
+        );
         assert_eq!(en.bluetooth.len(), 1);
         assert_eq!(en.on_battery, Some(true));
-        assert_eq!(en.dpc, DpcProxy { dpc_pct: Some(1.0), interrupt_pct: Some(1.0), samples: 2 });
+        assert_eq!(
+            en.dpc,
+            DpcProxy {
+                dpc_pct: Some(1.0),
+                interrupt_pct: Some(1.0),
+                samples: 2
+            }
+        );
         let de = parse_ps_facts(&fixture("ps-scan-de.txt"));
         assert_eq!(de.on_battery, Some(false));
-        assert_eq!(de.dpc, DpcProxy { dpc_pct: Some(3.0), interrupt_pct: Some(1.0), samples: 2 });
+        assert_eq!(
+            de.dpc,
+            DpcProxy {
+                dpc_pct: Some(3.0),
+                interrupt_pct: Some(1.0),
+                samples: 2
+            }
+        );
         assert_eq!(parse_ps_facts(""), PsFacts::default());
         let many: String = (0..30).map(|i| format!("BT\tdev {i}\tOK\n")).collect();
         assert_eq!(parse_ps_facts(&many).bluetooth.len(), MAX_NAMED);
@@ -2715,7 +3563,16 @@ mod tests {
 
     #[test]
     fn battery_status_codes_map_to_on_battery() {
-        for (s, v) in [("1", Some(true)), ("4", Some(true)), ("5", Some(true)), ("2", Some(false)), ("6", Some(false)), ("none", Some(false)), ("10", None), ("", None)] {
+        for (s, v) in [
+            ("1", Some(true)),
+            ("4", Some(true)),
+            ("5", Some(true)),
+            ("2", Some(false)),
+            ("6", Some(false)),
+            ("none", Some(false)),
+            ("10", None),
+            ("", None),
+        ] {
             assert_eq!(battery_on_battery(s), v, "{s}");
         }
     }
@@ -2723,7 +3580,10 @@ mod tests {
     #[test]
     fn jitter_stats_report_p99_and_ignore_non_finite() {
         assert_eq!(jitter_stats(&[]), None);
-        let v: Vec<f64> = (0..100).map(|i| i as f64 / 10.0).chain([f64::NAN, -1.0]).collect();
+        let v: Vec<f64> = (0..100)
+            .map(|i| i as f64 / 10.0)
+            .chain([f64::NAN, -1.0])
+            .collect();
         let s = jitter_stats(&v).unwrap();
         assert_eq!(s.samples, 101);
         assert_eq!(s.max_ms, 9.9);
@@ -2753,9 +3613,19 @@ mod tests {
         let f = Fake::new(Policy::Honour, Policy::Honour);
         let t = tuner(&f);
         let lease = CaptureLease::default();
-        let r = t.stress(&lease, &stress_req(Some(256), 0.4, 50), &no_progress).unwrap();
+        let r = t
+            .stress(&lease, &stress_req(Some(256), 0.4, 50), &no_progress)
+            .unwrap();
         assert_eq!(r.ended, RunEnd::Completed);
-        assert_eq!((r.input.mode, r.output.mode, r.buffer_mode, r.duplex), (BufferMode::Honoured, BufferMode::Honoured, BufferMode::Honoured, Duplex::Full));
+        assert_eq!(
+            (r.input.mode, r.output.mode, r.buffer_mode, r.duplex),
+            (
+                BufferMode::Honoured,
+                BufferMode::Honoured,
+                BufferMode::Honoured,
+                Duplex::Full
+            )
+        );
         assert_eq!((r.requested, r.actual), (Some(256), Some(256)));
         assert_eq!(r.input.buffer_request, "fixed");
         assert!(r.input.stats.callbacks > 5 && r.output.stats.callbacks > 5);
@@ -2769,17 +3639,36 @@ mod tests {
         let f = Fake::new(Policy::Floor(480), Policy::Floor(480));
         let t = tuner(&f);
         let lease = CaptureLease::default();
-        let small = t.stress(&lease, &stress_req(Some(128), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((small.input.mode, small.input.mode_reason, small.actual), (BufferMode::Adjusted, ModeReason::Differs, Some(480)));
-        let large = t.stress(&lease, &stress_req(Some(512), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((large.buffer_mode, large.actual), (BufferMode::Honoured, Some(512)));
+        let small = t
+            .stress(&lease, &stress_req(Some(128), 0.3, 0), &no_progress)
+            .unwrap();
+        assert_eq!(
+            (small.input.mode, small.input.mode_reason, small.actual),
+            (BufferMode::Adjusted, ModeReason::Differs, Some(480))
+        );
+        let large = t
+            .stress(&lease, &stress_req(Some(512), 0.3, 0), &no_progress)
+            .unwrap();
+        assert_eq!(
+            (large.buffer_mode, large.actual),
+            (BufferMode::Honoured, Some(512))
+        );
     }
 
     #[test]
     fn b_granularity_rounds_to_what_actually_ran() {
         let f = Fake::new(Policy::Granular(96), Policy::Honour);
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(100), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((r.input.mode, r.input.stats.actual_frames), (BufferMode::Adjusted, Some(192)));
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(100), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (r.input.mode, r.input.stats.actual_frames),
+            (BufferMode::Adjusted, Some(192))
+        );
         assert_eq!(r.output.mode, BufferMode::Honoured);
         assert_eq!(r.buffer_mode, BufferMode::Adjusted);
     }
@@ -2787,7 +3676,13 @@ mod tests {
     #[test]
     fn c_ignored_request_reports_the_host_period() {
         let f = Fake::new(Policy::Ignore(480), Policy::Ignore(480));
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(64), 0.3, 0), &no_progress).unwrap();
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(64), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!((r.buffer_mode, r.actual), (BufferMode::Adjusted, Some(480)));
         assert!((r.input.stats.actual_period_ms.unwrap() - 10.0).abs() < 1e-9);
     }
@@ -2795,29 +3690,59 @@ mod tests {
     #[test]
     fn c_rejected_fixed_falls_back_to_the_host_period() {
         let f = Fake::new(Policy::RejectFixed(480), Policy::RejectFixed(441));
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(128), 0.3, 0), &no_progress).unwrap();
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(128), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!(r.ended, RunEnd::Completed);
         for d in [&r.input, &r.output] {
-            assert_eq!((d.mode, d.mode_reason, d.buffer_request.as_str()), (BufferMode::HostChosen, ModeReason::FixedRejected, "default"));
+            assert_eq!(
+                (d.mode, d.mode_reason, d.buffer_request.as_str()),
+                (BufferMode::HostChosen, ModeReason::FixedRejected, "default")
+            );
             assert!(d.fixed_error.as_deref().unwrap().contains("not supported"));
             assert!(d.opened && d.open_error.is_none());
         }
-        assert_eq!((r.input.stats.actual_frames, r.output.stats.actual_frames), (Some(480), Some(441)));
+        assert_eq!(
+            (r.input.stats.actual_frames, r.output.stats.actual_frames),
+            (Some(480), Some(441))
+        );
     }
 
     #[test]
     fn c_default_request_is_one_host_chosen_row() {
         let f = Fake::new(Policy::Ignore(480), Policy::Ignore(480));
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(None, 0.3, 0), &no_progress).unwrap();
-        assert_eq!((r.requested, r.buffer_mode, r.input.mode_reason), (None, BufferMode::HostChosen, ModeReason::DefaultRequested));
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(None, 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (r.requested, r.buffer_mode, r.input.mode_reason),
+            (None, BufferMode::HostChosen, ModeReason::DefaultRequested)
+        );
     }
 
     #[test]
     fn d_input_unavailable_still_stresses_the_output_and_says_so() {
         let f = Fake::new(Policy::Fail, Policy::Honour);
         let lease = CaptureLease::default();
-        let r = tuner(&f).stress(&lease, &stress_req(Some(256), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((r.duplex, r.input.mode, r.input.mode_reason), (Duplex::OutputOnly, BufferMode::Unavailable, ModeReason::OpenFailed));
+        let r = tuner(&f)
+            .stress(&lease, &stress_req(Some(256), 0.3, 0), &no_progress)
+            .unwrap();
+        assert_eq!(
+            (r.duplex, r.input.mode, r.input.mode_reason),
+            (
+                Duplex::OutputOnly,
+                BufferMode::Unavailable,
+                ModeReason::OpenFailed
+            )
+        );
         assert!(r.input.open_error.is_some());
         assert_eq!(r.ended, RunEnd::Completed);
         assert_eq!(r.buffer_mode, BufferMode::Honoured);
@@ -2827,11 +3752,29 @@ mod tests {
     #[test]
     fn d_output_unavailable_or_silent_input() {
         let f = Fake::new(Policy::Honour, Policy::Fail);
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(256), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((r.duplex, r.output.mode), (Duplex::InputOnly, BufferMode::Unavailable));
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(256), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (r.duplex, r.output.mode),
+            (Duplex::InputOnly, BufferMode::Unavailable)
+        );
         let g = Fake::new(Policy::Silent, Policy::Honour);
-        let s = tuner(&g).stress(&CaptureLease::default(), &stress_req(Some(256), 0.3, 0), &no_progress).unwrap();
-        assert_eq!((s.input.mode, s.input.mode_reason), (BufferMode::Unavailable, ModeReason::NoCallbacks));
+        let s = tuner(&g)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(256), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (s.input.mode, s.input.mode_reason),
+            (BufferMode::Unavailable, ModeReason::NoCallbacks)
+        );
         assert_eq!(s.duplex, Duplex::OutputOnly);
     }
 
@@ -2840,9 +3783,19 @@ mod tests {
         let f = Fake::new(Policy::Fail, Policy::Fail);
         let lease = CaptureLease::default();
         let t = Instant::now();
-        let r = tuner(&f).stress(&lease, &stress_req(Some(256), 5.0, 80), &no_progress).unwrap();
+        let r = tuner(&f)
+            .stress(&lease, &stress_req(Some(256), 5.0, 80), &no_progress)
+            .unwrap();
         assert!(t.elapsed() < Duration::from_secs(1));
-        assert_eq!((r.ended, r.duplex, r.load_threads, r.buffer_mode), (RunEnd::NoStreams, Duplex::Neither, 0, BufferMode::Unavailable));
+        assert_eq!(
+            (r.ended, r.duplex, r.load_threads, r.buffer_mode),
+            (
+                RunEnd::NoStreams,
+                Duplex::Neither,
+                0,
+                BufferMode::Unavailable
+            )
+        );
         assert!(!lease.is_held());
     }
 
@@ -2858,20 +3811,31 @@ mod tests {
             let t = tuner(&f);
             let mut req = stress_req(Some(480), 5.0, 0);
             req.gap_floor_ms = floor;
-            let r = t.stress(&CaptureLease::default(), &req, &|_| {
-                if lock(&f.dev).t > STALL_FRAME {
-                    t.abort();
-                }
-            }).unwrap();
+            let r = t
+                .stress(&CaptureLease::default(), &req, &|_| {
+                    if lock(&f.dev).t > STALL_FRAME {
+                        t.abort();
+                    }
+                })
+                .unwrap();
             let d = lock(&f.dev);
             assert!(d.stall.is_none(), "the fake driver must inject its stall");
-            assert!(d.t > STALL_FRAME, "a post-stall callback must be observed before the bounded deadline");
-            assert!(r.input.stats.callbacks >= 8 && r.output.stats.callbacks >= 8, "both directions must pass warm-up: {r:?}");
+            assert!(
+                d.t > STALL_FRAME,
+                "a post-stall callback must be observed before the bounded deadline"
+            );
+            assert!(
+                r.input.stats.callbacks >= 8 && r.output.stats.callbacks >= 8,
+                "both directions must pass warm-up: {r:?}"
+            );
             r
         };
         let r = run(Duration::from_millis(60), None);
         assert!(r.xruns >= 1, "{r:?}");
-        assert!(r.max_gap_ms.unwrap() >= 50.0, "expected a substantial injected gap: {r:?}");
+        assert!(
+            r.max_gap_ms.unwrap() >= 50.0,
+            "expected a substantial injected gap: {r:?}"
+        );
         let q = run(Duration::from_millis(30), Some(500.0));
         assert_eq!(q.xruns, 0);
         assert_eq!(q.input.stats.xrun_threshold_ms, Some(500.0));
@@ -2882,15 +3846,30 @@ mod tests {
     #[test]
     fn round_trip_equals_both_periods_plus_the_analog_loop() {
         let f = Fake::new(Policy::Honour, Policy::Honour);
-        let r = tuner(&f).round_trip(&CaptureLease::default(), &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), Some(-20.0)), &no_progress).unwrap();
+        let r = tuner(&f)
+            .round_trip(
+                &CaptureLease::default(),
+                &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), Some(-20.0)),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!(r.ended, RunEnd::Completed, "{:?}", r.input);
         assert_eq!(r.scope, "WASAPI round trip");
-        assert_eq!(r.reported_buffer_frames, ReportedFrames { input: Some(256), out: Some(256) });
+        assert_eq!(
+            r.reported_buffer_frames,
+            ReportedFrames {
+                input: Some(256),
+                out: Some(256)
+            }
+        );
         let cap = r.captured.as_ref().unwrap();
         let (idx, peak) = peak_index(&cap.left);
         assert!((peak - 0.1).abs() < 1e-3, "-20 dBFS impulse, got {peak}");
         let a = r.alignment.as_ref().unwrap();
-        assert_eq!(a.min_frames, a.max_frames, "duplex clock keeps the offset constant");
+        assert_eq!(
+            a.min_frames, a.max_frames,
+            "duplex clock keeps the offset constant"
+        );
         let rtl = idx as f64 - (4_800.0 + a.frames);
         assert_eq!(rtl, (256 + 256 + 37) as f64);
         assert_eq!(r.quality.frames_captured as usize, cap.left.len());
@@ -2902,28 +3881,72 @@ mod tests {
         let lease = CaptureLease::default();
         let mut req = rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), Some(-20.0));
         req.pairs = Some(vec![3]);
-        let CaptureError::Message(err) = tuner(&f).round_trip(&lease, &req, &no_progress).unwrap_err() else { panic!("expected a message") };
-        assert!(err.starts_with("LATENCY_INVALID") && err.contains("Input pair 3-4 is not available"), "{err}");
+        let CaptureError::Message(err) = tuner(&f)
+            .round_trip(&lease, &req, &no_progress)
+            .unwrap_err()
+        else {
+            panic!("expected a message")
+        };
+        assert!(
+            err.starts_with("LATENCY_INVALID") && err.contains("Input pair 3-4 is not available"),
+            "{err}"
+        );
         assert!(!lease.is_held());
         req.pairs = Some(vec![1]);
-        assert_eq!(tuner(&f).round_trip(&lease, &req, &no_progress).unwrap().ended, RunEnd::Completed);
+        assert_eq!(
+            tuner(&f)
+                .round_trip(&lease, &req, &no_progress)
+                .unwrap()
+                .ended,
+            RunEnd::Completed
+        );
     }
 
     #[test]
     fn round_trip_with_rejected_fixed_measures_at_the_host_period() {
         let f = Fake::new(Policy::RejectFixed(480), Policy::RejectFixed(480));
-        let r = tuner(&f).round_trip(&CaptureLease::default(), &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(128), None), &no_progress).unwrap();
-        assert_eq!((r.ended, r.buffer_mode), (RunEnd::Completed, BufferMode::HostChosen));
-        assert_eq!(r.reported_buffer_frames, ReportedFrames { input: Some(480), out: Some(480) });
+        let r = tuner(&f)
+            .round_trip(
+                &CaptureLease::default(),
+                &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(128), None),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (r.ended, r.buffer_mode),
+            (RunEnd::Completed, BufferMode::HostChosen)
+        );
+        assert_eq!(
+            r.reported_buffer_frames,
+            ReportedFrames {
+                input: Some(480),
+                out: Some(480)
+            }
+        );
         let (idx, _) = peak_index(&r.captured.as_ref().unwrap().left);
-        assert_eq!(idx as f64 - (4_800.0 + r.alignment.as_ref().unwrap().frames), (480 + 480 + 37) as f64);
+        assert_eq!(
+            idx as f64 - (4_800.0 + r.alignment.as_ref().unwrap().frames),
+            (480 + 480 + 37) as f64
+        );
     }
 
     #[test]
     fn round_trip_with_unequal_periods_is_within_one_period() {
         let f = Fake::new(Policy::Floor(480), Policy::Honour);
-        let r = tuner(&f).round_trip(&CaptureLease::default(), &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), None), &no_progress).unwrap();
-        assert_eq!(r.reported_buffer_frames, ReportedFrames { input: Some(480), out: Some(256) });
+        let r = tuner(&f)
+            .round_trip(
+                &CaptureLease::default(),
+                &rt_req(impulse_stimulus(4_800, 9_600, 1.0), Some(256), None),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            r.reported_buffer_frames,
+            ReportedFrames {
+                input: Some(480),
+                out: Some(256)
+            }
+        );
         let (idx, _) = peak_index(&r.captured.as_ref().unwrap().left);
         let rtl = idx as f64 - (4_800.0 + r.alignment.as_ref().unwrap().frames);
         assert!((rtl - (480.0 + 256.0 + 37.0)).abs() <= 480.0, "rtl {rtl}");
@@ -2932,36 +3955,86 @@ mod tests {
     #[test]
     fn round_trip_never_plays_above_the_absolute_cap() {
         let f = Fake::new(Policy::Honour, Policy::Honour);
-        let stim = BufferInput { sample_rate: RATE, left: vec![1.0; 4_800], right: vec![] };
-        let r = tuner(&f).round_trip(&CaptureLease::default(), &rt_req(stim, Some(256), Some(0.0)), &no_progress).unwrap();
+        let stim = BufferInput {
+            sample_rate: RATE,
+            left: vec![1.0; 4_800],
+            right: vec![],
+        };
+        let r = tuner(&f)
+            .round_trip(
+                &CaptureLease::default(),
+                &rt_req(stim, Some(256), Some(0.0)),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!(r.output_level_dbfs, Some(audio_out::ABS_MAX_DBFS));
         let cap = r.captured.unwrap();
-        assert!(cap.left.iter().all(|x| x.abs() <= audio_out::ABS_MAX_AMP + 1e-6));
+        assert!(cap
+            .left
+            .iter()
+            .all(|x| x.abs() <= audio_out::ABS_MAX_AMP + 1e-6));
         assert!(peak_index(&cap.left).1 > 0.25, "reaches the cap");
     }
 
     #[test]
     fn clipping_in_the_loop_stops_the_output_and_discards_the_capture() {
         let f = Fake::with(Policy::Honour, Policy::Honour, 37, 10.0, 0.25);
-        let stim = BufferInput { sample_rate: RATE, left: vec![1.0; 48_000], right: vec![] };
+        let stim = BufferInput {
+            sample_rate: RATE,
+            left: vec![1.0; 48_000],
+            right: vec![],
+        };
         let t = Instant::now();
-        let r = tuner(&f).round_trip(&CaptureLease::default(), &rt_req(stim, Some(256), Some(-12.0)), &no_progress).unwrap();
+        let r = tuner(&f)
+            .round_trip(
+                &CaptureLease::default(),
+                &rt_req(stim, Some(256), Some(-12.0)),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!(r.ended, RunEnd::Clipped);
         assert!(r.captured.is_none());
-        assert!(t.elapsed() < Duration::from_secs(1), "stopped well before the 1 s stimulus ended at 0.25 speed");
+        assert!(
+            t.elapsed() < Duration::from_secs(1),
+            "stopped well before the 1 s stimulus ended at 0.25 speed"
+        );
     }
 
     #[test]
     fn round_trip_without_duplex_reports_which_side_is_missing() {
         let f = Fake::new(Policy::Fail, Policy::Honour);
         let lease = CaptureLease::default();
-        let r = tuner(&f).round_trip(&lease, &rt_req(impulse_stimulus(10, 100, 1.0), Some(256), None), &no_progress).unwrap();
-        assert_eq!((r.ended, r.duplex, r.captured.is_none()), (RunEnd::NoStreams, Duplex::Neither, true));
-        assert!(r.output.open_error.as_deref().unwrap().contains("not attempted"));
+        let r = tuner(&f)
+            .round_trip(
+                &lease,
+                &rt_req(impulse_stimulus(10, 100, 1.0), Some(256), None),
+                &no_progress,
+            )
+            .unwrap();
+        assert_eq!(
+            (r.ended, r.duplex, r.captured.is_none()),
+            (RunEnd::NoStreams, Duplex::Neither, true)
+        );
+        assert!(r
+            .output
+            .open_error
+            .as_deref()
+            .unwrap()
+            .contains("not attempted"));
         let g = Fake::new(Policy::Honour, Policy::Fail);
-        let s = tuner(&g).round_trip(&lease, &rt_req(impulse_stimulus(10, 100, 1.0), Some(256), None), &no_progress).unwrap();
+        let s = tuner(&g)
+            .round_trip(
+                &lease,
+                &rt_req(impulse_stimulus(10, 100, 1.0), Some(256), None),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!((s.ended, s.duplex), (RunEnd::NoStreams, Duplex::InputOnly));
-        assert_eq!((s.input.mode, s.input.stats.actual_frames), (BufferMode::Honoured, Some(256)), "the open side's period is still learned");
+        assert_eq!(
+            (s.input.mode, s.input.stats.actual_frames),
+            (BufferMode::Honoured, Some(256)),
+            "the open side's period is still learned"
+        );
         assert!(!lease.is_held());
     }
 
@@ -2975,18 +4048,47 @@ mod tests {
             other => panic!("{other:?}"),
         };
         for frames in [8, MAX_BUFFER_FRAMES + 1] {
-            assert!(msg(t.stress(&lease, &stress_req(Some(frames), 0.3, 0), &no_progress).unwrap_err()).starts_with("LATENCY_INVALID"));
+            assert!(msg(t
+                .stress(&lease, &stress_req(Some(frames), 0.3, 0), &no_progress)
+                .unwrap_err())
+            .starts_with("LATENCY_INVALID"));
         }
         let cases = [
-            BufferInput { sample_rate: 4_000, left: vec![0.0; 10], right: vec![] },
-            BufferInput { sample_rate: RATE, left: vec![], right: vec![] },
-            BufferInput { sample_rate: RATE, left: vec![0.0; 10], right: vec![0.0; 9] },
-            BufferInput { sample_rate: 8_000, left: vec![0.0; 8_000 * 31], right: vec![] },
+            BufferInput {
+                sample_rate: 4_000,
+                left: vec![0.0; 10],
+                right: vec![],
+            },
+            BufferInput {
+                sample_rate: RATE,
+                left: vec![],
+                right: vec![],
+            },
+            BufferInput {
+                sample_rate: RATE,
+                left: vec![0.0; 10],
+                right: vec![0.0; 9],
+            },
+            BufferInput {
+                sample_rate: 8_000,
+                left: vec![0.0; 8_000 * 31],
+                right: vec![],
+            },
         ];
         for stim in cases {
-            assert!(msg(t.round_trip(&lease, &rt_req(stim, None, None), &no_progress).unwrap_err()).starts_with("LATENCY_INVALID"));
+            assert!(msg(t
+                .round_trip(&lease, &rt_req(stim, None, None), &no_progress)
+                .unwrap_err())
+            .starts_with("LATENCY_INVALID"));
         }
-        assert!(msg(t.round_trip(&lease, &rt_req(impulse_stimulus(1, 10, 1.0), None, Some(f32::NAN)), &no_progress).unwrap_err()).starts_with("LATENCY_INVALID"));
+        assert!(msg(t
+            .round_trip(
+                &lease,
+                &rt_req(impulse_stimulus(1, 10, 1.0), None, Some(f32::NAN)),
+                &no_progress
+            )
+            .unwrap_err())
+        .starts_with("LATENCY_INVALID"));
         assert!(!lease.is_held());
     }
 
@@ -2999,11 +4101,20 @@ mod tests {
         let state = LiveCaptureState::default();
         let worker = {
             let (tuner, lease) = (tuner.clone(), state.lease.clone());
-            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+            thread::spawn(move || {
+                tuner.round_trip(
+                    &lease,
+                    &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None),
+                    &no_progress,
+                )
+            })
         };
         reached.recv_timeout(Duration::from_secs(5)).unwrap();
         let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
-        let busy = state.lease.acquire("successor", None, LeaseKind::Bounded).is_err();
+        let busy = state
+            .lease
+            .acquire("successor", None, LeaseKind::Bounded)
+            .is_err();
         let restore_blocked = state.lease.reserve_restore().is_err();
         resume.send(()).unwrap();
         let result = worker.join().unwrap().unwrap();
@@ -3021,11 +4132,20 @@ mod tests {
         let state = LiveCaptureState::default();
         let worker = {
             let (tuner, lease) = (tuner.clone(), state.lease.clone());
-            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+            thread::spawn(move || {
+                tuner.round_trip(
+                    &lease,
+                    &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None),
+                    &no_progress,
+                )
+            })
         };
         reached.recv_timeout(Duration::from_secs(5)).unwrap();
         let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
-        let busy = state.lease.acquire("successor", None, LeaseKind::Live).is_err();
+        let busy = state
+            .lease
+            .acquire("successor", None, LeaseKind::Live)
+            .is_err();
         resume.send(()).unwrap();
         let result = worker.join().unwrap().unwrap();
         assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
@@ -3042,18 +4162,30 @@ mod tests {
         let state = LiveCaptureState::default();
         let worker = {
             let (tuner, lease) = (tuner.clone(), state.lease.clone());
-            thread::spawn(move || tuner.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress))
+            thread::spawn(move || {
+                tuner.round_trip(
+                    &lease,
+                    &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None),
+                    &no_progress,
+                )
+            })
         };
         reached.recv_timeout(Duration::from_secs(5)).unwrap();
         let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
-        let busy = state.lease.acquire("successor", None, LeaseKind::Stream).is_err();
+        let busy = state
+            .lease
+            .acquire("successor", None, LeaseKind::Stream)
+            .is_err();
         let restore_blocked = state.lease.reserve_restore().is_err();
         resume.send(()).unwrap();
         worker.join().unwrap().unwrap();
         assert!(stopped.unwrap_err().starts_with(capture::CAPTURE_STOPPING));
         assert!(busy && restore_blocked);
         assert!(!state.lease.is_held());
-        let next = state.lease.acquire("successor", None, LeaseKind::Stream).unwrap();
+        let next = state
+            .lease
+            .acquire("successor", None, LeaseKind::Stream)
+            .unwrap();
         state.lease.release(next.lease_id);
     }
 
@@ -3064,7 +4196,9 @@ mod tests {
         let state = LiveCaptureState::default();
         let worker = {
             let lease = state.lease.clone();
-            thread::spawn(move || tuner.stress(&lease, &stress_req(Some(256), 10.0, 80), &no_progress))
+            thread::spawn(move || {
+                tuner.stress(&lease, &stress_req(Some(256), 10.0, 80), &no_progress)
+            })
         };
         reached.recv_timeout(Duration::from_secs(5)).unwrap();
         let stopped = capture::preempt_with_wait(&state, Duration::ZERO);
@@ -3083,7 +4217,8 @@ mod tests {
         let t = Arc::new(tuner(&f));
         let lease = CaptureLease::default();
         let (t2, l2) = (t.clone(), lease.clone());
-        let run = thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 10.0, 50), &no_progress));
+        let run =
+            thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 10.0, 50), &no_progress));
         thread::sleep(Duration::from_millis(200));
         let pressed = Instant::now();
         t.abort();
@@ -3093,7 +4228,9 @@ mod tests {
         assert!(r.load_stop_ms < 1000.0);
         assert!(!lease.is_held());
         // an abort before a run does not cancel the next run
-        let next = t.stress(&lease, &stress_req(Some(256), 0.2, 0), &no_progress).unwrap();
+        let next = t
+            .stress(&lease, &stress_req(Some(256), 0.2, 0), &no_progress)
+            .unwrap();
         assert_eq!(next.ended, RunEnd::Completed);
     }
 
@@ -3102,14 +4239,17 @@ mod tests {
         let f = Fake::new(Policy::Honour, Policy::Honour);
         let t = Arc::new(tuner(&f));
         let lease = CaptureLease::default();
-        let other = lease.acquire("live-monitor", None, LeaseKind::External).unwrap();
+        let other = lease
+            .acquire("live-monitor", None, LeaseKind::External)
+            .unwrap();
         match t.stress(&lease, &stress_req(Some(256), 0.3, 0), &no_progress) {
             Err(CaptureError::Busy(b)) => assert_eq!(b.holder, "live-monitor"),
             other => panic!("{other:?}"),
         }
         lease.release(other.lease_id);
         let (t2, l2) = (t.clone(), lease.clone());
-        let run = thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 10.0, 0), &no_progress));
+        let run =
+            thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 10.0, 0), &no_progress));
         thread::sleep(Duration::from_millis(150));
         let mine = lease.current().unwrap();
         assert_eq!(mine.holder, HOLDER);
@@ -3120,8 +4260,17 @@ mod tests {
 
     fn looped_tone() -> PlayRequest {
         PlayRequest::Buffer(
-            BufferInput { sample_rate: RATE, left: vec![0.5; 4800], right: vec![] },
-            BufferOpts { level_dbfs: -12.0, cap_dbfs: None, looped: true, ramp_ms: None },
+            BufferInput {
+                sample_rate: RATE,
+                left: vec![0.5; 4800],
+                right: vec![],
+            },
+            BufferOpts {
+                level_dbfs: -12.0,
+                cap_dbfs: None,
+                looped: true,
+                ramp_ms: None,
+            },
         )
     }
 
@@ -3131,26 +4280,49 @@ mod tests {
     #[test]
     fn the_tuner_leaves_a_tone_alone_when_busy_and_replaces_it_when_it_runs() {
         let g = audio_out::OutputGroup::new();
-        let (f, f_other) = (Fake::new(Policy::Honour, Policy::Honour), Fake::new(Policy::Honour, Policy::Honour));
+        let (f, f_other) = (
+            Fake::new(Policy::Honour, Policy::Honour),
+            Fake::new(Policy::Honour, Policy::Honour),
+        );
         let t = Tuner::grouped(f.clone(), "WASAPI", g.clone());
         let feedback = Tuner::grouped(f_other.clone(), "WASAPI", g.clone()); // stands in for audio_out::global()
         let tone = feedback.engine.play(None, looped_tone()).unwrap().handle;
 
         let lease = CaptureLease::default();
-        let other = lease.acquire("feedback-test", None, LeaseKind::External).unwrap();
-        match t.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress) {
+        let other = lease
+            .acquire("feedback-test", None, LeaseKind::External)
+            .unwrap();
+        match t.round_trip(
+            &lease,
+            &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None),
+            &no_progress,
+        ) {
             Err(CaptureError::Busy(b)) => assert_eq!(b.holder, "feedback-test"),
             other => panic!("{other:?}"),
         }
         feedback.engine.tick();
-        assert_eq!(feedback.engine.ended_reason(tone), None, "a CAPTURE_BUSY tuner never touched the tone");
+        assert_eq!(
+            feedback.engine.ended_reason(tone),
+            None,
+            "a CAPTURE_BUSY tuner never touched the tone"
+        );
         assert!(feedback.engine.status().active.is_some_and(|v| !v.stopping));
 
         lease.release(other.lease_id);
-        let r = t.round_trip(&lease, &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None), &no_progress).unwrap();
+        let r = t
+            .round_trip(
+                &lease,
+                &rt_req(impulse_stimulus(1, 4800, 0.5), Some(256), None),
+                &no_progress,
+            )
+            .unwrap();
         assert_eq!(r.ended, RunEnd::Completed);
         feedback.engine.tick();
-        assert_eq!(feedback.engine.ended_reason(tone), Some(EndReason::Replaced), "one voice at a time across engines");
+        assert_eq!(
+            feedback.engine.ended_reason(tone),
+            Some(EndReason::Replaced),
+            "one voice at a time across engines"
+        );
     }
 
     /// BUG-04: window close / exit (`OutputGroup::silence_all` from
@@ -3164,7 +4336,17 @@ mod tests {
         let lease = CaptureLease::default();
         let run = {
             let (t, lease) = (t.clone(), lease.clone());
-            thread::spawn(move || t.round_trip(&lease, &rt_req(impulse_stimulus(1, RATE as usize * 20, 0.5), Some(256), None), &no_progress))
+            thread::spawn(move || {
+                t.round_trip(
+                    &lease,
+                    &rt_req(
+                        impulse_stimulus(1, RATE as usize * 20, 0.5),
+                        Some(256),
+                        None,
+                    ),
+                    &no_progress,
+                )
+            })
         };
         assert!((0..500).any(|_| {
             thread::sleep(Duration::from_millis(2));
@@ -3174,7 +4356,10 @@ mod tests {
         g.silence_all();
         let r = run.join().unwrap().unwrap();
         assert_eq!(r.ended, RunEnd::Aborted);
-        assert!(closed.elapsed() < Duration::from_secs(2), "the stimulus did not play on");
+        assert!(
+            closed.elapsed() < Duration::from_secs(2),
+            "the stimulus did not play on"
+        );
         g.kill_all();
         assert!(t.engine.is_disabled());
     }
@@ -3185,9 +4370,14 @@ mod tests {
         let t = Arc::new(tuner(&f));
         let lease = CaptureLease::default();
         let (t2, l2) = (t.clone(), lease.clone());
-        let run = thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 0.5, 0), &no_progress));
+        let run =
+            thread::spawn(move || t2.stress(&l2, &stress_req(Some(256), 0.5, 0), &no_progress));
         thread::sleep(Duration::from_millis(100));
-        match t.round_trip(&CaptureLease::default(), &rt_req(impulse_stimulus(1, 10, 1.0), None, None), &no_progress) {
+        match t.round_trip(
+            &CaptureLease::default(),
+            &rt_req(impulse_stimulus(1, 10, 1.0), None, None),
+            &no_progress,
+        ) {
             Err(CaptureError::Message(m)) => assert!(m.starts_with("LATENCY_BUSY")),
             other => panic!("{other:?}"),
         }
@@ -3200,11 +4390,20 @@ mod tests {
         let seen = Mutex::new(Vec::new());
         let mut req = stress_req(Some(256), 0.6, 0);
         req.step = Some(3);
-        tuner(&f).stress(&CaptureLease::default(), &req, &|p: &Progress| lock(&seen).push(p.clone())).unwrap();
+        tuner(&f)
+            .stress(&CaptureLease::default(), &req, &|p: &Progress| {
+                lock(&seen).push(p.clone())
+            })
+            .unwrap();
         let seen = seen.into_inner().unwrap();
         assert!(seen.len() >= 2);
-        assert!(seen.iter().all(|p| p.phase == "stress" && p.step == Some(3) && p.frames == Some(256)));
-        assert_eq!(serde_json::to_value(&seen[0]).unwrap()["elapsedSec"], json!(seen[0].elapsed_sec));
+        assert!(seen
+            .iter()
+            .all(|p| p.phase == "stress" && p.step == Some(3) && p.frames == Some(256)));
+        assert_eq!(
+            serde_json::to_value(&seen[0]).unwrap()["elapsedSec"],
+            json!(seen[0].elapsed_sec)
+        );
     }
 
     // ------------------------------------------------------------- database
@@ -3239,26 +4438,66 @@ mod tests {
     }
 
     fn contract() -> Value {
-        let raw = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/contracts/latency.json")).unwrap();
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/contracts/latency.json"),
+        )
+        .unwrap();
         serde_json::from_str(&raw).unwrap()
     }
 
     #[test]
     fn migration_creates_tables_and_is_rerunnable() {
         let c = mem();
-        let sql = crate::db::MIGRATIONS.iter().find(|(v, _)| *v == 7).expect("0007 registered").1;
+        let sql = crate::db::MIGRATIONS
+            .iter()
+            .find(|(v, _)| *v == 7)
+            .expect("0007 registered")
+            .1;
         c.execute_batch(sql).unwrap();
         let cols = |t: &str| -> Vec<String> {
-            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')")).unwrap().query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
+            c.prepare(&format!("SELECT name FROM pragma_table_info('{t}')"))
+                .unwrap()
+                .query_map([], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
         };
         assert_eq!(
             cols("latency_run"),
             [
-                "id", "session_id", "setup_id", "device_name", "host_api", "sample_rate_hz", "kind", "buffer_frames", "cpu_load_pct", "measured_ms", "std_ms",
-                "expanded_u_ms", "reported_ms", "xruns", "max_gap_ms", "verdict", "detail_json", "created_at"
+                "id",
+                "session_id",
+                "setup_id",
+                "device_name",
+                "host_api",
+                "sample_rate_hz",
+                "kind",
+                "buffer_frames",
+                "cpu_load_pct",
+                "measured_ms",
+                "std_ms",
+                "expanded_u_ms",
+                "reported_ms",
+                "xruns",
+                "max_gap_ms",
+                "verdict",
+                "detail_json",
+                "created_at"
             ]
         );
-        assert_eq!(cols("buffer_recommendation"), ["id", "device_name", "software", "frames", "ms", "based_on_run_id", "created_at"]);
+        assert_eq!(
+            cols("buffer_recommendation"),
+            [
+                "id",
+                "device_name",
+                "software",
+                "frames",
+                "ms",
+                "based_on_run_id",
+                "created_at"
+            ]
+        );
         assert!(c.execute("INSERT INTO latency_run (id, device_name, sample_rate_hz, kind, created_at) VALUES ('x','d',48000,'asio','t')", []).is_err());
     }
 
@@ -3271,20 +4510,87 @@ mod tests {
         let saved = save_run(&c, &a).unwrap();
         assert_eq!(saved.detail, json!({ "bufferMode": "honoured" }));
         assert_eq!(get_run(&c, &saved.id).unwrap().unwrap(), saved);
-        let stress = LatencyRunInput { kind: "stress".into(), cpu_load_pct: Some(50), xruns: Some(0), max_gap_ms: Some(11.0), verdict: Some("pass".into()), detail: None, ..rt_run() };
+        let stress = LatencyRunInput {
+            kind: "stress".into(),
+            cpu_load_pct: Some(50),
+            xruns: Some(0),
+            max_gap_ms: Some(11.0),
+            verdict: Some("pass".into()),
+            detail: None,
+            ..rt_run()
+        };
         let s = save_run(&c, &stress).unwrap();
         assert_eq!(s.detail, json!({}));
-        c.execute("UPDATE latency_run SET created_at = '2026-01-01T00:00:00.000Z' WHERE id = ?1", [&saved.id]).unwrap();
-        let all = list_runs(&c, &LatencyRunFilter { device_name: Some("Audio 8 DJ".into()), ..Default::default() }).unwrap();
-        assert_eq!(all.iter().map(|r| r.id.clone()).collect::<Vec<_>>(), [s.id.clone(), saved.id.clone()]);
-        assert_eq!(list_runs(&c, &LatencyRunFilter { kind: Some("stress".into()), ..Default::default() }).unwrap().len(), 1);
-        assert_eq!(list_runs(&c, &LatencyRunFilter { session_id: Some("sess-1".into()), ..Default::default() }).unwrap().len(), 1);
-        assert_eq!(list_runs(&c, &LatencyRunFilter { limit: Some(0), ..Default::default() }).unwrap().len(), 1);
-        assert!(list_runs(&c, &LatencyRunFilter { kind: Some("asio".into()), ..Default::default() }).is_err());
+        c.execute(
+            "UPDATE latency_run SET created_at = '2026-01-01T00:00:00.000Z' WHERE id = ?1",
+            [&saved.id],
+        )
+        .unwrap();
+        let all = list_runs(
+            &c,
+            &LatencyRunFilter {
+                device_name: Some("Audio 8 DJ".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            all.iter().map(|r| r.id.clone()).collect::<Vec<_>>(),
+            [s.id.clone(), saved.id.clone()]
+        );
+        assert_eq!(
+            list_runs(
+                &c,
+                &LatencyRunFilter {
+                    kind: Some("stress".into()),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert_eq!(
+            list_runs(
+                &c,
+                &LatencyRunFilter {
+                    session_id: Some("sess-1".into()),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert_eq!(
+            list_runs(
+                &c,
+                &LatencyRunFilter {
+                    limit: Some(0),
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        assert!(list_runs(
+            &c,
+            &LatencyRunFilter {
+                kind: Some("asio".into()),
+                ..Default::default()
+            }
+        )
+        .is_err());
         assert!(delete_run(&c, &s.id).unwrap());
         assert!(!delete_run(&c, &s.id).unwrap());
-        c.execute("DELETE FROM session WHERE id = 'sess-1'", []).unwrap();
-        assert_eq!(get_run(&c, &saved.id).unwrap().unwrap().session_id, None, "ON DELETE SET NULL");
+        c.execute("DELETE FROM session WHERE id = 'sess-1'", [])
+            .unwrap();
+        assert_eq!(
+            get_run(&c, &saved.id).unwrap().unwrap().session_id,
+            None,
+            "ON DELETE SET NULL"
+        );
     }
 
     #[test]
@@ -3293,7 +4599,10 @@ mod tests {
         let cases: Vec<(&str, Box<dyn Fn(&mut LatencyRunInput)>)> = vec![
             ("kind", Box::new(|i| i.kind = "asio".into())),
             ("device", Box::new(|i| i.device_name = "  ".into())),
-            ("device long", Box::new(|i| i.device_name = "x".repeat(MAX_NAME_CHARS + 1))),
+            (
+                "device long",
+                Box::new(|i| i.device_name = "x".repeat(MAX_NAME_CHARS + 1)),
+            ),
             ("rate", Box::new(|i| i.sample_rate_hz = 7_999)),
             ("frames", Box::new(|i| i.buffer_frames = Some(0))),
             ("load", Box::new(|i| i.cpu_load_pct = Some(101))),
@@ -3301,17 +4610,35 @@ mod tests {
             ("std negative", Box::new(|i| i.std_ms = Some(-0.1))),
             ("xruns negative", Box::new(|i| i.xruns = Some(-1))),
             ("detail array", Box::new(|i| i.detail = Some(json!([1])))),
-            ("detail big", Box::new(|i| i.detail = Some(json!({ "x": "y".repeat(MAX_DETAIL_BYTES) })))),
-            ("verdict long", Box::new(|i| i.verdict = Some("v".repeat(MAX_VERDICT_CHARS + 1)))),
+            (
+                "detail big",
+                Box::new(|i| i.detail = Some(json!({ "x": "y".repeat(MAX_DETAIL_BYTES) }))),
+            ),
+            (
+                "verdict long",
+                Box::new(|i| i.verdict = Some("v".repeat(MAX_VERDICT_CHARS + 1))),
+            ),
         ];
         for (name, mutate) in cases {
             let mut i = rt_run();
             mutate(&mut i);
-            assert!(save_run(&c, &i).unwrap_err().starts_with("LATENCY_INVALID: "), "{name}");
+            assert!(
+                save_run(&c, &i)
+                    .unwrap_err()
+                    .starts_with("LATENCY_INVALID: "),
+                "{name}"
+            );
         }
-        let unknown = LatencyRunInput { session_id: Some("nope".into()), ..rt_run() };
-        assert!(save_run(&c, &unknown).unwrap_err().starts_with("LATENCY_NOT_FOUND: "));
-        let n: i64 = c.query_row("SELECT COUNT(*) FROM latency_run", [], |r| r.get(0)).unwrap();
+        let unknown = LatencyRunInput {
+            session_id: Some("nope".into()),
+            ..rt_run()
+        };
+        assert!(save_run(&c, &unknown)
+            .unwrap_err()
+            .starts_with("LATENCY_NOT_FOUND: "));
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM latency_run", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(n, 0);
     }
 
@@ -3319,17 +4646,45 @@ mod tests {
     fn recommendations_keep_the_latest_per_software() {
         let c = mem();
         let run = save_run(&c, &rt_run()).unwrap();
-        let rec = |sw: &str, frames: i64| RecommendationInput { device_name: "Audio 8 DJ".into(), software: sw.into(), frames, ms: frames as f64 / 48.0, based_on_run_id: Some(run.id.clone()) };
+        let rec = |sw: &str, frames: i64| RecommendationInput {
+            device_name: "Audio 8 DJ".into(),
+            software: sw.into(),
+            frames,
+            ms: frames as f64 / 48.0,
+            based_on_run_id: Some(run.id.clone()),
+        };
         let old = save_recommendation(&c, &rec("serato", 512)).unwrap();
         c.execute("UPDATE buffer_recommendation SET created_at = '2026-01-01T00:00:00.000Z' WHERE id = ?1", [&old.id]).unwrap();
         save_recommendation(&c, &rec("serato", 256)).unwrap();
         save_recommendation(&c, &rec("traktor", 512)).unwrap();
         let latest = latest_recommendations(&c, "Audio 8 DJ").unwrap();
-        assert_eq!(latest.iter().map(|r| (r.software.as_str(), r.frames)).collect::<Vec<_>>(), [("serato", 256), ("traktor", 512)]);
-        assert!(save_recommendation(&c, &rec("asio", 128)).unwrap_err().starts_with("LATENCY_INVALID"));
-        assert!(save_recommendation(&c, &RecommendationInput { based_on_run_id: Some("nope".into()), ..rec("serato", 128) }).unwrap_err().starts_with("LATENCY_NOT_FOUND"));
+        assert_eq!(
+            latest
+                .iter()
+                .map(|r| (r.software.as_str(), r.frames))
+                .collect::<Vec<_>>(),
+            [("serato", 256), ("traktor", 512)]
+        );
+        assert!(save_recommendation(&c, &rec("asio", 128))
+            .unwrap_err()
+            .starts_with("LATENCY_INVALID"));
+        assert!(save_recommendation(
+            &c,
+            &RecommendationInput {
+                based_on_run_id: Some("nope".into()),
+                ..rec("serato", 128)
+            }
+        )
+        .unwrap_err()
+        .starts_with("LATENCY_NOT_FOUND"));
         delete_run(&c, &run.id).unwrap();
-        assert!(latest_recommendations(&c, "Audio 8 DJ").unwrap().iter().all(|r| r.based_on_run_id.is_none()), "ON DELETE SET NULL");
+        assert!(
+            latest_recommendations(&c, "Audio 8 DJ")
+                .unwrap()
+                .iter()
+                .all(|r| r.based_on_run_id.is_none()),
+            "ON DELETE SET NULL"
+        );
     }
 
     #[test]
@@ -3341,37 +4696,68 @@ mod tests {
             v["createdAt"] = json!("<t>");
             v
         };
-        let input: LatencyRunInput = serde_json::from_value(k["commands"]["latency_run_save"]["request"]["input"].clone()).unwrap();
+        let input: LatencyRunInput =
+            serde_json::from_value(k["commands"]["latency_run_save"]["request"]["input"].clone())
+                .unwrap();
         let saved = save_run(&c, &input).unwrap();
-        assert_eq!(strip(serde_json::to_value(&saved).unwrap()), strip(k["commands"]["latency_run_save"]["response"].clone()));
-        let rec: RecommendationInput = serde_json::from_value(k["commands"]["buffer_recommendation_save"]["request"]["input"].clone()).unwrap();
-        let rec = RecommendationInput { based_on_run_id: Some(saved.id.clone()), ..rec };
+        assert_eq!(
+            strip(serde_json::to_value(&saved).unwrap()),
+            strip(k["commands"]["latency_run_save"]["response"].clone())
+        );
+        let rec: RecommendationInput = serde_json::from_value(
+            k["commands"]["buffer_recommendation_save"]["request"]["input"].clone(),
+        )
+        .unwrap();
+        let rec = RecommendationInput {
+            based_on_run_id: Some(saved.id.clone()),
+            ..rec
+        };
         let got = strip(serde_json::to_value(save_recommendation(&c, &rec).unwrap()).unwrap());
         let mut expect = strip(k["commands"]["buffer_recommendation_save"]["response"].clone());
         expect["basedOnRunId"] = json!(saved.id);
         assert_eq!(got, expect);
         // run results: the documented example deserialises into what the JS expects
         let f = Fake::new(Policy::RejectFixed(480), Policy::RejectFixed(480));
-        let r = tuner(&f).stress(&CaptureLease::default(), &stress_req(Some(128), 0.3, 0), &no_progress).unwrap();
+        let r = tuner(&f)
+            .stress(
+                &CaptureLease::default(),
+                &stress_req(Some(128), 0.3, 0),
+                &no_progress,
+            )
+            .unwrap();
         let v = serde_json::to_value(&r).unwrap();
         let example = &k["commands"]["stress_run"]["response"];
         for key in example.as_object().unwrap().keys() {
             assert!(v.get(key).is_some(), "stress_run response lacks {key}");
         }
         for key in example["input"].as_object().unwrap().keys() {
-            assert!(v["input"].get(key).is_some(), "direction report lacks {key}");
+            assert!(
+                v["input"].get(key).is_some(),
+                "direction report lacks {key}"
+            );
         }
-        let req: StressRequest = serde_json::from_value(k["commands"]["stress_run"]["request"].clone()).unwrap();
+        let req: StressRequest =
+            serde_json::from_value(k["commands"]["stress_run"]["request"].clone()).unwrap();
         assert_eq!(req.buffer_frames, Some(128));
-        let rt: RoundTripRequest = serde_json::from_value(k["commands"]["latency_play_and_capture"]["request"].clone()).unwrap();
+        let rt: RoundTripRequest =
+            serde_json::from_value(k["commands"]["latency_play_and_capture"]["request"].clone())
+                .unwrap();
         assert_eq!(rt.stimulus.sample_rate, 48_000);
         let rv = serde_json::to_value(
             tuner(&Fake::new(Policy::Honour, Policy::Honour))
-                .round_trip(&CaptureLease::default(), &rt_req(impulse_stimulus(10, 4_800, 1.0), Some(256), None), &no_progress)
+                .round_trip(
+                    &CaptureLease::default(),
+                    &rt_req(impulse_stimulus(10, 4_800, 1.0), Some(256), None),
+                    &no_progress,
+                )
                 .unwrap(),
         )
         .unwrap();
-        for key in k["commands"]["latency_play_and_capture"]["response"].as_object().unwrap().keys() {
+        for key in k["commands"]["latency_play_and_capture"]["response"]
+            .as_object()
+            .unwrap()
+            .keys()
+        {
             assert!(rv.get(key).is_some(), "round trip response lacks {key}");
         }
         assert_eq!(rv["reportedBufferFrames"], json!({ "in": 256, "out": 256 }));

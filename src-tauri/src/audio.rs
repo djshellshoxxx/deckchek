@@ -39,11 +39,21 @@ pub struct ChannelPair {
 
 impl ChannelPair {
     fn stereo(first: u16) -> Self {
-        Self { label: format!("{}-{}", first, first + 1), first, second: first + 1, mono: false }
+        Self {
+            label: format!("{}-{}", first, first + 1),
+            first,
+            second: first + 1,
+            mono: false,
+        }
     }
 
     fn mono(first: u16) -> Self {
-        Self { label: first.to_string(), first, second: first, mono: true }
+        Self {
+            label: first.to_string(),
+            first,
+            second: first,
+            mono: true,
+        }
     }
 
     /// 0-based interleaved offsets of the left and right samples.
@@ -105,15 +115,23 @@ fn pair_first(sel: &PairSel) -> Result<u16, String> {
 /// Checks a selection's syntax (before any device is opened) and returns the
 /// first channel of each pair. `None` or an empty list selects nothing.
 pub fn parse_pair_selection(sel: Option<&[PairSel]>) -> Result<Option<Vec<u16>>, String> {
-    let Some(sel) = sel.filter(|s| !s.is_empty()) else { return Ok(None) };
+    let Some(sel) = sel.filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
     if sel.len() > MAX_PAIRS {
-        return Err(format!("At most {MAX_PAIRS} input pairs can be captured at once."));
+        return Err(format!(
+            "At most {MAX_PAIRS} input pairs can be captured at once."
+        ));
     }
     let mut out: Vec<u16> = Vec::with_capacity(sel.len());
     for s in sel {
         let first = pair_first(s)?;
         if out.contains(&first) {
-            return Err(format!("Input pair {}-{} is selected twice.", first, first + 1));
+            return Err(format!(
+                "Input pair {}-{} is selected twice.",
+                first,
+                first + 1
+            ));
         }
         out.push(first);
     }
@@ -131,7 +149,11 @@ pub fn required_channels(firsts: Option<&[u16]>) -> (u16, u16) {
 
 /// Resolves a selection against the channel count actually opened. Out-of-range
 /// pairs get an error that names the device and the pairs it does offer.
-pub fn resolve_pairs(firsts: Option<&[u16]>, channels: u16, device_name: &str) -> Result<Vec<ChannelPair>, String> {
+pub fn resolve_pairs(
+    firsts: Option<&[u16]>,
+    channels: u16,
+    device_name: &str,
+) -> Result<Vec<ChannelPair>, String> {
     let available = input_pairs(channels);
     let Some(firsts) = firsts else {
         return available
@@ -174,13 +196,19 @@ fn clamped_offsets(pairs: &[ChannelPair], channels: usize) -> Vec<(usize, usize)
 /// The capture itself de-interleaves in its callback ([`BoundedTracks`]);
 /// this is the reference the tests compare it against.
 #[cfg(test)]
-pub fn deinterleave_pairs(data: &[f32], channels: usize, pairs: &[ChannelPair]) -> Vec<(Vec<f32>, Vec<f32>)> {
+pub fn deinterleave_pairs(
+    data: &[f32],
+    channels: usize,
+    pairs: &[ChannelPair],
+) -> Vec<(Vec<f32>, Vec<f32>)> {
     if channels == 0 {
         return pairs.iter().map(|_| (Vec::new(), Vec::new())).collect();
     }
     let frames = data.len() / channels;
-    let mut out: Vec<(Vec<f32>, Vec<f32>)> =
-        pairs.iter().map(|_| (Vec::with_capacity(frames), Vec::with_capacity(frames))).collect();
+    let mut out: Vec<(Vec<f32>, Vec<f32>)> = pairs
+        .iter()
+        .map(|_| (Vec::with_capacity(frames), Vec::with_capacity(frames)))
+        .collect();
     let offs = clamped_offsets(pairs, channels);
     for frame in data.chunks_exact(channels) {
         for (track, &(l, r)) in out.iter_mut().zip(&offs) {
@@ -246,8 +274,19 @@ impl AudioCapturePayload {
         let pairs = tracks.iter().map(|t| t.0.clone()).collect();
         let mut it = tracks.into_iter();
         let (left, right) = it.next().map(|(_, l, r)| (l, r)).unwrap_or_default();
-        let extra_pairs = it.map(|(pair, left, right)| PairSamples { pair, left, right }).collect();
-        Self { device_name, sample_rate, channels, left, right, stream_errors, pairs, extra_pairs }
+        let extra_pairs = it
+            .map(|(pair, left, right)| PairSamples { pair, left, right })
+            .collect();
+        Self {
+            device_name,
+            sample_rate,
+            channels,
+            left,
+            right,
+            stream_errors,
+            pairs,
+            extra_pairs,
+        }
     }
 }
 
@@ -269,7 +308,10 @@ pub(crate) fn device_max_channels(device: &cpal::Device) -> u16 {
         .supported_input_configs()
         .map(|it| it.map(|r| r.channels()).max().unwrap_or(0))
         .unwrap_or(0);
-    let default = device.default_input_config().map(|c| c.channels()).unwrap_or(0);
+    let default = device
+        .default_input_config()
+        .map(|c| c.channels())
+        .unwrap_or(0);
     ranged.max(default)
 }
 
@@ -289,13 +331,18 @@ fn list_inputs_blocking() -> Result<Vec<AudioInputInfo>, String> {
     let devices = host.input_devices().map_err(|e| e.to_string())?;
     let mut out = Vec::new();
     for device in devices {
-        let name = device.name().unwrap_or_else(|_| "Unnamed audio input".to_string());
+        let name = device
+            .name()
+            .unwrap_or_else(|_| "Unnamed audio input".to_string());
         let max_channels = device_max_channels(&device);
         out.push(AudioInputInfo {
             is_default: default_name.as_deref() == Some(name.as_str()),
             name,
             max_channels,
-            default_channels: device.default_input_config().map(|c| c.channels()).unwrap_or(0),
+            default_channels: device
+                .default_input_config()
+                .map(|c| c.channels())
+                .unwrap_or(0),
             pairs: input_pairs(max_channels),
         });
     }
@@ -333,8 +380,15 @@ pub(crate) fn pick_input_config(
     type Score = (bool, bool, std::cmp::Reverse<u16>);
     let mut best: Option<(Score, cpal::SupportedStreamConfigRange)> = None;
     let mut rate_ok = false;
-    for range in device.supported_input_configs().map_err(|e| e.to_string())? {
-        if range.min_sample_rate().0 > rate || range.max_sample_rate().0 < rate || !usable_format(range.sample_format()) || range.channels() == 0 {
+    for range in device
+        .supported_input_configs()
+        .map_err(|e| e.to_string())?
+    {
+        if range.min_sample_rate().0 > rate
+            || range.max_sample_rate().0 < rate
+            || !usable_format(range.sample_format())
+            || range.channels() == 0
+        {
             continue;
         }
         rate_ok = true;
@@ -353,8 +407,12 @@ pub(crate) fn pick_input_config(
     }
     match best {
         Some((_, r)) => Ok(r.with_sample_rate(cpal::SampleRate(rate))),
-        None if !rate_ok && sample_rate.is_some() => Err(format!("Sample rate {rate} Hz is not supported by this input.")),
-        None => Err(format!("This input cannot open {min_channels} channels at {rate} Hz.")),
+        None if !rate_ok && sample_rate.is_some() => Err(format!(
+            "Sample rate {rate} Hz is not supported by this input."
+        )),
+        None => Err(format!(
+            "This input cannot open {min_channels} channels at {rate} Hz."
+        )),
     }
 }
 
@@ -442,7 +500,12 @@ pub const CAPTURE_DEVICE_LOST: &str =
 
 /// Waits for the capture to complete, polling `cancel` (set by a preempt) and
 /// `lost` (set by the stream's error callback when the device disappears).
-pub(crate) fn wait_for_capture(done_rx: &mpsc::Receiver<()>, timeout: Duration, cancel: &AtomicBool, lost: &AtomicBool) -> Result<(), String> {
+pub(crate) fn wait_for_capture(
+    done_rx: &mpsc::Receiver<()>,
+    timeout: Duration,
+    cancel: &AtomicBool,
+    lost: &AtomicBool,
+) -> Result<(), String> {
     let deadline = Instant::now() + timeout;
     loop {
         if cancel.load(Relaxed) {
@@ -476,7 +539,9 @@ pub(crate) fn with_stream_errors(message: String, errors: &[String]) -> String {
 
 pub(crate) fn validate_duration(duration_sec: f32) -> Result<(), String> {
     if !duration_sec.is_finite() || duration_sec <= 0.0 || duration_sec > 30.0 {
-        return Err("Capture duration must be greater than 0 and no more than 30 seconds.".to_string());
+        return Err(
+            "Capture duration must be greater than 0 and no more than 30 seconds.".to_string(),
+        );
     }
     Ok(())
 }
@@ -491,7 +556,12 @@ pub const CAPTURE_OUT_OF_MEMORY: &str =
 /// `secs` at `rate` stores. Only the selected pairs are kept, never every
 /// device channel, and the total must fit
 /// [`crate::capture::LIVE_BUFFER_BUDGET_BYTES`] (AUD-06).
-pub fn bounded_buffer_len(rate: u32, channels: usize, secs: f32, pairs: usize) -> Result<usize, String> {
+pub fn bounded_buffer_len(
+    rate: u32,
+    channels: usize,
+    secs: f32,
+    pairs: usize,
+) -> Result<usize, String> {
     validate_duration(secs)?;
     if channels == 0 {
         return Err("Input device reported zero channels.".to_string());
@@ -501,8 +571,12 @@ pub fn bounded_buffer_len(rate: u32, channels: usize, secs: f32, pairs: usize) -
     }
     // rate <= u32::MAX and secs <= 30, so the frame count fits a u64 exactly.
     let frames = (rate as f64 * secs as f64).ceil() as u64;
-    let samples = frames.checked_mul(pairs as u64 * 2).ok_or(CAPTURE_TOO_LARGE)?;
-    let bytes = samples.checked_mul(std::mem::size_of::<f32>() as u64).ok_or(CAPTURE_TOO_LARGE)?;
+    let samples = frames
+        .checked_mul(pairs as u64 * 2)
+        .ok_or(CAPTURE_TOO_LARGE)?;
+    let bytes = samples
+        .checked_mul(std::mem::size_of::<f32>() as u64)
+        .ok_or(CAPTURE_TOO_LARGE)?;
     if bytes > crate::capture::LIVE_BUFFER_BUDGET_BYTES {
         return Err(CAPTURE_TOO_LARGE.to_string());
     }
@@ -524,12 +598,21 @@ pub(crate) struct BoundedTracks {
 
 impl BoundedTracks {
     /// Store for `secs` at `rate`, sized and budgeted by [`bounded_buffer_len`].
-    pub fn new(pairs: &[ChannelPair], channels: usize, rate: u32, secs: f32) -> Result<Self, String> {
+    pub fn new(
+        pairs: &[ChannelPair],
+        channels: usize,
+        rate: u32,
+        secs: f32,
+    ) -> Result<Self, String> {
         let samples = bounded_buffer_len(rate, channels, secs, pairs.len())?;
         Self::with_frames(pairs, channels, samples / (2 * pairs.len()))
     }
 
-    fn with_frames(pairs: &[ChannelPair], channels: usize, target_frames: usize) -> Result<Self, String> {
+    fn with_frames(
+        pairs: &[ChannelPair],
+        channels: usize,
+        target_frames: usize,
+    ) -> Result<Self, String> {
         if channels == 0 {
             return Err("Input device reported zero channels.".to_string());
         }
@@ -542,7 +625,12 @@ impl BoundedTracks {
             right.try_reserve_exact(target_frames).map_err(oom)?;
             tracks.push((left, right));
         }
-        Ok(Self { channels, offs: clamped_offsets(pairs, channels), target_frames, tracks })
+        Ok(Self {
+            channels,
+            offs: clamped_offsets(pairs, channels),
+            target_frames,
+            tracks,
+        })
     }
 
     fn is_full(&self) -> bool {
@@ -572,11 +660,19 @@ fn capture_blocking(
 ) -> Result<AudioCapturePayload, String> {
     validate_duration(duration_sec)?;
     // A preempt may arrive while the device is being set up: check between steps.
-    let cancelled = || if cancel.load(Relaxed) { Err(CAPTURE_CANCELLED.to_string()) } else { Ok(()) };
+    let cancelled = || {
+        if cancel.load(Relaxed) {
+            Err(CAPTURE_CANCELLED.to_string())
+        } else {
+            Ok(())
+        }
+    };
 
     let device = choose_input(device_name.as_deref())?;
     cancelled()?;
-    let resolved_name = device.name().unwrap_or_else(|_| "Unnamed audio input".to_string());
+    let resolved_name = device
+        .name()
+        .unwrap_or_else(|_| "Unnamed audio input".to_string());
     let supported = pick_config_for_pairs(&device, &resolved_name, None, firsts.as_deref())?;
     cancelled()?;
     let sample_format = supported.sample_format();
@@ -588,7 +684,12 @@ fn capture_blocking(
     let pairs = resolve_pairs(firsts.as_deref(), config.channels, &resolved_name)?;
 
     // Sized for the selected pairs, budgeted and reserved fallibly (AUD-06).
-    let collected = Arc::new(Mutex::new(BoundedTracks::new(&pairs, channels, config.sample_rate.0, duration_sec)?));
+    let collected = Arc::new(Mutex::new(BoundedTracks::new(
+        &pairs,
+        channels,
+        config.sample_rate.0,
+        duration_sec,
+    )?));
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let (done_tx, done_rx) = mpsc::channel();
     let lost = Arc::new(AtomicBool::new(false));
@@ -608,7 +709,12 @@ fn capture_blocking(
     }
     stream.play().map_err(|e| e.to_string())?;
 
-    let waited = wait_for_capture(&done_rx, Duration::from_secs_f32(duration_sec + 2.0), cancel, &lost);
+    let waited = wait_for_capture(
+        &done_rx,
+        Duration::from_secs_f32(duration_sec + 2.0),
+        cancel,
+        &lost,
+    );
     drop(stream);
     if let Err(e) = waited {
         let reported = errors.lock().map(|l| l.clone()).unwrap_or_default();
@@ -632,7 +738,13 @@ fn capture_blocking(
         .map(|((l, r), p)| (p, l, r))
         .collect();
 
-    Ok(AudioCapturePayload::from_tracks(resolved_name, config.sample_rate.0, config.channels, tracks, stream_errors))
+    Ok(AudioCapturePayload::from_tracks(
+        resolved_name,
+        config.sample_rate.0,
+        config.channels,
+        tracks,
+        stream_errors,
+    ))
 }
 
 /// Bounded capture (<= 30 s). Holds the capture lease (kind `bounded`) for its
@@ -665,7 +777,9 @@ mod tests {
 
     /// 8-channel interleaved test signal: channel c (0-based), frame f = c * 10 + f / 100.
     fn interleaved(channels: usize, frames: usize) -> Vec<f32> {
-        (0..frames).flat_map(|f| (0..channels).map(move |c| c as f32 * 10.0 + f as f32 / 100.0)).collect()
+        (0..frames)
+            .flat_map(|f| (0..channels).map(move |c| c as f32 * 10.0 + f as f32 / 100.0))
+            .collect()
     }
 
     fn firsts(sel: &[PairSel]) -> Vec<u16> {
@@ -692,30 +806,54 @@ mod tests {
     fn stereo_capture_deinterleaves_first_two_channels() {
         let pairs = resolve_pairs(None, 2, "In").unwrap();
         let t = deinterleave_pairs(&[0.1, -0.1, 0.2, -0.2], 2, &pairs);
-        assert_eq!((t[0].0.clone(), t[0].1.clone()), (vec![0.1, 0.2], vec![-0.1, -0.2]));
+        assert_eq!(
+            (t[0].0.clone(), t[0].1.clone()),
+            (vec![0.1, 0.2], vec![-0.1, -0.2])
+        );
     }
 
     #[test]
     fn device_pairs_are_named_for_even_odd_and_empty_channel_counts() {
-        let labels = |n| input_pairs(n).into_iter().map(|p| p.label).collect::<Vec<_>>();
+        let labels = |n| {
+            input_pairs(n)
+                .into_iter()
+                .map(|p| p.label)
+                .collect::<Vec<_>>()
+        };
         assert_eq!(labels(8), ["1-2", "3-4", "5-6", "7-8"]);
         assert_eq!(labels(5), ["1-2", "3-4", "5"]);
         assert_eq!(labels(1), ["1"]);
         assert!(labels(0).is_empty());
         let p = &input_pairs(5)[2];
-        assert_eq!((p.first, p.second, p.mono, p.offsets()), (5, 5, true, (4, 4)));
+        assert_eq!(
+            (p.first, p.second, p.mono, p.offsets()),
+            (5, 5, true, (4, 4))
+        );
         let p = &input_pairs(8)[1];
-        assert_eq!((p.first, p.second, p.mono, p.offsets()), (3, 4, false, (2, 3)));
+        assert_eq!(
+            (p.first, p.second, p.mono, p.offsets()),
+            (3, 4, false, (2, 3))
+        );
         let v = serde_json::to_value(p).unwrap();
-        assert_eq!(v, serde_json::json!({"label": "3-4", "first": 3, "second": 4, "mono": false}));
+        assert_eq!(
+            v,
+            serde_json::json!({"label": "3-4", "first": 3, "second": 4, "mono": false})
+        );
     }
 
     #[test]
     fn selections_accept_numbers_labels_and_pair_objects() {
-        let sel: Vec<PairSel> = serde_json::from_value(serde_json::json!([3, "5-6", " 7 ", {"first": 1, "label": "1-2"}])).unwrap();
+        let sel: Vec<PairSel> = serde_json::from_value(
+            serde_json::json!([3, "5-6", " 7 ", {"first": 1, "label": "1-2"}]),
+        )
+        .unwrap();
         assert_eq!(firsts(&sel), vec![3, 5, 7, 1]);
         assert_eq!(parse_pair_selection(None).unwrap(), None);
-        assert_eq!(parse_pair_selection(Some(&[])).unwrap(), None, "empty list = default pair");
+        assert_eq!(
+            parse_pair_selection(Some(&[])).unwrap(),
+            None,
+            "empty list = default pair"
+        );
     }
 
     #[test]
@@ -732,8 +870,12 @@ mod tests {
             let e = parse_pair_selection(Some(&sel)).unwrap_err();
             assert!(e.contains(needle), "{bad}: {e}");
         }
-        let many: Vec<PairSel> = (0..=MAX_PAIRS as u16).map(|i| PairSel::Number(i * 2 + 1)).collect();
-        assert!(parse_pair_selection(Some(&many)).unwrap_err().contains("At most"));
+        let many: Vec<PairSel> = (0..=MAX_PAIRS as u16)
+            .map(|i| PairSel::Number(i * 2 + 1))
+            .collect();
+        assert!(parse_pair_selection(Some(&many))
+            .unwrap_err()
+            .contains("At most"));
     }
 
     #[test]
@@ -751,11 +893,16 @@ mod tests {
         assert!(e.contains("it has 2 input channels (pairs 1-2)"), "{e}");
         let e = resolve_pairs(Some(&[1]), 0, "Ghost").unwrap_err();
         assert!(e.contains("(pairs none)"), "{e}");
-        assert!(resolve_pairs(Some(&[3]), 1, "Mic").unwrap_err().contains("1 input channel (pairs 1)"));
+        assert!(resolve_pairs(Some(&[3]), 1, "Mic")
+            .unwrap_err()
+            .contains("1 input channel (pairs 1)"));
         assert!(resolve_pairs(None, 0, "Ghost").is_err());
         // Odd channel count: 5 resolves to the mono pair, 3 to a full pair.
         let p = resolve_pairs(Some(&[5, 3]), 5, "Odd").unwrap();
-        assert_eq!(p.iter().map(|p| p.label.as_str()).collect::<Vec<_>>(), ["5", "3-4"]);
+        assert_eq!(
+            p.iter().map(|p| p.label.as_str()).collect::<Vec<_>>(),
+            ["5", "3-4"]
+        );
     }
 
     #[test]
@@ -779,22 +926,43 @@ mod tests {
         assert_eq!(t[0].0, vec![40.0, 40.01, 40.02]);
         assert_eq!(t[0].1, t[0].0);
         assert_eq!((t[1].0.len(), t[1].1[2]), (3, 10.02));
-        assert!(deinterleave_pairs(&[1.0], 0, &pairs).iter().all(|(l, r)| l.is_empty() && r.is_empty()));
+        assert!(deinterleave_pairs(&[1.0], 0, &pairs)
+            .iter()
+            .all(|(l, r)| l.is_empty() && r.is_empty()));
     }
 
     #[test]
     fn payload_keeps_the_first_pair_in_left_right_and_lists_all_pairs() {
         let pairs = resolve_pairs(Some(&[1, 3]), 4, "In").unwrap();
-        let tracks = vec![(pairs[0].clone(), vec![0.1], vec![0.2]), (pairs[1].clone(), vec![0.3], vec![0.4])];
-        let v = serde_json::to_value(AudioCapturePayload::from_tracks("In".into(), 48000, 4, tracks, vec![])).unwrap();
+        let tracks = vec![
+            (pairs[0].clone(), vec![0.1], vec![0.2]),
+            (pairs[1].clone(), vec![0.3], vec![0.4]),
+        ];
+        let v = serde_json::to_value(AudioCapturePayload::from_tracks(
+            "In".into(),
+            48000,
+            4,
+            tracks,
+            vec![],
+        ))
+        .unwrap();
         assert_eq!(v["left"], serde_json::json!([0.10000000149011612]));
         assert_eq!(v["pairs"][1]["label"], "3-4");
         assert_eq!(v["extraPairs"][0]["label"], "3-4");
         assert_eq!(v["extraPairs"][0]["first"], 3);
         assert_eq!(v["extraPairs"][0]["right"].as_array().unwrap().len(), 1);
-        let single = AudioCapturePayload::from_tracks("In".into(), 48000, 2, vec![(pairs[0].clone(), vec![], vec![])], vec![]);
+        let single = AudioCapturePayload::from_tracks(
+            "In".into(),
+            48000,
+            2,
+            vec![(pairs[0].clone(), vec![], vec![])],
+            vec![],
+        );
         let v = serde_json::to_value(single).unwrap();
-        assert!(v.get("extraPairs").is_none(), "single-pair payload has no extraPairs");
+        assert!(
+            v.get("extraPairs").is_none(),
+            "single-pair payload has no extraPairs"
+        );
         assert_eq!(v["pairs"][0]["label"], "1-2");
     }
 
@@ -804,12 +972,23 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         tx.send(()).unwrap();
         assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).is_ok());
-        assert!(wait_for_capture(&rx, Duration::from_millis(30), &cancel, &lost).unwrap_err().contains("Timed out"));
+        assert!(
+            wait_for_capture(&rx, Duration::from_millis(30), &cancel, &lost)
+                .unwrap_err()
+                .contains("Timed out")
+        );
         cancel.store(true, Relaxed);
-        assert_eq!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).unwrap_err(), CAPTURE_CANCELLED);
+        assert_eq!(
+            wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).unwrap_err(),
+            CAPTURE_CANCELLED
+        );
         drop(tx);
         cancel.store(false, Relaxed);
-        assert!(wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost).unwrap_err().contains("ended"));
+        assert!(
+            wait_for_capture(&rx, Duration::from_secs(1), &cancel, &lost)
+                .unwrap_err()
+                .contains("ended")
+        );
     }
 
     /// BUG-14: device loss ends the wait at once as a device error (not a
@@ -832,9 +1011,17 @@ mod tests {
         assert_eq!(e, CAPTURE_DEVICE_LOST);
         assert!(started.elapsed() < Duration::from_secs(2), "not a timeout");
         let full = with_stream_errors(e, &["The requested device is no longer available.".into()]);
-        assert!(full.starts_with(CAPTURE_DEVICE_LOST) && full.contains("no longer available"), "{full}");
-        assert_eq!(with_stream_errors("x".into(), &[]), "x", "no errors, message unchanged");
-        assert!(with_stream_errors("Timed out".into(), &["glitch".into()]).ends_with("Stream errors: glitch"));
+        assert!(
+            full.starts_with(CAPTURE_DEVICE_LOST) && full.contains("no longer available"),
+            "{full}"
+        );
+        assert_eq!(
+            with_stream_errors("x".into(), &[]),
+            "x",
+            "no errors, message unchanged"
+        );
+        assert!(with_stream_errors("Timed out".into(), &["glitch".into()])
+            .ends_with("Stream errors: glitch"));
     }
 
     /// AUD-06: the bounded capture sizes its buffers for the selected pairs
@@ -845,16 +1032,34 @@ mod tests {
         // 64-channel 192 kHz device, one pair for 30 s: 192000 * 30 frames * 2 samples.
         assert_eq!(bounded_buffer_len(192_000, 64, 30.0, 1), Ok(11_520_000));
         assert_eq!(bounded_buffer_len(48_000, 2, 0.5, 1), Ok(48_000));
-        assert_eq!(bounded_buffer_len(48_000, 64, 30.0, 32), Ok(48_000 * 30 * 64));
+        assert_eq!(
+            bounded_buffer_len(48_000, 64, 30.0, 32),
+            Ok(48_000 * 30 * 64)
+        );
         // 32 pairs at 192 kHz for 30 s is ~1.47 GB: refused, not allocated.
-        assert_eq!(bounded_buffer_len(192_000, 64, 30.0, 32).unwrap_err(), CAPTURE_TOO_LARGE);
-        assert_eq!(bounded_buffer_len(u32::MAX, 64, 30.0, MAX_PAIRS).unwrap_err(), CAPTURE_TOO_LARGE);
-        assert!(bounded_buffer_len(48_000, 0, 1.0, 1).is_err(), "zero channels");
+        assert_eq!(
+            bounded_buffer_len(192_000, 64, 30.0, 32).unwrap_err(),
+            CAPTURE_TOO_LARGE
+        );
+        assert_eq!(
+            bounded_buffer_len(u32::MAX, 64, 30.0, MAX_PAIRS).unwrap_err(),
+            CAPTURE_TOO_LARGE
+        );
+        assert!(
+            bounded_buffer_len(48_000, 0, 1.0, 1).is_err(),
+            "zero channels"
+        );
         assert!(bounded_buffer_len(48_000, 2, 1.0, 0).is_err(), "no pairs");
-        assert!(bounded_buffer_len(48_000, 2, 31.0, 1).is_err(), "duration re-validated");
+        assert!(
+            bounded_buffer_len(48_000, 2, 31.0, 1).is_err(),
+            "duration re-validated"
+        );
         for pairs in 1..=MAX_PAIRS {
             if let Ok(n) = bounded_buffer_len(192_000, 64, 30.0, pairs) {
-                assert!(n as u64 * 4 <= crate::capture::LIVE_BUFFER_BUDGET_BYTES, "{pairs} pairs");
+                assert!(
+                    n as u64 * 4 <= crate::capture::LIVE_BUFFER_BUDGET_BYTES,
+                    "{pairs} pairs"
+                );
             }
         }
     }
@@ -865,16 +1070,28 @@ mod tests {
     #[test]
     fn regression_aud_06_bounded_tracks_reserve_fallibly_and_keep_only_selected_pairs() {
         let pairs = resolve_pairs(Some(&[7, 3]), 8, "Audio 8").unwrap();
-        assert_eq!(BoundedTracks::with_frames(&pairs, 8, usize::MAX / 2).unwrap_err(), CAPTURE_OUT_OF_MEMORY);
+        assert_eq!(
+            BoundedTracks::with_frames(&pairs, 8, usize::MAX / 2).unwrap_err(),
+            CAPTURE_OUT_OF_MEMORY
+        );
 
         let data = interleaved(8, 10);
         let mut store = BoundedTracks::with_frames(&pairs, 8, 6).unwrap();
         assert!(!store.push(&data[..8 * 4], |v: &f32| *v), "4 of 6 frames");
-        assert!(store.push(&data[8 * 4..], |v: &f32| *v), "complete at 6 frames");
+        assert!(
+            store.push(&data[8 * 4..], |v: &f32| *v),
+            "complete at 6 frames"
+        );
         assert!(store.push(&data, |v: &f32| *v), "further input is ignored");
         let expected: Vec<_> = deinterleave_pairs(&data[..8 * 6], 8, &pairs);
         assert_eq!(store.tracks, expected);
-        assert!(store.tracks.iter().all(|(l, r)| l.capacity() == 6 && r.capacity() == 6), "no growth");
+        assert!(
+            store
+                .tracks
+                .iter()
+                .all(|(l, r)| l.capacity() == 6 && r.capacity() == 6),
+            "no growth"
+        );
 
         // From the real sizing: a mono last pair on an odd device, i16 input.
         let pairs = resolve_pairs(Some(&[5]), 5, "Odd").unwrap();
@@ -899,10 +1116,18 @@ mod tests {
     fn regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread() {
         let src = include_str!("audio.rs");
         let name = "list_native_audio_inputs";
-        assert!(!src.contains(&format!("pub fn {name}(")), "{name} is still a sync command on the main thread");
+        assert!(
+            !src.contains(&format!("pub fn {name}(")),
+            "{name} is still a sync command on the main thread"
+        );
         let head = format!("pub async fn {name}(");
-        let at = src.find(&head).unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
+        let at = src
+            .find(&head)
+            .unwrap_or_else(|| panic!("{name} must be `pub async fn`"));
         let body = &src[at..at + src[at..].find("\n}\n").expect("command body")];
-        assert!(body.contains("spawn_blocking"), "{name} must enumerate via spawn_blocking");
+        assert!(
+            body.contains("spawn_blocking"),
+            "{name} must enumerate via spawn_blocking"
+        );
     }
 }

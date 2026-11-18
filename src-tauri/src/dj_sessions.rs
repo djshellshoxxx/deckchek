@@ -66,14 +66,23 @@ pub fn parse_stamp(line: &str) -> Option<Stamp> {
     let b = line.trim_start().as_bytes();
     let b = if b.first() == Some(&b'[') { &b[1..] } else { b };
     let (y, mo, d) = (num(b, 0, 4)?, num(b, 5, 2)?, num(b, 8, 2)?);
-    if b.get(4) != Some(&b'-') || b.get(7) != Some(&b'-') || !matches!(b.get(10), Some(b'T') | Some(b' ')) {
+    if b.get(4) != Some(&b'-')
+        || b.get(7) != Some(&b'-')
+        || !matches!(b.get(10), Some(b'T') | Some(b' '))
+    {
         return None;
     }
     let (h, mi, s) = (num(b, 11, 2)?, num(b, 14, 2)?, num(b, 17, 2)?);
     if b.get(13) != Some(&b':') || b.get(16) != Some(&b':') {
         return None;
     }
-    if !(1970..=2100).contains(&y) || !(1..=12).contains(&mo) || !(1..=31).contains(&d) || h > 23 || mi > 59 || s > 59 {
+    if !(1970..=2100).contains(&y)
+        || !(1..=12).contains(&mo)
+        || !(1..=31).contains(&d)
+        || h > 23
+        || mi > 59
+        || s > 59
+    {
         return None;
     }
     let mut i = 19;
@@ -89,7 +98,11 @@ pub fn parse_stamp(line: &str) -> Option<Stamp> {
         Some(b'Z') => explicit_tz = true,
         Some(&sign @ (b'+' | b'-')) => {
             let (oh, rest) = (num(b, i + 1, 2)?, i + 3);
-            let om = if b.get(rest) == Some(&b':') { num(b, rest + 1, 2)? } else { num(b, rest, 2).unwrap_or(0) };
+            let om = if b.get(rest) == Some(&b':') {
+                num(b, rest + 1, 2)?
+            } else {
+                num(b, rest, 2).unwrap_or(0)
+            };
             if oh > 14 || om > 59 {
                 return None;
             }
@@ -126,11 +139,31 @@ pub fn spans_from_text(text: &str, modified_secs: i64) -> Vec<(i64, i64)> {
     let delta = modified_secs - last_naive;
     let offset_to_utc = (delta as f64 / 900.0).round() as i64 * 900; // add to a naive reading to get UTC
     let residual = modified_secs - (last_naive + offset_to_utc);
-    if offset_to_utc.abs() > MAX_OFFSET_SECS || residual < -MTIME_SLACK_AFTER || residual > MTIME_SLACK_BEFORE {
+    if offset_to_utc.abs() > MAX_OFFSET_SECS
+        || residual < -MTIME_SLACK_AFTER
+        || residual > MTIME_SLACK_BEFORE
+    {
         // no plausible zone: keep only stamps that carry their own zone
-        return spans_from_times(stamps.iter().filter(|s| s.explicit_tz).map(|s| s.secs).collect());
+        return spans_from_times(
+            stamps
+                .iter()
+                .filter(|s| s.explicit_tz)
+                .map(|s| s.secs)
+                .collect(),
+        );
     }
-    spans_from_times(stamps.iter().map(|s| if s.explicit_tz { s.secs } else { s.secs + offset_to_utc }).collect())
+    spans_from_times(
+        stamps
+            .iter()
+            .map(|s| {
+                if s.explicit_tz {
+                    s.secs
+                } else {
+                    s.secs + offset_to_utc
+                }
+            })
+            .collect(),
+    )
 }
 
 fn read_tail(path: &Path) -> Option<String> {
@@ -148,9 +181,16 @@ fn mtime_secs(path: &Path) -> Option<i64> {
 pub fn spans_from_files(files: &[(String, std::path::PathBuf)]) -> Vec<SessionSpan> {
     let mut out = Vec::new();
     for (app, path) in files {
-        let (Some(text), Some(mt)) = (read_tail(path), mtime_secs(path)) else { continue };
+        let (Some(text), Some(mt)) = (read_tail(path), mtime_secs(path)) else {
+            continue;
+        };
         for (a, b) in spans_from_text(&text, mt) {
-            out.push(SessionSpan { app: app.clone(), start: iso_from_unix(a.max(0) as u64), end: iso_from_unix(b.max(0) as u64), source: "log".into() });
+            out.push(SessionSpan {
+                app: app.clone(),
+                start: iso_from_unix(a.max(0) as u64),
+                end: iso_from_unix(b.max(0) as u64),
+                source: "log".into(),
+            });
         }
     }
     out.sort_by(|x, y| x.start.cmp(&y.start).then_with(|| x.app.cmp(&y.app)));
@@ -168,7 +208,12 @@ pub async fn dj_session_spans() -> Result<Vec<SessionSpan>, String> {
         let files: Vec<(String, std::path::PathBuf)> = scan
             .apps
             .iter()
-            .flat_map(|a| a.files.iter().filter(|f| f.kind == "log").map(move |f| (a.app.clone(), std::path::PathBuf::from(&f.path))))
+            .flat_map(|a| {
+                a.files
+                    .iter()
+                    .filter(|f| f.kind == "log")
+                    .map(move |f| (a.app.clone(), std::path::PathBuf::from(&f.path)))
+            })
             .collect();
         spans_from_files(&files)
     })
@@ -193,17 +238,46 @@ mod tests {
     fn parses_timestamp_shapes() {
         let z = parse_stamp("2025-10-10T20:00:00Z started").unwrap();
         assert_eq!((z.secs, z.explicit_tz), (T, true));
-        assert_eq!(parse_stamp("[2025-10-10 20:00:00.123] x").unwrap(), Stamp { secs: T, explicit_tz: false });
-        assert_eq!(parse_stamp("2025-10-10T22:00:00+02:00").unwrap(), Stamp { secs: T, explicit_tz: true });
+        assert_eq!(
+            parse_stamp("[2025-10-10 20:00:00.123] x").unwrap(),
+            Stamp {
+                secs: T,
+                explicit_tz: false
+            }
+        );
+        assert_eq!(
+            parse_stamp("2025-10-10T22:00:00+02:00").unwrap(),
+            Stamp {
+                secs: T,
+                explicit_tz: true
+            }
+        );
         assert_eq!(parse_stamp("2025-10-10T15:30:00-0430").unwrap().secs, T);
-        for bad in ["", "hello", "2025-13-10 20:00:00", "2025-10-10 25:00:00", "2025/10/10 20:00:00", "1960-01-01 00:00:00", "2025-10-10T20:00", "2025-10-10T20:00:00+25:00", "２０２５-10-10 20:00:00"] {
+        for bad in [
+            "",
+            "hello",
+            "2025-13-10 20:00:00",
+            "2025-10-10 25:00:00",
+            "2025/10/10 20:00:00",
+            "1960-01-01 00:00:00",
+            "2025-10-10T20:00",
+            "2025-10-10T20:00:00+25:00",
+            "２０２５-10-10 20:00:00",
+        ] {
             assert!(parse_stamp(bad).is_none(), "{bad}");
         }
     }
 
     #[test]
     fn gap_splits_spans_and_short_ones_drop() {
-        let s = spans_from_times(vec![T + 600, T, T + 1200, T + 1200 + GAP_SECS, T + 1200 + GAP_SECS + GAP_SECS + 1, T + 100_000]);
+        let s = spans_from_times(vec![
+            T + 600,
+            T,
+            T + 1200,
+            T + 1200 + GAP_SECS,
+            T + 1200 + GAP_SECS + GAP_SECS + 1,
+            T + 100_000,
+        ]);
         assert_eq!(s, vec![(T, T + 1200 + GAP_SECS)]);
         assert_eq!(spans_from_times(vec![T, T + 59]), vec![]);
         assert_eq!(spans_from_times(vec![T, T + 60]), vec![(T, T + 60)]);
@@ -213,7 +287,10 @@ mod tests {
     #[test]
     fn explicit_zone_ignores_mtime() {
         let text = "2025-10-10T20:00:00Z a\nnoise without time\n2025-10-10T20:20:00Z b\n2025-10-10T23:00:00Z c\n2025-10-10T23:20:00Z d\n";
-        assert_eq!(spans_from_text(text, 0), vec![(T, T + 1200), (T + 10_800, T + 12_000)]);
+        assert_eq!(
+            spans_from_text(text, 0),
+            vec![(T, T + 1200), (T + 10_800, T + 12_000)]
+        );
     }
 
     #[test]
@@ -250,7 +327,14 @@ mod tests {
         let q = dir.join("missing.log");
         let spans = spans_from_files(&[("Mixxx".into(), p), ("Mixxx".into(), q)]);
         assert_eq!(spans.len(), 1);
-        assert_eq!((spans[0].start.as_str(), spans[0].end.as_str(), spans[0].source.as_str()), ("2025-10-10T20:00:00Z", "2025-10-10T20:45:00Z", "log"));
+        assert_eq!(
+            (
+                spans[0].start.as_str(),
+                spans[0].end.as_str(),
+                spans[0].source.as_str()
+            ),
+            ("2025-10-10T20:00:00Z", "2025-10-10T20:45:00Z", "log")
+        );
         let json = serde_json::to_string(&spans[0]).unwrap();
         assert!(!json.contains("secret"));
         let _ = std::fs::remove_dir_all(&dir);
