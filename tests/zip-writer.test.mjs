@@ -204,6 +204,32 @@ test('ZIP size cap includes local records, directory and end record', () => {
   );
 });
 
+test('ZIP UTF-8 text payload fills the exact archive budget without truncation', () => {
+  const cap = 20 * 1024 * 1024;
+  const filename = 'é.txt'; // six UTF-8 bytes, but only five UTF-16 code units
+  const filenameBytes = enc(filename).length;
+  const overhead = 22 + 30 + 46 + 2 * filenameBytes;
+  const remaining = cap - overhead;
+  assert.equal(remaining % 2, 0, 'test payload must exactly fill the budget');
+  const payload = 'é'.repeat(remaining / 2);
+
+  const archive = createZip([{ name: filename, data: payload }]);
+  assert.equal(archive.length, cap, 'UTF-8 bytes, not string length, define the limit');
+  const files = readZip(archive);
+  assert.equal(files.length, 1);
+  assert.equal(files[0].name, filename);
+  assert.equal(files[0].data.length, remaining);
+  assert.equal(crc32(files[0].data), files[0].crc);
+  assert.deepEqual(files[0].data.subarray(0, 8), enc('éééé'));
+  assert.deepEqual(files[0].data.subarray(-8), enc('éééé'));
+
+  assert.throws(
+    () => createZip([{ name: filename, data: payload + 'x' }]),
+    /Zip too large/,
+    'one additional UTF-8 byte must exceed the unchanged 20 MiB bound',
+  );
+});
+
 test('ZIP text size preflight rejects oversize UTF-8 before encoding allocation', () => {
   const cap = 20 * 1024 * 1024;
   const originalEncode = TextEncoder.prototype.encode;
