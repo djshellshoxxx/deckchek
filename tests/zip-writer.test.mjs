@@ -73,6 +73,29 @@ test('ZIP end directory counts actual records emitted by array iterators', () =>
   }
 });
 
+test('ZIP snapshots mutable byte payloads before later entry accessors run', () => {
+  const original = new Uint8Array([0x41, 0x42, 0x43]);
+  let laterReads = 0;
+  const archive = createZip([
+    { name: 'first.bin', data: original },
+    {
+      name: 'second.txt',
+      get data() {
+        laterReads++;
+        original[0] = 0x5a;
+        return 'ok';
+      },
+    },
+  ], { date: new Date(2026, 0, 2) });
+
+  assert.equal(laterReads, 1);
+  assert.equal(original[0], 0x5a, 'the later entry really changed caller-owned bytes');
+  const files = readZip(archive);
+  assert.deepEqual(files.map(file => file.name), ['first.bin', 'second.txt']);
+  assert.deepEqual(files[0].data, new Uint8Array([0x41, 0x42, 0x43]));
+  for (const file of files) assert.equal(crc32(file.data), file.crc);
+});
+
 test('output is deterministic for a fixed date', () => {
   const d = new Date(2026, 0, 2, 3, 4, 6);
   const a = createZip([{ name: 'a.txt', data: 'x' }], { date: d });
