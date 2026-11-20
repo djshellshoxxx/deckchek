@@ -93,6 +93,7 @@ test('AC-6 GitHub Pages guide: public site, correct publishing root, and stale-f
   assert.match(single[1], /Rename the exported file "deckchek-gear-ledger\.html" to index\.html/);
   assert.match(single[1], /repository root/);
 });
+
 test('AC-7 browser mode: revisions count up by one, a stale revision is refused, history survives reload', async () => {
   const storage = mem();
   const api = createLedgerApi({ invoke: null, storage, catalog: { list: async () => [] }, photos: { list: async () => [] }, now: () => '2026-10-28T10:00:00.000Z' });
