@@ -17,17 +17,30 @@ const MAX_LOCAL_EXPORTS = 50;
 /** maintenance_list returns at most this many rows (src-tauri/src/fleet.rs maintenance_filtered). */
 const MAINTENANCE_LIST_CAP = 1000;
 const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? null;
+// Some privacy modes expose localStorage as a throwing getter. Do not fail before
+// the Ledger API can report an unavailable browser persistence store.
+const defaultBrowserStorage = () => { try { return globalThis.localStorage; } catch { return null; } };
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // The UI smoke mock (and test doubles) answer commands they do not know with "unknown command <name>". Only that answer
 // selects the older code path; every other error (a real database or file error) is passed on.
 const isUnknownCommand = e => /^unknown command\b/.test(String(e?.message ?? e));
 const tauri = () => globalThis.window?.__TAURI__ ?? null;
 
-function readLocal(storage) {
+function readLocal(storage, { forWrite = false } = {}) {
   try {
     const v = JSON.parse(storage?.getItem(LOCAL_KEY) || '{}');
+    // Reads retain their historical empty fallback. Mutations must not turn
+    // an unreadable or malformed existing ledger into an empty replacement.
+    if (forWrite && (!isObj(v)
+      || (v.exports !== undefined && (!Array.isArray(v.exports) || !v.exports.every(isObj)))
+      || (v.notes !== undefined && !isObj(v.notes)))) {
+      throw new Error('Gear Ledger browser data has an invalid shape');
+    }
     return { exports: Array.isArray(v?.exports) ? v.exports.filter(isObj) : [], notes: isObj(v?.notes) ? v.notes : {} };
-  } catch { return { exports: [], notes: {} }; }
+  } catch (cause) {
+    if (forWrite) throw new Error('Browser Gear Ledger data is unreadable; changes were not saved.', { cause });
+    return { exports: [], notes: {} };
+  }
 }
 function writeLocal(storage, data) {
   // A missing, full, or blocked browser store must never be reported as a successful
@@ -41,7 +54,7 @@ function writeLocal(storage, data) {
   }
 }
 
-export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.localStorage, catalog, photos, now = () => new Date().toISOString() } = {}) {
+export function createLedgerApi({ invoke = nativeInvoke(), storage = defaultBrowserStorage(), catalog, photos, now = () => new Date().toISOString() } = {}) {
   const cat = catalog ?? createCatalogStore({ invoke, storage });
   const pho = photos ?? createPhotoStore({ invoke });
   const native = Boolean(invoke);
@@ -120,7 +133,7 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
 
   async function setPublicNote(assetId, text) {
     if (native) return invoke('ledger_public_note_set', { assetId, text: text ?? null });
-    const data = readLocal(storage);
+    const data = readLocal(storage, { forWrite: true });
     const t = typeof text === 'string' ? text.trim().slice(0, 2000) : '';
     if (t) data.notes[assetId] = t; else delete data.notes[assetId];
     writeLocal(storage, data);
@@ -134,7 +147,7 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
 
   async function recordExport(record) {
     if (native) return invoke('ledger_export_record', { record });
-    const data = readLocal(storage);
+    const data = readLocal(storage, { forWrite: true });
     const next = Math.max(0, ...data.exports.map(e => Number(e.revision) || 0)) + 1;
     if (record.revision !== next) throw Object.assign(new Error(`LEDGER_REVISION: the next revision is ${next}, not ${record.revision}`), { code: 'revision' });
     const row = { id: `l-${Date.now().toString(36)}`, revision: next, createdAt: now(), selection: record.selection, privacy: record.privacy, ledgerSha256: record.ledgerSha256 };

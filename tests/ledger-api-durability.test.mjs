@@ -57,3 +57,44 @@ test('native persistence continues through Rust even when browser storage is una
   assert.equal((await api.recordExport(record)).revision, 1);
   assert.deepEqual(seen.map(x => x[0]), ['ledger_public_note_set', 'ledger_export_record']);
 });
+
+test('a throwing localStorage getter cannot prevent the Ledger API from reporting a failed write', async () => {
+  const prior = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  assert.ok(!prior || prior.configurable, 'the property must be restorable after the test');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() { throw new Error('SecurityError: blocked'); },
+  });
+  try {
+    const api = createLedgerApi({
+      invoke: null,
+      catalog: { list: async () => [] },
+      photos: { list: async () => [] },
+    });
+    await assert.rejects(api.setPublicNote('asset-1', 'draft'), /storage is unavailable.*not saved/i);
+  } finally {
+    if (prior) Object.defineProperty(globalThis, 'localStorage', prior);
+    else delete globalThis.localStorage;
+  }
+});
+
+test('an unreadable existing browser Ledger cannot be silently overwritten', async () => {
+  let writes = 0;
+  const api = makeApi({
+    getItem() { throw new Error('SecurityError: cannot read'); },
+    setItem() { writes++; },
+  });
+  await assert.rejects(api.setPublicNote('asset-1', 'draft'), /data is unreadable.*not saved/i);
+  await assert.rejects(api.recordExport(record), /data is unreadable.*not saved/i);
+  assert.equal(writes, 0, 'never erase unreadable prior ledger data');
+});
+
+test('malformed or structurally invalid browser Ledger data blocks mutations', async () => {
+  for (const raw of ['{broken', 'null', '{"exports":{}}', '{"exports":[false]}', '{"notes":[]}']) {
+    let writes = 0;
+    const api = makeApi({ getItem: () => raw, setItem: () => { writes++; } });
+    await assert.rejects(api.setPublicNote('asset-1', 'draft'), /data is unreadable.*not saved/i);
+    await assert.rejects(api.recordExport(record), /data is unreadable.*not saved/i);
+    assert.equal(writes, 0, 'should not overwrite prior storage: ' + raw);
+  }
+});
