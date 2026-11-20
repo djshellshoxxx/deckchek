@@ -75,6 +75,24 @@ test('AC-6 publish help: numbered GitHub Pages steps naming the exact folder, no
   assert.match(RETRACT_NOTE, /does not remove copies you already published/);
 });
 
+test('AC-6 GitHub Pages guide: public site, correct publishing root, and stale-file cleanup', () => {
+  const folder = publishSteps('ledger', 'folder');
+  const single = publishSteps('deckchek-gear-ledger.html', 'single');
+  for (const steps of [folder, single]) {
+    assert.equal(steps.length, 4);
+    assert.match(steps[0], /GitHub Free requires a public repository/);
+    assert.match(steps[0], /private repository does not, by itself, make its Pages site private/);
+    assert.match(steps[2], /Deploy from a branch/);
+    assert.match(steps[2], /\/ \(root\)/);
+    assert.match(steps[3], /Check the published page and repository/);
+    assert.ok(!steps.join(' ').match(/password|token|sign in|log in/i));
+  }
+  assert.match(folder[1], /contents of the exported "ledger" folder/);
+  assert.match(folder[1], /remove obsolete photos and certificate JSON files/);
+  assert.match(folder[1], /uploading new files does not delete old GitHub files/);
+  assert.match(single[1], /Rename the exported file "deckchek-gear-ledger\.html" to index\.html/);
+  assert.match(single[1], /repository root/);
+});
 test('AC-7 browser mode: revisions count up by one, a stale revision is refused, history survives reload', async () => {
   const storage = mem();
   const api = createLedgerApi({ invoke: null, storage, catalog: { list: async () => [] }, photos: { list: async () => [] }, now: () => '2026-10-28T10:00:00.000Z' });
