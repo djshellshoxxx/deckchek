@@ -434,8 +434,12 @@ for (const fails of [false, true]) {
     s.screen.onHide(); s.screen.onShow(); await settle();
     chooser.dispatch('cancel'); chooser.dispatch('change'); await settle(); workspaceControls(s, true);
     assert.equal(calls.length, 1); assert.equal(document.getElementById('ws-title'), null);
+    const currentStatus = s.host.querySelector('#data-status').textContent;
+    const currentToasts = document.getElementById('toasts').textContent;
     if (fails) gate.reject(Error('workspace import refused'));
     else gate.resolve({ runsImported: 0, equipmentImported: 0, runsSkipped: 0, runsInvalid: 0 });
     await settle(); workspaceControls(s, false); assert.equal(calls.length, 1);
+    assert.equal(s.host.querySelector('#data-status').textContent, currentStatus, 'the submitted native import cannot publish into a later Data visit');
+    assert.equal(document.getElementById('toasts').textContent, currentToasts, 'retired native completion must not add global feedback');
   });
 }

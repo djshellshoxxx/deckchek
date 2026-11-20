@@ -56,7 +56,8 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     <p class="small muted cert-disclaimer">${esc(DISCLAIMER)}</p>`;
   const q = s => section.querySelector(s);
   const drop = q('#verify-drop'), input = q('#verify-file'), status = q('#verify-status'), result = q('#verify-result');
-  let token = 0, unlisten = null, listening = false, listenToken = 0;
+  let token = 0, pickerGeneration = 0, unlisten = null, listening = false, listenToken = 0;
+  const isVisible = () => section.isConnected && !section.hidden;
 
   // Each pick takes a token when it starts; only the latest pick may change the result (an earlier, slower file is dropped).
   const showMessage = (title, text, kind, my = ++token) => {
@@ -64,7 +65,7 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     result.hidden = false;
     result.replaceChildren(h('h2', { id: 'verify-result-h', tabindex: '-1', text: title }), h('p', { class: `cert-msg cert-msg-${kind}`, id: 'verify-message', text }));
     status.textContent = `${title}. ${text}`;
-    result.querySelector('h2').focus();
+    if (isVisible()) result.querySelector('h2').focus();
   };
 
   async function verifyJson(json, sourceName, my = ++token) {
@@ -118,8 +119,12 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
       payload && rep.status === 'valid' && payload.unit?.photos?.length ? h('p', { class: 'small muted', text: `${payload.unit.photos.length} photo(s) embedded in the signed data.` }) : '');
     const text = `${badge.label}${badge.expired ? ', EXPIRED' : ''}. ${(rep.reasons || []).join('. ')}`;
     status.textContent = text;
-    announce(`Certificate ${text}`, { assertive: rep.status !== 'valid' });
-    result.querySelector('h2').focus();
+    if (isVisible()) {
+      const current = token, generation = pickerGeneration;
+      announce(`Certificate ${text}`, { assertive: rep.status !== 'valid',
+        isCurrent: () => current === token && generation === pickerGeneration && isVisible() && !result.hidden });
+      result.querySelector('h2').focus();
+    }
   }
 
   async function handleFile(file) {
@@ -138,8 +143,8 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     return verifyJson(text, file.name, my);
   }
 
-  async function handlePath(path) {
-    const my = ++token;
+  async function handlePath(path, my = ++token) {
+    if (my !== token) return;
     const name = String(path).split(/[\\/]/).pop();
     if (extOf(name) === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported', my);
     let json;
@@ -152,16 +157,22 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
   }
 
   async function pick() {
-    if (native && dialog?.open) {
-      const chosen = await dialog.open({ multiple: false, directory: false, title: 'Choose a certificate', filters: [{ name: 'DeckChek certificate', extensions: ['json', 'html', 'htm', 'pdf'] }] });
-      const path = Array.isArray(chosen) ? chosen[0] : chosen;
-      if (path) await handlePath(path);
-      return;
+    const my = ++token, generation = ++pickerGeneration;
+    try {
+      if (native && dialog?.open) {
+        const chosen = await dialog.open({ multiple: false, directory: false, title: 'Choose a certificate', filters: [{ name: 'DeckChek certificate', extensions: ['json', 'html', 'htm', 'pdf'] }] });
+        if (my !== token || generation !== pickerGeneration) return;
+        const path = Array.isArray(chosen) ? chosen[0] : chosen;
+        if (path) await handlePath(path, my);
+        return;
+      }
+      input.click();
+    } catch (e) {
+      if (generation === pickerGeneration) showMessage('Could not read file', friendly(e), 'error', my);
     }
-    input.click();
   }
 
-  drop.addEventListener('click', () => { pick().catch(e => showMessage('Could not read file', friendly(e), 'error')); });
+  drop.addEventListener('click', () => { pick(); });
   input.addEventListener('change', () => { const f = input.files?.[0]; input.value = ''; if (f) handleFile(f); });
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('is-over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('is-over'));
@@ -181,7 +192,7 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
         });
       }
     },
-    onHide: () => { listening = false; listenToken++; try { unlisten?.(); } catch { /* ignore */ } unlisten = null; },
+    onHide: () => { pickerGeneration++; listening = false; listenToken++; try { unlisten?.(); } catch { /* ignore */ } unlisten = null; },
     onEscape: () => { if (result.hidden) return false; result.hidden = true; status.textContent = ''; token++; drop.focus(); return true; },
   };
 }

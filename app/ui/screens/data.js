@@ -2,7 +2,7 @@
 // lists what is replaced and that a safety backup is taken first), automatic backups, and the browser
 // workspace import. Browser mode has distinct workspace, venue-history and catalog files.
 
-import { h, isNative, pickFile } from '../dom.js';
+import { h, isNative } from '../dom.js';
 import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { exportSettingsBlob, importSettingsBlob } from '../state.js';
@@ -53,13 +53,23 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
   const modals = new Set();
   const visible = () => active && !disposed;
   const current = generation => visible() && generation === visibilityGeneration;
+  function renderBusyState() {
+    if (native) { render(); return; }
+    if (!visible()) return;
+    // An import may finish after Data was reopened. Keep the current browser
+    // cards and their controls attached while releasing its workspace lease.
+    for (const id of ['data-import-json', 'data-export-json']) {
+      const button = section.querySelector(`#${id}`);
+      if (button) button.disabled = st.busy;
+    }
+  }
   function acquireBusy(source) {
     if (!visible() || st.busy) return null;
     const owner = { source }; busyOwner = owner; st.busy = true;
-    nativeCatalogPanel?.setExternalBusy(source !== 'native-catalog'); render();
+    nativeCatalogPanel?.setExternalBusy(source !== 'native-catalog'); renderBusyState();
     return () => {
       if (busyOwner !== owner) return;
-      busyOwner = null; st.busy = false; nativeCatalogPanel?.setExternalBusy(false); render();
+      busyOwner = null; st.busy = false; nativeCatalogPanel?.setExternalBusy(false); renderBusyState();
     };
   }
 
@@ -124,27 +134,28 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
 
   async function onImportWorkspace() {
     if (!visible() || st.busy) return;
-    const release = native ? acquireBusy('workspace') : () => {};
+    const release = acquireBusy('workspace');
     if (!release) return;
     const generation = visibilityGeneration;
     try {
-      const file = await (native ? pickWorkspaceFile() : pickFile('.json,application/json'));
+      const file = await pickWorkspaceFile();
       if (!file || !current(generation)) return;
       const parsed = await readWorkspaceFile(file);
       if (!current(generation)) return;
       if (!native) {
         const d = await importParsedWorkspace(parsed);
-        setStatus(`Imported ${d.runs.length} run(s) and ${d.equipment.length} equipment item(s) from the workspace file.`, 'success');
+        if (current(generation)) setStatus(`Imported ${d.runs.length} run(s) and ${d.equipment.length} equipment item(s) from the workspace file.`, 'success');
         return;
       }
       const payload = workspaceToImportPayload(parsed);
       const ok = await workspaceDialog(payload);
       if (!ok || !current(generation)) return;
       const r = await backupApi.importWorkspace(payload);
+      if (!current(generation)) return;
       setStatus(`Imported ${r.runsImported} run(s) and ${r.equipmentImported} equipment item(s). Skipped ${r.runsSkipped} run(s) already in DeckChek${r.runsInvalid ? ` and ${r.runsInvalid} invalid run(s)` : ''}.`, 'success');
       if (visible()) toast('Browser workspace imported.', { type: 'success' });
     } catch (error) {
-      setStatus(`Could not import the workspace: ${friendlyBackupError(error)}`, 'error');
+      if (current(generation)) setStatus(`Could not import the workspace: ${friendlyBackupError(error)}`, 'error');
     } finally { release(); }
   }
 
@@ -321,8 +332,8 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
         h('h2', { class: 'card-title', text: 'Workspace file' }),
         h('p', { class: 'field-help', id: 'data-unsupported', text: 'Backup files need the DeckChek desktop app. In the browser, export your workspace to a JSON file and import it again on another computer.' }),
         h('div', { class: 'data-actions' },
-          h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-export-json', onclick: () => { exportWorkspace(); setStatus('Workspace exported as deckchek-workspace.json.', 'success'); } }, h('span', { html: icon('download', { size: 18 }) }), h('span', { text: 'Export workspace (JSON)' })),
-          h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-import-json', onclick: onImportWorkspace }, h('span', { html: icon('upload', { size: 18 }) }), h('span', { text: 'Import workspace (JSON)' })))));
+          h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-export-json', disabled: st.busy, onclick: () => { if (!visible() || st.busy) return; exportWorkspace(); setStatus('Workspace exported as deckchek-workspace.json.', 'success'); } }, h('span', { html: icon('download', { size: 18 }) }), h('span', { text: 'Export workspace (JSON)' })),
+          h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-import-json', disabled: st.busy, onclick: onImportWorkspace }, h('span', { html: icon('upload', { size: 18 }) }), h('span', { text: 'Import workspace (JSON)' })))));
       grid.append(archiveHost, catalogHost);
       return;
     }

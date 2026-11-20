@@ -133,3 +133,50 @@ test('verification already started for the selected file may finish while the ca
   screen.navigate('verify');
   assert.match(screen.byId('verify-result').textContent, /SELECTED/);
 });
+
+for (const outcome of ['resolve', 'reject']) {
+  test(`an older native chooser ${outcome} cannot replace a newer file result`, async () => {
+    const pending = deferred(), screen = mount({ dialog: { open: () => pending.promise } });
+    screen.byId('verify-drop').click(); screen.file({ name: 'newer.pdf', size: 4 });
+    if (outcome === 'resolve') pending.resolve('/tmp/older.json'); else pending.reject(new Error('Older chooser failed'));
+    await settle();
+    assert.match(screen.byId('verify-message')?.textContent || '', /no DeckChek data attached/);
+    assert.deepEqual(screen.extracted, []); assert.deepEqual(screen.verified, []);
+  });
+}
+test('the latest native chooser retains ownership when dialogs complete out of order', async () => {
+  const earlier = deferred(), later = deferred(); let calls = 0;
+  const screen = mount({ dialog: { open: () => (++calls === 1 ? earlier.promise : later.promise) } });
+  screen.byId('verify-drop').click(); screen.byId('verify-drop').click();
+  later.resolve('/tmp/current.json'); await settle(); earlier.resolve('/tmp/obsolete.json'); await settle();
+  assert.deepEqual(screen.extracted, ['/tmp/current.json']);
+  assert.match(screen.byId('verify-result').textContent, /current.json/);
+  assert.doesNotMatch(screen.byId('verify-result').textContent, /obsolete.json/);
+});
+for (const next of ['hidden', 'shown again']) for (const outcome of ['resolve', 'reject']) {
+  test(`native chooser ${outcome} after its screen was ${next} does not start a new result`, async () => {
+    const pending = deferred(), screen = mount({ dialog: { open: () => pending.promise } });
+    screen.byId('verify-drop').click(); screen.navigate('other'); if (next === 'shown again') screen.navigate('verify');
+    const before = screen.byId('verify-result').textContent;
+    if (outcome === 'resolve') pending.resolve('/tmp/retired-picker.json'); else pending.reject(new Error('Retired picker failed'));
+    await settle(); assert.deepEqual(screen.extracted, []); assert.equal(screen.byId('verify-result').textContent, before);
+  });
+}
+test('a current chooser error is shown and cancellation preserves its cached result', async () => {
+  let calls = 0;
+  const screen = mount({ dialog: { open: async () => { if (++calls === 1) throw new Error('Picker unavailable'); return null; } } });
+  screen.byId('verify-drop').click(); await settle(); assert.match(screen.byId('verify-message').textContent, /Picker unavailable/);
+  const before = screen.byId('verify-result').textContent; screen.byId('verify-drop').click(); await settle();
+  assert.equal(screen.byId('verify-result').textContent, before); assert.deepEqual(screen.extracted, []);
+});
+test('hidden verification updates its cache without replacing another screen announcement', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const pending = deferred(), screen = mount({ verify: () => pending.promise });
+  screen.file({ name: 'selected.json', size: rawBytes.length, arrayBuffer: async () => rawBytes.slice().buffer });
+  await settle(); screen.navigate('other'); t.mock.timers.tick(50);
+  const live = document.getElementById('sr-polite'); live.textContent = 'Other screen feedback'; const focused = document.activeElement;
+  pending.resolve(report('HIDDEN-SELECTED')); await settle(); t.mock.timers.tick(50);
+  assert.match(screen.byId('verify-result').textContent, /HIDDEN-SELECTED/);
+  assert.equal(live.textContent, 'Other screen feedback'); assert.equal(document.activeElement, focused);
+  screen.navigate('verify'); assert.match(screen.byId('verify-result').textContent, /HIDDEN-SELECTED/);
+});

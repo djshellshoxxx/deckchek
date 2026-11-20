@@ -7,7 +7,7 @@ import { settings, setSetting, on, emit, active, calibrationStatus } from './sta
 import { listInputDevices } from './audio-io.js';
 import { setInputDevices } from './pair-picker.js';
 import { createStereoMeter, clearAllClips, refreshMeterThemes } from './meters.js';
-import { announce, toast } from './live.js';
+import { announce, toast, cancelPendingAnnouncements } from './live.js';
 import { isEnabled, onFeatureChange } from '../features.js';
 
 const screens = new Map();   // id -> {def, section, api}
@@ -73,6 +73,7 @@ export function go(id, { focus = false } = {}) {
   if (!entry || !featureOn(entry.def)) entry = screens.get(visibleIds()[0]);
   if (!entry) return;
   const previous = active.screen;
+  if (previous !== entry) cancelPendingAnnouncements();
   if (previous && previous !== entry) { previous.api?.onHide?.(); previous.section.hidden = true; }
   if (!entry.api) entry.api = entry.def.create(entry.section) || {};
   entry.section.hidden = false;

@@ -48,7 +48,7 @@ const when = iso => { const d = new Date(iso); const p = n => String(n).padStart
 
 export function createPhoneImportScreen(section) {
   const st = { parsed: null, assets: [], busy: false, imported: null, pendingAsset: undefined };
-  let fileReadToken = 0;
+  let fileReadToken = 0, assetReadToken = 0;
   const text = h('textarea', { id: 'pi-text', class: 'pi-text', rows: '8', spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'pi-help',
     placeholder: '{"format":"deckchek-mobile", …}   or   DCKM1/1/3/…  (one QR frame per line)' });
   const status = h('div', { id: 'pi-status', class: 'pi-status', role: 'status', 'aria-live': 'polite' });
@@ -57,16 +57,22 @@ export function createPhoneImportScreen(section) {
   const setStatus = (message, tone = 'info') => { status.replaceChildren(); if (message) status.append(h('p', { class: `hint hint-${tone}`, text: message })); };
 
   async function loadAssets() {
-    try { st.assets = (await store.list('asset')).filter(a => !a.isDeleted); } catch { st.assets = []; }
+    const my = ++assetReadToken;
+    let assets;
+    try { assets = (await store.list('asset')).filter(a => !a.isDeleted); } catch { assets = []; }
+    if (my !== assetReadToken) return false;
+    st.assets = assets;
+    return true;
   }
 
   function read() {
-    fileReadToken++;
+    const my = ++fileReadToken;
+    const isCurrent = () => my === fileReadToken && section.isConnected && !section.hidden;
     st.imported = null;
     st.parsed = parsePhoneRun(text.value);
-    if (!st.parsed.ok) { setStatus(st.parsed.errors.join(' '), 'warn'); announce('Could not read the result.'); renderPreview(); return; }
+    if (!st.parsed.ok) { setStatus(st.parsed.errors.join(' '), 'warn'); announce('Could not read the result.', { isCurrent }); renderPreview(); return; }
     setStatus('');
-    announce(`Result read: ${st.parsed.run.measurements.length} measurements.`);
+    announce(`Result read: ${st.parsed.run.measurements.length} measurements.`, { isCurrent });
     renderPreview();
   }
 
@@ -83,7 +89,7 @@ export function createPhoneImportScreen(section) {
     } catch (error) {
       if (my !== fileReadToken) return;
       setStatus(`Could not read the file: ${error?.message || error}`, 'warn');
-      announce('Could not read the phone result file.');
+      announce('Could not read the phone result file.', { isCurrent: () => my === fileReadToken && section.isConnected && !section.hidden });
     }
   }
 
@@ -91,18 +97,32 @@ export function createPhoneImportScreen(section) {
 
   async function addToHistory(assetId) {
     if (st.busy || !st.parsed?.ok) return;
+    const parsed = st.parsed;
+    const ownsResult = () => st.parsed === parsed;
+    const canAnnounce = () => ownsResult() && section.isConnected && !section.hidden;
     st.busy = true; renderPreview();
     try {
-      const run = phoneRunToHistoryRun(st.parsed, { assetId: assetId || null });
+      const run = phoneRunToHistoryRun(parsed, { assetId: assetId || null });
       const replaced = workspace.runs.some(r => r.id === run.id);
       const res = await persistRun(run);
+      if (!ownsResult()) return;
       st.imported = { id: run.id, replaced, ok: res.ok, error: res.error };
-      if (res.ok) toast(replaced ? 'Phone results updated in History.' : 'Phone results added to History.', { type: 'success' });
-      else toast(`Kept in this window only; the database save failed: ${res.error}`, { type: 'warn' });
-      announce('Phone results added to History.');
+      if (canAnnounce()) {
+        if (res.ok) toast(replaced ? 'Phone results updated in History.' : 'Phone results added to History.', { type: 'success' });
+        else toast(`Kept in this window only; the database save failed: ${res.error}`, { type: 'warn' });
+        announce(res.ok ? 'Phone results added to History.' : 'Phone results kept in this window; the database save failed.', { isCurrent: canAnnounce });
+      }
     } catch (error) {
-      setStatus(`Could not add the result: ${error?.message || error}`, 'warn');
-    } finally { st.busy = false; renderPreview(); }
+      if (ownsResult()) setStatus(`Could not add the result: ${error?.message || error}`, 'warn');
+    } finally {
+      st.busy = false;
+      if (ownsResult()) renderPreview();
+      else {
+        // The new preview shares the pending-save lock, but keeps its own form and focus.
+        const button = preview.querySelector('#pi-import');
+        if (button) { button.disabled = false; button.textContent = 'Add to History'; }
+      }
+    }
   }
 
   function renderPreview() {
@@ -156,8 +176,8 @@ export function createPhoneImportScreen(section) {
       status),
     preview);
   renderPreview();
-  loadAssets().then(() => { if (st.parsed?.ok) renderPreview(); });
-  return { onShow: () => { loadAssets().then(() => { if (st.parsed?.ok) renderPreview(); }); }, onHide: () => { fileReadToken++; }, onEscape: () => false };
+  loadAssets().then(current => { if (current && st.parsed?.ok) renderPreview(); });
+  return { onShow: () => { loadAssets().then(current => { if (current && st.parsed?.ok) renderPreview(); }); }, onHide: () => { fileReadToken++; assetReadToken++; }, onEscape: () => false };
 }
 
 export function phoneImportScreenDefs() {

@@ -54,13 +54,38 @@ non-atomic nature of cross-tab localStorage writes.
   See [reader round 2](SECURITY_AUDIT_ROUND2_2026-11-19.md) and the
   [phone/certificate follow-up](FILE_IMPORT_FOLLOWUP_2026-11-19.md).
 
+### Subsequent reviewed completion
+
+- Browser Data imports use an owned chooser and shared busy lease. Navigation
+  retires feedback without rolling back an already submitted durable import;
+  releasing the lease preserves the current controls. See [code round 7](CODE_AUDIT_ROUND7_2026-11-19.md)
+  and [independent round 8](CODE_AUDIT_ROUND8_2026-11-19.md).
+- File-picker cancellation removes temporary controls. Verify chooser ownership
+  starts before the native dialog, and phone save completions belong to their
+  original result. See [bug round 4](BUG_HUNT_ROUND4_2026-11-19.md).
+- Delayed announcements keep separate polite/assertive ownership and are retired
+  on actual navigation. Phone/Verify callers also guard delivery; phone asset
+  refreshes preserve newer selections. See [bug round 5](BUG_HUNT_ROUND5_2026-11-19.md).
+- Job-sheet PDFs honor the existing option for structured serial fields without
+  editing saved data. Nicknames, free text and filenames are not scanned; this
+  is not complete anonymization. See [privacy round 7](SECURITY_AUDIT_ROUND7_2026-11-19.md)
+  and [independent round 8](SECURITY_AUDIT_ROUND8_2026-11-19.md).
+
+The [boundary review](SECURITY_AUDIT_ROUND9_2026-11-19.md) verifies unchanged
+manifests/locks, maintained GLib backport, capability grants, CI gates, migrations,
+signing engines and default flags. The feature deliberately adds the registered
+`device_profile_assign` command. Workspace's numeric 64 MiB ceiling is retained,
+with stricter enforcement against UTF-8 bytes instead of string length alone.
+This review is not a fresh all-dependency vulnerability clearance.
+
 ## Worker generations and source ownership
 
 Round 1 used independent code/branch, bug-hunt and security workers. Fresh round-2
 workers reviewed those corrections before continuing the next reproduced issues.
 Fresh round-3/4 workers reviewed the combined source and actual profile-assignment
-screen. Round 5 continues the next concrete persistence and security-contract
-issues. The round-3 security worker stopped at a tool restriction before changing
+screen. Later generations corrected workspace durability, Data/picker/save
+ownership, PDF serial-field redaction and delayed announcements. Fresh successor
+reviews check those changes before final combined qualification. The round-3 security worker stopped at a tool restriction before changing
 production; its draft tests were not used. Round 4 used a narrower read-only
 inspection, followed by separately tested ordinary file-handling repairs.
 Root owns integration and publication; each author uses an isolated worktree.
@@ -80,6 +105,21 @@ Root owns integration and publication; each author uses an isolated worktree.
 | `8145e01c2704073072d3bddc13499fb9cc32816b` | Service panel/export follow-up | 146/146 focused; initial expanded scope 31 passes/25 failures |
 | `13a2ec69b60a0c84d7bcbd2afaf34915badd1fd0` | Independent strict-import/native-assignment review | Read-only source acceptance; no new execution |
 | `9af6acd9d0a8e63922daee846cb6fdd2ada60ec5` | Browser workspace durability and retained counts | 40/40 focused; corrected reproduction 2 passes/3 failures |
+
+Additional completed handoffs:
+
+| Review | Evidence |
+| --- | --- |
+| Code round 6 | 9/9 durability/ordering cases; independent acceptance |
+| Bug round 4 | 124/124 related picker/phone/Verify cases; initial 14 passes/17 failures |
+| Security round 6 | Static Service privacy/ownership acceptance |
+| Code round 7 | 71/71 Data/native lease/durability cases; initial 2 passes/7 failures |
+| Code round 8 | 2/2 strengthened existing native-feedback cases; independent acceptance |
+| Bug round 5 | 142/142 announcement compatibility; subsequent affected scope 41/41 after two asset-list failures were corrected |
+| Security round 7 | 60/60 report/Service/privacy cases; initial 2 passes/2 failures |
+| Security round 8 | Static acceptance of the bounded PDF correction |
+| Security round 9 | Git-object/configuration comparison; no scanner or runtime execution |
+| Bug round 6 | 4/4 asset-load ordering/hide-return cases; independent announcement/phone acceptance |
 
 Focused scope totals overlap and must not be added together as a unique test count.
 All listed Node runs used 22.23.4. No regression assertion, measurement threshold,
@@ -116,17 +156,48 @@ was used. Follow-up source changes need their own qualification.
 - Local Chromium launch fails at the process-singleton Unix socket with
   `Operation not permitted`; no browser pass is claimed. Hosted UI checks include
   the new assignment smoke and existing Service/import suites.
-- Initial test, nightly and platform workflows are queued. No new-source CI pass,
-  merge, hardware qualification, release or deployment is asserted here.
+- Initial hosted workflows were superseded/cancelled when PR #34 advanced.
+  Published checkpoint `3cff35894f0e1edd1277f9dc4e480232b9c2de90` has tree
+  `0f80876bf1231f4199c809ea8ae43a77c18b04a7`, matching local
+  `ad696d837d1793af2681baea90a160e6118e9b0d`. Replacement workflows were
+  queued at the observed checkpoint. No new-source CI pass or merge is claimed.
+- Frozen combined source `5c8d4ff4c96dc0d0418e6a3c7f0a27f504772f42`, tree
+  `fd2a8c9c2254d1e5ad88df9ef3f97f05d7b6ae09`, passed the serial Node suite:
+  **2,128 passed, zero failed, one optional Mixxx-corpus skip (2,129 total;
+  521,205.003702 ms)**. All 38 changed JavaScript files passed syntax checks;
+  its tracked checkout was clean after execution. This includes phone-save/picker
+  repairs; later Data, redaction and announcement changes need separate qualification.
+- Final combined application/test source `7b317e991e2c2ed49e8b70d81e6418b9aef2f3cd`,
+  tree `d15b335258bacb9667995acd10a53476b8adcf19`, passed the serial Node suite:
+  **2,157 passed, zero failed, one optional Mixxx-corpus skip (2,158 total;
+  450,237.119403 ms)**. This run includes the Data, PDF redaction, announcement
+  and phone asset-list corrections and successor regression cases. All **45**
+  changed JavaScript files passed syntax checks, and the frozen tracked checkout
+  remained clean after execution. Native production inputs, manifest and lockfile
+  are identical to the bounded six-test/strict-Clippy checkpoint above; no new
+  full Tauri or browser execution is implied. Recording this result changes only
+  this report; the published application and test files retain the tested bytes.
+- No hardware qualification, release or deployment is asserted.
 
 This section is a checkpoint, not evidence that later bytes passed these gates.
 
+## Continuation scheduling
+
+The requested fresh-worker workflow has an enabled hourly continuation, starting
+19 November 2026 at 19:46:30 America/Los_Angeles. Each run resumes live Git refs
+and the newest handoff, avoids overlapping owned work, and records useful changes
+and source-specific qualification. Remaining account credits are not exposed;
+this schedule does not establish a credit-exhaustion stopping point.
+
 ## Remaining completion work
 
-Finish fresh-worker review, integrate only reproduced corrections, then qualify
-the resulting combined tree through applicable tests/native/browser/platform
-checks before merging PR #34. Keep final source IDs, successes, failures and
-unavailable execution scopes explicit.
+All current worker reviews have completed. Confirmed changes are integrated and
+independently accepted within their stated scopes. The final combined source has
+passed local JavaScript qualification. Hold the published PR #34 candidate steady
+while its exact-source hosted tests, native/browser/platform and nightly gates
+run. Merge only after applicable checks pass; further implementation belongs on
+separate work until a confirmed correction or failing gate requires an update.
+Keep final source IDs, successes, failures and unavailable execution scopes explicit.
 
 Physical H-00..H-33 runs, known-reference accuracy, shared WASAPI beside real DJ
 software, real MIDI identity/hot-plug/Identity Reply/GM behavior, actual VirtualDJ
