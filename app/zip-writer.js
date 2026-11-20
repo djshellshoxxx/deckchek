@@ -42,6 +42,8 @@ export function validateEntryName(name) {
 }
 
 function dosDateTime(d) {
+  // A NaN timestamp otherwise becomes zero-valued DOS month/day fields.
+  if (!(d instanceof Date) || !Number.isFinite(d.getTime())) throw new Error('Invalid ZIP date.');
   const y = Math.min(2107, Math.max(1980, d.getFullYear()));
   const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
   const date = ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
