@@ -52,7 +52,10 @@ export function validateMessage(bytes) {
 export function analyzeStream(events = [], { endUs = null } = {}) {
   const evs = events.filter(e => e && e.bytes);
   const invalid = [], sysexBad = [];
-  const sounding = new Map();
+  // Count captured note-on/release messages, not audible voices: sustain and
+  // envelope tails cannot be established by this passive MIDI stream.
+  const unreleased = new Map();
+  const releasedByMode = new Map(); // allow later individual releases of those same notes
   let orphans = 0, total = 0;
   const channels = new Set();
   const ccTimes = new Map(); // `${ch}:${cc}` -> [tUs]
@@ -66,11 +69,32 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     if (v.kind === 'channel') {
       const ch = (s & 0x0f) + 1, type = s & 0xf0;
       channels.add(ch);
-      if (type === 0x90 && bytes[2] > 0) { const k = `${ch}:${bytes[1]}`; sounding.set(k, (sounding.get(k) || 0) + 1); }
+      if (type === 0x90 && bytes[2] > 0) { const k = `${ch}:${bytes[1]}`; unreleased.set(k, (unreleased.get(k) || 0) + 1); }
       else if (type === 0x80 || type === 0x90) {
-        const k = `${ch}:${bytes[1]}`, n = sounding.get(k) || 0;
-        if (n > 0) sounding.set(k, n - 1); else orphans++;
-      } else if (type === 0xb0) { const k = `${ch}:${bytes[1]}`; (ccTimes.get(k) || ccTimes.set(k, []).get(k)).push(e.tUs); }
+        const k = `${ch}:${bytes[1]}`, n = unreleased.get(k) || 0;
+        if (n > 1) unreleased.set(k, n - 1);
+        else if (n === 1) unreleased.delete(k);
+        else {
+          const released = releasedByMode.get(k) || 0;
+          if (released > 1) releasedByMode.set(k, released - 1);
+          else if (released === 1) releasedByMode.delete(k);
+          else orphans++;
+        }
+      } else if (type === 0xb0) {
+        const controller = bytes[1], k = `${ch}:${controller}`;
+        (ccTimes.get(k) || ccTimes.set(k, []).get(k)).push(e.tUs);
+        // CC123 and mode changes CC124-127 include All Notes Off. CC126's
+        // value selects a channel count; the other four use zero. CC120 is
+        // All Sound Off, not a key release, and CC121 resets controllers.
+        // https://midi.org/summary-of-midi-1-0-messages
+        if (controller >= 123 && controller <= 127 && (controller === 126 || bytes[2] === 0)) {
+          for (const [note, count] of unreleased) {
+            if (!note.startsWith(`${ch}:`)) continue;
+            releasedByMode.set(note, (releasedByMode.get(note) || 0) + count);
+            unreleased.delete(note);
+          }
+        }
+      }
     } else if (s === 0xfe) sensing.push(e.tUs);
     else if (s === 0xf8) clock.push(e.tUs);
   }
@@ -82,7 +106,7 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     const name = !isByte(s) ? 'invalid' : s === 0xf0 ? 'sysex' : s >= 0xf8 ? (s === 0xfe ? 'active-sensing' : s === 0xf8 ? 'clock' : 'realtime') : s >= 0xf0 ? 'system' : s >= 0x80 ? ({ 0x80: 'note-off', 0x90: b[2] === 0 ? 'note-off' : 'note-on', 0xa0: 'poly-pressure', 0xb0: 'cc', 0xc0: 'program', 0xd0: 'pressure', 0xe0: 'pitch-bend' })[s & 0xf0] : 'data';
     hist[name] = (hist[name] || 0) + 1;
   }
-  const stuck = [...sounding.entries()].filter(([, n]) => n > 0).map(([k]) => k);
+  const stuck = [...unreleased.keys()];
 
   // 14-bit CC pairs: both n (0-31) and n+32 seen on one channel
   const pairs = [];
@@ -123,7 +147,7 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
   const measurements = [
     m('midi_invalid_messages', 'Invalid MIDI messages', invalid.length, 'messages'),
     m('midi_sysex_malformed', 'Malformed SysEx messages', sysexBad.length, 'messages'),
-    m('midi_stuck_notes', 'Notes still sounding at the end', stuck.length, 'notes', { confidence: endUs == null ? 0.6 : 1, qualityFlags: endUs == null ? ['no-session-end'] : [] }),
+    m('midi_stuck_notes', 'Notes without a captured release', stuck.length, 'notes', { confidence: endUs == null ? 0.6 : 1, qualityFlags: endUs == null ? ['no-session-end'] : [] }),
     m('midi_orphan_note_offs', 'Note-offs without a note-on', orphans, 'messages'),
     m('midi_unpaired_14bit', '14-bit controllers with unpaired halves', unpaired14, 'controllers'),
     m('midi_channels_used', 'MIDI channels used', channels.size, 'channels'),
@@ -157,7 +181,7 @@ export function conformanceFindings(a, identity = null) {
   if (!a.total) F('midi-silent', 'warning', 'No MIDI messages were received', 'Nothing was sent while you exercised the device, so nothing could be checked.', 'Check the port selection, close DJ software that holds the port, then move controls during the test.');
   if (a.invalid.length) F('midi-invalid', 'error', `${a.invalid.length} invalid MIDI message${a.invalid.length > 1 ? 's' : ''}`, `First problem: ${a.invalid[0].problem}. Invalid messages confuse DJ software or are silently dropped.`, 'Retest with a different USB cable/port; if it persists the firmware or interface is faulty.');
   if (a.sysexBad.length) F('midi-sysex', 'error', `${a.sysexBad.length} malformed SysEx message${a.sysexBad.length > 1 ? 's' : ''}`, `First problem: ${a.sysexBad[0].problem}.`, 'Update the firmware; test another cable/port.');
-  if (a.stuck.length) F('midi-stuck', 'error', `${a.stuck.length} note${a.stuck.length > 1 ? 's' : ''} never released`, `Notes ${a.stuck.slice(0, 6).join(', ')} stayed on. A pad or key that never sends note-off keeps triggering its function.`, 'Press and release them again; clean or replace the switch.');
+  if (a.stuck.length) F('midi-stuck', 'error', `${a.stuck.length} note${a.stuck.length > 1 ? 's' : ''} without a captured release`, `No note-off or channel-mode release was captured for ${a.stuck.slice(0, 6).join(', ')}. This is MIDI message evidence, not a measurement of sounding voices or physical switches.`, 'Release every control before finishing, then repeat the capture and check for lost messages.');
   if (a.orphans) F('midi-orphan', 'warning', `${a.orphans} note-off without a note-on`, 'Releases arrived for notes that never started, which can mean dropped messages (USB hub, overloaded port) or a mis-sequenced controller.', 'Plug straight into the PC and retest.');
   const unp = a.pairs.filter(p => p.unpairedFraction > 0.5);
   if (unp.length) F('midi-14bit', 'info', `${unp.length} 14-bit controller${unp.length > 1 ? 's' : ''} send unpaired halves`, `CC ${unp.map(p => `${p.cc}/${p.cc + 32} (ch ${p.channel})`).join(', ')} rarely send MSB and LSB together, so 14-bit resolution may be lost in some software.`, 'Informational: many devices only send the half that changed.');

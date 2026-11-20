@@ -7,12 +7,16 @@ export class Element {
     this.tagName = tag.toUpperCase(); this.ownerDocument = document;
     this.children = []; this.attributes = {}; this.dataset = {}; this.listeners = {};
     this.className = ''; this.parentNode = null; this._text = ''; this.defaultValue = '';
+    this.checked = false; this.defaultChecked = false; this.selected = false; this.defaultSelected = false;
   }
   setAttribute(key, value) {
     this.attributes[key] = String(value);
     if (key === 'class') this.className = String(value);
     else if (key.startsWith('data-')) this.dataset[key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = String(value);
-    else if (['hidden', 'disabled', 'checked', 'selected', 'open'].includes(key)) this[key] = true;
+    else if (key === 'value') { this.defaultValue = String(value); if (!this._dirtyValue) this._value = String(value); }
+    else if (key === 'checked') { this.checked = true; this.defaultChecked = true; }
+    else if (key === 'selected') { this.selected = true; this.defaultSelected = true; }
+    else if (['hidden', 'disabled', 'open'].includes(key)) this[key] = true;
     else this[key] = String(value);
   }
   getAttribute(key) { return this.attributes[key] ?? null; }
@@ -52,8 +56,10 @@ export class Element {
       } else stack.at(-1).append(this.ownerDocument.createTextNode(token));
     }
   }
-  set value(value) { this._value = String(value); }
+  set value(value) { this._value = String(value); this._dirtyValue = true; }
   get value() { return this._value ?? this.children.find(child => child.selected)?.value ?? this.children.find(child => child.tagName === 'OPTION')?.value ?? ''; }
+  get options() { return this.children.filter(child => child.tagName === 'OPTION'); }
+  get selectedIndex() { return this.options.findIndex(option => option.value === this.value); }
   addEventListener(name, callback, options = {}) { (this.listeners[name] ||= []).push({ callback, options }); }
   removeEventListener(name, callback) { this.listeners[name] = (this.listeners[name] || []).filter(listener => listener.callback !== callback); }
   dispatch(name, init = {}) {

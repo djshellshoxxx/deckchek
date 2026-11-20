@@ -6,9 +6,9 @@ import { h, isNative, pickFile } from '../dom.js';
 import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { exportSettingsBlob, importSettingsBlob } from '../state.js';
-import { exportWorkspace, importWorkspace } from '../persistence.js';
+import { exportWorkspace, importParsedWorkspace } from '../persistence.js';
 import { revealAppPath } from '../../external-links.js';
-import { parseWorkspaceJson } from '../../export.js';
+import { readWorkspaceFile } from '../../export.js';
 import { createVenueHistoryArchivePanel } from '../workflows/venue-history-archive.js';
 import { createCatalogArchivePanel } from '../workflows/catalog-archive.js';
 import { createNativeCatalogArchivePanel } from '../workflows/native-catalog-archive.js';
@@ -130,11 +130,10 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
     try {
       const file = await (native ? pickWorkspaceFile() : pickFile('.json,application/json'));
       if (!file || !current(generation)) return;
-      const text = await file.text();
+      const parsed = await readWorkspaceFile(file);
       if (!current(generation)) return;
-      const parsed = parseWorkspaceJson(text);
       if (!native) {
-        const d = await importWorkspace(file);
+        const d = await importParsedWorkspace(parsed);
         setStatus(`Imported ${d.runs.length} run(s) and ${d.equipment.length} equipment item(s) from the workspace file.`, 'success');
         return;
       }

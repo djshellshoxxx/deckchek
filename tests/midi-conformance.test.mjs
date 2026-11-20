@@ -33,6 +33,64 @@ test('analyzeStream: invalid, malformed SysEx, orphans, stuck notes', () => {
   assert.equal(conformanceFindings(analyzeStream([]))[0].id, 'midi-silent');
 });
 
+test('analyzeStream accepts the note releases in every built-in GM sound-check sequence', () => {
+  for (const step of gmSteps()) {
+    let tUs = 0;
+    const events = step.messages.map(({ bytes, delayMs }) => {
+      const event = ev(tUs, bytes);
+      tUs += delayMs * 1000;
+      return event;
+    });
+    const analysis = analyzeStream(events, { endUs: tUs });
+    assert.deepEqual(analysis.stuck, [], step.id);
+    assert.equal(analysis.orphans, 0, step.id);
+    assert.equal(mv(analysis, 'midi_stuck_notes'), 0, step.id);
+  }
+});
+
+test('All Notes Off and mode changes release only the addressed channel, including repeated note-ons', () => {
+  for (const [controller, value] of [[123, 0], [124, 0], [125, 0], [126, 0], [126, 16], [127, 0]]) {
+    const analysis = analyzeStream([
+      ev(0, noteOn(1, 60)), ev(1000, noteOn(1, 60)), ev(2000, noteOn(1, 67)),
+      ev(3000, noteOn(2, 60)), ev(4000, noteOn(10, 36)),
+      ev(5000, controlChange(1, controller, value)),
+    ], { endUs: 6000 });
+    assert.deepEqual(analysis.stuck, ['2:60', '10:36'], 'CC' + controller);
+    assert.equal(analysis.orphans, 0);
+    assert.equal(mv(analysis, 'midi_stuck_notes'), 2);
+    assert.equal(analysis.kinds.cc, 1, 'mode messages remain in the captured histogram');
+  }
+});
+
+test('explicit note-offs following a channel release consume only previously observed note-ons', () => {
+  const events = [
+    ev(0, noteOn(1, 60)), ev(1000, noteOn(1, 60)), ev(2000, noteOn(1, 67)),
+    ev(3000, controlChange(1, 123, 0)),
+    ev(4000, noteOff(1, 60)), ev(5000, noteOn(1, 60, 0)), ev(6000, noteOff(1, 67)),
+  ];
+  const released = analyzeStream(events, { endUs: 7000 });
+  assert.deepEqual(released.stuck, []);
+  assert.equal(released.orphans, 0, 'known individual releases after All Notes Off are not orphaned');
+  const extra = analyzeStream([...events, ev(7000, noteOff(1, 60)), ev(8000, noteOff(2, 67))], { endUs: 9000 });
+  assert.equal(extra.orphans, 2, 'a release cannot excuse excess or other-channel note-offs');
+  const restarted = analyzeStream([...events, ev(7000, noteOn(1, 60))], { endUs: 8000 });
+  assert.deepEqual(restarted.stuck, ['1:60'], 'a later note-on needs a new release');
+});
+
+test('sound, controller and pedal changes do not invent key releases or measured silence', () => {
+  for (const [controller, value] of [[120, 0], [121, 0], [122, 0], [122, 127], [64, 0], [64, 127], [123, 1], [124, 1], [125, 1], [127, 1]]) {
+    const events = [ev(0, noteOn(1, 60)), ev(1000, controlChange(1, controller, value))];
+    const held = analyzeStream(events, { endUs: 2000 });
+    assert.deepEqual(held.stuck, ['1:60'], 'CC' + controller + '=' + value + ' is not a note release');
+    assert.equal(analyzeStream([...events, ev(2000, noteOff(1, 60))], { endUs: 3000 }).orphans, 0);
+  }
+  const sustainedRelease = analyzeStream([
+    ev(0, controlChange(1, 64, 127)), ev(1000, noteOn(1, 60)), ev(2000, controlChange(1, 123, 0)),
+  ], { endUs: 3000 });
+  assert.deepEqual(sustainedRelease.stuck, [], 'the metric observes release messages, not sustain or sound output');
+  assert.equal(sustainedRelease.measurements.find(x => x.metricId === 'midi_stuck_notes').label, 'Notes without a captured release');
+});
+
 test('analyzeStream: Active Sensing gap, MIDI clock jitter, 14-bit pairing', () => {
   const sens = analyzeStream([ev(0, [0xfe]), ev(250000, [0xfe]), ev(500000, [0xfe]), ev(900000, [0xfe])]);
   assert.equal(mv(sens, 'midi_active_sensing_gap_ms'), 400);

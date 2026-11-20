@@ -67,7 +67,7 @@ export function resultChip(status) {
  * Renders the new-job form into `host`. preset: {assetId}. Resolves nothing; calls onCreated(job) after the job and its
  * photos are saved, onCancel() on Cancel. Returns {submit, focus}.
  */
-export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel }) {
+export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, isCurrent = () => true }) {
   const err = errorBox('svc-new-error');
   const form = h('form', { class: 'card svc-form', id: 'svc-new-form', novalidate: true, 'aria-labelledby': 'svc-new-title' });
   form.append(h('h2', { class: 'card-title', id: 'svc-new-title', text: 'New job' }), h('p', { class: 'muted small', text: 'Customer details stay on this computer. They are printed on the job sheet only when you choose to include them.' }));
@@ -173,11 +173,12 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel }
       const job = await api.create(payload);
       if (payload.newUnit) { emit('catalog'); refreshUnits().catch(() => {}); }
       const failed = await attachFiles(api, job.id, files, { caption: photoCaption.value.trim(), stage: 'intake' });
+      if (!isCurrent()) return;
       if (failed) toast(`${failed} photo${failed === 1 ? '' : 's'} could not be added. Add them again from the Intake step.`, { type: 'warn' });
       announce(`Job ${job.jobNumber} created`);
       onCreated?.(job);
     } catch (e) {
-      showError(err, `The job was not saved: ${friendly(e)}`);
+      if (isCurrent()) showError(err, `The job was not saved: ${friendly(e)}`);
     } finally {
       busy = false; save.disabled = false; save.removeAttribute('aria-busy');
     }
@@ -351,9 +352,11 @@ export function renderTestsStep(host, ctx, phase) {
       return h('tr', {}, h('th', { scope: 'row', text: t?.title || r.testId || (r.sessionId ? 'Saved run' : 'Result') }), h('td', { html: resultChip(r.status) }), h('td', { class: 'num', text: when(r.at) }));
     })));
   wrap.append(linked.length ? h('div', { class: 'table-wrap' }, table) : h('p', { class: 'muted', id: `svc-no-results-${phase}`, text: `No ${phase} results yet.` }));
-  if (phase === 'after') wrap.append(comparisonBlock(ctx.comparison));
+  const comparison = phase === 'after' ? h('div', {}, comparisonBlock(ctx.comparison)) : null;
+  if (comparison) wrap.append(comparison);
   wrap.append(err);
   host.replaceChildren(wrap);
+  return () => { if (comparison && ctx.isCurrent?.() !== false) comparison.replaceChildren(comparisonBlock(ctx.comparison)); };
 }
 
 function linkRunCard(ctx, phase, err) {
@@ -422,11 +425,12 @@ export function renderWorkStep(host, ctx) {
     buttons.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); });
     try {
       await api.addLog(id, kind, payload);
+      if (ctx.isCurrent?.() === false) return;
       after?.();
-      await ctx.reload({ mark });
+      if (await ctx.reload({ mark }) === false) return;
       const totalsNow = document.getElementById('svc-totals')?.textContent || '';
       announce(`${kind === 'part' ? 'Part' : kind === 'labour' ? 'Labour' : 'Note'} added. ${totalsNow}`.trim());
-    } catch (e) { showError(err, `Not added: ${friendly(e)}`); }
+    } catch (e) { if (ctx.isCurrent?.() !== false) showError(err, `Not added: ${friendly(e)}`); }
     finally {
       busy = false;
       buttons.forEach(b => { b.disabled = false; b.removeAttribute('aria-busy'); });
@@ -543,4 +547,5 @@ export function renderSheetStep(host, ctx) {
       h('label', { class: 'svc-check' }, costs, ' Include costs'), h('label', { class: 'svc-check' }, customer, ' Include customer details'), field('Currency symbol', currency)),
     h('div', { class: 'svc-actions' }, pdfBtn, htmlBtn), saved, err, preview));
   draw();
+  return () => { if (ctx.isCurrent?.() !== false) draw(); };
 }

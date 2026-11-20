@@ -3,6 +3,7 @@ mod capture;
 mod catalog;
 mod commands;
 mod db;
+mod device_profile_assignment;
 mod devices;
 pub mod domain;
 mod midi;
@@ -167,6 +168,7 @@ pub fn run() {
             midi::midi_close_all,
             midi::midi_status,
             devices::device_profiles_sync,
+            devices::device_profile_assign,
             devices::device_test_result_save,
             devices::device_test_results,
             devices::device_midi_map_save,

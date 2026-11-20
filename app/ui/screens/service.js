@@ -65,8 +65,10 @@ export function statusBadge(status) {
 export function createServiceScreen(section) {
   const native = serviceSupported();
   const api = createServiceApi();
-  const st = { view: 'list', filter: listPrefsForSettings(settings.serviceList || {}).status, q: '', jobs: [], total: 0, loading: false, error: null, detail: null, comparison: null, step: 'intake', pending: false, loadSeq: 0 };
+  const st = { view: 'list', filter: listPrefsForSettings(settings.serviceList || {}).status, q: '', jobs: [], total: 0, loading: false, error: null, detail: null, comparison: null, step: 'intake', pending: null, loadSeq: 0 };
   const q = sel => section.querySelector(sel);
+  let panelContext = null;
+  let refreshPanelComparison = null;
 
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('edit', { size: 24 })}</span><div><h1 tabindex="-1">Service</h1>
@@ -170,7 +172,8 @@ export function createServiceScreen(section) {
     body.replaceChildren();
     const host = h('div', { id: 'svc-new-host' });
     body.append(h('nav', { class: 'dev-crumbs', 'aria-label': 'Breadcrumb' }, h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'svc-back', html: `${icon('chevronLeft', { size: 18 })}<span>All jobs</span>`, onclick: backToList })), host);
-    const form = renderIntakeForm(host, { api, preset, onCreated: job => { toast(`Job ${job.jobNumber} created.`, { type: 'success', timeout: 3000 }); openJob(job.id); }, onCancel: backToList });
+    const isCurrent = () => st.view === 'new' && host.isConnected;
+    const form = renderIntakeForm(host, { api, preset, isCurrent, onCreated: job => { if (!isCurrent()) return; toast(`Job ${job.jobNumber} created.`, { type: 'success', timeout: 3000 }); openJob(job.id); }, onCancel: backToList });
     st.form = form;
     form.focus();
     announce('New job form');
@@ -199,24 +202,58 @@ export function createServiceScreen(section) {
     const seq = ++st.loadSeq;
     try {
       await ensureLibrary().catch(() => {});
+      if (seq !== st.loadSeq) return false;
       const detail = await api.get(id);
-      if (seq !== st.loadSeq) return;
+      if (seq !== st.loadSeq) return false;
       st.detail = detail; st.comparison = null;
       if (!st.step) st.step = (stepperState(detail).find(s => s.current) || { id: 'intake' }).id;
       renderDetail();
       if (focusTitle) q('#svc-job-title')?.focus(); else restoreFocus(body, mark, fallback);
-      const data = await api.comparison(id);
-      if (seq !== st.loadSeq) return;
-      const profile = detail.asset?.profileId ? profileById(detail.asset.profileId) : null;
-      st.comparison = buildComparison(data, directionHints(profile));
-      const mark2 = focusMark(body);
-      renderDetail();
-      restoreFocus(body, mark2, '#svc-panel-title');
-      if (!quiet && st.step === 'after') announce(comparisonSummary(st.comparison));
+      return loadComparison(id, { seq, quiet });
     } catch (e) {
-      if (seq !== st.loadSeq) return;
+      if (seq !== st.loadSeq) return false;
       body.replaceChildren(h('div', { class: 'banner banner-fail', role: 'alert', id: 'svc-job-error' }, h('span', { class: 'banner-text', text: `Could not load the job: ${friendly(e)}` }),
         h('div', { class: 'banner-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Retry', onclick: () => loadJob(id) }), h('button', { type: 'button', class: 'btn btn-ghost', text: 'All jobs', onclick: backToList }))));
+      return false;
+    }
+  }
+
+  async function loadComparison(id, { seq, quiet = false }) {
+    const detail = st.detail;
+    const isCurrent = () => seq === st.loadSeq && st.view === 'detail' && st.detail === detail;
+    if (!isCurrent()) return false;
+    try {
+      const data = await api.comparison(id);
+      if (!isCurrent()) return false;
+      const profile = detail.asset?.profileId ? profileById(detail.asset.profileId) : null;
+      st.comparison = buildComparison(data, directionHints(profile));
+      if (panelContext?.isCurrent()) panelContext.comparison = st.comparison;
+      q('#svc-comparison-error')?.remove();
+      // Comparison is a background read. Preserve edits (including Sheet export choices)
+      // and pending status actions; refresh their comparison evidence separately.
+      if (st.pending?.seq !== seq && !hasUnsavedInput(body, { choices: true })) {
+        const mark = focusMark(body);
+        renderDetail();
+        restoreFocus(body, mark, '#svc-panel-title');
+      } else {
+        // Only the comparison can change the After step's completeness. Update its badge
+        // without replacing the fields or choices in the selected panel.
+        const after = stepperState(detail, st.comparison).find(s => s.id === 'after');
+        const button = q('[data-step="after"]');
+        button.className = `svc-step svc-step-${after.state}${st.step === 'after' ? ' is-current' : ''}`;
+        button.title = after.reason;
+        q('#svc-step-after-state').textContent = STEP_STATE_TEXT[after.state];
+        button.querySelector('.svc-step-num').innerHTML = after.state === 'done' ? icon('check', { size: 14 }) : '4';
+        refreshPanelComparison?.();
+      }
+      if (!quiet && st.step === 'after') announce(comparisonSummary(st.comparison));
+      return true;
+    } catch (e) {
+      if (!isCurrent()) return false;
+      q('#svc-comparison-error')?.remove();
+      body.append(h('div', { class: 'banner banner-fail', role: 'alert', id: 'svc-comparison-error' }, h('span', { class: 'banner-text', text: `Could not load the comparison: ${friendly(e)}` }),
+        h('div', { class: 'banner-actions' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Retry comparison', onclick: e => { e.currentTarget.disabled = true; loadComparison(id, { seq, quiet }); } }))));
+      return false;
     }
   }
 
@@ -250,12 +287,15 @@ export function createServiceScreen(section) {
     const host = h('div', {});
     panel.append(host);
     body.append(panel);
-    const ctx = { api, detail: d, comparison: st.comparison, readOnly, reload: (opts = {}) => loadJob(job.id, opts), focusMark: () => focusMark(body), returnTo: phase => returnFromDevices(job.id, phase) };
+    const isCurrent = () => st.view === 'detail' && st.detail === d && host.isConnected;
+    const ctx = { api, detail: d, comparison: st.comparison, readOnly, isCurrent, reload: (opts = {}) => isCurrent() ? loadJob(job.id, opts) : Promise.resolve(false), focusMark: () => focusMark(body), returnTo: phase => returnFromDevices(job.id, phase) };
+    panelContext = ctx;
+    refreshPanelComparison = null;
     if (st.step === 'intake') renderIntakeStep(host, ctx);
     else if (st.step === 'before') renderTestsStep(host, ctx, 'before');
-    else if (st.step === 'after') renderTestsStep(host, ctx, 'after');
+    else if (st.step === 'after') refreshPanelComparison = renderTestsStep(host, ctx, 'after');
     else if (st.step === 'work') renderWorkStep(host, ctx);
-    else renderSheetStep(host, ctx);
+    else refreshPanelComparison = renderSheetStep(host, ctx);
   }
 
   function statusActions(d) {
@@ -274,21 +314,27 @@ export function createServiceScreen(section) {
 
   async function setStatus(to, { reopen = false, button = null, note = '' } = {}) {
     const job = st.detail?.job;
-    if (!job || st.pending) return;
+    if (!job || st.pending?.seq === st.loadSeq) return;
+    const seq = st.loadSeq;
+    const isCurrent = () => seq === st.loadSeq && st.view === 'detail' && st.detail?.job === job && (!button || button.isConnected);
     if (to === 'cancelled' && !(await confirmDialog({ title: `Cancel job ${job.jobNumber}?`, body: 'The job is kept with all its data but becomes read-only. You can reopen it later.', confirmLabel: 'Cancel job' }))) return;
-    st.pending = true;
+    if (!isCurrent()) return;
+    const pending = { seq };
+    st.pending = pending;
     const reload = { mark: focusMark(body), fallback: '#svc-job-title', quiet: true }; // mark taken before the buttons are disabled
     section.querySelectorAll('[data-status-to]').forEach(b => { b.disabled = true; });
     try {
       const updated = await api.setStatus(job.id, to, { expected: job.status, note: note.trim() || null, reopen });
+      if (!isCurrent()) return;
       announce(`Job ${updated.jobNumber} is now ${statusLabel(updated.status)}`);
       toast(`Job ${updated.jobNumber}: ${statusLabel(updated.status)}.`, { type: 'success', timeout: 2500 });
       await loadJob(job.id, reload);
     } catch (e) {
+      if (!isCurrent()) return;
       toast(`Status not changed: ${friendly(e)}`, { type: 'error' });
       await loadJob(job.id, reload);
     } finally {
-      st.pending = false;
+      if (st.pending === pending) st.pending = null;
       if (button?.isConnected) button.disabled = false;
     }
   }
