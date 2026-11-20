@@ -45,6 +45,57 @@ test('round trip through an independent reader keeps order, names and bytes', ()
   for (const f of files) assert.equal(crc32(f.data), f.crc);
 });
 
+test('ZIP end directory counts actual records emitted by array iterators', () => {
+  // Array iteration is overridable: its yielded items need not match .length.
+  const more = [{ name: 'nominal.txt', data: '' }];
+  more[Symbol.iterator] = function* () {
+    yield { name: 'first.txt', data: 'one' };
+    yield { name: 'second.txt', data: 'two' };
+  };
+  const fewer = [
+    { name: 'unused-1.txt', data: '' },
+    { name: 'unused-2.txt', data: '' },
+  ];
+  fewer[Symbol.iterator] = function* () {
+    yield { name: 'only.txt', data: 'one' };
+  };
+
+  for (const [entries, names] of [
+    [more, ['first.txt', 'second.txt']],
+    [fewer, ['only.txt']],
+  ]) {
+    const zip = createZip(entries, { date: new Date(2026, 0, 2) });
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+    const endOffset = zip.length - 22;
+    assert.equal(view.getUint16(endOffset + 8, true), names.length);
+    assert.equal(view.getUint16(endOffset + 10, true), names.length);
+    assert.deepEqual(readZip(zip).map(entry => entry.name), names);
+  }
+});
+
+test('ZIP snapshots mutable byte payloads before later entry accessors run', () => {
+  const original = new Uint8Array([0x41, 0x42, 0x43]);
+  let laterReads = 0;
+  const archive = createZip([
+    { name: 'first.bin', data: original },
+    {
+      name: 'second.txt',
+      get data() {
+        laterReads++;
+        original[0] = 0x5a;
+        return 'ok';
+      },
+    },
+  ], { date: new Date(2026, 0, 2) });
+
+  assert.equal(laterReads, 1);
+  assert.equal(original[0], 0x5a, 'the later entry really changed caller-owned bytes');
+  const files = readZip(archive);
+  assert.deepEqual(files.map(file => file.name), ['first.bin', 'second.txt']);
+  assert.deepEqual(files[0].data, new Uint8Array([0x41, 0x42, 0x43]));
+  for (const file of files) assert.equal(crc32(file.data), file.crc);
+});
+
 test('output is deterministic for a fixed date', () => {
   const d = new Date(2026, 0, 2, 3, 4, 6);
   const a = createZip([{ name: 'a.txt', data: 'x' }], { date: d });
@@ -71,6 +122,32 @@ test('ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filename
   assert.equal(validateEntryName(123), false);
   assert.throws(() => createZip([{ name: 123, data: 'x' }]), /Invalid zip entry name/);
   assert.equal(readZip(createZip([{ name: 'logs/😀-é.txt', data: 'ok' }]))[0].name, 'logs/😀-é.txt');
+});
+
+test('ZIP entry names use one validated snapshot for duplicate checks and output', () => {
+  let reads = 0;
+  const bytes = createZip([{
+    get name() {
+      reads++;
+      return reads === 1 ? 'safe.txt' : '../unexpected.txt';
+    },
+    data: 'ok',
+  }]);
+  assert.equal(reads, 1, 'the name getter must be observed only once');
+  assert.deepEqual(readZip(bytes).map(entry => entry.name), ['safe.txt']);
+
+  let duplicateReads = 0;
+  assert.throws(() => createZip([
+    { name: 'taken.txt', data: 'first' },
+    {
+      get name() {
+        duplicateReads++;
+        return duplicateReads === 1 ? 'taken.txt' : 'different.txt';
+      },
+      data: 'second',
+    },
+  ]), /Duplicate zip entry/);
+  assert.equal(duplicateReads, 1, 'duplicate validation must use the original name');
 });
 
 test('ZIP entry payloads reject unsupported types instead of silently inserting zero bytes', () => {
@@ -125,4 +202,65 @@ test('ZIP size cap includes local records, directory and end record', () => {
     ]),
     /Zip too large/,
   );
+});
+
+test('ZIP text size preflight rejects oversize UTF-8 before encoding allocation', () => {
+  const cap = 20 * 1024 * 1024;
+  const originalEncode = TextEncoder.prototype.encode;
+  let oversizedEncodeCalls = 0;
+  // The writer must reject oversized text itself, without reaching an encoder
+  // that could allocate a transient buffer larger than the ZIP output ceiling.
+  TextEncoder.prototype.encode = function (text) {
+    if (typeof text === 'string' && text.length >= 1024 * 1024) {
+      oversizedEncodeCalls++;
+      throw new Error('Unexpected oversized UTF-8 allocation');
+    }
+    return originalEncode.call(this, text);
+  };
+  try {
+    for (const value of [
+      'x'.repeat(cap),
+      'é'.repeat(cap / 2),
+      '😀'.repeat(cap / 4),
+    ]) {
+      assert.throws(() => createZip([{ name: 'a', data: value }]), /Zip too large/);
+    }
+  } finally {
+    TextEncoder.prototype.encode = originalEncode;
+  }
+  assert.equal(oversizedEncodeCalls, 0);
+
+  // The preflight must exactly follow TextEncoder behavior for multi-byte text,
+  // supplementary characters and a lone surrogate encoded as U+FFFD.
+  const valid = 'é😀\\ud800'.replace('\\ud800', '\ud800');
+  const archive = createZip([{ name: 'text.txt', data: valid }]);
+  assert.deepEqual(readZip(archive)[0].data, new TextEncoder().encode(valid));
+});
+
+test('DOS year clamping never creates an impossible leap-day date', () => {
+  const readPackedDate = input => {
+    const bytes = createZip([{ name: 'date.txt', data: 'x' }], { date: input });
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const local = v.getUint16(12, true);
+    const centralOffset = v.getUint32(bytes.length - 22 + 16, true);
+    const central = v.getUint16(centralOffset + 14, true);
+    assert.equal(central, local, 'central and local ZIP dates must agree');
+    return {
+      year: 1980 + (local >>> 9),
+      month: (local >>> 5) & 0x0f,
+      day: local & 0x1f,
+    };
+  };
+
+  // The original year-clamp encoded February 29 in nonleap year 2107.
+  assert.deepEqual(readPackedDate(new Date(2400, 1, 29, 12, 4, 6)),
+    { year: 2107, month: 2, day: 28 });
+  // Preserve legal leap days, including the lower DOS bound.
+  assert.deepEqual(readPackedDate(new Date(2104, 1, 29, 12, 4, 6)),
+    { year: 2104, month: 2, day: 29 });
+  assert.deepEqual(readPackedDate(new Date(1976, 1, 29, 12, 4, 6)),
+    { year: 1980, month: 2, day: 29 });
+  // Other dates clamped to 2107 retain their existing month and day.
+  assert.deepEqual(readPackedDate(new Date(2108, 2, 1, 12, 4, 6)),
+    { year: 2107, month: 3, day: 1 });
 });

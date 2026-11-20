@@ -46,14 +46,42 @@ function dosDateTime(d) {
   // A NaN timestamp otherwise becomes zero-valued DOS month/day fields.
   if (!(d instanceof Date) || !Number.isFinite(d.getTime())) throw new Error('Invalid ZIP date.');
   const y = Math.min(2107, Math.max(1980, d.getFullYear()));
+  // The upper DOS year bound (2107) is not a leap year. An out-of-range
+  // February 29 must not become the impossible date 2107-02-29.
+  const day = y === 2107 && d.getMonth() === 1 && d.getDate() === 29
+    ? 28 : d.getDate();
   const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
-  const date = ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const date = ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | day;
   return { time: time & 0xffff, date: date & 0xffff };
 }
 
-function toBytes(data) {
-  if (data instanceof Uint8Array) return data;
-  if (typeof data === 'string') return enc.encode(data);
+function toBytes(data, maxBytes) {
+  if (data instanceof Uint8Array) {
+    if (data.length > maxBytes) throw new Error('Zip too large.');
+    // Snapshot mutable caller-owned bytes before computing CRC and ZIP records.
+    // A later entry getter can otherwise mutate an earlier archived payload.
+    return new Uint8Array(data);
+  }
+  if (typeof data === 'string') {
+    // Count UTF-8 bytes before encoding so oversized text cannot allocate a
+    // much larger temporary Uint8Array than the archive's remaining budget.
+    // TextEncoder maps unpaired UTF-16 surrogates to the three-byte U+FFFD.
+    let byteCount = 0;
+    for (let i = 0; i < data.length; i++) {
+      const unit = data.charCodeAt(i);
+      if (unit <= 0x7f) byteCount += 1;
+      else if (unit <= 0x7ff) byteCount += 2;
+      else if (unit >= 0xd800 && unit <= 0xdbff
+          && i + 1 < data.length
+          && data.charCodeAt(i + 1) >= 0xdc00
+          && data.charCodeAt(i + 1) <= 0xdfff) {
+        byteCount += 4;
+        i++;
+      } else byteCount += 3;
+      if (byteCount > maxBytes) throw new Error('Zip too large.');
+    }
+    return enc.encode(data);
+  }
   // Treat unexpected payload types as errors, not counts of zero-filled bytes.
   throw new Error('Invalid ZIP entry data: expected text or Uint8Array.');
 }
@@ -71,12 +99,20 @@ export function createZip(entries, { date = new Date() } = {}) {
   const seen = new Set();
   let offset = 0;
   let archiveBytes = 22; // End-of-central-directory record.
+  let entryCount = 0;
   for (const e of entries) {
-    if (!validateEntryName(e?.name)) throw new Error(`Invalid zip entry name: ${e?.name}`);
-    if (seen.has(e.name)) throw new Error(`Duplicate zip entry: ${e.name}`);
-    seen.add(e.name);
-    const name = enc.encode(e.name);
-    const data = toBytes(e.data);
+    // A custom array iterator can yield a different count from entries.length.
+    if (++entryCount > 0xffff) throw new Error('Invalid zip entry list.');
+    // Read an entry name once. Accessor-backed names must not change after validation.
+    const entryName = e?.name;
+    if (!validateEntryName(entryName)) throw new Error(`Invalid zip entry name: ${entryName}`);
+    if (seen.has(entryName)) throw new Error(`Duplicate zip entry: ${entryName}`);
+    seen.add(entryName);
+    const name = enc.encode(entryName);
+    // Reserve both ZIP records and both copies of the encoded filename.
+    const remainingBytes = MAX_ZIP_BYTES - archiveBytes - 30 - 46 - 2 * name.length;
+    if (remainingBytes < 0) throw new Error('Zip too large.');
+    const data = toBytes(e.data, remainingBytes);
     if (data.length > 0xfffffffe || offset > 0xfffffffe) throw new Error('Zip too large.');
     // Fail before computing a CRC or allocating the combined output. Payload-only
     // checks miss the local headers, central directory and end record.
@@ -116,8 +152,8 @@ export function createZip(entries, { date = new Date() } = {}) {
   const cdSize = central.reduce((n, x) => n + x.length, 0);
   const end = new DataView(new ArrayBuffer(22));
   end.setUint32(0, 0x06054b50, true);
-  end.setUint16(8, entries.length, true);
-  end.setUint16(10, entries.length, true);
+  end.setUint16(8, entryCount, true);
+  end.setUint16(10, entryCount, true);
   end.setUint32(12, cdSize, true);
   end.setUint32(16, offset, true);
   const all = [...chunks, ...central, new Uint8Array(end.buffer)];
