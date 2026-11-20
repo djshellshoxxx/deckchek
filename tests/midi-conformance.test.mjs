@@ -33,6 +33,64 @@ test('analyzeStream: invalid, malformed SysEx, orphans, stuck notes', () => {
   assert.equal(conformanceFindings(analyzeStream([]))[0].id, 'midi-silent');
 });
 
+test('analyzeStream accepts the note releases in every built-in GM sound-check sequence', () => {
+  for (const step of gmSteps()) {
+    let tUs = 0;
+    const events = step.messages.map(({ bytes, delayMs }) => {
+      const event = ev(tUs, bytes);
+      tUs += delayMs * 1000;
+      return event;
+    });
+    const analysis = analyzeStream(events, { endUs: tUs });
+    assert.deepEqual(analysis.stuck, [], step.id);
+    assert.equal(analysis.orphans, 0, step.id);
+    assert.equal(mv(analysis, 'midi_stuck_notes'), 0, step.id);
+  }
+});
+
+test('All Notes Off and mode changes release only the addressed channel, including repeated note-ons', () => {
+  for (const [controller, value] of [[123, 0], [124, 0], [125, 0], [126, 0], [126, 16], [127, 0]]) {
+    const analysis = analyzeStream([
+      ev(0, noteOn(1, 60)), ev(1000, noteOn(1, 60)), ev(2000, noteOn(1, 67)),
+      ev(3000, noteOn(2, 60)), ev(4000, noteOn(10, 36)),
+      ev(5000, controlChange(1, controller, value)),
+    ], { endUs: 6000 });
+    assert.deepEqual(analysis.stuck, ['2:60', '10:36'], 'CC' + controller);
+    assert.equal(analysis.orphans, 0);
+    assert.equal(mv(analysis, 'midi_stuck_notes'), 2);
+    assert.equal(analysis.kinds.cc, 1, 'mode messages remain in the captured histogram');
+  }
+});
+
+test('explicit note-offs following a channel release consume only previously observed note-ons', () => {
+  const events = [
+    ev(0, noteOn(1, 60)), ev(1000, noteOn(1, 60)), ev(2000, noteOn(1, 67)),
+    ev(3000, controlChange(1, 123, 0)),
+    ev(4000, noteOff(1, 60)), ev(5000, noteOn(1, 60, 0)), ev(6000, noteOff(1, 67)),
+  ];
+  const released = analyzeStream(events, { endUs: 7000 });
+  assert.deepEqual(released.stuck, []);
+  assert.equal(released.orphans, 0, 'known individual releases after All Notes Off are not orphaned');
+  const extra = analyzeStream([...events, ev(7000, noteOff(1, 60)), ev(8000, noteOff(2, 67))], { endUs: 9000 });
+  assert.equal(extra.orphans, 2, 'a release cannot excuse excess or other-channel note-offs');
+  const restarted = analyzeStream([...events, ev(7000, noteOn(1, 60))], { endUs: 8000 });
+  assert.deepEqual(restarted.stuck, ['1:60'], 'a later note-on needs a new release');
+});
+
+test('sound, controller and pedal changes do not invent key releases or measured silence', () => {
+  for (const [controller, value] of [[120, 0], [121, 0], [122, 0], [122, 127], [64, 0], [64, 127], [123, 1], [124, 1], [125, 1], [127, 1]]) {
+    const events = [ev(0, noteOn(1, 60)), ev(1000, controlChange(1, controller, value))];
+    const held = analyzeStream(events, { endUs: 2000 });
+    assert.deepEqual(held.stuck, ['1:60'], 'CC' + controller + '=' + value + ' is not a note release');
+    assert.equal(analyzeStream([...events, ev(2000, noteOff(1, 60))], { endUs: 3000 }).orphans, 0);
+  }
+  const sustainedRelease = analyzeStream([
+    ev(0, controlChange(1, 64, 127)), ev(1000, noteOn(1, 60)), ev(2000, controlChange(1, 123, 0)),
+  ], { endUs: 3000 });
+  assert.deepEqual(sustainedRelease.stuck, [], 'the metric observes release messages, not sustain or sound output');
+  assert.equal(sustainedRelease.measurements.find(x => x.metricId === 'midi_stuck_notes').label, 'Notes without a captured release');
+});
+
 test('analyzeStream: Active Sensing gap, MIDI clock jitter, 14-bit pairing', () => {
   const sens = analyzeStream([ev(0, [0xfe]), ev(250000, [0xfe]), ev(500000, [0xfe]), ev(900000, [0xfe])]);
   assert.equal(mv(sens, 'midi_active_sensing_gap_ms'), 400);
@@ -394,6 +452,80 @@ test('one Active Sensing message needs finite numeric timestamps and a non-rever
     assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
     assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
   }
+});
+
+test('multiple Active Sensing messages reject invalid or reversed timing without losing packet evidence', () => {
+  const invalid = [undefined, null, false, true, '250000', NaN, Infinity, -Infinity, 250000n, Symbol('time'), {}, [], Object.create(null), new Number(250000), -1];
+  const cases = invalid.flatMap(value => [
+    { times: [0, value, 500000], endUs: 750000 },
+    { times: [value, 250000], endUs: 500000 },
+    { times: [0, 250000], endUs: value },
+  ]).filter(({ endUs }) => endUs != null);
+  cases.push({ times: [500000, 250000], endUs: 750000 },
+    { times: [0, 400000, 300000], endUs: 750000 },
+    { times: [0, 250000], endUs: 249999 });
+  for (const { times, endUs } of cases) {
+    const events = [...times.map(t => ev(t, [0xfe])), ev(800000, noteOn(2, 61)), ev(900000, noteOff(2, 61))];
+    const before = [...times];
+    const analysis = analyzeStream(events, { endUs });
+    assert.equal(analysis.total, events.length);
+    assert.equal(analysis.sensing.count, times.length);
+    assert.equal(analysis.sensing.maxGapMs, null);
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
+    assert.deepEqual(analysis.stuck, []);
+    assert.equal(analysis.orphans, 0);
+    assert.deepEqual(times, before, 'arrival order and invalid input values remain untouched');
+  }
+});
+
+test('Clock rejects invalid, reversed and zero-span timestamps instead of reporting zero jitter or negative BPM', () => {
+  const invalid = [undefined, null, false, true, '60000', NaN, Infinity, -Infinity, 60000n, Symbol('time'), {}, [], Object.create(null), new Number(60000), -1];
+  const base = Array.from({ length: 8 }, (_, i) => i * 20000);
+  const cases = invalid.map(value => base.map((t, i) => i === 3 ? value : t));
+  cases.push(base.slice().reverse(), Array(8).fill(1000), [0, 20000, 40000, 30000, 60000, 80000, 100000, 120000],
+    [0, 0, 0, 0, 0, 0, 0, Number.MIN_VALUE]);
+  for (const times of cases) {
+    const analysis = analyzeStream(times.map(t => ev(t, [0xf8])));
+    assert.equal(analysis.total, 8);
+    assert.deepEqual(analysis.clock, { count: 8, jitterPercent: null, bpm: null });
+    assert.equal(mv(analysis, 'midi_clock_jitter_percent'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-clock'), false);
+  }
+});
+
+test('valid tied timestamps inside an advancing stream retain real timing and packet counts', () => {
+  const times = [0, 0, 10000, 10000, 20000, 20000, 30000, 40000];
+  const clock = analyzeStream(times.map(t => ev(t, [0xf8])));
+  assert.deepEqual(clock.clock, { count: 8, jitterPercent: 86.6, bpm: 437.5 });
+  assert.equal(mv(clock, 'midi_clock_jitter_percent'), 86.6);
+  const sensing = analyzeStream([ev(0, [0xfe]), ev(0, [0xfe]), ev(10000, [0xfe])], { endUs: 40000 });
+  assert.deepEqual(sensing.sensing, { count: 3, maxGapMs: 30 });
+});
+
+test('Clock variation remains finite when raw interval squares would overflow', () => {
+  const analysis = analyzeStream([0, 0, 0, 0, 0, 0, 0, Number.MAX_VALUE].map(t => ev(t, [0xf8])));
+  assert.equal(analysis.clock.count, 8);
+  assert.equal(analysis.clock.jitterPercent, 244.95, 'one nonzero interval among seven has CV sqrt(6)');
+  assert.equal(mv(analysis, 'midi_clock_jitter_percent'), 244.95);
+  assert.ok(Number.isFinite(analysis.clock.bpm));
+  assert.ok(analysis.measurements.every(m => m.value === null || Number.isFinite(m.value)));
+});
+
+test('explicitly unobserved transport timing cannot use receipt times for numeric timing evidence', () => {
+  const events = Array.from({ length: 8 }, (_, i) => [ev(i * 20000, [0xf8]), ev(i * 20000, [0xfe])]).flat();
+  events.push(ev(150000, controlChange(1, 1, 12)), ev(151000, controlChange(1, 33, 34)), ev(160000, noteOn(1, 60)), ev(170000, noteOff(1, 60)));
+  const analysis = analyzeStream(events, { endUs: 200000, timingObserved: false });
+  assert.equal(analysis.total, events.length);
+  assert.deepEqual(analysis.sensing, { count: 8, maxGapMs: null });
+  assert.deepEqual(analysis.clock, { count: 8, jitterPercent: null, bpm: null });
+  assert.deepEqual(analysis.burst, { windowMs: 100, maxMessages: null, peakPerSec: null });
+  assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+  assert.equal(mv(analysis, 'midi_clock_jitter_percent'), undefined);
+  assert.equal(mv(analysis, 'midi_unpaired_14bit'), undefined);
+  assert.deepEqual(analysis.pairs, []);
+  assert.deepEqual(analysis.stuck, []);
+  assert.equal(analysis.orphans, 0);
 });
 
 test('GM cleanup silences a simulated sustained-chord abort and release tails on all channels', () => {

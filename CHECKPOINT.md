@@ -1,6 +1,26 @@
-# DeckChek source41 checkpoint — 18 November 2026
+# DeckChek engineering checkpoint — 19 November 2026
 
-Current source code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. Accepted work covers learned-map profile identity, optional native incident latest readings, the fourteen-profile MIDI transport batch and Push3 16-in/16-out USB audio. Pack verification passed 16/16 persistent, 32/32 related and 3/3 unchanged independent probes; candidate acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. Coverage remains 45 profiles / 506 handwritten / 187 generated / zero gaps, with 22 conditional audio profiles and 3 conditional MIDI profiles / 9 requirements.
+## Current continuation — 19 November 2026
+
+The prior consolidation is on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`;
+its test, nightly and desktop workflows succeeded. The older prepublication and
+PR27/30/32/33 instructions below are historical snapshots.
+
+Active work is [PR #34](https://github.com/djshellshoxxx/deckchek/pull/34): explicit
+existing-unit profile assignment, MIDI evidence corrections, Service lifecycle
+repairs and bounded file imports. Current qualification, worker handoffs and
+remaining work are in the [19 November engineering handoff](docs/engineering/CONTINUATION_2026-11-19.md).
+The [branch audit](docs/engineering/CODE_AUDIT_2026-11-19.md) found all useful implementation work from the 29
+old non-main branches represented or superseded; no redundant merge is needed.
+Fleet remains default off. Hardware, signing and release qualification stay open.
+
+
+## Historical source41 prepublication checkpoint — 18 November 2026
+
+The following source41 results and instructions are preserved as dated history.
+The current continuation above supersedes its publication and resume steps.
+
+Source41 code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. Accepted work covers learned-map profile identity, optional native incident latest readings, the fourteen-profile MIDI transport batch and Push3 16-in/16-out USB audio. Pack verification passed 16/16 persistent, 32/32 related and 3/3 unchanged independent probes; candidate acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. Coverage remains 45 profiles / 506 handwritten / 187 generated / zero gaps, with 22 conditional audio profiles and 3 conditional MIDI profiles / 9 requirements.
 
 | Final source41 qualification | State |
 | --- | --- |

@@ -319,9 +319,9 @@ test('an old workspace byte read cannot open confirmation or import after hide/s
   window.__TAURI__.core.invoke = (command, args) => { if (command === 'backup_import_workspace') dispatched.push(command); return base(command, args); };
   s.host.querySelector('#data-import-json').dispatch('click'); await settle();
   const chooser = document.body.children.find(node => node.tagName === 'INPUT' && node.type === 'file');
-  assert.ok(chooser); chooser.files = [{ text: () => gate.promise }]; chooser.dispatch('change'); await settle();
+  assert.ok(chooser); chooser.files = [{ size: 2, arrayBuffer: () => gate.promise }]; chooser.dispatch('change'); await settle();
   s.screen.onHide(); s.screen.onShow(); await settle(); assert.equal(s.field('file').disabled, true);
-  gate.resolve('{}'); await settle();
+  gate.resolve(new TextEncoder().encode('{}').buffer); await settle();
   assert.deepEqual(dispatched, []); assert.equal(document.getElementById('ws-title'), null); assert.equal(s.field('file').disabled, false);
 });
 
@@ -409,7 +409,7 @@ test('hiding an undispatched workspace chooser retires it and stale events canno
   s.screen.onHide(); s.screen.onShow(); await settle();
   workspaceControls(s, false); assert.equal(chooser.isConnected, false);
   await s.import(); workspaceControls(s, true);
-  chooser.files = [{ text: async () => emptyWorkspace }]; chooser.dispatch('change'); chooser.dispatch('cancel'); await settle();
+  chooser.files = [file(emptyWorkspace, 'workspace.json')]; chooser.dispatch('change'); chooser.dispatch('cancel'); await settle();
   workspaceControls(s, true); assert.deepEqual(calls, []); assert.equal(document.getElementById('ws-title'), null);
   gate.resolve({ inserted: 16, alreadyPresent: 0, reusedDependencies: 0, counts: counts() }); await settle();
   workspaceControls(s, false);
@@ -419,7 +419,7 @@ test('disposing an undispatched workspace chooser removes it and late selection 
   const s = nativeMount(t); await settle(); const calls = observeWorkspaceImports(); const chooser = await workspaceChooser(t, s);
   s.screen.dispose(); await settle(); const before = s.host.textContent;
   assert.equal(chooser.isConnected, false);
-  chooser.files = [{ text: async () => emptyWorkspace }]; chooser.dispatch('change'); chooser.dispatch('cancel'); await settle();
+  chooser.files = [file(emptyWorkspace, 'workspace.json')]; chooser.dispatch('change'); chooser.dispatch('cancel'); await settle();
   assert.deepEqual(calls, []); assert.equal(s.host.textContent, before); assert.equal(document.getElementById('ws-title'), null);
 });
 
@@ -427,15 +427,19 @@ for (const fails of [false, true]) {
   test(`a dispatched workspace import keeps Data ownership through hide/show until ${fails ? 'failure' : 'success'}`, async t => {
     const gate = deferred(), s = nativeMount(t); await s.choose(file()); const calls = observeWorkspaceImports(() => gate.promise);
     const chooser = await workspaceChooser(t, s);
-    chooser.files = [{ text: async () => emptyWorkspace }]; chooser.dispatch('change'); await settle();
+    chooser.files = [file(emptyWorkspace, 'workspace.json')]; chooser.dispatch('change'); await settle();
     const dialog = document.querySelector('dialog'); assert.ok(dialog); assert.ok(document.getElementById('ws-title'));
     const confirm = dialog.querySelectorAll('button').find(node => node.textContent === 'Import'); assert.ok(confirm);
     confirm.dispatch('click'); await settle(); assert.equal(calls.length, 1); workspaceControls(s, true);
     s.screen.onHide(); s.screen.onShow(); await settle();
     chooser.dispatch('cancel'); chooser.dispatch('change'); await settle(); workspaceControls(s, true);
     assert.equal(calls.length, 1); assert.equal(document.getElementById('ws-title'), null);
+    const currentStatus = s.host.querySelector('#data-status').textContent;
+    const currentToasts = document.getElementById('toasts').textContent;
     if (fails) gate.reject(Error('workspace import refused'));
     else gate.resolve({ runsImported: 0, equipmentImported: 0, runsSkipped: 0, runsInvalid: 0 });
     await settle(); workspaceControls(s, false); assert.equal(calls.length, 1);
+    assert.equal(s.host.querySelector('#data-status').textContent, currentStatus, 'the submitted native import cannot publish into a later Data visit');
+    assert.equal(document.getElementById('toasts').textContent, currentToasts, 'retired native completion must not add global feedback');
   });
 }

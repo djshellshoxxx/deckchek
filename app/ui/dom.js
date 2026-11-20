@@ -91,11 +91,19 @@ export function download(filename, data, type = 'text/plain') {
 }
 
 export function pickFile(accept) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const input = h('input', { type: 'file', accept, hidden: true });
-    input.addEventListener('change', () => { resolve(input.files?.[0] || null); input.remove(); }, { once: true });
-    document.body.append(input);
-    input.click();
+    const cleanup = () => {
+      input.removeEventListener('change', changed);
+      input.removeEventListener('cancel', cancelled);
+      input.remove();
+    };
+    const changed = () => { cleanup(); resolve(input.files?.[0] || null); };
+    const cancelled = () => { cleanup(); resolve(null); };
+    input.addEventListener('change', changed, { once: true });
+    input.addEventListener('cancel', cancelled, { once: true });
+    try { document.body.append(input); input.click(); }
+    catch (error) { cleanup(); reject(error); }
   });
 }
 

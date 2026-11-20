@@ -592,7 +592,7 @@ export function runMidi(host, ctx) {
           inputOpenAtStart: before.inputOpen, inputOpenAtEnd: after.inputOpen,
           timingState: timestampFaults ? 'unavailable' : 'observed', timestampFaults,
         };
-        const a = analyzeStream(events, { endUs });
+        const a = analyzeStream(events, { endUs, timingObserved: timestampFaults === 0 });
         // A reply only counts inside the window; an unsent or unanswered-yet request is not a "no".
         const asked = identity.status === 'ok' || identity.status === 'none';
         const measurements = [...a.measurements, ...(asked ? [{ metricId: 'midi_identity_reply', label: 'Identity Reply received', value: identity.status === 'ok' ? 1 : 0, unit: 'bool' }] : [])];

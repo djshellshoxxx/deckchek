@@ -548,6 +548,19 @@ pub async fn device_profiles_sync(
 }
 
 #[tauri::command]
+pub async fn device_profile_assign(
+    app: AppHandle,
+    request: crate::device_profile_assignment::AssignmentRequest,
+) -> Result<crate::device_profile_assignment::AssignmentResult, String> {
+    crate::db::off_main(move || {
+        with_db(&app, |c| {
+            crate::device_profile_assignment::assign(c, &request)
+        })
+    })
+    .await?
+}
+
+#[tauri::command]
 pub async fn device_test_result_save(
     app: AppHandle,
     result: DeviceTestResultInput,

@@ -1,6 +1,21 @@
 # DeckChek continuation handoff
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current continuation — 19 November 2026
+
+The prior consolidation is on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`;
+its test, nightly and desktop workflows succeeded. The older prepublication and
+PR27/30/32/33 instructions below are historical snapshots.
+
+Active work is [PR #34](https://github.com/djshellshoxxx/deckchek/pull/34): explicit
+existing-unit profile assignment, MIDI evidence corrections, Service lifecycle
+repairs and bounded file imports. Current qualification, worker handoffs and
+remaining work are in the [19 November engineering handoff](engineering/CONTINUATION_2026-11-19.md).
+The [branch audit](engineering/CODE_AUDIT_2026-11-19.md) found all useful implementation work from the 29
+old non-main branches represented or superseded; no redundant merge is needed.
+Fleet remains default off. Hardware, signing and release qualification stay open.
+
+
+## Historical source41 prepublication snapshot — 18 November 2026
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 
@@ -8,7 +23,9 @@ Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with 
 
 The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
 
-## Source41 resume state and ownership
+<a id="source41-resume-state-and-ownership"></a>
+
+## Historical source41 resume state and ownership
 
 Use code commit `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`, with the exact final source/inventory records supplied by ROOT. Full suite: **1,975 passed / 0 failed / 1 optional skip; 1,976 total across 162 top-level files on Node 22.23.5, 257.854541805 TAP seconds; all 1,480 source hashes and tree unchanged (record `13c24e29722dab5b487fc862ba34018ad232b2ba8d39c1c70c9b30407e704631`)**. Static/coverage/smoke syntax: **All 11 static/performance/syntax gates passed, including 426 syntax files, 25 migrations and the 45-profile coverage check; all 1,480 source hashes and the tree matched before/after every gate**. Both performance gates: **2/2 passed with all 1,480 source hashes/tree unchanged: controller 2,400 hops, 0.339 ms mean / 1.04 ms worst / 0.07 MB heap; monitor 2,400 hops, 0.329 ms mean / 1.29 ms worst / 0.06 MB heap (record `91ae72485525171783e1061ba945e3dc959d91bae25040f234baab9285ec673a`)**. Native accepted-input carry: **Verified 38 production inputs, 39 generated files, 52 application-lock identities and five direct dependency feature sets; carries bounded 45/45 and strict Clippy, not full Tauri/platform execution (record `736e13fc6bd413265948ac110c697c4b95bf9876914e1b71872836b5c181e69f`)**. Pack independent acceptance: **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. Publication snapshot: **Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending**.
 

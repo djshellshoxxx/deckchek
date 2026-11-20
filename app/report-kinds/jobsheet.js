@@ -13,7 +13,15 @@ export const jobSheetPrintable = Object.freeze({
   // The unit name only (never the customer): it is also used for the suggested file name.
   device: d => d?.detail?.asset?.nickname || '',
   summary: d => [['Job', d?.detail?.job?.jobNumber || null], ['Status', d?.detail?.job ? statusLabel(d.detail.job.status) : null]],
-  build: (d = {}, ctx) => `<!doctype html><html><head><style>${SHEET_CSS}</style></head><body>${renderJobSheetHtml(d.detail, d.comparison, d.options || {}, ctx.esc)}</body></html>`,
+  build: (d = {}, ctx) => {
+    // PDF redaction affects the structured serial field in this display copy;
+    // it does not edit the saved asset or scan nicknames and other free text.
+    const detail = d.detail?.asset && ctx.options.redactSerials ? {
+      ...d.detail,
+      asset: { ...d.detail.asset, serialNumber: d.detail.asset.serialNumber ? '[redacted]' : d.detail.asset.serialNumber },
+    } : d.detail;
+    return `<!doctype html><html><head><style>${SHEET_CSS}</style></head><body>${renderJobSheetHtml(detail, d.comparison, d.options || {}, ctx.esc)}</body></html>`;
+  },
 });
 
 /** Registers the kind once (idempotent). Resolves to the report-pdf module. */

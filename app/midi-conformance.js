@@ -23,6 +23,17 @@ const CHANNEL_LEN = { 0x80: 3, 0x90: 3, 0xa0: 3, 0xb0: 3, 0xc0: 2, 0xd0: 2, 0xe0
 const SYSTEM_LEN = { 0xf1: 2, 0xf2: 3, 0xf3: 2, 0xf6: 1, 0xf8: 1, 0xfa: 1, 0xfb: 1, 0xfc: 1, 0xfe: 1, 0xff: 1 };
 const isByte = value => Number.isInteger(value) && value >= 0 && value <= 0xff;
 
+// Timing uses the captured order. Coercing values or sorting backwards clocks
+// would turn unavailable evidence into a plausible-looking measurement.
+function validTimeline(times, endUs = null) {
+  if (!times.length) return false;
+  for (let i = 0; i < times.length; i++) {
+    if (!Number.isFinite(times[i]) || times[i] < 0 || (i > 0 && times[i] < times[i - 1])) return false;
+  }
+  const last = times[times.length - 1];
+  return endUs == null || (Number.isFinite(endUs) && endUs >= last && Number.isFinite(endUs - last));
+}
+
 /** Validate one complete MIDI message. Returns {ok, kind, problem}; kind: channel|system|realtime|sysex. */
 export function validateMessage(bytes) {
   const b = Array.from(bytes || []);
@@ -47,12 +58,17 @@ export function validateMessage(bytes) {
 
 /**
  * Analyse a captured stream. events: [{tUs, bytes}] in arrival order; endUs = time the session ended
- * (for stuck notes and the trailing Active Sensing gap).
+ * (for stuck notes and the trailing Active Sensing gap). Set timingObserved=false
+ * when transport times were replaced by a receipt clock or failed capture integrity.
  */
-export function analyzeStream(events = [], { endUs = null } = {}) {
+export function analyzeStream(events = [], { endUs = null, timingObserved = true } = {}) {
+  const timingKnown = timingObserved === true;
   const evs = events.filter(e => e && e.bytes);
   const invalid = [], sysexBad = [];
-  const sounding = new Map();
+  // Count captured note-on/release messages, not audible voices: sustain and
+  // envelope tails cannot be established by this passive MIDI stream.
+  const unreleased = new Map();
+  const releasedByMode = new Map(); // allow later individual releases of those same notes
   let orphans = 0, total = 0;
   const channels = new Set();
   const ccTimes = new Map(); // `${ch}:${cc}` -> [tUs]
@@ -66,11 +82,32 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     if (v.kind === 'channel') {
       const ch = (s & 0x0f) + 1, type = s & 0xf0;
       channels.add(ch);
-      if (type === 0x90 && bytes[2] > 0) { const k = `${ch}:${bytes[1]}`; sounding.set(k, (sounding.get(k) || 0) + 1); }
+      if (type === 0x90 && bytes[2] > 0) { const k = `${ch}:${bytes[1]}`; unreleased.set(k, (unreleased.get(k) || 0) + 1); }
       else if (type === 0x80 || type === 0x90) {
-        const k = `${ch}:${bytes[1]}`, n = sounding.get(k) || 0;
-        if (n > 0) sounding.set(k, n - 1); else orphans++;
-      } else if (type === 0xb0) { const k = `${ch}:${bytes[1]}`; (ccTimes.get(k) || ccTimes.set(k, []).get(k)).push(e.tUs); }
+        const k = `${ch}:${bytes[1]}`, n = unreleased.get(k) || 0;
+        if (n > 1) unreleased.set(k, n - 1);
+        else if (n === 1) unreleased.delete(k);
+        else {
+          const released = releasedByMode.get(k) || 0;
+          if (released > 1) releasedByMode.set(k, released - 1);
+          else if (released === 1) releasedByMode.delete(k);
+          else orphans++;
+        }
+      } else if (type === 0xb0) {
+        const controller = bytes[1], k = `${ch}:${controller}`;
+        if (timingKnown) (ccTimes.get(k) || ccTimes.set(k, []).get(k)).push(e.tUs);
+        // CC123 and mode changes CC124-127 include All Notes Off. CC126's
+        // value selects a channel count; the other four use zero. CC120 is
+        // All Sound Off, not a key release, and CC121 resets controllers.
+        // https://midi.org/summary-of-midi-1-0-messages
+        if (controller >= 123 && controller <= 127 && (controller === 126 || bytes[2] === 0)) {
+          for (const [note, count] of unreleased) {
+            if (!note.startsWith(`${ch}:`)) continue;
+            releasedByMode.set(note, (releasedByMode.get(note) || 0) + count);
+            unreleased.delete(note);
+          }
+        }
+      }
     } else if (s === 0xfe) sensing.push(e.tUs);
     else if (s === 0xf8) clock.push(e.tUs);
   }
@@ -82,7 +119,7 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
     const name = !isByte(s) ? 'invalid' : s === 0xf0 ? 'sysex' : s >= 0xf8 ? (s === 0xfe ? 'active-sensing' : s === 0xf8 ? 'clock' : 'realtime') : s >= 0xf0 ? 'system' : s >= 0x80 ? ({ 0x80: 'note-off', 0x90: b[2] === 0 ? 'note-off' : 'note-on', 0xa0: 'poly-pressure', 0xb0: 'cc', 0xc0: 'program', 0xd0: 'pressure', 0xe0: 'pitch-bend' })[s & 0xf0] : 'data';
     hist[name] = (hist[name] || 0) + 1;
   }
-  const stuck = [...sounding.entries()].filter(([, n]) => n > 0).map(([k]) => k);
+  const stuck = [...unreleased.keys()];
 
   // 14-bit CC pairs: both n (0-31) and n+32 seen on one channel
   const pairs = [];
@@ -106,32 +143,37 @@ export function analyzeStream(events = [], { endUs = null } = {}) {
   }
   const unpaired14 = pairs.filter(p => p.unpairedFraction > 0.5).length;
 
-  const gaps = a => a.slice(1).map((t, i) => (t - a[i]) / 1000);
   let sensingMax = null;
-  const singleSensingGapKnown = sensing.length === 1 && Number.isFinite(sensing[0]) && Number.isFinite(endUs) && endUs >= sensing[0] && Number.isFinite(endUs - sensing[0]);
-  if (sensing.length >= 2 || singleSensingGapKnown) {
-    sensingMax = -Infinity;
+  if (timingKnown && validTimeline(sensing, endUs) && (sensing.length >= 2 || endUs != null)) {
+    sensingMax = 0;
     for (let i = 1; i < sensing.length; i++) sensingMax = Math.max(sensingMax, (sensing[i] - sensing[i - 1]) / 1000);
     if (endUs != null) sensingMax = Math.max(sensingMax, (endUs - sensing[sensing.length - 1]) / 1000);
   }
   let clockJitter = null, bpm = null;
-  if (clock.length >= 8) {
-    const g = gaps(clock), mean = g.reduce((a, b) => a + b, 0) / g.length;
-    const sd = Math.sqrt(g.reduce((a, x) => a + (x - mean) ** 2, 0) / g.length);
-    clockJitter = (sd / mean) * 100; bpm = 60000 / (mean * 24);
+  if (timingKnown && clock.length >= 8 && validTimeline(clock)) {
+    const intervals = clock.length - 1, meanUs = (clock[intervals] - clock[0]) / intervals;
+    if (meanUs > 0 && Number.isFinite(meanUs)) {
+      // Normalize before squaring so large finite intervals cannot overflow the
+      // variance; equal timestamps remain real batched arrivals in an advancing stream.
+      let relativeSquares = 0;
+      for (let i = 1; i < clock.length; i++) relativeSquares += ((clock[i] - clock[i - 1]) / meanUs - 1) ** 2;
+      const jitter = round(Math.sqrt(relativeSquares / intervals) * 100, 2), tempo = round(2500000 / meanUs, 2);
+      if (Number.isFinite(jitter) && Number.isFinite(tempo)) { clockJitter = jitter; bpm = tempo; }
+    }
   }
   const measurements = [
     m('midi_invalid_messages', 'Invalid MIDI messages', invalid.length, 'messages'),
     m('midi_sysex_malformed', 'Malformed SysEx messages', sysexBad.length, 'messages'),
-    m('midi_stuck_notes', 'Notes still sounding at the end', stuck.length, 'notes', { confidence: endUs == null ? 0.6 : 1, qualityFlags: endUs == null ? ['no-session-end'] : [] }),
+    m('midi_stuck_notes', 'Notes without a captured release', stuck.length, 'notes', { confidence: endUs == null ? 0.6 : 1, qualityFlags: endUs == null ? ['no-session-end'] : [] }),
     m('midi_orphan_note_offs', 'Note-offs without a note-on', orphans, 'messages'),
-    m('midi_unpaired_14bit', '14-bit controllers with unpaired halves', unpaired14, 'controllers'),
+    ...(timingKnown ? [m('midi_unpaired_14bit', '14-bit controllers with unpaired halves', unpaired14, 'controllers')] : []),
     m('midi_channels_used', 'MIDI channels used', channels.size, 'channels'),
     m('midi_message_count', 'Messages received', total, 'messages'),
     ...(sensingMax == null ? [] : [m('midi_active_sensing_gap_ms', 'Longest Active Sensing gap', round(sensingMax, 1), 'ms')]),
     ...(clockJitter == null ? [] : [m('midi_clock_jitter_percent', 'MIDI Clock interval jitter', round(clockJitter, 2), '%')]),
   ];
-  return { total, invalid, sysexBad, stuck, orphans, channels: [...channels].sort((a, b) => a - b), kinds: hist, pairs, sensing: { count: sensing.length, maxGapMs: round(sensingMax, 1) }, clock: { count: clock.length, jitterPercent: round(clockJitter, 2), bpm: round(bpm, 2) }, burst: burstRate(evs), measurements };
+  const burst = timingKnown ? burstRate(evs) : { windowMs: BURST_WINDOW_MS, maxMessages: null, peakPerSec: null };
+  return { total, invalid, sysexBad, stuck, orphans, channels: [...channels].sort((a, b) => a - b), kinds: hist, pairs, sensing: { count: sensing.length, maxGapMs: round(sensingMax, 1) }, clock: { count: clock.length, jitterPercent: round(clockJitter, 2), bpm: round(bpm, 2) }, burst, measurements };
 }
 
 export const BURST_WINDOW_MS = 100;
@@ -157,7 +199,7 @@ export function conformanceFindings(a, identity = null) {
   if (!a.total) F('midi-silent', 'warning', 'No MIDI messages were received', 'Nothing was sent while you exercised the device, so nothing could be checked.', 'Check the port selection, close DJ software that holds the port, then move controls during the test.');
   if (a.invalid.length) F('midi-invalid', 'error', `${a.invalid.length} invalid MIDI message${a.invalid.length > 1 ? 's' : ''}`, `First problem: ${a.invalid[0].problem}. Invalid messages confuse DJ software or are silently dropped.`, 'Retest with a different USB cable/port; if it persists the firmware or interface is faulty.');
   if (a.sysexBad.length) F('midi-sysex', 'error', `${a.sysexBad.length} malformed SysEx message${a.sysexBad.length > 1 ? 's' : ''}`, `First problem: ${a.sysexBad[0].problem}.`, 'Update the firmware; test another cable/port.');
-  if (a.stuck.length) F('midi-stuck', 'error', `${a.stuck.length} note${a.stuck.length > 1 ? 's' : ''} never released`, `Notes ${a.stuck.slice(0, 6).join(', ')} stayed on. A pad or key that never sends note-off keeps triggering its function.`, 'Press and release them again; clean or replace the switch.');
+  if (a.stuck.length) F('midi-stuck', 'error', `${a.stuck.length} note${a.stuck.length > 1 ? 's' : ''} without a captured release`, `No note-off or channel-mode release was captured for ${a.stuck.slice(0, 6).join(', ')}. This is MIDI message evidence, not a measurement of sounding voices or physical switches.`, 'Release every control before finishing, then repeat the capture and check for lost messages.');
   if (a.orphans) F('midi-orphan', 'warning', `${a.orphans} note-off without a note-on`, 'Releases arrived for notes that never started, which can mean dropped messages (USB hub, overloaded port) or a mis-sequenced controller.', 'Plug straight into the PC and retest.');
   const unp = a.pairs.filter(p => p.unpairedFraction > 0.5);
   if (unp.length) F('midi-14bit', 'info', `${unp.length} 14-bit controller${unp.length > 1 ? 's' : ''} send unpaired halves`, `CC ${unp.map(p => `${p.cc}/${p.cc + 32} (ch ${p.channel})`).join(', ')} rarely send MSB and LSB together, so 14-bit resolution may be lost in some software.`, 'Informational: many devices only send the half that changed.');

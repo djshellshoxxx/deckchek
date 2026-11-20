@@ -1,6 +1,7 @@
 // Async bridge to the Rust catalog/run commands, with a localStorage fallback
 // exposing the same API for browser-only use.
 import { isEnabled } from './features.js';
+import { profileAssignmentRequest, assignDeviceProfileLocal } from './device-profile-assignment.js';
 
 export const ENTITIES = ['manufacturer', 'product', 'asset', 'setup', 'venue', 'supportConfiguration'];
 export const CATALOG_STORAGE_KEY = 'deckchek.catalog.v1';
@@ -464,6 +465,16 @@ export function createCatalogStore({ invoke = nativeInvoke(), storage = globalTh
       const create = createAssets ?? !wizardManagesGear();
       if (invoke) return invoke('device_profiles_sync', { profiles, createAssets: create });
       return mutate(s => syncProfilesLocal(s, profiles, undefined, { createAssets: create }));
+    },
+    /** Explicitly associate an existing unit with a reviewed profile; preserve all history. */
+    async assignDeviceProfile(input) {
+      const request = profileAssignmentRequest(input);
+      if (invoke) return invoke('device_profile_assign', { request });
+      const snapshot = readCatalogArchiveSnapshot(storage);
+      const state = loadSupportState({ getItem: () => snapshot.raw });
+      const result = assignDeviceProfileLocal(state, request);
+      if (result.changed) snapshot.commit(JSON.stringify(state));
+      return result;
     },
     /** Wizard finish step: `retire` (first run) also retires untouched library-created assets of unticked gear. */
     async applyGear(profileIds, { retire = false } = {}) {

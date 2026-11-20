@@ -82,7 +82,7 @@ Outputs are generated in `src-tauri/target/release/`:
 
 Static browser mode stores the working equipment/run list in localStorage and supports JSON export/import.
 
-Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies the ordered pending migrations from `database/migrations/` (currently `0001` through `0022`), and stores completed diagnostic sessions, analysis methods, measurements and finding evidence. Existing databases keep their migration history; initialization does not replay already applied migrations.
+Tauri mode additionally invokes the Rust persistence layer. It creates the application data SQLite database, applies the ordered pending migrations from `database/migrations/` (currently `0001` through `0025`), and stores completed diagnostic sessions, analysis methods, measurements and finding evidence. Existing databases keep their migration history; initialization does not replay already applied migrations.
 
 ## Backup and restore
 

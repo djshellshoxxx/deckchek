@@ -7,12 +7,16 @@ export class Element {
     this.tagName = tag.toUpperCase(); this.ownerDocument = document;
     this.children = []; this.attributes = {}; this.dataset = {}; this.listeners = {};
     this.className = ''; this.parentNode = null; this._text = ''; this.defaultValue = '';
+    this.checked = false; this.defaultChecked = false; this.selected = false; this.defaultSelected = false;
   }
   setAttribute(key, value) {
     this.attributes[key] = String(value);
     if (key === 'class') this.className = String(value);
     else if (key.startsWith('data-')) this.dataset[key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = String(value);
-    else if (['hidden', 'disabled', 'checked', 'selected', 'open'].includes(key)) this[key] = true;
+    else if (key === 'value') { this.defaultValue = String(value); if (!this._dirtyValue) this._value = String(value); }
+    else if (key === 'checked') { this.checked = true; this.defaultChecked = true; }
+    else if (key === 'selected') { this.selected = true; this.defaultSelected = true; }
+    else if (['hidden', 'disabled', 'open'].includes(key)) this[key] = true;
     else this[key] = String(value);
   }
   getAttribute(key) { return this.attributes[key] ?? null; }
@@ -25,7 +29,13 @@ export class Element {
     }
   }
   prepend(...nodes) { const old = [...this.children]; this.replaceChildren(...nodes, ...old); }
-  replaceChildren(...nodes) { for (const child of this.children) child.parentNode = null; this.children = []; this._text = ''; this.append(...nodes); }
+  replaceWith(...nodes) {
+    const parent = this.parentNode;
+    if (!parent) return;
+    const children = [...parent.children], index = children.indexOf(this);
+    parent.replaceChildren(...children.slice(0, index), ...nodes, ...children.slice(index + 1));
+  }
+  replaceChildren(...nodes) { for (const child of this.children) child.parentNode = null; this.children = []; this._text = ''; if (this.tagName === 'SELECT') delete this._value; this.append(...nodes); }
   remove() {
     if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(child => child !== this);
     this.parentNode = null;
@@ -52,8 +62,10 @@ export class Element {
       } else stack.at(-1).append(this.ownerDocument.createTextNode(token));
     }
   }
-  set value(value) { this._value = String(value); }
+  set value(value) { this._value = String(value); this._dirtyValue = true; }
   get value() { return this._value ?? this.children.find(child => child.selected)?.value ?? this.children.find(child => child.tagName === 'OPTION')?.value ?? ''; }
+  get options() { return this.children.filter(child => child.tagName === 'OPTION'); }
+  get selectedIndex() { return this.options.findIndex(option => option.value === this.value); }
   addEventListener(name, callback, options = {}) { (this.listeners[name] ||= []).push({ callback, options }); }
   removeEventListener(name, callback) { this.listeners[name] = (this.listeners[name] || []).filter(listener => listener.callback !== callback); }
   dispatch(name, init = {}) {
@@ -81,6 +93,8 @@ export class Element {
     for (let node = this; node; node = node.parentNode) if (node.hidden) return;
     if (this.isConnected) this.ownerDocument.activeElement = this;
   }
+  showModal() { this.setAttribute('open', ''); }
+  close(value = '') { this.returnValue = value; this.removeAttribute('open'); this.dispatch('close'); }
 }
 
 export function installServiceDom(t) {

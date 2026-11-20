@@ -8,6 +8,7 @@ import { announce, toast } from '../live.js';
 import { go, confirmDialog } from '../shell.js';
 import { store as catalog, on } from '../state.js';
 import { saveTextFile } from '../../userfiles.js';
+import { readTextFile } from '../../text-file.js';
 import { TIMECODE_FORMATS } from '../../timecode.js';
 import { KINDS, PURPOSES, LEVEL_UNITS, CONFIDENCE, LIMITS, TEST_KINDS, UNVERIFIED_WARNING, validateMediaProfile, prepareImport, listMedia } from '../../media-library.js';
 import { media, mediaStore, ensureMedia, reloadMedia, encodeChoice, useInTest, installMediaPicker } from '../media-picker.js';
@@ -321,8 +322,7 @@ export function createMediaScreen(section) {
   async function importFile(file) {
     const host = q('#media-import-errors');
     host.replaceChildren();
-    if (file.size > LIMITS.maxJsonBytes) { showImportErrors([{ field: '', message: `file is larger than ${LIMITS.maxJsonBytes / 1024} KB` }]); return; }
-    const text = await file.text();
+    const text = await readTextFile(file, { maxBytes: LIMITS.maxJsonBytes, label: 'Media profile file' });
     const custom = media.entries.filter(e => e.source === 'custom').map(e => e.id);
     const res = prepareImport(text, { builtinIds: builtinIds(), existingCustomIds: custom });
     if (!res.ok) { showImportErrors(res.errors); return; }

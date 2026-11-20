@@ -24,6 +24,7 @@ import { runAudio } from '../devices/audio-runner.js';
 import { isEnabled as featureEnabled } from '../../features.js';
 import { navigateTo } from '../crosslinks.js';
 import { createPackApi } from '../../pack-api.js';
+import { createDeviceProfileAssignment } from '../workflows/device-profile-assignment.js';
 
 const RESULT_CHIP = { pass: ['pass', 'PASS'], fail: ['fail', 'FAIL'], unknown: ['review', 'REVIEW'], skipped: ['info', 'SKIPPED'] };
 export function statusChip(status, { size = 14 } = {}) {
@@ -55,6 +56,7 @@ export function beginDeviceJobRun(opts) {
 
 export function createDevicesScreen(section) {
   const st = { view: 'grid', profileId: null, filter: 'all', search: '', queue: null, runner: null, runTestId: null, units: { ...(settings.deviceUnits || {}) } };
+  let profileAssignment = null;
   const $ = sel => section.querySelector(sel);
 
   const unitFor = profile => {
@@ -65,6 +67,7 @@ export function createDevicesScreen(section) {
   const selectUnit = (profile, id) => { st.units[profile.id] = id; setSetting('deviceUnits', st.units); };
 
   function render() {
+    profileAssignment?.dispose(); profileAssignment = null;
     disposeRunner();
     if (st.view === 'detail' && profileById(st.profileId)) renderDetail(profileById(st.profileId));
     else { st.view = 'grid'; renderGrid(); }
@@ -178,6 +181,7 @@ export function createDevicesScreen(section) {
           <span>${statusChip('pass')}<b class="num">${pr.passed}</b></span><span>${statusChip('fail')}<b class="num">${pr.failed}</b></span><span>${statusChip('unknown')}<b class="num">${pr.unknown}</b></span><span>${statusChip(null)}<b class="num">${pr.untested}</b></span></div>
           ${progressBar(pr, { label: false })}</div>
       </section>
+      <section class="card" id="dev-profile-assignment" hidden aria-label="Assign an existing unit"></section>
       <div class="dev-detail-grid">
         <div class="dev-detail-main"><section aria-labelledby="dev-plan-title"><div class="section-head"><h2 class="section-title" id="dev-plan-title">Test plan</h2><span class="muted small">${pr.total} tests in ${groupTestsByCategory(p).length} groups${unit ? ` · results for ${esc(unit.nickname)}` : ''}</span></div><div id="dev-plan"></div></section></div>
         <aside class="dev-detail-side" aria-label="Device reference">
@@ -209,6 +213,23 @@ export function createDevicesScreen(section) {
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', html: `${icon('edit', { size: 16 })}<span>Rename / serial</span>`, 'data-tooltip': 'Edit this unit in Equipment', onclick: () => go('equipment') }),
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export', disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export report</span>`, 'data-tooltip': 'Device report as HTML (Ctrl+E)', onclick: () => exportReport(p) }),
       h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-export-pdf', hidden: pdfExportEnabled() ? null : true, disabled: !unit || null, html: `${icon('download', { size: 16 })}<span>Export PDF</span>`, 'data-tooltip': 'Device report as PDF', onclick: e => exportPdf(p, e.currentTarget) }));
+    bar.append(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-use-unit', text: 'Use existing unit',
+      disabled: !lib.products.has(p.id) || null, onclick: () => {
+        const host = $('#dev-profile-assignment');
+        if (!host || !host.hidden || section.hidden) return;
+        host.hidden = false;
+        profileAssignment = createDeviceProfileAssignment(host, {
+          profile: p, productId: lib.products.get(p.id), assets: lib.assets,
+          assign: request => store.assignDeviceProfile(request),
+          onAssigned: (result, asset) => {
+            lib.assets = lib.assets.map(row => row.id === result.assetId ? { ...row, productId: result.productId, updatedAt: result.updatedAt } : row);
+            selectUnit(p, asset.id);
+            toast(`“${asset.nickname}” now uses the ${p.model} device profile.`, { type: 'success' });
+            render();
+          },
+          onCancel: () => { profileAssignment = null; host.hidden = true; host.replaceChildren(); $('#dev-use-unit')?.focus(); },
+        });
+      } }));
     if (unit && featureEnabled('service')) bar.append(repairButton(unit)); // [FS-22] Devices > Repair this unit
     if (unit && featureEnabled('population')) {
       const compare = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'dev-compare', disabled: true,
@@ -527,7 +548,7 @@ export function createDevicesScreen(section) {
       }
       showGuide();
     },
-    onHide: () => {},
+    onHide: () => { profileAssignment?.dispose(); profileAssignment = null; },
     onEscape: () => {
       if (st.view === 'run') { st.queue = null; openDevice(st.profileId); return true; }
       if (st.view === 'detail') { st.view = 'grid'; render(); return true; }

@@ -2,8 +2,8 @@
 // alignment, report exports and workspace import/export.
 
 import { buildHtmlReport, compareRuns, normalizeMeasurement } from '../core.js';
-import { measurementsToCsv, parseWorkspaceJson, serializeWorkspaceJson, sanitizeImportedRun } from '../export.js';
-import { store, workspace, saveWorkspace, emit, settings } from './state.js';
+import { measurementsToCsv, readWorkspaceFile, serializeWorkspaceJson, sanitizeImportedRun } from '../export.js';
+import { store, workspace, saveWorkspace, replaceWorkspace, emit, settings } from './state.js';
 import { isEnabled } from '../features.js';
 import { download, slug, isNative } from './dom.js';
 import { toast } from './live.js';
@@ -105,18 +105,22 @@ export function savedActions(path) {
  * Exports a PDF through report-pdf.js with progress and error feedback. The native save dialog
  * and the print-dialog fallback are handled there; this only reports the outcome.
  * `htmlFallback` (optional) is offered on a failure as "Export HTML instead".
- * Never throws. Returns the exportPdf result, or {error} / {busy:true}.
+ * `isCurrent` scopes feedback and retries to a caller's view without cancelling a submitted export.
+ * Never throws. Returns the exportPdf result, or {error} / {busy:true} / {stale:true}.
  */
-export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, button = null } = {}) {
+export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, button = null, isCurrent = () => true } = {}) {
   const label = PDF_LABEL[kind] || 'Report';
+  if (!isCurrent()) return { stale: true };
   if (!pdfExportEnabled()) return { disabled: true };
   if (button?.disabled) return { busy: true };
   if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
   const endProgress = toast(`Creating PDF… ${label.toLowerCase()}`, { type: 'info', timeout: 0 });
   try {
     const { exportPdf, readPdfSettings } = await import('../report-pdf.js');
+    if (!isCurrent()) return { stale: true };
     const res = await exportPdf(kind, data, readPdfSettings(settings));
     endProgress();
+    if (!isCurrent()) return res;
     if (res.cancelled) return res;
     if (res.fallback) {
       toast(res.reason === 'error' ? `Couldn't create the PDF directly (${res.error?.message || 'unknown error'}). The print dialog is open: choose “Save as PDF”.` : 'The print dialog is open: choose “Save as PDF” to create the PDF.', { type: res.reason === 'error' ? 'warn' : 'info', timeout: 8000 });
@@ -127,14 +131,16 @@ export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, b
     return res;
   } catch (error) {
     endProgress();
+    if (!isCurrent()) return { error };
     const message = error?.code === 'busy' ? 'A PDF is already being created. Wait for it to finish.'
       : `The PDF could not be created: ${error?.message || error}${error?.retryable ? ' You can try again.' : ''}`;
     const actions = [];
-    if (error?.retryable || error?.code === 'timeout') actions.push({ label: 'Retry', run: () => exportPdfWithFeedback(kind, data, { htmlFallback, button }) });
-    if (htmlFallback) actions.push({ label: 'Export HTML instead', run: htmlFallback });
+    if (error?.retryable || error?.code === 'timeout') actions.push({ label: 'Retry', run: () => exportPdfWithFeedback(kind, data, { htmlFallback, button, isCurrent }) });
+    if (htmlFallback) actions.push({ label: 'Export HTML instead', run: () => { if (isCurrent()) htmlFallback(); } });
     toast(message, { type: 'error', ...(actions.length ? { actions } : {}) });
     return { error };
   } finally {
+    endProgress();
     if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
   }
 }
@@ -175,14 +181,26 @@ export function exportWorkspace() {
   download('deckchek-workspace.json', serializeWorkspaceJson({ equipment: workspace.equipment, runs: workspace.runs }), 'application/json');
 }
 export async function importWorkspace(file) {
-  const parsed = parseWorkspaceJson(await file.text());
+  return importParsedWorkspace(await readWorkspaceFile(file));
+}
+
+/** Apply the already parsed snapshot from readWorkspaceFile without reading the selected file again. */
+export async function importParsedWorkspace(parsed) {
+  if (parsed?.version !== 1 || !Array.isArray(parsed.equipment) || !Array.isArray(parsed.runs)) {
+    throw new Error('Unsupported or invalid DeckChek workspace file.');
+  }
   // Untrusted file: keep only object entries with a string id, shaped like the app's own runs, so a
   // damaged import cannot be saved to localStorage and break every later start (AUD-JS-01).
   const runs = parsed.runs.filter(r => r && typeof r === 'object' && typeof r.id === 'string' && r.id.trim()).map(sanitizeImportedRun);
   const data = { ...parsed, equipment: parsed.equipment.filter(e => e && typeof e === 'object' && !Array.isArray(e)), runs };
-  workspace.equipment = data.equipment;
-  workspace.runs = data.runs;
-  saveWorkspace();
+  if (isNative()) {
+    workspace.equipment = data.equipment;
+    workspace.runs = data.runs;
+    saveWorkspace();
+  } else {
+    const saved = replaceWorkspace(data);
+    data.runs = saved.runs;
+  }
   if (!isNative()) for (const run of data.runs.slice(0, 250)) { try { await store.saveRun(toPersistRun(run)); } catch { /* keep going */ } }
   emit('history');
   return data;

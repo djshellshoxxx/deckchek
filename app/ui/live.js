@@ -11,13 +11,30 @@ function ensure() {
   toastHost ??= document.getElementById('toasts');
 }
 
-/** Announce once to screen readers (polite by default). */
-export function announce(message, { assertive = false } = {}) {
+const pendingAnnouncements = new Map();
+
+/** Retire pending feedback when leaving a screen; the two live regions stay independent. */
+export function cancelPendingAnnouncements() {
+  for (const pending of pendingAnnouncements.values()) clearTimeout(pending.timer);
+  pendingAnnouncements.clear();
+}
+
+/** Announce the latest message in its channel; optional ownership is checked again at delivery. */
+export function announce(message, { assertive = false, isCurrent = () => true } = {}) {
+  if (!isCurrent()) return;
   ensure();
   const el = assertive ? assertiveEl : politeEl;
   if (!el) return;
+  const previous = pendingAnnouncements.get(el);
+  if (previous) clearTimeout(previous.timer);
+  const pending = {};
+  pendingAnnouncements.set(el, pending);
   el.textContent = '';
-  setTimeout(() => { el.textContent = message; }, 40);
+  pending.timer = setTimeout(() => {
+    if (pendingAnnouncements.get(el) !== pending) return;
+    pendingAnnouncements.delete(el);
+    if (isCurrent()) el.textContent = message;
+  }, 40);
 }
 
 const ICON = { success: 'pass', info: 'info', error: 'fail', warn: 'warn' };

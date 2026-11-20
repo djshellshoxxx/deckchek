@@ -1,6 +1,21 @@
 # DeckChek build queue
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current continuation — 19 November 2026
+
+The prior consolidation is on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`;
+its test, nightly and desktop workflows succeeded. The older prepublication and
+PR27/30/32/33 instructions below are historical snapshots.
+
+Active work is [PR #34](https://github.com/djshellshoxxx/deckchek/pull/34): explicit
+existing-unit profile assignment, MIDI evidence corrections, Service lifecycle
+repairs and bounded file imports. Current qualification, worker handoffs and
+remaining work are in the [19 November engineering handoff](docs/engineering/CONTINUATION_2026-11-19.md).
+The [branch audit](docs/engineering/CODE_AUDIT_2026-11-19.md) found all useful implementation work from the 29
+old non-main branches represented or superseded; no redundant merge is needed.
+Fleet remains default off. Hardware, signing and release qualification stay open.
+
+
+## Historical source41 prepublication snapshot — 18 November 2026
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](docs/DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 
@@ -132,7 +147,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] FS-35 phase progress, Enter/Esc shortcuts and focus transitions between Run, Stop, Try again and the result summary; lifecycle regressions cover the software behavior.
 - [x] Browser CI at source `742c67a`: **1,283/1,283 checks passed**, including all seven new FS-35 `audio-quality` checks; no console errors. Evidence: [browser CI job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913).
 - [x] Combined local follow-up source, including the service/MIDI/mapper corrections: Node 22 **1,338 passed, zero failed, one optional skip** (1,339 total); `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` passed. This local result does not replace fresh full CI.
-- [ ] Qualify final source41 and the resulting integration tree through applicable native/browser/platform/extended gates. Source39 all-three-workflow and source40 primary completion are exact-source prior evidence; final source41 fields are in the [report](docs/DECKCHEK-CONTINUATION-41.md#source-and-qualification-state).
+- [x] Consolidated prior source41 work on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`; that main revision passed its test, nightly and desktop platform workflows. Qualification of new PR #34 is tracked separately in the [current handoff](docs/engineering/CONTINUATION_2026-11-19.md). Historical source41 results remain in their dated report.
 - Historical qualification snapshot retained from the earlier integration: Qualify the completed integration revision with required native gates and platform builds/self-tests. At source `730d71d`, JavaScript CI passed 1,325 tests/one skip, but [native CI failed compilation with E0428](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404). The alias collision is corrected in [8acaa7a](https://github.com/djshellshoxxx/deckchek/commit/8acaa7a); fresh CI including the subsequent fixes remains pending. The browser pass at `742c67a` does not qualify later native changes or close hardware gates. The same `730d71d` source also passed [1,283/1,283 browser checks with no console errors](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622) and the JavaScript performance gate; its native compilation failure occurred before application tests ran. Service `9192aa0`, alias `8acaa7a`, native MIDI `b34f3c9` and mapper `00f1f3c` are later follow-ups and are not covered by that CI run.
 - [x] Implement logical MIDI IDs scoped by backend/direction, explicit selection, captured-output ownership and shared pending Runner/Mapper input claims; preserve exact legacy unique-name calls. [Source39 contract and review](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#logical-endpoint-selection-and-ownership) retain independent lifecycle findings and bounded proof.
 - [ ] Native MIDI: establish physical identity and qualify hot-plug continuity/same-name device substitution. Opaque logical IDs and readable names are not physical-device proof; failed native name reads remain unselectable. Qualify real Identity Reply/GM and the separate MIDItest consumer contract.
@@ -152,7 +167,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Qualify broader incident windows, shock/DVS/onset isolation and actual hardware separately; the latest-reading attachment does not establish those outcomes.
 - [x] Prevent implicit learned-map reuse after an asset changes product profile; preserve same/unknown legacy identity and explicit import behavior.
 - [x] Source41 combined local qualification passed: full 1,975/0/1 and all 11 static/performance/syntax gates, with all 1,480 source hashes/tree unchanged. Prior bounded native 45/45 and strict Clippy are bound to the exact final inputs.
-- [ ] Complete exact-source hosted checks and integration qualification; local success does not establish release/platform readiness.
+- [ ] Complete PR #34 combined-source hosted checks and integration qualification; local success does not establish release/platform readiness.
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
 
@@ -173,16 +188,16 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Passive support A/B: retained original observations, versioned 20–200 Hz digital power comparison, explicit context/PA/procedure/calibration comparability and history/report integration. No output or physical isolation-efficiency claim; see [the bounded contract](docs/DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons).
 - [x] Source38 native support-history validation streams all records and retains bounded result pages, preserving original values, error precedence and exact retries. [Allocator proof and tradeoff](docs/DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#memory-measurement-and-tradeoff) are separate from full-application qualification.
 - [x] Record published source38 full Linux/Windows application and limited persistence-stress passes with the native history refactor; [exact hosted scope](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#published-head-hosted-observations) retains browser failures and other open jobs.
-- [ ] Complete published source39 native/platform/extended gates and qualify the new source40 native/browser/platform source independently. The source39 primary browser pass is established; no result transfers to changed catalog bytes. Keep validation, API limits, transaction semantics and budgets unchanged.
+- [x] Prior source39/source40 follow-ups are represented in the consolidated and hosted-qualified starting `main`. Their individual historical passes/failures remain in the dated reports. New PR #34 requires its own checks; validation, API limits, transaction semantics and budgets stay unchanged.
 - [x] Separate browser venue-history archive: complete saved incidents/observations/comparisons, strict preflight/conflicts, explicit Data import and resumable recovery; see [implementation and limits](docs/DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive).
 - [x] Separate browser Equipment catalog archive: all six collections and components, strict known graph, exact conflicts and one staged write; [bounds and startup limitations](docs/catalog-archive.md) remain explicit.
 - [x] Native selected-setup portability now carries complete booth/deck-position/settings-snapshot and parent/component graphs through explicit Data preview and atomic insert-missing import; [source40 qualification and chooser correction](docs/DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md).
-- [ ] Device-profile association remains outside both browser and native selected-catalog transfer; imported assets retain their IDs without invented bindings.
+- [x] Explicit existing-unit device-profile assignment is implemented in Devices with guarded native/browser persistence, reviewed target identity and preserved unit/history/map provenance; see [the feature contract](docs/device-profile-assignment.md). Catalog transfer continues to retain IDs without inventing bindings.
 - [x] Correct MIDI transport inference, conditional prerequisites/Skip and generated non-USB output selection; source37 combined qualification passed. [Behavior and preserved limits](docs/DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#midi-planning-and-runner-behavior).
 - [x] Record exact-model USB MIDI and scoped nominal audio/converter provenance for DDJ-GRV6 and XDJ-AZ; complete audio objects remain unknown and conditional.
 - [x] Record exact DJM-450 USB MIDI and scoped DJM-900NXS2 computer-port/converter provenance, preserving both unknown USB audio objects and all handwritten checks. Retain the combined research-marker failure and prefix-only correction.
 - [x] Record exact DDJ-REV1/REV5 USB MIDI and separately scoped nominal 48 kHz / 24-bit converter provenance, preserving all 16 handwritten tests and the same 37 research-seed IDs.
-- [ ] Resolve the remaining 17 conditional MIDI profiles / 51 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
+- [ ] Resolve the remaining 3 conditional MIDI profiles / 9 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.
