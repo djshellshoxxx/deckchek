@@ -28,7 +28,10 @@ const tauri = () => globalThis.window?.__TAURI__ ?? null;
 
 function readLocal(storage, { forWrite = false } = {}) {
   try {
-    const v = JSON.parse(storage?.getItem(LOCAL_KEY) || '{}');
+    // Distinguish an absent key from a present but empty/corrupt value.
+    // An empty string must not be treated as a new empty Ledger on writes.
+    const raw = storage?.getItem(LOCAL_KEY);
+    const v = JSON.parse(raw == null ? '{}' : raw);
     // Reads retain their historical empty fallback. Mutations must not turn
     // an unreadable or malformed existing ledger into an empty replacement.
     if (forWrite && (!isObj(v)

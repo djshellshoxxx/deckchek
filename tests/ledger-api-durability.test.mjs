@@ -90,7 +90,7 @@ test('an unreadable existing browser Ledger cannot be silently overwritten', asy
 });
 
 test('malformed or structurally invalid browser Ledger data blocks mutations', async () => {
-  for (const raw of ['{broken', 'null', '{"exports":{}}', '{"exports":[false]}', '{"notes":[]}']) {
+  for (const raw of ['', '{broken', 'null', '{"exports":{}}', '{"exports":[false]}', '{"notes":[]}']) {
     let writes = 0;
     const api = makeApi({ getItem: () => raw, setItem: () => { writes++; } });
     await assert.rejects(api.setPublicNote('asset-1', 'draft'), /data is unreadable.*not saved/i);
