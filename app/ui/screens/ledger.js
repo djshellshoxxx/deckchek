@@ -75,6 +75,7 @@ export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
     'Open the site address shown under Settings > Pages when the deployment finishes (it can take several minutes). Check the published page and repository for private fields and stale files before sharing the link.',
   ];
 }
+
 export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
 export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
 /** After a folder export through a backend that does not prune (no `removed` count): nothing was deleted. */
