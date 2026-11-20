@@ -44,8 +44,11 @@ Standard checks, six builds and five packaged smokes passed. The
 [nightly ASan job](https://github.com/djshellshoxxx/deckchek/actions/runs/44759032908/job/136366325979)
 failed the Fleet timing assertion: **237.092791 ms** against **200 ms**;
 **766 passed, 1 failed, 8 ignored**, 259.07 s. The inspected log had no ASan
-memory diagnostic. A targeted retry was rejected because cargo-fuzz remained
-running. Retry after it finishes, retaining the failure and unchanged limit.
+memory diagnostic. An initial targeted retry was rejected because cargo-fuzz
+remained running. Cargo-fuzz subsequently passed, completing the workflow with
+four successful jobs and the recorded ASan failure. GitHub then accepted one
+targeted retry of that failed ASan job on unchanged source. The retry result is
+pending at this checkpoint; retain the original failure and unchanged limit.
 The scheduling cause is unknown. PR #46 remains unmerged pending its gates.
 The independent [Fleet investigation](FLEET_ASAN_TIMING_REVIEW_2026-11-20.md)
 confirmed the timing failure and existing bulk-query structure. Its SQL-only
@@ -71,7 +74,10 @@ Submitted writes, IPC and expected-binding transactions are unchanged. Its
 baseline reproduced **7 passes / 4 failures**; the corrected ten-file scope
 passed **102/102** on Node 24.22.3. See
 [the source-bound handoff](DEVICES_CACHE_WRITE_SUCCESSOR_2026-11-20.md).
-Fresh code/functional and defensive acceptance are being completed separately.
+Fresh [code/functional acceptance](DEVICES_CACHE_WRITE_ACCEPTANCE_2026-11-20.md)
+passed **38/38** selected tests on Node 22.23.4, and an independent
+[defensive review](DEVICES_CACHE_WRITE_SECURITY_REVIEW_2026-11-20.md) accepted
+the exact source. Neither identified a remaining blocker within this scope.
 
 Profile source `c05ad30caa15f6dc425e44327dcc5270227ad40e` records DJM-900NXS2
 USB MIDI and S4 MK3's lack of supported USB MIDI controller mode. DIN stays
@@ -88,10 +94,34 @@ The earlier **107-pass/1-fail** generated-file mistake remains recorded.
 
 ## Final combined qualification
 
-The final application/test candidate is ready for combined execution and fresh
-acceptance. Record its frozen commit/tree and actual outcome below after the
-run. Earlier-source results do not qualify later bytes. Focused counts overlap
-and are not additive.
+Frozen source `33d01d24e81d71450cde80f74d1c5b94bf144ece`, tree
+`cfd21a14be36b9029c4766ba39a356e4a1fe89f4`, passed the complete serial
+Node 22.23.4 suite across **181 top-level test files: 2,200 passed, zero failed,
+one optional skip** (2,201 total). The skipped local Mixxx corpus check requires
+`MIXXX_CONTROLLERS_DIR`, which was not set. Test duration was 757.042 seconds;
+the enclosing qualification took 757.420 seconds and exited successfully.
+All **1,541 tracked file hashes stayed unchanged**, and the frozen checkout
+remained clean. The [machine-readable proof](CONTINUATION_2026-11-20_EVIDENCE.json)
+records the runtime, source, counts, elapsed time and full log SHA-256.
+
+The [durable executable-source commit](https://github.com/djshellshoxxx/deckchek/commit/880234ff9bbc1dfb0660d2cdf00a1a9a81e4d533)
+is `880234ff9bbc1dfb0660d2cdf00a1a9a81e4d533`; its tree exactly equals the
+tested local tree. Final independent acceptance reports, this completed report
+and its evidence file are documentation-only overlays. No application, test,
+generated coverage, dependency, migration or workflow file changed after the
+combined run began.
+
+At this frozen source, all **10 changed JavaScript files** passed syntax checks.
+Device index, generated coverage, timecode facts, all 25 migrations and mobile
+vendor/precache checks passed. No new local native/browser/hardware execution
+is claimed; the resulting published source requires its own applicable hosted
+checks. Focused test counts overlap and are not additive.
+
+The successor candidate uses branch
+`integration/deckchek-continuation-20261120-resume`, based on merged main
+`f46abbea458ba2bb8c2f6d438eba4f5b0a58c948`. Inspect its live associated PR and
+current hosted results before integration. Leave its source stable while those
+checks run; further work belongs on a separate owned branch.
 
 ## Resume boundaries
 
