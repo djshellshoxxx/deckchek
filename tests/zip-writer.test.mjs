@@ -61,6 +61,26 @@ test('entry names: zip-slip, absolute, backslash and duplicates are rejected', (
   assert.throws(() => createZip([{ name: 'a', data: '' }, { name: 'a', data: '' }]));
 });
 
+test('ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filenames', () => {
+  for (const bad of ['name\\ud800', '\\udc00tail', 'a\\ud800x', 'x\\udc00\\ud800y']) {
+    const value = JSON.parse('"' + bad + '"');
+    assert.equal(validateEntryName(value), false, bad);
+    assert.throws(() => createZip([{ name: value, data: 'x' }]), /Invalid zip entry name/);
+  }
+  assert.equal(validateEntryName('logs/😀-é.txt'), true);
+  assert.equal(validateEntryName(123), false);
+  assert.throws(() => createZip([{ name: 123, data: 'x' }]), /Invalid zip entry name/);
+  assert.equal(readZip(createZip([{ name: 'logs/😀-é.txt', data: 'ok' }]))[0].name, 'logs/😀-é.txt');
+});
+
+test('ZIP entry payloads reject unsupported types instead of silently inserting zero bytes', () => {
+  for (const data of [undefined, null, 3, [1, 2], new ArrayBuffer(4), { length: 3 }]) {
+    assert.throws(() => createZip([{ name: 'bad.bin', data }]), /Invalid ZIP entry data/);
+  }
+  const original = new Uint8Array([0, 255, 5]);
+  assert.deepEqual(readZip(createZip([{ name: 'ok.bin', data: original }]))[0].data, original);
+});
+
 test('system unzip / python zipfile accept the archive (when available)', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zipw-'));
   const file = path.join(dir, 't.zip');
