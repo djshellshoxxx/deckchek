@@ -98,10 +98,12 @@ export function createZip(entries, { date = new Date() } = {}) {
   let offset = 0;
   let archiveBytes = 22; // End-of-central-directory record.
   for (const e of entries) {
-    if (!validateEntryName(e?.name)) throw new Error(`Invalid zip entry name: ${e?.name}`);
-    if (seen.has(e.name)) throw new Error(`Duplicate zip entry: ${e.name}`);
-    seen.add(e.name);
-    const name = enc.encode(e.name);
+    // Read an entry name once. Accessor-backed names must not change after validation.
+    const entryName = e?.name;
+    if (!validateEntryName(entryName)) throw new Error(`Invalid zip entry name: ${entryName}`);
+    if (seen.has(entryName)) throw new Error(`Duplicate zip entry: ${entryName}`);
+    seen.add(entryName);
+    const name = enc.encode(entryName);
     // Reserve both ZIP records and both copies of the encoded filename.
     const remainingBytes = MAX_ZIP_BYTES - archiveBytes - 30 - 46 - 2 * name.length;
     if (remainingBytes < 0) throw new Error('Zip too large.');
