@@ -73,6 +73,32 @@ test('ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filename
   assert.equal(readZip(createZip([{ name: 'logs/😀-é.txt', data: 'ok' }]))[0].name, 'logs/😀-é.txt');
 });
 
+test('ZIP entry names use one validated snapshot for duplicate checks and output', () => {
+  let reads = 0;
+  const bytes = createZip([{
+    get name() {
+      reads++;
+      return reads === 1 ? 'safe.txt' : '../unexpected.txt';
+    },
+    data: 'ok',
+  }]);
+  assert.equal(reads, 1, 'the name getter must be observed only once');
+  assert.deepEqual(readZip(bytes).map(entry => entry.name), ['safe.txt']);
+
+  let duplicateReads = 0;
+  assert.throws(() => createZip([
+    { name: 'taken.txt', data: 'first' },
+    {
+      get name() {
+        duplicateReads++;
+        return duplicateReads === 1 ? 'taken.txt' : 'different.txt';
+      },
+      data: 'second',
+    },
+  ]), /Duplicate zip entry/);
+  assert.equal(duplicateReads, 1, 'duplicate validation must use the original name');
+});
+
 test('ZIP entry payloads reject unsupported types instead of silently inserting zero bytes', () => {
   for (const data of [undefined, null, 3, [1, 2], new ArrayBuffer(4), { length: 3 }]) {
     assert.throws(() => createZip([{ name: 'bad.bin', data }]), /Invalid ZIP entry data/);
