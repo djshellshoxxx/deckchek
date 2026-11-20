@@ -128,5 +128,34 @@ own applicable hosted gates. Preserve the 200 ms assertion, all failures and
 Fleet default-off. Any proposed production optimization needs source-bound
 semantic equivalence, independent review and unchanged-gate qualification.
 
-Root authored this diagnostic. Fresh code, functional and defensive source
-review are required before treating the tooling as independently accepted.
+## Completed fresh reviews
+
+Root authored the diagnostic and the migration-copy correction. Three fresh
+workers completed independent [code](FLEET_DIAGNOSTIC_CODE_REVIEW_2026-11-20.md),
+[functional](FLEET_DIAGNOSTIC_FUNCTIONAL_REVIEW_2026-11-20.md) and
+[defensive](FLEET_DIAGNOSTIC_SECURITY_REVIEW_2026-11-20.md) reviews. They accept
+corrected tooling source `69ea261aa8a89c3cb3d6d83e17427b442261cc92`, tree
+`e52b5c4671c9a43388c838aed8e3d0cc2188efb2`, within their documented source and
+generation scopes. The corrected generator hash is
+`2df2d1a9d72073d25863d80fef92b4d4ac56a9b42a0f36f2025de8a64dcdeeb1`.
+
+Independent generation confirmed exact extracted functions and the unchanged
+regression, 25 copied migration/hash matches, relative-path resolution after
+moving the generated crate, output preservation, and all 30 registry identities
+plus the root package. Source hashes stayed unchanged. The live-migration input
+gap and the omitted-return-cleanup wording were closed by the correction above.
+
+The functional worker attempted one offline ASan build on the original generated
+crate. Bundled SQLite compilation was killed in `cc1` before tests ran; Cargo
+exited 101 after 15.237512457 seconds. The cause remains unconfirmed. Its full
+log and source-bound records are retained beside the original evidence. No
+second Cargo run occurred. The corrected generated Rust differs only in its
+migration include paths, and copied SQL bytes were independently verified.
+That validates generation; it does not supply an independent runtime pass.
+The author's original 2/2 observation retains its original source and limits.
+
+This tooling checkpoint remains separate from the Ledger qualification candidate.
+A successor should use it for a concrete native performance question or complete
+the outstanding runtime environment check; unchanged passing generation checks
+do not need repetition. Preserve both the author's successful observation and
+the independent pre-test compile failure.

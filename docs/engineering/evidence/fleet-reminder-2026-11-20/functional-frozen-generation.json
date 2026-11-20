@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "69ea261aa8a89c3cb3d6d83e17427b442261cc92",
+  "sourceTree": "e52b5c4671c9a43388c838aed8e3d0cc2188efb2",
+  "trackedFiles": 1536,
+  "changedFiles": [],
+  "gitStatusAfter": "",
+  "generatorSha256": "2df2d1a9d72073d25863d80fef92b4d4ac56a9b42a0f36f2025de8a64dcdeeb1",
+  "generatedHarnessSha256": "061852fed4188f8a2f0f2a74546de8088e6da834a8c3505553540e83284563ca",
+  "generatedMetadataSha256": "1ad9d7a0a799a30fc851073b58d7bddd5216198756601fa44b8a2b87e7b3fd34",
+  "originalBodyAndInstrumentedBodyParity": true,
+  "instrumentedProbeLines": 5,
+  "generatedRustChangeOnlyMigrationIncludePaths": true,
+  "frozenMigrationCount": 25,
+  "frozenMigrationBytesAndRecordedHashesMatch": true,
+  "allRelativeIncludesRemainInsideCrate": true,
+  "relocatedCrateIncludesResolve": true,
+  "existingOutputPreserved": true,
+  "phaseBoundaryLimit": "The four measured intervals exclude function-return destruction and do not exhaust the unchanged whole-call duration.",
+  "freshCargoExecution": false,
+  "priorCompileFailureRetained": true
+}

@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "82016a79e363d687703c4e897d4ef2247fcb1028",
+  "sourceTree": "90a667533bbea1d77705d15274428011db3373b3",
+  "trackedFiles": 1536,
+  "generatorSha256": "25078d29cf3b0fc7a9ee8baa5e04b8bf5a1ae6b341f7c66d129aa101a588a409",
+  "harnessSha256": "be053a3e036db507dca0b92f12b4ead01bbaafd0b8f11c2e3580e31547139cb4",
+  "normalizedAuthorHarnessMatch": true,
+  "sourceAndSnippetAndMigrationsMatchAuthor": true,
+  "originalReminderAndRegressionIncluded": true,
+  "unchangedBudgetMs": 200,
+  "migrations": 25,
+  "guards": [
+    {
+      "output": "/workspace/scratch/6f2247f2f463/fleet-diagnostic-functional-proof/harness",
+      "exitCode": 1,
+      "message": "Choose an empty output directory; existing diagnostics are preserved."
+    },
+    {
+      "output": "/workspace/scratch/6f2247f2f463/deckchek-fleet-diagnostic-functional",
+      "exitCode": 1,
+      "message": "Use an output directory outside the repository."
+    }
+  ]
+}
