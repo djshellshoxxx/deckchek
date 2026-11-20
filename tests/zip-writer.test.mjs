@@ -126,3 +126,31 @@ test('ZIP size cap includes local records, directory and end record', () => {
     /Zip too large/,
   );
 });
+
+test('DOS year clamping never creates an impossible leap-day date', () => {
+  const readPackedDate = input => {
+    const bytes = createZip([{ name: 'date.txt', data: 'x' }], { date: input });
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const local = v.getUint16(12, true);
+    const centralOffset = v.getUint32(bytes.length - 22 + 16, true);
+    const central = v.getUint16(centralOffset + 14, true);
+    assert.equal(central, local, 'central and local ZIP dates must agree');
+    return {
+      year: 1980 + (local >>> 9),
+      month: (local >>> 5) & 0x0f,
+      day: local & 0x1f,
+    };
+  };
+
+  // The original year-clamp encoded February 29 in nonleap year 2107.
+  assert.deepEqual(readPackedDate(new Date(2400, 1, 29, 12, 4, 6)),
+    { year: 2107, month: 2, day: 28 });
+  // Preserve legal leap days, including the lower DOS bound.
+  assert.deepEqual(readPackedDate(new Date(2104, 1, 29, 12, 4, 6)),
+    { year: 2104, month: 2, day: 29 });
+  assert.deepEqual(readPackedDate(new Date(1976, 1, 29, 12, 4, 6)),
+    { year: 1980, month: 2, day: 29 });
+  // Other dates clamped to 2107 retain their existing month and day.
+  assert.deepEqual(readPackedDate(new Date(2108, 2, 1, 12, 4, 6)),
+    { year: 2107, month: 3, day: 1 });
+});
