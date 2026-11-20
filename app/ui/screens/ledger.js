@@ -66,13 +66,13 @@ export const SINGLE_FILE_NAME = 'deckchek-gear-ledger.html';
  */
 export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
   const upload = mode === 'single'
-    ? `Rename the exported file "${name}" to index.html, then upload it with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; under any other name the address shows a 404 page.`
-    : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) with "Add file > Upload files", or push them with git. If you exported into this folder before, first delete the photos and certificate files this export did not write.`;
+    ? `Rename the exported file "${name}" to index.html, then upload it at the repository root with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; another name can leave the site address showing a 404 page.`
+    : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) at the repository root with "Add file > Upload files", or push them with git. Before replacing a published ledger, remove obsolete photos and certificate JSON files from both the local export and the GitHub repository; uploading new files does not delete old GitHub files.`;
   return [
-    'On github.com, create a new repository (public, if you want the ledger to be public).',
+    'On github.com, create a repository. GitHub Free requires a public repository for Pages. On other eligible plans a private repository does not, by itself, make its Pages site private. Only publish a ledger intended for sharing.',
     upload,
-    'Open Settings > Pages, choose "Deploy from a branch", pick the branch (main) and the root folder, and save.',
-    'Wait for the Pages build, then open the address GitHub shows. Check that only the fields in the privacy summary are visible.',
+    'Open Settings > Pages > Build and deployment, select "Deploy from a branch", choose the branch with your uploaded files (for example main), select "/ (root)", then Save. Keep index.html at that root, not inside a nested ledger folder.',
+    'Open the site address shown under Settings > Pages when the deployment finishes (it can take several minutes). Check the published page and repository for private fields and stale files before sharing the link.',
   ];
 }
 export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
