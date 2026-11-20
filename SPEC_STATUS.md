@@ -166,7 +166,7 @@ These describe the long-term product. Items that need physical hardware or vendo
 
 - [ ] Owner hardware runs H-00..H-33 (cannot run in CI).
 - [ ] Full automated suite green on the release commit (npm test, cargo test Linux+Windows, ui-smoke, fuzz smoke).
-- [ ] Owner checks left open by M7/M8: FS-31 WASAPI-shared spike (H-31 steps 1-6), FS-32 VirtualDJ format (H-32 step 7), FS-33 GitHub Pages wording (H-33), FS-21 owner export/import walkthrough and source41 hosted qualification, FS-23 H-23 hardware and real-database qualification before enabling fleet by default (currently off; manual opt-in available).
+- [ ] Owner checks left open by M7/M8: FS-31 WASAPI-shared spike (H-31 steps 1-6), FS-32 VirtualDJ format (H-32 step 7), FS-33 real GitHub Pages publishing/privacy walkthrough (H-33; wording source-reviewed 20 November 2026), FS-21 owner export/import walkthrough and source41 hosted qualification, FS-23 H-23 hardware and real-database qualification before enabling fleet by default (currently off; manual opt-in available).
 
 ## Historical source39 feature-row snapshot
 

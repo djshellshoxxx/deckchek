@@ -158,7 +158,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Owner hardware runs H-20 to H-23 and H-31 to H-33; flip default-off flags only after they pass.
 - [ ] FS-31: WASAPI-shared capture beside DJ software (H-31 steps 1-6); negative-SNR residual (noise louder than the carrier reads as cueing).
 - [ ] FS-32: confirm the VirtualDJ file format against a real install (H-32 step 7).
-- [ ] FS-33: verify the GitHub Pages guide wording (H-33).
+- [ ] FS-33: complete the real GitHub Pages publishing/privacy walkthrough (H-33); guide wording was checked against current GitHub documentation on 20 November 2026.
 - [x] FS-21: bounded exported-pack privacy/source review accepted for the frozen four-file correction; all three ownership/copy findings resolved. Persistent 16/16, related 32/32 and unchanged independent 3/3 are recorded in the [source41 report](docs/DECKCHEK-CONTINUATION-41.md#pack-preview-ownership-and-privacy-copy).
 - [ ] FS-21: exact-source hosted export/import and owner H-21 qualification remain separate from the accepted source/probe review.
 - [ ] FS-23: real-database walkthrough and H-23 hardware qualification before enabling Fleet by default.

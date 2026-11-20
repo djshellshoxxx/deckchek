@@ -13,6 +13,7 @@ import { createLedgerApi } from '../../ledger/api.js';
 import { buildLedger, previewHtml, compareWithPrevious, LEDGER_DIR, SINGLE_FILE_MAX_BYTES } from '../../ledger/build.js';
 import { FIELDS, PRESETS, PRESET_LABELS, SERIAL_MODES, makeRules, normalizeRules, matchesPreset, effectiveRules, MAX_OWNER_CHARS } from '../../ledger/privacy.js';
 import { preparePhoto } from '../../photo-store.js';
+import { createKeyedWriteQueue } from '../../ledger/write-queue.js';
 
 const STEPS = [['select', 'Select gear'], ['privacy', 'Privacy'], ['preview', 'Preview'], ['export', 'Export']];
 const SERIAL_LABEL = { hidden: 'Hidden', masked: 'Masked (last 4)', full: 'Full' };
@@ -66,17 +67,18 @@ export const SINGLE_FILE_NAME = 'deckchek-gear-ledger.html';
  */
 export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
   const upload = mode === 'single'
-    ? `Rename the exported file "${name}" to index.html, then upload it with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; under any other name the address shows a 404 page.`
-    : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) with "Add file > Upload files", or push them with git. If you exported into this folder before, first delete the photos and certificate files this export did not write.`;
+    ? `Rename the exported file "${name}" to index.html, then upload it at the repository root with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; another name can leave the site address showing a 404 page. If this replaces an older folder export, delete obsolete photo and certificate files from the GitHub repository; replacing index.html does not delete them.`
+    : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) at the repository root with "Add file > Upload files", or push them with git. Before replacing a published ledger, remove obsolete photos and certificate JSON files from both the local export and the GitHub repository; uploading new files does not delete old GitHub files.`;
   return [
-    'On github.com, create a new repository (public, if you want the ledger to be public).',
+    'On github.com, create a repository. GitHub Free requires a public repository for Pages. On other eligible plans a private repository does not, by itself, make its Pages site private. Only publish a ledger intended for sharing.',
     upload,
-    'Open Settings > Pages, choose "Deploy from a branch", pick the branch (main) and the root folder, and save.',
-    'Wait for the Pages build, then open the address GitHub shows. Check that only the fields in the privacy summary are visible.',
+    'Open Settings > Pages > Build and deployment, select "Deploy from a branch", choose the branch with your uploaded files (for example main), select "/ (root)", then Save. Keep index.html at that root, not inside a nested ledger folder.',
+    'Open the site address shown under Settings > Pages when the deployment finishes (it can take several minutes). Check the published page and repository for private fields and stale files before sharing the link. Deleted files remain accessible in Git commit history; removing files after publication cannot undo an earlier disclosure.',
   ];
 }
-export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
-export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
+
+export const PUBLISH_COPY = 'Create a repository, upload the contents of the exported folder at the repository root (or push them), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.';
+export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html at the repository root (or push it), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.';
 /** After a folder export through a backend that does not prune (no `removed` count): nothing was deleted. */
 export const LEFTOVER_NOTE = 'Files with the same names are replaced, but photos and certificate files (.deckchek-cert.json) from earlier exports that are not in this one stay in that folder: delete them before you upload, or they are published too.';
 
@@ -259,6 +261,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   // WebKit and Firefox. So typed text is kept in state at once and committed before every build.
   const drafts = new Map();   // assetId -> public note typed but not saved yet
   const inflight = new Map(); // assetId -> {text, promise} of the save in progress
+  const queueNoteWrite = createKeyedWriteQueue(); // preserve the order of real writes for each asset
   const failed = new Map();   // assetId -> message of the last failed save
   function saveNote(assetId) {
     if (!drafts.has(assetId)) return null;
@@ -269,9 +272,10 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     const title = gearRowText(row).title;
     const promise = (async () => {
       try {
-        const saved = await api.setPublicNote(assetId, text);
+        const saved = await queueNoteWrite(assetId, () => api.setPublicNote(assetId, text));
         row.asset.publicNotes = saved?.publicNotes ?? null;
-        if (drafts.get(assetId) === text) drafts.delete(assetId);
+        // Text may repeat in a later queued edit. Only its own acknowledgement can clear the latest draft.
+        if (inflight.get(assetId)?.promise === promise && drafts.get(assetId) === text) drafts.delete(assetId);
         failed.delete(assetId); st.result = null;
         status(`Public note saved for ${title}.`);
       } catch (e) {
@@ -462,8 +466,11 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
 
   async function load() {
     st.loading = true; st.loadError = null; render();
-    let flaggedNote = '';
+    let flaggedNote = '', noteError = null;
     try {
+      // A reload must read after this screen's submitted notes settle, otherwise their
+      // callbacks can update a retired gear row while the replacement still shows old notes.
+      noteError = await commitEdits();
       const [gear, history, next] = await Promise.all([api.listGear(), api.listExports(5).catch(() => []), api.nextRevision().catch(() => null)]);
       st.gear = gear; st.history = history; st.nextRevision = next;
       const last = history[0];
@@ -479,7 +486,8 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     const left = (st.gear?.rows || []).filter(r => r.usedInServiceJobs && !st.selected.has(r.asset.id)).length;
     if (left && !st.loadError) flaggedNote = heldNote(left);
     render();
-    if (flaggedNote) status(flaggedNote);
+    if (noteError) status(noteError);
+    else if (flaggedNote) status(flaggedNote);
   }
   let handoff = null;
   function applyHandoff() {
