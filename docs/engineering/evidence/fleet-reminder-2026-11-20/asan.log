@@ -1,0 +1,52 @@
+ Downloading crates ...
+  Downloaded zmij v1.0.23
+  Downloaded memchr v2.8.3
+  Downloaded bitflags v2.13.2
+  Downloaded fallible-streaming-iterator v0.1.9
+  Downloaded itoa v1.0.18
+  Downloaded pkg-config v0.3.34
+  Downloaded shlex v2.0.1
+  Downloaded find-msvc-tools v0.1.14
+  Downloaded fallible-iterator v0.3.0
+  Downloaded foldhash v0.2.0
+  Downloaded smallvec v1.16.2
+  Downloaded hashlink v0.12.2
+  Downloaded serde_core v1.0.229
+  Downloaded cc v1.6.0
+  Downloaded hashbrown v0.17.1
+  Downloaded serde_json v1.0.151
+  Downloaded rusqlite v0.41.1
+  Downloaded vcpkg v0.2.15
+  Downloaded libc v0.2.190
+  Downloaded libsqlite3-sys v0.39.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling pkg-config v0.3.34
+   Compiling vcpkg v0.2.15
+   Compiling cc v1.6.0
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling foldhash v0.2.0
+   Compiling libc v0.2.190
+   Compiling hashbrown v0.17.1
+   Compiling serde_json v1.0.151
+   Compiling bitflags v2.13.2
+   Compiling hashlink v0.12.2
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling smallvec v1.16.2
+   Compiling fallible-iterator v0.3.0
+   Compiling libsqlite3-sys v0.39.1
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling rusqlite v0.41.1
+   Compiling fleet-reminder-diagnostic v0.1.0 (/workspace/scratch/6f2247f2f463/fleet-native-measurement)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.37s
+     Running unittests src/lib.rs (/workspace/scratch/6f2247f2f463/fleet-native-measurement/target/x86_64-unknown-linux-gnu/debug/build/fleet-reminder-diagnostic/d7466da19f0ecff9/out/fleet_reminder_diagnostic-d7466da19f0ecff9)
+
+running 2 tests
+test diagnostic_phase_measurements_preserve_rows ... FLEET_DIAGNOSTIC {"limits":"isolated diagnostic; allocation counts cover Rust requests, not SQLite C allocation or peak memory; not the full Tauri gate","migrations":25,"phaseNames":["completionQueryAndMap","usageQueryAndMap","reminderQueryAndJson","enrichment"],"phases":[{"rustAllocationCalls":4011,"rustRequestedBytes":728184,"threadCpuNs":20944550,"wallNs":20942838},{"rustAllocationCalls":4010,"rustRequestedBytes":323338,"threadCpuNs":10990903,"wallNs":10988582},{"rustAllocationCalls":32010,"rustRequestedBytes":1654504,"threadCpuNs":45509185,"wallNs":45515702},{"rustAllocationCalls":10000,"rustRequestedBytes":2812000,"threadCpuNs":27933314,"wallNs":27931386}],"rows":2000,"sqliteVersion":"3.54.1","unmodifiedBody":{"rustAllocationCalls":50031,"rustRequestedBytes":5518026,"threadCpuNs":110543836,"wallNs":110555698}}
+ok
+test regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s
+
