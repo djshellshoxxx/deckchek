@@ -30,7 +30,15 @@ function readLocal(storage) {
   } catch { return { exports: [], notes: {} }; }
 }
 function writeLocal(storage, data) {
-  try { storage?.setItem(LOCAL_KEY, JSON.stringify(data)); } catch { /* storage full or blocked: history stays in memory */ }
+  // A missing, full, or blocked browser store must never be reported as a successful
+  // public-note or export-history save. The caller keeps its draft/error state.
+  if (typeof storage?.setItem !== 'function') {
+    throw new Error('Browser storage is unavailable; Gear Ledger changes were not saved.');
+  }
+  try { storage.setItem(LOCAL_KEY, JSON.stringify(data)); }
+  catch (cause) {
+    throw new Error('Browser storage could not save Gear Ledger changes.', { cause });
+  }
 }
 
 export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.localStorage, catalog, photos, now = () => new Date().toISOString() } = {}) {
