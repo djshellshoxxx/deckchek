@@ -25,8 +25,17 @@ export function crc32(bytes, seed = 0) {
 
 /** Entry names are fixed constants in DeckChek, but are still validated (no zip-slip). */
 export function validateEntryName(name) {
-  const s = String(name ?? '');
-  if (!s || s.length > 255) return false;
+  if (typeof name !== 'string' || !name || name.length > 255) return false;
+  // TextEncoder replaces lone UTF-16 surrogates with U+FFFD. Reject them instead
+  // of silently changing filenames or allowing distinct inputs to encode identically.
+  for (let i = 0; i < name.length; i++) {
+    const unit = name.charCodeAt(i);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = name.charCodeAt(++i);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
+  }
+  const s = name;
   // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f\\:]/.test(s) || s.startsWith('/') || s.endsWith('/')) return false;
   return s.split('/').every(seg => seg !== '' && seg !== '.' && seg !== '..');
@@ -39,7 +48,12 @@ function dosDateTime(d) {
   return { time: time & 0xffff, date: date & 0xffff };
 }
 
-const toBytes = data => (data instanceof Uint8Array ? data : typeof data === 'string' ? enc.encode(data) : new Uint8Array(data ?? 0));
+function toBytes(data) {
+  if (data instanceof Uint8Array) return data;
+  if (typeof data === 'string') return enc.encode(data);
+  // Treat unexpected payload types as errors, not counts of zero-filled bytes.
+  throw new Error('Invalid ZIP entry data: expected text or Uint8Array.');
+}
 
 /**
  * @param {{name:string, data:Uint8Array|string}[]} entries written in the given order
