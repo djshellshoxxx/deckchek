@@ -10,6 +10,8 @@ import { auditProfile, capabilitiesOf, completePlan, midiPrerequisites } from '.
 // Full original-object fingerprints catch changes outside the documented transport additions.
 // The later Push 3 host-channel addendum is reversed explicitly below and independently
 // qualified by researched-push3-audio.test.mjs; every original fingerprint remains intact.
+// The later S4/DJM-900NXS2 USB-MIDI provenance additions are also reversed explicitly
+// for their original byte baselines; their focused tests qualify the new facts.
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const fingerprint = value => digest(JSON.stringify(value));
 const readProfile = id => JSON.parse(readFileSync(new URL(`../app/devices/profiles/${id}.json`, import.meta.url), 'utf8'));
@@ -1081,9 +1083,35 @@ test('transport batch preserves the exact 37 research-seed IDs and 45-profile in
   assert.equal(cases.reduce((n, c) => n + c.facts.filter(f => f.field === 'din').length, 0), 2);
 });
 
-test('transport batch leaves all 31 out-of-scope profile files byte-for-byte unchanged', () => {
+test('transport batch preserves all 31 other profile baselines after scoped USB MIDI addenda', () => {
   for (const [id, expected] of Object.entries(unownedProfileHashes)) {
-    const raw = readFileSync(new URL(`../app/devices/profiles/${id}.json`, import.meta.url));
+    let raw = readFileSync(new URL(`../app/devices/profiles/${id}.json`, import.meta.url));
+    if (id === 'native-instruments-traktor-kontrol-s4-mk3' || id === 'pioneer-dj-djm-900nxs2') {
+      const profile = JSON.parse(raw);
+      if (id === 'native-instruments-traktor-kontrol-s4-mk3') {
+        assert.equal(profile.connectivity.midi.usbMidi, false);
+        const marker = ' MIDI-mode addendum (2026-11-20):';
+        const split = profile.identityNotes.indexOf(marker);
+        assert.ok(split > 0);
+        profile.identityNotes = profile.identityNotes.slice(0, split)
+          .replace('DIN MIDI and exact control maps, USB IDs', 'MIDI transport/maps, USB IDs');
+        assert.equal(profile.documents.length, 7);
+        assert.equal(profile.specs.length, 9);
+        profile.documents.pop();
+      } else {
+        assert.equal(profile.connectivity.midi.usbMidi, true);
+        profile.identityNotes = profile.identityNotes.replace(
+          'Transport addendum (2026-11-20): exact-model manufacturer FAQs document the USB-MIDI interface and sending MIDI to computer DJ software. USB MIDI is confirmed; DIN remains unknown.',
+          'Direct USB MIDI transport evidence was not retrieved; USB MIDI and DIN remain unknown.',
+        );
+        assert.equal(profile.documents.length, 9);
+        assert.equal(profile.specs.length, 12);
+        profile.documents.splice(-2);
+      }
+      profile.specs.pop();
+      profile.connectivity.midi.usbMidi = null;
+      raw = `${JSON.stringify(profile, null, 2)}\n`;
+    }
     assert.equal(digest(raw), expected, id);
   }
 });

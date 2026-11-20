@@ -13,7 +13,7 @@ test('S4 MK3 records documented bit depth while retaining unresolved audio count
     usbChannelsIn: null, usbChannelsOut: null, sampleRatesHz: [], bitDepth: 24,
   });
   assert.match(profile.identityNotes, /Research seed/);
-  assert.equal(profile.connectivity.midi.usbMidi, null);
+  assert.equal(profile.connectivity.midi.usbMidi, false, 'the separate manufacturer MIDI-mode addendum rules out supported USB MIDI mode');
 });
 
 test('S4 MK3 documented audio format leaves the actual output quality plan conditional', () => {
