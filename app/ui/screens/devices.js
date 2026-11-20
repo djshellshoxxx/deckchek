@@ -57,6 +57,7 @@ export function beginDeviceJobRun(opts) {
 export function createDevicesScreen(section) {
   const st = { view: 'grid', profileId: null, filter: 'all', search: '', queue: null, runner: null, runTestId: null, units: { ...(settings.deviceUnits || {}) } };
   let profileAssignment = null;
+  let showGeneration = 0;
   const $ = sel => section.querySelector(sel);
 
   const unitFor = profile => {
@@ -535,9 +536,15 @@ export function createDevicesScreen(section) {
 
   return {
     onShow: async () => {
+      const generation = ++showGeneration;
+      const isCurrent = () => generation === showGeneration && !section.hidden && section.isConnected;
       if (st.view !== 'run') {
+        await ensureLibrary();
+        if (!isCurrent()) return;
+        await refreshUnits({ isCurrent });
+        if (!isCurrent()) return;
+        // Retired shows leave the handoff available for the next current view.
         const handoff = takeHandoff('devices');
-        await ensureLibrary(); await refreshUnits();
         if (handoff?.assetId) {
           const asset = lib.assets.find(asset => asset.id === handoff.assetId);
           const profileId = [...lib.products].find(([, productId]) => productId === asset?.productId)?.[0];
@@ -546,9 +553,9 @@ export function createDevicesScreen(section) {
           else { st.view = 'grid'; render(); toast('This asset has no device profile. Use a generic diagnostic workflow.', { type: 'info' }); }
         } else if (st.view !== 'run') render();
       }
-      showGuide();
+      if (isCurrent()) showGuide();
     },
-    onHide: () => { profileAssignment?.dispose(); profileAssignment = null; },
+    onHide: () => { showGeneration++; profileAssignment?.dispose(); profileAssignment = null; },
     onEscape: () => {
       if (st.view === 'run') { st.queue = null; openDevice(st.profileId); return true; }
       if (st.view === 'detail') { st.view = 'grid'; render(); return true; }

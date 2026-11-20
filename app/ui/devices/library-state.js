@@ -49,10 +49,16 @@ export function ensureLibrary({ force = false } = {}) {
   return loading;
 }
 
-/** Reload assets and results (after edits or a saved result). */
-export async function refreshUnits() {
-  try { lib.assets = await store.list('asset'); } catch { lib.assets = []; }
-  try { lib.results = await store.listDeviceTestResults(null); } catch { lib.results = []; }
+/** Reload assets and results; view-owned callers can retire a pending refresh. */
+export async function refreshUnits({ isCurrent = () => true } = {}) {
+  let assets, results;
+  try { assets = await store.list('asset'); } catch { assets = []; }
+  if (!isCurrent()) return;
+  try { results = await store.listDeviceTestResults(null); } catch { results = []; }
+  if (!isCurrent()) return;
+  // Publish one complete snapshot only while its requesting view still owns it.
+  lib.assets = assets;
+  lib.results = results;
 }
 
 export const profileById = id => lib.profiles.find(p => p.id === id) || null;
