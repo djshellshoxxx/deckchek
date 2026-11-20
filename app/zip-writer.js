@@ -2,6 +2,7 @@
 // UTF-8 names, no ZIP64 (bundles are capped at 20 MiB). No dependencies, pure and DOM-free.
 
 const enc = new TextEncoder();
+const MAX_ZIP_BYTES = 20 * 1024 * 1024; // Total archive, including ZIP record overhead.
 
 let table = null;
 function crcTable() {
@@ -69,6 +70,7 @@ export function createZip(entries, { date = new Date() } = {}) {
   const central = [];
   const seen = new Set();
   let offset = 0;
+  let archiveBytes = 22; // End-of-central-directory record.
   for (const e of entries) {
     if (!validateEntryName(e?.name)) throw new Error(`Invalid zip entry name: ${e?.name}`);
     if (seen.has(e.name)) throw new Error(`Duplicate zip entry: ${e.name}`);
@@ -76,6 +78,10 @@ export function createZip(entries, { date = new Date() } = {}) {
     const name = enc.encode(e.name);
     const data = toBytes(e.data);
     if (data.length > 0xfffffffe || offset > 0xfffffffe) throw new Error('Zip too large.');
+    // Fail before computing a CRC or allocating the combined output. Payload-only
+    // checks miss the local headers, central directory and end record.
+    archiveBytes += 30 + name.length + data.length + 46 + name.length;
+    if (archiveBytes > MAX_ZIP_BYTES) throw new Error('Zip too large.');
     const crc = crc32(data);
     const local = new DataView(new ArrayBuffer(30));
     local.setUint32(0, 0x04034b50, true);
