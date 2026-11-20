@@ -58,7 +58,9 @@ function dosDateTime(d) {
 function toBytes(data, maxBytes) {
   if (data instanceof Uint8Array) {
     if (data.length > maxBytes) throw new Error('Zip too large.');
-    return data;
+    // Snapshot mutable caller-owned bytes before computing CRC and ZIP records.
+    // A later entry getter can otherwise mutate an earlier archived payload.
+    return new Uint8Array(data);
   }
   if (typeof data === 'string') {
     // Count UTF-8 bytes before encoding so oversized text cannot allocate a
