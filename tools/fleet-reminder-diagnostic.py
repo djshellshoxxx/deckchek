@@ -78,10 +78,17 @@ def main():
         assert instrumented.count(old) == 1, old
         instrumented = instrumented.replace(old, new, 1)
     migrations = sorted((repo / "database/migrations").glob("[0-9][0-9][0-9][0-9]_*.sql"))
+    migration_output = output / "migrations"
+    migration_output.mkdir()
     migration_rows = []
+    migration_hashes = {}
     for path in migrations:
-        # JSON string quoting is valid for the ordinary absolute Rust paths used here.
-        migration_rows.append(f"({int(path.name[:4])}, include_str!({json.dumps(str(path))}))")
+        # Freeze the exact SQL bytes beside the extracted Rust. Later repository
+        # edits must not change the generated crate behind its provenance record.
+        migration_bytes = path.read_bytes()
+        (migration_output / path.name).write_bytes(migration_bytes)
+        migration_hashes[path.name] = hashlib.sha256(migration_bytes).hexdigest()
+        migration_rows.append(f"({int(path.name[:4])}, include_str!({json.dumps('../migrations/' + path.name)}))")
     db = "mod db {\nuse rusqlite::{params, Connection};\nconst MIGRATIONS: &[(i64, &str)] = &[\n" + ",\n".join(migration_rows) + "];\n" + snippets["migrations"] + "}\n"
     instrumentation = r'''
 use std::alloc::{GlobalAlloc, Layout, System};
@@ -178,7 +185,7 @@ fn record_phase(index: usize, mark: &mut Mark) {
         "fleetSourceSha256": digest(source), "databaseSourceSha256": digest(db_source),
         "repositoryLockSha256": digest(lock_text), "harnessSha256": digest(rust),
         "snippetSha256": {name: digest(body) for name, body in snippets.items()},
-        "migrationSha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in migrations},
+        "migrationSha256": migration_hashes,
         "originalRegressionIncluded": True, "unchangedBudgetMs": 200,
         "scope": "Linux extracted-source diagnostic, with app lock versions checked separately; not full Tauri or hosted qualification",
     }

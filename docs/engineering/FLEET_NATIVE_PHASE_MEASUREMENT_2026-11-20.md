@@ -28,7 +28,12 @@ application lock and migrations match PR #47. The
 body, its usage/completion helpers, the existing 2,000-row regression fixture and
 database migration helpers. It includes all **25 real migrations**. It preserves
 the original budget regression and adds a separate instrumented function whose
-full 2,000-row result is compared with the unchanged function result.
+full 2,000-row result is compared with the unchanged function result. Fresh
+review found that the initial generator's migration includes pointed at live
+repository files. The corrected generator copies exact migration bytes into its
+output and uses relative includes, so later repository edits cannot alter the
+generated crate behind its recorded hashes. The retained original observation
+used the verified original migration bytes; its original hashes are preserved.
 
 Four phase boundaries measure wall time, Linux thread CPU time, and counts of
 Rust allocation requests and requested bytes. The allocator delegates to Rust's
@@ -36,7 +41,10 @@ Rust allocation requests and requested bytes. The allocator delegates to Rust's
 peak memory, or per-object ownership; `realloc` contributes the newly requested
 size. The global counters are interpreted only with the serial test execution
 shown below. Counter operations add overhead. The phase recorder's own output
-construction occurs between measured phases.
+construction occurs between measured phases. The last phase ends before the
+function returns; local-variable destruction and other return cleanup are not
+included in those four phase rows. The separate whole-function observation
+includes the call's complete return.
 
 The standalone crate pins direct dependencies to application-lock versions:
 rusqlite 0.41.1 with `backup`/`bundled`, serde_json 1.0.151 with
