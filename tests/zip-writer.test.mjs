@@ -61,6 +61,41 @@ test('entry names: zip-slip, absolute, backslash and duplicates are rejected', (
   assert.throws(() => createZip([{ name: 'a', data: '' }, { name: 'a', data: '' }]));
 });
 
+test('ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filenames', () => {
+  for (const bad of ['name\\ud800', '\\udc00tail', 'a\\ud800x', 'x\\udc00\\ud800y']) {
+    const value = JSON.parse('"' + bad + '"');
+    assert.equal(validateEntryName(value), false, bad);
+    assert.throws(() => createZip([{ name: value, data: 'x' }]), /Invalid zip entry name/);
+  }
+  assert.equal(validateEntryName('logs/😀-é.txt'), true);
+  assert.equal(validateEntryName(123), false);
+  assert.throws(() => createZip([{ name: 123, data: 'x' }]), /Invalid zip entry name/);
+  assert.equal(readZip(createZip([{ name: 'logs/😀-é.txt', data: 'ok' }]))[0].name, 'logs/😀-é.txt');
+});
+
+test('ZIP entry payloads reject unsupported types instead of silently inserting zero bytes', () => {
+  for (const data of [undefined, null, 3, [1, 2], new ArrayBuffer(4), { length: 3 }]) {
+    assert.throws(() => createZip([{ name: 'bad.bin', data }]), /Invalid ZIP entry data/);
+  }
+  const original = new Uint8Array([0, 255, 5]);
+  assert.deepEqual(readZip(createZip([{ name: 'ok.bin', data: original }]))[0].data, original);
+});
+
+test('invalid ZIP timestamps fail instead of encoding an impossible DOS month/day', () => {
+  for (const date of [new Date(NaN), null, '2026-01-01', {}, 0]) {
+    assert.throws(
+      () => createZip([{ name: 'manifest.json', data: '{}' }], { date }),
+      /Invalid ZIP date/,
+    );
+  }
+  const valid = createZip([{ name: 'ok.txt', data: 'ok' }], { date: new Date(1980, 0, 1) });
+  const view = new DataView(valid.buffer, valid.byteOffset, valid.byteLength);
+  const date = view.getUint16(12, true);
+  assert.equal((date >> 5) & 15, 1);
+  assert.equal(date & 31, 1);
+  assert.equal(readZip(valid)[0].name, 'ok.txt');
+});
+
 test('system unzip / python zipfile accept the archive (when available)', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zipw-'));
   const file = path.join(dir, 't.zip');
@@ -70,4 +105,24 @@ test('system unzip / python zipfile accept the archive (when available)', t => {
   if (py.error) { t.skip('python3 not available'); return; }
   assert.equal(py.status, 0, py.stderr);
   assert.equal(py.stdout.trim(), 'manifest.json,logs/big.bin');
+});
+
+test('ZIP size cap includes local records, directory and end record', () => {
+  const cap = 20 * 1024 * 1024;
+  const oneOverhead = 22 + 30 + 1 + 46 + 1; // single ASCII filename
+  const atLimit = createZip([{ name: 'a', data: new Uint8Array(cap - oneOverhead) }]);
+  assert.equal(atLimit.length, cap);
+  assert.equal(readZip(atLimit)[0].data.length, cap - oneOverhead);
+  assert.throws(
+    () => createZip([{ name: 'a', data: new Uint8Array(cap - oneOverhead + 1) }]),
+    /Zip too large/,
+  );
+  const twoOverhead = 22 + 2 * (30 + 1 + 46 + 1);
+  assert.throws(
+    () => createZip([
+      { name: 'a', data: new Uint8Array(cap - twoOverhead) },
+      { name: 'b', data: new Uint8Array(1) },
+    ]),
+    /Zip too large/,
+  );
 });

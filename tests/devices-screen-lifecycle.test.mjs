@@ -1,0 +1,191 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createDevicesScreen } from '../app/ui/screens/devices.js';
+import { ensureLibrary, refreshUnits, lib } from '../app/ui/devices/library-state.js';
+import { navigateTo, takeHandoff } from '../app/ui/crosslinks.js';
+import { settings, store } from '../app/ui/state.js';
+import { A, B } from './fixtures/learned-map-profile-identity.mjs';
+import { deferred, installServiceDom, settle } from './fixtures/service-screen-dom.mjs';
+
+async function mount(t) {
+  installServiceDom(t);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  await ensureLibrary();
+  const previousLib = { ...lib }, previousUnits = settings.deviceUnits;
+  const profiles = structuredClone([A, B]);
+  const products = new Map([[A.id, 'product-a'], [B.id, 'product-b']]);
+  const assets = [
+    { id: 'unit-a', productId: 'product-a', nickname: 'Unit A' },
+    { id: 'unit-b', productId: 'product-b', nickname: 'Unit B' },
+  ];
+  settings.deviceUnits = {};
+  Object.assign(lib, { ready: true, loading: false, profiles, products, assets, results: [], problems: [], warnings: {}, error: null, syncError: null });
+  let readAssets = async () => structuredClone(assets), readResults = async () => [];
+  const reads = { assets: 0, results: 0 };
+  t.mock.method(store, 'list', entity => {
+    assert.equal(entity, 'asset'); reads.assets++;
+    return readAssets();
+  });
+  t.mock.method(store, 'listDeviceTestResults', () => { reads.results++; return readResults(); });
+  t.mock.method(store, 'getMidiMap', async () => null);
+  const section = document.createElement('section');
+  document.getElementById('main').append(section);
+  const screen = createDevicesScreen(section);
+  takeHandoff('devices');
+  t.after(() => {
+    screen.onHide(); section.hidden = true; section.remove(); takeHandoff('devices');
+    Object.assign(lib, previousLib);
+    if (previousUnits === undefined) delete settings.deviceUnits; else settings.deviceUnits = previousUnits;
+  });
+  const hide = () => { screen.onHide(); section.hidden = true; };
+  const show = () => { section.hidden = false; return screen.onShow(); };
+  return { screen, section, profiles, products, assets, reads, hide, show,
+    setAssetRead: fn => { readAssets = fn; }, setResultRead: fn => { readResults = fn; } };
+}
+
+function inspector(text) {
+  document.getElementById('inspector-title').textContent = text;
+  document.getElementById('inspector-body').textContent = `${text} body`;
+}
+
+function assertInspector(text) {
+  assert.equal(document.getElementById('inspector-title').textContent, text);
+  assert.equal(document.getElementById('inspector-body').textContent, `${text} body`);
+}
+
+test('a current Devices show refreshes the library and displays its guide', async t => {
+  const f = await mount(t);
+  const current = f.assets.map(asset => ({ ...asset, nickname: `${asset.nickname} updated` }));
+  f.setAssetRead(async () => current);
+  await f.show();
+  assert.deepEqual(f.reads, { assets: 1, results: 1 });
+  assert.deepEqual(lib.assets, current);
+  assert.match(f.section.textContent, /Unit A updated/);
+  assert.equal(document.getElementById('inspector-title').textContent, 'Devices guide');
+});
+
+test('leaving Devices while the library loads prevents a second refresh and late inspector updates', async t => {
+  const f = await mount(t), loading = deferred();
+  t.mock.method(globalThis, 'fetch', () => loading.promise);
+  t.mock.method(store, 'syncDeviceProfiles', async () => []);
+  const library = ensureLibrary({ force: true });
+  const showing = f.show();
+  f.hide(); inspector('Current measurement');
+  loading.resolve({ ok: true, json: async () => ({ profiles: [] }) });
+  await library; await showing;
+  assertInspector('Current measurement');
+  assert.deepEqual(f.reads, { assets: 1, results: 1 }, 'only the shared library load refreshes; the retired show must not start another read');
+});
+
+test('a Devices asset read cannot update the library or inspector after leaving', async t => {
+  const f = await mount(t), pending = deferred(), before = structuredClone(lib.assets);
+  f.setAssetRead(() => pending.promise);
+  const showing = f.show(); await settle();
+  assert.equal(f.reads.assets, 1);
+  f.hide(); inspector('Current measurement');
+  const hiddenText = f.section.textContent;
+  pending.resolve([{ id: 'late', productId: 'product-a', nickname: 'Late unit' }]);
+  await showing;
+  assertInspector('Current measurement');
+  assert.equal(f.section.textContent, hiddenText);
+  assert.deepEqual(lib.assets, before);
+  assert.equal(f.reads.results, 0, 'retired asset read must not start another result read');
+});
+
+test('a Devices result read cannot replace a newer show or its current assignment form', async t => {
+  const f = await mount(t), old = deferred();
+  f.setResultRead(() => old.promise);
+  const first = f.show(); await settle();
+  assert.equal(f.reads.results, 1);
+  f.hide();
+  const currentResults = [{ id: 'current', assetId: 'unit-b', profileId: B.id, testId: 'observation', status: 'unknown' }];
+  f.setResultRead(async () => currentResults);
+  await f.show();
+  f.section.querySelector(`[data-device="${B.id}"]`).querySelector('.dev-card-main').dispatch('click');
+  f.section.querySelector('#dev-use-unit').dispatch('click');
+  const form = f.section.querySelector('#dev-profile-assignment').querySelector('form');
+  inspector('Current unit details');
+  old.resolve([{ id: 'old', assetId: 'unit-a', profileId: A.id, testId: 'observation', status: 'pass' }]);
+  await first;
+  assert.deepEqual(lib.results, currentResults);
+  assert.equal(form.isConnected, true, 'late show must not re-render and discard the new form');
+  assertInspector('Current unit details');
+});
+
+test('overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last', async t => {
+  const f = await mount(t), old = deferred();
+  f.setAssetRead(() => old.promise);
+  const first = f.show(); await settle(); f.hide();
+  const currentAssets = f.assets.map(asset => ({ ...asset, nickname: `${asset.nickname} current` }));
+  f.setAssetRead(async () => currentAssets);
+  await f.show();
+  const grid = f.section.querySelector('#dev-grid');
+  inspector('Current unit details');
+  old.resolve(f.assets.map(asset => ({ ...asset, nickname: `${asset.nickname} old` })));
+  await first;
+  assert.deepEqual(lib.assets, currentAssets);
+  assert.ok(f.section.querySelector('#dev-grid') === grid, 'retired show must preserve the current grid');
+  assert.match(f.section.textContent, /Unit A current/);
+  assertInspector('Current unit details');
+});
+
+test('a handoff survives a retired Devices show and is consumed once by the current show', async t => {
+  const f = await mount(t), old = deferred();
+  navigateTo('devices', { assetId: 'unit-b' });
+  f.setAssetRead(() => old.promise);
+  const first = f.show(); await settle(); f.hide();
+  inspector('Other screen');
+  old.resolve(structuredClone(f.assets)); await first;
+  assert.equal(settings.deviceUnits[B.id], undefined, 'retired show must not select the requested unit');
+  assertInspector('Other screen');
+  f.setAssetRead(async () => structuredClone(f.assets));
+  await f.show();
+  assert.equal(f.section.querySelector('h1').textContent, B.model);
+  assert.equal(settings.deviceUnits[B.id], 'unit-b');
+  assert.equal(takeHandoff('devices'), null, 'current show consumes the handoff exactly once');
+});
+
+test('a newer Devices handoff wins when shows overlap', async t => {
+  const f = await mount(t), old = deferred();
+  navigateTo('devices', { assetId: 'unit-a' });
+  f.setAssetRead(() => old.promise);
+  const first = f.show(); await settle(); f.hide();
+  navigateTo('devices', { assetId: 'unit-b' });
+  f.setAssetRead(async () => structuredClone(f.assets));
+  await f.show();
+  const currentHeading = f.section.querySelector('h1');
+  old.resolve(structuredClone(f.assets)); await first;
+  assert.ok(f.section.querySelector('h1') === currentHeading, 'retired handoff must preserve the current heading');
+  assert.equal(currentHeading.textContent, B.model);
+  assert.equal(settings.deviceUnits[A.id], undefined);
+  assert.equal(settings.deviceUnits[B.id], 'unit-b');
+});
+
+for (const field of ['assets', 'results']) {
+  test(`a rejected retired ${field} read cannot clear the current Devices cache`, async t => {
+    const f = await mount(t), old = deferred();
+    if (field === 'assets') f.setAssetRead(() => old.promise);
+    else f.setResultRead(() => old.promise);
+    const first = f.show(); await settle(); f.hide();
+    const currentAssets = f.assets.map(asset => ({ ...asset, nickname: `${asset.nickname} current` }));
+    const currentResults = [{ id: 'current', assetId: 'unit-b', profileId: B.id, testId: 'observation', status: 'unknown' }];
+    f.setAssetRead(async () => currentAssets); f.setResultRead(async () => currentResults);
+    await f.show(); inspector('Current unit details');
+    old.reject(new Error('Retired read failed')); await first;
+    assert.deepEqual(lib.assets, currentAssets);
+    assert.deepEqual(lib.results, currentResults);
+    assertInspector('Current unit details');
+  });
+}
+
+test('default refresh callers retain successful reads and empty-cache failure behavior', async t => {
+  const f = await mount(t);
+  const results = [{ id: 'current', assetId: 'unit-a', profileId: A.id, testId: 'observation', status: 'unknown' }];
+  f.setResultRead(async () => results);
+  await refreshUnits();
+  assert.deepEqual(lib.assets, f.assets); assert.deepEqual(lib.results, results);
+  f.setAssetRead(async () => { throw new Error('Current asset read failed'); });
+  f.setResultRead(async () => { throw new Error('Current result read failed'); });
+  await refreshUnits();
+  assert.deepEqual(lib.assets, []); assert.deepEqual(lib.results, []);
+});

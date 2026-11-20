@@ -1,19 +1,33 @@
 # DeckChek engineering checkpoint — 19 November 2026
 
-## Current continuation — 19 November 2026
+## Current combined continuation — 19 November 2026
 
-The prior consolidation is on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`;
-its test, nightly and desktop workflows succeeded. The older prepublication and
-PR27/30/32/33 instructions below are historical snapshots.
+The candidate `integration/deckchek-consolidation-20261120` combines the latest
+PR #34 repairs with the ZIP stack from PRs #35–#37 and the independently reviewed
+Devices navigation correction. Application/test source is
+`da9099b648bebdf4ee0f65a34de75cef5f20114f`, tree
+`1de031ce74b121cdace67fa091d488b256c5da2e`.
+The [durable executable source](https://github.com/djshellshoxxx/deckchek/commit/46845c761d0cf7d69451ed9343ee89aa649c2706)
+has that exact tree at remote commit `46845c761d0cf7d69451ed9343ee89aa649c2706`;
+Git object creation alone does not publish a branch or qualify hosted checks.
+The [combined consolidation handoff](docs/engineering/CONSOLIDATION_ZIP_DEVICES_2026-11-19.md) records source ancestry, preserved
+repairs, verification, hosted status and remaining limits.
 
-Active work is [PR #34](https://github.com/djshellshoxxx/deckchek/pull/34): explicit
-existing-unit profile assignment, MIDI evidence corrections, Service lifecycle
-repairs and bounded file imports. Current qualification, worker handoffs and
-remaining work are in the [19 November engineering handoff](docs/engineering/CONTINUATION_2026-11-19.md).
-The [branch audit](docs/engineering/CODE_AUDIT_2026-11-19.md) found all useful implementation work from the 29
-old non-main branches represented or superseded; no redundant merge is needed.
-Fleet remains default off. Hardware, signing and release qualification stay open.
+The full serial Node 22.23.4 suite passed **2,171 tests / 0 failures / 1 optional
+Mixxx-corpus skip** across 179 test files, with all 1,527 tracked source hashes
+unchanged. The final ten Devices regressions and focused 29-test compatibility
+scope also passed. Their overlapping counts must not be added together.
+Device/timecode/migration/mobile checks, all 428 JavaScript syntax checks and
+both unchanged performance budgets passed with source hashes unchanged.
+Earlier PR results do not qualify the new combined source. The owned candidate
+targets `main` so standard, nightly and platform checks apply. Inspect its current
+PR and merge only after its applicable checks pass. Keep published PR #34–#37 heads stable
+while their existing checks complete, and refresh live refs before any write.
 
+The fresh audit found no missing implementation in the 29 historical branches;
+all original branches remain preserved. Fleet stays disabled by default.
+Physical, real-database, signing and release qualification remain open. The
+sections below retain historical snapshots and their original evidence.
 
 ## Historical source41 prepublication checkpoint — 18 November 2026
 
