@@ -46,8 +46,12 @@ function dosDateTime(d) {
   // A NaN timestamp otherwise becomes zero-valued DOS month/day fields.
   if (!(d instanceof Date) || !Number.isFinite(d.getTime())) throw new Error('Invalid ZIP date.');
   const y = Math.min(2107, Math.max(1980, d.getFullYear()));
+  // The upper DOS year bound (2107) is not a leap year. An out-of-range
+  // February 29 must not become the impossible date 2107-02-29.
+  const day = y === 2107 && d.getMonth() === 1 && d.getDate() === 29
+    ? 28 : d.getDate();
   const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
-  const date = ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const date = ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | day;
   return { time: time & 0xffff, date: date & 0xffff };
 }
 
