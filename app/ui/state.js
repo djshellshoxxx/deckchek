@@ -1,6 +1,6 @@
 // Application state: UI settings, the local working set of runs, calibration
-// profiles and a tiny pub/sub bus. Everything persists through never-throwing
-// storage helpers so the UI keeps working in private windows.
+// profiles and a tiny pub/sub bus. Background saves use never-throwing storage
+// helpers; explicit workspace replacement requires a successful saved snapshot.
 
 import { createCatalogStore } from '../catalog-store.js';
 import { isProfileApplicable, profileInapplicableReasons, deserializeProfile } from '../calibration.js';
@@ -53,6 +53,31 @@ export function saveWorkspace() {
     storageSet(WORKSPACE_KEY, { version: 1, equipment: workspace.equipment, runs: workspace.runs });
   }
   emit('runs');
+}
+
+/** Browser import: persist a staged snapshot before replacing the current working set. */
+export function replaceWorkspace({ equipment, runs }) {
+  const failed = () => new Error('The imported workspace could not be saved to browser storage. The existing workspace was not changed.');
+  let target;
+  try { target = globalThis.localStorage; } catch { throw failed(); }
+  if (typeof target?.setItem !== 'function') throw failed();
+  const write = snapshot => {
+    try { target.setItem(WORKSPACE_KEY, JSON.stringify(snapshot)); return true; } catch { return false; }
+  };
+  let snapshot = { version: 1, equipment, runs: runs.slice(0, MAX_LOCAL_RUNS) };
+  if (!write(snapshot)) {
+    // Preserve autosave's existing one-retry retention policy without changing
+    // either the imported snapshot or the active workspace on a failed write.
+    snapshot = { ...snapshot, runs: snapshot.runs.map((run, index) => {
+      if (index < 20) return run;
+      const reduced = { ...run }; delete reduced.evidence; return reduced;
+    }) };
+    if (!write(snapshot)) throw failed();
+  }
+  workspace.equipment = snapshot.equipment;
+  workspace.runs = snapshot.runs;
+  emit('runs');
+  return snapshot;
 }
 export function localRun(id) { return workspace.runs.find(r => r.id === id) || null; }
 

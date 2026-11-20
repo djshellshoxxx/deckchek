@@ -246,7 +246,7 @@ export function createServiceScreen(section) {
         button.querySelector('.svc-step-num').innerHTML = after.state === 'done' ? icon('check', { size: 14 }) : '4';
         refreshPanelComparison?.();
       }
-      if (!quiet && st.step === 'after') announce(comparisonSummary(st.comparison));
+      if (!quiet && st.step === 'after' && !section.hidden) announce(comparisonSummary(st.comparison));
       return true;
     } catch (e) {
       if (!isCurrent()) return false;
@@ -288,7 +288,7 @@ export function createServiceScreen(section) {
     panel.append(host);
     body.append(panel);
     const isCurrent = () => st.view === 'detail' && st.detail === d && host.isConnected;
-    const ctx = { api, detail: d, comparison: st.comparison, readOnly, isCurrent, reload: (opts = {}) => isCurrent() ? loadJob(job.id, opts) : Promise.resolve(false), focusMark: () => focusMark(body), returnTo: phase => returnFromDevices(job.id, phase) };
+    const ctx = { api, detail: d, comparison: st.comparison, readOnly, isCurrent, isVisible: () => !section.hidden, reload: (opts = {}) => isCurrent() ? loadJob(job.id, opts) : Promise.resolve(false), focusMark: () => focusMark(body), returnTo: phase => returnFromDevices(job.id, phase) };
     panelContext = ctx;
     refreshPanelComparison = null;
     if (st.step === 'intake') renderIntakeStep(host, ctx);
@@ -326,12 +326,14 @@ export function createServiceScreen(section) {
     try {
       const updated = await api.setStatus(job.id, to, { expected: job.status, note: note.trim() || null, reopen });
       if (!isCurrent()) return;
-      announce(`Job ${updated.jobNumber} is now ${statusLabel(updated.status)}`);
-      toast(`Job ${updated.jobNumber}: ${statusLabel(updated.status)}.`, { type: 'success', timeout: 2500 });
+      if (!section.hidden) {
+        announce(`Job ${updated.jobNumber} is now ${statusLabel(updated.status)}`);
+        toast(`Job ${updated.jobNumber}: ${statusLabel(updated.status)}.`, { type: 'success', timeout: 2500 });
+      }
       await loadJob(job.id, reload);
     } catch (e) {
       if (!isCurrent()) return;
-      toast(`Status not changed: ${friendly(e)}`, { type: 'error' });
+      if (!section.hidden) toast(`Status not changed: ${friendly(e)}`, { type: 'error' });
       await loadJob(job.id, reload);
     } finally {
       if (st.pending === pending) st.pending = null;
@@ -340,6 +342,10 @@ export function createServiceScreen(section) {
   }
 
   async function deleteJob(d) {
+    const seq = st.loadSeq;
+    const ownsView = () => seq === st.loadSeq && st.view === 'detail' && st.detail === d;
+    const isCurrent = () => ownsView() && !section.hidden;
+    if (!isCurrent()) return;
     const dlg = h('dialog', { class: 'svc-dialog', 'aria-labelledby': 'svc-del-title', id: 'svc-delete-dialog' });
     const inp = h('input', { type: 'text', id: 'svc-del-confirm', autocomplete: 'off', 'aria-describedby': 'svc-del-help' });
     const ok = h('button', { type: 'submit', class: 'btn btn-danger', id: 'svc-del-ok', value: 'confirm', disabled: true, text: 'Delete job' });
@@ -359,13 +365,20 @@ export function createServiceScreen(section) {
       const confirmed = dlg.returnValue === 'confirm' && deleteConfirmed(d.job, inp.value); // Esc leaves returnValue empty
       const erase = !!eraseBox?.checked;
       dlg.remove();
-      if (!confirmed) { if (trigger?.isConnected) trigger.focus(); return; }
+      if (!confirmed) { if (isCurrent() && trigger?.isConnected) trigger.focus(); return; }
+      if (!isCurrent()) return;
       try {
         await api.remove(d.job.id, inp.value.trim());
-        if (erase && d.customer) await api.removeCustomer(d.customer.id).catch(e => toast(`The customer’s details were kept: ${friendly(e)}`, { type: 'warn' }));
-        toast(`Job ${d.job.jobNumber} deleted.`, { type: 'success', timeout: 3000 });
+        let customerError = null;
+        if (erase && d.customer) await api.removeCustomer(d.customer.id).catch(e => { customerError = friendly(e); });
+        if (!ownsView()) return;
+        if (!section.hidden) {
+          if (customerError) toast(`The customer’s details were kept: ${customerError}`, { type: 'warn' });
+          toast(`Job ${d.job.jobNumber} deleted.`, { type: 'success', timeout: 3000 });
+        }
+        // Keep a hidden view from reopening the deleted record when Service returns.
         backToList();
-      } catch (e) { toast(`Job not deleted: ${friendly(e)}`, { type: 'error' }); }
+      } catch (e) { if (isCurrent()) toast(`Job not deleted: ${friendly(e)}`, { type: 'error' }); }
     }, { once: true });
     dlg.returnValue = '';
     dlg.showModal();

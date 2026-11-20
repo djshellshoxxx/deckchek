@@ -454,6 +454,80 @@ test('one Active Sensing message needs finite numeric timestamps and a non-rever
   }
 });
 
+test('multiple Active Sensing messages reject invalid or reversed timing without losing packet evidence', () => {
+  const invalid = [undefined, null, false, true, '250000', NaN, Infinity, -Infinity, 250000n, Symbol('time'), {}, [], Object.create(null), new Number(250000), -1];
+  const cases = invalid.flatMap(value => [
+    { times: [0, value, 500000], endUs: 750000 },
+    { times: [value, 250000], endUs: 500000 },
+    { times: [0, 250000], endUs: value },
+  ]).filter(({ endUs }) => endUs != null);
+  cases.push({ times: [500000, 250000], endUs: 750000 },
+    { times: [0, 400000, 300000], endUs: 750000 },
+    { times: [0, 250000], endUs: 249999 });
+  for (const { times, endUs } of cases) {
+    const events = [...times.map(t => ev(t, [0xfe])), ev(800000, noteOn(2, 61)), ev(900000, noteOff(2, 61))];
+    const before = [...times];
+    const analysis = analyzeStream(events, { endUs });
+    assert.equal(analysis.total, events.length);
+    assert.equal(analysis.sensing.count, times.length);
+    assert.equal(analysis.sensing.maxGapMs, null);
+    assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-sensing'), false);
+    assert.deepEqual(analysis.stuck, []);
+    assert.equal(analysis.orphans, 0);
+    assert.deepEqual(times, before, 'arrival order and invalid input values remain untouched');
+  }
+});
+
+test('Clock rejects invalid, reversed and zero-span timestamps instead of reporting zero jitter or negative BPM', () => {
+  const invalid = [undefined, null, false, true, '60000', NaN, Infinity, -Infinity, 60000n, Symbol('time'), {}, [], Object.create(null), new Number(60000), -1];
+  const base = Array.from({ length: 8 }, (_, i) => i * 20000);
+  const cases = invalid.map(value => base.map((t, i) => i === 3 ? value : t));
+  cases.push(base.slice().reverse(), Array(8).fill(1000), [0, 20000, 40000, 30000, 60000, 80000, 100000, 120000],
+    [0, 0, 0, 0, 0, 0, 0, Number.MIN_VALUE]);
+  for (const times of cases) {
+    const analysis = analyzeStream(times.map(t => ev(t, [0xf8])));
+    assert.equal(analysis.total, 8);
+    assert.deepEqual(analysis.clock, { count: 8, jitterPercent: null, bpm: null });
+    assert.equal(mv(analysis, 'midi_clock_jitter_percent'), undefined);
+    assert.equal(conformanceFindings(analysis).some(f => f.id === 'midi-clock'), false);
+  }
+});
+
+test('valid tied timestamps inside an advancing stream retain real timing and packet counts', () => {
+  const times = [0, 0, 10000, 10000, 20000, 20000, 30000, 40000];
+  const clock = analyzeStream(times.map(t => ev(t, [0xf8])));
+  assert.deepEqual(clock.clock, { count: 8, jitterPercent: 86.6, bpm: 437.5 });
+  assert.equal(mv(clock, 'midi_clock_jitter_percent'), 86.6);
+  const sensing = analyzeStream([ev(0, [0xfe]), ev(0, [0xfe]), ev(10000, [0xfe])], { endUs: 40000 });
+  assert.deepEqual(sensing.sensing, { count: 3, maxGapMs: 30 });
+});
+
+test('Clock variation remains finite when raw interval squares would overflow', () => {
+  const analysis = analyzeStream([0, 0, 0, 0, 0, 0, 0, Number.MAX_VALUE].map(t => ev(t, [0xf8])));
+  assert.equal(analysis.clock.count, 8);
+  assert.equal(analysis.clock.jitterPercent, 244.95, 'one nonzero interval among seven has CV sqrt(6)');
+  assert.equal(mv(analysis, 'midi_clock_jitter_percent'), 244.95);
+  assert.ok(Number.isFinite(analysis.clock.bpm));
+  assert.ok(analysis.measurements.every(m => m.value === null || Number.isFinite(m.value)));
+});
+
+test('explicitly unobserved transport timing cannot use receipt times for numeric timing evidence', () => {
+  const events = Array.from({ length: 8 }, (_, i) => [ev(i * 20000, [0xf8]), ev(i * 20000, [0xfe])]).flat();
+  events.push(ev(150000, controlChange(1, 1, 12)), ev(151000, controlChange(1, 33, 34)), ev(160000, noteOn(1, 60)), ev(170000, noteOff(1, 60)));
+  const analysis = analyzeStream(events, { endUs: 200000, timingObserved: false });
+  assert.equal(analysis.total, events.length);
+  assert.deepEqual(analysis.sensing, { count: 8, maxGapMs: null });
+  assert.deepEqual(analysis.clock, { count: 8, jitterPercent: null, bpm: null });
+  assert.deepEqual(analysis.burst, { windowMs: 100, maxMessages: null, peakPerSec: null });
+  assert.equal(mv(analysis, 'midi_active_sensing_gap_ms'), undefined);
+  assert.equal(mv(analysis, 'midi_clock_jitter_percent'), undefined);
+  assert.equal(mv(analysis, 'midi_unpaired_14bit'), undefined);
+  assert.deepEqual(analysis.pairs, []);
+  assert.deepEqual(analysis.stuck, []);
+  assert.equal(analysis.orphans, 0);
+});
+
 test('GM cleanup silences a simulated sustained-chord abort and release tails on all channels', () => {
   const sustain = scheduledMessages(gmSteps().find(s => s.id === 'sustain')).events;
   // A pure receiver model: key release can latch a note under sustain, and a

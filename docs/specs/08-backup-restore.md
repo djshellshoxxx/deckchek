@@ -85,10 +85,20 @@ import behavior remain separate:
 
 | Mechanism | Included content | Import behavior |
 | --- | --- | --- |
-| Existing workspace JSON, `version:1` | Equipment and diagnostic runs from the existing workspace | Browser import sanitizes runs and replaces the workspace arrays; its existing bounded working set and best-effort catalog mirroring remain unchanged. Desktop import adds accepted runs/equipment with the per-record behavior in §6. |
+| Existing workspace JSON, `version:1` | Equipment and diagnostic runs from the existing workspace | Browser import sanitizes runs and saves a staged workspace before replacing the active arrays; failure preserves the saved and active workspace. The existing 250-run working set and one older-evidence quota retry remain; success counts reflect retained runs. Catalog mirroring remains best effort. Desktop import adds accepted runs/equipment with the per-record behavior in §6. |
 | Browser venue-history JSON, `format:"deckchek-venue-history"`, `formatVersion:1` | Every retained manual incident, original support observation and base comparison record; no duplicated expanded A/B observations inside comparisons | Validate and preview, then explicitly add missing immutable records. Exact saved duplicates cause no writes; the same ID with different saved values or persistence metadata blocks import. |
 | Browser Equipment catalog JSON, `format:"deckchek-catalog"`, `formatVersion:1` | Complete saved manufacturers, products, assets, setups/components, venues and support descriptions, including retained retirement state and opaque catalog metadata | Validate both complete graphs, preview and explicitly merge missing records into one saved catalog value. Conflicts block the complete import; exact retries cause no writes. See §13. |
 | Native `.deckchek-backup` | The existing complete SQLite snapshot, including current catalogs and incident/support history, plus the existing settings and other archive entries | Existing native inspect, confirmation, safety backup and restore workflow. This slice changes no native command, migration or backup format. |
+
+Browser workspace replacement uses one localStorage value. If its first write
+fails, it retries once with the existing retention policy: keep the first 250
+runs, retain full evidence for the first 20, and omit evidence from older retained
+runs on the retry. The submitted file snapshot is not changed. If both writes
+fail or storage is unavailable, the import reports an error without changing the
+active workspace, emitting imported-history notifications or starting catalog
+mirroring. Success is reported only after the workspace value is saved; its run
+count describes the retained working set. This does not make the separate
+best-effort catalog writes a multi-key transaction or change ordinary autosave.
 
 The browser archive contains exactly `format`, `formatVersion`, `exportedAt`,
 `incidents`, `supportObservations` and `supportComparisons`. Its UTF-8 file bound

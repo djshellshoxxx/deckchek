@@ -130,7 +130,7 @@ test('late source-run save failure cannot attach a partial benchmark or its erro
 test('legacy operator confirmation is explicit in the real review and saved evidence', async t => {
   const legacy = { id: 'legacy', assetId: 'a', hoursAt: 0, thdPercent: .2, separationDb: 40, valid: true, detail: {}, createdAt: '2026-11-01T00:00:00Z' };
   const f = await mount(t, { api: { benchmarkList: async () => [legacy] } }); await f.open();
-  assert.equal(f.byId('sty-guided-same').checked, undefined); f.byId('sty-guided-same').checked = true; await f.begin(); await f.complete();
+  assert.equal(f.byId('sty-guided-same').checked, false); f.byId('sty-guided-same').checked = true; await f.begin(); await f.complete();
   assert.match(f.byId('sty-guided-comparison').textContent, /Historical device, input rate and calibration observations are unavailable/);
   f.byId('sty-guided-save').dispatch('click'); await settle(); assert.equal(f.benchmarks[0].valid, true); assert.equal(f.benchmarks[0].detail.conditionEvidence, 'operator-confirmed-legacy-baseline'); assert.deepEqual(legacy.detail, {});
 });

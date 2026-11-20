@@ -29,7 +29,13 @@ export class Element {
     }
   }
   prepend(...nodes) { const old = [...this.children]; this.replaceChildren(...nodes, ...old); }
-  replaceChildren(...nodes) { for (const child of this.children) child.parentNode = null; this.children = []; this._text = ''; this.append(...nodes); }
+  replaceWith(...nodes) {
+    const parent = this.parentNode;
+    if (!parent) return;
+    const children = [...parent.children], index = children.indexOf(this);
+    parent.replaceChildren(...children.slice(0, index), ...nodes, ...children.slice(index + 1));
+  }
+  replaceChildren(...nodes) { for (const child of this.children) child.parentNode = null; this.children = []; this._text = ''; if (this.tagName === 'SELECT') delete this._value; this.append(...nodes); }
   remove() {
     if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(child => child !== this);
     this.parentNode = null;
@@ -87,6 +93,8 @@ export class Element {
     for (let node = this; node; node = node.parentNode) if (node.hidden) return;
     if (this.isConnected) this.ownerDocument.activeElement = this;
   }
+  showModal() { this.setAttribute('open', ''); }
+  close(value = '') { this.returnValue = value; this.removeAttribute('open'); this.dispatch('close'); }
 }
 
 export function installServiceDom(t) {

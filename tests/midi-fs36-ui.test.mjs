@@ -310,6 +310,32 @@ test('conformance retains packet evidence but needs review when transport timest
   }
 });
 
+test('conformance omits timing numerics when packet timestamps require a receipt-clock fallback or move backwards', async () => {
+  for (const invalid of [NaN, null, Infinity, -1000, '50000', 0]) {
+    const m = mount({ kind: 'conformance' }); await settle();
+    m.midi.emit([0xb0, 7, 64], 1000);
+    for (let i = 0; i < 8; i++) {
+      const time = i === 3 ? invalid : 2000 + i * 20000;
+      m.midi.emit([0xf8], time);
+      m.midi.emit([0xfe], time);
+    }
+    await m.click('midi-finish'); await settle();
+    const result = m.finished[0];
+    assert.equal(result.status, 'unknown');
+    assert.equal(metric(result, 'midi_message_count').value, 17);
+    assert.equal(result.extra.captureIntegrity.timingState, 'unavailable');
+    assert.ok(result.extra.captureIntegrity.timestampFaults > 0);
+    assert.ok(finding(result, 'midi-timing-unverified'));
+    assert.equal(metric(result, 'midi_active_sensing_gap_ms'), undefined);
+    assert.equal(metric(result, 'midi_clock_jitter_percent'), undefined);
+    assert.equal(metric(result, 'midi_unpaired_14bit'), undefined);
+    assert.deepEqual(result.extra.sensing, { count: 8, maxGapMs: null });
+    assert.deepEqual(result.extra.clock, { count: 8, jitterPercent: null, bpm: null });
+    assert.deepEqual(result.extra.burst, { windowMs: 100, maxMessages: null, peakPerSec: null });
+    m.runner.dispose();
+  }
+});
+
 test('MIDI routing: changing the input pairs its matching output, even against the profile hint', async t => {
   const m = mount({ kind: 'conformance', profile: { model: 'A', midi: { controls: [] }, connectivity: { midi: { portNamePatterns: ['A'] } } } }); t.after(() => m.runner.dispose()); await settle();
   await m.select('B'); await settle();

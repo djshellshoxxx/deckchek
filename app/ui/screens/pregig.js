@@ -19,9 +19,10 @@ import { withCrossFixes } from '../../crosslinks.js';
 import { navigateTo, openWindowsSettings } from '../crosslinks.js';
 import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
 import { ensurePregigPrintable, pregigPrintData, PREGIG_KIND } from '../workflows/pregig-report.js';
+import { readTextFile } from '../../text-file.js';
 import {
   buildPlan, validatePreset, parsePresetJson, exportPresetJson, duplicatePreset, presetFromEquipment, loadBuiltinPresets,
-  createPregigApi, createNativeDeps, diffRuns, PREGIG_BUDGET_MS, namesMatch, deckPairFirst,
+  createPregigApi, createNativeDeps, diffRuns, PREGIG_BUDGET_MS, MAX_PRESET_BYTES, namesMatch, deckPairFirst,
 } from '../../pre-gig.js';
 import {
   createPregigController, describeStep, verdictView, fixButtons, evidenceRows, rerunTargets, compareView, stepLabel,
@@ -240,7 +241,9 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   async function importPreset() {
     const file = await pickFile('.json,application/json');
     if (!file) return;
-    const parsed = parsePresetJson(await file.text());
+    let parsed;
+    try { parsed = parsePresetJson(await readTextFile(file, { maxBytes: MAX_PRESET_BYTES, label: 'Preset file' })); }
+    catch (e) { setNotice(`That preset could not be imported: ${friendly(e)}`, 'error'); return; }
     if (!parsed.ok) { setNotice(`That preset could not be imported: ${parsed.errors.map(e => e.message).join(' ')}`, 'error'); return; }
     try { await savePreset({ ...parsed.preset, id: undefined, builtin: false }); setNotice(`Imported "${parsed.preset.name}".`); }
     catch (e) { setNotice(`Could not save the imported preset: ${friendly(e)}`, 'error'); }

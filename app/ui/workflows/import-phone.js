@@ -11,6 +11,7 @@ import { go } from '../shell.js';
 import { store, workspace } from '../state.js';
 import { persistRun } from '../persistence.js';
 import { parsePhoneRun, phoneRunToHistoryRun, describeDevice, MAX_BYTES } from '../../phone-run.js';
+import { readTextFile } from '../../text-file.js';
 
 export { parsePhoneRun };
 
@@ -47,6 +48,7 @@ const when = iso => { const d = new Date(iso); const p = n => String(n).padStart
 
 export function createPhoneImportScreen(section) {
   const st = { parsed: null, assets: [], busy: false, imported: null, pendingAsset: undefined };
+  let fileReadToken = 0;
   const text = h('textarea', { id: 'pi-text', class: 'pi-text', rows: '8', spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'pi-help',
     placeholder: '{"format":"deckchek-mobile", …}   or   DCKM1/1/3/…  (one QR frame per line)' });
   const status = h('div', { id: 'pi-status', class: 'pi-status', role: 'status', 'aria-live': 'polite' });
@@ -59,6 +61,7 @@ export function createPhoneImportScreen(section) {
   }
 
   function read() {
+    fileReadToken++;
     st.imported = null;
     st.parsed = parsePhoneRun(text.value);
     if (!st.parsed.ok) { setStatus(st.parsed.errors.join(' '), 'warn'); announce('Could not read the result.'); renderPreview(); return; }
@@ -68,12 +71,23 @@ export function createPhoneImportScreen(section) {
   }
 
   async function chooseFile() {
-    const file = await pickFile('.json,application/json');
-    if (!file) return;
-    if (file.size > MAX_BYTES) { setStatus('That file is larger than 1 MB, so DeckChek will not read it.', 'warn'); return; }
-    text.value = await file.text();
-    read();
+    const my = ++fileReadToken;
+    try {
+      const file = await pickFile('.json,application/json');
+      if (!file || my !== fileReadToken) return;
+      if (file.size > MAX_BYTES) { setStatus('That file is larger than 1 MB, so DeckChek will not read it.', 'warn'); return; }
+      const contents = await readTextFile(file, { maxBytes: MAX_BYTES, label: 'Phone result file' });
+      if (my !== fileReadToken) return;
+      text.value = contents;
+      read();
+    } catch (error) {
+      if (my !== fileReadToken) return;
+      setStatus(`Could not read the file: ${error?.message || error}`, 'warn');
+      announce('Could not read the phone result file.');
+    }
   }
+
+  text.addEventListener('input', () => { fileReadToken++; });
 
   async function addToHistory(assetId) {
     if (st.busy || !st.parsed?.ok) return;
@@ -138,12 +152,12 @@ export function createPhoneImportScreen(section) {
       h('div', { class: 'pi-actions' },
         h('button', { type: 'button', class: 'btn btn-primary', id: 'pi-read', text: 'Read result', onclick: read }),
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'pi-file', onclick: chooseFile }, h('span', { html: icon('file', { size: 18 }) }), h('span', { text: 'Open file…' })),
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'pi-clear', text: 'Clear', onclick: () => { text.value = ''; st.parsed = null; st.imported = null; st.pendingAsset = undefined; setStatus(''); renderPreview(); text.focus(); } })),
+        h('button', { type: 'button', class: 'btn btn-secondary', id: 'pi-clear', text: 'Clear', onclick: () => { fileReadToken++; text.value = ''; st.parsed = null; st.imported = null; st.pendingAsset = undefined; setStatus(''); renderPreview(); text.focus(); } })),
       status),
     preview);
   renderPreview();
   loadAssets().then(() => { if (st.parsed?.ok) renderPreview(); });
-  return { onShow: () => { loadAssets().then(() => { if (st.parsed?.ok) renderPreview(); }); }, onEscape: () => false };
+  return { onShow: () => { loadAssets().then(() => { if (st.parsed?.ok) renderPreview(); }); }, onHide: () => { fileReadToken++; }, onEscape: () => false };
 }
 
 export function phoneImportScreenDefs() {

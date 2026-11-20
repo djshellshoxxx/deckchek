@@ -12,6 +12,7 @@ import {
   LIMITS, VERDICT_LABEL, DISCLAIMER, CertificateError,
 } from '../../certificate.js';
 import { createCertificateApi } from '../../certificate-api.js';
+import { readTextFile } from '../../text-file.js';
 
 const PDF_TEXT = 'This PDF has no DeckChek data attached. A DeckChek PDF carries only the printed content hash and QR code; ask the seller for the .deckchek-cert.json file that came with it and open that here.';
 const friendly = e => (typeof e === 'string' ? e : e?.message || 'Could not read file.');
@@ -127,7 +128,10 @@ export function createVerifyScreen(section, { api = createCertificateApi(), dial
     if (c.kind === 'pdf') return showMessage('PDF without certificate data', PDF_TEXT, 'unsupported', my);
     if (c.kind === 'reject') return showMessage('Could not read file', c.reason, 'error', my);
     let text;
-    try { text = await file.text(); } catch { return showMessage('Could not read file', 'The file could not be read.', 'error', my); }
+    try {
+      text = await readTextFile(file, { maxBytes: c.kind === 'html' ? LIMITS.maxHtmlBytes : LIMITS.maxJsonBytes, label: 'Certificate file' });
+    } catch (e) { return showMessage('Could not read file', friendly(e), 'error', my); }
+    if (my !== token) return;
     if (c.kind === 'html') {
       try { text = extractJsonFromHtml(text); } catch (e) { return showMessage('Could not read file', e instanceof CertificateError ? `This HTML file has no DeckChek certificate data (${e.message}).` : friendly(e), 'error', my); }
     }

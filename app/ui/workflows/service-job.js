@@ -35,7 +35,11 @@ function field(label, control, { help = '', required = false } = {}) {
 const input = (attrs = {}) => h('input', { type: 'text', autocomplete: 'off', ...attrs });
 const textarea = (attrs = {}) => h('textarea', { rows: 3, ...attrs });
 const errorBox = id => h('p', { class: 'svc-error', id, role: 'alert', hidden: true });
-function showError(box, msg) { box.textContent = msg || ''; box.hidden = !msg; if (msg) announce(msg, { assertive: true }); }
+function showError(box, msg, { silent = false } = {}) { box.textContent = msg || ''; box.hidden = !msg; if (msg && !silent) announce(msg, { assertive: true }); }
+// Ownership survives hiding Service so a submitted write can refresh its private view.
+// Global feedback and newly initiated actions additionally require the visible panel.
+const panelCurrent = (ctx, node) => node.isConnected && ctx.isCurrent?.() !== false;
+const panelVisible = (ctx, node) => panelCurrent(ctx, node) && ctx.isVisible?.() !== false;
 
 /**
  * True when a field under `root` holds input that has not been saved: changed text, chosen files and, with `choices`,
@@ -70,6 +74,7 @@ export function resultChip(status) {
 export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, isCurrent = () => true }) {
   const err = errorBox('svc-new-error');
   const form = h('form', { class: 'card svc-form', id: 'svc-new-form', novalidate: true, 'aria-labelledby': 'svc-new-title' });
+  const formCurrent = () => isCurrent() && form.isConnected;
   form.append(h('h2', { class: 'card-title', id: 'svc-new-title', text: 'New job' }), h('p', { class: 'muted small', text: 'Customer details stay on this computer. They are printed on the job sheet only when you choose to include them.' }));
 
   // customer
@@ -83,16 +88,35 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, 
   const oldCust = h('div', { class: 'svc-grid', hidden: true }, field('Find customer', custSearch), field('Customer', custSelect));
   const modeNew = h('input', { type: 'radio', name: 'svc-cust-mode', id: 'svc-cust-mode-new', value: 'new', checked: true });
   const modeOld = h('input', { type: 'radio', name: 'svc-cust-mode', id: 'svc-cust-mode-old', value: 'existing' });
-  const setMode = v => { custMode.value = v; newCust.hidden = v !== 'new'; oldCust.hidden = v === 'new'; };
+  let searchTimer = null, customerRead = 0;
+  const setMode = v => { customerRead++; clearTimeout(searchTimer); custMode.value = v; newCust.hidden = v !== 'new'; oldCust.hidden = v === 'new'; };
   modeNew.addEventListener('change', () => setMode('new'));
-  modeOld.addEventListener('change', () => { setMode('existing'); loadCustomers(); });
-  let searchTimer = null;
-  custSearch.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadCustomers, 200); });
-  async function loadCustomers() {
+  modeOld.addEventListener('change', () => { setMode('existing'); requestCustomers(); });
+  custSearch.addEventListener('input', () => requestCustomers({ debounce: true }));
+  function requestCustomers({ debounce = false } = {}) {
+    // Invalidate earlier replies immediately, including during the debounce window.
+    const seq = ++customerRead, query = custSearch.value.trim() || null;
+    clearTimeout(searchTimer);
+    if (!formCurrent() || custMode.value !== 'existing') return;
+    custSelect.disabled = true;
+    custSelect.replaceChildren(h('option', { value: '', text: 'Loading customers…' }));
+    showError(err, '');
+    if (debounce) searchTimer = setTimeout(() => loadCustomers(seq, query), 200);
+    else loadCustomers(seq, query);
+  }
+  async function loadCustomers(seq, query) {
+    const current = () => seq === customerRead && custMode.value === 'existing' && formCurrent();
+    if (!current()) return;
     try {
-      const rows = await api.customers(custSearch.value.trim() || null, 50);
+      const rows = await api.customers(query, 50);
+      if (!current()) return;
       custSelect.replaceChildren(h('option', { value: '', text: rows.length ? 'Choose a customer' : 'No customers found' }), ...rows.map(c => h('option', { value: c.id, text: `${c.name}${c.phone ? ` · ${c.phone}` : ''}` })));
-    } catch (e) { showError(err, `Could not load customers: ${friendly(e)}`); }
+      custSelect.disabled = false;
+    } catch (e) {
+      if (!current()) return;
+      custSelect.replaceChildren(h('option', { value: '', text: 'Customer search unavailable' }));
+      showError(err, `Could not load customers: ${friendly(e)}`);
+    }
   }
   form.append(h('fieldset', { class: 'svc-fieldset' }, h('legend', { text: 'Customer' }),
     h('div', { class: 'svc-radios', role: 'radiogroup', 'aria-label': 'Customer' }, h('label', { class: 'svc-radio' }, modeNew, ' New customer'), h('label', { class: 'svc-radio' }, modeOld, ' Existing customer')),
@@ -110,10 +134,15 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, 
   const autoNick = () => { if (!nickTouched) nickname.value = newUnitNickname(profileById(profileSelect.value)?.model || 'Service unit', serial.value); };
   profileSelect.addEventListener('change', autoNick);
   serial.addEventListener('input', autoNick);
-  function fillUnits() {
+  function fillUnits({ initial = false } = {}) {
+    if (!initial && !formCurrent()) return;
+    const selectedUnit = initial ? preset.assetId || '' : unitSelect.value;
+    const selectedProfile = profileSelect.value;
     const assets = (lib.assets || []).filter(a => !a.isDeleted);
     unitSelect.replaceChildren(h('option', { value: '', text: 'Choose a unit' }), ...assets.map(a => h('option', { value: a.id, text: `${a.nickname}${a.serialNumber ? ` · S/N ${a.serialNumber}` : ''}`, selected: a.id === preset.assetId ? true : null })), h('option', { value: '__new', text: 'New unit…' }));
     profileSelect.replaceChildren(h('option', { value: '', text: 'Other (no device profile)' }), ...lib.profiles.map(p => h('option', { value: p.id, text: `${p.manufacturer} ${p.model}` })));
+    unitSelect.value = selectedUnit === '__new' || assets.some(a => a.id === selectedUnit) ? selectedUnit : '';
+    profileSelect.value = lib.profiles.some(p => p.id === selectedProfile) ? selectedProfile : '';
     syncUnit();
   }
   function syncUnit() {
@@ -124,8 +153,8 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, 
   }
   unitSelect.addEventListener('change', syncUnit);
   form.append(h('fieldset', { class: 'svc-fieldset' }, h('legend', { text: 'Unit' }), field('Unit', unitSelect, { required: true }), unitInfo, newUnit));
-  ensureLibrary().then(refreshUnits).then(fillUnits).catch(() => fillUnits());
-  fillUnits();
+  ensureLibrary().then(() => formCurrent() ? refreshUnits() : undefined).then(() => fillUnits()).catch(() => fillUnits());
+  fillUnits({ initial: true });
 
   // fault, accessories, condition, photos
   const fault = textarea({ id: 'svc-fault', maxlength: LIMITS.fault, rows: 4, required: true });
@@ -146,7 +175,7 @@ export function renderIntakeForm(host, { api, preset = {}, onCreated, onCancel, 
 
   let busy = false;
   async function submit() {
-    if (busy) return;
+    if (busy || !formCurrent()) return;
     showError(err, '');
     const accessories = [...accBoxes.map(l => l.querySelector('input')).filter(b => b.checked).map(b => b.value), ...(accOther.value.trim() ? [accOther.value.trim()] : [])];
     const payload = { reportedFault: fault.value.trim(), accessories, arrivalCondition: condition.value.trim() || null };
@@ -217,13 +246,19 @@ export function renderIntakeStep(host, ctx) {
   if (cust) {
     const edit = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'svc-cust-edit', html: `${icon('edit', { size: 14 })}<span>Edit customer</span>` });
     edit.addEventListener('click', () => {
+      if (!panelVisible(ctx, edit)) return;
       const n = input({ id: 'svc-ce-name', maxlength: LIMITS.name, value: cust.name }), p = input({ id: 'svc-ce-phone', type: 'tel', maxlength: LIMITS.phone, value: cust.phone || '' }), m = input({ id: 'svc-ce-email', type: 'email', maxlength: LIMITS.email, value: cust.email || '' });
       const f = h('form', { class: 'svc-inline-form' }, h('div', { class: 'svc-grid' }, field('Name', n, { required: true }), field('Phone', p), field('Email', m)),
         h('div', { class: 'svc-actions' }, h('button', { type: 'submit', class: 'btn btn-primary btn-sm', text: 'Save customer' }), h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Cancel', onclick: () => f.replaceWith(edit) })));
       f.addEventListener('submit', async e => {
         e.preventDefault();
-        try { await api.updateCustomer(cust.id, { name: n.value, phone: p.value, email: m.value }); toast('Customer updated.', { type: 'success', timeout: 2500 }); ctx.reload(); }
-        catch (x) { showError(err, `Customer not saved: ${friendly(x)}`); }
+        if (!panelVisible(ctx, f)) return;
+        try {
+          await api.updateCustomer(cust.id, { name: n.value, phone: p.value, email: m.value });
+          if (!panelCurrent(ctx, f)) return;
+          if (panelVisible(ctx, f)) toast('Customer updated.', { type: 'success', timeout: 2500 });
+          ctx.reload();
+        } catch (x) { if (panelCurrent(ctx, f)) showError(err, `Customer not saved: ${friendly(x)}`, { silent: !panelVisible(ctx, f) }); }
       });
       edit.replaceWith(f); n.focus();
     });
@@ -242,6 +277,7 @@ export function renderIntakeStep(host, ctx) {
   if (!readOnly) {
     const edit = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'svc-fields-edit', html: `${icon('edit', { size: 14 })}<span>Edit</span>` });
     edit.addEventListener('click', () => {
+      if (!panelVisible(ctx, edit)) return;
       // defaultValue = the saved text, so Esc only asks before discarding real changes (hasUnsavedInput)
       const f1 = textarea({ id: 'svc-e-fault', maxlength: LIMITS.fault, rows: 4 }); f1.defaultValue = job.reportedFault;
       const f2 = textarea({ id: 'svc-e-condition', maxlength: LIMITS.condition }); f2.defaultValue = job.arrivalCondition || '';
@@ -250,8 +286,13 @@ export function renderIntakeStep(host, ctx) {
         h('div', { class: 'svc-actions' }, h('button', { type: 'submit', class: 'btn btn-primary btn-sm', id: 'svc-e-save', text: 'Save' }), h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Cancel', onclick: () => ctx.reload() })));
       f.addEventListener('submit', async e => {
         e.preventDefault();
-        try { await api.updateFields(job.id, { reportedFault: f1.value, arrivalCondition: f2.value, resolution: f3.value }); toast('Job details saved.', { type: 'success', timeout: 2500 }); ctx.reload(); }
-        catch (x) { showError(err, `Not saved: ${friendly(x)}`); }
+        if (!panelVisible(ctx, f)) return;
+        try {
+          await api.updateFields(job.id, { reportedFault: f1.value, arrivalCondition: f2.value, resolution: f3.value });
+          if (!panelCurrent(ctx, f)) return;
+          if (panelVisible(ctx, f)) toast('Job details saved.', { type: 'success', timeout: 2500 });
+          ctx.reload();
+        } catch (x) { if (panelCurrent(ctx, f)) showError(err, `Not saved: ${friendly(x)}`, { silent: !panelVisible(ctx, f) }); }
       });
       jobCard.append(f); edit.remove(); f1.focus();
     });
@@ -270,7 +311,11 @@ function photosCard(ctx, err) {
     const img = h('img', { alt: p.caption || `Photo, ${p.stage || 'intake'}`, loading: 'lazy', width: 160, height: 120 });
     api.photoRead(p.photoId).then(b64 => { img.src = `data:image/jpeg;base64,${b64}`; }).catch(() => { img.alt = 'Photo file missing'; });
     const li = h('li', { class: 'svc-photo' }, img, h('span', { class: 'small', text: `${p.caption || 'No caption'} · ${p.stage || 'intake'}` }));
-    if (!readOnly) li.append(h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-label': `Remove photo ${p.caption || ''}`.trim(), text: 'Remove', onclick: async () => { try { await api.photoUnlink(p.linkId); ctx.reload(); } catch (e) { showError(err, friendly(e)); } } }));
+    if (!readOnly) li.append(h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-label': `Remove photo ${p.caption || ''}`.trim(), text: 'Remove', onclick: async () => {
+      if (!panelVisible(ctx, li)) return;
+      try { await api.photoUnlink(p.linkId); if (panelCurrent(ctx, li)) ctx.reload(); }
+      catch (e) { if (panelCurrent(ctx, li)) showError(err, friendly(e), { silent: !panelVisible(ctx, li) }); }
+    } }));
     grid.append(li);
   }
   card.append(detail.photos.length ? grid : h('p', { class: 'muted', text: 'No photos yet.' }));
@@ -280,6 +325,7 @@ function photosCard(ctx, err) {
     const stage = h('select', { id: 'svc-add-photo-stage' }, ...PHOTO_STAGES.map(s => h('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
     const add = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'svc-add-photo-btn', text: 'Add photos' });
     add.addEventListener('click', async () => {
+      if (!panelVisible(ctx, card) || add.disabled) return;
       const files = [...(file.files || [])];
       if (!files.length) { showError(err, 'Choose a photo first.'); return; }
       if (files.length + detail.photos.length > PHOTO_LIMIT) { showError(err, `A job can have at most ${PHOTO_LIMIT} photos.`); return; }
@@ -290,9 +336,10 @@ function photosCard(ctx, err) {
       const failed = await attachFiles(api, detail.job.id, files, { caption: cap.value.trim(), stage: stage.value });
       add.disabled = false;
       add.removeAttribute('aria-busy');
-      if (failed) showError(err, `${failed} photo${failed === 1 ? '' : 's'} could not be added (not an image, larger than 8 MB, or the limit was reached).`);
-      await ctx.reload({ mark: { sel: '#svc-add-photo-btn', caret: null }, fallback: '.svc-photos > li:last-child button', quiet: true });
-      if (failed < files.length) announce(`${files.length - failed} photo${files.length - failed === 1 ? '' : 's'} added.`);
+      if (!panelCurrent(ctx, card)) return;
+      if (failed) showError(err, `${failed} photo${failed === 1 ? '' : 's'} could not be added (not an image, larger than 8 MB, or the limit was reached).`, { silent: !panelVisible(ctx, card) });
+      if (await ctx.reload({ mark: { sel: '#svc-add-photo-btn', caret: null }, fallback: '.svc-photos > li:last-child button', quiet: true }) === false) return;
+      if (failed < files.length && ctx.isVisible?.() !== false) announce(`${files.length - failed} photo${files.length - failed === 1 ? '' : 's'} added.`);
     });
     card.append(h('div', { class: 'svc-grid' }, field('Photo files', file, { help: 'Re-encoded on this computer; GPS and other metadata are removed.' }), field('Caption', cap), field('Stage', stage)), add);
   }
@@ -367,9 +414,14 @@ function linkRunCard(ctx, phase, err) {
     sel.replaceChildren(h('option', { value: '', text: runs?.length ? 'Choose a saved run' : 'No saved runs' }), ...(runs || []).map(r => h('option', { value: r.id, text: `${when(r.startedAt)} · ${r.test || r.sessionType || 'run'}` })));
   }).catch(() => sel.replaceChildren(h('option', { value: '', text: 'Saved runs unavailable' })));
   btn.addEventListener('click', async () => {
+    if (!panelVisible(ctx, btn)) return;
     if (!sel.value) { showError(err, 'Choose a saved run to link.'); return; }
-    try { await ctx.api.linkResults(ctx.detail.job.id, phase, { sessionIds: [sel.value] }); toast(`Run linked as ${phase}.`, { type: 'success', timeout: 2500 }); ctx.reload(); }
-    catch (e) { showError(err, `Not linked: ${friendly(e)}`); }
+    try {
+      await ctx.api.linkResults(ctx.detail.job.id, phase, { sessionIds: [sel.value] });
+      if (!panelCurrent(ctx, btn)) return;
+      if (panelVisible(ctx, btn)) toast(`Run linked as ${phase}.`, { type: 'success', timeout: 2500 });
+      ctx.reload();
+    } catch (e) { if (panelCurrent(ctx, btn)) showError(err, `Not linked: ${friendly(e)}`, { silent: !panelVisible(ctx, btn) }); }
   });
   return h('details', { class: 'card card-quiet svc-card' }, h('summary', { text: 'Link a saved run (Quick diagnostic or workflow)' }), h('div', { class: 'svc-actions' }, field('Saved run', sel), btn, quick));
 }
@@ -418,19 +470,19 @@ export function renderWorkStep(host, ctx) {
   // is append-only, so a duplicate could not be removed). Busy until the reload has replaced the forms.
   let busy = false;
   const add = async (kind, payload, after) => {
-    if (busy) return;
+    if (busy || !panelVisible(ctx, wrap)) return;
     busy = true;
     const mark = ctx.focusMark?.(), focused = document.activeElement; // before the buttons are disabled
     const buttons = [...wrap.querySelectorAll('#svc-part-add, #svc-labour-add, #svc-note-save')];
     buttons.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); });
     try {
       await api.addLog(id, kind, payload);
-      if (ctx.isCurrent?.() === false) return;
+      if (!panelCurrent(ctx, wrap)) return;
       after?.();
       if (await ctx.reload({ mark }) === false) return;
       const totalsNow = document.getElementById('svc-totals')?.textContent || '';
-      announce(`${kind === 'part' ? 'Part' : kind === 'labour' ? 'Labour' : 'Note'} added. ${totalsNow}`.trim());
-    } catch (e) { if (ctx.isCurrent?.() !== false) showError(err, `Not added: ${friendly(e)}`); }
+      if (ctx.isVisible?.() !== false) announce(`${kind === 'part' ? 'Part' : kind === 'labour' ? 'Labour' : 'Note'} added. ${totalsNow}`.trim());
+    } catch (e) { if (panelCurrent(ctx, wrap)) showError(err, `Not added: ${friendly(e)}`, { silent: !panelVisible(ctx, wrap) }); }
     finally {
       busy = false;
       buttons.forEach(b => { b.disabled = false; b.removeAttribute('aria-busy'); });
@@ -519,16 +571,20 @@ export function renderSheetStep(host, ctx) {
   currency.addEventListener('change', () => { setSetting('serviceCurrency', clip(currency.value.trim(), 4)); draw(); });
   const data = () => jobSheetPrintData(detail, ctx.comparison, opts());
   async function exportHtml() {
+    if (!panelVisible(ctx, htmlBtn)) return;
     showError(err, '');
     try {
+      const requested = data();
       const [{ ensureJobSheetKind }, { saveTextFile }] = await Promise.all([import('../../report-kinds/jobsheet.js'), import('../../userfiles.js')]);
       const mod = await ensureJobSheetKind();
-      const { html } = mod.composePrintable('jobSheet', data(), { css: await mod.loadPrintCss().catch(() => null) });
+      const { html } = mod.composePrintable('jobSheet', requested, { css: await mod.loadPrintCss().catch(() => null) });
+      if (!panelVisible(ctx, htmlBtn)) return;
       const r = await saveTextFile({ suggestedName: `job-sheet-${detail.job.jobNumber}`, content: html, ext: 'html' });
-      if (r.cancelled) return;
+      if (r.cancelled || !panelVisible(ctx, htmlBtn)) return;
       saved.textContent = r.path ? `Saved to ${r.path}` : 'Job sheet downloaded.';
       toast('Job sheet exported as HTML.', { type: 'success', timeout: 3000 });
     } catch (e) {
+      if (!panelVisible(ctx, htmlBtn)) return;
       showError(err, `The job sheet was not saved: ${friendly(e)}`);
       toast(`The job sheet was not saved: ${friendly(e)}`, { type: 'error', action: { label: 'Retry', run: exportHtml } });
     }
@@ -536,9 +592,15 @@ export function renderSheetStep(host, ctx) {
   const htmlBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'svc-sheet-html', html: `${icon('download', { size: 16 })}<span>Export HTML</span>`, onclick: exportHtml });
   const pdfBtn = h('button', { type: 'button', class: 'btn btn-primary', id: 'svc-sheet-pdf', html: `${icon('download', { size: 16 })}<span>Export PDF</span>` });
   pdfBtn.addEventListener('click', async () => {
-    const [{ ensureJobSheetKind }, { exportPdfWithFeedback }] = await Promise.all([import('../../report-kinds/jobsheet.js'), import('../persistence.js')]);
-    await ensureJobSheetKind();
-    await exportPdfWithFeedback('jobSheet', data(), { button: pdfBtn, htmlFallback: exportHtml });
+    if (!panelVisible(ctx, pdfBtn) || pdfBtn.disabled) return;
+    const requested = data();
+    try {
+      const [{ ensureJobSheetKind }, { exportPdfWithFeedback }] = await Promise.all([import('../../report-kinds/jobsheet.js'), import('../persistence.js')]);
+      await ensureJobSheetKind();
+      await exportPdfWithFeedback('jobSheet', requested, { button: pdfBtn, htmlFallback: exportHtml, isCurrent: () => panelVisible(ctx, pdfBtn) });
+    } catch (e) {
+      if (panelVisible(ctx, pdfBtn)) showError(err, `The job sheet was not saved: ${friendly(e)}`);
+    }
   });
   pdfBtn.hidden = !isEnabled('pdfExport');
   host.replaceChildren(h('div', { class: 'svc-step-body' },

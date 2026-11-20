@@ -1,6 +1,21 @@
 # DeckChek spec status (work list)
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current continuation — 19 November 2026
+
+The prior consolidation is on `main` at `8c43cf17e3d5f5067ece5667f1aec1540f4b4091`;
+its test, nightly and desktop workflows succeeded. The older prepublication and
+PR27/30/32/33 instructions below are historical snapshots.
+
+Active work is [PR #34](https://github.com/djshellshoxxx/deckchek/pull/34): explicit
+existing-unit profile assignment, MIDI evidence corrections, Service lifecycle
+repairs and bounded file imports. Current qualification, worker handoffs and
+remaining work are in the [19 November engineering handoff](docs/engineering/CONTINUATION_2026-11-19.md).
+The [branch audit](docs/engineering/CODE_AUDIT_2026-11-19.md) found all useful implementation work from the 29
+old non-main branches represented or superseded; no redundant merge is needed.
+Fleet remains default off. Hardware, signing and release qualification stay open.
+
+
+## Historical source41 prepublication snapshot — 18 November 2026
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](docs/DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 

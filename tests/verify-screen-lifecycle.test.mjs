@@ -13,6 +13,8 @@ document.getElementById('main').append(section);
 const report = serial => ({ status: 'valid', reasons: [], serial, contentHash: 'a'.repeat(64) });
 const rawJson = '{ "payload": { "unit": { "serial": "RAW-SERIAL" } } }\n';
 
+const rawBytes = new TextEncoder().encode(rawJson);
+
 function pendingListeners() {
   const rows = [];
   return {
@@ -106,10 +108,10 @@ for (const phase of ['file read', 'native extraction', 'verification']) {
         verify: text => { seen.push(text); return phase === 'verification' ? pending.promise : Promise.resolve(report('OLDER')); },
       });
       if (phase === 'native extraction') screen.byId('verify-drop').click();
-      else screen.file({ name: 'older.json', size: rawJson.length, text: () => phase === 'file read' ? pending.promise : Promise.resolve(rawJson) });
+      else screen.file({ name: 'older.json', size: rawBytes.length, arrayBuffer: () => phase === 'file read' ? pending.promise : Promise.resolve(rawBytes.slice().buffer) });
       await settle();
-      screen.file({ name: 'newer.pdf', size: 4, text: () => { throw new Error('PDFs must not be read'); } });
-      if (outcome === 'resolve') pending.resolve(phase === 'verification' ? report('OLDER') : rawJson);
+      screen.file({ name: 'newer.pdf', size: 4, arrayBuffer: () => { throw new Error('PDFs must not be read'); } });
+      if (outcome === 'resolve') pending.resolve(phase === 'verification' ? report('OLDER') : phase === 'file read' ? rawBytes.slice().buffer : rawJson);
       else pending.reject(new Error('Earlier file operation failed'));
       await settle();
       assert.match(screen.byId('verify-message').textContent, /no DeckChek data attached/);
@@ -122,7 +124,7 @@ for (const phase of ['file read', 'native extraction', 'verification']) {
 test('verification already started for the selected file may finish while the cached screen is hidden', async () => {
   const pending = deferred();
   const screen = mount({ verify: () => pending.promise });
-  screen.file({ name: 'selected.json', size: rawJson.length, text: async () => rawJson });
+  screen.file({ name: 'selected.json', size: rawBytes.length, arrayBuffer: async () => rawBytes.slice().buffer });
   await settle();
   screen.navigate('other');
   pending.resolve(report('SELECTED')); await settle();
