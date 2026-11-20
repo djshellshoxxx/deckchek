@@ -85,6 +85,7 @@ test('AC-6 GitHub Pages guide: public site, correct publishing root, and stale-f
     assert.match(steps[2], /Deploy from a branch/);
     assert.match(steps[2], /\/ \(root\)/);
     assert.match(steps[3], /Check the published page and repository/);
+    assert.match(steps[3], /Deleted files remain accessible in Git commit history/);
     assert.ok(!steps.join(' ').match(/password|token|sign in|log in/i));
   }
   assert.match(folder[1], /contents of the exported "ledger" folder/);
@@ -92,6 +93,8 @@ test('AC-6 GitHub Pages guide: public site, correct publishing root, and stale-f
   assert.match(folder[1], /uploading new files does not delete old GitHub files/);
   assert.match(single[1], /Rename the exported file "deckchek-gear-ledger\.html" to index\.html/);
   assert.match(single[1], /repository root/);
+  assert.match(single[1], /replaces an older folder export/);
+  assert.match(single[1], /replacing index\.html does not delete them/);
 });
 
 test('AC-7 browser mode: revisions count up by one, a stale revision is refused, history survives reload', async () => {
