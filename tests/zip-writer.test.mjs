@@ -106,3 +106,23 @@ test('system unzip / python zipfile accept the archive (when available)', t => {
   assert.equal(py.status, 0, py.stderr);
   assert.equal(py.stdout.trim(), 'manifest.json,logs/big.bin');
 });
+
+test('ZIP size cap includes local records, directory and end record', () => {
+  const cap = 20 * 1024 * 1024;
+  const oneOverhead = 22 + 30 + 1 + 46 + 1; // single ASCII filename
+  const atLimit = createZip([{ name: 'a', data: new Uint8Array(cap - oneOverhead) }]);
+  assert.equal(atLimit.length, cap);
+  assert.equal(readZip(atLimit)[0].data.length, cap - oneOverhead);
+  assert.throws(
+    () => createZip([{ name: 'a', data: new Uint8Array(cap - oneOverhead + 1) }]),
+    /Zip too large/,
+  );
+  const twoOverhead = 22 + 2 * (30 + 1 + 46 + 1);
+  assert.throws(
+    () => createZip([
+      { name: 'a', data: new Uint8Array(cap - twoOverhead) },
+      { name: 'b', data: new Uint8Array(1) },
+    ]),
+    /Zip too large/,
+  );
+});
