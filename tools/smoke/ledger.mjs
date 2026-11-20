@@ -252,7 +252,14 @@ export default async function run({ browser, base, check, tmp, ROOT, SHOTS }) {
     await fp.waitForFunction(() => /matches this hash/.test(document.getElementById('ledger-check')?.textContent || ''));
     const a = await pageAudit(fp);
     if (scheme === 'light') {
-      check('ledger AC-3: opened from file:// offline it renders fully with no external requests', outside.length === 0 && a.imgs === 1 && a.imgsBroken === 0, outside.join(', '));
+      // Preserve the offline/image gate; make a future failure attributable to
+      // unexpected requests, absent images or incomplete/broken image resources.
+      const imageReadiness = await fp.locator('img').evaluateAll(imgs =>
+        imgs.map(img => ({ complete: img.complete, naturalWidth: img.naturalWidth })));
+      check('ledger AC-3: opened from file:// offline it renders fully with no external requests',
+        outside.length === 0 && a.imgs === 1 && a.imgsBroken === 0,
+        JSON.stringify({ unexpectedRequests: outside, images: a.imgs,
+          incompleteOrBroken: a.imgsBroken, imageReadiness }));
       check('ledger: ledger data hash re-checks on open (integrity, worded)', /✓ The ledger data on this page matches this hash/.test(await fp.locator('#ledger-check').innerText()));
       await fp.click('button[data-verify="0:0"]');
       await fp.waitForFunction(() => /Match|Mismatch|Cannot/.test(document.getElementById('vr-0-0')?.textContent || ''));
