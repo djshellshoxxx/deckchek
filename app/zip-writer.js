@@ -97,7 +97,10 @@ export function createZip(entries, { date = new Date() } = {}) {
   const seen = new Set();
   let offset = 0;
   let archiveBytes = 22; // End-of-central-directory record.
+  let entryCount = 0;
   for (const e of entries) {
+    // A custom array iterator can yield a different count from entries.length.
+    if (++entryCount > 0xffff) throw new Error('Invalid zip entry list.');
     // Read an entry name once. Accessor-backed names must not change after validation.
     const entryName = e?.name;
     if (!validateEntryName(entryName)) throw new Error(`Invalid zip entry name: ${entryName}`);
@@ -147,8 +150,8 @@ export function createZip(entries, { date = new Date() } = {}) {
   const cdSize = central.reduce((n, x) => n + x.length, 0);
   const end = new DataView(new ArrayBuffer(22));
   end.setUint32(0, 0x06054b50, true);
-  end.setUint16(8, entries.length, true);
-  end.setUint16(10, entries.length, true);
+  end.setUint16(8, entryCount, true);
+  end.setUint16(10, entryCount, true);
   end.setUint32(12, cdSize, true);
   end.setUint32(16, offset, true);
   const all = [...chunks, ...central, new Uint8Array(end.buffer)];
