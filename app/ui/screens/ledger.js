@@ -66,13 +66,13 @@ export const SINGLE_FILE_NAME = 'deckchek-gear-ledger.html';
  */
 export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
   const upload = mode === 'single'
-    ? `Rename the exported file "${name}" to index.html, then upload it at the repository root with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; another name can leave the site address showing a 404 page.`
+    ? `Rename the exported file "${name}" to index.html, then upload it at the repository root with "Add file > Upload files", or push it with git. GitHub Pages opens index.html at the site address; another name can leave the site address showing a 404 page. If this replaces an older folder export, delete obsolete photo and certificate files from the GitHub repository; replacing index.html does not delete them.`
     : `Upload the contents of the exported "${name}" folder (index.html, ledger.json and the assets and certificates folders) at the repository root with "Add file > Upload files", or push them with git. Before replacing a published ledger, remove obsolete photos and certificate JSON files from both the local export and the GitHub repository; uploading new files does not delete old GitHub files.`;
   return [
     'On github.com, create a repository. GitHub Free requires a public repository for Pages. On other eligible plans a private repository does not, by itself, make its Pages site private. Only publish a ledger intended for sharing.',
     upload,
     'Open Settings > Pages > Build and deployment, select "Deploy from a branch", choose the branch with your uploaded files (for example main), select "/ (root)", then Save. Keep index.html at that root, not inside a nested ledger folder.',
-    'Open the site address shown under Settings > Pages when the deployment finishes (it can take several minutes). Check the published page and repository for private fields and stale files before sharing the link.',
+    'Open the site address shown under Settings > Pages when the deployment finishes (it can take several minutes). Check the published page and repository for private fields and stale files before sharing the link. Deleted files remain accessible in Git commit history; removing files after publication cannot undo an earlier disclosure.',
   ];
 }
 
