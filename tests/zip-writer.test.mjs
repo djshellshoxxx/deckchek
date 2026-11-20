@@ -45,6 +45,34 @@ test('round trip through an independent reader keeps order, names and bytes', ()
   for (const f of files) assert.equal(crc32(f.data), f.crc);
 });
 
+test('ZIP end directory counts actual records emitted by array iterators', () => {
+  // Array iteration is overridable: its yielded items need not match .length.
+  const more = [{ name: 'nominal.txt', data: '' }];
+  more[Symbol.iterator] = function* () {
+    yield { name: 'first.txt', data: 'one' };
+    yield { name: 'second.txt', data: 'two' };
+  };
+  const fewer = [
+    { name: 'unused-1.txt', data: '' },
+    { name: 'unused-2.txt', data: '' },
+  ];
+  fewer[Symbol.iterator] = function* () {
+    yield { name: 'only.txt', data: 'one' };
+  };
+
+  for (const [entries, names] of [
+    [more, ['first.txt', 'second.txt']],
+    [fewer, ['only.txt']],
+  ]) {
+    const zip = createZip(entries, { date: new Date(2026, 0, 2) });
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+    const endOffset = zip.length - 22;
+    assert.equal(view.getUint16(endOffset + 8, true), names.length);
+    assert.equal(view.getUint16(endOffset + 10, true), names.length);
+    assert.deepEqual(readZip(zip).map(entry => entry.name), names);
+  }
+});
+
 test('output is deterministic for a fixed date', () => {
   const d = new Date(2026, 0, 2, 3, 4, 6);
   const a = createZip([{ name: 'a.txt', data: 'x' }], { date: d });
