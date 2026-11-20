@@ -126,3 +126,64 @@ test('ZIP size cap includes local records, directory and end record', () => {
     /Zip too large/,
   );
 });
+
+test('ZIP text size preflight rejects oversize UTF-8 before encoding allocation', () => {
+  const cap = 20 * 1024 * 1024;
+  const originalEncode = TextEncoder.prototype.encode;
+  let oversizedEncodeCalls = 0;
+  // The writer must reject oversized text itself, without reaching an encoder
+  // that could allocate a transient buffer larger than the ZIP output ceiling.
+  TextEncoder.prototype.encode = function (text) {
+    if (typeof text === 'string' && text.length >= 1024 * 1024) {
+      oversizedEncodeCalls++;
+      throw new Error('Unexpected oversized UTF-8 allocation');
+    }
+    return originalEncode.call(this, text);
+  };
+  try {
+    for (const value of [
+      'x'.repeat(cap),
+      'é'.repeat(cap / 2),
+      '😀'.repeat(cap / 4),
+    ]) {
+      assert.throws(() => createZip([{ name: 'a', data: value }]), /Zip too large/);
+    }
+  } finally {
+    TextEncoder.prototype.encode = originalEncode;
+  }
+  assert.equal(oversizedEncodeCalls, 0);
+
+  // The preflight must exactly follow TextEncoder behavior for multi-byte text,
+  // supplementary characters and a lone surrogate encoded as U+FFFD.
+  const valid = 'é😀\\ud800'.replace('\\ud800', '\ud800');
+  const archive = createZip([{ name: 'text.txt', data: valid }]);
+  assert.deepEqual(readZip(archive)[0].data, new TextEncoder().encode(valid));
+});
+
+test('DOS year clamping never creates an impossible leap-day date', () => {
+  const readPackedDate = input => {
+    const bytes = createZip([{ name: 'date.txt', data: 'x' }], { date: input });
+    const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const local = v.getUint16(12, true);
+    const centralOffset = v.getUint32(bytes.length - 22 + 16, true);
+    const central = v.getUint16(centralOffset + 14, true);
+    assert.equal(central, local, 'central and local ZIP dates must agree');
+    return {
+      year: 1980 + (local >>> 9),
+      month: (local >>> 5) & 0x0f,
+      day: local & 0x1f,
+    };
+  };
+
+  // The original year-clamp encoded February 29 in nonleap year 2107.
+  assert.deepEqual(readPackedDate(new Date(2400, 1, 29, 12, 4, 6)),
+    { year: 2107, month: 2, day: 28 });
+  // Preserve legal leap days, including the lower DOS bound.
+  assert.deepEqual(readPackedDate(new Date(2104, 1, 29, 12, 4, 6)),
+    { year: 2104, month: 2, day: 29 });
+  assert.deepEqual(readPackedDate(new Date(1976, 1, 29, 12, 4, 6)),
+    { year: 1980, month: 2, day: 29 });
+  // Other dates clamped to 2107 retain their existing month and day.
+  assert.deepEqual(readPackedDate(new Date(2108, 2, 1, 12, 4, 6)),
+    { year: 2107, month: 3, day: 1 });
+});
