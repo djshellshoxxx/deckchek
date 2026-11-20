@@ -1,0 +1,30 @@
+{
+  "source": "d2ccfdaa4bd1a8f6da9a7cc632e4967cb8463092",
+  "scope": "new numerical regression tests on unchanged original implementation",
+  "argv": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "exitCode": 1,
+  "elapsedSeconds": 0.35343550599645823,
+  "counts": {
+    "tests": "11",
+    "pass": "8",
+    "fail": "3",
+    "cancelled": "0",
+    "skipped": "0",
+    "duration_ms": "146.784527"
+  },
+  "hashesBefore": {
+    "app/player/pitch-display.js": "6fbd3f1e8fc5c3810ba4b53fbddfbc13011d2bb6133353b41684e89c64b26cb5",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f"
+  },
+  "hashesAfter": {
+    "app/player/pitch-display.js": "6fbd3f1e8fc5c3810ba4b53fbddfbc13011d2bb6133353b41684e89c64b26cb5",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f"
+  },
+  "unchangedDuringExecution": true,
+  "logSha256": "753458a548623c2a4fc411cf369673e7a295d1e4ecdbd5435e94f5d5b91d3d79"
+}
