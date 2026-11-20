@@ -76,8 +76,8 @@ export function publishSteps(name = LEDGER_DIR, mode = 'folder') {
   ];
 }
 
-export const PUBLISH_COPY = 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
-export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.';
+export const PUBLISH_COPY = 'Create a repository, upload the contents of the exported folder at the repository root (or push them), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.';
+export const PUBLISH_COPY_SINGLE = 'Create a repository, upload the exported HTML file as index.html at the repository root (or push it), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.';
 /** After a folder export through a backend that does not prune (no `removed` count): nothing was deleted. */
 export const LEFTOVER_NOTE = 'Files with the same names are replaced, but photos and certificate files (.deckchek-cert.json) from earlier exports that are not in this one stay in that folder: delete them before you upload, or they are published too.';
 
