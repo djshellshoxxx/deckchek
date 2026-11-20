@@ -81,6 +81,21 @@ test('ZIP entry payloads reject unsupported types instead of silently inserting 
   assert.deepEqual(readZip(createZip([{ name: 'ok.bin', data: original }]))[0].data, original);
 });
 
+test('invalid ZIP timestamps fail instead of encoding an impossible DOS month/day', () => {
+  for (const date of [new Date(NaN), null, '2026-01-01', {}, 0]) {
+    assert.throws(
+      () => createZip([{ name: 'manifest.json', data: '{}' }], { date }),
+      /Invalid ZIP date/,
+    );
+  }
+  const valid = createZip([{ name: 'ok.txt', data: 'ok' }], { date: new Date(1980, 0, 1) });
+  const view = new DataView(valid.buffer, valid.byteOffset, valid.byteLength);
+  const date = view.getUint16(12, true);
+  assert.equal((date >> 5) & 15, 1);
+  assert.equal(date & 31, 1);
+  assert.equal(readZip(valid)[0].name, 'ok.txt');
+});
+
 test('system unzip / python zipfile accept the archive (when available)', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zipw-'));
   const file = path.join(dir, 't.zip');
