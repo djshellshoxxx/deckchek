@@ -1,6 +1,19 @@
 # DeckChek continuation handoff
 
-## Current combined continuation — 19 November 2026
+## Current continuation — 20 November 2026
+
+PRs #34, #38 and #45 are merged. Verified main at this checkpoint is
+`f46abbea458ba2bb8c2f6d438eba4f5b0a58c948`, including ZIP corrections accepted
+by three fresh reviewers and passing standard, nightly and desktop workflows.
+Nine superseded stacked PRs are closed; their branches are preserved.
+PR #46's isolated Ledger diagnostics now target main with separate gates.
+
+The [current continuation report](engineering/CONTINUATION_2026-11-20.md) records consolidation evidence,
+source-specific successor work, review handoffs and remaining qualification.
+Use it and live refs for the next action. The sections below preserve dated
+history; their old queue states do not describe current publication.
+
+## Historical combined continuation — 19 November 2026
 
 The candidate `integration/deckchek-consolidation-20261120` combines the latest
 PR #34 repairs with the ZIP stack from PRs #35–#37 and the independently reviewed

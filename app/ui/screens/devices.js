@@ -13,7 +13,7 @@ import { verdictFor } from '../metrics.js';
 import { workflowInstance } from '../workflows/flow.js';
 import { CATEGORY_LABELS, groupTestsByCategory, specSummary, progressFor, latestResults, resultStatus, resultTimestamp, imageUrl, documentLinks } from '../../devices/library.js';
 import { dispatchFor, methodLabel, workflowPrefill, evaluateOutcome, buildResultDetail, effectiveMidiMap, storedMidiMapForProfile, buildDeviceReportHtml } from '../../devices/dispatch.js';
-import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit } from '../devices/library-state.js';
+import { lib, ensureLibrary, refreshUnits, profileById, unitsFor, resultsFor, saveResult, addUnit, cacheAssignedUnit } from '../devices/library-state.js';
 import { describeMediaRef } from '../media-picker.js';
 import { takeHandoff } from '../crosslinks.js';
 import { runManual, runDriver, runSoftware, passText } from '../devices/runners.js';
@@ -57,7 +57,7 @@ export function beginDeviceJobRun(opts) {
 export function createDevicesScreen(section) {
   const st = { view: 'grid', profileId: null, filter: 'all', search: '', queue: null, runner: null, runTestId: null, units: { ...(settings.deviceUnits || {}) } };
   let profileAssignment = null;
-  let showGeneration = 0;
+  let showGeneration = 0, catalogGeneration = 0;
   const $ = sel => section.querySelector(sel);
 
   const unitFor = profile => {
@@ -223,7 +223,7 @@ export function createDevicesScreen(section) {
           profile: p, productId: lib.products.get(p.id), assets: lib.assets,
           assign: request => store.assignDeviceProfile(request),
           onAssigned: (result, asset) => {
-            lib.assets = lib.assets.map(row => row.id === result.assetId ? { ...row, productId: result.productId, updatedAt: result.updatedAt } : row);
+            cacheAssignedUnit(result);
             selectUnit(p, asset.id);
             toast(`“${asset.nickname}” now uses the ${p.model} device profile.`, { type: 'success' });
             render();
@@ -529,7 +529,13 @@ export function createDevicesScreen(section) {
   onFeatureChange(({ name }) => { if (name === 'pdfExport') for (const b of section.querySelectorAll('#dev-export-pdf')) b.hidden = !pdfExportEnabled(); });
   on('devices', () => { if (st.view !== 'run' && !section.hidden) render(); });
   on('device-results', () => { if (st.view === 'grid' && !section.hidden) renderGrid(); });
-  on('catalog', async () => { await refreshUnits(); if (st.view !== 'run' && !section.hidden) render(); });
+  on('catalog', async () => {
+    if (!section.isConnected) return;
+    const generation = showGeneration, request = ++catalogGeneration, content = section.firstElementChild;
+    const published = await refreshUnits();
+    if (published && request === catalogGeneration && generation === showGeneration && section.isConnected && !section.hidden
+        && section.firstElementChild === content && st.view !== 'run' && !profileAssignment) render();
+  });
 
   if (lib.ready) render(); else renderGrid();
   ensureLibrary();

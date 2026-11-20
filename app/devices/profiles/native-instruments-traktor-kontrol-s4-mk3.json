@@ -5,7 +5,7 @@
   "model": "TRAKTOR KONTROL S4 MK3",
   "category": "controller",
   "summary": "controller profile with jog, motor, pad, fader, eq, audio, usb, display diagnostic groups. Companion workflow(s): Traktor Pro.",
-  "identityNotes": "Research seed; the exact S4 MK3 manual documents a built-in 24-bit audio interface and USB computer audio use. Its software version 3.2 (07/2019) is document provenance, not a firmware qualification. Numeric USB input/output counts and an enumerated hardware sample-rate list remain unresolved. MIDI transport/maps, USB IDs, class compliance, hardware revision, firmware, OS support and physical performance remain unverified; the current NI Windows 11 ASIO notice must be considered separately.",
+  "identityNotes": "Research seed; the exact S4 MK3 manual documents a built-in 24-bit audio interface and USB computer audio use. Its software version 3.2 (07/2019) is document provenance, not a firmware qualification. Numeric USB input/output counts and an enumerated hardware sample-rate list remain unresolved. DIN MIDI and exact control maps, USB IDs, class compliance, hardware revision, firmware, OS support and physical performance remain unverified; the current NI Windows 11 ASIO notice must be considered separately. MIDI-mode addendum (2026-11-20): NI states that controllers absent from its supported MIDI-mode table cannot switch to MIDI mode. The table lists S4 MK1/MK2 but not S4 MK3, so supported USB MIDI controller mode is false. DIN remains unresolved; no receiving port, identity response, complete map or current hardware/firmware qualification is inferred.",
   "documents": [
     {
       "title": "Verified manufacturer capability reference",
@@ -46,6 +46,13 @@
       "type": "midi-message-list",
       "url": "",
       "notes": "Use MIDI Learn or the published mapping; HID events may not appear as MIDI."
+    },
+    {
+      "title": "NI supported MIDI modes — S4 MK3 exclusion",
+      "type": "support-article",
+      "url": "https://support.native-instruments.com/support/solutions/articles/69000880031-native-instruments-switching-your-controller-to-midi-mode",
+      "language": "en",
+      "notes": "Checked 2026-11-20. NI explicitly says controllers absent from the table cannot switch to MIDI mode; the table lists S4 MK1/MK2 but not S4 MK3. The exact-model manual establishes the USB computer connection. This supports the absence of a supported USB MIDI controller mode, not an invented DIN value, receiving capability or physical-unit result. No article revision date is exposed."
     }
   ],
   "connectivity": {
@@ -56,7 +63,7 @@
       "classCompliant": null
     },
     "midi": {
-      "usbMidi": null,
+      "usbMidi": false,
       "din": null,
       "portNamePatterns": [
         "TRAKTOR KONTROL S4 MK3"
@@ -148,6 +155,15 @@
       "source": "https://docs.native-instruments.com/pdf-guides/traktor/TRAKTOR_KONTROL_S4_MK3_Manual_English_0719.pdf section 2, printed p. 2",
       "confidence": "confirmed",
       "notes": "The manual identifies a 24-bit/96 kHz interface. Its resolution statement is not an enumerated sample-rate list, so sampleRatesHz remains empty."
+    },
+    {
+      "key": "verified_usb_midi_controller_mode",
+      "label": "Supported USB MIDI controller mode",
+      "value": false,
+      "unit": "bool",
+      "source": "https://support.native-instruments.com/support/solutions/articles/69000880031-native-instruments-switching-your-controller-to-midi-mode",
+      "confidence": "confirmed",
+      "notes": "Checked 2026-11-20. NI explicitly excludes unlisted controllers from MIDI mode and lists only S4 MK1/MK2, not MK3. Applied to the documented S4 MK3 USB computer connection. DIN remains unresolved; native control or software-created MIDI is not a documented device MIDI transport."
     }
   ],
   "midi": {

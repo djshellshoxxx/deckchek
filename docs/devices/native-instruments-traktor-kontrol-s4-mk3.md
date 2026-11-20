@@ -1,4 +1,4 @@
-# Native Instruments TRAKTOR KONTROL S4 MK3 — audio capability research
+# Native Instruments TRAKTOR KONTROL S4 MK3 — audio and MIDI-mode research
 
 Checked **2026-11-18** for the exact S4 MK3. This remains a research seed;
 manufacturer documentation does not qualify a physical unit or host setup.
@@ -32,5 +32,25 @@ compatibility for an arbitrary host, and no driver, software or firmware
 qualification field is changed.
 
 The actual planner retains a conditional `audio:quality` test because its output
-count remains unknown. Handwritten checks, USB IDs, class compliance, MIDI
-transport fields and maps, and software/firmware unknowns remain unchanged.
+count remains unknown. At this audio checkpoint, handwritten checks, USB IDs,
+class compliance, MIDI transport fields and maps, and software/firmware unknowns
+were unchanged.
+
+## MIDI-mode addendum — 20 November 2026
+
+The current [NI MIDI-mode support article](https://support.native-instruments.com/support/solutions/articles/69000880031-native-instruments-switching-your-controller-to-midi-mode)
+explicitly excludes controllers absent from its table. It distinguishes S4 MK1
+and MK2 but does not include MK3. Combined with the exact MK3 manual's USB computer
+connection, this establishes the absence of a supported USB MIDI controller mode:
+`connectivity.midi.usbMidi` is now `false`. No article revision date was exposed;
+the retrieval date is 2026-11-20. The redirecting product URL and its cached
+search excerpt were not used as current capability evidence.
+
+`connectivity.midi.din` remains `null`. This bounded conclusion does not assert
+the absence of every possible MIDI-related feature, software conversion or
+future firmware mode. The three generated MIDI checks consequently remain
+conditional, use unknown-transport guidance, and require explicit output
+selection. All eleven handwritten checks and certificate identity remain exact;
+maps, audio counts/rates, USB IDs, class compliance and physical qualification
+remain unresolved. [The focused regression](../../tests/researched-s4-midi-mode.test.mjs)
+also reconstructs and verifies the complete original profile bytes.

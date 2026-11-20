@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCatalogStore, CATALOG_STORAGE_KEY } from '../app/catalog-store.js';
 import { createDevicesScreen } from '../app/ui/screens/devices.js';
-import { ensureLibrary, lib } from '../app/ui/devices/library-state.js';
-import { settings, store } from '../app/ui/state.js';
+import { ensureLibrary, lib, refreshUnits } from '../app/ui/devices/library-state.js';
+import { emit, settings, store } from '../app/ui/state.js';
 import { A, B, STORED_MAP } from './fixtures/learned-map-profile-identity.mjs';
 import { deferred, installServiceDom, settle } from './fixtures/service-screen-dom.mjs';
 
@@ -108,4 +108,35 @@ test('Devices ignores a completion after leaving the screen and reloads the save
   assert.ok(unit.options.some(option => option.value === f.imported.id), 'reopening Devices reloads the persisted association');
   assert.equal(unit.value, f.existing.id, 'the late assignment does not silently change the chosen unit');
   assert.equal(f.section.querySelector('#dev-profile-assignment').hidden, true);
+});
+
+test('a catalog notification preserves a pending assignment and its acknowledged selection', async t => {
+  const f = await mount(t), pending = deferred();
+  f.setAssign(async request => { await pending.promise; return f.catalog.assignDeviceProfile(request); });
+  f.choose(); f.submit();
+  emit('catalog'); await settle();
+  assert.equal(f.host.isConnected, true, 'catalog redraw must not retire an in-flight assignment form');
+  assert.equal(f.select.value, f.imported.id);
+  assert.equal(f.select.disabled, true);
+  pending.resolve(); await settle();
+  assert.equal(f.calls.length, 1, 'the original submitted write finishes once');
+  assert.equal((await f.catalog.list('asset')).find(row => row.id === f.imported.id).productId, f.products.get(B.id));
+  assert.deepEqual(lib.assets, await f.catalog.list('asset'));
+  assert.equal(settings.deviceUnits[B.id], f.imported.id);
+  assert.equal(f.section.querySelector('#dev-unit').value, f.imported.id);
+});
+
+test('an older library refresh cannot replace an acknowledged profile assignment in the shared cache', async t => {
+  const f = await mount(t), pending = deferred();
+  t.mock.method(store, 'listDeviceTestResults', () => pending.promise);
+  const reading = refreshUnits(); await settle();
+  f.choose(); f.submit(); await settle();
+  const savedAssets = await f.catalog.list('asset');
+  assert.equal(savedAssets.find(row => row.id === f.imported.id).productId, f.products.get(B.id));
+  assert.deepEqual(lib.assets, savedAssets);
+  pending.resolve([]); await reading;
+  assert.deepEqual(lib.assets, savedAssets, 'the acknowledged binding is not replaced by the pre-assignment read');
+  assert.equal(f.calls.length, 1);
+  assert.equal(settings.deviceUnits[B.id], f.imported.id);
+  assert.equal(f.section.querySelector('#dev-unit').value, f.imported.id);
 });

@@ -14,6 +14,10 @@ export const lib = {
 };
 
 let loading = null;
+let cacheSequence = 0, publishedSequence = 0;
+
+// Acknowledged local writes own newer cache state than any read already in flight.
+const markCacheMutation = () => { publishedSequence = ++cacheSequence; };
 
 /** Load profiles and sync them into the catalog once per session (idempotent; safe to call repeatedly). */
 export function ensureLibrary({ force = false } = {}) {
@@ -49,16 +53,21 @@ export function ensureLibrary({ force = false } = {}) {
   return loading;
 }
 
-/** Reload assets and results; view-owned callers can retire a pending refresh. */
+/** Reload one complete snapshot; return whether this request published it. */
 export async function refreshUnits({ isCurrent = () => true } = {}) {
+  const request = ++cacheSequence;
+  const canPublish = () => request >= publishedSequence && isCurrent();
   let assets, results;
   try { assets = await store.list('asset'); } catch { assets = []; }
-  if (!isCurrent()) return;
+  if (!canPublish()) return false;
   try { results = await store.listDeviceTestResults(null); } catch { results = []; }
-  if (!isCurrent()) return;
-  // Publish one complete snapshot only while its requesting view still owns it.
+  if (!canPublish()) return false;
+  // A newer completed read or acknowledged write owns the shared cache. A retired read that never
+  // published must not discard an independently current default consumer.
   lib.assets = assets;
   lib.results = results;
+  publishedSequence = request;
+  return true;
 }
 
 export const profileById = id => lib.profiles.find(p => p.id === id) || null;
@@ -73,6 +82,7 @@ export async function saveResult({ profile, test, assetId, status, detail, sessi
   if (!assetId) throw new Error('No unit selected for this device.');
   const row = await store.saveDeviceTestResult({ assetId, profileId: profile.id, testId: test.id, sessionId, status, detail, ...mediaRefFromParams(params) });
   lib.results = [row, ...lib.results.filter(r => r.id !== row.id)];
+  markCacheMutation();
   emit('device-results', row);
   return row;
 }
@@ -83,6 +93,13 @@ export async function addUnit(profile) {
   const n = unitsFor(profile.id).length + 1;
   const asset = await store.upsert('asset', { productId, nickname: `My ${profile.model}${n > 1 ? ` (${n})` : ''}`, notes: 'Added from the DeckChek device library.' });
   lib.assets = [...lib.assets, asset];
+  markCacheMutation();
   emit('catalog');
   return asset;
+}
+
+/** Cache an acknowledged profile assignment; persistence and validation belong to its caller. */
+export function cacheAssignedUnit(result) {
+  lib.assets = lib.assets.map(row => row.id === result.assetId ? { ...row, productId: result.productId, updatedAt: result.updatedAt } : row);
+  markCacheMutation();
 }
