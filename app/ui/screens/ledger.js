@@ -13,6 +13,7 @@ import { createLedgerApi } from '../../ledger/api.js';
 import { buildLedger, previewHtml, compareWithPrevious, LEDGER_DIR, SINGLE_FILE_MAX_BYTES } from '../../ledger/build.js';
 import { FIELDS, PRESETS, PRESET_LABELS, SERIAL_MODES, makeRules, normalizeRules, matchesPreset, effectiveRules, MAX_OWNER_CHARS } from '../../ledger/privacy.js';
 import { preparePhoto } from '../../photo-store.js';
+import { createKeyedWriteQueue } from '../../ledger/write-queue.js';
 
 const STEPS = [['select', 'Select gear'], ['privacy', 'Privacy'], ['preview', 'Preview'], ['export', 'Export']];
 const SERIAL_LABEL = { hidden: 'Hidden', masked: 'Masked (last 4)', full: 'Full' };
@@ -259,6 +260,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   // WebKit and Firefox. So typed text is kept in state at once and committed before every build.
   const drafts = new Map();   // assetId -> public note typed but not saved yet
   const inflight = new Map(); // assetId -> {text, promise} of the save in progress
+  const queueNoteWrite = createKeyedWriteQueue(); // preserve the order of real writes for each asset
   const failed = new Map();   // assetId -> message of the last failed save
   function saveNote(assetId) {
     if (!drafts.has(assetId)) return null;
@@ -269,7 +271,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     const title = gearRowText(row).title;
     const promise = (async () => {
       try {
-        const saved = await api.setPublicNote(assetId, text);
+        const saved = await queueNoteWrite(assetId, () => api.setPublicNote(assetId, text));
         row.asset.publicNotes = saved?.publicNotes ?? null;
         if (drafts.get(assetId) === text) drafts.delete(assetId);
         failed.delete(assetId); st.result = null;
