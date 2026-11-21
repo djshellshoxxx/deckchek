@@ -104,6 +104,13 @@ test('inherited fields and exotic objects cannot spoof record provenance', () =>
   assert.equal(record.quality.flags.toneStable, null);
   assert.equal(record.capture.sampleRateHz, null);
   assert.equal(record.qualification.eligibleForReport, false);
+  let accessorCalled = false;
+  const accessorFlags = Object.defineProperty({}, 'toneStable', { enumerable: true, get() {
+    accessorCalled = true;
+    return true;
+  } });
+  assert.throws(() => createCdjEvidenceRecord({ quality: { flags: accessorFlags } }), TypeError);
+  assert.equal(accessorCalled, false);
   const plain = Object.create(null);
   plain.model = 'Model X';
   assert.equal(createCdjEvidenceRecord({ asset: plain }).asset.model, 'Model X');
