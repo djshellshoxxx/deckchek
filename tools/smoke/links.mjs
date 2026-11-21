@@ -81,6 +81,33 @@ export default async function run({ browser, base, check }) {
   await page.waitForTimeout(150);
   const viaWin = await page.evaluate(() => window.__opened.at(-1)?.[0]);
   check('links: window.open is routed through the same handler', viaWin === 'https://github.com/via-window-open');
+  // The example.org host was approved above. Changed authority cues still need
+  // the actual dialog; the browser opener remains the in-memory recorder.
+  for (const [label, url] of [
+    ['port', 'https://example.org:8443/review'],
+    ['userinfo', 'https://operator:example@example.org/review'],
+  ]) {
+    await settle();
+    const count = (await opened()).length;
+    await add(url, 'smk-consent-scope');
+    await page.click('#smk-consent-scope');
+    await page.waitForSelector('dialog.link-confirm[open]');
+    const dialog = page.locator('dialog.link-confirm[open]');
+    const text = await dialog.innerText();
+    check(`links: remembered host still displays ${label} confirmation`, text.includes(url) && text.includes('confirmation each time') && (await dialog.locator('input[type="checkbox"]').count()) === 0);
+    check(`links: ${label} confirmation starts on Cancel`, await page.evaluate(() => document.activeElement?.getAttribute('value') === 'cancel'));
+    await dialog.locator('button[value="cancel"]').click();
+    await page.waitForFunction(() => !document.querySelector('dialog.link-confirm'));
+    check(`links: cancelling ${label} opens nothing`, (await opened()).length === count);
+    await settle();
+    await page.click('#smk-consent-scope');
+    await page.waitForSelector('dialog.link-confirm[open]');
+    await page.click('dialog.link-confirm button[value="open"]');
+    await page.waitForFunction(() => !document.querySelector('dialog.link-confirm'));
+    const after = await opened();
+    check(`links: ${label} opens only after a fresh decision`, after.length === count + 1 && after.at(-1)[0] === url && after.at(-1)[2] === 'noopener,noreferrer');
+    check(`links: ${label} does not navigate the app`, page.url().startsWith(base));
+  }
   await page.close();
   await context.close();
 
@@ -137,6 +164,40 @@ export default async function run({ browser, base, check }) {
   await dpage.click('#smk-d4');
   await dpage.waitForTimeout(200);
   check('links(desktop): file: link is blocked before reaching Rust', (await calls()).length === before && /Blocked unsafe link/.test(await dpage.locator('#toasts').innerText()));
+
+  await dpage.evaluate(() => { window.__mode = 'ok'; });
+  await dpage.waitForTimeout(650);
+  await dadd('https://example.org/session', 'smk-d-session');
+  await dpage.click('#smk-d-session');
+  await dpage.waitForSelector('dialog.link-confirm[open]');
+  await dpage.check('dialog.link-confirm input[type="checkbox"]');
+  await dpage.click('dialog.link-confirm button[value="open"]');
+  await dpage.waitForFunction(() => !document.querySelector('dialog.link-confirm'));
+  await dpage.waitForTimeout(650);
+  const normalCount = (await calls()).length;
+  await dpage.click('#smk-d-session');
+  await dpage.waitForTimeout(200);
+  const normalCalls = (await calls()).slice(normalCount);
+  check('links(desktop): ordinary host consent remains reusable', normalCalls.length === 1 && normalCalls[0].confirmed === true && !(await dpage.locator('dialog.link-confirm').count()));
+  for (const [label, url] of [
+    ['port', 'https://example.org:8443/review'],
+    ['userinfo', 'https://operator:example@example.org/review'],
+  ]) {
+    await dpage.waitForTimeout(650);
+    const count = (await calls()).length;
+    await dadd(url, 'smk-d-scope');
+    await dpage.click('#smk-d-scope');
+    await dpage.waitForSelector('dialog.link-confirm[open]');
+    const dialog = dpage.locator('dialog.link-confirm[open]');
+    const first = (await calls()).slice(count);
+    check(`links(desktop): remembered host sends ${label} unconfirmed`, first.length === 1 && first[0].url === url && first[0].confirmed === false);
+    check(`links(desktop): ${label} dialog offers only a fresh decision`, (await dialog.innerText()).includes(url) && (await dialog.locator('input[type="checkbox"]').count()) === 0);
+    await dialog.locator('button[value="open"]').click();
+    await dpage.waitForFunction(() => !document.querySelector('dialog.link-confirm'));
+    const after = (await calls()).slice(count);
+    check(`links(desktop): ${label} confirmation is explicit`, after.length === 2 && after[0].confirmed === false && after[1].confirmed === true && after[1].url === url);
+    check(`links(desktop): ${label} does not navigate the app`, dpage.url().startsWith(base));
+  }
   await dctx.close();
   return errors.flat();
 }

@@ -1,0 +1,129 @@
+{
+  "schema": "deckchek.link-consent-root-independent-proof.v1",
+  "verified_at_utc": "2026-11-21T11:11:28.353273+00:00",
+  "method": "Independent standard-library Python parsing and Git blob byte checks; no project or packaged verifier execution",
+  "source_commit": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+  "source_tree": "6e74b72253d94f10b03504ef8e0946d458da8e8f",
+  "source_files": 2345,
+  "distinct_blobs": 2155,
+  "source_bytes": 72510660,
+  "manifest_sha256": "b3b15e1783419b1ffb10c3dd66692366acf0f172583d6630b3506ec5837a4b1c",
+  "manifest_entries": 35,
+  "original_copies": 32,
+  "original_path_bindings": 37,
+  "all_four_source_maps_and_inventories_verified": true,
+  "current_source_bytes_verified": true,
+  "complete_git_object_map_verified": true,
+  "selected_test_files": 202,
+  "all_ordered_outcomes_verified": true,
+  "counts": {
+    "tests": 2420,
+    "suites": 0,
+    "pass": 2418,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "full_exit_code": 1,
+  "syntax_exit_code": 0,
+  "timed_out": false,
+  "full_elapsed_seconds": 370.04819690099976,
+  "syntax_elapsed_seconds": 0.11427837100200122,
+  "new_link_cases": [
+    543,
+    556
+  ],
+  "mapper_cases": [
+    936,
+    1031
+  ],
+  "failure": {
+    "index": 53,
+    "name": "session clamps the level to the -12 dBFS cap and honours a lower level",
+    "tap_line": 315,
+    "original_block": "not ok 53 - session clamps the level to the -12 dBFS cap and honours a lower level\n  ---\n  duration_ms: 467.855325\n  type: 'test'\n  location: '/workspace/scratch/6f2247f2f463/deckchek-link-consent-functional/tests/audio-session.test.mjs:89:1'\n  failureType: 'testCodeFailure'\n  error: 'gain is relative to the played level: measured -101 dB at -30 dBFS'\n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: true\n  actual: false\n  operator: '=='\n  stack: |-\n    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-link-consent-functional/tests/audio-session.test.mjs:95:10)\n    async Test.run (node:internal/test_runner/test:1409:7)\n    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)\n  ..."
+  },
+  "complete_source_qualification": "HELD; no numerical cause or repair inferred",
+  "final_handoffs": [
+    {
+      "role": "code",
+      "commit": "5b010a6a95232a5f99ed383290bc592268b2e792",
+      "tree": "7ef700312ab8307c80a76bdede6eafa12c6f2c96",
+      "sole_parent": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+      "report": "docs/engineering/LINK_CONSENT_CODE_AUDIT_2026-11-21.md",
+      "report_bytes": 17958,
+      "report_sha256": "ea0e4ce283ad18669cbabb02be4246fe0a087a14a30fdd223c04526bb8599a93",
+      "changed_paths": [
+        "docs/engineering/LINK_CONSENT_CODE_AUDIT_2026-11-21.md"
+      ],
+      "clean": true,
+      "all_committed_bytes_match": true
+    },
+    {
+      "role": "functional",
+      "commit": "d7c5b4a5e210838aea76ce019488d7d800c50a08",
+      "tree": "26c94b05343b1a4c6852a641819a5cbb55e9fa53",
+      "sole_parent": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+      "report": "docs/engineering/LINK_CONSENT_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "report_bytes": 15799,
+      "report_sha256": "00f5727026ec2d2c09543876039bb4ba1ccd51791f49b45f361d9037bce93dc9",
+      "changed_paths": [
+        "docs/engineering/LINK_CONSENT_FUNCTIONAL_AUDIT_2026-11-21.md",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/all-top-level-test-files.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/authorized-selection.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-runtime.stderr",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-runtime.stdout",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-version.stderr",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-version.stdout",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/result.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run-full-node.py",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/running.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/stderr.log",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/test-files.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-after.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-before.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-inventory-after.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-inventory-before.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/manifest.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/observed-summary.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/source-git-object-map.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/source-proof.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/all-top-level-test-files.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/authorized-syntax.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/checked-links.mjs",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-runtime.stderr",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-runtime.stdout",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-version.stderr",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-version.stdout",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/result.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/running.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax-recorder.py",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax.stderr",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax.stdout",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-after.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-before.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-inventory-after.json",
+        "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-inventory-before.json"
+      ],
+      "clean": true,
+      "all_committed_bytes_match": true
+    },
+    {
+      "role": "security",
+      "commit": "849fa8ff8d45b2191a196d2be8132e6173efc0ce",
+      "tree": "8fe3afe0f56d0d073c03325c3e626d6f5e52a0a1",
+      "sole_parent": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+      "report": "docs/engineering/LINK_CONSENT_SECURITY_AUDIT_2026-11-21.md",
+      "report_bytes": 16352,
+      "report_sha256": "1c0de9c100eb5ef6f45a2b563aa85ac62f2e1b6c4d71020b6b4c7d2d66e2b505",
+      "changed_paths": [
+        "docs/engineering/LINK_CONSENT_SECURITY_AUDIT_2026-11-21.md"
+      ],
+      "clean": true,
+      "all_committed_bytes_match": true
+    }
+  ],
+  "all_three_final_handoffs_received_and_verified": true
+}

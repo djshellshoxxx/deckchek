@@ -1,0 +1,13 @@
+{
+  "schema": "deckchek.link-consent-syntax-selection.v1",
+  "source_commit": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+  "source_tree": "6e74b72253d94f10b03504ef8e0946d458da8e8f",
+  "source_branch": "review/deckchek-link-consent-functional-20261121",
+  "source_path": "tools/smoke/links.mjs",
+  "expected_source_bytes": 12642,
+  "expected_source_sha256": "9ac861ab4500d7a0c4602022fa2c18026306a47e9b32b2072c117a342d86cc5a",
+  "expected_tracked_file_count": 2345,
+  "expected_all_top_level_test_count": 202,
+  "expected_node_version": "v24.22.3",
+  "execution_budget_seconds": 30
+}

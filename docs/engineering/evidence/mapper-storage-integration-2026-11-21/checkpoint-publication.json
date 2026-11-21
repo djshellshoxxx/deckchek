@@ -1,0 +1,26 @@
+{
+  "schema": "deckchek.mapper-storage-held-publication.v1",
+  "source_commit": "c7ffcea6855a8ebfa3dfb71e48061853cc8437f0",
+  "published_commit": "cbd959b882da65c8036bad37faba02840a9418f1",
+  "whole_tree": "a190f41f5e7ca46555173549222f208ae86bf339",
+  "ordered_parents": [
+    "1889bfc7c4b7db6d1d720fd554d674595e81f098"
+  ],
+  "whole_tree_equal": true,
+  "changed_paths": [],
+  "parent_ancestry_verified": true,
+  "publication_state": "new branch created and exact GitHub ref readback verified",
+  "qualification": "Scoped first Mapper gate passed; complete-source audio hold retained. No new PR or merge.",
+  "branch": "checkpoint/deckchek-mapper-storage-held-20261121",
+  "ref_readback_sha": "cbd959b882da65c8036bad37faba02840a9418f1",
+  "verified_at_utc": "2026-11-21T10:53:07.352057+00:00",
+  "checkpoint_url": "https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121",
+  "original_history_bundle": {
+    "path": "docs/engineering/evidence/mapper-storage-integration-2026-11-21/original-review-history.bundle",
+    "bytes": 444088,
+    "sha256": "c66b6ae197ba41ba919f32d40d62693ff974618f749a46e307c2b0b750a3fbbb",
+    "tip": "5cc4dcfa5f7a3a11455ab3ebd239bb9535288c51",
+    "all_17_prerequisites_available_from_publication_parent": true
+  },
+  "root_history_preserving_merge": "1e3104b85dffc3fd998d2741e0fc21cae2aafe46"
+}

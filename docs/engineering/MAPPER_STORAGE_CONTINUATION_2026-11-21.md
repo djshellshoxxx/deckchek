@@ -61,3 +61,7 @@ syntax/build/browser/native command, permission change, release or deployment.
 The next fresh trio reviews the separately authored external-link consent #84
 correction. Root reserves its implementation and all publication/merge work.
 Original evidence and the existing credit-stop/hourly-continuation policy remain.
+
+## Durable held checkpoint
+
+The completed source, all three final reviews and original first evidence are published at [`checkpoint/deckchek-mapper-storage-held-20261121`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121), commit `cbd959b882da65c8036bad37faba02840a9418f1`. Root fetched it and verified complete tree `a190f41f5e7ca46555173549222f208ae86bf339` against local checkpoint `c7ffcea6855a8ebfa3dfb71e48061853cc8437f0`, the sole parent `1889bfc7c4b7db6d1d720fd554d674595e81f098`, zero differences, ancestry and the exact new branch ref. The included original-history bundle preserves the original source/worker commits; its 17 prerequisites are available from the publication parent. [Publication proof](evidence/mapper-storage-integration-2026-11-21/checkpoint-publication.json) records the identities. The prior complete-source hold remains; no PR or qualified merge was created for this checkpoint.

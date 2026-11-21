@@ -1,0 +1,327 @@
+{
+  "schema": "deckchek.link-consent-functional-evidence-manifest.v1",
+  "source_commit": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+  "source_tree": "6e74b72253d94f10b03504ef8e0946d458da8e8f",
+  "original_full_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw",
+  "original_syntax_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw",
+  "manifest_excludes_itself": true,
+  "file_count": 35,
+  "original_copy_count": 32,
+  "original_path_binding_count": 37,
+  "files": [
+    {
+      "path": "full/all-top-level-test-files.json",
+      "kind": "original-copy",
+      "bytes": 7773,
+      "sha256": "d102cc0b5b7c9636c2de433d845b655bda74dbe10845c96e3197bf873fb214f3",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/all-top-level-test-files.json"
+      ]
+    },
+    {
+      "path": "full/authorized-selection.json",
+      "kind": "original-copy",
+      "bytes": 8641,
+      "sha256": "a4d7eaf2ebfa34b2f549e7d3add0959f793af79082880c119071f0eae95133df",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/authorized-selection.json",
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-config.json"
+      ]
+    },
+    {
+      "path": "full/node-runtime.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/node-runtime.stderr"
+      ]
+    },
+    {
+      "path": "full/node-runtime.stdout",
+      "kind": "original-copy",
+      "bytes": 622,
+      "sha256": "6cb0bc4df24892b1590f9d3eee48262c05f815244754f8f17ed4e7809acc0f07",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/node-runtime.stdout"
+      ]
+    },
+    {
+      "path": "full/node-version.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/node-version.stderr"
+      ]
+    },
+    {
+      "path": "full/node-version.stdout",
+      "kind": "original-copy",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/node-version.stdout"
+      ]
+    },
+    {
+      "path": "full/result.json",
+      "kind": "original-copy",
+      "bytes": 11532,
+      "sha256": "9073e3008c0840fd1534a21599d6ea6fc485242a49ab88a69326b633c40a82be",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/result.json"
+      ]
+    },
+    {
+      "path": "full/run-full-node.py",
+      "kind": "original-copy",
+      "bytes": 7674,
+      "sha256": "e03b068762ea42039c25e48f65fea12669193032fb55ebadf19f7bd57ba1233a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/run-full-node.py",
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full.py"
+      ]
+    },
+    {
+      "path": "full/run.tap",
+      "kind": "original-copy",
+      "bytes": 555767,
+      "sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/run.tap"
+      ]
+    },
+    {
+      "path": "full/running.json",
+      "kind": "original-copy",
+      "bytes": 10776,
+      "sha256": "a09e86c9437a06788aedb9a36919c60f73771251ed220da8fef01d845f6c4a3e",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/running.json"
+      ]
+    },
+    {
+      "path": "full/stderr.log",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/stderr.log"
+      ]
+    },
+    {
+      "path": "full/test-files.json",
+      "kind": "original-copy",
+      "bytes": 7773,
+      "sha256": "d102cc0b5b7c9636c2de433d845b655bda74dbe10845c96e3197bf873fb214f3",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/test-files.json"
+      ]
+    },
+    {
+      "path": "full/tracked-after.json",
+      "kind": "original-copy",
+      "bytes": 293481,
+      "sha256": "70df41f55c344fb03328eeb155e6d6eb6d4a350ea8abe009f6ce05b0cef53bd7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/tracked-after.json"
+      ]
+    },
+    {
+      "path": "full/tracked-before.json",
+      "kind": "original-copy",
+      "bytes": 293481,
+      "sha256": "70df41f55c344fb03328eeb155e6d6eb6d4a350ea8abe009f6ce05b0cef53bd7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/tracked-before.json"
+      ]
+    },
+    {
+      "path": "full/tracked-inventory-after.json",
+      "kind": "original-copy",
+      "bytes": 134021,
+      "sha256": "a970ceddab7af4cf21801831952c0316e4b2d497077437aba66c148d2290082a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/tracked-inventory-after.json"
+      ]
+    },
+    {
+      "path": "full/tracked-inventory-before.json",
+      "kind": "original-copy",
+      "bytes": 134021,
+      "sha256": "a970ceddab7af4cf21801831952c0316e4b2d497077437aba66c148d2290082a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-full-raw/tracked-inventory-before.json"
+      ]
+    },
+    {
+      "path": "syntax/all-top-level-test-files.json",
+      "kind": "original-copy",
+      "bytes": 7773,
+      "sha256": "d102cc0b5b7c9636c2de433d845b655bda74dbe10845c96e3197bf873fb214f3",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/all-top-level-test-files.json"
+      ]
+    },
+    {
+      "path": "syntax/authorized-syntax.json",
+      "kind": "original-copy",
+      "bytes": 583,
+      "sha256": "39672b562518107bc81fbdc0f3f18d3304c4f266b53d794b5eed440c09666217",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/authorized-syntax.json",
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-config.json"
+      ]
+    },
+    {
+      "path": "syntax/checked-links.mjs",
+      "kind": "original-copy",
+      "bytes": 12642,
+      "sha256": "9ac861ab4500d7a0c4602022fa2c18026306a47e9b32b2072c117a342d86cc5a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/checked-links.mjs",
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-functional/tools/smoke/links.mjs"
+      ]
+    },
+    {
+      "path": "syntax/node-runtime.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/node-runtime.stderr"
+      ]
+    },
+    {
+      "path": "syntax/node-runtime.stdout",
+      "kind": "original-copy",
+      "bytes": 622,
+      "sha256": "6cb0bc4df24892b1590f9d3eee48262c05f815244754f8f17ed4e7809acc0f07",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/node-runtime.stdout"
+      ]
+    },
+    {
+      "path": "syntax/node-version.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/node-version.stderr"
+      ]
+    },
+    {
+      "path": "syntax/node-version.stdout",
+      "kind": "original-copy",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/node-version.stdout"
+      ]
+    },
+    {
+      "path": "syntax/result.json",
+      "kind": "original-copy",
+      "bytes": 3406,
+      "sha256": "d0373562debde98d05740dfd764d6ec20d9f85b53eca56ff419be711d5211f36",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/result.json"
+      ]
+    },
+    {
+      "path": "syntax/running.json",
+      "kind": "original-copy",
+      "bytes": 2699,
+      "sha256": "50f31376242bf87aa547945018c8a4dcfb17c507b86e51f912bb87e1f6910e9e",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/running.json"
+      ]
+    },
+    {
+      "path": "syntax/syntax-recorder.py",
+      "kind": "original-copy",
+      "bytes": 7345,
+      "sha256": "32e3ad1e27526af95fd10248688ec65b7eb722df7dfe9bf7506814f828a2407b",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/syntax-recorder.py",
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax.py"
+      ]
+    },
+    {
+      "path": "syntax/syntax.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/syntax.stderr"
+      ]
+    },
+    {
+      "path": "syntax/syntax.stdout",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/syntax.stdout"
+      ]
+    },
+    {
+      "path": "syntax/tracked-after.json",
+      "kind": "original-copy",
+      "bytes": 293481,
+      "sha256": "70df41f55c344fb03328eeb155e6d6eb6d4a350ea8abe009f6ce05b0cef53bd7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/tracked-after.json"
+      ]
+    },
+    {
+      "path": "syntax/tracked-before.json",
+      "kind": "original-copy",
+      "bytes": 293481,
+      "sha256": "70df41f55c344fb03328eeb155e6d6eb6d4a350ea8abe009f6ce05b0cef53bd7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/tracked-before.json"
+      ]
+    },
+    {
+      "path": "syntax/tracked-inventory-after.json",
+      "kind": "original-copy",
+      "bytes": 134021,
+      "sha256": "a970ceddab7af4cf21801831952c0316e4b2d497077437aba66c148d2290082a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/tracked-inventory-after.json"
+      ]
+    },
+    {
+      "path": "syntax/tracked-inventory-before.json",
+      "kind": "original-copy",
+      "bytes": 134021,
+      "sha256": "a970ceddab7af4cf21801831952c0316e4b2d497077437aba66c148d2290082a",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-link-consent-round10-syntax-raw/tracked-inventory-before.json"
+      ]
+    },
+    {
+      "path": "source-git-object-map.json",
+      "kind": "derived-data",
+      "bytes": 577792,
+      "sha256": "b9cafd029150b8aabd9842f22659acfa2d9d87532b1c755e7acc8f9601372385",
+      "original_paths": []
+    },
+    {
+      "path": "source-proof.json",
+      "kind": "derived-data",
+      "bytes": 9052,
+      "sha256": "57c250f13b4d4d6e819913050e0f0ebbd091c9893d85e95af37919acdbaa197b",
+      "original_paths": []
+    },
+    {
+      "path": "observed-summary.json",
+      "kind": "derived-data",
+      "bytes": 794440,
+      "sha256": "bc586b779195a47d2552ebe45a3ffc0c2f09b7f677237191d4cf3149dd125347",
+      "original_paths": []
+    }
+  ]
+}

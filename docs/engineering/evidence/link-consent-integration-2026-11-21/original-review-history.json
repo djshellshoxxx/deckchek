@@ -1,0 +1,36 @@
+{
+  "schema": "deckchek.original-review-history-bundle.v1",
+  "scope": "Completed round 10 link-consent originals and first outcomes; complete source remains held",
+  "bundle_path": "docs/engineering/evidence/link-consent-integration-2026-11-21/original-review-history.bundle",
+  "bytes": 681066,
+  "sha256": "ce0eb510171a2aaaf1d0ae90d2e3130e5b6a5dd5070265937524ad838b5a2337",
+  "tip": "33e077f3bf45dad96ba1c6de341a0d9fe8efa594",
+  "tip_tree": "5a8552e2e8cf3e824521394faff9ecbeb036d97e",
+  "published_parent": "cbd959b882da65c8036bad37faba02840a9418f1",
+  "prerequisites": [
+    "6cd827b0204bc450b8fc6236a179c7383dd52911",
+    "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+    "b8dfc126c2480f303df105abd3759fedae49a192",
+    "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d",
+    "cbd959b882da65c8036bad37faba02840a9418f1",
+    "1889bfc7c4b7db6d1d720fd554d674595e81f098",
+    "7456aeeacb283bbf23965b67b84ffe7ee46a06d8",
+    "e36ddc41806b0f6639474f207e3b339e063a6e25",
+    "8664c590709dce34445bf23008e61053b592d608",
+    "f76908766d53992e20382b9cbe73a668a28a6d1a",
+    "b5d0cfd850120946160ef93b7cf2372bb981172e",
+    "5f256bdd3630738292c36c1b343a4161d5078a48",
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "78403038c530a981b732d5ac0210539edf37fc77",
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "17080df79ba94554b81c006d6372c8b59dca795a",
+    "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+    "2022c97d8fb1f941de13e151be9627bbdfcc278e"
+  ],
+  "all_prerequisites_are_ancestors_of_published_parent": true,
+  "bundle_verify": "passed",
+  "refs": [
+    "33e077f3bf45dad96ba1c6de341a0d9fe8efa594 HEAD"
+  ],
+  "no_history_rewrite": true
+}

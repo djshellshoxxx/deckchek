@@ -59,7 +59,7 @@ export function classifyUrl(input, allowlist = ALLOWLIST) {
 }
 
 // ---------- shared state ----------
-const sessionAllow = new Set(); // hosts the user chose "always allow" for, this session only
+const sessionAllow = new Set(); // ordinary HTTPS hosts approved for this session only
 let lastOpenAt = -Infinity;
 export function resetLinkState() { sessionAllow.clear(); lastOpenAt = -Infinity; }
 export const sessionAllowedHosts = () => [...sessionAllow];
@@ -92,6 +92,10 @@ export async function openExternal(url, deps = {}) {
   try {
     const c = classifyUrl(url);
     if (!c.ok) { toastBlocked(url, deps); return { opened: false, reason: c.reason, host: c.host }; }
+    // Host approval covers ordinary HTTPS links only. A port or credentials require
+    // fresh confirmation even when a different URL on this host was approved.
+    const canRememberHost = !c.hasUserinfo && !c.port;
+    const remembered = canRememberHost && sessionAllow.has(c.host);
     const invoke = deps.invoke ?? tauri()?.core?.invoke;
     const native = deps.native ?? typeof invoke === 'function';
     const ask = () => (deps.confirm ? deps.confirm({ url, host: c.host, punycodeHost: c.punycodeHost, hasUserinfo: c.hasUserinfo, port: c.port }) : 'cancel');
@@ -101,14 +105,14 @@ export async function openExternal(url, deps = {}) {
     };
 
     if (native) {
-      let confirmed = sessionAllow.has(c.host);
+      let confirmed = remembered;
       let r;
       try { r = await invoke('open_external_url', { url, confirmed }); } catch { return fallbackCopy(c.host); }
       if (!r?.opened && r?.reason === 'needs_confirm') {
         const choice = await ask();
         if (choice === 'copy') { await copyWithToast(url, deps, 'Link copied'); return { opened: false, reason: 'copied', host: c.host }; }
         if (choice !== 'open' && choice !== 'always') return { opened: false, reason: 'cancelled', host: c.host };
-        if (choice === 'always') sessionAllow.add(c.host);
+        if (choice === 'always' && canRememberHost) sessionAllow.add(c.host);
         confirmed = true;
         try { r = await invoke('open_external_url', { url, confirmed }); } catch { return fallbackCopy(c.host); }
       }
@@ -118,11 +122,11 @@ export async function openExternal(url, deps = {}) {
     }
 
     // Browser mode: same validation, then a noopener window.
-    if (!c.allowlisted && !sessionAllow.has(c.host)) {
+    if (!c.allowlisted && !remembered) {
       const choice = await ask();
       if (choice === 'copy') { await copyWithToast(url, deps, 'Link copied'); return { opened: false, reason: 'copied', host: c.host }; }
       if (choice !== 'open' && choice !== 'always') return { opened: false, reason: 'cancelled', host: c.host };
-      if (choice === 'always') sessionAllow.add(c.host);
+      if (choice === 'always' && canRememberHost) sessionAllow.add(c.host);
     }
     const open = deps.windowOpen || rawOpen;
     if (!open) return fallbackCopy(c.host);
@@ -206,13 +210,15 @@ export function installLinkInterceptor(root = globalThis.document, deps = {}) {
 // ---------- confirm dialog (non-allowlisted hosts) ----------
 /**
  * Native <dialog>: shows the full host and URL. Resolves 'open' | 'always' | 'copy' | 'cancel'.
- * Cancel has default focus; "Always allow" lasts for this session only.
+ * Cancel has default focus; ordinary HTTPS links may be allowed for this session.
+ * Links with credentials or a nondefault port require confirmation each time.
  */
 export function linkConfirmDialog({ url, host, punycodeHost, hasUserinfo = false, port = '' }, doc = globalThis.document) {
   const trigger = doc.activeElement;
   const shownHost = punycodeHost || host;
   const id = `link-confirm-${Date.now().toString(36)}`;
-  const always = h('input', { type: 'checkbox', id: `${id}-always` });
+  const canRememberHost = !hasUserinfo && !port;
+  const always = canRememberHost ? h('input', { type: 'checkbox', id: `${id}-always` }) : null;
   const cancel = h('button', { type: 'submit', class: 'btn btn-secondary', value: 'cancel', text: 'Cancel' });
   const dlg = h('dialog', { 'aria-labelledby': `${id}-t`, 'aria-describedby': `${id}-d`, class: 'link-confirm' },
     h('form', { method: 'dialog', class: 'dialog-form' },
@@ -223,7 +229,9 @@ export function linkConfirmDialog({ url, host, punycodeHost, hasUserinfo = false
         shownHost.includes('xn--') ? h('p', { class: 'small', text: 'This address uses international characters, shown here in punycode. Check it matches the site you expect.' }) : null,
         hasUserinfo ? h('p', { class: 'small', text: 'This link contains a username or password, which is unusual for a normal website.' }) : null,
         h('p', { class: 'small muted', text: 'DeckChek hasn’t verified this site.' })),
-      h('label', { class: 'small', for: `${id}-always` }, always, ` Always allow ${shownHost} until DeckChek is closed`),
+      always
+        ? h('label', { class: 'small', for: `${id}-always` }, always, ` Always allow standard HTTPS links to ${shownHost} until DeckChek is closed`)
+        : h('p', { class: 'small', text: 'This link requires confirmation each time.' }),
       h('div', { class: 'dialog-actions' },
         h('button', { type: 'submit', class: 'btn btn-ghost', value: 'copy', text: 'Copy link' }),
         cancel,
@@ -234,7 +242,7 @@ export function linkConfirmDialog({ url, host, punycodeHost, hasUserinfo = false
       const v = dlg.returnValue;
       dlg.remove();
       if (trigger?.isConnected) trigger.focus();
-      resolve(v === 'open' ? (always.checked ? 'always' : 'open') : v === 'copy' ? 'copy' : 'cancel');
+      resolve(v === 'open' ? (always?.checked ? 'always' : 'open') : v === 'copy' ? 'copy' : 'cancel');
     }, { once: true });
     dlg.showModal();
     cancel.focus();
