@@ -1,0 +1,23 @@
+{
+  "schema": "deckchek.audio-fit-preparation.v1",
+  "created_at_utc": "2026-11-21T08:11:51.996657+00:00",
+  "source_root": "/workspace/scratch/6f2247f2f463/deckchek-fit-functional",
+  "source_commit": "f3a8a5d551d35941d3258feb34f6b2dd1bba1e3f",
+  "source_tree": "78c92aad0b1e26755d1e11e4ff1c2c0bd25bf9e8",
+  "copy_root": "/workspace/scratch/6f2247f2f463/deckchek-audio-fit-disposable-20261120",
+  "evidence_root": "/workspace/scratch/6f2247f2f463/deckchek-fit-round3-raw/preparation",
+  "tracked_file_count": 2039,
+  "git_object_format": "sha1",
+  "archive_sha256": "7e9a5634d978d093919b1b81644495453b9457898846dbe2098fdefa1ae2387b",
+  "source_hash_maps_equal": true,
+  "copy_matches_committed_blobs_before_transform": true,
+  "copy_changed_files": [
+    "app/audio-quality.js"
+  ],
+  "original_sha256": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+  "instrumented_sha256": "39e991b51ea11f3c63b3d7b4a4630f4900568703d8ca3b9cdb9069d404c51af8",
+  "prepare_tool_sha256": "85609f6778b1a38344ee20b0e6220f2bbd61bdfb70973f2c44f54a97749cac68",
+  "addition_count": 13,
+  "additions_reversed_equal_original": true,
+  "project_execution_performed": false
+}

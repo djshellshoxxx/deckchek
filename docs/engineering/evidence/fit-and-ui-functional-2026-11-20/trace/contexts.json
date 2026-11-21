@@ -1,0 +1,4960 @@
+{
+  "schema": "deckchek.audio-lifecycle-context.v1",
+  "snapshotPhase": "runner test after hook; all original cases completed",
+  "inputIdentityScope": "Actual live fixture recorded references retained at finish and hashed after the suite. Imported-file input references were not observed.",
+  "limitations": [
+    "Delayed references are not immutable snapshots at analyzer entry and provide no before/after input hash proof.",
+    "The finish payload omits raw internal fits and unrounded lag/clock fields; rounded latency/clock measurements remain available. No missing field is inferred or reconstructed here.",
+    "Full left/right buffers intentionally differ during crosstalk segments; equality is not required.",
+    "Retaining references extends object/buffer lifetimes during later analyses and may affect allocation or timing; this observer effect does not establish a failure cause.",
+    "Test-harness instrumentation changes execution context; this observation is not a production repair or qualification pass."
+  ],
+  "results": [
+    {
+      "sequence": 1,
+      "mount": 1,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 1,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "mount": 2,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 1,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "mount": 3,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 2,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 2,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "mount": 4,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 2,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        },
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 2,
+        "plays": 2,
+        "saved": 1,
+        "stops": [
+          7,
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 1,
+        "waits": [
+          300,
+          12560,
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "mount": 5,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 2,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        },
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 2,
+        "plays": 2,
+        "saved": 1,
+        "stops": [
+          7,
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 2,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560,
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "mount": 6,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 1,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "unknown",
+        "detail": "Review the recording: capture faults prevent a device verdict.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "capture-incomplete"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "id": "aq-capture-incomplete",
+            "severity": "review",
+            "title": "The recording has capture faults",
+            "meaning": "The capture reports capture buffer overruns; reported device errors. The recorded values remain available, but they cannot establish the device's output quality.",
+            "action": "Check the input connection and audio driver, then repeat the measurement."
+          }
+        ],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 1024,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [
+            "Device disconnected"
+          ],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "incomplete",
+            "reasons": [
+              "capture buffer overruns",
+              "reported device errors"
+            ]
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "mount": 7,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "file",
+      "fixtureAttemptAtFinish": null,
+      "input": null,
+      "inputIdentityUnavailableReason": "Imported decode input was not observed by this live fixture hook.",
+      "captureOptions": null,
+      "playback": [],
+      "callsAtFinish": {
+        "starts": 0,
+        "plays": 0,
+        "saved": 1,
+        "stops": [],
+        "stopAll": 0,
+        "captureStops": 0,
+        "cancels": 0,
+        "waits": []
+      },
+      "result": {
+        "status": "fail",
+        "detail": "1 of 9 checks failed: response.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 3,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 10.42,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "aq-response",
+            "severity": "warning",
+            "title": "Frequency response is not flat",
+            "meaning": "The level changes by more than 1 dB between 100 Hz and 10 kHz, so the output is audibly tilted or filtered.",
+            "action": "Check EQ, filter and isolator positions are neutral, then retest.",
+            "evidence": [
+              "Fail: 3<=1 dB (DeckChek test definition)"
+            ]
+          }
+        ],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 3,
+              "devRightDb": -3
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "fail",
+              "detail": "Fail: 3<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "source": "stereo-response.wav",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "captureIntegrity": {
+            "source": "file",
+            "state": "unobserved",
+            "reasons": [
+              "Original recording continuity is not observable from an imported waveform."
+            ]
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "mount": 8,
+      "test": {
+        "id": "aq",
+        "method": "audio:quality",
+        "title": "Output quality"
+      },
+      "source": "file",
+      "fixtureAttemptAtFinish": null,
+      "input": null,
+      "inputIdentityUnavailableReason": "Imported decode input was not observed by this live fixture hook.",
+      "captureOptions": null,
+      "playback": [],
+      "callsAtFinish": {
+        "starts": 0,
+        "plays": 0,
+        "saved": 1,
+        "stops": [],
+        "stopAll": 0,
+        "captureStops": 0,
+        "cancels": 0,
+        "waits": []
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 10.42,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "source": "b.wav",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "captureIntegrity": {
+            "source": "file",
+            "state": "unobserved",
+            "reasons": [
+              "Original recording continuity is not observable from an imported waveform."
+            ]
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "mount": 9,
+      "test": {
+        "id": "auto-audio-quality",
+        "method": "audio:quality",
+        "title": "Output audio quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 1,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "mount": 10,
+      "test": {
+        "id": "auto-audio-quality",
+        "method": "audio:quality",
+        "title": "Output audio quality"
+      },
+      "source": "live",
+      "fixtureAttemptAtFinish": 1,
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "inputIdentityUnavailableReason": null,
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "playback": [
+        {
+          "input": {
+            "sampleRate": 48000,
+            "left": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "5e6539d2745c7fb6230c792f4246da006ab5701e141a57c080e0ef993f51de41"
+            },
+            "right": {
+              "type": "Float32Array",
+              "samples": 578880,
+              "bytes": 2315520,
+              "sha256": "159e92f6f0258bc4e0e01f76035b8e664af5e0ae921d5f555ed5257752749dcb"
+            }
+          },
+          "options": {
+            "levelDbfs": -12,
+            "capDbfs": -12,
+            "loop": false
+          },
+          "output": {
+            "device": "USB Out"
+          }
+        }
+      ],
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      },
+      "result": {
+        "status": "pass",
+        "detail": "All output-quality checks passed.",
+        "criterion": "audio-quality",
+        "measurements": [
+          {
+            "metricId": "aq_gain_db",
+            "label": "Output gain (capture vs digital level)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_percent",
+            "label": "THD+N at 1 kHz",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thdn_db",
+            "label": "THD+N at 1 kHz",
+            "value": -151.12,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_thd_percent",
+            "label": "THD (harmonics 2–9)",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_floor_dbfs",
+            "label": "Noise floor (A-weighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_noise_unweighted_dbfs",
+            "label": "Noise floor (unweighted)",
+            "value": -140,
+            "unit": "dBFS",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_snr_db",
+            "label": "Signal-to-noise (A-weighted)",
+            "value": 217,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_dc_offset_percent",
+            "label": "DC offset",
+            "value": 0,
+            "unit": "%",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_hum_db",
+            "label": "Mains hum vs tone",
+            "value": -220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_balance_db",
+            "label": "Channel balance L−R",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_polarity_inverted",
+            "label": "Polarity inverted",
+            "value": 0,
+            "unit": "bool",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_separation_db",
+            "label": "Channel separation at 1 kHz",
+            "value": 220,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain",
+              "noise-limited"
+            ]
+          },
+          {
+            "metricId": "aq_response_flatness_db",
+            "label": "Frequency response flatness 100 Hz–10 kHz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": [
+              "uncalibrated-chain"
+            ]
+          },
+          {
+            "metricId": "aq_response_low_db",
+            "label": "Response at 20 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_response_high_db",
+            "label": "Response at 20000 Hz",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_linearity_db",
+            "label": "Level linearity (−40 vs −12 dBFS)",
+            "value": 0,
+            "unit": "dB",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clipping_samples",
+            "label": "Clipped samples in the test tones",
+            "value": 0,
+            "unit": "samples",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_dropouts",
+            "label": "Dropouts / glitches in tone",
+            "value": 0,
+            "unit": "events",
+            "origin": "measured",
+            "confidence": 1,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_clock_offset_ppm",
+            "label": "Capture vs playback clock offset",
+            "value": 0,
+            "unit": "ppm",
+            "origin": "measured",
+            "confidence": 0.7,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          },
+          {
+            "metricId": "aq_latency_ms",
+            "label": "Playback-to-capture delay",
+            "value": 4.4,
+            "unit": "ms",
+            "origin": "measured",
+            "confidence": 0.6,
+            "uncertainty": null,
+            "referenceLow": null,
+            "referenceHigh": null,
+            "qualityFlags": []
+          }
+        ],
+        "findings": [],
+        "extra": {
+          "response": [
+            {
+              "hz": 20,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 50,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 100,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 200,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 500,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 1000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 2000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 5000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 10000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 15000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            },
+            {
+              "hz": 20000,
+              "devDb": 0,
+              "devLeftDb": 0,
+              "devRightDb": 0
+            }
+          ],
+          "separation": {
+            "leftToRight": 220,
+            "rightToLeft": 220
+          },
+          "thresholds": [
+            {
+              "id": "thdn",
+              "status": "pass",
+              "detail": "Pass: 0<=0.3 % (DeckChek test definition)"
+            },
+            {
+              "id": "snr",
+              "status": "pass",
+              "detail": "Pass: 217>=70 dB (DeckChek test definition)"
+            },
+            {
+              "id": "xtalk",
+              "status": "pass",
+              "detail": "Pass: 220>=50 dB (DeckChek test definition)"
+            },
+            {
+              "id": "balance",
+              "status": "pass",
+              "detail": "Pass: |0|<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "response",
+              "status": "pass",
+              "detail": "Pass: 0<=1 dB (DeckChek test definition)"
+            },
+            {
+              "id": "linearity",
+              "status": "pass",
+              "detail": "Pass: 0<=0.5 dB (DeckChek test definition)"
+            },
+            {
+              "id": "dropouts",
+              "status": "pass",
+              "detail": "Pass: 0==0 events (DeckChek test definition)"
+            },
+            {
+              "id": "polarity",
+              "status": "pass",
+              "detail": "Pass: 0==0 bool (DeckChek test definition)"
+            },
+            {
+              "id": "clip",
+              "status": "pass",
+              "detail": "Pass: 0==0 samples (DeckChek test definition)"
+            }
+          ],
+          "outputDevice": "USB Out",
+          "inputDevice": "Interface",
+          "playLevelDbfs": -12,
+          "sampleRate": 48000,
+          "calibrated": false,
+          "calibration": {
+            "state": "none",
+            "reasons": [],
+            "profileId": null,
+            "profileCreatedAt": null,
+            "profileDevice": null,
+            "profileSampleRate": null,
+            "capturedDevice": "Interface",
+            "capturedSampleRate": 48000
+          },
+          "captureQuality": {
+            "framesCaptured": 675091,
+            "overrunSamples": 0,
+            "clippedSamplesL": 0,
+            "clippedSamplesR": 0,
+            "streamErrors": 0,
+            "streamErrorMessages": [],
+            "truncated": false,
+            "callbackCount": 1,
+            "maxCallbackGapMs": 1,
+            "pairs": []
+          },
+          "streamErrors": [],
+          "captureIntegrity": {
+            "source": "live",
+            "state": "observed",
+            "reasons": []
+          },
+          "analysisVersion": 2
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "anchor": "import { evaluatePass } from './device-checks.js';\n",
+    "addition": "import { audioFitTraceBegin, audioFitTraceStage, audioFitTraceReadout } from '../tools/diagnostics/audio-fit-recorder.mjs';\n"
+  },
+  {
+    "anchor": "  if (!L.every(Number.isFinite) || !R.every(Number.isFinite)) { out.issues.push(issue('BAD_INPUT', 'The recording contains non-finite samples. No measurements were produced.')); return out; }\n",
+    "addition": "  const fitTrace = audioFitTraceBegin(captured, meta, { chainFloor, calibrated, trimSec, maxLagSec });\n"
+  },
+  {
+    "anchor": "    const xs = slice(x, toneSeg), f0 = fAt(1000);\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'before-fundamental', c, xs, null, { sampleRate: sr, f0, clockPpm, shift, trim, lagSamples: out.lagSamples });\n"
+  },
+  {
+    "anchor": "    const fit = fitTone(xs, sr, f0);\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'fundamental-return', c, xs, fit, { sampleRate: sr, f0 });\n"
+  },
+  {
+    "anchor": "    let thdn = toneRms > 0 ? (fit.residualRms / toneRms) * 100 : NaN;\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'cached-tone-rms-initial-thdn', c, xs, fit, { toneRms, thdn });\n"
+  },
+  {
+    "anchor": "    for (let k = 2; k <= 9 && k * f0 < 0.45 * sr; k++) harm += fitTone(xs, sr, k * f0).amplitude ** 2;\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'after-harmonics', c, xs, fit, { toneRms, thdn, harm });\n"
+  },
+  {
+    "anchor": "    const low = fitAt(x, seg('lin-low')[0]), high = fitAt(x, seg('lin-high')[0]);\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'after-low-high', c, xs, fit, { toneRms, thdn, harm, thd, dc, noiseA, noiseU }, { low, high });\n"
+  },
+  {
+    "anchor": "    per[c].phaseDeg = Math.atan2(Math.sin(ph), Math.cos(ph)) * 180 / Math.PI;\n",
+    "addition": "    audioFitTraceStage(fitTrace, 'after-channel-metrics', c, xs, fit, { toneRms, thdn, harm, thd, gainDb: per[c].gainDb, snr: per[c].snr, phaseDeg: per[c].phaseDeg });\n"
+  },
+  {
+    "anchor": "  out.channels = per;\n",
+    "addition": "  audioFitTraceReadout(fitTrace, 'after-both-channels', out, per);\n"
+  },
+  {
+    "anchor": "  const ref1k = Object.fromEntries(Object.keys(chans).map(c => [c, per[c].fit.amplitude]));\n",
+    "addition": "  audioFitTraceReadout(fitTrace, 'response-reference', out, per, ref1k);\n"
+  },
+  {
+    "anchor": "  const sepLR = sepOf('L', 'R', 'xtalk-L'), sepRL = sepOf('R', 'L', 'xtalk-R');\n",
+    "addition": "  audioFitTraceReadout(fitTrace, 'after-response-and-crosstalk', out, per, ref1k, { sepLR, sepRL });\n"
+  },
+  {
+    "anchor": "  const hum = Math.max(w('L').hum.mainsDb - dbfs(w('L').fit.amplitude), w('R').hum.mainsDb - dbfs(w('R').fit.amplitude));\n",
+    "addition": "  audioFitTraceReadout(fitTrace, 'after-hum-read', out, per, ref1k, { bal, polarityInv, hum });\n"
+  },
+  {
+    "anchor": "  out.valid = true;\n",
+    "addition": "  audioFitTraceReadout(fitTrace, 'return', out, per, ref1k, { bal, polarityInv, hum, sepLR, sepRL }, { left: L, right: R });\n"
+  }
+]

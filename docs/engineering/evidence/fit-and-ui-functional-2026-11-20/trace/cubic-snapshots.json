@@ -1,0 +1,2433 @@
+{
+  "test_file": "audio-quality.test.mjs",
+  "pid": 26,
+  "analysis": 3,
+  "records": [
+    {
+      "sequence": 37,
+      "analysis": 3,
+      "phase": "validated-entry",
+      "capturedObjectId": 23,
+      "metaObjectId": 2,
+      "input": {
+        "left": {
+          "objectId": 24,
+          "bufferId": 25,
+          "type": "Float32Array",
+          "length": 627017,
+          "byteOffset": 0,
+          "byteLength": 2508068,
+          "sha256": "786c304c7a1c3023f8517ee715c72fc0b946b865bf4315094dafbda1834394d6"
+        },
+        "right": {
+          "objectId": 26,
+          "bufferId": 27,
+          "type": "Float32Array",
+          "length": 627017,
+          "byteOffset": 0,
+          "byteLength": 2508068,
+          "sha256": "07f3fabca21f81260e1f6637f202c0afaf1d37fdd2ccfaaffa974cfb1df1c720"
+        }
+      },
+      "values": {
+        "sampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "capturedSampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "playLevelDbfs": {
+          "decimal": "-12",
+          "ieee754be": "c028000000000000"
+        },
+        "markerStart": {
+          "decimal": "14400",
+          "ieee754be": "40cc200000000000"
+        },
+        "markerLength": {
+          "decimal": "480",
+          "ieee754be": "407e000000000000"
+        },
+        "totalSamples": {
+          "decimal": "578880",
+          "ieee754be": "4121aa8000000000"
+        },
+        "trimSec": {
+          "decimal": "0.05",
+          "ieee754be": "3fa999999999999a"
+        },
+        "maxLagSec": {
+          "decimal": "2",
+          "ieee754be": "4000000000000000"
+        },
+        "calibrated": false,
+        "chainFloorThdnPercent": {
+          "unavailableType": "undefined"
+        }
+      }
+    },
+    {
+      "sequence": 38,
+      "analysis": 3,
+      "phase": "before-fundamental",
+      "channel": "L",
+      "fit": null,
+      "values": {
+        "sampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "f0": {
+          "decimal": "1000",
+          "ieee754be": "408f400000000000"
+        },
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "shift": {
+          "decimal": "137",
+          "ieee754be": "4061200000000000"
+        },
+        "trim": {
+          "decimal": "2400",
+          "ieee754be": "40a2c00000000000"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 39,
+      "analysis": 3,
+      "phase": "fundamental-return",
+      "channel": "L",
+      "fit": {
+        "objectId": 29,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "sampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "f0": {
+          "decimal": "1000",
+          "ieee754be": "408f400000000000"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 40,
+      "analysis": 3,
+      "phase": "cached-tone-rms-initial-thdn",
+      "channel": "L",
+      "fit": {
+        "objectId": 29,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 41,
+      "analysis": 3,
+      "phase": "after-harmonics",
+      "channel": "L",
+      "fit": {
+        "objectId": 29,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 42,
+      "analysis": 3,
+      "phase": "after-low-high",
+      "channel": "L",
+      "fit": {
+        "objectId": 29,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        },
+        "thd": {
+          "decimal": "4.347825755868567",
+          "ieee754be": "4011642c6f58a5dd"
+        },
+        "dc": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "noiseA": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "noiseU": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        }
+      },
+      "relatedFits": {
+        "low": {
+          "objectId": 30,
+          "amplitude": {
+            "decimal": "0.010015000077241943",
+            "ieee754be": "3f8482be8e68d727"
+          },
+          "phase": {
+            "decimal": "1.2439641005637627e-13",
+            "ieee754be": "3d4181da5eb842d7"
+          },
+          "dc": {
+            "decimal": "-7.977053058915564e-19",
+            "ieee754be": "bc2d6e1d14db5598"
+          },
+          "residualRms": {
+            "decimal": "0.0000035356264092628805",
+            "ieee754be": "3ecda8b32c9a3883"
+          }
+        },
+        "high": {
+          "objectId": 31,
+          "amplitude": {
+            "decimal": "0.4889226099532698",
+            "ieee754be": "3fdf4a820f018d71"
+          },
+          "phase": {
+            "decimal": "1.3091874260934918e-13",
+            "ieee754be": "3d426cd84509f64a"
+          },
+          "dc": {
+            "decimal": "-2.374083759802923e-17",
+            "ieee754be": "bc7b5f0ef8d316ab"
+          },
+          "residualRms": {
+            "decimal": "0.05603443637929479",
+            "ieee754be": "3facb08baf65d179"
+          }
+        }
+      },
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 43,
+      "analysis": 3,
+      "phase": "after-channel-metrics",
+      "channel": "L",
+      "fit": {
+        "objectId": 29,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        },
+        "thd": {
+          "decimal": "4.347825755868567",
+          "ieee754be": "4011642c6f58a5dd"
+        },
+        "gainDb": {
+          "decimal": "1.2139566592692645",
+          "ieee754be": "3ff36c5dd1652aa0"
+        },
+        "snr": {
+          "decimal": "218.20365670262944",
+          "ieee754be": "406b46845b0facf3"
+        },
+        "phaseDeg": {
+          "decimal": "3.571321686340388e-11",
+          "ieee754be": "3dc3a2303dc398c4"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 28,
+        "bufferId": 25,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 44,
+      "analysis": 3,
+      "phase": "before-fundamental",
+      "channel": "R",
+      "fit": null,
+      "values": {
+        "sampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "f0": {
+          "decimal": "1000",
+          "ieee754be": "408f400000000000"
+        },
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "shift": {
+          "decimal": "137",
+          "ieee754be": "4061200000000000"
+        },
+        "trim": {
+          "decimal": "2400",
+          "ieee754be": "40a2c00000000000"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 45,
+      "analysis": 3,
+      "phase": "fundamental-return",
+      "channel": "R",
+      "fit": {
+        "objectId": 33,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "sampleRate": {
+          "decimal": "48000",
+          "ieee754be": "40e7700000000000"
+        },
+        "f0": {
+          "decimal": "1000",
+          "ieee754be": "408f400000000000"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 46,
+      "analysis": 3,
+      "phase": "cached-tone-rms-initial-thdn",
+      "channel": "R",
+      "fit": {
+        "objectId": 33,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 47,
+      "analysis": 3,
+      "phase": "after-harmonics",
+      "channel": "R",
+      "fit": {
+        "objectId": 33,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 48,
+      "analysis": 3,
+      "phase": "after-low-high",
+      "channel": "R",
+      "fit": {
+        "objectId": 33,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        },
+        "thd": {
+          "decimal": "4.347825755868567",
+          "ieee754be": "4011642c6f58a5dd"
+        },
+        "dc": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "noiseA": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "noiseU": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        }
+      },
+      "relatedFits": {
+        "low": {
+          "objectId": 34,
+          "amplitude": {
+            "decimal": "0.010015000077241943",
+            "ieee754be": "3f8482be8e68d727"
+          },
+          "phase": {
+            "decimal": "1.2439641005637627e-13",
+            "ieee754be": "3d4181da5eb842d7"
+          },
+          "dc": {
+            "decimal": "-7.977053058915564e-19",
+            "ieee754be": "bc2d6e1d14db5598"
+          },
+          "residualRms": {
+            "decimal": "0.0000035356264092628805",
+            "ieee754be": "3ecda8b32c9a3883"
+          }
+        },
+        "high": {
+          "objectId": 35,
+          "amplitude": {
+            "decimal": "0.4889226099532698",
+            "ieee754be": "3fdf4a820f018d71"
+          },
+          "phase": {
+            "decimal": "1.3091874260934918e-13",
+            "ieee754be": "3d426cd84509f64a"
+          },
+          "dc": {
+            "decimal": "-2.374083759802923e-17",
+            "ieee754be": "bc7b5f0ef8d316ab"
+          },
+          "residualRms": {
+            "decimal": "0.05603443637929479",
+            "ieee754be": "3facb08baf65d179"
+          }
+        }
+      },
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 49,
+      "analysis": 3,
+      "phase": "after-channel-metrics",
+      "channel": "R",
+      "fit": {
+        "objectId": 33,
+        "amplitude": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "phase": {
+          "decimal": "6.072665412330019e-13",
+          "ieee754be": "3d655dc54f0f94bb"
+        },
+        "dc": {
+          "decimal": "-2.8064112519260303e-18",
+          "ieee754be": "bc49e27382eeba50"
+        },
+        "residualRms": {
+          "decimal": "0.0035355335765397977",
+          "ieee754be": "3f6cf68d22b98905"
+        }
+      },
+      "values": {
+        "toneRms": {
+          "decimal": "0.08131727845272191",
+          "ieee754be": "3fb4d1358b8dddd4"
+        },
+        "thdn": {
+          "decimal": "4.347825755869789",
+          "ieee754be": "4011642c6f58ab3d"
+        },
+        "harm": {
+          "decimal": "0.00002499999534166654",
+          "ieee754be": "3efa36e29928fe5a"
+        },
+        "thd": {
+          "decimal": "4.347825755868567",
+          "ieee754be": "4011642c6f58a5dd"
+        },
+        "gainDb": {
+          "decimal": "1.2139566592692645",
+          "ieee754be": "3ff36c5dd1652aa0"
+        },
+        "snr": {
+          "decimal": "218.20365670262944",
+          "ieee754be": "406b46845b0facf3"
+        },
+        "phaseDeg": {
+          "decimal": "3.571321686340388e-11",
+          "ieee754be": "3dc3a2303dc398c4"
+        }
+      },
+      "relatedFits": {},
+      "input": {
+        "objectId": 32,
+        "bufferId": 27,
+        "type": "Float32Array",
+        "length": 91200,
+        "byteOffset": 386468,
+        "byteLength": 364800,
+        "sha256": "5809559fd6a812030b8f1a07febfeeac4f7e4d18ff1fdb0faa6635ac861f6f3b"
+      }
+    },
+    {
+      "sequence": 50,
+      "analysis": 3,
+      "phase": "after-both-channels",
+      "channels": {
+        "L": {
+          "fit": {
+            "objectId": 29,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        },
+        "R": {
+          "fit": {
+            "objectId": 33,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        }
+      },
+      "reference": null,
+      "values": {
+        "valid": false,
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        }
+      },
+      "measurements": [],
+      "response": [],
+      "issues": [],
+      "input": null
+    },
+    {
+      "sequence": 51,
+      "analysis": 3,
+      "phase": "response-reference",
+      "channels": {
+        "L": {
+          "fit": {
+            "objectId": 29,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        },
+        "R": {
+          "fit": {
+            "objectId": 33,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        }
+      },
+      "reference": {
+        "L": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "R": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        }
+      },
+      "values": {
+        "valid": false,
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        }
+      },
+      "measurements": [],
+      "response": [],
+      "issues": [],
+      "input": null
+    },
+    {
+      "sequence": 52,
+      "analysis": 3,
+      "phase": "after-response-and-crosstalk",
+      "channels": {
+        "L": {
+          "fit": {
+            "objectId": 29,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        },
+        "R": {
+          "fit": {
+            "objectId": 33,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        }
+      },
+      "reference": {
+        "L": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "R": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        }
+      },
+      "values": {
+        "valid": false,
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        },
+        "sepLR": {
+          "decimal": "221.21395665926744",
+          "ieee754be": "406ba6d8bba2ca15"
+        },
+        "sepRL": {
+          "decimal": "221.21395665926744",
+          "ieee754be": "406ba6d8bba2ca15"
+        }
+      },
+      "measurements": [],
+      "response": [
+        {
+          "hz": {
+            "decimal": "20",
+            "ieee754be": "4034000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "50",
+            "ieee754be": "4049000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "100",
+            "ieee754be": "4059000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "200",
+            "ieee754be": "4069000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "500",
+            "ieee754be": "407f400000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "1000",
+            "ieee754be": "408f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "2000",
+            "ieee754be": "409f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "5000",
+            "ieee754be": "40b3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "10000",
+            "ieee754be": "40c3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "15000",
+            "ieee754be": "40cd4c0000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "20000",
+            "ieee754be": "40d3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        }
+      ],
+      "issues": [],
+      "input": null
+    },
+    {
+      "sequence": 53,
+      "analysis": 3,
+      "phase": "after-hum-read",
+      "channels": {
+        "L": {
+          "fit": {
+            "objectId": 29,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        },
+        "R": {
+          "fit": {
+            "objectId": 33,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        }
+      },
+      "reference": {
+        "L": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "R": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        }
+      },
+      "values": {
+        "valid": false,
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        },
+        "bal": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "polarityInv": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "hum": {
+          "decimal": "-221.21395665926926",
+          "ieee754be": "c06ba6d8bba2ca55"
+        }
+      },
+      "measurements": [],
+      "response": [
+        {
+          "hz": {
+            "decimal": "20",
+            "ieee754be": "4034000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "50",
+            "ieee754be": "4049000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "100",
+            "ieee754be": "4059000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "200",
+            "ieee754be": "4069000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "500",
+            "ieee754be": "407f400000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "1000",
+            "ieee754be": "408f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "2000",
+            "ieee754be": "409f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "5000",
+            "ieee754be": "40b3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "10000",
+            "ieee754be": "40c3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "15000",
+            "ieee754be": "40cd4c0000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "20000",
+            "ieee754be": "40d3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        }
+      ],
+      "issues": [],
+      "input": null
+    },
+    {
+      "sequence": 54,
+      "analysis": 3,
+      "phase": "return",
+      "channels": {
+        "L": {
+          "fit": {
+            "objectId": 29,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        },
+        "R": {
+          "fit": {
+            "objectId": 33,
+            "amplitude": {
+              "decimal": "0.11499999804310879",
+              "ieee754be": "3fbd70a3cea29d88"
+            },
+            "phase": {
+              "decimal": "6.072665412330019e-13",
+              "ieee754be": "3d655dc54f0f94bb"
+            },
+            "dc": {
+              "decimal": "-2.8064112519260303e-18",
+              "ieee754be": "bc49e27382eeba50"
+            },
+            "residualRms": {
+              "decimal": "0.0035355335765397977",
+              "ieee754be": "3f6cf68d22b98905"
+            }
+          },
+          "values": {
+            "gainDb": {
+              "decimal": "1.2139566592692645",
+              "ieee754be": "3ff36c5dd1652aa0"
+            },
+            "gainLow": {
+              "decimal": "0.013019139582915784",
+              "ieee754be": "3f8aa9c755d87000"
+            },
+            "gainHigh": {
+              "decimal": "5.784802428684028",
+              "ieee754be": "401723a33f7413bc"
+            },
+            "thdn": {
+              "decimal": "4.347825755869789",
+              "ieee754be": "4011642c6f58ab3d"
+            },
+            "thd": {
+              "decimal": "4.347825755868567",
+              "ieee754be": "4011642c6f58a5dd"
+            },
+            "snr": {
+              "decimal": "218.20365670262944",
+              "ieee754be": "406b46845b0facf3"
+            },
+            "phaseDeg": {
+              "decimal": "3.571321686340388e-11",
+              "ieee754be": "3dc3a2303dc398c4"
+            },
+            "dc": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseA": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "noiseU": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "dropouts": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            },
+            "clip": {
+              "decimal": "0",
+              "ieee754be": "0000000000000000"
+            }
+          }
+        }
+      },
+      "reference": {
+        "L": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        },
+        "R": {
+          "decimal": "0.11499999804310879",
+          "ieee754be": "3fbd70a3cea29d88"
+        }
+      },
+      "values": {
+        "valid": true,
+        "clockPpm": {
+          "decimal": "1.019548928820488e-10",
+          "ieee754be": "3ddc06701203b024"
+        },
+        "lagSamples": {
+          "decimal": "137.0000579604457",
+          "ieee754be": "40612000798d4700"
+        },
+        "bal": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "polarityInv": {
+          "decimal": "0",
+          "ieee754be": "0000000000000000"
+        },
+        "hum": {
+          "decimal": "-221.21395665926926",
+          "ieee754be": "c06ba6d8bba2ca55"
+        },
+        "sepLR": {
+          "decimal": "221.21395665926744",
+          "ieee754be": "406ba6d8bba2ca15"
+        },
+        "sepRL": {
+          "decimal": "221.21395665926744",
+          "ieee754be": "406ba6d8bba2ca15"
+        }
+      },
+      "measurements": [
+        {
+          "metricId": "aq_gain_db",
+          "value": {
+            "decimal": "1.21",
+            "ieee754be": "3ff35c28f5c28f5c"
+          }
+        },
+        {
+          "metricId": "aq_thdn_percent",
+          "value": {
+            "decimal": "4.3478",
+            "ieee754be": "40116425aee631f9"
+          }
+        },
+        {
+          "metricId": "aq_thdn_db",
+          "value": {
+            "decimal": "-27.23",
+            "ieee754be": "c03b3ae147ae147b"
+          }
+        },
+        {
+          "metricId": "aq_thd_percent",
+          "value": {
+            "decimal": "4.3478",
+            "ieee754be": "40116425aee631f9"
+          }
+        },
+        {
+          "metricId": "aq_noise_floor_dbfs",
+          "value": {
+            "decimal": "-140",
+            "ieee754be": "c061800000000000"
+          }
+        },
+        {
+          "metricId": "aq_noise_unweighted_dbfs",
+          "value": {
+            "decimal": "-140",
+            "ieee754be": "c061800000000000"
+          }
+        },
+        {
+          "metricId": "aq_snr_db",
+          "value": {
+            "decimal": "218.2",
+            "ieee754be": "406b466666666666"
+          }
+        },
+        {
+          "metricId": "aq_dc_offset_percent",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_hum_db",
+          "value": {
+            "decimal": "-221.2",
+            "ieee754be": "c06ba66666666666"
+          }
+        },
+        {
+          "metricId": "aq_balance_db",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_polarity_inverted",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_separation_db",
+          "value": {
+            "decimal": "221.2",
+            "ieee754be": "406ba66666666666"
+          }
+        },
+        {
+          "metricId": "aq_response_flatness_db",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_response_low_db",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_response_high_db",
+          "value": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_linearity_db",
+          "value": {
+            "decimal": "5.772",
+            "ieee754be": "401716872b020c4a"
+          }
+        },
+        {
+          "metricId": "aq_clipping_samples",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_dropouts",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_clock_offset_ppm",
+          "value": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "metricId": "aq_latency_ms",
+          "value": {
+            "decimal": "2.85",
+            "ieee754be": "4006cccccccccccd"
+          }
+        }
+      ],
+      "response": [
+        {
+          "hz": {
+            "decimal": "20",
+            "ieee754be": "4034000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "50",
+            "ieee754be": "4049000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "100",
+            "ieee754be": "4059000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "200",
+            "ieee754be": "4069000000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "500",
+            "ieee754be": "407f400000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "1000",
+            "ieee754be": "408f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "2000",
+            "ieee754be": "409f400000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "5000",
+            "ieee754be": "40b3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "10000",
+            "ieee754be": "40c3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "15000",
+            "ieee754be": "40cd4c0000000000"
+          },
+          "devDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "0",
+            "ieee754be": "0000000000000000"
+          }
+        },
+        {
+          "hz": {
+            "decimal": "20000",
+            "ieee754be": "40d3880000000000"
+          },
+          "devDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devLeftDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          },
+          "devRightDb": {
+            "decimal": "-0",
+            "ieee754be": "8000000000000000"
+          }
+        }
+      ],
+      "issues": [],
+      "input": {
+        "left": {
+          "objectId": 24,
+          "bufferId": 25,
+          "type": "Float32Array",
+          "length": 627017,
+          "byteOffset": 0,
+          "byteLength": 2508068,
+          "sha256": "786c304c7a1c3023f8517ee715c72fc0b946b865bf4315094dafbda1834394d6"
+        },
+        "right": {
+          "objectId": 26,
+          "bufferId": 27,
+          "type": "Float32Array",
+          "length": 627017,
+          "byteOffset": 0,
+          "byteLength": 2508068,
+          "sha256": "07f3fabca21f81260e1f6637f202c0afaf1d37fdd2ccfaaffa974cfb1df1c720"
+        }
+      }
+    }
+  ],
+  "mapping": "Third validated analysis in the original sequential test file; source order and retained output identify the cubic case. Mapping is not a new test invocation."
+}

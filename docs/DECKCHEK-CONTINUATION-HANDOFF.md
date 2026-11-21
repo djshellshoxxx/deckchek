@@ -1,485 +1,141 @@
 # DeckChek continuation handoff
 
-## Qualified player consolidation — 21 November 2026
+Current as of 21 November 2026, America/Los_Angeles. This is the current source,
+ownership and qualification index. The [complete preceding history](DECKCHEK-CONTINUATION-HANDOFF-HISTORY-2026-11-21.md)
+is preserved byte-for-byte, including original failures and dated evidence.
+Historical source-specific claims do not qualify a newer source.
 
-PR [#74](https://github.com/djshellshoxxx/deckchek/pull/74) merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`, with complete-tree equality to its tested merge, fresh current-base proof and expected-head guard. All applicable standard/nightly jobs, six desktop builds and five platform smokes passed. Issues #66/#70 closed; #69/#72/#73/#75 remain open. See the [merge record](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md).
+## Current qualified main
 
-The active successor trio retains frozen source `eafaa53`. Its focused UI/privacy selection passed **82/82**, with all 2,036 tracked hashes unchanged; raw output uses the SPEC reporter. Both new smoke modules passed syntax checks. Actual new rendering and the single reviewed audio fit trace remain pending. The numerical qualification hold remains.
+PR [#74](https://github.com/djshellshoxxx/deckchek/pull/74) merged as
+`77c26f44710c6dfb1c986fb79266c233e2ae688c`. Its complete tree,
+`5986c675b123203ecaf46f352d99a25b539c9f9f`, equals both the fixed source and
+actual tested merge. All applicable standard/nightly jobs, six desktop builds
+and five platform smoke jobs passed on attempt one. Root verified fresh main,
+ordered parents, complete trees and the expected-head guard; main readback
+matches. No release or deployment occurred.
 
-## Current audio investigation and UI/privacy successor — 20 November 2026
+The default-off provisional Player capture preview, finite-latest device
+outcomes, fractional trend guard, bounded diagnostics redaction and same-batch
+usage correction are consolidated. Issues #66/#70 closed through the merge.
+The [merge record](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md) links all
+three workflows and retained machine-readable proof. Original branches remain.
 
-All six audio workers completed the [context handoff](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md). A distinct aggregate observation reproduced both failures, **33 total / 31 pass / 2 fail**, with all 2,007 tracked hashes unchanged. Actual saved retry measurements are retained, but no numerical cause or production audio correction is established. The original complete reference/PDF gate remains held.
+## Held successor and priorities
 
-The successor adds a responsive toolbar correction, a Player guide and bounded ledger preset #75 validation. Three fresh workers review those changes and a narrow fit-field trace; only their functional worker executes project code. PR #74 is now qualified and merged; see the current merge record. Issues #69/#72/#75, AC-6, default-off Fleet and physical limits remain open and unchanged.
+| Work | Current evidence | Remaining gate or work |
+| --- | --- | --- |
+| Optional reference-file identity | Exact bounded SHA-256 metadata, owned pending-read/late-picker handling; six completed reviewers and 132 focused passes | Complete successor qualification; actual new-source browser smoke. No decoding, retained bytes or playback identity is claimed |
+| PDF axis #73 | Rounded-span representability guard; original candidate preserved; reviewed focused cases pass | Combined qualification and actual print/browser smoke; broader tick accuracy is not claimed |
+| Shared toolbar and Player guide | Responsive geometry correction, accessible input/rate names and contextual guide; current static reviews found no blocker | New real-browser geometry checks, including 320/420/800/1440 widths |
+| Ledger preset #75 | Primitive-string own-key validation and malformed-field handling preserve defaults and explicit/custom overrides | Independent final review and exact-source qualification; issue stays open until an implementing merge |
+| Numerical #72 investigation | Original complete failures, later passes and bounded diagnostics retained; no production audio correction | Establish a supported cause or bounded correction; instrumented passes do not clear the existing full-suite hold |
+| Broader diagnostics privacy #69 | Accepted bounded redaction on main | Unchanged AC-6 and full privacy acceptance remain incomplete |
+| Player production workflow | Owned 1–30 second one-pair preview and provisional metadata export on main | Retained evidence, pitch integration, persistence/reports, transport/media/digital output and scientific/physical qualification |
+| Fleet | Default off; fixed hosted diagnostic and original timing failures retained | No causal performance conclusion or threshold change; hardware/owner walkthrough remains |
+| Hardware and release | Source-specific package builds and platform smokes are recorded | Real audio/MIDI/reference qualification, Linux x86 runtime, installer/signing and hosting decisions remain |
 
-## Previous reference/PDF continuation — full qualification held
+Source contracts:
+[reference/PDF](engineering/PLAYER_REFERENCE_CONTINUATION_2026-11-20.md),
+[toolbar/guide](engineering/NARROW_TOOLBAR_IMPLEMENTATION_2026-11-20.md),
+[ledger preset](engineering/LEDGER_PRESET_IMPLEMENTATION_2026-11-20.md),
+[audio context](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md).
 
-All three initial workers and three fresh successors completed the
-[reference-file/PDF review cycle](engineering/PLAYER_REFERENCE_CONTINUATION_2026-11-20.md).
-Optional selected-file SHA-256 metadata and corrected PDF rounded-axis fallback
-passed their 132 focused cases; static code/defensive reviews accepted the
-bounded source. The first complete serial Node24.22.3 run nevertheless recorded
-**2,357 total / 2,354 pass / 2 fail / 1 optional skip**, across 192 files, with all
-1,943 tracked hashes unchanged. The existing cubic THD assertion repeated #72;
-an audio-runner retry saved once but its measurement verdict failed. No cause,
-ownership defect or common cause is established. **Combined qualification is
-held for a separate audio-diagnosis trio.** No narrow rerun replaced that result.
+## Current workers and exact source
 
-Fresh source `ded34d2dccfcf0ae51c78fa1492a57c161d32a1d`, tree
-`9030b4d9eeb307f27c0d794dccf4a37895c2a602`, has verified durable equivalent
-`b8bf6ea10791b05a2188d176ae8b996528a10f08`. All original failures, complete TAP,
-source maps and six reports are retained. #73's original candidate stays fixed.
-Draft #74 remains fixed at `78403038c530a981b732d5ac0210539edf37fc77` for its own
-hosted gates; #71 is superseded/closed unmerged with original branch retained.
-Main is last verified at `099c99c055322ef668be23e6ae50a2968614cc6d`.
+All six initial/fresh audio-context workers finished before the current fresh
+trio began. The completed workers were `fit_code_round3`, `fit_functional_round3` and
+`fit_security_round3`. They reviewed shared source
+`eafaa53ade2b626a1817792dbab36a2b95dedd58`, tree
+`a7ba52d1208efa0818841b46a2c8dc5351e8e967`; do not rebase their observations.
 
-Browser/print smokes have syntax evidence only. No local Chromium retry/native
-claim follows. #69/#72 and unchanged AC-6 stay open. Reference/raw retention,
-pitch integration, persistence/reports and physical/scientific gates remain;
-Fleet stays off, its diagnostic remains fixed, and thresholds are unchanged.
+Only the functional worker executes project code. Code/security lanes inspect
+source and retained data. The security lane performs static defensive review;
+it does not run the application, tests, probes or scanners. Root owns product
+corrections, consolidation, publication and exact-source CI/merge proof.
 
-## Historical player capture and usage consolidation — 20 November 2026
+The one six-file UI/privacy selection passed **82/82**, with all **2,036**
+tracked hashes unchanged. Its 8,257-byte output is the Node SPEC reporter,
+despite an inherited `run.tap` filename; no format-only rerun occurred. Both
+new smoke modules passed separate syntax checks. Actual new rendering is still
+unobserved locally.
 
-All three initial workers and three fresh successors completed the
-[Player capture and usage handoff](engineering/PLAYER_CAPTURE_CONTINUATION_2026-11-20.md).
-The actual app has a default-off one-pair, 1–30 second capture preview with owned
-cancellation and provisional metadata export. Usage #70 adds same-batch valid
-proposal deduplication and own-property source membership; native validation is
-unchanged. Source `f081881d4979e4385f255163660258784e27a264`, tree
-`39d4351da05fc1fc65f555874824555d96df5cd3`, is preserved by durable equivalent
-`6295c3eb5b470b34f2a1010b040b1694780e0ee9`.
+The three reviewed diagnostic tools at `f3a8a5d551d35941d3258feb34f6b2dd1bba1e3f`
+changed no committed product or tests. An exact disposable copy received
+thirteen reversible observation lines. After code, static-security and root
+review, its single original two-file Node24/TAP run passed **33/33** in
+9.777 seconds with **2,039** source/copy hashes and inventory unchanged.
+Both child traces were complete, without errors, truncation or drops.
+Additional reads, hashing, identity tracking and allocation change execution
+context: this pass neither repairs nor qualifies untouched production.
 
-Fresh complete serial Node24.22.3 verification passed **2,331 / 0 failures /
-1 optional skip**, **2,332 total across 191 files**, with **1,892 tracked hashes
-unchanged**. Static reviews found no remaining bounded blocker. Local Chromium
-failed before a page; this successor requires its own hosted rendered UI and
-native/platform gates. Original audio failure #72 remains unexplained; the
-33-test diagnostic selection did not establish matching predecessor order.
-Issue #69 and AC-6 remain open and unchanged.
+All three reports and all 68 functional evidence files are integrated. The
+[fresh successor handoff](engineering/FIT_AND_UI_CONTINUATION_2026-11-21.md)
+assigns new code, functional/bug-hunt and static defensive workers. Only the
+new functional lane executes one complete serial Node24 gate for this changed
+consolidation, preserving the first outcome and source maps. All three must
+finish before another rotation. No identical numerical diagnostic is repeated.
 
-Accepted #66/#68 and bounded #69 changes are included from fixed #71. Publish
-this successor before superseding #71, retaining branches. #66/#70 close only
-through a qualified implementing merge. Main is last verified at
-`099c99c055322ef668be23e6ae50a2968614cc6d`. The next distinct trio reviews optional
-reference-file hashing and PDF #73 on an isolated successor. Retention, pitch
-integration, reports and scientific/physical gates remain open; Fleet stays off.
+## Retained numerical outcomes
 
-## Historical redaction and corrected outcome consolidation — 20 November 2026
+The reference/PDF complete gate at `ded34d2` recorded **2,357 total / 2,354
+pass / 2 fail / 1 optional Mixxx skip**, with all 1,943 hashes unchanged. It
+repeated cubic THD #72 and recorded a retry measurement verdict failure.
 
-The [current redaction handoff](engineering/REDACTION_CONTINUATION_2026-11-20.md)
-combines accepted device-outcome #66 and fractional-timestamp #68 corrections
-with bounded JS/Rust diagnostics redaction #69. Reviewed local source
-`6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6`, tree
-`7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a`, is preserved by exact-tree durable
-checkpoint `36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371`.
+The later aggregate observation at `f26c247` repeated both: **33 total / 31
+pass / 2 fail**, with all 2,007 hashes unchanged. It retained actual gain
+−110 dB, balance −220 dB and response L +220/R 0 dB while earlier cached
+THD+N remained near zero. Immediate and delayed saved results match. Its
+post-suite hashes do not establish entry-time identity. No mutation, aliasing,
+solver or engine cause is established. The new instrumented pass does not
+replace these failures. See [issue #72](https://github.com/djshellshoxxx/deckchek/issues/72)
+and the complete linked reports/artifacts.
 
-Initial focused verification passed 60/60. Fresh full Node 24.22.3 verification
-recorded **2,314 total / 2,312 pass / 1 fail / 1 optional skip**, with all 1,831
-tracked hashes unchanged. The existing cubic audio-quality assertion failed;
-its one unchanged-source narrow rerun passed 15/15. The first failure remains
-unexplained. The consolidated draft must retain this hold and obtain its own
-hosted/native gates. Source-specific redaction cases all passed; complete
-Spec 02 AC-6 acceptance is not established and **issue #69 stays open**.
+## Durable checkpoints
 
-Main remains the qualified QR/acquisition merge `099c99c055322ef668be23e6ae50a2968614cc6d`.
-Publish the corrected consolidated draft before superseding #68, retaining its
-branch/ancestry; #66 remains open until an implementing qualified merge. The
-fixed Fleet diagnostic and original timing failures remain preserved, without
-rerun or threshold changes. Fleet stays off. Next work covers the audio failure,
-independent acceptance of prepared usage-ledger #70, and bounded CDJ UI wiring.
-Player persistence/reporting and scientific/physical qualification remain open.
+| Checkpoint | Published head | Purpose |
+| --- | --- | --- |
+| Qualified merge record | `5f256bdd3630738292c36c1b343a4161d5078a48` | Exact tree of local `d76f069`; complete #74 gates and merged-main ancestry |
+| Audio context | `17080df79ba94554b81c006d6372c8b59dca795a` | All six completed audio reports, failures and root toolbar/preset corrections; original Git history bundle |
+| Initial audio diagnosis | `aded4981b623a0dab7e04e65fa0ca8ab06528e69` | Initial three completed reports, unchanged failed selection and six-call observation |
+| Reference/PDF outcome | `2022c97d8fb1f941de13e151be9627bbdfcc278e` | Complete held gate, six reports, source maps and original history |
+| Reference/PDF source | `b8bf6ea10791b05a2188d176ae8b996528a10f08` | Exact complete tree of the independently reviewed source |
 
-## Historical device outcome and trend continuation — 20 November 2026
+Root verified complete trees, ordered parents/ancestry and branch readbacks.
+Worker original commits are retained in the checkpoint history bundles.
+Snapshots preserve evidence; they are not release or qualification claims.
 
-The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
-is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact
-tested tree `f7e32678dd89880a7dce642424100e77c5e22374`. All applicable standard,
-nightly, six-build and five-smoke gates passed for #67 before the guarded merge.
-GitHub also reports included #65 merged and issue #64 closed. Original branch
-heads and #65's failed timing result remain retained. A separate initial worker
-set now owns diagnostics redaction #69; #66/#68 corrections are accepted on
-the successor below and still await that consolidated source's hosted gates.
+## Environment and continuation rules
 
-The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
-records three completed initial workers followed by three completed fresh
-workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,
-tree `6de27897af9aea1f69084b1de6ef3c294247ac80`; durable exact-tree checkpoint
-is `0561724b5bf8fdda92699c79ab6d539feee0479b`.
+Use bash with `login:false`. Node is v24.22.3 at
+`/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node`;
+Python is 3.12.14. Rust/native SDKs are unavailable locally. One local Chromium
+launch failed at host socket creation before any page: zero local screenshots,
+no retry/workaround/escalation/download. Actual hosted rendering is separate
+source-bound evidence.
 
-Prospective device outcomes now require usable latest evidence or an explicit
-OK finding before the no-criterion fallback records PASS. Missing evidence stays
-unknown/REVIEW; criteria, verdicts, adverse findings and historical records retain
-their behavior. Trends with identical fractional timestamps remain unavailable.
-Fresh serial Node 24.22.3 acceptance passed **2,284/0/1 optional skip**, **2,285
-total across 190 files**, with **1,804 tracked hashes unchanged**. Native and
-hosted qualification are separate.
+Fleet's `diagnostic/fleet-gate-context-20261121` head
+`69fc06eb471dfb00de544bbe233c0f5dc95402e8` stays fixed: no push, rerun or
+dispatch. Its instrumented gate recorded 213.308243 ms against the unchanged
+200 ms limit; the original #65 201.565999 ms failure remains unexplained.
 
-The [single hosted Fleet experiment](engineering/FLEET_GATE_HOSTED_RESULT_2026-11-20.md)
-completed with failure: the untouched baseline passed, but the instrumented
-suite measured **213.308243 ms / unchanged 200 ms**. The original #65 failure
-at 201.565999 ms remains unexplained. Complete artifacts and fresh independent
-byte checks are retained; no diagnostic rerun or causal claim is authorized.
+Ordinary merges require applicable exact-source gates, fresh current-base and
+complete-tree proof, and expected-head guards. Preserve original branches,
+failure records, permissions, thresholds, feature defaults and physical
+qualification boundaries. No release, deployment, tag, branch deletion,
+history rewrite or separately billed model job is authorized.
 
-The next distinct worker set addresses diagnostics redaction issue #69; the
-next consolidated draft will include both accepted slices. Existing #65/#67/#68
-heads and branches stay fixed. Read live exact-source gates before ordinary
-merges. CDJ UI/storage/reporting and scientific/physical qualification remain
-open. Fleet stays off. Historical sections below preserve their original scope.
-
-## Historical acquisition and Fleet diagnostic preparation — 20 November 2026
-
-The [acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
-`157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree
-`f7e32678dd89880a7dce642424100e77c5e22374`. All six workers completed; fresh
-Node 22.23.4 verification passed 56/56 with 1,643 tracked hashes unchanged.
-The single-pair owned-capture API retains native observations, scoped cleanup
-and immutable provisional metadata. Production player UI, retained raw/reference
-bytes, persistence/reporting and scientific/physical qualification remain open.
-
-The [Fleet diagnostic continuation](engineering/FLEET_GATE_CONTINUATION_2026-11-20.md) records three completed initial
-workers followed by three completed fresh reviewers. They accepted combined
-source `f1172b87902aa05c93c452619c7ed1e359f939e6`, tree
-`41031b09d19dfd1ca90dd95173872aaeb280e3f6`; durable equivalent is
-`1625bb4dc6906777b7891e9158a2ef651e40be89`. Fresh generation/parser/evidence checks
-passed 60/60 against the actual failed merge, with 1,706 tooling and 1,626 input
-hashes unchanged. These are tooling checks, not native performance results.
-The exact reviewed proposal is ready for one bounded hosted diagnostic; keep
-its activated branch fixed and preserve every result, including failures.
-
-QR #65 stays fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`. Its ASan Fleet
-gate failed at 201.565999 ms against 200 ms; cause remains unestablished. Later
-#67 ASan passed 767/0/8 ignored using the same compiler, but other applicable
-#67 gates remained pending at the dated readback. No threshold, production
-Fleet behavior or default was changed. Only source-specific applicable checks,
-current-base tree proof and an expected-head guard can qualify a merge.
-
-Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
-#54/#58/#59. Superseded inputs and original branches remain preserved. Fleet
-stays default-off; existing profile assignment is implemented. Issue #66 is
-next for a distinct worker set after diagnostic activation. Read live refs and
-the linked reports; historical snapshots below retain their original meaning.
-
-## Historical CDJ calculation checkpoint — 20 November 2026
-
-The [current continuation](engineering/CDJ04_CONTINUATION_2026-11-20.md) retains unchanged Ledger candidate #58 and
-original CDJ-04 prototype #57, and fixes three numerical-contract defects in the
-new isolated helper. Initial code/functional/defensive workers completed; three
-fresh successors accepted corrected combined source
-`abafd5565e00a2154b6b833e20ccd3a42a713ae7`, tree
-`1126a31bfc95aabc71ca5532bc8bed57b49ef7fc`. Durable equivalent source is
-`014b150b6c85a6795fb1ae015ea2eb6d97b3c029`.
-
-Fresh focused verification passed 11/11 on Node 22.23.4, with all 1,568 tracked
-hashes unchanged. Original 8/3 failure evidence and author 11/11 remain separate.
-This is an unwired calculation prototype; capture, full provenance, reporting
-and hardware remain open. Its own hosted gates are pending. Preserve #58's
-published head and source-specific results while the separate successor qualifies.
-Nine superseded input PRs are closed with branches retained; #54's final hosted
-gates remain open. Read live refs and the current report before integration.
-
-## Historical Ledger publication checkpoint — 20 November 2026
-
-Main is `e49ea1bbafb5005fdf1dfcf60d885b82d0191471` after PR #46 merged.
-The [current Ledger continuation](engineering/LEDGER_CONSOLIDATION_2026-11-20.md) consolidates #47 and the #49–#56
-publishing/persistence stack above #54's combined #48/current-main source.
-Three initial workers found and corrected note acknowledgement ownership,
-reload ordering, saved-note key handling, recovery copy and current guide docs.
-Three fresh successors completed independent code, functional and defensive
-acceptance at source `e04d6332185063b62c75f0e2cabdc1654a719079`, tree
-`88b3f2c43967ae3695d9974a8b69b7be5b6bd6c2`.
-
-The combined Node 22.23.4 suite passed **2,222 / zero failures / one optional
-skip** across 184 files; all 1,550 tracked hashes stayed unchanged. Static checks,
-434 module syntax checks and both performance proxy tests passed. The author's
-80/80 and independent 28/28 focused scopes overlap this total. Durable source
-`68d49cc0cb26ab8444d54cdaab50fabdf81bd46a` has the exact tested tree and retains
-all original #47–#56 heads as ancestors. Current publication/hosted gates are in
-the report; earlier source results do not qualify new bytes. Preserve branch ancestry,
-original failures, owner/hardware gates, Fleet default-off and existing limits.
-The dated sections below preserve history and do not describe the current queue.
-
-## Historical first continuation — 20 November 2026
-
-PRs #34, #38 and #45 are merged. Verified main at this checkpoint is
-`f46abbea458ba2bb8c2f6d438eba4f5b0a58c948`, including ZIP corrections accepted
-by three fresh reviewers and passing standard, nightly and desktop workflows.
-Nine superseded stacked PRs are closed; their branches are preserved.
-PR #46's isolated Ledger diagnostics now target main with separate gates.
-
-The [current continuation report](engineering/CONTINUATION_2026-11-20.md) records consolidation evidence,
-source-specific successor work, review handoffs and remaining qualification.
-Use it and live refs for the next action. The sections below preserve dated
-history; their old queue states do not describe current publication.
-
-## Historical combined continuation — 19 November 2026
-
-The candidate `integration/deckchek-consolidation-20261120` combines the latest
-PR #34 repairs with the ZIP stack from PRs #35–#37 and the independently reviewed
-Devices navigation correction. Application/test source is
-`da9099b648bebdf4ee0f65a34de75cef5f20114f`, tree
-`1de031ce74b121cdace67fa091d488b256c5da2e`.
-The [durable executable source](https://github.com/djshellshoxxx/deckchek/commit/46845c761d0cf7d69451ed9343ee89aa649c2706)
-has that exact tree at remote commit `46845c761d0cf7d69451ed9343ee89aa649c2706`;
-Git object creation alone does not publish a branch or qualify hosted checks.
-The [combined consolidation handoff](engineering/CONSOLIDATION_ZIP_DEVICES_2026-11-19.md) records source ancestry, preserved
-repairs, verification, hosted status and remaining limits.
-
-The full serial Node 22.23.4 suite passed **2,171 tests / 0 failures / 1 optional
-Mixxx-corpus skip** across 179 test files, with all 1,527 tracked source hashes
-unchanged. The final ten Devices regressions and focused 29-test compatibility
-scope also passed. Their overlapping counts must not be added together.
-Device/timecode/migration/mobile checks, all 428 JavaScript syntax checks and
-both unchanged performance budgets passed with source hashes unchanged.
-Earlier PR results do not qualify the new combined source. The owned candidate
-targets `main` so standard, nightly and platform checks apply. Inspect its current
-PR and merge only after its applicable checks pass. Keep published PR #34–#37 heads stable
-while their existing checks complete, and refresh live refs before any write.
-
-The fresh audit found no missing implementation in the 29 historical branches;
-all original branches remain preserved. Fleet stays disabled by default.
-Physical, real-database, signing and release qualification remain open. The
-sections below retain historical snapshots and their original evidence.
-
-## Historical source41 prepublication snapshot — 18 November 2026
-
-**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
-
-Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
-
-The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+The existing recurring automation is
+`Automation_48d3e68ddf6c81918f90aefa6b67398d`. Keep its ownership instructions
+current and avoid overlapping writes or a duplicate automation. Credit balance
+is unavailable. Only an explicit prior result saying execution stopped because
+the current budget was exhausted invokes its pause condition; disk, compiler,
+transport or CI errors do not establish exhaustion.
 
 <a id="source41-resume-state-and-ownership"></a>
 
-## Historical source41 resume state and ownership
-
-Use code commit `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`, with the exact final source/inventory records supplied by ROOT. Full suite: **1,975 passed / 0 failed / 1 optional skip; 1,976 total across 162 top-level files on Node 22.23.5, 257.854541805 TAP seconds; all 1,480 source hashes and tree unchanged (record `13c24e29722dab5b487fc862ba34018ad232b2ba8d39c1c70c9b30407e704631`)**. Static/coverage/smoke syntax: **All 11 static/performance/syntax gates passed, including 426 syntax files, 25 migrations and the 45-profile coverage check; all 1,480 source hashes and the tree matched before/after every gate**. Both performance gates: **2/2 passed with all 1,480 source hashes/tree unchanged: controller 2,400 hops, 0.339 ms mean / 1.04 ms worst / 0.07 MB heap; monitor 2,400 hops, 0.329 ms mean / 1.29 ms worst / 0.06 MB heap (record `91ae72485525171783e1061ba945e3dc959d91bae25040f234baab9285ec673a`)**. Native accepted-input carry: **Verified 38 production inputs, 39 generated files, 52 application-lock identities and five direct dependency feature sets; carries bounded 45/45 and strict Clippy, not full Tauri/platform execution (record `736e13fc6bd413265948ac110c697c4b95bf9876914e1b71872836b5c181e69f`)**. Pack independent acceptance: **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**. Publication snapshot: **Prepublication snapshot at 2026-11-18 20:50:35 UTC: main/integration/PR32/PR33 unchanged; PR33 still draft against PR32; retargeting, successor publication, source41 hosted gates and merges pending**.
-
-**The sole project execution owner is `/root`.** Documentation authors and reviewers do not run project tests, builds, generators or syntax commands. The earlier ownership instructions in dated source40 sections below are historical. Do not repeat an unchanged passed suite for a documentation overlay or retry unchanged local full-native/Chromium blockers.
-
-Accepted intake records are `verification/continuation-41-learned-map-integration.json`, `continuation-41-incident-integration.json`, `continuation-41-transport-integration.json` and `continuation-41-push3-audio-integration.json`. The single matrix generation and corrected metadata audit are retained in `continuation-41-matrix-regeneration.json` and `continuation-41-matrix-audit-initial-failure.json`. Pack proof is sealed under `verification/pack-preview-ownership-proof/`; its valid 4/12 red, 16/16 green, related 32/32 and unchanged independent 3/3 remain separate scopes. Final candidate acceptance is still identified above. Keep the preceding hosted completion review and both current-document correction records.
-
-Local combined qualification is complete. Next steps are independent documentation acceptance, a fresh remote read, retargeting PR33 to integration before publishing its successor, and applicable source41 hosted checks. Only then merge into integration and qualify integration-to-main through PR27 without editing PR27 metadata. Keep PR32/PR30 until replacement reaches main. No prior hosted pass is transferred to new bytes; no publication/merge is assumed by this prepublication record. Fleet stays OFF.
-
-<a id="current-source40-native-catalog-and-controller-provenance"></a>
-
-## Historical source40 prepublication snapshot — 18 November 2026
-
-Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
-
-This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
-
-<a id="source40-resume-state-and-ownership"></a>
-
-## Historical source40 resume state and ownership
-
-Use source commit `20a8c34261d2aa801335a812fbc3c5987cf28587`, tree `a8a518134db352711bd67861d2838a7f3870b90f`, and frozen qualified checkout `/workspace/scratch/a884a1d6c4d8/verification/continuation-40-checkout`. Its parent is published `cc15026a`. The separate documentation overlay is in `/workspace/scratch/a884a1d6c4d8/verification/continuation-40-documentation-worktree`; root must independently review and publish its accepted bytes. The complete 151-file Node suite passed 1,835/0/1 in 253.593508232 TAP seconds; all 1,447 source files and index tree remained unchanged. All local static/proxy gates passed, including 411 syntax files, 24 migrations and monitor 1/1. The [current report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records native/profile scope, retained failures and hosted boundaries.
-
-Current evidence is `verification/continuation-40-final-integration-acceptance.json`, `continuation-40-source-freeze.json`, `continuation-40-report-facts.json`, `continuation-40-full-js.log`, `continuation-40-post-suite-source-check.json` and `continuation-40-static/`. The acceptance record pins 48 artifacts and its retained metadata clarification; preserve both records. Exact source40 publication remains pending. Keep existing PR32 at `cc15026a` while its current gates finish, preserve PR30 `72dd38c` and PR27 metadata, and refresh main/integration/owned heads before any publication or merge. A distinct draft follow-up is intended; no new branch/PR number is assigned in this snapshot.
-
-At root's final source acceptance, the sole project execution owner is `/root/incident_metric_snapshot_implementation`. That separate follow-up is ongoing and unintegrated; no incident-metric attachment is a source40 deliverable. Documentation agents perform no project execution. Verify live ownership before any test, build or generator command; do not launch a competing suite or retry unchanged local native/Chromium blockers.
-
-The qualifying full command used the Node 22.23.5 binary at `/workspace/scratch/a884a1d6c4d8/fs35-node22-npm-cache/_npx/e5e7bdc4f892e393/node_modules/node/bin/node`, `--test --test-concurrency=1`, and every `tests/*.test.mjs` file. Exact expanded argv is retained in the result record. Do not repeat an unchanged passed suite merely for this documentation overlay. Next work is independent documentation acceptance, fresh remote publication, exact-source hosted gates, then the separately owned incident-metric and remaining profile/identity/qualification work. Fleet stays OFF; no release/tag/deployment is authorized.
-
-> Historical source39 prepublication correction: [Logical MIDI identity and mixer provenance](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md). Source `04bbc714` passed the complete Node suite **1,780/0/1** and all local static gates, with **1,434** frozen files unchanged. The original **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. PR32 already exists at `61e265f`; its hosted results and browser failures are preceding-source evidence. Publication of the correction remains pending.
-
-> Historical source38 prepublication candidate: [Native support-history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). Source `fe936f7d` includes the accepted MIDI/profile source37 plus the native retained-memory correction. The complete Node suite passed **1,747/0/1** and local static gates passed; exact native-core/harness proof is separately scoped. Publication and current-source external gates remain pending; PR30 stays at `72dd38c`.
-
-> Historical source37 follow-up: [MIDI transports and two AlphaTheta profiles](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md). Source `2ec083c4` passed **1,747/0/1** plus local static gates. This prepublication source snapshot follows published checkpoint 35 at `72dd38c`; PR30 keeps that head. Source36, combined37 and preceding-head hosted results have separate evidence scopes.
-
-> Published checkpoint 35 history: [Checkpoint 35](DECKCHEK-CONTINUATION-35.md). Source [3aa4d964](https://github.com/djshellshoxxx/deckchek/commit/3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5) combines catalog transfer, history navigation, platform-test corrections, Fleet result ownership and the concurrent integrity/profile repairs. The serial Node suite passed **1,722/0/1**. Qualification and limits for that source are in that report; the sections below and the unchanged [057d42f report](DECKCHEK-CONTINUATION-2026-11-18.md) retain source-scoped history.
-
-<a id="current-source39-state-and-publication"></a>
-
-## Historical source39 state and publication
-
-Use [the source39 report](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) and corrected checkout `/workspace/scratch/a884a1d6c4d8/verification/continuation-39-corrected-checkout`. Source `04bbc7146f09dc2d1ebd0a6b403d4549d4d6f26b`, tree `6ad69adfb09d7df98076fb7d8a204bf7710287fd`, parent `61e265f`, passed the complete serial Node suite 1,780/0/1 and local static gates with all 1,434 files unchanged. The original full 1,779/1/1 run remains immutable; the corrected affected profile scope passed 16/16. The eleven documentation paths are isolated in `continuation-39-documentation-worktree`. Root transferred sole project execution to the separate native catalog author at **18:16:06.393681 UTC** after every root process finished; root retains Git/publication/metadata ownership. Verify live ownership before running anything.
-
-Advance existing open draft PR32 from `61e265f` only after source/documentation acceptance. Preserve PR30 at `72dd38c`, integration `0acb612`, main `ee5aa511` and PR27 metadata; no merge/release is implied. Published-head full native/JavaScript successes, limited persistence stress and browser failures are source-scoped in the current report. The **18:18:49 UTC** hosted snapshot supersedes earlier queue states without erasing their timestamps. Native catalog portability is separately authored and outside source39: its first candidate Node scope recorded 30 passes / 4 fixture failures, and its native tests failed compilation with E0502; corrections are in progress, with no acceptance or integration claim here.
-
-Current evidence is in `continuation-39-corrected-report-facts.json`, `continuation-39-corrected-source-freeze.json`, `continuation-39-corrected-post-suite-source-check.json` and `continuation-39-corrected-static/`, with the independent MIDI/profile/anchor records and original failed-run artifacts named in the report. The final published-head snapshot is `continuation-39-hosted-snapshot-5.json`; inventory is `continuation-39-prepublication-remote-inventory.json`.
-
-The next code/qualification work is physical MIDI identity/continuity and the actual MIDItest consumer contract, receiving-direction/maps and the remaining 19 conditional MIDI profiles / 57 requirements; reviewed provenance covers 23 existing profiles. Logical routing/ownership is implemented. Track exact-source hosted failures and full native/platform/browser gates without weakening thresholds or assertions. Fleet stays OFF.
-
-## Historical source38 state and publication
-
-Source38 `fe936f7d` is the latest locally qualified source, adding accepted native history streaming to source37. Prepare the intended `review/deckchek-midi-profile-20261118` draft against `integration/deckchek-consolidation-20261118` at `0acb612` after independent documentation review; preserve PR30 at `72dd38c` and PR27 metadata. No follow-up branch/PR number exists. The existing workflow base filters remain satisfied without changes. Use the [native history follow-up](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the latest proof and remaining gates.
-
-**Earlier source37 publication snapshot:** Source37 `2ec083c4` is locally qualified and unpublished in this snapshot. Prepare the intended `review/deckchek-midi-profile-20261118` branch into `integration/deckchek-consolidation-20261118` at `0acb612` after independent documentation review; keep published PR30 at `72dd38c`. The follow-up descends from PR30 and preserves its contribution. The integration base keeps nightly/platform gates applicable without workflow changes; PR30 remains open and no future merge order is committed. No follow-up PR number is assigned. Use the [follow-up report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md) for current proof and the separate preceding-head Windows outcome.
-
-## Historical checkpoint 34 — source 32419404
-
-**Source checkpoint — 2026-11-18 UTC:** executable source `32419404fefdbbe95b91987c8bd606aa598e763b`, tree `cf87a10c3cb15cd041a6dfd806426c98c7487a29`, parent `963054dc543af018d0f13734a9e2abc54ca83113`. This 15-path update implements the separate browser venue-history archive through Data and the existing stores. The complete serial Node 22.23.5 rerun passed **1,663 tests, zero failures and one optional Mixxx-corpus skip (1,664 total; 259.849819454 TAP seconds)** across **141 test files**, with all **1,408 frozen files** unchanged. The initial full-run SIGKILL and isolated six-test pass remain recorded below; no termination cause is established. Research remains **15 existing profiles**, with **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**.
-
-At the **2026-11-18 14:19:57.475 UTC** pre-publication inventory, the owned remote branch was `963054d`, while [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30) and its pull-head ref still reported `e6a64d7`; PR30 remained an open draft with mergeability **null/unknown**. A separately observed merge candidate names `963054d` and unchanged integration `0acb612` as parents. The discrepancy has no established cause. Source `32419404` exists but no branch has moved to it; the future documentation child has no assigned SHA. Main remains `ee5aa511fb49fc56e299d5b5c262e815ab420d0d`, and PR27 metadata is untouched. Earlier successes/failures remain tied to their sources. Hosted native/browser/platform/extended checks, broad Sonar, hardware and release qualification remain open. No release, tag or deployment is authorized.
-
-PR29 was merged at its frozen `fd39b145` head on 2026-11-18 at 09:13:18 UTC through `e43be06`; later branch updates were not part of that closed PR. PR30 is the active draft continuation into PR27. Do not overwrite PR27 metadata or mistake a closed PR's old head/base for an API outage. Other actors have changed integration during this session: refresh refs/states before every publication and preserve new work.
-
-The preceding 1943ef0 source parents are the prior owned checkpoint `0985e9e64b6dd5e92e2f046ebf30a336bf15c735`, independently reviewed integration `0acb612aa796f7f459172932868ff7e787d83399`, and the additive ignore branch `5bd6359ed5a013379dd1ca7aaee7cdd270931874`. Six report conflicts preserve valid source and evidence from both report histories. The preceding documentation merge `5ffa10befa4d1dd9a98ee07ae2eeb31998333c01` retains `61a7c6b74d75074cef5ec029e1c127184d869c86` as a parent after independently reviewing PR31 and selectively reconciling its accurate corrections. PR31 remains open until the replacement reaches main. PR28's SQLite facts are retained through `c090c1d`; its pre-backport advisory-acceptance/weekly-reminder recommendation is not adopted.
-
-## Accepted implementation
-
-The preceding `90ee4435` source added [passive support A/B](DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons): two passive stereo captures with renewed confirmation, retained original route/context/calibration/quality/numerical evidence and directional digital 20–200 Hz comparisons. Migration 0024 preserves originals; native comparisons are independently derived and validated. No output, physical isolation-efficiency estimate, validated uncertainty or PCM archive is introduced. The 112-Node/19-native proof, exact-float correction, root 42-vector differential check and hosted-mock boundary are detailed centrally. UI/report load 50 observations and 50 comparisons each with totals. Current source adds the [separate browser history archive](DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive), transferring all retained records under explicit file/record bounds without changing workspace JSON or native backups.
-
-Fifteen existing profiles now have individually researched capability decisions, including the [Xone:96/RANE FOUR batch](DECKCHEK-CONSOLIDATION-REPORT.md#xone96-and-rane-four-provenance) and the preceding [three USB-MIDI provenance decisions](DECKCHEK-CONSOLIDATION-REPORT.md#three-additional-usb-midi-provenance-decisions). All earlier decisions remain preserved. The first five remain [Inpulse 500](devices/hercules-djcontrol-inpulse-500.md), [Launchpad Pro MK3](devices/novation-launchpad-pro-mk3.md), [Inpulse T7](devices/hercules-djcontrol-inpulse-t7.md), [MASCHINE MK3](devices/native-instruments-maschine-mk3.md) and [DDJ-1000](devices/pioneer-dj-ddj-1000.md). The following five preceding exact-model updates retain their documented capabilities and unresolved fields:
-
-| Profile | Supported update | Preserved limits |
-|---|---|---|
-| [TRAKTOR KONTROL S4 MK3](devices/native-instruments-traktor-kontrol-s4-mk3.md) | 24-bit audio | Input/output counts, supported-rate list and USB MIDI remain unknown; manual software 3.2 is not firmware qualification |
-| [Mixtrack Platinum FX](devices/numark-mixtrack-platinum-fx.md) | 44.1 kHz, 24-bit, USB MIDI | Channel counts remain unknown; exact User Guide v1.2 is recorded |
-| [Roland DJ-808](devices/roland-dj-808.md) | 44.1/48/96 kHz and documented standalone USB MIDI | Counts and generic USB word length remain unknown; distinct A/D 24-bit and D/A 32-bit claims are preserved |
-| [DDJ-REV7](devices/pioneer-dj-ddj-rev7.md) | 10 USB inputs and 10 outputs per host connection, 48 kHz/24-bit, USB MIDI | Counts come from numbered pairs in the exact driver/settings manual; the two host ports are not aggregated and current host/firmware qualification is not inferred |
-| [DDJ-FLX4](devices/pioneer-dj-ddj-flx4.md) | 44.1/48 kHz and USB MIDI | Channel counts and scalar bit depth remain unknown; 16/24-bit formats and ambiguous comparison-table I/O labels are not collapsed into invented values |
-
-The catalog remains **45 profiles, 506 handwritten checks and 187 generated checks**, with **23 conditional audio cases**, down from 29 before the research batches. REV7 now selects the automatic major audio-quality case without a capability condition; the other four profiles in that preceding batch retain their conditional minor case. Safe stimulus limits and all original checks/specification entries are preserved. Root independently passed **14/14** checks for the S4/Numark/Roland batch and **11/11** for REV7/FLX4, with baseline field/document comparisons and frozen hashes. Manufacturer documents establish capabilities and routing, not physical performance. Unknown IDs, maps, software/firmware/OS qualification and unrelated class-compliance fields remain intact. DDJ-1000 counts retain their dated Mac configuration scope. Research issues #3–#7 remain open.
-
-## Manual venue incidents — implemented software slice
-
-The Incidents tab in Hum and feedback implements the seven operator categories in SPEC-05 §20: Skip, Feedback, Hum, Needle jump, Dropout, Booth shock and Other. The event ID, occurrence time, selected venue/setup context and note are copied at the press. Persistence assigns a separate save time and operator provenance. New submissions require an existing venue and any selected setup to belong to it. The historical snapshot survives catalog renaming, setup movement and deletion; an exact retry returns the original event before consulting the current catalog.
-
-The browser model and production panel are `app/venue-incidents.js` and `app/ui/workflows/venue-incidents.js`; native append/list/page storage is `src-tauri/src/venue_incidents.rs`, registered through the existing application entrypoint. Additive migration `0023_venue_incidents.sql` retains historical context without cascading catalog deletion. Native writes serialize conflicting IDs in an immediate SQLite transaction. Browser requests use one key per event and recheck overlapping requests within one JavaScript event loop; localStorage does **not** provide atomic compare-and-set across tabs deliberately sharing a new ID. Production panels generate a UUID for each press and retain the same draft for retry.
-
-Unknown schema fields/provenance, invalid calendar times, incompatible context, invalid limits and oversized notes are rejected. Corrupt or unavailable incident storage produces an explicit error without replacing retained records. Pending saves keep their original context across selection/tab changes; late loads and disposed panels cannot take ownership of newer UI. The panel shows at most **100 incidents per page** with Older/Newer/Newest; the API accepts limits up to **500**, and venue reports include the newest **300**. Each surface reports counts and retained older records. Equipment and Runs venue-report entrypoints load this history, escape context/notes and propagate incident-read failures. A successful empty list states only that no incidents were recorded.
-
-The nine explicit acceptance criteria are recorded in [FS-15 §12](specs/15-booth-feedback-hum-hunter.md#12-manual-venue-incidents--spec-05-20-acceptance-slice-2026-11-18). For the initial incident slice, worker final model/UI/report checks passed **27/27** after an earlier bounded **99/99** hum/feedback regression scope. Independent review passed **103 Node checks**: 27 focused, 72 existing hum/feedback regressions and four additional production-flow probes. It separately passed **10 native storage checks**: seven production tests plus three independent probes. These overlapping scopes are not added to the full-suite total. The native harness copies the exact production validation/save/list core, actual migration transaction/clock/ID helpers and all **23** migrations. It caught and fixed the SQLite COUNT decoding compilation error; its strict Clippy check passed. Independent probes covered simultaneous conflicting IDs through separate database connections, retry after catalog deletion, Unicode ordering, malformed storage and actual 301-row UI/report truncation.
-
-This native proof excludes Tauri command adapters and the full desktop build. The authored browser smoke exercises a real record/reload/Equipment-report path, but current-source hosted execution remains pending. Native incidents participate in the existing complete SQLite database backup. Browser incident keys are **excluded from workspace JSON export/import**; the panel discloses that limitation and the readable venue-report limit. Pagination, passive support A/B and the [separate browser venue-history archive](DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive) are implemented. Current browser catalog portability was added in [checkpoint 35](DECKCHEK-CONTINUATION-35.md#browser-equipment-catalog-transfer). Native-only catalog authorities, surrounding-metric capture and broader SPEC-05 isolation outcomes remain open. No physical booth accuracy or automatic incident-detection claim is made.
-
-## Accepted support, MIDI and pagination follow-up
-
-Equipment now saves reusable support descriptions and setup assignments while preserving legacy structure, hidden booth/position context and valid component settings associations. Explicit asset replacement clears its former settings link; bound setups cannot change venue. Reports label support descriptions as current context and stop on failed/missing hum-run detail reads. The actual browser hum store rejects unreadable history and failed writes instead of fabricating an empty history or overwriting corrupt bytes. The corrected worker scope passed **117/117 Node**; root's two UI reproductions and **17/17 native checks** passed with **27 inputs** verified. See [the support correction and limits](DECKCHEK-CONSOLIDATION-REPORT.md#saved-support-descriptions-and-setup-integrity).
-
-Incident pagination retains the original save/list contracts and report cap. Exclusive timestamp/Unicode-scalar ID cursors, request-owned page stacks and recoverable retries preserve records, selections, notes and pending saves. The isolated **40/40 Node + 13/13 native** proof and root's **51/51** combined incident/report proof are separate overlapping scopes. Integration first reproduced **0/4** because the new fixture had not created its referenced supports; adding two real support records preserved every assertion. Browser navigation smoke is authored, not executed Chromium evidence. See [pagination evidence](DECKCHEK-CONSOLIDATION-REPORT.md#browsing-retained-venue-incidents).
-
-APC40 MKII, TRAKTOR KONTROL F1 and nanoKONTROL2 now record documented USB MIDI only. All complete audio objects and the shipped Korg unknown-audio fixtures remain intact; conditional audio stays **23**. Root independently passed **23/23**, preserving all 18 original checks, 15 specs and 18 documents. The unverified Korg copyright-year assertion was removed; F1 MIDI/NHL and Akai protocol-ID/USB-ID distinctions remain explicit. See [manufacturer provenance](DECKCHEK-CONSOLIDATION-REPORT.md#three-additional-usb-midi-provenance-decisions). Browser history portability is implemented through the [separate archive](DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive); a separate current-catalog file was added in [checkpoint 35](DECKCHEK-CONTINUATION-35.md#browser-equipment-catalog-transfer). The [passive A/B slice](DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons) makes no physical support-performance claim.
-
-## Guided stylus measurements and provenance
-
-The original guided workflow in `3e85ab5` is retained with reviewed corrections to capture ownership, setup membership, native field observations before compatibility defaults, calibration applicability and structured History persistence. Missing counters remain unobserved rather than zero. Starting a new request or selecting another stylus prevents stale success/error completions from taking ownership. A dispatched History or benchmark save is not described as a reversible operation. Explicit Save writes once; an all-null benchmark cannot be saved.
-
-Independent review reproduced three successive numerical defects: prefix-only frequency validation accepted a correct introduction followed by an out-of-tolerance remainder; nominal-frequency projection cancelled coherent 999/1001/1002 Hz references and corrupted THD/separation; then rectangular leakage from a pure 2001 Hz harmonic produced an apparent absent fundamental at about −69.422 dBFS, passing the unchanged −70 dBFS floor. The final guided method is **`hann-measured-reference-power-v3`**, analysis version **3**. It keeps the nominal 1000 Hz declaration separate from measured frequency, covers every sample with complete windows of at most 0.5 seconds, and applies the same coherent-gain-normalized periodic Hann weights to presence, THD and active/leakage amplitudes. Sample-weighted powers are pooled before one calibration pass. Rectangular and nominal projections remain diagnostic observations; none are pruned.
-
-Per-window coefficient sums, coherent gain, equivalent noise bandwidth and effective sample count are retained. The existing THD noise formula uses effective samples, and the existing separation leak-noise term widens with bandwidth. Chain/gain terms, untapered Level-0 uncertainty and ordinary analysis retain their previous behavior. There is no uncertainty reduction for window count. In the tested 10.1-second 48 kHz uncalibrated fixture, expanded THD uncertainty widened from 0.118433 to 0.119887 percentage points, and separation from 2.240042 to 2.554737 dB. These are fixture results under the existing assumed-noise model, not measured hardware accuracy.
-
-The pure 2001 Hz-only reproduction now retains its rectangular observation but measures approximately −179.650 dBFS on the qualified amplitude basis, leaving separation unavailable and the benchmark excluded. Genuine strong harmonics, poor or negative separation, and measurable fundamentals just above the floor remain evidence, rather than being filtered into favorable outcomes. The ±0.3% frequency criterion, −70 dBFS presence floor, harmonic observability policy, safe-output cap and native storage bounds remain unchanged. Version-2 guided baselines are distinguished from the new method; original rows and explicit operator-confirmed legacy behavior are retained.
-
-Worker verification passed **154/154** focused cases with no failures/skips, including **57** generated production workflows and **12** full ordinary-analysis comparisons. Independent serial Node 22.23.5 probes passed 2/2 prior reproductions in 11.710 seconds and 10/10 additional controls in 27.296 seconds, covering 33 complete production workflows and 102 structured History writes. These checked every retained field through JSON roundtrips, weak and absent fundamentals, adverse valid measurements, analytic power pooling, calibration, uncertainty and version compatibility. The reviewer matched the twelve frozen source hashes before execution; its later transport disconnect prevented its own post-test read, which root independently completed with all twelve hashes matching. These overlapping scopes are not added into a larger test count. The complete combined-suite result for this source is recorded above.
-
-Local run evidence retains complete window objects; benchmark detail uses a named, lossless column encoding. Exact JSON roundtrip checks compare every retained field and value. Independent calibrated optional-timecode fixtures used **58,046**, **59,271** and **58,664** bytes at 10, 10.1 and 10.5 seconds respectively, below the unchanged **65,536-byte** limit. Oversized metadata blocks saving without discarding observations. Structured History and local analysis metadata do **not** imply archival of full PCM. New browser smoke is included but its current-source execution remains a hosted gate at publication. Physical cartridge/reference-record repeatability remains unqualified.
-
-
-## Exported ledger verification facts
-
-The retained low-severity R4-21 finding was reproduced through the actual script extracted from an exported `renderLedgerHtml` page: a valid signature/hash result omitted the certificate facts it had checked. The page now snapshots integrity primitives and canonical payload bytes before awaiting cryptography. Bounded verdict, tester, serial and issue-time text comes from that same canonical snapshot. The result labels these as hash-checked content; the key fingerprint is separately identified as coming from the certificate's signature block. Existing signature-success, unavailable and invalid wording remains explicit. Hash mismatch/invalid content does not display checked facts. Rendering uses text content and preserves the export's privacy choices.
-
-Three additional actual-page regressions reproduced an older paste verification overwriting a newer verification or validation error. A request generation now owns the paste result; the listed-certificate comparison uses the recomputed checked hash. Canonical JSON ordering, SHA-256 arithmetic, seven cryptographic/canonical helper bodies, existing signed bytes and offline/CSP behavior remain unchanged. Worker verification passed **56/56** focused ledger/hash/privacy checks with no failures/skips, including **nine** actual exported-page scenarios. Root independently reviewed the production handler and all nine actual-page scenarios, confirmed the seven canonical/cryptographic helper bodies were unchanged, and executed the new scenarios as part of the complete combined suite. Three new browser smoke assertions remain pending hosted execution at publication. This clarification does not authenticate a tester's real-world identity or make an editable exported page tamper-proof.
-
-
-## Preserved foundation and integration corrections
-
-Certificate/Verify cached-screen ownership, independent ZIP stream bounds, WASAPI probe cleanup, native MIDI queued-open cancellation and failed-output ownership are retained. Integration's `d9a2add` serializes the complete monitor settings-write/prune operation, snapshots the submitted settings and preserves retry/partial-failure semantics. The separate GLib 34-syntax-correction patch and its expanded provenance guards are retained with the official two-line soundness fix. Root independently reversed both patches to every original byte. The original MIT license, upstream 0.18.5 version and all three Cargo root selections remain unchanged.
-
-The exact Cargo package/manifest warning gate preserves dependency diagnostics and every build/parser/stream failure. Existing long stress workloads are isolated into fresh processes without changing fixtures, assertions or budgets. The platform/nightly PR triggers include main and integration/**, keep read permissions, and retain tag-only release publication. The ignore-only branch adds Python bytecode exclusions while retaining existing worktree ignores.
-
-<a id="qualification-of-this-continuation"></a>
-
-## Qualification of checkpoint 34
-
-Source `32419404` passed the complete serial Node 22.23.5 rerun: **1,663/0/1**, **1,664 total**, **141 files**, **259.849819454 TAP seconds**; all **1,408** frozen hashes and the index tree matched. The initial full **1,657/1/1** process-SIGKILL result and isolated unchanged **6/6** pass remain in the [complete qualification record](DECKCHEK-RELEASE-READINESS.md#qualification-of-this-continuation), without an assigned cause. Current static gates include 394 syntax checks and 24 migrations; the separate monitor passed with its **65.28 ms** worst hop retained. Archive proof is **136/136** focused checks plus root's **1/1** exact 505-record production-store fixture; neither establishes Chromium or new native qualification. Publication/PR metadata remains discrepant and hosted gates remain open.
-
-## Qualification of the preceding 90ee4435 / 963054dc checkpoint
-
-Source `90ee4435` passed the complete **1,631/0/1** serial Node suite across 139 files with all 1,402 frozen files unchanged. The accepted passive A/B proof includes 112 Node checks, 19 production native-core tests and separate transport/exact-bit checks; root added one 42-vector differential test, nine unchanged canonical/hash tests and one hosted-mock/production-path check. The Xone:96/RANE FOUR batch had a prior **32/32** focused pass and independent source/preservation review. These overlapping scopes are not summed. See [release readiness](DECKCHEK-RELEASE-READINESS.md#qualification-of-this-continuation) for exact current static/performance/remote outcomes and [the A/B contract and limitations](DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons). No full native, Chromium, broad Sonar or hardware clearance is inferred.
-
-## Qualification of the preceding 524d5357 / e6a64d7 checkpoint
-
-| Source and scope | Observed result | Boundary |
-|---|---|---|
-| `524d5357a20faac03378fc9d267e85da13c8df52` / tree `a91b5cd67528dbb3439395996f36ce36332d26b3` | Node 22.23.5, serial across **136 test files**: **1,592 passed, zero failed, one optional skip; 1,593 total in 244.078776606 seconds**. All **1,390** frozen files remained unchanged | Optional unavailable local Mixxx controller corpus only; then-current combined JavaScript proof |
-| Then-current source static gates | Device index, timecode facts, **23 migrations**, mobile copies, notices, coverage, GLib provenance with Cargo metadata and application/harness formatting passed; all **383 tracked JS/MJS files**, including mobile and repository helpers, passed syntax checks | No full native application or Chromium execution |
-| Separate monitor performance gate | **1/1 passed**, **986.23624 ms TAP**; mean **0.345 ms/hop**, worst **5.06 ms**, heap growth **0.06 MB** | Unchanged budgets and workload; no physical scheduling or hardware claim |
-| Corrected support/catalog scope | Worker **117/117 Node**, **14/14 native**; root's two actual Equipment reproductions pass after failing before the correction, and **17/17 exact native checks** pass (14 production plus 3 probes); strict Clippy passed; **27 native inputs** verified | Overlapping scopes are not added together; native harness excludes Tauri adapters and the desktop build |
-| USB-MIDI provenance | Worker and root independently passed **23/23**; all 18 handwritten checks, 15 original specs, 18 original documents and complete audio objects preserved | 13 researched profiles; catalog stays 45/506/187 with **23 conditional audio cases**; no hardware qualification |
-| Incident pagination and report integration | Isolated **40/40 Node**, **13/13 native** with strict Clippy; corrected combined incident/pagination/report scope **51/51** in **1.978781211 seconds**, with **26 native inputs** verified | Fixture correction creates two real supports; no assertion weakened. Exact smoke-mock/model bridge **1/1** is not Chromium |
-| Preceding remote head `740fb78` | At **2026-11-18 11:56:42 UTC**, runs [44294062948](https://github.com/djshellshoxxx/deckchek/actions/runs/44294062948), [44294062998](https://github.com/djshellshoxxx/deckchek/actions/runs/44294062998) and [44294063010](https://github.com/djshellshoxxx/deckchek/actions/runs/44294063010) were queued: **11 jobs**, no assigned runner or steps. `release-checks` was skipped | No queue cause evidenced and no successful completed gate; run creation 11:22:12 / last update 11:22:13 UTC. These runs do not qualify changed source `524d5357` |
-| Then-current external gates | Hosted full native, browser, packaged-platform and extended fuzz/stress remain pending; broad Sonar, physical and distribution qualification remain open | No warning, assertion, timing budget or qualification requirement relaxed |
-
-The preceding implementation and bounded proof remain in the [consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md). Historical failures and results below retain their original source attribution.
-
-## Qualification of the preceding f0106e79 / 740fb78 checkpoint
-
-| Source and scope | Observed result | Boundary |
-|---|---|---|
-| `f0106e79ffb8e7a97ca34787b559c12bafdab3cd` / tree `c96b17aee38f0f773c0b174dcfe5e42aaea1b811` | Complete Node 22.23.5 suite: **1,536 passed, zero failed, 1 optional skip (1,537 total; 229.581 seconds)**, across 133 test files with serial file execution; all 1,382 frozen files matched afterward | Then-current combined JavaScript source pass; the optional skip is the unavailable local Mixxx controller corpus |
-| Then-current source static gates | Device index, timecode facts, **23** migration names, mobile copies, third-party notices, generated coverage, GLib provenance/Cargo selection, application and GLib-harness formatting all passed; syntax checks passed for all **380 tracked .js/.mjs files** | No full native application was built locally |
-| Separate monitor performance gate | **1/1 passed** in 0.972 seconds; mean 0.334 ms/hop, worst 2.54 ms, heap growth 0.06 MB | Unchanged fixtures and budgets; a performance proxy, not physical hardware qualification |
-| Manual incident independent review | **103 Node** and **10 native storage** checks passed with zero failures/skips; the sole review clarification was applied to browser concurrency wording | Exact production storage core and real migrations; Tauri adapters and real Chromium execution remain outside the local proof |
-| Five additional manufacturer-researched profiles | Independent scopes **14/14** and **11/11** passed; all **45** profiles retain **506** handwritten checks, **187** generated checks and zero plan gaps | **23** conditional audio cases remain; software planning is separate from device qualification |
-| Previous published head `5ffa10b` | Before the 740fb78 publication, runs [44284164319](https://github.com/djshellshoxxx/deckchek/actions/runs/44284164319), [44284164266](https://github.com/djshellshoxxx/deckchek/actions/runs/44284164266) and [44284164421](https://github.com/djshellshoxxx/deckchek/actions/runs/44284164421) remained queued | Those queued workflows supplied no then-current-source native, browser, platform or extended result |
-| Then-current hosted and external gates | Native, browser, packaged-platform, extended fuzz/stress and broad Sonar remain open at publication | No gate, warning rule, timing budget, assertion or qualification requirement was relaxed |
-
-The prior `1943ef0` source passed 1,500/0/1 in 230.785 seconds. The `0acb612` ancestor separately passed 674 application Rust tests with eight ignored, six optimized actual-GLib tests, warning/check/strict-Clippy gates, 1,428/0/1 JavaScript tests and 1,293/1,293 browser checks. These remain source-scoped historical evidence. Earlier failed/killed parallel, stress and fuzz attempts are retained below and in release readiness; no clean full stress or combined long-fuzz pass is claimed. Broad Sonar evidence remains unavailable. Snyk's prior no-manifest-change status is not a comprehensive security analysis.
-
-## Qualification of the preceding 1943ef0 continuation
-
-| Source and scope | Observed result | Boundary |
-|---|---|---|
-| `1943ef024bdc6abfe4ac32b4c368b764b75a0c86` / tree `c0b6a7033318eeb646cfb2c49e7f05029ece653d` | Complete Node 22.23.5 suite: 1,500 passed, zero failed, 1 optional skip (1,501 total; 230.785 seconds); serial file execution; source hashes unchanged | Then-current combined JavaScript source pass |
-| Then-current focused/static checks | Device index, timecode facts, migration numbering, mobile vendor copies, third-party notices, generated device coverage and all 352 JavaScript module syntax checks passed. Application and GLib regression-harness formatting passed; the GLib source/provenance check with Cargo metadata passed. The separate monitor performance test passed 1/1 in 0.956 seconds, observing mean 0.328 ms per hop, worst 1.04 ms and heap growth 0.06 MB under its unchanged budgets. | These checks do not substitute for current hosted native or browser execution |
-| Integration `0acb612`, standalone run [44273893598](https://github.com/djshellshoxxx/deckchek/actions/runs/44273893598) | **674** application Rust tests passed, zero failed/eight ignored; **6** optimized actual-GLib tests passed; fmt, warning check, cargo check and strict Clippy passed. JavaScript **1,428 passed, zero failed, one skipped**, 91.216 seconds; separate performance case passed. Browser **1,293/1,293**, no console errors | Root retrieved job logs; CI merge `c03501c` and `0acb612` have identical tree `536fda86a7b14d348b4855c893e87e368ed85c00`. This does not qualify later source automatically |
-| Integration platform caller [44273893490](https://github.com/djshellshoxxx/deckchek/actions/runs/44273893490) | Browser **1,293/1,293**, no console errors; later platform/native/package outcomes are tracked separately | The successful browser job alone is not packaged-platform acceptance |
-| Foundation `25e91e9` / tree `b2c36fc` | **1,431 passed, zero failed, one skipped**, 123.913 seconds | Historical reviewed foundation, before the newer GLib/monitor and guided corrections |
-| Integration report at `5960099` | Its author recorded **1,428/0/1** in 125.033 seconds after a prior serial **1,424/0/1** run at `e43be06` | Attributed historical local evidence, independently followed by the `0acb612` hosted results above |
-| Earlier parallel integration repeat | **1,340 passed, nine failed, one skipped**: eight SIGKILL workers and certificate timing 1,707 ms against its unchanged 1,000 ms limit | Failed evidence retained; termination cause was not proven |
-| Full stress and combined long fuzz | Unqualified on the current source | Preserve the completed individual target budgets and every failed/killed attempt; no budget or assertion was relaxed |
-
-Current broad Sonar evidence remains unavailable. The latest checked integration external status is Snyk's “No manifest changes detected in 5 projects”; it is not a fresh comprehensive security or Sonar analysis. Local full native compilation still lacks required development metadata, and local Chromium launch remains blocked by the observed socket restriction. Supported hosted workflows provide these prerequisites. No unchanged blocked launch/build was retried.
-
-
-## Execution discipline and retained evidence
-
-Use one local test owner at a time and serial Node 22 file execution. Overlapping/parallel suites produced substantial resource disturbance. Do not repeat the unchanged local Chromium/native prerequisite blockers or launch another local full stress run. Full stress and a clean combined long fuzz invocation remain CI gates. All 13 JavaScript fuzz targets previously completed unchanged 120-second budgets across retained attempts; initial timeout and killed attempts remain failures, not a clean combined pass. The full and quick stress failures remain in the readiness report, including the host-wide counter ambiguity.
-
-The current `32419404` source was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-34-checkout`. Its evidence includes `continuation-34-source-freeze.json`, `continuation-34-full-js.log`, `continuation-34-report-facts.json`, `continuation-34-post-suite-source-check.json`, `continuation-34-final-integration-acceptance.json`, `continuation-34-static/`, `continuation-34-independent-smoke-facts.json` and its log, plus `continuation-34-remote-evidence.json` and `continuation-34-branch-divergence.json`. Preserve `continuation-34-initial-full-js.log`, `continuation-34-initial-report-facts.json`, `continuation-34-windowing-isolated.log`, `continuation-34-windowing-isolated-facts.json` and `continuation-34-windowing-probe-interpretation.json`; the initial SIGKILL has no established cause. The accepted archive freeze is `venue-history-archive-freeze-20261118/`, manifest SHA256 `2edc795c0b620e9de8f58265b95e70f4c4b17b21590f209108c4e4cc5612c32c`. Its original behavior reds and 135/136 copy regression remain alongside final 136/136 green. Root's exact fixture is not Chromium.
-
-The preceding `90ee4435` source, published through `963054dc`, was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-33-checkout`. Evidence in the sibling `verification` directory includes `continuation-33-full-js.log`, `continuation-33-source-freeze.json`, `continuation-33-post-suite-source-check.json`, `continuation-33-report-facts.json`, `continuation-33-static/results.json` and `continuation-33-remote-evidence.json`, `continuation-33-branch-divergence.json` and `continuation-33-independent-integration-review.json`. The accepted A/B freeze is `support-isolation-freeze-20261118/` (manifest SHA256 `641b7b9f6b11c59cee39852100fba8cda51bdd577fdc644b8f28dd959fe658a0`); source integration is recorded in `support-isolation-integration-review.json`. Independent evidence is `support-isolation-independent-native-results.json`, `support-isolation-independent-parity.log`, `support-isolation-independent-canonical.log`, `support-isolation-independent-vectors.json` and `support-isolation-smoke-mock-check.{log,json}`. Profile provenance/proof is in `continuation-33-xone96-rane-research.json`, `xone96-rane-four-freeze-20261118/` and `xone96-rane-four-independent-review.json`. Retain the A/B native `15/19` and exact-bit `0/1` red logs in `support-isolation-proof/` alongside their green successors.
-
-The preceding `524d5357` / `e6a64d7` checkpoint was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-32-checkout`. Evidence under `/workspace/scratch/a884a1d6c4d8/verification` includes `continuation-32-full-js.log`, `continuation-32-source-freeze.json`, `continuation-32-post-suite-source-check.json`, `continuation-32-report-facts.json`, `continuation-32-static/results.json`, `continuation-32-remote-evidence.json`, `support-configurations-freeze-v2-20261118/`, `support-configurations-independent-review.json`, `controller-midi-transports-root-freeze-20261118/`, `venue-incidents-pagination-freeze-20261118/` and `venue-incidents-pagination-independent-review.json`. Preserve the original and corrected fixture logs and source hashes; the root-reviewed MIDI freeze includes the two Korg provenance-only corrections.
-
-The preceding f0106e79 combined source was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-31-checkout`. Its evidence includes `continuation-31-full-js.log`, `continuation-31-source-freeze.json`, `continuation-31-post-suite-source-check.json`, `continuation-31-report-facts.json`, `continuation-31-static/`, `venue-incidents-freeze-20261118/`, `venue-incidents-independent-review-manifest.json` and the independent native probes. The earlier 1943ef0 combined source was checked in `/workspace/scratch/a884a1d6c4d8/verification/continuation-30-checkout`. Scratch evidence under `/workspace/scratch/a884a1d6c4d8/verification` includes `continuation-30-full-js.log`, `continuation-30-source-freeze.json`, `continuation-30-report-facts.json`, `continuation-30-remote-evidence.json`, `continuation-30-integration-js-ci.json`, `stylus-guided-hann-freeze-20261118/`, `stylus-remote-independent/`, `ledger-verified-facts-freeze-20261118/`, `glib-0acb-independent/`, `rust-warning-gate/`, and `fuzz-stress-resources/`. Reproduce from committed source if scratch is lost. Earlier coupled/windowed stylus snapshots remain failure history; do not restore them over version 3.
-
-Historical source-35 evidence is in the sibling `verification` directory: `continuation-35-source-freeze.json`, `continuation-35-report-facts.json`, `continuation-35-full-js.log`, `continuation-35-post-suite-source-check.json`, `continuation-35-static/` and `continuation-35-final-integration-acceptance.json`. Integration reviews cover incoming-source preservation, catalog/analog/history slices, Windows corrections and Fleet. Remote records are `continuation-35-remote-inventory/`, `continuation-35-predecessor-hosted-results.json`, decoded job logs and the late predecessor ASan/nightly classifications. The [checkpoint35 report](DECKCHEK-CONTINUATION-35.md#evidence-and-continuation) identifies the accepted freeze directories. Preserve the exact concurrent report and all predecessor red/green records.
-
-## Historical source38 resume commands and ownership
-
-Repository: `/workspace/scratch/a884a1d6c4d8/deckchek`; latest accepted source checkout: `/workspace/scratch/a884a1d6c4d8/verification/continuation-38-checkout`, source `fe936f7d`, tree `f74910a6`. The twelve publication documentation paths are in `continuation-38-docs-worktree`, including the unchanged source37 report and new native-history report. Root owns independent review/publication. Earlier execution releases at **15:50:31 UTC** (MIDI author → root) and approximately **16:31 UTC** (root → native memory author) remain historical; the native author released its slot to root after the **16:41 UTC** freeze. At the **16:50:51.825651 UTC** source38 acceptance, all root suite/static processes were complete and no new execution transfer had occurred. Verify current ownership before running anything.
-
-Historical source38 evidence under the sibling `verification` directory: `continuation-38-final-integration-acceptance.json`, `continuation-38-native-independent-acceptance.json`, `continuation-38-full-js.log`, `continuation-38-source-freeze.json`, `continuation-38-post-suite-source-check.json`, `continuation-38-static/`, `native-support-memory-freeze-20261118/` and `continuation-38-documentation-seed.json`. The [current report](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#evidence-and-continuation) records exact provenance and boundaries.
-
-**Historical source37 evidence:** Evidence under the sibling `verification` directory: `continuation-37-final-integration-acceptance.json`, `continuation-37-full-js.log`, `continuation-37-source-freeze.json`, `continuation-37-post-suite-source-check.json`, `continuation-37-static/`, `continuation-37-profile-final-review.json` and `continuation-37-matrix-regeneration.json`. Keep `continuation-36-final-integration-acceptance.json`, both implementation freezes and the original 84/85 profile-author log. The [report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#evidence-and-next-work) identifies the evidence hashes and remaining gates.
-
-```sh
-git status --short
-git fetch --no-tags origin
-git log -5 --oneline
-/workspace/scratch/a884a1d6c4d8/fs35-node22-npm-cache/_npx/e5e7bdc4f892e393/node_modules/node/bin/node --test --test-concurrency=1 tests/*.test.mjs
-```
-
-Freeze source and check the sole execution owner before rerunning tests. Native Git push/gh lacks authentication here; use the supported GitHub connector and expected-head checks. Refresh/reconcile changed refs without overwriting concurrent work. Source38 exists but its follow-up branch/PR is unpublished in this snapshot. Independently review the twelve documentation paths, preserve the published `72dd38c` PR30 head and all three protected historical reports, then publish the separate follow-up against the integration base without changing PR27 metadata. Documentation-only changes do not require repeating unchanged executable suites.
-
-## Historical source38 next work and gates
-
-1. Follow exact-source hosted gates for the separate follow-up while preserving PR30 at `72dd38c`. Its [Windows pass](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md#published-checkpoint-35-hosted-observation) qualifies that published tree only. The unchanged [checkpoint35 report](DECKCHEK-CONTINUATION-35.md#predecessor-hosted-outcomes) retains e6 failures and 2c9 outcomes, including ASan passing with pre-optimization Fleet code; no earlier failure cause is established. Keep assertions, timing budgets, warning policy and strict Clippy unchanged.
-2. Obtain a current broad Sonar result through supported access. The public route previously returned 403 and no authenticated Sonar capability was exposed; Snyk's no-manifest-change status is not a substitute. Recheck repository approvals/protections before merge.
-3. Continue small manufacturer-sourced profile batches. Twenty-one existing profiles now have reviewed provenance, including WARM2’s no-capability-change decision; 23 audio cases and 20 MIDI profiles remain conditional. Preserve host/model scope and unknown USB formats, IDs, receiving direction, maps and qualification. Manufacturer facts are not hardware proof.
-4. Sources36/37 MIDI/profile work and source38 native history streaming are integrated and locally qualified within their documented scopes. Full native application, hosted/platform and physical qualification remain open; the allocator harness is not process-RSS or latency proof. Both browser archives remain implemented. Native-only catalog authorities, stable MIDI identity, surrounding metrics, broader isolation outcomes, PDF-embedded certificate JSON and advanced classifiers remain separate tasks.
-5. Merge only after applicable gates pass. Close superseded PRs only after contribution-preserving replacement reaches main. Physical repeatability, real databases, supported driver/hardware combinations, phones, interoperability, signing/notarization and distribution acceptance remain external qualification. No release, tag or deployment is authorized.
-
-Fleet remains OFF by default; safe output levels, migration history, stored raw observations and valid signed certificates are preserved. OpenAI implementation/review agents and Caveman guidance were used. Claude Opus 5.5 was not exposed and is not represented as having performed this session's work.
-
-## Reports
-
-- [Branch and PR audit](DECKCHEK-BRANCH-AUDIT.md)
-- [Consolidation report](DECKCHEK-CONSOLIDATION-REPORT.md)
-- [Completion ledger](DECKCHEK-COMPLETION-LEDGER.md)
-- [Security audit](DECKCHEK-SECURITY-AUDIT.md)
-- [Release readiness](DECKCHEK-RELEASE-READINESS.md)
+## Historical resume material
+
+The previous [source41 ownership snapshot](DECKCHEK-CONTINUATION-HANDOFF-HISTORY-2026-11-21.md#historical-source41-resume-state-and-ownership)
+and all older results remain preserved for provenance. Current workers and
+gates are listed above.

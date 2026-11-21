@@ -1,0 +1,49 @@
+{
+  "prior_path": "/workspace/scratch/6f2247f2f463/deckchek-fit-functional/docs/engineering/evidence/audio-context-functional-2026-11-20/two-file-aggregate/contexts.json",
+  "prior_sha256": "872571803365a4bcfbd23ed31c921902d614c248ad34f1ec3ab07e2626521a6a",
+  "current_sha256": "a4367b57c241becb4e582be0b8d8f09562170010c41c655d3bbebf9c73d798da",
+  "prior_status": "fail",
+  "current_status": "pass",
+  "finish_input_equal": true,
+  "calls_equal": true,
+  "playback_equal": true,
+  "metric_differences": {
+    "aq_balance_db": {
+      "prior": -220,
+      "current": 0
+    },
+    "aq_gain_db": {
+      "prior": -110,
+      "current": 0
+    },
+    "aq_hum_db": {
+      "prior": 0,
+      "current": -220
+    },
+    "aq_polarity_inverted": {
+      "prior": 1,
+      "current": 0
+    },
+    "aq_response_flatness_db": {
+      "prior": 220,
+      "current": 0
+    },
+    "aq_response_high_db": {
+      "prior": 110,
+      "current": 0
+    },
+    "aq_response_low_db": {
+      "prior": 110,
+      "current": 0
+    },
+    "aq_thd_percent": {
+      "prior": 6935867070.3903,
+      "current": 0
+    }
+  },
+  "limits": [
+    "Prior input hashes were taken after that suite, not at analyzer entry.",
+    "New entry hashes cannot establish prior entry identity retroactively.",
+    "Changed instrumentation/context means this pass does not supersede old failures or identify a cause."
+  ]
+}

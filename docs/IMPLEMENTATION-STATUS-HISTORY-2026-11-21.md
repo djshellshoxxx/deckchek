@@ -1,0 +1,468 @@
+# DeckChek implementation status
+
+## Qualified player consolidation — 21 November 2026
+
+PR [#74](https://github.com/djshellshoxxx/deckchek/pull/74) merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`, with complete-tree equality to its tested merge, fresh current-base proof and expected-head guard. All applicable standard/nightly jobs, six desktop builds and five platform smokes passed. Issues #66/#70 closed; #69/#72/#73/#75 remain open. See the [merge record](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md).
+
+The active successor trio retains frozen source `eafaa53`. Its focused UI/privacy selection passed **82/82**, with all 2,036 tracked hashes unchanged; raw output uses the SPEC reporter. Both new smoke modules passed syntax checks. Actual new rendering and the single reviewed audio fit trace remain pending. The numerical qualification hold remains.
+
+## Current audio investigation and UI/privacy successor — 20 November 2026
+
+All six audio workers completed the [context handoff](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md). A distinct aggregate observation reproduced both failures, **33 total / 31 pass / 2 fail**, with all 2,007 tracked hashes unchanged. Actual saved retry measurements are retained, but no numerical cause or production audio correction is established. The original complete reference/PDF gate remains held.
+
+The successor adds a responsive toolbar correction, a Player guide and bounded ledger preset #75 validation. Three fresh workers review those changes and a narrow fit-field trace; only their functional worker executes project code. PR #74 is now qualified and merged; see the current merge record. Issues #69/#72/#75, AC-6, default-off Fleet and physical limits remain open and unchanged.
+
+## Previous reference/PDF continuation — full qualification held
+
+All three initial workers and three fresh successors completed the
+[reference-file/PDF review cycle](engineering/PLAYER_REFERENCE_CONTINUATION_2026-11-20.md).
+Optional selected-file SHA-256 metadata and corrected PDF rounded-axis fallback
+passed their 132 focused cases; static code/defensive reviews accepted the
+bounded source. The first complete serial Node24.22.3 run nevertheless recorded
+**2,357 total / 2,354 pass / 2 fail / 1 optional skip**, across 192 files, with all
+1,943 tracked hashes unchanged. The existing cubic THD assertion repeated #72;
+an audio-runner retry saved once but its measurement verdict failed. No cause,
+ownership defect or common cause is established. **Combined qualification is
+held for a separate audio-diagnosis trio.** No narrow rerun replaced that result.
+
+Fresh source `ded34d2dccfcf0ae51c78fa1492a57c161d32a1d`, tree
+`9030b4d9eeb307f27c0d794dccf4a37895c2a602`, has verified durable equivalent
+`b8bf6ea10791b05a2188d176ae8b996528a10f08`. All original failures, complete TAP,
+source maps and six reports are retained. #73's original candidate stays fixed.
+Draft #74 remains fixed at `78403038c530a981b732d5ac0210539edf37fc77` for its own
+hosted gates; #71 is superseded/closed unmerged with original branch retained.
+Main is last verified at `099c99c055322ef668be23e6ae50a2968614cc6d`.
+
+Browser/print smokes have syntax evidence only. No local Chromium retry/native
+claim follows. #69/#72 and unchanged AC-6 stay open. Reference/raw retention,
+pitch integration, persistence/reports and physical/scientific gates remain;
+Fleet stays off, its diagnostic remains fixed, and thresholds are unchanged.
+
+## Historical player capture and usage consolidation — 20 November 2026
+
+All three initial workers and three fresh successors completed the
+[Player capture and usage handoff](engineering/PLAYER_CAPTURE_CONTINUATION_2026-11-20.md).
+The actual app has a default-off one-pair, 1–30 second capture preview with owned
+cancellation and provisional metadata export. Usage #70 adds same-batch valid
+proposal deduplication and own-property source membership; native validation is
+unchanged. Source `f081881d4979e4385f255163660258784e27a264`, tree
+`39d4351da05fc1fc65f555874824555d96df5cd3`, is preserved by durable equivalent
+`6295c3eb5b470b34f2a1010b040b1694780e0ee9`.
+
+Fresh complete serial Node24.22.3 verification passed **2,331 / 0 failures /
+1 optional skip**, **2,332 total across 191 files**, with **1,892 tracked hashes
+unchanged**. Static reviews found no remaining bounded blocker. Local Chromium
+failed before a page; this successor requires its own hosted rendered UI and
+native/platform gates. Original audio failure #72 remains unexplained; the
+33-test diagnostic selection did not establish matching predecessor order.
+Issue #69 and AC-6 remain open and unchanged.
+
+Accepted #66/#68 and bounded #69 changes are included from fixed #71. Publish
+this successor before superseding #71, retaining branches. #66/#70 close only
+through a qualified implementing merge. Main is last verified at
+`099c99c055322ef668be23e6ae50a2968614cc6d`. The next distinct trio reviews optional
+reference-file hashing and PDF #73 on an isolated successor. Retention, pitch
+integration, reports and scientific/physical gates remain open; Fleet stays off.
+
+## Historical redaction and corrected outcome consolidation — 20 November 2026
+
+The [current redaction handoff](engineering/REDACTION_CONTINUATION_2026-11-20.md)
+combines accepted device-outcome #66 and fractional-timestamp #68 corrections
+with bounded JS/Rust diagnostics redaction #69. Reviewed local source
+`6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6`, tree
+`7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a`, is preserved by exact-tree durable
+checkpoint `36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371`.
+
+Initial focused verification passed 60/60. Fresh full Node 24.22.3 verification
+recorded **2,314 total / 2,312 pass / 1 fail / 1 optional skip**, with all 1,831
+tracked hashes unchanged. The existing cubic audio-quality assertion failed;
+its one unchanged-source narrow rerun passed 15/15. The first failure remains
+unexplained. The consolidated draft must retain this hold and obtain its own
+hosted/native gates. Source-specific redaction cases all passed; complete
+Spec 02 AC-6 acceptance is not established and **issue #69 stays open**.
+
+Main remains the qualified QR/acquisition merge `099c99c055322ef668be23e6ae50a2968614cc6d`.
+Publish the corrected consolidated draft before superseding #68, retaining its
+branch/ancestry; #66 remains open until an implementing qualified merge. The
+fixed Fleet diagnostic and original timing failures remain preserved, without
+rerun or threshold changes. Fleet stays off. Next work covers the audio failure,
+independent acceptance of prepared usage-ledger #70, and bounded CDJ UI wiring.
+Player persistence/reporting and scientific/physical qualification remain open.
+
+## Historical device outcome and trend continuation — 20 November 2026
+
+The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
+is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact
+tested tree `f7e32678dd89880a7dce642424100e77c5e22374`. All applicable standard,
+nightly, six-build and five-smoke gates passed for #67 before the guarded merge.
+GitHub also reports included #65 merged and issue #64 closed. Original branch
+heads and #65's failed timing result remain retained. A separate initial worker
+set now owns diagnostics redaction #69; #66/#68 corrections are accepted on
+the successor below and still await that consolidated source's hosted gates.
+
+The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
+records three completed initial workers followed by three completed fresh
+workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,
+tree `6de27897af9aea1f69084b1de6ef3c294247ac80`; durable exact-tree checkpoint
+is `0561724b5bf8fdda92699c79ab6d539feee0479b`.
+
+Prospective device outcomes now require usable latest evidence or an explicit
+OK finding before the no-criterion fallback records PASS. Missing evidence stays
+unknown/REVIEW; criteria, verdicts, adverse findings and historical records retain
+their behavior. Trends with identical fractional timestamps remain unavailable.
+Fresh serial Node 24.22.3 acceptance passed **2,284/0/1 optional skip**, **2,285
+total across 190 files**, with **1,804 tracked hashes unchanged**. Native and
+hosted qualification are separate.
+
+The [single hosted Fleet experiment](engineering/FLEET_GATE_HOSTED_RESULT_2026-11-20.md)
+completed with failure: the untouched baseline passed, but the instrumented
+suite measured **213.308243 ms / unchanged 200 ms**. The original #65 failure
+at 201.565999 ms remains unexplained. Complete artifacts and fresh independent
+byte checks are retained; no diagnostic rerun or causal claim is authorized.
+
+The next distinct worker set addresses diagnostics redaction issue #69; the
+next consolidated draft will include both accepted slices. Existing #65/#67/#68
+heads and branches stay fixed. Read live exact-source gates before ordinary
+merges. CDJ UI/storage/reporting and scientific/physical qualification remain
+open. Fleet stays off. Historical sections below preserve their original scope.
+
+## Historical acquisition and Fleet diagnostic preparation — 20 November 2026
+
+The [acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
+`157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree
+`f7e32678dd89880a7dce642424100e77c5e22374`. All six workers completed; fresh
+Node 22.23.4 verification passed 56/56 with 1,643 tracked hashes unchanged.
+The single-pair owned-capture API retains native observations, scoped cleanup
+and immutable provisional metadata. Production player UI, retained raw/reference
+bytes, persistence/reporting and scientific/physical qualification remain open.
+
+The [Fleet diagnostic continuation](engineering/FLEET_GATE_CONTINUATION_2026-11-20.md) records three completed initial
+workers followed by three completed fresh reviewers. They accepted combined
+source `f1172b87902aa05c93c452619c7ed1e359f939e6`, tree
+`41031b09d19dfd1ca90dd95173872aaeb280e3f6`; durable equivalent is
+`1625bb4dc6906777b7891e9158a2ef651e40be89`. Fresh generation/parser/evidence checks
+passed 60/60 against the actual failed merge, with 1,706 tooling and 1,626 input
+hashes unchanged. These are tooling checks, not native performance results.
+The exact reviewed proposal is ready for one bounded hosted diagnostic; keep
+its activated branch fixed and preserve every result, including failures.
+
+QR #65 stays fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`. Its ASan Fleet
+gate failed at 201.565999 ms against 200 ms; cause remains unestablished. Later
+#67 ASan passed 767/0/8 ignored using the same compiler, but other applicable
+#67 gates remained pending at the dated readback. No threshold, production
+Fleet behavior or default was changed. Only source-specific applicable checks,
+current-base tree proof and an expected-head guard can qualify a merge.
+
+Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
+#54/#58/#59. Superseded inputs and original branches remain preserved. Fleet
+stays default-off; existing profile assignment is implemented. Issue #66 is
+next for a distinct worker set after diagnostic activation. Read live refs and
+the linked reports; historical snapshots below retain their original meaning.
+
+## Historical source41 — incident evidence, profile provenance and preview integrity
+
+**18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
+
+Coverage is **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **22 conditional audio profiles** and **3 conditional MIDI profiles / 9 requirements**. The complete serial Node 22.23.5 suite passed **1,975/0/1** (1,976 total; 162 top-level files; **257.854541805 TAP seconds**). All **11** local static/performance/syntax gates passed, including 426 syntax files and 25 migrations, with all **1,480** source hashes/tree unchanged before and after every gate. The report separately binds the prior bounded **45/45** native proof to this tree without claiming a new full Tauri run. Source39's three workflows and source40's primary workflow have completed successfully at their own exact trees; they do not qualify source41. No source41 hosted result or merge is asserted. Fleet stays OFF.
+
+The dated source40 and earlier sections below preserve historical snapshots. Current feature/queue rows are updated separately; prior verification counts, failures and branch dispositions retain their original sources.
+
+<a id="current-source40-native-catalog-and-controller-provenance"></a>
+
+## Historical source40 prepublication snapshot — 18 November 2026
+
+Source [`20a8c342`](https://github.com/djshellshoxxx/deckchek/commit/20a8c34261d2aa801335a812fbc3c5987cf28587) adds selected native setup-catalog transfer and exact DDJ-REV1/REV5 provenance. The complete serial Node 22.23.5 suite passed **1,835/0/1** (1,836 total; 151 files; **253.593508232 TAP seconds**), with all **1,447** frozen files unchanged; local static/proxy gates passed, including **411** syntax files. The [source40 report](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md) records the accepted 18/18 bounded native core, 146/146 related Node scope, corrected chooser regression and all retained failures. Coverage remains **45 profiles / 506 handwritten / 187 generated / zero gaps**, with **23 conditional audio profiles** and **17 conditional MIDI profiles / 51 requirements**; reviewed provenance covers 25 existing profiles.
+
+This is a **prepublication source40 snapshot**. Existing draft PR32 remains at published `cc15026a`; its verified primary browser **1,338/1,338**, cross-JavaScript **1,780/0/1** and ASan **730/0/8 ignored** results qualify that preceding tree, not the new catalog bytes. Root intends a distinct draft follow-up after documentation acceptance so PR32 can finish its current gates. No follow-up branch/PR number is assigned here. Native device-profile association, full new-source hosted/platform checks, broad Sonar and hardware remain open. Fleet stays OFF.
+
+<a id="current-source39-correction"></a>
+
+## Historical source39 prepublication correction
+
+The [logical MIDI and mixer follow-up](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) records the accepted logical-ID/Runner/Mapper contract, DJM-450/DJM-900NXS2 provenance and browser-smoke repairs. Source `04bbc714` passed the complete serial Node 22.23.5 suite **1,780/0/1** (1,781 total, 148 files, **249.818975973 TAP seconds**) and all local static gates; all **1,434** frozen files remained unchanged. The initial full **1,779/1/1** failure and corrected **16/16** profile scope remain separate evidence. Existing draft PR32 is at `61e265f`; publication of the new source is pending. Published-head native/JavaScript successes and unresolved browser failures do not qualify the new bytes. Physical identity/continuity, MIDItest consumer integration, broad Sonar and hardware remain open; Fleet stays OFF.
+
+## Historical source38 prepublication snapshot
+
+Source `fe936f7d48db2633ba3c2e948c682fa49ab68490` (tree `f74910a66e7bf9da818185fc87d4ec22a8cf2b4c`) adds streaming native support-history validation to accepted source37. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; **265.537171973 TAP seconds**), with all **1,429** frozen files unchanged; local static gates passed. The separate exact native-core/harness run passed **23/23**, with bounded allocator measurements and explicit full-application exclusions. See the [current report](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md) for the increased cumulative-allocation/time tradeoff and qualification limits.
+
+The intended draft branch remains `review/deckchek-midi-profile-20261118`, targeting `integration/deckchek-consolidation-20261118` at `0acb612`; no branch/PR is published in this snapshot. It preserves the contribution of stable PR30 head `72dd38c`. Source37’s report remains an unchanged earlier snapshot. Current-source hosted/native-platform/Chromium, broad Sonar and hardware gates remain open; Fleet stays OFF.
+
+## Historical source37 MIDI/profile snapshot
+
+Source `2ec083c411c7f9353fb0926fdf6dd828e200c5a0` (tree `795cfa22f3eb4d4b7e7838100b60e158f3c0424d`) adds explicit MIDI transport prerequisites and exact-model DDJ-GRV6/XDJ-AZ provenance. The complete serial Node 22.23.5 suite passed **1,747/0/1** (1,748 total; 147 files; 247.940381799 TAP seconds), with all **1,428** frozen files unchanged; static gates passed. Coverage remains **45 profiles / 506 handwritten / 187 generated / 0 gaps**, with **23 conditional audio cases** and **20 conditional MIDI profiles / 60 requirements**. Reviewed provenance now covers 21 existing profiles, without physical qualification. See the [follow-up report](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md).
+
+This is a prepublication snapshot for the intended `review/deckchek-midi-profile-20261118` branch into `integration/deckchek-consolidation-20261118` at `0acb612`. The follow-up descends from published PR30 at `72dd38c` and preserves its contribution; PR30’s head stays stable. The integration base keeps existing nightly/platform gates applicable. The Windows pass at `72dd38c` is preceding-head evidence. Source37 hosted/browser/native/platform, broad Sonar and hardware gates remain open. The separate native support-history memory work is outside this source. Fleet stays OFF.
+
+## Historical checkpoint 35 snapshot
+
+The reviewed source is `3aa4d964bc4091a2c16aac042a9bce9b2f8aeec5` (tree `8f47b511c8de5cbdfd183f6fd7e119e708edc513`). It combines both browser archives, history navigation, Windows test corrections, Fleet result ownership and concurrent integrity/profile repairs. The complete serial Node 22.23.5 suite passed **1,722 tests, zero failures and one optional Mixxx-corpus skip (1,723 total; 246.284718878 TAP seconds)** across 146 files, with all 1,424 frozen files unchanged. Current coverage is **45 models, 506 handwritten checks, 187 generated checks and 23 conditional audio cases**; reviewed provenance covers **19 existing profiles**. See [checkpoint 35](DECKCHEK-CONTINUATION-35.md) for exact evidence and limits.
+
+At the **2026-11-18 15:33:18.863 UTC** inventory, the owned branch and draft [PR #30](https://github.com/djshellshoxxx/deckchek/pull/30) both reported `2c9abbc`; mergeability was true/unstable. Integration `0acb612` and main `ee5aa511` were unchanged. Source `3aa4d964` remained unpublished. The older ref discrepancy and earlier test outcomes are historical. Browser current-catalog and immutable-history transfer are implemented as separate files; native-only catalog authorities, MIDI transport inference, surrounding metrics, broader SPEC-05 work, current-source hosted qualification, broad Sonar and hardware gates remain open. Fleet stays OFF.
+
+Updated: 2026-11-18 (reviewed native MIDI and service lifecycle corrections; final native/platform qualification and all hardware gates remain open)
+
+This file records implementation state separately from product specifications. A capability is not considered validated merely because a UI control exists.
+
+## Cloud continuation: M7 data and statistics foundations (2026-10-22)
+
+Historical: the "still outstanding" and "remaining" items in this section and in "FS-23 experimental fleet workflow" are done; see "M7 additions" and "M8 additions" below.
+
+- Added the actual reserved schemas `0014_certificate`, `0015_unit_population`, `0016_service_worksheets`, and `0017_fleet_dashboard` from FS-20–23. Existing migration numbers and data are preserved, including databases that already applied `0018_session_origin`. These schemas provide storage foundations; they do not make the corresponding features complete. New Rust tests cover fresh setup, repeated migration execution, the out-of-order FS-30 upgrade, foreign keys, uniqueness and constraint failures.
+- FS-21 pure statistics are implemented in `app/population.js`: type-7 quantiles, scaled-MAD outlier bounds with IQR fallback, winsorization, mid-rank ties, seeded 90% bootstrap intervals, one median per contributor, minimum population sizes and explicit method/unit filtering. Raw dots retain outliers, and the comparison always includes the selection-bias caveat.
+- FS-21 `app/pack.js` builds whitelisted anonymous packs with three-significant-digit values, validates the 5 MB/100,000-row limits and known plausible ranges, and provides a removable, idempotent in-memory store. Overlapping packs retain their own observation ownership, so removing one does not delete an observation still supplied by another.
+- Still outstanding for FS-21: native import/export/persistence commands, profile plausible-range definitions, comparison and sharing UI, sibling/history integration, and manual privacy review. Flags remain off and unavailable. FS-20 certificate signing/UI and FS-22 service workflows/UI remain outstanding.
+
+### FS-23 experimental fleet workflow
+
+The Fleet option is now available under Experimental features and remains off by default while its remaining acceptance work is completed. The native app supplies asset/location, latest-test and confirmed usage-ledger evidence through `src-tauri/src/fleet.rs`; pure `app/fleet.js` policy and `app/fleet-api.js` decorate that evidence for the UI. This keeps health/reminder rules independent of SQL and presentation rather than duplicating them in the native adapter.
+
+- Fleet grid: venue/booth/category/health/search filters, sortable columns, latest result per test, explicit Never tested/Review/Attention states, failing items, tracked-hour estimates and due reminders. Exports contain exactly the selected rows, UTF-8 BOM, RFC 4180 quoting and formula-injection protection.
+- Per-asset placement and test-profile handoff; maintenance logging, reminders in calendar days or confirmed tracked hours, completing-event resets, one-day snooze; startup summary and badge with at most five listed reminders. Calendar calculations use UTC dates and reject invalid dates, impossible intervals and four-digit-year overflow.
+- Hours reminders query the current confirmed ledger by the maintenance timestamp, so importing older usage cannot falsely advance a reminder. An entry spanning that timestamp has no measured within-entry distribution: the reminder is Unknown until the entry is split or reviewed. Stored hours-at-event are historical audit data, not a subtraction baseline.
+- Venue/booth/position creation, rename and parent change. Deletion previews affected counts and requires typing the existing name. Occupied locations remain blocked unless an explicit outside destination or Unplaced is selected; moves, audit events and deletion commit atomically. Saved setup/support references still block deletion and roll back any moves; assets and historical records are preserved.
+- Booth sheet is registered with the shared PDF/print path and includes positions, asset/model, serial, last test, health, due status and a notes area. Browser mode explains that native fleet persistence is unavailable.
+- Configurable stale-result days and startup-banner preference. Keyboard `/`, `E`, `N` and arrow-key grid navigation are supported.
+- Product-scoped reminder templates can be created, edited and applied repeatedly without duplicate reminders; no manufacturer interval is inferred. Maintenance history filters by UTC date range and event type in SQLite before applying its latest-1,000-results cap.
+- Remaining FS-23 work: default-on qualification and the owner's real-database/hardware walkthrough. Do not describe the whole FS-23 specification or M7 milestone as complete.
+
+<a id="current-native-support-history-memory-correction"></a>
+
+## Historical source38 native support-history memory correction
+
+Source38 streams native history validation and performs indexed original-record lookups inside the same transactions. Filters bound returned rows without suppressing unrelated corruption; exact retries, original metadata, validation order and API limits are preserved. The [23/23 exact-source harness proof](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md#native-proof-and-preserved-failures) includes 22 production contracts plus a separate allocator probe. Lower peak Rust allocation comes with more cumulative allocation and sampled debug time; full Tauri/platform memory and latency remain unqualified.
+
+<a id="current-logical-midi-selection-and-mixer-provenance"></a>
+
+## Historical source39 logical MIDI selection and mixer provenance
+
+[Source39](DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md) adds explicit backend/direction-scoped IDs and shared pending Runner/Mapper claims, preserving captured outputs, exact unique-name compatibility and input-only close. R1 reuse-generation, R2 JavaScript legacy-name replacement and native R2 follow-through were reproduced before correction; final native proof is 38/38 in a bounded exact-core/wire harness. The retained JavaScript 255/0/1 result belongs to review2, whose JS bytes remain unchanged. This is software identity/ownership evidence, not physical identity, hot-plug continuity, MIDItest consumer integration or hardware qualification. DJM-450 confirms USB MIDI; DJM-900NXS2 retains unknown MIDI transport and corrected computer-port wording. Reviewed provenance covers 23 existing profiles, with 19 conditional MIDI profiles / 57 requirements and unchanged conditional audio coverage.
+
+## Source37 MIDI transport and profile correction
+
+[Source37](DECKCHEK-MIDI-PROFILE-FOLLOWUP.md) separates explicit USB/DIN facts from generic MIDI applicability. Unknown transports retain conditional plans and a direct prerequisite Skip action; generated conformance without confirmed USB MIDI starts with no output selected. Existing handwritten and known-USB pairing, General MIDI opt-in, test IDs, non-MIDI plans and certificate policy are preserved. DDJ-GRV6/XDJ-AZ USB MIDI is now manufacturer-sourced, while nominal audio rates and converter resolution remain separate from unknown host USB formats. Combined Node/static qualification is recorded in the follow-up report; physical transport identity and hardware qualification remain open.
+
+## PR9 consolidation: FS-34, FS-35 and FS-36 (2026-11-18)
+
+- FS-34 `app/devices/test-plan.js` (capability model, baseline plan, metric registry, audit) and `tools/check-device-coverage.mjs`; the Devices screen applies `completePlan`, the catalog sync still receives researched profiles. 45/45 shipped profiles have zero gaps (506 hand-written + 187 auto tests); `docs/testing/DEVICE-TEST-COVERAGE.md` is generated and checked by `npm test`. Correction over PR9: an unrecorded audio-output count on a controller gives a conditional, minor audio test instead of assuming every controller has a sound card; `connectivity.audio: null` gives none.
+- FS-36 `midi:conformance` and `midi:gm` panels in `app/ui/devices/midi-runner.js` with connection ownership: identity probe/timer and Finish bound to their connection; GM sends serialized per panel on the captured output, with `gmAbortCleanup()` (panic plus controller defaults) on stop/failure/save/disposal and never following a replacement UI output selection; native name-based reconnect limits remain below. Explicit output selection, re-pairing on input change and duplicate-name guards avoid arbitrary routing. No control messages, a full capture, host queue drops, missing/reset loss counters or missing/unavailable selected-input observations give REVIEW. Saved provenance identifies the counter's all-input scope and retains both observations. Burst rate is informational; spec/analyzer discrepancies are reconciled without threshold changes. Tests: `tests/midi-fs36-ui.test.mjs`, `tests/midi-runner-lifecycle.test.mjs`, `tests/midi-conformance.test.mjs` and `tests/midi-tests.test.mjs`. Source follow-up: [f9075bd4b00f0d39680094afda235ff360b7febd](https://github.com/djshellshoxxx/deckchek/commit/f9075bd4b00f0d39680094afda235ff360b7febd).
+- FS-35 `audio:quality` (`app/audio-quality.js`, `app/devices/audio-session.js`, `app/ui/devices/audio-runner.js`): lease-scoped capture and owned-voice cancellation; early capture failure prevents playback, late completions cannot render or save, and levels stay at or below −12 dBFS including the exported WAV. Clipping counts every driven segment. Response analysis revision 2 uses the worst channel and retains the signed mean and separate channel values. Non-finite waveform inputs are rejected; live calibration requires a valid profile matching the actual captured device and rate. Raw native counters/errors and capture provenance are saved; faulty or unavailable capture evidence gives REVIEW while retaining numerical measurements. Imported-file continuity is explicitly unobserved. Phase progress, Enter/Esc and focus transitions are implemented; conditional auto tests offer Skip. Thresholds remain unchanged. Source follow-up: [742c67ab93ab52baafa278cc48c6ca7c6d0a8df7](https://github.com/djshellshoxxx/deckchek/commit/742c67ab93ab52baafa278cc48c6ca7c6d0a8df7).
+- The FS-20 certificate plan excludes FS-34 auto tests, so certificate readiness is unchanged.
+- Browser coverage includes the core setup/conformance scenarios and `tools/smoke/audio-quality.mjs` injected-I/O scenarios. At source `742c67a`, [browser CI job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913) passed **1,283/1,283 checks**, including all seven new FS-35 checks, with no console errors. This result is tied to that source revision; final integration native/platform qualification remains pending.
+- Not established: real Identity Replies, an audible GM source, physical MIDI streams, a real output/input loopback measurement, comparison with a reference analyser or any hardware gate.
+
+## Implemented and test-covered
+
+**Source40 selected native catalog:** Data exports the complete ten-table selected-setup graph, previews it and atomically adds missing records under strict exact-value/schema/conflict rules. The chooser-cancellation review finding is corrected. The full suite passed 1,835/0/1; bounded native 18/18 and related Node 146/146 remain separately scoped. [Contract, retained failures and limits](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md). Exact REV1/REV5 evidence brings reviewed provenance to 25 profiles and leaves 17 conditional MIDI profiles / 51 requirements, with unchanged audio conditions and test totals.
+
+### Historical native MIDI and lifecycle continuation
+
+- Native MIDI [b34f3c9](https://github.com/djshellshoxxx/deckchek/commit/b34f3c905ce60d64bfd15587a9c8906c3fd7a650) rejects duplicate successfully read names for new input/output connections and explicit cached input reopens; an ambiguous reopen preserves the existing input and callback. Cached output sends, including Note Off cleanup, retain their captured connection without re-enumerating; the later owned-output correction retires a failed binding and requires an explicit reset, exposed as restarting DeckChek, before using a reconnected or replacement output. Five new native regressions are included. Independent review reran 19/19 extracted-production-body harness tests and six additional boundary checks; this is not a full native application CI pass.
+- Native port matching remains exact and case-sensitive. Failed name reads are unselectable; a successfully read empty name is distinct and must be unique. Stable physical identities, hot-plug continuity and same-name device substitution remain unresolved, and unreadable names cannot establish physical uniqueness or absence. Real MIDI/GM qualification remains open; see [FS-36 §6](specs/36-general-midi-test.md#6-native-port-selection-and-remaining-identity-limits).
+- FS-22 [9192aa0](https://github.com/djshellshoxxx/deckchek/commit/9192aa0) makes Ctrl+J navigation synchronous with a visible error on failure and invalidates superseded job/comparison requests when opening a new intake form. The real screen/shell lifecycle regressions preserve unsaved input and focus, disabled/modal guards and current-request Retry behavior. Independent review and 48 focused service/crosslinks/PII tests passed; current full CI and H-22 remain required.
+- FS-32 [00f1f3c](https://github.com/djshellshoxxx/deckchek/commit/00f1f3cc8d96527f436ee28958ed23201b60a01b) keeps saved ID/status with the mapping that initiated an asynchronous save. New/Open cannot transfer that ID to another mapping and cause a later overwrite. Independent review accepted 47 focused tests plus four notification/concurrency/error probes; ordinary edits and hide/show remain supported. Full current CI, H-32 and real VirtualDJ format qualification remain open.
+- At source `730d71d`, JavaScript CI passed 1,325 tests/one optional skip; [native CI failed compilation with E0428](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728404). Alias correction [8acaa7a](https://github.com/djshellshoxxx/deckchek/commit/8acaa7a) preserves the IPC struct; fresh full native CI for the later candidate remains pending. Earlier browser evidence is the 1,283/1,283 checks at `742c67a`, including all seven FS-35 checks and no console errors. The same `730d71d` source also passed [1,283/1,283 browser checks with no console errors](https://github.com/djshellshoxxx/deckchek/actions/runs/44256004004/job/134637728622) and the JavaScript performance gate; its native compilation failure occurred before application tests ran. Service `9192aa0`, alias `8acaa7a`, native MIDI `b34f3c9` and mapper `00f1f3c` are later follow-ups and are not covered by that CI run.
+- Combined local follow-up source, including service/MIDI/mapper corrections: Node 22 passed **1,338 tests, zero failures, one optional skip** (1,339 total), and formatting passed. This local verification does not clear current native/platform or broad Sonar gates.
+
+### Existing software coverage
+
+- Tauri 2 desktop shell with dark/light theme, nav rail navigation and responsive local UI.
+- Offline local audio-file analysis through Web Audio decode.
+- Native continuous stereo capture with lock-free ring buffer, ~20 Hz level events and capture-quality counters.
+- Loopback interface calibration with gain, L/R mismatch, noise floor, THD+N, latency, clock ppm and coarse frequency-response correction; uncertainty propagation via GUM-style approach.
+- Stereo RMS/peak/clipping, channel balance, correlation/polarity and 50/60 Hz hum-family evidence.
+- Reference-tone frequency, RPM and pitch-error estimation.
+- Windowed speed trace, mean RPM, drift and short-term speed-variation proxy.
+- Multi-run pitch-map points with slope, maximum nonlinearity, hysteresis and dead-spot candidates.
+- Signal dropout-region detection.
+- Generic DVS stereo scope metrics and signal-presence timeline.
+- Vinyl-side transient candidates, recurrence estimate, hum/rumble proxy, normalized event positions and condition/readiness summary.
+- Reference-tone THD estimate for guided cartridge/signal checks.
+- Startup/brake signal-envelope timing proxy.
+- Evidence-first findings with confidence, alternative causes and isolation tests.
+- Guided Setup→Capture→Results workflows for Quick Check, Speed & Pitch, Cartridge, DVS and Vinyl Scan.
+- Calibration, Equipment and History screens with list/detail views.
+- Live meters with peak hold and clip latch; run history A/B comparison.
+- Keyboard shortcuts (Space, Esc, Ctrl+E, Ctrl+1..9 and Ctrl+0) with focus management and aria-live regions.
+- Catalog CRUD for manufacturer, product, asset, setup and venue; starter catalog seeding; evidence graph persistence (hypothesis/support/contradiction); repeat-scan alignment persistence; run history.
+- HTML diagnostic reports with verdict-first layout and ±uncertainty badges.
+- CSV measurement export and JSON workspace export/import (versioned).
+- Windows package targets: portable `deckchek.exe` plus NSIS and MSI installers for x64 and x86, as defined in the [platform workflow](../.github/workflows/cross-platform-release-validation.yml). Final integration package qualification remains pending.
+- SQLite desktop persistence using database/migrations/0001_initial.sql with session_type NOT NULL fix.
+- Local 1 kHz stereo WAV fixture generator.
+- JavaScript unit/property/regression and fuzz-smoke suites plus Rust persistence/migration tests; counts and pass status are tied to the tested source revision.
+- [Test CI](../.github/workflows/test.yml) defines JavaScript tests/syntax checks and Rust formatting, tests, warning checks, type checking and Clippy. Playwright browser CI at `742c67a` passed **1,283/1,283 checks**, including all seven new FS-35 checks, with no console errors ([browser CI job 134624237913](https://github.com/djshellshoxxx/deckchek/actions/runs/44251830325/job/134624237913)); final native/platform qualification remains pending.
+- **Device library (0.0.4):** 9 researched profiles (Xone:23C and Traktor Scratch Control Vinyl MK2 owner-confirmed; M-Audio removed, and profile sync deletes or retires library entries whose profile no longer ships) (app/devices/profiles, index generated by tools/build-device-index.mjs) loaded and validated by app/devices/library.js; Devices screen (Ctrl+8) with library grid, device pages (identity notes, documents, connectivity, specs with confirmed/unverified chips and sources, MIDI map or learn-mode explanation) and per-unit test plans with progress and HTML device reports.
+- Ordered, idempotent SQLite migration runner (0001, 0002_device_library); device_profiles_sync upserts manufacturer/product/product_spec (provenance manufacturer-doc vs research-unverified) and creates one "My <model>" asset per newly seen profile; device_test_result and learned MIDI maps (asset_midi_map) per asset; localStorage fallback parity.
+- Device test dispatch: quick/speed/cartridge/dvs/vinyl methods open the guided workflow prefilled from the profile and save a result linked to the run's session; timecode:format-check runner (carrier/speed/phase/balance/SNR/dropouts with scope and phase plots); MIDI coverage (with learn mode and saved learned maps), fader, jog, button, LED and timing-jitter runners; driver and DJ-software scans; manual checklists; sequential "run all in category".
+
+## Implemented but still validation-gated
+
+These functions run, but must not be marketed as standards-conformant or hardware-calibrated until SPEC-08/SPEC-19 validation is complete:
+
+- RPM/pitch accuracy from ordinary consumer capture chains.
+- short-term speed-variation proxy as a wow/flutter substitute;
+- audio-derived vibration/rumble estimates;
+- transient-to-damage interpretation;
+- condition score thresholds;
+- generic DVS circularity/integrity thresholds;
+- THD estimate from arbitrary test records/interfaces;
+- startup/brake signal-envelope proxy.
+
+The UI and reports identify these as evidence/proxies where appropriate.
+
+## Partial
+
+- Venue-specific calibration not yet supported.
+- Generic DVS integrity works; vendor-specific Serato/Traktor/rekordbox/open decoders are not implemented.
+- Full-side vinyl scanning produces event candidates and recurrence evidence; skip/locked-groove, non-fill, warp, off-center classifiers are not complete.
+- Quartz repeatability/warm-up trends are exposed; drag/recovery and true torque workflows are not complete.
+- Deeper pitch/speed/DVS/vinyl repeat-scan comparison is available; mature vinyl classifiers remain incomplete.
+
+## M5 additions (implemented and test-covered)
+
+- First-run setup wizard (FS-01): six steps (interface, levels with an always-stopping test tone, calibration, gear, summary), resumable, re-run from Options; flag `setupWizard`.
+- Diagnostics bundle and crash handling (FS-02): rolling log with panic hook, crash marker removed on `RunEvent::Exit`, startup crash prompt, support dialog (Ctrl+Shift+D, Options > Support, Help, error-toast "Details"), redacted zip written locally, Report on GitHub link with a text summary only; nothing is uploaded. Browser mode zips settings and a workspace summary. Styles in `app/styles/diagnostics.css`.
+- External links and file reveal (FS-07): one allowlisted choke point (`app/external-links.js`, Rust `open_external_url`), confirm dialog for unknown hosts, Help menu links to GitHub issues/releases and allowlisted manufacturer support pages.
+- Test media library (FS-06): built-in and custom media with tracks and expected values, "Test medium" picker prefilling the Speed, Cartridge and DVS forms, `media_id` / `media_track_key` stored on device results (also in browser mode) and shown in History and the Devices result history; flag `testMedia` shows or hides the rail entry live.
+- Backup and restore (FS-08): verified single-file `.deckchek-backup` (online SQLite snapshot, settings, MIDI maps), restore with confirmation, migration, safety backup and atomic swap, schedule (daily, weekly, on exit with a 5 s cap, retention), browser workspace import and separate immutable-history/Equipment-catalog files, free-disk-space check before backup and restore on Windows (skipped elsewhere); on-exit backup runs from `RunEvent::ExitRequested` / `Exit`. Flag `backup`.
+- Shell: feature-flagged rail entries follow flag changes without reload; the shared confirm dialog no longer settles early after a rapid cancel and reopen.
+
+## M6 additions (implemented and test-covered, in progress)
+
+- Stylus wear tracker (FS-12, flag `stylusWear`): engine in `app/stylus-wear.js`, `app/usage-hours.js` and `src-tauri/src/stylus.rs`; screen `app/ui/screens/stylus.js` (desktop only, browser mode shows an unsupported state). Tabs: Overview (life gauge with text equivalent, status chip, projected replace month, alerts with 30-day snooze, "I replaced the stylus"), Hours (manual entry 0-24 h, DJ-log proposals confirmed one by one, ledger with source and status), Benchmark (guided capture, manual entry or fill from the latest Cartridge, Channel separation and DVS runs; entries made under different conditions are saved but excluded from the trend), Trends (small-multiple charts with regression line, limit band, excluded points, slope per 100 h, R-squared, data-table toggle), Settings (rated life override with catalogue source and confidence, alert thresholds, replacement). Rail badge shows amber or red when an alert is not snoozed. Shortcuts: A add hours, B benchmark, Esc clears a selection. Smoke flow `tools/smoke/stylus.mjs`.
+- FS-12 guided capture (2026-11-18): the Benchmark tab now guides stereo 1 kHz, left-only and right-only captures (10 seconds each), with optional known-format control vinyl (15 seconds). Each complete capture persists through the existing analyzer/History path before an explicit benchmark review/save. The versioned evidence keeps original asset/setup/conditions, actual input/rate/pair, calibration profile, capture quality, raw measurement values and source-run IDs. THD is the channel mean; separation is the poorer isolated channel. Missing or inconsistent evidence and known condition differences produce excluded rows. Cancellation owns only its capture; pending benchmark saves are truthfully shown as non-cancellable storage writes. Replacement clears prior trend inputs while retaining history. Existing manual/latest-run fill, PDF, hours and proposal paths remain. Current guided-focused suites passed 154/154 on Node 22; separate independent probes covered 33 complete production workflows and 102 structured History writes. Their overlapping scopes are not added into a larger test count; generated-signal browser smoke is provided in `tools/smoke/stylus-benchmark.mjs`. Exact-head browser/platform CI, physical repeatability and rated-life research remain pending. Source runs preserve analysis/provenance, not raw sample audio. See FS-12 §11.2 for acceptance mapping.
+- Booth feedback and hum hunter (FS-15, flags `humHunter` and `feedbackStep`): engines in `app/hum.js`, `app/hum-tree.js`, `app/feedback.js`, `app/audio-out.js`, `src-tauri/src/audio_out.rs` and `src-tauri/src/humrun.rs`; UI in `app/ui/workflows/hum.js` (rail entry "Hum", tabs Hum hunter, Feedback test, Support A/B, Incidents, Runs) and `app/ui/workflows/feedback.js`; styles `app/styles/hum.css`; smoke flow `tools/smoke/hum.mjs`. Hum hunter: setup (input, channel, mains, optional venue), live hum meter (fundamental, harmonics 2-6, total vs floor, both families when the mains frequency is unclear), steps A-G with a 5 s measurement, delta chip and words per step, Space measures or goes on, S skips, clipping and silence are refused with advice, result with verdict, ranked causes (confidence, evidence, next action) and the step timeline, saved to `hum_run_save`. Feedback test: native desktop only, disabled with an explanation when no output exists; a three-box safety checklist must be ticked every run, the plan line states start, step and cap, the run view shows the current level, the cap and the hard limit, the STOP button is the first tab stop (72 px, Esc and Space stop, Raise is a separate button or R, blocked for 4 s after each step), a live spectrogram with a text readout, a result with onset frequency, level, growth, loop-gain margin and guidance. Every automatic abort has its own message (howl, clipping, no input, 60 s inactivity, output error); the output is stopped on screen exit, tab switch, flag off, window close and input loss. Input is opened first and through the shared capture lease, so another feature holding it triggers the usual "Stop it and run this check?" dialog.
+- FS-15 existing reports and qualification: runs are listed on the Hum screen's Runs tab, grouped by venue, and in History; each run has an Export PDF button. The venue report (AC-7) is the printable kind `venue` (venue details, linked setups, and up to 50 saved hum/feedback runs whose details load successfully, including their steps and causes), reached from Equipment > Venues or the venue group on the Runs tab. There is no separate venue detail screen. Equipment now exposes reusable support descriptions and setup assignment; Fleet retains booth/position editing and stays OFF by default. Quick Check links to the Hum hunter and Pre-gig signal problems offer "Hunt the hum". Spectrogram is a display aid computed in the UI from the same input; the howl decision is only the engine's. Step illustrations are text only. Not validated on hardware: H-15.
+- FS-15 manual incidents and pagination: the existing production browser/native store retains seven operator types, original selected context, separate occurrence/save times, exact retries and strict read/write errors. UI navigation uses exclusive time/Unicode-scalar ID cursors with at most 100 rows per page, context-wide totals and recoverable request-owned retries. The original list API remains 1–500/default100; Equipment and Runs reports remain capped at 300 and propagate failed reads. Browser workspace JSON excludes incident keys. Initial 103 Node/10 native review remains historical; pagination passed isolated 40 Node/13 native and combined incident/report 51/51 after two real support records were added to its fixture. Hosted native/browser and hardware qualification remain open.
+- FS-15 saved support descriptions: Equipment now edits descriptive fields and setup assignment, preserving legacy structure, position, hidden booth context and unchanged settings associations. Explicit asset replacement clears only its former settings link; bound venue changes reject. Reports identify current support context, disclose their 50 measured-run bound and reject failed/missing details. Browser hum storage raises explicit errors without overwriting unreadable bytes. Corrected support worker 117/117 Node and root 2 UI/17 native checks passed; no physical A/B claim. The passive A/B slice and [browser history archive](DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive) are implemented; the separate browser current-catalog archive is implemented. Later [source40 native selected-setup transfer](DECKCHEK-NATIVE-CATALOG-FOLLOWUP.md#native-selected-setup-transfer) preserves referenced native booth/position/settings records; native device-profile association and broader incident windows/shock/DVS/onset qualification remain open. Source41 separately implements the optional native latest-reading attachment described in the [incident contract](incident-metric-evidence.md).
+- FS-15 passive support A/B (source `90ee4435`): the Support A/B tab records two passive stereo observations under renewed operator confirmation, saves immutable original context/capture/calibration and versioned numerical evidence, and derives a directional 20–200 Hz digital change only when conditions qualify. No output, physical attenuation estimate or validated uncertainty is introduced. Migration 0024 adds append-only original/comparison storage; native exact retries preserve floating-point values with the existing serde_json `float_roundtrip` feature. Browser history/report counts are disclosed at 50 observations and 50 comparisons each. Accepted scope: 112 Node, 19 exact native plus separate transport/bit-preservation checks; root differential proof covers 42 vectors and preserves nine canonical/hash tests. The exact hosted-mock check is not Chromium. See [method, limits and retained failures](DECKCHEK-CONSOLIDATION-REPORT.md#passive-support-ab-observations-and-comparisons). The separate Data archive now transfers complete saved history. The [Equipment catalog archive](catalog-archive.md) now transfers the six editable browser collections without rewriting immutable history.
+- Browser venue-history archive (source `32419404`): Data exports complete incident/support history independently of view/report caps, validates the complete file and target before writes, requires explicit import, preserves original saved values and offers exact resumable retry. The 32 MiB/10,000-record bounds reject whole operations without truncation. Workspace JSON and native backups remain separate. Worker 136/136 includes 32 archive tests; root's exact 505-record fixture passed 1/1 under Node, not Chromium. [Contract, retained reds and scope](DECKCHEK-CONSOLIDATION-REPORT.md#browser-venue-history-archive).
+
+## M6 additions (in progress)
+- Scratch stress test (FS-14, flag `scratchTest`, default off): engine (`app/scratch.js`, `src-tauri/src/scratch.rs`, migration 0011) and guided UI (`app/ui/workflows/scratch.js`, `app/ui/screens/scratch.js`). AC-1 (three patterns at the chosen BPM, 4-beat count-in, 20 s performed plus 5 s rest, metronome to a selectable output) and AC-7 (Esc ramps the click to silence in about 10 ms and scores the completed patterns, labelled partial) are covered by unit and UI smoke tests; AC-8 refuses to start below 25 dB baseline SNR with fix actions. Results, History and cartridge Compare tabs are included; scores compare only within protocol v1.
+- Scratch run records carry the cartridge, setup and control-vinyl side (`setupId`, `recordSideId`, picked on the setup card from Equipment and the Control vinyl screen); Compare groups by cartridge, setup, side, format and tempo, and each result has an Export PDF button. Known gap: the test starts through `startLiveSession` without the shared capture-busy dialog, so when the wear map or hum hunter holds the input it shows a plain error instead of "Stop it and run this check?". Not hardware-validated: the needle-skip thresholds are untested defaults and are labelled "Uncalibrated" wherever a skip is shown; velocity and lock-loss accuracy are validated on synthetic signals only. The live trace on the guided screen is a carrier-level indicator, not the platter velocity. "Skip pattern" (Space) is deliberately not offered because it would change the protocol and make the scores incomparable.
+- DVS latency and buffer tuner (FS-11, flag `latencyTuner`, default off): engine in `app/latency.js` and `src-tauri/src/latency.rs` (merged earlier in M6), screen `app/ui/screens/latency.js` (rail entry "Latency", plug icon), styles `app/styles/latency.css`, smoke flow `tools/smoke/latency.mjs`. Tabs: 1 Measure, 2 Buffer test, 3 Recommendation, 4 Windows tuning. A banner on every tab says the measurements are WASAPI (Windows audio), not ASIO, with a "Why not ASIO?" explanation; the result badge reads "WASAPI round trip" and typed ASIO buffers read "ASIO buffer (typed, not measured)". Measure: patch-cable guide (output, cable, input; LINE not PHONO; mixer variant; monitors down), device, sample-rate and level pickers, a volume-acknowledged Start (Enter), five-chirp round trip with k=2 uncertainty, reported-vs-measured table with a worded overhead flag, per-chirp table, no-loopback state with fixes and a stress-only escape (AC-5), capture-busy dialog with "Stop and continue". Buffer test: CPU-load (0 / 50 / 80 %) and step-length (30 s or 10 s) choices, live progressbar and table, the detected Windows buffer behaviour as a card (A honoured, B partly honoured, C ignored, D streams failed to open) with plain-language consequences, clamped rows labelled "host-chosen period" and excluded, Esc aborts within the engine's 1 s (AC-7). Recommendation: one card per Serato DJ Pro, Traktor Pro and rekordbox with the program's own setting name and path, a "setting name checked / not verified" chip, smallest passing size plus one step of headroom (A, B) or a typed ASIO buffer (C, D), links to the vendor sources. Windows tuning: scan, review-first checklist with a status word per item, "How to check and fix" (inspect command with Copy, manual path, Win+R shortcut with Copy), non-Windows shows "Windows desktop app only". Runs and the latest recommendations are saved through the engine commands; Ctrl+E exports JSON. AC-1 to AC-7 are covered by the smoke flow against a mocked tuner (a synthetic delay is measured to 7.00 ms; branches A and C are driven; Esc aborts).
+- FS-11 gaps: not hardware-validated (script H-11); the WASAPI buffer spike has not been run by the owner, so which branch the Audio 8 DJ and DJM-A9 take is unknown until H-11 step 8. Entry points exist from Quick Check, Calibration and the pre-gig fixes (`app/crosslinks.js`). After a Windows scan the tuning tab names the busiest programs (`top_cpu`) and running DJ software (`dj_processes`). Export PDF prints the measured results. The rekordbox "Buffer Size" and Traktor Pro 4 wording are unverified and say so on screen. Run history is saved but the screen does not list past runs yet (only the last recommendations per interface).
+- Pre-gig check (FS-10, flag `pregig`): engine in `app/pre-gig.js`, `app/pregig-presets.json`, `src-tauri/src/pregig.rs`; controller and view model `app/ui/workflows/pregig.js`; screen `app/ui/screens/pregig.js` (tabs Check, History, Presets), styles `app/styles/pregig.css`, smoke flow `tools/smoke/pregig.mjs`, unit tests `tests/pregig-ui.test.mjs`. Check tab: rig picker, big Start (Ctrl+G), step ticks, live checklist with icon plus word per step, inline headphone prompt (Y / N / S), Esc cancels and keeps partial results, verdict banner (aria-live), "Fix these first" list with a fix-it button beside every problem, per-step Re-run and Re-run problem checks (Ctrl+R), evidence under Details, comparison with the previous run of the same preset, Save result (Ctrl+E, JSON). History tab: saved runs with verdict, details, Compare with latest, Re-run. Presets tab: built-ins, new, from my gear, edit (built-ins edit a copy), duplicate, delete, export, import. Only the device profiles of the chosen rig are judged by the system and software steps.
+- FS-10: every deck is captured on its preset input pair (`createNativeDeps.captureDeck` passes `pairs`), with per-deck Inputs boxes remembered per interface (`app/input-pairs.js`, `app/ui/pair-picker.js`). A pair the interface does not offer is skipped as `input-pair` ("No such input") and the verdict reads "Not fully checked". Control-vinyl formats resolve through `app/media-library.js` (`formatForMedia`). Still unmeasured on real rigs: H-10. "Open ... settings" buttons call `open_external_url`, which opens exactly `ms-settings:sound`, `ms-settings:powersleep` and `ms-settings:privacy-microphone` (a fixed list in `links.rs`, separate from the https allowlist; Windows only) and copy the Win+R shortcut when that is refused. PDF export and the Quick Check link are done (M6-crosslinks). Built-in presets are saved to history without a preset id, so their runs are matched by the note "Preset: <name>". Hum thresholds and the 120 s budget are not yet measured on real rigs (script H-10).
+- Control-vinyl wear map (FS-13, flag `wearMap`): engine `app/wear-map.js` (streaming scanner, bin classes, verdict, alignment and diff, spiral geometry, needle-skip detection as carrier phase steps), `src-tauri/src/wearmap.rs` (`wearmap_save/list/get/delete`, plus `wearmap_records_list` / `wearmap_record_save` for control-vinyl copies and sides, tagged `external_reference_type = 'timecode'`). Screen `app/ui/screens/vinylscan.js` (rail entry "Wear map"), workflow `app/ui/workflows/wearmap.js`, plots `app/ui/plots-groove.js`, styles `app/styles/wearmap.css`. Setup (record and side, format, side length from the xwax table, bin size, optional stylus control, cleaned checkbox, checklist), live capture over the FS-00 stream with the map and timeline filling in, progress by time and groove position, Space stop, Esc cancel and a 30 s draft autosave with recovery; browser mode scans a recording and keeps records and scans in localStorage. Result: verdict and recommendation (flip to / scan the other side), metric switch (M), compare with the previous scan (C) by bin or by region, worst bins pinned, skips marked, arrow-key bin navigation announcing "Bin N, m:ss, SNR x dB", details panel with raw numbers, data-table toggle, history, delete. Smoke flow `tools/smoke/wearmap.mjs`; tests `tests/wear-map-skip.test.mjs`, `tests/wearmap-ui.test.mjs`.
+- FS-13 gaps: the scan captures stereo input pair 1-2 only (no pair picker yet); the bin inspector draws a waveform snippet (a 120-column peak envelope, kept for the last 1500 bins of the session and never written to the draft or the database), so scans reopened from History show numbers only; the DVS screen has a next-step card to the Wear map and Equipment cartridges and DVS media open it, but there is no direct "Scan full side" button; a scan cannot yet be resumed from the last good bin as a new segment; repeatability and thresholds need the owner's hardware run (H-13).
+
+- M6 cross-links (wave 3): next-step cards and the stylus health card (`app/crosslinks.js`, `app/ui/crosslinks.js`), Equipment and pre-gig deep links, History feed of hum, latency, scratch, wear-map and pre-gig runs with a type filter (`app/history-feed.js`), pre-gig PDF (`app/ui/workflows/pregig-report.js`), Windows Settings opener (`src-tauri/src/links.rs`), smoke `tools/smoke/crosslinks.mjs`. Gaps: feature runs open a summary and the feature screen, not a full in-History detail; History shows feature runs only in the desktop app; the DVS screen links to the Wear map through a next-step card (no "Scan full side" button); the active cartridge is the last one opened on the Stylus screen, else the most recently used.
+- Data-fix wiring (M6-crosslinks): runs save their real capture span (`persistCaptureFields`; Quick Check and the other workflows pass live start/stop times), the Stylus hours tab proposes DeckChek live captures (a 40 min DVS capture is 0.67 h) before DJ-log sessions, benchmark fill takes timecode SNR and phase error, and the scratch test and wear map read direction from `directionSign` (primary channel x phase switch), so Traktor MK1 no longer reads backwards.
+- Flaky smoke fixed: `pregig: no horizontal scroll at phone width` measured the page before the shell's resize handler had re-laid out (scrollWidth 469 in a 420 px window in about half the runs). Smoke modules now resize through `setViewport()` in `tools/smoke/core.mjs`, which waits two animation frames.
+
+## Missing-features audit fixes (2026-10-10, branch job/fix-ui)
+
+- Options > Support > "Experimental features…" (`app/ui/screens/experimental.js`, opened from `app/ui/menus.js`): switches for every wired flag, "Experimental" chip, "Reset to defaults" (`resetFeatures()`); smoke-tested by turning each M6 feature and test media on and opening its screen (`tools/smoke/integration.mjs`).
+- Test media: `testMedia` defaults on; a timecode medium sets the DVS form's Timecode format field; scratch and control-vinyl forms take a medium to set their format.
+- Scratch runs store setup and control-vinyl side; Compare separates them.
+- PDF kinds for latency, stylus, wear map, scratch, hum and a venue report (`app/ui/workflows/m6-reports.js`, `tests/m6-reports.test.mjs`); a PDF timeout offers Retry and the saved toast offers Open and Show in folder.
+- Wear-map bin inspector waveform snippet; Windows tuning tab lists busiest programs and DJ software.
+- (Historical, before the M7/M8 screens landed.) Flags `population`, `fleet` and the other M7/M8 flags defaulted off and were hidden from the panel (no code behind them); they are now wired and default off pending qualification; `diagnosticsBundle` is always on and unread.
+- Deferred, not fixed here: the `capture`, `booth`, `deck_position`, `support_configuration` and `vinyl_event` tables (GAP-11, GAP-12, schema only), published MIDI maps (GAP-17, needs vendor documents), and `userfiles_write_folder`, which has its `saveFolder` bridge but no screen until FS-33.
+
+<a id="m7-wave-0-foundations-no-user-facing-screen-yet"></a>
+
+## Historical M7 wave-0 foundation snapshot
+
+**Source41 correction:** the statements below describe wave0. Actual FS22/FS33 UI handlers now use `preparePhoto`, and `signing.rs` implements the DPAPI wrapper with a passed source39 Windows roundtrip. No FS20 photo-use claim is added. Optional OS notification registration/capabilities remain a separate conditional feature decision.
+
+- Canonical JSON (FS-00 §6.1) in Rust and JS with shared vectors, SHA-256 (`crypto.subtle` with a pure-JS fallback), vendored QR generator (qrcode-generator 1.4.4, MIT) with `qrSvg`, and `metric-compat` (`methodCompatible`, `combinedUncertainty`, `deltaVerdict`).
+- Photo store: migration 0013, `photo_attach` / `photo_list` / `photo_unlink` / `photo_read`, `preparePhoto` (canvas re-encode, 1600 px, JPEG 0.82) and an in-memory browser-mode twin. The backup archive carries `photos/<sha256>.jpg`. Nothing in the UI uses the store until FS-20, FS-22 and FS-33 land, so there is no photo screen and no browser smoke flow.
+- Crates for all of M7/M8 added once: `ed25519-dalek`, `getrandom`, `tauri-plugin-notification` (never registered; removed 2026-11-18 because cargo's `unused_dependencies` lint failed the warning gate — re-add together with its registration and capability when FS-31 OS notifications are implemented), DPAPI `windows` feature (cfg(windows), unused until FS-20/FS-33), tauri `tray-icon` and `image-png`. `ed25519-dalek` is BSD-3-Clause (permissive); all other additions are MIT and/or Apache-2.0.
+- DB upgrade fixture `tests/fixtures/db/v0.0.7.sql` (schema 0001-0013, rows in every table). The v0.0.6 fixture was never added.
+- Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there). FS-31 alerts are in-window only; no OS notification plugin is linked.
+
+## M8 additions: FS-30 Mobile companion (implemented and test-covered, hardware-unvalidated)
+
+The [20 November QR continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) corrects the actual framed import path, bounds custom framing and direct joining, and regenerates the mobile copies. Independent full-suite acceptance covers the combined source; physical scanning and the hosting decision remain open.
+
+- Desktop: `0018_session_origin.sql` (`session.origin` default `desktop`, `session.source_device`); `save_diagnostic_run` stores `origin` (`desktop` or `phone`) and `sourceDevice`, `get_run` returns them. `app/phone-run.js` builds, hashes, validates and frames (QR) the DeckChek Mobile v1 result; `app/ui/workflows/import-phone.js` is the "Import phone results" screen (flag `phoneImport`, wired, off by default): paste JSON or QR text or open a file, hash status as a word (matches, differs, none; a mismatch warns and never blocks), asset picker (serial or nickname hint preselects), Add to History with `origin: "phone"`. Phone measurements are tagged `phone`, flagged `uncalibrated` and never calibrated. Smoke `tools/smoke/phone-import.mjs`.
+- Hash: FS-00 canonical JSON only allows integers, so the hash is over `canonicalJson(hashView(export without sha256))`, where `hashView` turns every fractional number into its shortest decimal string. Integrity only, not a signature.
+- PWA in `mobile/` (see `mobile/README.md`): Speed by reference tone (reuses `speedFromReferenceTone`, `frequencyTrace`, `speedStabilityMetrics`, `rpmUncertainty`), mains strobe helper with the four-row dot table and an on-screen strobe (photosensitivity confirmation first), Vibration (accelerometer RMS and dominant 0.5-30 Hz peak), SPL (A/C weighted, always labelled uncalibrated, single-point calibration), Results with file, share sheet, copy and QR (several QR frames when large). `tools/build-mobile.mjs` copies the shared engines into `mobile/vendor/` and stamps the service-worker precache; `--check` runs in CI. Tests `tests/mobile-*.test.mjs`, `tests/phone-run.test.mjs`; smoke `tools/smoke/mobile-pwa.mjs` (fake microphone, offline reload).
+- Not done, by decision: hosting. `.github/workflows/pages-mobile.yml` is `workflow_dispatch` only and its deploy job needs the `deploy` input ticked; nothing is published until the owner decides (R12). Camera strobe analysis stays post-MVP. Not validated on real phones (iOS motion permission, Android sensor rate, phone clock error, mic AGC) or against a printed strobe disc.
+
+## M7 additions: FS-20, FS-21, FS-22, FS-23 (implemented and test-covered, hardware-unvalidated)
+
+Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-23 experimental fleet workflow" notes at the top of this file, which describe the state before the screens landed. Migrations 0014-0017 and 0022 are in place (register: `docs/specs/00-shared-foundations.md` §5.2).
+
+- FS-20 Used-gear certificate (flag `certificates`, default off): `src-tauri/src/signing.rs` (Ed25519 key per install; sealed with DPAPI on Windows, mode-0600 file elsewhere; a corrupt key is reported and never replaced automatically) and `src-tauri/src/certificate.rs` (strict parser with schema bounds checked before hashing; verify result VALID, MODIFIED or UNVERIFIABLE, plus an EXPIRED state; store, list and get). JS engine `app/certificate.js`, bridge `app/certificate-api.js`, printable kind `certificate` (`app/report-kinds/certificate.js`), screens Certificates and Verify certificate (`app/ui/screens/certificate.js`, `verify.js`). Ctrl+Shift+V opens Verify; Ctrl+Shift+C is not bound because clearing the clip latch uses it. Files are named `<model>-<serial>-<date>-<hash8>` (`.deckchek-cert.json` and `.pdf`, or `.html` when the PDF fails). The QR text is `deckchek:cert:v1:<sha256>`. No new migration (uses 0014). Tests: `tests/certificate*.test.mjs`, `src-tauri/src/certificate_tests.rs`, smoke `tools/smoke/certificate.mjs`, fuzz target `certificate`. Gap: PDFs carry no embedded JSON (WebView2 `PrintToPdf` cannot attach files), so verifying a PDF returns `pdf_has_no_attachment` and asks for the JSON. Hardware: H-20.
+- FS-21 Unit vs population (flags `population` and `packs`, default off): migrations `0015_unit_population` and `0022_unit_population_ext` (`reference_sample_claim`). Native `src-tauri/src/pack.rs` commands `pack_preview`, `pack_import`, `pack_list`, `pack_remove`, `pack_export`, `population_query` and `population_unit_values`; bridge `app/pack-api.js`; `app/population-metrics.json` is the shared metric whitelist (including which metrics are spec-comparable). Compare screen (`app/ui/screens/compare.js`) with tabs Spec, My units and Population (Population needs `packs`) and a Data sharing card for anonymous `.deckchek-pack` export and import; `C` on a result row opens Compare. Percentile rules: 20 contributors for a percentile, 8 for a median band, one voice per contributor, a per-contributor row cap applied before the global limit, truncation shown. Tests: `tests/pack*.test.mjs`, `tests/population*.test.mjs`, Rust pack tests, smoke `tools/smoke/compare.mjs`, fuzz target `pack`. Gap: the manual privacy review of an exported pack is still the owner's. Hardware: H-21.
+- FS-22 Service worksheets (flag `service`, default off): `src-tauri/src/service.rs` (jobs, customers, guarded status transitions, append-only work log, before/after links to device results, at most 10 photos per job), `app/service.js` engine, `app/service-api.js` bridge (event `job-status-changed`), screen `app/ui/screens/service.js` with the job workflow `app/ui/workflows/service-job.js` (Intake, Before, Work, After, Sheet), device-runner job mode, printable kind `jobSheet` (`app/report-kinds/jobsheet.js`). Job numbers are `J-<year>-<seq>` by local year. Ctrl+J starts a new job while the flag is on. Customer details stay local: included in backups (the Service screen says so), excluded from workspace export, population packs, ledger exports and the diagnostics bundle. Tests: `tests/service*.test.mjs` (including `service-pii-leak.test.mjs`), smoke `tools/smoke/service.mjs`. Hardware: H-22.
+- FS-23 Venue fleet dashboard (flag `fleet`, **default off; manual opt-in**): migration 0017. `src-tauri/src/fleet.rs` (snapshot, placement, venue/booth/position editor with typed-name delete, reminders in days or confirmed hours, product-scoped templates including delete, maintenance log), `app/fleet.js` policy, `app/fleet-api.js`, screens `app/ui/screens/fleet.js` and `fleet-venues.js`, printable kind `boothSheet` (`app/ui/booth-sheet.js`). CSV export has a UTF-8 BOM, CRLF line ends and formula neutralisation. The start-up banner lists at most five reminders plus "and N more", with a one-day snooze. Future-dated completions are flagged instead of resetting a reminder. Tests: `tests/fleet*.test.mjs`, smoke `tools/smoke/fleet.mjs`. Gate: enabling fleet by default requires the owner's real-database walkthrough and H-23 qualification; no passing evidence is recorded. Hardware: H-23.
+- Cross-cutting: `src-tauri/src/devices.rs` pruning counts every table that references an asset (foreign-key catalogue), so feature data is never cascaded away when a device is removed.
+
+## M8 additions: FS-31, FS-32, FS-33 (implemented and test-covered, hardware-unvalidated)
+
+- FS-31 Timecode doctor live monitor (flag `liveMonitor`, default off): streaming engine `app/monitor.js` (250 ms hops, frame-count hysteresis, 60 s cooldown per deck and alarm kind; cueing, scratching and backspins pause alarms; the floor alarm also covers at-speed frames below the 6 dB lock gate), migration `0019_monitor_log`, session logs in `src-tauri/src/monitor.rs` (retention 90 days by default, at most 500 sessions; an instance lock so a second app instance never closes a running session; minute rows are never overwritten), `src-tauri/src/tray.rs` (Windows and macOS only; on Linux the status shows in the window), screen `app/ui/screens/monitor.js` ("Live monitor"; Ctrl+Shift+M starts and stops). Tests: `tests/monitor*.test.mjs`, smoke `tools/smoke/monitor.mjs`. Not validated: capturing through WASAPI shared mode beside DJ software is **unverified**; H-31 steps 1-6 are the spike that decides the supported paths. R2-02 bounded repair: a recently acquired coherent forward carrier retains floor-alarm eligibility under negative SNR. Seeded synthetic fixtures cover -3/-6/-12 dB and gestures without changing alarm thresholds. Cold starts, changing pitch under noise and arbitrary real recordings remain unqualified; see docs/MONITOR-MILESTONE-2026-10-31.md.
+- FS-32 MIDI mapper studio (flag `mapperStudio`, default off): migration `0020_mapper_models`, persistence in `src-tauri/src/mapper.rs` (`mapper_model_save/list/get/delete`), `app/mapper/*` (neutral model, profile-driven vocabulary, safe XML reader and writer that refuses DOCTYPE and ENTITY and enforces size caps), Mixxx export and import (2.4+), VirtualDJ export and import, Serato and Traktor as reports only (`serato.js`, `traktor-report.js`). Screen `app/ui/screens/mapper.js` ("MIDI mapper"; L learns, Ctrl+Z undoes). Tests: `tests/mapper*.test.mjs`, smoke `tools/smoke/mapper.mjs`, JS fuzz targets `mapper-xml` and `mapper-vdj`. Gaps: the VirtualDJ file format is **unverified** against a real VirtualDJ install (H-32 step 7); Serato and Traktor produce a report, not an importable map. Hardware: H-32.
+- FS-33 Gear ledger (flag `gearLedger`, default off): migration `0021_gear_ledger` (`ledger_export`, `asset.public_notes`), `src-tauri/src/ledger.rs`, `app/ledger/*` (privacy presets Public, Insurance and Private, field whitelist, EXIF strip, path scrub), screen `app/ui/screens/ledger.js` ("Gear ledger" wizard; Ctrl+E opens the export step and exports from it). The output is a static page that works from `file://`, with CSP `default-src 'none'` and a verify script for certificate hashes and, where the browser supports it, Ed25519 signatures. Folder export goes through `ledger_write_folder` (staging folder, atomic move, prunes only stale ledger-named files after the new ones are in place); the revision floor survives a restore. Units used in service jobs are flagged and start unticked. DeckChek never uploads the page. Tests: `tests/ledger*.test.mjs` (including `ledger-leak.test.mjs`), smoke `tools/smoke/ledger.mjs`. The manual GitHub Pages root, visibility, stale-file and Git-history guidance was checked against current GitHub documentation on 20 November 2026 (FS-33 §11); the real publishing/privacy walkthrough remains H-33.
+- FS-30 Phone import and mobile PWA: unchanged (see above); hosting remains an owner decision.
+
+## 2026-10 audit, fuzz and CI
+
+- AUD-03: every database command runs off the UI thread through `db::off_main`; a source-scan test in `src-tauri/src/db.rs` fails if a database command stays synchronous.
+- AUD-01: `userfiles` writes are limited to a fixed data, report and static-site extension allowlist (`WRITABLE_EXTS`); `.js` is writable only inside folder exports; nothing can be written into an OS autostart location.
+- AUD-02, 04, 05, 09: restored databases are treated as untrusted (`trusted_schema=OFF`, defensive mode, triggers and views refused, schema compared with a freshly migrated template, `backup_log` paths dropped, photos re-validated, workspace equipment fields capped).
+- AUD-11: the CSP adds `base-uri`, `form-action`, `object-src` and `frame-ancestors`, all `'none'`.
+- Fuzzing: 11 `cargo-fuzz` targets in `src-tauri/fuzz` (entry points in `src-tauri/src/fuzz_api.rs`, smoke-run by `cargo test`) and 13 JS targets (`tests/fuzz`, `tools/fuzz-js.mjs`, smoke in `tests/fuzz-smoke.test.mjs`).
+- CI uses first-party actions only. `test.yml` runs on main pushes and pull requests, subject to path filters, and supports workflow calls/manual dispatch (JavaScript including fuzz smoke, Rust, UI smoke). `nightly.yml` runs on main and nightly: Windows Rust tests, an AddressSanitizer test run, the stress suite, long `cargo-fuzz` runs and JS fuzzing. [The platform workflow](../.github/workflows/cross-platform-release-validation.yml) defines six build targets: Windows x64 and x86 (NSIS/MSI), macOS arm64 and x64 (app/DMG), Linux x64 (deb/AppImage) and Linux x86 (deb). Its packaged-app self-test matrix downloads the built artifacts for all except Linux x86, whose runtime smoke is not run on the x64 runner (`docs/qa.md`). These definitions do not establish successful qualification of the final integration revision. `windows-build.yml` is retired.
+- `deckchek --self-test=<report.json>` (`src-tauri/src/selftest.rs`, `app/self-test.js`) launches the packaged app, analyses a known tone in the real WebView and exits; the release smoke job fails unless the report has `ok: true`.
+- Still not covered: the hardware gates H-20 to H-33, WASAPI behaviour beside DJ software, and installer signing.
+
+## M5 shipped in v0.0.5
+
+- First-run setup wizard (FS-01), resumable, re-runnable from Options.
+- Crash log, diagnostics bundle and support dialog (FS-02); nothing is uploaded.
+- PDF export (FS-03): WebView2 `PrintToPdf` through a hidden print host on Windows, print-dialog fallback elsewhere and in browser mode. Export PDF on History run detail, System Health, Devices and workflow results. Windows spike: GO (hidden first render 3385 ms including WebView2 warm-up, 549 ms for the 5-page fixture, page footer text extracted correctly; CI run 38017573510).
+- Test-media library (FS-06) with the Test medium picker and `media_id` on device results.
+- External links and file reveal (FS-07).
+- Backup and restore plus the Data screen (FS-08): verified single-file backup, schedule, safety backup and atomic native restore, plus separate browser history and Equipment catalog archives with distinct recovery contracts.
+- Feature flags registry (`app/features.js`) with live rail updates.
+- Migration runner with transactional, versioned migrations 0001-0005 and upgrade fixtures (`tests/fixtures/db/v0.04.sql`, `v0.0.5.sql`); every fixture is upgraded in the Rust tests.
+- Timecode facts (carrier frequencies, side lengths, phase flags) confirmed against xwax `timecoder.c` as vendored in Mixxx (facts only, no GPL source in the repo).
+- Windows CI: `nightly.yml` defines Rust tests and the PDF spike; Playwright UI smoke runs in the Linux job of `test.yml`. Installer and portable artifacts and manual release behavior remain subject to their separate qualification gates.
+
+### Flag defaults in v0.0.5
+
+- Default on: `setupWizard`, `pdfExport`, `backup`, `testMedia` and `diagnosticsBundle` (the last has no effect: the diagnostics bundle is always on).
+- Default off (enable under Options > Support > Experimental features…): the M6 flags (pre-gig, latency tuner, stylus wear, wear map, scratch test, hum hunter, feedback step). The M7 and M8 flags (certificates, population, packs, service, fleet, live monitor, mapper studio, gear ledger) are also off, but have no code yet and are not listed in the panel; `phoneImport` (FS-30) is off and listed.
+- Flags hide UI only; the Rust commands always exist.
+- Note: v0.0.5 as shipped had no way to toggle flags in the desktop UI; the panel arrives with the audit fixes above.
+
+### Known limits (v0.0.5)
+
+- The owner's hardware runs (docs/testing/HARDWARE-TEST-SCRIPTS.md, results in docs/testing/results/v0.0.5.md) are pending; features are not hardware-validated.
+- Windows installers are unsigned and there is no auto-update.
+- PDF: the first export after launch takes several seconds (WebView2 warm-up); the runtime must provide `ICoreWebView2_7`, otherwise the print fallback is used. `PrintToPdf` cannot embed attachments.
+- Disk-space check before backup and restore is Windows only.
+- Browser mode: diagnostics zip holds settings and a workspace summary only; PDF uses the print dialog.
+- MK2 carrier (2500 Hz per xwax) is still to be measured on the owner's vinyl; DDJ-S8 and SL-1200MK4 identities unconfirmed.
+
+## Not yet complete
+
+- Real-hardware validation of measurement accuracy against known reference fixtures (SPEC-08/19).
+- Windows native build verification on target Windows machines with real audio interfaces.
+- Quartz-lock acquisition, drag/recovery and true torque proxy workflows.
+- Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
+- Mature vinyl classifiers and held-out false-positive corpus validation.
+- Broader incident windows/shock/DVS/feedback-onset isolation outcomes. Explicit existing-unit device-profile assignment is implemented in both native and browser catalogs; it does not establish physical identity or rewrite historical results. The optional native latest-reading attachment is implemented with explicit selected-monitor provenance, separate clocks and immutable atomic pairing; it does not implement a surrounding measurement window. Source40 selected native catalog transfer and its device-profile/history exclusions remain unchanged.
+- Physical MIDI identity/continuity, receiving direction, complete control mapping and actual MIDItest consumer integration remain unqualified. Source41 leaves **3 conditional MIDI profiles / 9 requirements** and **22 conditional audio profiles**. Accepted profile-bound learned maps and manual/mode-specific transport evidence do not close these physical/consumer/research gaps.
+- Fleet (FS-23, default off pending qualification): owner's real-database and hardware walkthrough (H-23); trend dashboards beyond the current view.
+- Hardware validation of M7/M8 H-20 to H-23 and H-31 to H-33, including shared WASAPI capture and monitor limits, actual VirtualDJ format, a real Gear Ledger publishing/privacy walkthrough and owner export/import workflows. The pack preview/copy candidate has 16/16, 32/32 and 3/3 verification; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)** and hosted execution remains source-specific.
+- Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.
+- Device-profile pass thresholds and most specs are unverified research (marked in the UI and reports); identity of the DDJ-S8 and Technics MK4 units must be confirmed on the hardware.
+- Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
+- Complete the CDJ production player workflow: UI wiring, retained reference/raw bytes, persistence/reporting, transport/media/digital-output and scientific validation. The isolated calculation, provisional evidence/JSON contract and single-pair capture-owning API have independent acceptance; they do not complete the production workflow.
+- Model-specific service workflows and Technician/Engineering worksheets beyond the generic FS-22 job sheet.
+- Installer/update validation and release signing.
+- The platform workflow includes macOS arm64/x64 and Linux x64/x86 package builds, with packaged self-tests for macOS and Linux x64. Linux x86 has no packaged runtime smoke; final integration platform builds/self-tests and real audio-hardware qualification remain pending.
+
+## Current release interpretation
+
+The repository now contains an offline-analysis and live-capture beta with a full desktop GUI shell, catalog persistence, and deterministic diagnostic workflows. It is useful for file analysis and native audio-interface capture with evidence-first findings. It is not yet a complete implementation of every feature in SPEC-00 through SPEC-19.
+
+Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition source completed its own applicable gates and merged through #67 at `099c99c`; the [qualified merge record](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md) preserves exact trees, job states, original branches and the earlier #65 failure. Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
+
+- Final fixes (GAP-02, 08, 13, 15, 18): an input-pair picker sits wherever a capture is set up (Quick Check and the DVS/Speed/Cartridge flows, timecode runner, calibration, wear map, scratch, latency measure, hum, feedback), default 1-2 and remembered per input; `latency_play_and_capture` takes `pairs`. The scratch test uses the shared Stop-and-continue flow and ends cleanly if another feature takes the input. `--debug-crash` (debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) raises a controlled panic at the end of setup so the crash prompt can be tested (H-02). `runtime_status` was removed. The wizard listen test uses the remembered pair but has no picker of its own.

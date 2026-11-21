@@ -1,0 +1,13 @@
+{
+  "head": "5f256bdd3630738292c36c1b343a4161d5078a48",
+  "tree": "4236b573364639465f4b3848418cfb35207bba40",
+  "localHead": "d76f069e35b5392971a8ba2b27d8ed4016865155",
+  "parents": [
+    "17080df79ba94554b81c006d6372c8b59dca795a",
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c"
+  ],
+  "branch": "checkpoint/deckchek-player-merge-record-20261121",
+  "fetchedWholeTreeVerified": true,
+  "orderedParentsAndAncestryVerified": true,
+  "refReadbackVerified": true
+}
