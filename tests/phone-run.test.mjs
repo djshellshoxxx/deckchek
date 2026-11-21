@@ -119,6 +119,20 @@ test('frame errors are specific: missing frame, mixed exports, damaged frame', (
   assert.equal(joinQrFrames('').ok, false);
 });
 
+test('QR framing preserves significant spaces at both sides of a frame boundary', () => {
+  // First chunk ends in spaces and the next starts with spaces. Trimming either chunk corrupts the export.
+  const json = JSON.stringify({ memo: 'x'.repeat(1084) + ' '.repeat(40) + 'y'.repeat(1000) });
+  const frames = toQrFrames(json);
+  assert.equal(frames.length, 2);
+  assert.match(frames[0], / +$/);
+  assert.match(frames[1].split('/').slice(4).join('/'), /^ +/);
+  const joined = joinQrFrames([...frames].reverse().join('\n'));
+  assert.equal(joined.ok, true, joined.error);
+  assert.equal(joined.json, json);
+  // Optional whitespace before a pasted prefix and Windows CRLF must remain accepted.
+  assert.equal(joinQrFrames([' \t' + frames[0], frames[1]].join('\r\n')).json, json);
+});
+
 test('history run: origin phone, tagged measurements, asset link, device label, no calibration', () => {
   const parsed = parsePhoneRun(serializeExport(make()));
   const run = phoneRunToHistoryRun(parsed, { assetId: 'asset-1', now: '2026-10-14T10:00:00Z' });
