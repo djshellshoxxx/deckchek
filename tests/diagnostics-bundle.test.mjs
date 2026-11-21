@@ -42,6 +42,16 @@ test('redactValue walks nested JSON and keeps it valid', () => {
   JSON.parse(JSON.stringify(out));
 });
 
+test('redactValue does not infer path wrappers from later JSON serialization', () => {
+  const value = { path: 'C:\\Users\\Casey Moss\\Logs', note: 'C:\\Users\\Casey logged in /ready' };
+  const expected = { path: 'C:\\Users\\<user> Moss\\Logs', note: 'C:\\Users\\<user> logged in /ready' };
+  assert.deepEqual(redactValue(value), expected, 'raw values retain the conservative fallback');
+  assert.deepEqual(redactValue(expected), expected, 'raw-value fallback remains idempotent');
+  assert.deepEqual(redactValue(value, { profile: 'C:\\Users\\Casey Moss' }), {
+    path: '<profile>\\Logs', note: expected.note,
+  }, 'an exact profile literal supplies its own context');
+});
+
 // Seeded fuzz / property test: random noise with seeded secrets inserted in random casing.
 function lcg(seed) {
   let s = seed >>> 0;

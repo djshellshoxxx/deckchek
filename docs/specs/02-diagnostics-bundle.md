@@ -3,6 +3,26 @@
 > **Reconciled (2026-10-10).** Shared pieces live in [FS-00 shared foundations](00-shared-foundations.md); index: [00-INDEX](00-INDEX.md). Migration: none. Milestone: M5. Size: L. Notation: `SPEC-NN` = architecture doc `docs/SPEC-NN-*.md`; `FS-NN` (or "spec NN") = feature spec `docs/specs/NN-*.md`. Feature flags use the FS-00 registry (`features.<name>`).
 
 ## 1. Summary, goals, non-goals
+
+**Implementation status — 20 November 2026:** the diagnostics fallback now
+has a bounded multiword-profile extension in JavaScript and Rust. It treats
+an immediately adjacent, matching quote/bracket wrapper as a path boundary,
+allowing interior ASCII spaces and recognized redaction placeholders. This is
+a syntactic heuristic, not a typed path declaration. Incompatible punctuation,
+unmatched/nested delimiters and control/line boundaries retain the conservative
+fallback. Existing exact-context, email and serial processing remains in place.
+
+[Issue #69](https://github.com/djshellshoxxx/deckchek/issues/69) remains open for
+material residual scope: generic JSON string values are redacted before
+serialization, so later JSON quotes supply no wrapper context. Bare multiword
+profile paths and natural-language text beginning with a profile prefix can
+remain ambiguous; an exact profile literal is the existing stronger context.
+The shared synthetic vectors and structured-value assertions record these
+limits. They do not establish full AC-6 coverage, remove all local-log PII or
+prove an external exposure. **AC-6 below remains the acceptance requirement.**
+Native compilation/runtime parity and broader privacy qualification require
+their own evidence; JavaScript checks alone do not establish them.
+
 DeckChek records Rust panics and JS errors to a local rotating log, detects an unclean exit on next start and offers a user-controlled "Create diagnostics bundle" zip (no audio, optional PII redaction). Nothing is ever uploaded; the user may open a prefilled GitHub new-issue URL containing a text summary only.
 
 **Goals:** actionable bug reports from non-technical users; privacy by construction; works offline. **Non-goals:** automatic telemetry or crash upload (Sentry etc.); minidump collection; remote log shipping; capturing audio or waveforms.

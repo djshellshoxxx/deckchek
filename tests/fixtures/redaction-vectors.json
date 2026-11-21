@@ -160,5 +160,182 @@
   },
   "input": "%USERNAME% %USERPROFILE% %COMPUTERNAME%",
   "expected": "%USERNAME% %USERPROFILE% %COMPUTERNAME%"
+ },
+ {
+  "name": "quoted Windows multiword profile and trailing prose",
+  "ctx": {},
+  "input": "open \"C:\\Users\\Casey Moss\\Logs\" failed",
+  "expected": "open \"C:\\Users\\<user>\\Logs\" failed"
+ },
+ {
+  "name": "single quoted Windows multiword profile without child",
+  "ctx": {},
+  "input": "profile='C:\\Users\\Casey Moss' ready",
+  "expected": "profile='C:\\Users\\<user>' ready"
+ },
+ {
+  "name": "quoted Unix Unicode multiword profile",
+  "ctx": {},
+  "input": "open \"/Users/Zoë Lark/Library\" ready",
+  "expected": "open \"/Users/<user>/Library\" ready"
+ },
+ {
+  "name": "parenthesized Unix multiword profile without child",
+  "ctx": {},
+  "input": "profile=(/home/Harper Finch) ready",
+  "expected": "profile=(/home/<user>) ready"
+ },
+ {
+  "name": "bracketed Unix multiword profile",
+  "ctx": {},
+  "input": "[/home/Harper Finch/.config] ready",
+  "expected": "[/home/<user>/.config] ready"
+ },
+ {
+  "name": "braced Windows multiword profile",
+  "ctx": {},
+  "input": "{C:\\Users\\Casey Moss\\Logs} ready",
+  "expected": "{C:\\Users\\<user>\\Logs} ready"
+ },
+ {
+  "name": "serialized JSON multiword path with escaped separators",
+  "ctx": {},
+  "input": "{\"path\":\"C:\\\\Users\\\\Casey Moss\\\\Logs\"}",
+  "expected": "{\"path\":\"C:\\\\Users\\\\<user>\\\\Logs\"}"
+ },
+ {
+  "name": "quoted case insensitive Windows prefix and repeated interior spaces",
+  "ctx": {},
+  "input": "\"c:/UsErS/Casey  Moss/logs\"",
+  "expected": "\"c:/UsErS/<user>/logs\""
+ },
+ {
+  "name": "wrapped multiword component after user literal replacement",
+  "ctx": {
+   "user": "Casey"
+  },
+  "input": "\"C:\\Users\\Casey Moss\\Logs\"",
+  "expected": "\"C:\\Users\\<user>\\Logs\""
+ },
+ {
+  "name": "wrapped multiword component with internal literal placeholder",
+  "ctx": {
+   "user": "Casey"
+  },
+  "input": "\"C:\\Users\\SummerCasey Moss\\Logs\"",
+  "expected": "\"C:\\Users\\<user>\\Logs\""
+ },
+ {
+  "name": "wrapped multiword component after email replacement",
+  "ctx": {},
+  "input": "\"/home/casey@example.org Moss/Logs\"",
+  "expected": "\"/home/<user>/Logs\""
+ },
+ {
+  "name": "wrapped exact multiword profile literal retains profile marker",
+  "ctx": {
+   "user": "Casey Moss",
+   "profile": "C:\\Users\\Casey Moss"
+  },
+  "input": "\"C:\\Users\\Casey Moss\\Logs\"",
+  "expected": "\"<profile>\\Logs\""
+ },
+ {
+  "name": "wrapped marker without a space retains its existing kind",
+  "ctx": {
+   "host": "HARBOR"
+  },
+  "input": "\"C:\\Users\\HARBOR\\Logs\"",
+  "expected": "\"C:\\Users\\<host>\\Logs\""
+ },
+ {
+  "name": "bare multiword path remains a limited fallback",
+  "ctx": {},
+  "input": "C:\\Users\\Casey Moss\\Logs",
+  "expected": "C:\\Users\\<user> Moss\\Logs"
+ },
+ {
+  "name": "bare path does not consume following prose and later slash",
+  "ctx": {},
+  "input": "C:\\Users\\Casey logged in /ready",
+  "expected": "C:\\Users\\<user> logged in /ready"
+ },
+ {
+  "name": "quoted prose does not become a wrapped path value",
+  "ctx": {},
+  "input": "\"failed under C:\\Users\\Casey Moss\\Logs\"",
+  "expected": "\"failed under C:\\Users\\<user> Moss\\Logs\""
+ },
+ {
+  "name": "unclosed quote does not widen through child path",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs"
+ },
+ {
+  "name": "mismatched wrapper does not widen",
+  "ctx": {},
+  "input": "[C:\\Users\\Casey Moss\\Logs)",
+  "expected": "[C:\\Users\\<user> Moss\\Logs)"
+ },
+ {
+  "name": "nested child wrapper does not authorize widening",
+  "ctx": {},
+  "input": "[C:\\Users\\Casey Moss\\Logs[1]]",
+  "expected": "[C:\\Users\\<user> Moss\\Logs[1]]"
+ },
+ {
+  "name": "trailing component space does not authorize widening",
+  "ctx": {},
+  "input": "\"/home/Harper Finch \" ready",
+  "expected": "\"/home/<user> Finch \" ready"
+ },
+ {
+  "name": "hard punctuation keeps conservative profile boundary",
+  "ctx": {},
+  "input": "\"/home/Harper Finch, notes\" ready",
+  "expected": "\"/home/<user> Finch, notes\" ready"
+ },
+ {
+  "name": "wrapper close beyond newline does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\nready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\nready\""
+ },
+ {
+  "name": "wrapper close beyond tab does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\tready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\tready\""
+ },
+ {
+  "name": "wrapper close beyond NBSP does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\u00a0ready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\u00a0ready\""
+ },
+ {
+  "name": "wrapper close beyond NEL does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\u0085ready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\u0085ready\""
+ },
+ {
+  "name": "wrapper close beyond BOM does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\ufeffready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\ufeffready\""
+ },
+ {
+  "name": "wrapper close beyond Unicode line separator does not widen",
+  "ctx": {},
+  "input": "\"C:\\Users\\Casey Moss\\Logs\u2028ready\"",
+  "expected": "\"C:\\Users\\<user> Moss\\Logs\u2028ready\""
+ },
+ {
+  "name": "quoted non-profile program path stays unchanged",
+  "ctx": {},
+  "input": "\"C:\\Program Files\\DeckChek\" ready",
+  "expected": "\"C:\\Program Files\\DeckChek\" ready"
  }
 ]

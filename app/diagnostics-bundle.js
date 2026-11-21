@@ -122,6 +122,40 @@ function redactLiterals(t, ctx) {
 const isSep = c => c === '\\' || c === '/';
 const endsSegment = c => isWs(c) || '\\/:*?"<>|\',;()[]{}'.includes(c);
 const UNIX_PREV = '"\'=([{,;:';
+const PATH_WRAPPERS = new Map([['"', '"'], ["'", "'"], ['(', ')'], ['[', ']'], ['{', '}']]);
+// Controls and explicit BOM align this new-only boundary with Rust's whitespace set.
+const endsDelimitedSegment = c => endsSegment(c) || isCtl(c) || c === '\ufeff';
+
+// For widening, treat an adjacent, closed, non-nested wrapper as a path boundary. Bare strings
+// (including redactValue's strings before JSON serialization) retain the token rule.
+// Allow ASCII spaces and known placeholder atoms, since literals/emails run first.
+function delimitedProfileEnd(t, start, prefixEnd, tokenEnd) {
+  if (t[tokenEnd] !== ' ' && !placeholderAt(t, tokenEnd)) return tokenEnd;
+  const close = PATH_WRAPPERS.get(t[start - 1]);
+  if (!close) return tokenEnd;
+  let k = prefixEnd, hasSpace = false;
+  while (k < t.length) {
+    const n = placeholderAt(t, k);
+    if (n) { k += n; continue; }
+    if (t[k] === ' ') {
+      if (k === prefixEnd) return tokenEnd;
+      hasSpace = true;
+    } else if (endsDelimitedSegment(t[k])) break;
+    k++;
+  }
+  if (!hasSpace || k === prefixEnd || t[k - 1] === ' ' || (t[k] !== close && !isSep(t[k]))) return tokenEnd;
+  // Verify the close even after a child-path separator. Another delimiter/control
+  // stops this lookahead, so malformed wrappers cannot rescan an entire suffix.
+  let q = k;
+  while (q < t.length) {
+    if (t[q] === close) return k;
+    const n = placeholderAt(t, q);
+    if (n) { q += n; continue; }
+    if (endsDelimitedSegment(t[q]) && t[q] !== ' ' && !isSep(t[q])) return tokenEnd;
+    q++;
+  }
+  return tokenEnd;
+}
 
 function redactPaths(t) {
   const out = [];
@@ -150,6 +184,7 @@ function redactPaths(t) {
     if (prefixEnd >= 0) {
       let k = prefixEnd;
       while (k < t.length && !endsSegment(t[k])) k++;
+      k = delimitedProfileEnd(t, i, prefixEnd, k);
       for (let q = i; q < prefixEnd; q++) out.push(t[q]);
       if (k > prefixEnd) {
         out.push(...'<user>');

@@ -2,6 +2,15 @@
 
 ## Current device outcome and trend continuation — 20 November 2026
 
+The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
+is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact
+tested tree `f7e32678dd89880a7dce642424100e77c5e22374`. All applicable standard,
+nightly, six-build and five-smoke gates passed for #67 before the guarded merge.
+GitHub also reports included #65 merged and issue #64 closed. Original branch
+heads and #65's failed timing result remain retained. A separate initial worker
+set now owns diagnostics redaction #69; #66/#68 corrections are accepted on
+the successor below and still await that consolidated source's hosted gates.
+
 The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
 records three completed initial workers followed by three completed fresh
 workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,

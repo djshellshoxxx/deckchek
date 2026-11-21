@@ -2,6 +2,15 @@
 
 ## Current device outcome and trend continuation — 20 November 2026
 
+The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
+is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact
+tested tree `f7e32678dd89880a7dce642424100e77c5e22374`. All applicable standard,
+nightly, six-build and five-smoke gates passed for #67 before the guarded merge.
+GitHub also reports included #65 merged and issue #64 closed. Original branch
+heads and #65's failed timing result remain retained. A separate initial worker
+set now owns diagnostics redaction #69; #66/#68 corrections are accepted on
+the successor below and still await that consolidated source's hosted gates.
+
 The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
 records three completed initial workers followed by three completed fresh
 workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,
@@ -365,6 +374,6 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 
 The repository now contains an offline-analysis and live-capture beta with a full desktop GUI shell, catalog persistence, and deterministic diagnostic workflows. It is useful for file analysis and native audio-interface capture with evidence-first findings. It is not yet a complete implementation of every feature in SPEC-00 through SPEC-19.
 
-Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition candidates need their own applicable hosted gates; see the [current acquisition handoff](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md). Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
+Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition source completed its own applicable gates and merged through #67 at `099c99c`; the [qualified merge record](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md) preserves exact trees, job states, original branches and the earlier #65 failure. Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
 
 - Final fixes (GAP-02, 08, 13, 15, 18): an input-pair picker sits wherever a capture is set up (Quick Check and the DVS/Speed/Cartridge flows, timecode runner, calibration, wear map, scratch, latency measure, hum, feedback), default 1-2 and remembered per input; `latency_play_and_capture` takes `pairs`. The scratch test uses the shared Stop-and-continue flow and ends cleanly if another feature takes the input. `--debug-crash` (debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) raises a controlled panic at the end of setup so the crash prompt can be tested (H-02). `runtime_status` was removed. The wizard listen test uses the remembered pair but has no picker of its own.

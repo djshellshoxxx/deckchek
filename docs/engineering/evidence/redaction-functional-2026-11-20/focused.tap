@@ -1,0 +1,370 @@
+TAP version 13
+# Subtest: summarizeRuns drops evidence, clamps count, keeps titles
+ok 1 - summarizeRuns drops evidence, clamps count, keeps titles
+  ---
+  duration_ms: 1.286102
+  type: 'test'
+  ...
+# Subtest: bundle parts: manifest first, hashes match, no logs, partial notes
+ok 2 - bundle parts: manifest first, hashes match, no logs, partial notes
+  ---
+  duration_ms: 8.268925
+  type: 'test'
+  ...
+# Subtest: redaction applies to every text part (seeded values)
+ok 3 - redaction applies to every text part (seeded values)
+  ---
+  duration_ms: 4.69184
+  type: 'test'
+  ...
+# Subtest: zip output has matching central directory count
+ok 4 - zip output has matching central directory count
+  ---
+  duration_ms: 2.494338
+  type: 'test'
+  ...
+# Subtest: redaction vector: profile literal
+ok 5 - redaction vector: profile literal
+  ---
+  duration_ms: 2.966036
+  type: 'test'
+  ...
+# Subtest: redaction vector: other drive and unknown user
+ok 6 - redaction vector: other drive and unknown user
+  ---
+  duration_ms: 0.291518
+  type: 'test'
+  ...
+# Subtest: redaction vector: json escaped backslashes
+ok 7 - redaction vector: json escaped backslashes
+  ---
+  duration_ms: 0.247061
+  type: 'test'
+  ...
+# Subtest: redaction vector: forward slashes and case
+ok 8 - redaction vector: forward slashes and case
+  ---
+  duration_ms: 0.190035
+  type: 'test'
+  ...
+# Subtest: redaction vector: username case-insensitive
+ok 9 - redaction vector: username case-insensitive
+  ---
+  duration_ms: 0.200902
+  type: 'test'
+  ...
+# Subtest: redaction vector: machine name
+ok 10 - redaction vector: machine name
+  ---
+  duration_ms: 0.271448
+  type: 'test'
+  ...
+# Subtest: redaction vector: email
+ok 11 - redaction vector: email
+  ---
+  duration_ms: 0.603306
+  type: 'test'
+  ...
+# Subtest: redaction vector: email containing the username
+ok 12 - redaction vector: email containing the username
+  ---
+  duration_ms: 0.143075
+  type: 'test'
+  ...
+# Subtest: redaction vector: serial labels
+ok 13 - redaction vector: serial labels
+  ---
+  duration_ms: 0.303306
+  type: 'test'
+  ...
+# Subtest: redaction vector: serial literal from asset
+ok 14 - redaction vector: serial literal from asset
+  ---
+  duration_ms: 0.362414
+  type: 'test'
+  ...
+# Subtest: redaction vector: json serial_number
+ok 15 - redaction vector: json serial_number
+  ---
+  duration_ms: 0.122143
+  type: 'test'
+  ...
+# Subtest: redaction vector: unicode user name
+ok 16 - redaction vector: unicode user name
+  ---
+  duration_ms: 0.183976
+  type: 'test'
+  ...
+# Subtest: redaction vector: two-letter user is token bounded
+ok 17 - redaction vector: two-letter user is token bounded
+  ---
+  duration_ms: 0.132069
+  type: 'test'
+  ...
+# Subtest: redaction vector: placeholders are left alone
+ok 18 - redaction vector: placeholders are left alone
+  ---
+  duration_ms: 0.981134
+  type: 'test'
+  ...
+# Subtest: redaction vector: no false positives
+ok 19 - redaction vector: no false positives
+  ---
+  duration_ms: 0.145909
+  type: 'test'
+  ...
+# Subtest: redaction vector: unix homes
+ok 20 - redaction vector: unix homes
+  ---
+  duration_ms: 0.160341
+  type: 'test'
+  ...
+# Subtest: redaction vector: astral characters
+ok 21 - redaction vector: astral characters
+  ---
+  duration_ms: 0.111096
+  type: 'test'
+  ...
+# Subtest: redaction vector: short profile folder
+ok 22 - redaction vector: short profile folder
+  ---
+  duration_ms: 0.050546
+  type: 'test'
+  ...
+# Subtest: redaction vector: env var names are not data
+ok 23 - redaction vector: env var names are not data
+  ---
+  duration_ms: 0.270576
+  type: 'test'
+  ...
+# Subtest: redaction vector: quoted Windows multiword profile and trailing prose
+ok 24 - redaction vector: quoted Windows multiword profile and trailing prose
+  ---
+  duration_ms: 0.143115
+  type: 'test'
+  ...
+# Subtest: redaction vector: single quoted Windows multiword profile without child
+ok 25 - redaction vector: single quoted Windows multiword profile without child
+  ---
+  duration_ms: 0.070385
+  type: 'test'
+  ...
+# Subtest: redaction vector: quoted Unix Unicode multiword profile
+ok 26 - redaction vector: quoted Unix Unicode multiword profile
+  ---
+  duration_ms: 0.075994
+  type: 'test'
+  ...
+# Subtest: redaction vector: parenthesized Unix multiword profile without child
+ok 27 - redaction vector: parenthesized Unix multiword profile without child
+  ---
+  duration_ms: 0.061743
+  type: 'test'
+  ...
+# Subtest: redaction vector: bracketed Unix multiword profile
+ok 28 - redaction vector: bracketed Unix multiword profile
+  ---
+  duration_ms: 0.054011
+  type: 'test'
+  ...
+# Subtest: redaction vector: braced Windows multiword profile
+ok 29 - redaction vector: braced Windows multiword profile
+  ---
+  duration_ms: 0.049384
+  type: 'test'
+  ...
+# Subtest: redaction vector: serialized JSON multiword path with escaped separators
+ok 30 - redaction vector: serialized JSON multiword path with escaped separators
+  ---
+  duration_ms: 0.060201
+  type: 'test'
+  ...
+# Subtest: redaction vector: quoted case insensitive Windows prefix and repeated interior spaces
+ok 31 - redaction vector: quoted case insensitive Windows prefix and repeated interior spaces
+  ---
+  duration_ms: 0.073971
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapped multiword component after user literal replacement
+ok 32 - redaction vector: wrapped multiword component after user literal replacement
+  ---
+  duration_ms: 0.09334
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapped multiword component with internal literal placeholder
+ok 33 - redaction vector: wrapped multiword component with internal literal placeholder
+  ---
+  duration_ms: 0.154312
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapped multiword component after email replacement
+ok 34 - redaction vector: wrapped multiword component after email replacement
+  ---
+  duration_ms: 0.092279
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapped exact multiword profile literal retains profile marker
+ok 35 - redaction vector: wrapped exact multiword profile literal retains profile marker
+  ---
+  duration_ms: 0.111467
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapped marker without a space retains its existing kind
+ok 36 - redaction vector: wrapped marker without a space retains its existing kind
+  ---
+  duration_ms: 0.112299
+  type: 'test'
+  ...
+# Subtest: redaction vector: bare multiword path remains a limited fallback
+ok 37 - redaction vector: bare multiword path remains a limited fallback
+  ---
+  duration_ms: 0.126861
+  type: 'test'
+  ...
+# Subtest: redaction vector: bare path does not consume following prose and later slash
+ok 38 - redaction vector: bare path does not consume following prose and later slash
+  ---
+  duration_ms: 0.084608
+  type: 'test'
+  ...
+# Subtest: redaction vector: quoted prose does not become a wrapped path value
+ok 39 - redaction vector: quoted prose does not become a wrapped path value
+  ---
+  duration_ms: 0.078919
+  type: 'test'
+  ...
+# Subtest: redaction vector: unclosed quote does not widen through child path
+ok 40 - redaction vector: unclosed quote does not widen through child path
+  ---
+  duration_ms: 0.069415
+  type: 'test'
+  ...
+# Subtest: redaction vector: mismatched wrapper does not widen
+ok 41 - redaction vector: mismatched wrapper does not widen
+  ---
+  duration_ms: 0.144968
+  type: 'test'
+  ...
+# Subtest: redaction vector: nested child wrapper does not authorize widening
+ok 42 - redaction vector: nested child wrapper does not authorize widening
+  ---
+  duration_ms: 0.069354
+  type: 'test'
+  ...
+# Subtest: redaction vector: trailing component space does not authorize widening
+ok 43 - redaction vector: trailing component space does not authorize widening
+  ---
+  duration_ms: 0.045519
+  type: 'test'
+  ...
+# Subtest: redaction vector: hard punctuation keeps conservative profile boundary
+ok 44 - redaction vector: hard punctuation keeps conservative profile boundary
+  ---
+  duration_ms: 0.038568
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond newline does not widen
+ok 45 - redaction vector: wrapper close beyond newline does not widen
+  ---
+  duration_ms: 0.621544
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond tab does not widen
+ok 46 - redaction vector: wrapper close beyond tab does not widen
+  ---
+  duration_ms: 0.220812
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond NBSP does not widen
+ok 47 - redaction vector: wrapper close beyond NBSP does not widen
+  ---
+  duration_ms: 0.096305
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond NEL does not widen
+ok 48 - redaction vector: wrapper close beyond NEL does not widen
+  ---
+  duration_ms: 0.142424
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond BOM does not widen
+ok 49 - redaction vector: wrapper close beyond BOM does not widen
+  ---
+  duration_ms: 0.133171
+  type: 'test'
+  ...
+# Subtest: redaction vector: wrapper close beyond Unicode line separator does not widen
+ok 50 - redaction vector: wrapper close beyond Unicode line separator does not widen
+  ---
+  duration_ms: 0.085659
+  type: 'test'
+  ...
+# Subtest: redaction vector: quoted non-profile program path stays unchanged
+ok 51 - redaction vector: quoted non-profile program path stays unchanged
+  ---
+  duration_ms: 0.111297
+  type: 'test'
+  ...
+# Subtest: redaction: Windows usernames in paths, %USERNAME% value, machine name, emails, serials (AC-6)
+ok 52 - redaction: Windows usernames in paths, %USERNAME% value, machine name, emails, serials (AC-6)
+  ---
+  duration_ms: 0.35919
+  type: 'test'
+  ...
+# Subtest: redactValue walks nested JSON and keeps it valid
+ok 53 - redactValue walks nested JSON and keeps it valid
+  ---
+  duration_ms: 0.841916
+  type: 'test'
+  ...
+# Subtest: redactValue does not infer path wrappers from later JSON serialization
+ok 54 - redactValue does not infer path wrappers from later JSON serialization
+  ---
+  duration_ms: 0.275354
+  type: 'test'
+  ...
+# Subtest: fuzz: no seeded secret survives, output is idempotent, plain text is untouched
+ok 55 - fuzz: no seeded secret survives, output is idempotent, plain text is untouched
+  ---
+  duration_ms: 64.916888
+  type: 'test'
+  ...
+# Subtest: buildIssueUrl: fixed host, encoding, body < 6000 chars, URL cap, unset repo hides button
+ok 56 - buildIssueUrl: fixed host, encoding, body < 6000 chars, URL cap, unset repo hides button
+  ---
+  duration_ms: 7.858779
+  type: 'test'
+  ...
+# Subtest: buildSummaryText redacts and never mentions audio payloads
+ok 57 - buildSummaryText redacts and never mentions audio payloads
+  ---
+  duration_ms: 0.335965
+  type: 'test'
+  ...
+# Subtest: capClientError sanitizes control characters and caps lengths
+ok 58 - capClientError sanitizes control characters and caps lengths
+  ---
+  duration_ms: 0.484758
+  type: 'test'
+  ...
+# Subtest: rate limiter allows 20 per minute then recovers (AC-2)
+ok 59 - rate limiter allows 20 per minute then recovers (AC-2)
+  ---
+  duration_ms: 0.222815
+  type: 'test'
+  ...
+# Subtest: installClientErrorHooks forwards errors and rejections, limited, and can be disposed
+ok 60 - installClientErrorHooks forwards errors and rejections, limited, and can be disposed
+  ---
+  duration_ms: 0.827694
+  type: 'test'
+  ...
+1..60
+# tests 60
+# suites 0
+# pass 60
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 255.040369
