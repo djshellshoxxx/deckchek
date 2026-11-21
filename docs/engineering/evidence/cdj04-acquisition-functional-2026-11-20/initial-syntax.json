@@ -1,0 +1,26 @@
+{
+  "utc": "2026-11-21T03:47:07.766016+00:00",
+  "node": "v22.23.4",
+  "checks": [
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "app/player/acquisition.js"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "tests/cdj-acquisition.test.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ]
+}

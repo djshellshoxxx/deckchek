@@ -1,0 +1,171 @@
+{
+  "recorded_at_utc": "2026-11-21 03:43:48 UTC",
+  "predecessor": {
+    "pr": 65,
+    "url": "https://github.com/djshellshoxxx/deckchek/pull/65",
+    "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+    "tree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+    "branch": "integration/deckchek-mobile-qr-continuation-20261120",
+    "base": "main",
+    "draft": true
+  },
+  "local_equivalent": {
+    "head": "cc62c5d8f0f7c2cedfa393dd690c197b6889a268",
+    "whole_tree_equal": true
+  },
+  "accepted_implementation": {
+    "source": "7ae15e17d0c8247efde1ba26c59df4e13f4e321c",
+    "tree": "2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4",
+    "durable_equivalent": "912ecefd88a34233998f327f76fa18452716d02a",
+    "final_overlay": "documentation_and_evidence_only",
+    "node": "22.23.4",
+    "test_files": 186,
+    "total": 2252,
+    "passed": 2251,
+    "failed": 0,
+    "skipped": 1,
+    "cancelled": 0,
+    "todo": 0,
+    "tracked_hashes": 1616,
+    "tracked_hashes_unchanged": true,
+    "tap_ms": 379593.158934,
+    "enclosing_seconds": 379.670415946,
+    "tap_sha256": "234c1817b89ce8b0d8cb8bcc9218df275344d0ce9183d4ea737726b794654b17"
+  },
+  "superseded_inputs": [
+    {
+      "pr": 62,
+      "head": "4b053e714f8200d331e53896dd54f99c0bec4bc0",
+      "branch": "integration/deckchek-evidence-continuation-20261120",
+      "state": "closed",
+      "merged": false
+    },
+    {
+      "pr": 63,
+      "head": "9f3da9edbdeab30c3078aaac25c0cbc254ac22bb",
+      "branch": "fix/deckchek-mobile-qr-chunk-whitespace-auto46-20261120",
+      "state": "closed",
+      "merged": false
+    }
+  ],
+  "ancestry_and_readback": {
+    "original_heads_are_ancestors": true,
+    "original_remote_branches_unchanged": true,
+    "published_whole_tree_matches_local": true,
+    "current_main": "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+    "main_merge_tree_equals_published": true
+  },
+  "workflow_snapshot": [
+    {
+      "run_id": 44862296909,
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296909",
+      "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+      "jobs": [
+        {
+          "id": 136718158270,
+          "name": "ui-smoke",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296909/job/136718158270"
+        },
+        {
+          "id": 136718158445,
+          "name": "javascript-tests",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296909/job/136718158445"
+        },
+        {
+          "id": 136718158469,
+          "name": "rust-tests",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296909/job/136718158469"
+        }
+      ]
+    },
+    {
+      "run_id": 44862296853,
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853",
+      "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+      "jobs": [
+        {
+          "id": 136718158121,
+          "name": "rust-stress",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158121"
+        },
+        {
+          "id": 136718158278,
+          "name": "js-fuzz-and-stress",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158278"
+        },
+        {
+          "id": 136718158369,
+          "name": "rust-asan",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158369"
+        },
+        {
+          "id": 136718158409,
+          "name": "windows-rust-tests",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158409"
+        },
+        {
+          "id": 136718158439,
+          "name": "cargo-fuzz",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158439"
+        }
+      ]
+    },
+    {
+      "run_id": 44862296858,
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296858",
+      "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+      "jobs": [
+        {
+          "id": 136718158652,
+          "name": "tests / ui-smoke",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296858/job/136718158652"
+        },
+        {
+          "id": 136718158745,
+          "name": "tests / rust-tests",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296858/job/136718158745"
+        },
+        {
+          "id": 136718158778,
+          "name": "tests / javascript-tests",
+          "status": "queued",
+          "conclusion": null,
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296858/job/136718158778"
+        },
+        {
+          "id": 136718159548,
+          "name": "release-checks",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296858/job/136718159548"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Workflow snapshot is historical; inspect current jobs before merge.",
+    "PR65 remains a stable qualification candidate while the distinct CDJ acquisition successor is developed.",
+    "Local JavaScript acceptance is not native/package or physical qualification.",
+    "Issue64 remains open until a qualified implementing PR merges."
+  ]
+}

@@ -1,0 +1,358 @@
+(node:11) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:18) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: BUG-02: after pre-gig preempts a live session, that session's stop() must not stop pre-gig's capture
+ok 1 - BUG-02: after pre-gig preempts a live session, that session's stop() must not stop pre-gig's capture
+  ---
+  duration_ms: 3.143018
+  type: 'test'
+  ...
+# Subtest: BUG-02: a session stopped natively by another feature rejects its stop() and leaves the new capture running
+ok 2 - BUG-02: a session stopped natively by another feature rejects its stop() and leaves the new capture running
+  ---
+  duration_ms: 3.993433
+  type: 'test'
+  ...
+# Subtest: BUG-02: pre-gig's stop names its lease, so a stale stop cannot take another capture
+ok 3 - BUG-02: pre-gig's stop names its lease, so a stale stop cannot take another capture
+  ---
+  duration_ms: 0.56274
+  type: 'test'
+  ...
+# (node:26) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: device pairs are named 1-2, 3-4, ... with a final mono pair on odd channel counts (contract)
+ok 4 - device pairs are named 1-2, 3-4, ... with a final mono pair on odd channel counts (contract)
+  ---
+  duration_ms: 1.760029
+  type: 'test'
+  ...
+# Subtest: selections accept a single pair or lists of numbers, labels and pair objects
+ok 5 - selections accept a single pair or lists of numbers, labels and pair objects
+  ---
+  duration_ms: 0.609961
+  type: 'test'
+  ...
+# Subtest: malformed selections throw the same text as the native side
+ok 6 - malformed selections throw the same text as the native side
+  ---
+  duration_ms: 0.730484
+  type: 'test'
+  ...
+# Subtest: out-of-range pairs give the contract error naming the device and its pairs
+ok 7 - out-of-range pairs give the contract error naming the device and its pairs
+  ---
+  duration_ms: 0.576591
+  type: 'test'
+  ...
+# Subtest: reference split of 8 interleaved channels picks the requested pairs, mono duplicates
+ok 8 - reference split of 8 interleaved channels picks the requested pairs, mono duplicates
+  ---
+  duration_ms: 0.494918
+  type: 'test'
+  ...
+# Subtest: decodeStreamBlock reads the contract multi-pair block (version 2)
+ok 9 - decodeStreamBlock reads the contract multi-pair block (version 2)
+  ---
+  duration_ms: 0.639166
+  type: 'test'
+  ...
+# Subtest: decodeStreamBlock: 8-channel data in 4 pairs, version 1 has one pair, bad pair counts fail
+ok 10 - decodeStreamBlock: 8-channel data in 4 pairs, version 1 has one pair, bad pair counts fail
+  ---
+  duration_ms: 0.856193
+  type: 'test'
+  ...
+# Subtest: stream bridge sends the selected pairs and labels each block pair
+ok 11 - stream bridge sends the selected pairs and labels each block pair
+  ---
+  duration_ms: 10.809408
+  type: 'test'
+  ...
+# Subtest: stream bridge keeps the old arguments without a selection and rejects bad selections before starting
+ok 12 - stream bridge keeps the old arguments without a selection and rejects bad selections before starting
+  ---
+  duration_ms: 0.914471
+  type: 'test'
+  ...
+# Subtest: live session passes pairs, publishes per-pair levels and returns every pair
+ok 13 - live session passes pairs, publishes per-pair levels and returns every pair
+  ---
+  duration_ms: 1.697795
+  type: 'test'
+  ...
+# Subtest: startLive bridge keeps the old argument shape without pairs
+ok 14 - startLive bridge keeps the old argument shape without pairs
+  ---
+  duration_ms: 0.315607
+  type: 'test'
+  ...
+# Subtest: bounded capture: contract arguments, per-pair audio, busy errors
+ok 15 - bounded capture: contract arguments, per-pair audio, busy errors
+  ---
+  duration_ms: 0.683993
+  type: 'test'
+  ...
+# Subtest: device list reports channel counts and pairs; older backends fall back to 1-2
+ok 16 - device list reports channel counts and pairs; older backends fall back to 1-2
+  ---
+  duration_ms: 0.416179
+  type: 'test'
+  ...
+# Subtest: payloadToAudio: legacy payloads become a single 1-2 (or mono 1) pair
+ok 17 - payloadToAudio: legacy payloads become a single 1-2 (or mono 1) pair
+  ---
+  duration_ms: 0.267675
+  type: 'test'
+  ...
+# Subtest: pair and preempt errors are classified for the UI
+ok 18 - pair and preempt errors are classified for the UI
+  ---
+  duration_ms: 0.557853
+  type: 'test'
+  ...
+# (node:34) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+ok 19 - acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+  ---
+  duration_ms: 11.067263
+  type: 'test'
+  ...
+# Subtest: metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+ok 20 - metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+  ---
+  duration_ms: 8.839904
+  type: 'test'
+  ...
+# Subtest: complete native observations remain unverified even when continuity counters are observed
+ok 21 - complete native observations remain unverified even when continuity counters are observed
+  ---
+  duration_ms: 0.812307
+  type: 'test'
+  ...
+# Subtest: compatibility defaults and absent nativeFields never become observed capture provenance
+ok 22 - compatibility defaults and absent nativeFields never become observed capture provenance
+  ---
+  duration_ms: 1.504212
+  type: 'test'
+  ...
+# Subtest: pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+ok 23 - pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+  ---
+  duration_ms: 4.718037
+  type: 'test'
+  ...
+# Subtest: capture fault counters and bounded diagnostic text remain visible without a player verdict
+ok 24 - capture fault counters and bounded diagnostic text remain visible without a player verdict
+  ---
+  duration_ms: 1.092891
+  type: 'test'
+  ...
+# Subtest: incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+ok 25 - incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+  ---
+  duration_ms: 3.349379
+  type: 'test'
+  ...
+# Subtest: invalid requests, providers and identities are rejected before capture starts
+ok 26 - invalid requests, providers and identities are rejected before capture starts
+  ---
+  duration_ms: 1.214274
+  type: 'test'
+  ...
+# Subtest: pre-aborted acquisition opens nothing
+ok 27 - pre-aborted acquisition opens nothing
+  ---
+  duration_ms: 0.478713
+  type: 'test'
+  ...
+# Subtest: cancellation releases a capture whose start resolves late, without returning a record
+ok 28 - cancellation releases a capture whose start resolves late, without returning a record
+  ---
+  duration_ms: 4.261167
+  type: 'test'
+  ...
+# Subtest: cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+ok 29 - cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+  ---
+  duration_ms: 1.507287
+  type: 'test'
+  ...
+# Subtest: busy or failed starts leave another capture owner untouched
+ok 30 - busy or failed starts leave another capture owner untouched
+  ---
+  duration_ms: 1.19128
+  type: 'test'
+  ...
+# Subtest: wait, phase, clock and reduced-capacity failures release only the owned capture
+ok 31 - wait, phase, clock and reduced-capacity failures release only the owned capture
+  ---
+  duration_ms: 1.464943
+  type: 'test'
+  ...
+# Subtest: a pending stop cannot return a completed record after cancellation or preemption
+ok 32 - a pending stop cannot return a completed record after cancellation or preemption
+  ---
+  duration_ms: 2.725367
+  type: 'test'
+  ...
+# Subtest: normal stop status is not unexpected loss; preempted returned audio is discarded
+ok 33 - normal stop status is not unexpected loss; preempted returned audio is discarded
+  ---
+  duration_ms: 0.88723
+  type: 'test'
+  ...
+# Subtest: default duration timer is cleared on cancellation and abort listeners are detached
+ok 34 - default duration timer is cleared on cancellation and abort listeners are detached
+  ---
+  duration_ms: 1.557933
+  type: 'test'
+  ...
+# Subtest: completed metadata survives a backwards host clock without claiming negative sample duration
+ok 35 - completed metadata survives a backwards host clock without claiming negative sample duration
+  ---
+  duration_ms: 0.605044
+  type: 'test'
+  ...
+# (node:42) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 36 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.506145
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 37 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 1.252742
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 38 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.098189
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 39 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.285301
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 40 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 0.518984
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 41 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 0.35088
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 42 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.394486
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 43 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.295677
+  type: 'test'
+  ...
+# Subtest: reference lists reject missing slots before JSON transport
+ok 44 - reference lists reject missing slots before JSON transport
+  ---
+  duration_ms: 1.341807
+  type: 'test'
+  ...
+# Subtest: unknown uncertainty magnitude has an explicit reason with a named method
+ok 45 - unknown uncertainty magnitude has an explicit reason with a named method
+  ---
+  duration_ms: 1.826879
+  type: 'test'
+  ...
+# (node:50) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+ok 46 - CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+  ---
+  duration_ms: 0.869764
+  type: 'test'
+  ...
+# Subtest: CDJ-04 retains signed negative speed and display error
+ok 47 - CDJ-04 retains signed negative speed and display error
+  ---
+  duration_ms: 0.168244
+  type: 'test'
+  ...
+# Subtest: CDJ-04 zero offset is not silently converted into turntable RPM
+ok 48 - CDJ-04 zero offset is not silently converted into turntable RPM
+  ---
+  duration_ms: 0.111809
+  type: 'test'
+  ...
+# Subtest: CDJ-04 fails closed on each missing, false or unknown quality gate
+ok 49 - CDJ-04 fails closed on each missing, false or unknown quality gate
+  ---
+  duration_ms: 0.301876
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes invalid frequency and nonfinite inputs
+ok 50 - CDJ-04 excludes invalid frequency and nonfinite inputs
+  ---
+  duration_ms: 0.203658
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicitly verified model pitch range and in-range display
+ok 51 - CDJ-04 requires explicitly verified model pitch range and in-range display
+  ---
+  duration_ms: 0.133342
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicit nonzero uncertainty and provenance
+ok 52 - CDJ-04 requires explicit nonzero uncertainty and provenance
+  ---
+  duration_ms: 0.220063
+  type: 'test'
+  ...
+# Subtest: CDJ-04 is stateless and does not mutate the input record
+ok 53 - CDJ-04 is stateless and does not mutate the input record
+  ---
+  duration_ms: 0.652926
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+ok 54 - CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+  ---
+  duration_ms: 0.339593
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a display error that overflows from finite numeric inputs
+ok 55 - CDJ-04 excludes a display error that overflows from finite numeric inputs
+  ---
+  duration_ms: 0.350449
+  type: 'test'
+  ...
+# Subtest: CDJ-04 rejects unsupported numeric types before deriving metrics
+ok 56 - CDJ-04 rejects unsupported numeric types before deriving metrics
+  ---
+  duration_ms: 0.263017
+  type: 'test'
+  ...
+1..56
+# tests 56
+# suites 0
+# pass 56
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 477.252702

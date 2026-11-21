@@ -1,0 +1,26 @@
+{
+  "source": "ef443d49ac1c9042a712ac5a4996faaddb8110bb",
+  "tree": "d164994f83f428bc96315babd877a0ce88c8ce55",
+  "node": "v22.23.4",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/cdj-acquisition.test.mjs",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/cdj-pitch-display.test.mjs",
+    "tests/capture-ownership.test.mjs",
+    "tests/capture-pairs.test.mjs"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-cdj-acquisition-functional",
+  "started_at": "2026-11-21T03:47:44.227232+00:00",
+  "completed_at": "2026-11-21T03:47:44.773437+00:00",
+  "enclosing_seconds": 0.5461839900090126,
+  "exit_code": 0,
+  "tracked_files": 1618,
+  "hashes_unchanged": true,
+  "status_before": "",
+  "status_after": "",
+  "tap_sha256": "5e94f5edde82e58ab9510e2dc0532676d859a018a41c0a44f762802a59c4c0af"
+}

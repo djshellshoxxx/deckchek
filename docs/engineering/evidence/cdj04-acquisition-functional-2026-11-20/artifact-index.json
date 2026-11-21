@@ -1,0 +1,42 @@
+{
+  "focused.json": {
+    "bytes": 934,
+    "sha256": "0e3daedcd34be8350bfc786cc178b1b773e85003264b07ca4ef067f395f1d582"
+  },
+  "focused.tap": {
+    "bytes": 13818,
+    "sha256": "ef7d7e822cc78f66a878075e138d022b81066e2ccb4b9a0e2f7caf61933bc643"
+  },
+  "initial-focused.json": {
+    "bytes": 934,
+    "sha256": "4d65d5864864a9275aa57bc1d7c02e6cfbfd46cf60644319114e69f094236cc4"
+  },
+  "initial-focused.tap": {
+    "bytes": 13821,
+    "sha256": "5e94f5edde82e58ab9510e2dc0532676d859a018a41c0a44f762802a59c4c0af"
+  },
+  "initial-syntax.json": {
+    "bytes": 940,
+    "sha256": "bd4795b43c8b0d8efdc0b1fd3f22e2b55eb5d4305ce1779c9e16f96ee20302e8"
+  },
+  "initial-tracked-after.json": {
+    "bytes": 181679,
+    "sha256": "1fedabd691b4797332c3e327ef2d2e67dbb15a7a1fc91c1a79a4a9888df85eb6"
+  },
+  "initial-tracked-before.json": {
+    "bytes": 181679,
+    "sha256": "1fedabd691b4797332c3e327ef2d2e67dbb15a7a1fc91c1a79a4a9888df85eb6"
+  },
+  "syntax.json": {
+    "bytes": 940,
+    "sha256": "053d6f6d61bdfe8f2fb0b5bc074541c1775fc1580884ec7e8e096aa9ff8d0a8e"
+  },
+  "tracked-after.json": {
+    "bytes": 181679,
+    "sha256": "b1f7ff8d0cf5e86a6eda7526b77fcad1f013463c7b1240196646b7e7a90dd0ec"
+  },
+  "tracked-before.json": {
+    "bytes": 181679,
+    "sha256": "b1f7ff8d0cf5e86a6eda7526b77fcad1f013463c7b1240196646b7e7a90dd0ec"
+  }
+}
