@@ -1,6 +1,31 @@
 # DeckChek Feature Matrix
 
-## Current device outcome and trend continuation — 20 November 2026
+## Current redaction and corrected outcome consolidation — 20 November 2026
+
+The [current redaction handoff](engineering/REDACTION_CONTINUATION_2026-11-20.md)
+combines accepted device-outcome #66 and fractional-timestamp #68 corrections
+with bounded JS/Rust diagnostics redaction #69. Reviewed local source
+`6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6`, tree
+`7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a`, is preserved by exact-tree durable
+checkpoint `36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371`.
+
+Initial focused verification passed 60/60. Fresh full Node 24.22.3 verification
+recorded **2,314 total / 2,312 pass / 1 fail / 1 optional skip**, with all 1,831
+tracked hashes unchanged. The existing cubic audio-quality assertion failed;
+its one unchanged-source narrow rerun passed 15/15. The first failure remains
+unexplained. The consolidated draft must retain this hold and obtain its own
+hosted/native gates. Source-specific redaction cases all passed; complete
+Spec 02 AC-6 acceptance is not established and **issue #69 stays open**.
+
+Main remains the qualified QR/acquisition merge `099c99c055322ef668be23e6ae50a2968614cc6d`.
+Publish the corrected consolidated draft before superseding #68, retaining its
+branch/ancestry; #66 remains open until an implementing qualified merge. The
+fixed Fleet diagnostic and original timing failures remain preserved, without
+rerun or threshold changes. Fleet stays off. Next work covers the audio failure,
+independent acceptance of prepared usage-ledger #70, and bounded CDJ UI wiring.
+Player persistence/reporting and scientific/physical qualification remain open.
+
+## Historical device outcome and trend continuation — 20 November 2026
 
 The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
 is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact

@@ -1,0 +1,48 @@
+{
+  "source_commit": "6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6",
+  "source_tree": "7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a",
+  "durable_source_commit": "36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371",
+  "consolidated_documentation_commit": "dc053281052e4b75111416d6ea1f78addbc129d2",
+  "all_six_workers_complete": true,
+  "fresh_reports": {
+    "code": "c263a34fc2679c12b350a9a39bfa06c1dd5b5909",
+    "functional": "bad553466f6014fae5e162b67c025adeeb5f686e",
+    "security": "50091592b622bd2a575d67ce08ce9c0d041dd726"
+  },
+  "non_documentation_paths_unchanged_from_tested_source": true,
+  "root_evidence_verification": {
+    "inventory_digests": 14,
+    "equal_tracked_maps": 4,
+    "tracked_entries_per_map": 1831,
+    "affected_names_passed": 60,
+    "shared_vectors_passed": 47,
+    "report_links_checked": 81,
+    "full_suite": {
+      "total": 2314,
+      "pass": 2312,
+      "fail": 1,
+      "skip": 1,
+      "tap_sha256": "39036600b38a1a4301801afd2dfba573a485c8bc955c8db5551cdde1ccbcc197"
+    },
+    "narrow_rerun": {
+      "total": 15,
+      "pass": 15,
+      "fail": 0,
+      "skip": 0,
+      "tap_sha256": "c8ee666590df3f24c0bb0eff784e71e0305b1247b4d1dac90d233c213847b06e"
+    }
+  },
+  "local_history_bundle": {
+    "file": "local-review-history.bundle",
+    "bytes": 288436,
+    "sha256": "69f4b29ce35b6af3b51146962b5b237a1f760ef3a1addeac98076aada3eaa0df",
+    "tip": "dc053281052e4b75111416d6ea1f78addbc129d2",
+    "prerequisites": [
+      "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+      "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+      "6cd827b0204bc450b8fc6236a179c7383dd52911"
+    ],
+    "git_bundle_verify": "passed"
+  },
+  "qualification": "Hold: unresolved first full-suite audio failure; one unchanged-source narrow rerun passed. Exact-source native/hosted gates pending. Issue69 remains open."
+}

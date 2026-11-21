@@ -1,0 +1,310 @@
+{
+  "source_commit": "6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6",
+  "source_tree": "7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a",
+  "method": "Static matching of all author focused TAP test names to the completed full-suite TAP; no extra application execution.",
+  "redaction_and_browser_subset_count": 60,
+  "redaction_vector_count": 47,
+  "subset_all_passed": true,
+  "tests": [
+    {
+      "name": "summarizeRuns drops evidence, clamps count, keeps titles",
+      "status": "ok",
+      "test_number": 89
+    },
+    {
+      "name": "bundle parts: manifest first, hashes match, no logs, partial notes",
+      "status": "ok",
+      "test_number": 90
+    },
+    {
+      "name": "redaction applies to every text part (seeded values)",
+      "status": "ok",
+      "test_number": 91
+    },
+    {
+      "name": "zip output has matching central directory count",
+      "status": "ok",
+      "test_number": 92
+    },
+    {
+      "name": "redaction vector: profile literal",
+      "status": "ok",
+      "test_number": 483
+    },
+    {
+      "name": "redaction vector: other drive and unknown user",
+      "status": "ok",
+      "test_number": 484
+    },
+    {
+      "name": "redaction vector: json escaped backslashes",
+      "status": "ok",
+      "test_number": 485
+    },
+    {
+      "name": "redaction vector: forward slashes and case",
+      "status": "ok",
+      "test_number": 486
+    },
+    {
+      "name": "redaction vector: username case-insensitive",
+      "status": "ok",
+      "test_number": 487
+    },
+    {
+      "name": "redaction vector: machine name",
+      "status": "ok",
+      "test_number": 488
+    },
+    {
+      "name": "redaction vector: email",
+      "status": "ok",
+      "test_number": 489
+    },
+    {
+      "name": "redaction vector: email containing the username",
+      "status": "ok",
+      "test_number": 490
+    },
+    {
+      "name": "redaction vector: serial labels",
+      "status": "ok",
+      "test_number": 491
+    },
+    {
+      "name": "redaction vector: serial literal from asset",
+      "status": "ok",
+      "test_number": 492
+    },
+    {
+      "name": "redaction vector: json serial_number",
+      "status": "ok",
+      "test_number": 493
+    },
+    {
+      "name": "redaction vector: unicode user name",
+      "status": "ok",
+      "test_number": 494
+    },
+    {
+      "name": "redaction vector: two-letter user is token bounded",
+      "status": "ok",
+      "test_number": 495
+    },
+    {
+      "name": "redaction vector: placeholders are left alone",
+      "status": "ok",
+      "test_number": 496
+    },
+    {
+      "name": "redaction vector: no false positives",
+      "status": "ok",
+      "test_number": 497
+    },
+    {
+      "name": "redaction vector: unix homes",
+      "status": "ok",
+      "test_number": 498
+    },
+    {
+      "name": "redaction vector: astral characters",
+      "status": "ok",
+      "test_number": 499
+    },
+    {
+      "name": "redaction vector: short profile folder",
+      "status": "ok",
+      "test_number": 500
+    },
+    {
+      "name": "redaction vector: env var names are not data",
+      "status": "ok",
+      "test_number": 501
+    },
+    {
+      "name": "redaction vector: quoted Windows multiword profile and trailing prose",
+      "status": "ok",
+      "test_number": 502
+    },
+    {
+      "name": "redaction vector: single quoted Windows multiword profile without child",
+      "status": "ok",
+      "test_number": 503
+    },
+    {
+      "name": "redaction vector: quoted Unix Unicode multiword profile",
+      "status": "ok",
+      "test_number": 504
+    },
+    {
+      "name": "redaction vector: parenthesized Unix multiword profile without child",
+      "status": "ok",
+      "test_number": 505
+    },
+    {
+      "name": "redaction vector: bracketed Unix multiword profile",
+      "status": "ok",
+      "test_number": 506
+    },
+    {
+      "name": "redaction vector: braced Windows multiword profile",
+      "status": "ok",
+      "test_number": 507
+    },
+    {
+      "name": "redaction vector: serialized JSON multiword path with escaped separators",
+      "status": "ok",
+      "test_number": 508
+    },
+    {
+      "name": "redaction vector: quoted case insensitive Windows prefix and repeated interior spaces",
+      "status": "ok",
+      "test_number": 509
+    },
+    {
+      "name": "redaction vector: wrapped multiword component after user literal replacement",
+      "status": "ok",
+      "test_number": 510
+    },
+    {
+      "name": "redaction vector: wrapped multiword component with internal literal placeholder",
+      "status": "ok",
+      "test_number": 511
+    },
+    {
+      "name": "redaction vector: wrapped multiword component after email replacement",
+      "status": "ok",
+      "test_number": 512
+    },
+    {
+      "name": "redaction vector: wrapped exact multiword profile literal retains profile marker",
+      "status": "ok",
+      "test_number": 513
+    },
+    {
+      "name": "redaction vector: wrapped marker without a space retains its existing kind",
+      "status": "ok",
+      "test_number": 514
+    },
+    {
+      "name": "redaction vector: bare multiword path remains a limited fallback",
+      "status": "ok",
+      "test_number": 515
+    },
+    {
+      "name": "redaction vector: bare path does not consume following prose and later slash",
+      "status": "ok",
+      "test_number": 516
+    },
+    {
+      "name": "redaction vector: quoted prose does not become a wrapped path value",
+      "status": "ok",
+      "test_number": 517
+    },
+    {
+      "name": "redaction vector: unclosed quote does not widen through child path",
+      "status": "ok",
+      "test_number": 518
+    },
+    {
+      "name": "redaction vector: mismatched wrapper does not widen",
+      "status": "ok",
+      "test_number": 519
+    },
+    {
+      "name": "redaction vector: nested child wrapper does not authorize widening",
+      "status": "ok",
+      "test_number": 520
+    },
+    {
+      "name": "redaction vector: trailing component space does not authorize widening",
+      "status": "ok",
+      "test_number": 521
+    },
+    {
+      "name": "redaction vector: hard punctuation keeps conservative profile boundary",
+      "status": "ok",
+      "test_number": 522
+    },
+    {
+      "name": "redaction vector: wrapper close beyond newline does not widen",
+      "status": "ok",
+      "test_number": 523
+    },
+    {
+      "name": "redaction vector: wrapper close beyond tab does not widen",
+      "status": "ok",
+      "test_number": 524
+    },
+    {
+      "name": "redaction vector: wrapper close beyond NBSP does not widen",
+      "status": "ok",
+      "test_number": 525
+    },
+    {
+      "name": "redaction vector: wrapper close beyond NEL does not widen",
+      "status": "ok",
+      "test_number": 526
+    },
+    {
+      "name": "redaction vector: wrapper close beyond BOM does not widen",
+      "status": "ok",
+      "test_number": 527
+    },
+    {
+      "name": "redaction vector: wrapper close beyond Unicode line separator does not widen",
+      "status": "ok",
+      "test_number": 528
+    },
+    {
+      "name": "redaction vector: quoted non-profile program path stays unchanged",
+      "status": "ok",
+      "test_number": 529
+    },
+    {
+      "name": "redaction: Windows usernames in paths, %USERNAME% value, machine name, emails, serials (AC-6)",
+      "status": "ok",
+      "test_number": 530
+    },
+    {
+      "name": "redactValue walks nested JSON and keeps it valid",
+      "status": "ok",
+      "test_number": 531
+    },
+    {
+      "name": "redactValue does not infer path wrappers from later JSON serialization",
+      "status": "ok",
+      "test_number": 532
+    },
+    {
+      "name": "fuzz: no seeded secret survives, output is idempotent, plain text is untouched",
+      "status": "ok",
+      "test_number": 533
+    },
+    {
+      "name": "buildIssueUrl: fixed host, encoding, body < 6000 chars, URL cap, unset repo hides button",
+      "status": "ok",
+      "test_number": 534
+    },
+    {
+      "name": "buildSummaryText redacts and never mentions audio payloads",
+      "status": "ok",
+      "test_number": 535
+    },
+    {
+      "name": "capClientError sanitizes control characters and caps lengths",
+      "status": "ok",
+      "test_number": 536
+    },
+    {
+      "name": "rate limiter allows 20 per minute then recovers (AC-2)",
+      "status": "ok",
+      "test_number": 537
+    },
+    {
+      "name": "installClientErrorHooks forwards errors and rejections, limited, and can be disposed",
+      "status": "ok",
+      "test_number": 538
+    }
+  ]
+}
