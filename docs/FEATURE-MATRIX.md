@@ -1,6 +1,33 @@
 # DeckChek Feature Matrix
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current CDJ acquisition continuation — 20 November 2026
+
+The [current continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
+explicit native observations, scoped cancellation and immutable provisional
+metadata. Three initial workers completed before three fresh independent
+code/functional/defensive reviewers accepted combined source
+`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
+`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
+`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
+
+Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
+unchanged. Only the new acquisition controller and its test file change runtime
+source. Production player UI wiring, retained reference/raw bytes,
+SQLite/history/HTML integration, scientific characterization and physical
+qualification remain unfinished. Evidence stays unverified and report-ineligible.
+
+Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
+while its hosted gates qualify; its independent full suite passed 2,251 / zero
+failures / one optional skip. Standard hosted checks passed, but nightly ASan
+failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
+unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
+preserved. This distinct acquisition successor needs its own hosted checks.
+Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
+#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
+already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
+Read current refs/reports; dated snapshots below preserve history.
+
+## Historical source41 — incident evidence, profile provenance and preview integrity
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 
@@ -65,7 +92,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Scratch stress test (FS-14) | Implemented, hardware-validation pending | Guided baby/transform/chirp protocol with metronome, results, history and compare; flag `scratchTest`. Each run stores the cartridge, setup and control-vinyl side, and Compare groups by all three plus format and tempo. PDF report. Skip thresholds are uncalibrated and labelled so. If another feature holds the input the test shows a plain error, not the "Stop and continue" dialog (follow-up). |
 | DVS latency and buffer tuner (FS-11) | Implemented, flag `latencyTuner`, hardware-unvalidated | Four steps: Measure (patch-cable guide, WASAPI round trip with k=2 uncertainty and reported-vs-measured), Buffer test (idle and CPU-load sweep, detects at run time whether Windows honours the buffer size: A honoured, B partly, C ignored, D streams fail), Recommendation (per Serato / Traktor / rekordbox with their own setting names, typed ASIO buffer labelled as typed), Windows tuning checklist (pass / review / unknown with check command, manual path and Win+R shortcut; nothing is changed) plus the busiest programs and running DJ software after a scan. Every value is labelled WASAPI, not ASIO. Latest runs are saved; export is JSON (Ctrl+E) or PDF. Entry points: Quick Check, Calibration and pre-gig fixes link here (M6 cross-links). rekordbox and Traktor Pro 4 setting names are unverified. |
 | Pre-gig check (FS-10) | Implemented, flag `pregig`, hardware-unvalidated | One Start button, live checklist with a status word per step, green / amber / red verdict with fix-it buttons, single-step and problem-only re-run, comparison with the previous run, history with compare, presets (three built-in rigs, create, from gear, edit, duplicate, delete, import/export). Each deck captures on its own input pair (deck B on 3-4 for the Traktor Audio 8 DJ rig); per-deck Inputs boxes on the start card are remembered per interface, and a pair the interface lacks shows "No such input" (not a failure, verdict "Not fully checked"). Control-vinyl formats come from the test-media library. Hum thresholds are unmeasured defaults; Result exports as JSON or PDF (FS-03 kind `pregig`); Quick Check links to it. Fix actions link to Hum hunter, Stylus and Latency, and "Open ... settings" opens Windows Settings through a fixed three-page allowlist (sound, power, microphone privacy), copying the Win+R shortcut if that fails. |
-| Mobile companion (FS-30) | Implemented, desktop import behind flag `phoneImport`, PWA not hosted, hardware-unvalidated | `mobile/` PWA: speed by reference tone with uncertainty, mains strobe helper (dot rows, on-screen strobe with photosensitivity confirmation), plinth vibration (0.5-30 Hz, relative), indicative SPL (uncalibrated banner, A/C), offline, export as `.deckchek-mobile.json` / share sheet / QR (hash, not a signature). Desktop: Import phone results (paste, file or QR text) adds a run with origin `phone` to History and an asset (`0018_session_origin`). Deploy is manual-dispatch only until the hosting decision (R12). |
+| Mobile companion (FS-30) | Implemented, desktop import behind flag `phoneImport`, PWA not hosted, hardware-unvalidated | `mobile/` PWA: speed by reference tone with uncertainty, mains strobe helper (dot rows, on-screen strobe with photosensitivity confirmation), plinth vibration (0.5-30 Hz, relative), indicative SPL (uncalibrated banner, A/C), offline, export as `.deckchek-mobile.json` / share sheet / QR (hash, not a signature). Desktop: Import phone results (paste, file or QR text) adds a run with origin `phone` to History and an asset (`0018_session_origin`). QR import preserves significant chunk whitespace through the actual parser; bounded codepoint framing and generated-mobile parity are covered by the [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md). Deploy is manual-dispatch only until the hosting decision (R12). |
 | Used-gear certificate (FS-20) | Implemented, flag `certificates`, hardware-unvalidated | Ed25519-signed certificate per unit (key per install, DPAPI on Windows), strict verifier (VALID, MODIFIED, UNVERIFIABLE, plus EXPIRED), `.deckchek-cert.json` plus PDF with fingerprint and QR `deckchek:cert:v1:<sha256>`. Certificates and Verify certificate screens (Ctrl+Shift+V). No JSON is embedded in the PDF, so a PDF cannot be verified on its own. |
 | Unit vs population (FS-21) | Implemented; pack candidate verified, independent acceptance ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`); hardware-unvalidated | Existing Spec/My units/Population behavior and contributor thresholds remain. Candidate Save uses only the current completed preview’s private rows/metadata snapshot and rejects stale/duplicate ownership. Copy discloses month metadata and avoids guaranteed unlinkability after token reset. Persistent 16/16, related 32/32 and unchanged independent 3/3 passed; hosted execution remains source-specific. |
 | Service worksheets (FS-22) | Implemented, flag `service`, hardware-unvalidated | Repair jobs `J-<year>-<seq>` with intake, before/after measurements from the device runner, append-only work log, up to 10 photos and a printable job sheet (Ctrl+J for a new job). Customer details stay local and are kept out of workspace export, packs, ledgers and the diagnostics bundle. |
@@ -94,6 +121,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Native continuous capture | Implemented in software; hardware qualification pending | Continuous stereo capture uses an SPSC ring buffer (`rtrb`) and capture-quality counters in `src-tauri/src/capture.rs`. Supported real-device and driver combinations remain unqualified. |
 | Hardware calibration/uncertainty | Implemented in software; reference qualification pending | Interface loopback calibration and uncertainty propagation are implemented. Gain, channel matching, noise, distortion, latency, clock and coarse frequency-response estimates require known-reference validation before calibrated accuracy claims. |
 | Venue/CDJ/controller/Technician advanced workflows | Not implemented | Shared measurement primitives can be reused, but category-specific workflows remain. |
+| CDJ-04 acquisition API | Partial; no production player UI | Single-pair, bounded, lease-scoped capture controller with native-observation metadata and ephemeral audio. Independently reviewed/tested; records remain unverified and report-ineligible. Retained evidence, database/report wiring and scientific/physical qualification remain open. |
 
 See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconciliation.
 

@@ -1,0 +1,27 @@
+{
+  "source_commit": "7ae15e17d0c8247efde1ba26c59df4e13f4e321c",
+  "source_tree": "2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4",
+  "worker": "/root/mobile_qr_functional_acceptance",
+  "artifacts": {
+    "full-suite.tap": {
+      "bytes": 551665,
+      "sha256": "234c1817b89ce8b0d8cb8bcc9218df275344d0ce9183d4ea737726b794654b17"
+    },
+    "full-suite.json": {
+      "bytes": 9064,
+      "sha256": "63a464ff49d0492ace323d2f615d176a9665795b4fb645986edd2341c0902b1a"
+    },
+    "tracked-before.json": {
+      "bytes": 181476,
+      "sha256": "9e3818348de0b07e1d632ab3c58d23f113f663e7c2281a81fcd8ac2428231ac1"
+    },
+    "tracked-after.json": {
+      "bytes": 181476,
+      "sha256": "9e3818348de0b07e1d632ab3c58d23f113f663e7c2281a81fcd8ac2428231ac1"
+    },
+    "syntax.json": {
+      "bytes": 2139,
+      "sha256": "18b19dd37179278d7e7620588586d914e4ff03de001acb95710004243109ec6b"
+    }
+  }
+}

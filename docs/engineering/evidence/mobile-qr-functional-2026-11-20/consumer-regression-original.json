@@ -1,0 +1,24 @@
+{
+  "implementation_source": "9f3da9edbdeab30c3078aaac25c0cbc254ac22bb",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/phone-run.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T03:09:55.639545+00:00",
+  "enclosing_seconds": 0.538887438,
+  "exit_code": 1,
+  "counts": {
+    "tests": 11,
+    "pass": 10,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "module_sha256": "5b5781b80377b0f90a99c01bdc132b69ff5437c2628a458a74fb2b6e1bad02ee",
+  "test_sha256": "30bc5e0f43a091ae96b5d91bd280ea36ef1ce087f568f3a48d495c820a43f4a7",
+  "only_test_intentionally_changed": true,
+  "log": "consumer-regression-original.tap",
+  "log_sha256": "55e2ee317179c12f8d6e9a83a5bc7791dafe001ac88ddbfd0240c371befacc36"
+}

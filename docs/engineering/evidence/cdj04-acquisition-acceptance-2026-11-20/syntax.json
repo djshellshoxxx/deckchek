@@ -1,0 +1,27 @@
+{
+  "node_version": "v22.23.4",
+  "source": "55f7ea2c8759c985bbbd463f374ca2c78d99a669",
+  "tree": "54a86922bfd8cca87c076b755edd0b3432034aee",
+  "checks": [
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "app/player/acquisition.js"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "tests/cdj-acquisition.test.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "(node:22) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ]
+}

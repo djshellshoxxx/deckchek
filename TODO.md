@@ -1,6 +1,33 @@
 # DeckChek build queue
 
-## Current CDJ calculation follow-up — 20 November 2026
+## Current CDJ acquisition continuation — 20 November 2026
+
+The [current continuation](docs/engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
+explicit native observations, scoped cancellation and immutable provisional
+metadata. Three initial workers completed before three fresh independent
+code/functional/defensive reviewers accepted combined source
+`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
+`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
+`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
+
+Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
+unchanged. Only the new acquisition controller and its test file change runtime
+source. Production player UI wiring, retained reference/raw bytes,
+SQLite/history/HTML integration, scientific characterization and physical
+qualification remain unfinished. Evidence stays unverified and report-ineligible.
+
+Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
+while its hosted gates qualify; its independent full suite passed 2,251 / zero
+failures / one optional skip. Standard hosted checks passed, but nightly ASan
+failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
+unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
+preserved. This distinct acquisition successor needs its own hosted checks.
+Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
+#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
+already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
+Read current refs/reports; dated snapshots below preserve history.
+
+## Historical CDJ calculation checkpoint — 20 November 2026
 
 The [current continuation](docs/engineering/CDJ04_CONTINUATION_2026-11-20.md) retains unchanged Ledger candidate #58 and
 original CDJ-04 prototype #57, and fixes three numerical-contract defects in the
@@ -18,7 +45,7 @@ published head and source-specific results while the separate successor qualifie
 Nine superseded input PRs are closed with branches retained; #54's final hosted
 gates remain open. Read live refs and the current report before integration.
 
-## Published Ledger candidate — 20 November 2026
+## Historical Ledger publication checkpoint — 20 November 2026
 
 Main is `e49ea1bbafb5005fdf1dfcf60d885b82d0191471` after PR #46 merged.
 The [current Ledger continuation](docs/engineering/LEDGER_CONSOLIDATION_2026-11-20.md) consolidates #47 and the #49–#56
@@ -266,7 +293,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Resolve the remaining 2 conditional MIDI profiles / 6 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
-- [ ] CDJ/media-player transport, media and digital-output diagnostics.
+- [ ] Complete CDJ/media-player capture, evidence persistence/reporting and transport/media/digital-output diagnostics. The isolated pitch calculation and provisional evidence/JSON contract are independently reviewed; production and physical acceptance remain open.
 - [ ] Controller/MIDI/HID DeckChek workflows.
 - [ ] Model-specific service workflows beyond the generic FS-22 job sheet.
 - [ ] Code signing and auto-update.

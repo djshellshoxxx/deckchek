@@ -1,0 +1,41 @@
+{
+  "source": "61a4c0d7190e79239287d3ef1710ee83267d1897",
+  "tree": "5f19f23b67b4a7e04a2470c664d1c5582648a314",
+  "node": "v22.23.4",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/phone-run.test.mjs",
+    "tests/mobile-export.test.mjs",
+    "tests/mobile-build.test.mjs",
+    "tests/phone-import-file-lifecycle.test.mjs",
+    "tests/phone-import-assets-lifecycle.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T03:18:36.021211+00:00",
+  "enclosing_seconds": 5.167042925,
+  "exit_code": 0,
+  "counts": {
+    "tests": 49,
+    "pass": 49,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "tap_duration_ms": 5068.461243,
+  "source_hashes_unchanged": true,
+  "tracked_files": 1574,
+  "clean_before": true,
+  "clean_after": true,
+  "log": "corrected-focused.tap",
+  "log_sha256": "845b9067eed83c780149000b5df525611dd64106aa291620412b9d06f40c5ea9",
+  "manifest": "corrected-tracked-sha256.json",
+  "manifest_sha256": "6e51c89f26e33669bf13a68fd2287103e532f62f6b66153e2860d9595c742e1b",
+  "changed_file_sha256": {
+    "app/phone-run.js": "a96373d0a0c2139d13400e88e6ba34604a7751876b7072e11f71b187eb8c6d39",
+    "tests/phone-run.test.mjs": "1c97c0e73ed9740d4c4fe72a84cd9bc761616e48f113268c9b1a42f7f75f4008",
+    "mobile/vendor/phone-run.js": "a96373d0a0c2139d13400e88e6ba34604a7751876b7072e11f71b187eb8c6d39",
+    "mobile/vendor/VERSION": "351756a9d1e1945ffe2830cabcaae6bc5c59abff1ed535f3891b1a38d690c139",
+    "mobile/sw.js": "94b56ad0cb90da47df4ca4eab97cfbf9bf66a8b4e4340fe35cac022dca971370"
+  }
+}

@@ -2,11 +2,16 @@
 
 Status: proposed player workflow; not implemented as a production diagnostic or a release commitment.
 
-Implementation note, 20 November 2026: an isolated CDJ-04 calculation helper now
-has independently reviewed numeric guards and focused tests. It is not wired to
-capture, persistence, UI or reports. The [source-bound continuation](engineering/CDJ04_CONTINUATION_2026-11-20.md)
-records its exact scope; the complete workflow and acceptance gates below remain
-open.
+Implementation note, 20 November 2026: the isolated CDJ-04 calculation,
+provisional evidence/JSON contract and single-pair capture-owning API have
+independent source reviews and focused tests. The
+[current acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md)
+records owned capture lifecycle, native observations distinct from defaults,
+immutable metadata and separately ephemeral audio. No production player UI
+consumes the API yet. Retained reference/raw bytes, persistence/report wiring,
+scientific characterization and physical validation remain unfinished. Records
+remain unverified and ineligible for reports. The complete workflow and
+acceptance gates below remain open.
 Date: 2026-10-06
 Related: SPEC-02 (DVS), SPEC-04 (database), SPEC-06 (reports), SPEC-08 (validation), SPEC-09 (roadmap).
 

@@ -1,0 +1,50 @@
+[
+  {
+    "command": [
+      "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+      "--check",
+      "app/phone-run.js"
+    ],
+    "started_at_utc": "2026-11-21T03:26:19.639085+00:00",
+    "completed_at_utc": "2026-11-21T03:26:19.754267+00:00",
+    "elapsed_seconds": 0.115181838,
+    "exit_code": 0,
+    "output": "(node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+  },
+  {
+    "command": [
+      "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+      "--check",
+      "mobile/vendor/phone-run.js"
+    ],
+    "started_at_utc": "2026-11-21T03:26:19.754297+00:00",
+    "completed_at_utc": "2026-11-21T03:26:19.826727+00:00",
+    "elapsed_seconds": 0.072446234,
+    "exit_code": 0,
+    "output": "(node:21) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+  },
+  {
+    "command": [
+      "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+      "--check",
+      "mobile/sw.js"
+    ],
+    "started_at_utc": "2026-11-21T03:26:19.826757+00:00",
+    "completed_at_utc": "2026-11-21T03:26:19.903500+00:00",
+    "elapsed_seconds": 0.0767595,
+    "exit_code": 0,
+    "output": "(node:29) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+  },
+  {
+    "command": [
+      "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+      "--check",
+      "tests/phone-run.test.mjs"
+    ],
+    "started_at_utc": "2026-11-21T03:26:19.903528+00:00",
+    "completed_at_utc": "2026-11-21T03:26:19.968556+00:00",
+    "elapsed_seconds": 0.065043751,
+    "exit_code": 0,
+    "output": "(node:37) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+  }
+]
