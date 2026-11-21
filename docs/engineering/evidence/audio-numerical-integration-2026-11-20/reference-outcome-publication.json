@@ -1,0 +1,13 @@
+{
+  "head": "2022c97d8fb1f941de13e151be9627bbdfcc278e",
+  "tree": "bdcef501626128671645d2bed693eb1bf86fad58",
+  "localHead": "7adc8e3cc4907046d0f0b1f4676e93cf2f2dded4",
+  "parents": [
+    "b8bf6ea10791b05a2188d176ae8b996528a10f08"
+  ],
+  "branch": "checkpoint/deckchek-reference-outcome-20261120",
+  "fetchedWholeTreeVerified": true,
+  "orderedParentAndAncestryVerified": true,
+  "refReadbackVerified": true,
+  "qualification": "All six reference/PDF workers complete; full gate failed: 2,357 total / 2,354 pass / 2 fail / 1 skip. Held for separate audio diagnosis. Complete failures retained; no rerun or cause claim."
+}

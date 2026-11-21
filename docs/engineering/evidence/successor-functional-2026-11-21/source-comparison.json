@@ -1,0 +1,56 @@
+{
+  "schema": "deckchek.successor-static-source-comparison.v1",
+  "refs": {
+    "qualified_main": "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "failed_reference_full": "ded34d2dccfcf0ae51c78fa1492a57c161d32a1d",
+    "failed_context_selection": "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864",
+    "current": "fb81960b417ad16c155b7793814cbb4a7545d41e"
+  },
+  "sha256_by_path": {
+    "app/audio-quality.js": {
+      "qualified_main": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "failed_reference_full": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "failed_context_selection": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "current": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6"
+    },
+    "app/calibration.js": {
+      "qualified_main": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "failed_reference_full": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "failed_context_selection": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "current": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72"
+    },
+    "tests/audio-quality.test.mjs": {
+      "qualified_main": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "failed_reference_full": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "failed_context_selection": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "current": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78"
+    },
+    "tests/audio-runner-lifecycle.test.mjs": {
+      "qualified_main": "27b2bae6bd871c55959dbbbebce798c7033aeb5505950ec307677263d4687708",
+      "failed_reference_full": "27b2bae6bd871c55959dbbbebce798c7033aeb5505950ec307677263d4687708",
+      "failed_context_selection": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "current": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d"
+    }
+  },
+  "current_vs_qualified_main_paths": [
+    "app/index.html",
+    "app/ledger/privacy.js",
+    "app/player/reference-file.js",
+    "app/report-pdf.js",
+    "app/styles.css",
+    "app/styles/player-capture.css",
+    "app/ui/screens/player-capture.js",
+    "tests/audio-runner-lifecycle.test.mjs",
+    "tests/ledger-preset-boundary.test.mjs",
+    "tests/player-capture-screen.test.mjs",
+    "tests/player-reference-file.test.mjs",
+    "tests/report-pdf.test.mjs",
+    "tools/smoke/pdf.mjs",
+    "tools/smoke/player-capture.mjs",
+    "tools/smoke/shell-layout.mjs"
+  ],
+  "limits": [
+    "Static byte comparison is not evidence of a numerical cause.",
+    "Runner test diagnostic/message additions retain assertions; collectors are disabled in this full invocation."
+  ]
+}

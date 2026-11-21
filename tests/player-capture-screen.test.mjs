@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPlayerCaptureScreen } from '../app/ui/screens/player-capture.js';
 import { runCdjAcquisition } from '../app/player/acquisition.js';
+import { inspectPlayerReferenceFile } from '../app/player/reference-file.js';
 import { payloadToAudio } from '../app/ui/audio-io.js';
 import { cachedInputDevices, setInputDevices } from '../app/ui/pair-picker.js';
 import { settings, setSetting, active } from '../app/ui/state.js';
@@ -65,7 +66,7 @@ function captureFixture({ payload = {}, quality = {}, startGate = null, waitGate
   return { audio, result, calls, session, startCapture, acquire };
 }
 
-function mount(t, { fixture = captureFixture(), native = true, acquire = fixture.acquire, pairs = [3], shell = false } = {}) {
+function mount(t, { fixture = captureFixture(), native = true, acquire = fixture.acquire, pairs = [3], shell = false, inspectReference } = {}) {
   const document = installDom(t), previousDevice = settings.deviceName;
   settings.deviceName = 'Requested input';
   const saved = [], pairEvents = [];
@@ -78,7 +79,7 @@ function mount(t, { fixture = captureFixture(), native = true, acquire = fixture
   const section = document.createElement('section'); section.id = 'screen-pc-test';
   document.getElementById('main').append(section);
   const api = createPlayerCaptureScreen(section, { acquire, startCapture: fixture.startCapture,
-    native: () => native, pairPicker, selectPairs: () => pairs,
+    native: () => native, pairPicker, selectPairs: () => pairs, inspectReference,
     save: (filename, contents, type) => saved.push({ filename, contents, type, value: JSON.parse(contents) }) });
   if (shell) {
     configureFeatures({ storage: globalThis.localStorage });
@@ -97,6 +98,13 @@ function mount(t, { fixture = captureFixture(), native = true, acquire = fixture
   const byId = id => section.querySelector(`#${id}`);
   return { ...fixture, section, api, byId, saved, pairEvents,
     set(id, value) { byId(id).value = value; },
+    async choose(file) {
+      const input = byId('pc-reference-file');
+      input.files = file ? [file] : []; input.value = file ? 'selected-file' : '';
+      input.dispatch('change');
+      assert.equal(input.value, '', 'each delivered picker value is cleared immediately, including refused events');
+      await settle();
+    },
     async click(id) { byId(id).dispatch('click'); await settle(); } };
 }
 
@@ -144,7 +152,8 @@ test('real screen captures operator assertions and exports only provisional meta
   const { value, filename, type } = f.saved[0];
   assert.equal(type, 'application/json');
   assert.match(filename, /\.json$/);
-  assert.deepEqual(Object.keys(value).sort(), ['acquisition', 'record']);
+  assert.deepEqual(Object.keys(value).sort(), ['acquisition', 'record', 'selectedReference']);
+  assert.equal(value.selectedReference, null);
   const { acquisition: a, record } = value;
   assert.equal(a.requested.deviceName, 'Requested input');
   assert.deepEqual(a.requested.pairs, [3]);
@@ -158,6 +167,7 @@ test('real screen captures operator assertions and exports only provisional meta
   assert.equal(record.asset.model, 'Fixture player');
   assert.equal(record.asset.firmware, '1.2');
   assert.equal(record.source.referenceId, 'Known track');
+  assert.equal(record.source.referenceHashSha256, null);
   assert.equal(record.source.medium, 'usb');
   assert.equal(record.pitch.displayedPercent, 2.5);
   assert.equal(record.processing.keylock, 'disabled');
@@ -328,4 +338,167 @@ test('production native detection and shared pair picker feed the selected input
   assert.deepEqual(saved[0].acquisition.requested.pairs, [3]);
   assert.deepEqual(saved[0].acquisition.observed.selectedPairs, [{ first: 3, second: 4, mono: false, label: '3-4' }]);
   assert.deepEqual(invoked, []);
+});
+
+const ABC = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
+const referenceFile = (contents = 'abc', name = 'Reference tone.wav') => new File([contents], name, { type: 'audio/wav' });
+async function referenceReady(f) {
+  const until = Date.now() + 2000;
+  while (f.byId('pc-reference-file').disabled && Date.now() < until) await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(f.byId('pc-reference-file').disabled, false, 'the reference read settled');
+  await settle();
+}
+
+test('browser preview uses the default file inspector while native capture remains unavailable', async t => {
+  const f = mount(t, { native: false });
+  await f.choose(referenceFile()); await referenceReady(f);
+  assert.match(f.byId('pc-reference-status').textContent, new RegExp(ABC));
+  assert.match(f.byId('pc-reference-status').textContent, /Reference tone\.wav/);
+  assert.equal(f.byId('pc-start').disabled, true);
+  await f.click('pc-start');
+  assert.deepEqual(f.calls.requests, []);
+  assert.deepEqual(f.calls.start, []);
+  f.api.onExport(); assert.deepEqual(f.saved, []);
+  assert.equal(globalThis.localStorage.getItem('deckchek.workspace.v1'), null);
+});
+
+for (const [label, expected] of [['', 'Reference tone.wav'], ['Known test track', 'Known test track']]) {
+  test(`selected-file metadata snapshots into capture with ${label ? 'the entered label' : 'a filename fallback'}`, async t => {
+    const f = mount(t);
+    f.set('pc-reference', label);
+    await f.choose(referenceFile()); await referenceReady(f);
+    await f.click('pc-start'); await f.click('pc-export');
+    const value = f.saved[0].value;
+    assert.deepEqual(Object.keys(value).sort(), ['acquisition', 'record', 'selectedReference']);
+    assert.equal(value.selectedReference.fileName, 'Reference tone.wav');
+    assert.equal(value.selectedReference.sha256, ABC);
+    assert.equal(value.selectedReference.byteLength, 3);
+    assert.equal(value.selectedReference.hashBasis, 'selected_file_bytes');
+    assert.equal(value.selectedReference.playbackIdentity, 'unverified');
+    assert.equal(value.selectedReference.bytesRetained, false);
+    assert.equal(value.record.source.referenceId, expected);
+    assert.equal(value.record.source.referenceHashSha256, ABC);
+    assert.equal(value.record.source.referenceFrequencyHz, null);
+    assert.equal(value.record.qualification.status, 'unverified');
+    assert.equal(value.record.qualification.eligibleForReport, false);
+    assert.equal(value.record.qualification.measurement, null);
+    assert.deepEqual(value.record.capture.rawEvidenceRefs, []);
+    assert.equal(Object.hasOwn(value, 'audio'), false);
+    assert.ok(Object.values(value.selectedReference).every(item => item === null || typeof item !== 'object'));
+    assert.match(f.byId('pc-result').textContent, /Played reference identityNot verified/);
+    assert.equal(globalThis.localStorage.getItem('deckchek.workspace.v1'), null);
+  });
+}
+
+test('pending reference read blocks capture and additional picker deliveries until the first read settles', async t => {
+  const gate = deferred(), calls = [];
+  const f = mount(t, { inspectReference: async (file, options) => {
+    calls.push({ file, options }); await gate.promise; return inspectPlayerReferenceFile(file, options);
+  } });
+  await f.choose(referenceFile());
+  assert.equal(f.byId('pc-start').disabled, true);
+  assert.equal(f.byId('pc-reference-file').disabled, true);
+  await f.click('pc-start'); await f.choose(referenceFile('abd', 'Second.wav'));
+  assert.equal(calls.length, 1);
+  assert.equal(f.calls.requests.length, 0);
+  await f.click('pc-reference-clear');
+  assert.equal(calls[0].options.signal.aborted, true);
+  assert.equal(f.byId('pc-reference-file').disabled, true, 'logical cancellation does not start another read');
+  await f.choose(referenceFile('abd', 'Third.wav')); await f.click('pc-start');
+  assert.equal(calls.length, 1); assert.equal(f.calls.requests.length, 0);
+  gate.resolve(); await referenceReady(f);
+  assert.doesNotMatch(f.byId('pc-reference-status').textContent, new RegExp(ABC));
+  await f.click('pc-start'); await f.click('pc-export');
+  assert.equal(f.saved[0].value.selectedReference, null);
+  assert.equal(f.saved[0].value.record.source.referenceHashSha256, null);
+});
+
+for (const lifecycle of ['clear', 'escape', 'hide/show', 'shell navigation', 'feature disable', 'dispose']) {
+  test(`${lifecycle} rejects a late reference descriptor and cannot export it`, async t => {
+    const gate = deferred(), calls = [];
+    const shell = ['shell navigation', 'feature disable'].includes(lifecycle);
+    const f = mount(t, { shell, inspectReference: (file, options) => {
+      const pending = (async () => {
+        const metadata = await inspectPlayerReferenceFile(file); // model a provider that finishes after cancellation
+        await gate.promise; return metadata;
+      })();
+      calls.push({ file, options, pending });
+      return pending;
+    } });
+    await f.choose(referenceFile());
+    if (lifecycle === 'clear') await f.click('pc-reference-clear');
+    else if (lifecycle === 'escape') assert.equal(f.api.onEscape(), true);
+    else if (lifecycle === 'hide/show') { f.api.onHide(); f.api.onShow(); }
+    else if (lifecycle === 'shell navigation') { go('other'); await settle(); go('pc-test'); }
+    else if (lifecycle === 'feature disable') { setEnabled('playerCapture', false); await settle(); setEnabled('playerCapture', true); go('pc-test'); }
+    else { f.api.dispose(); f.api.onShow(); }
+    assert.equal(calls[0].options.signal.aborted, true);
+    await f.choose(referenceFile('abd', 'Stale picker.wav'));
+    assert.equal(calls.length, 1);
+    gate.resolve(); await calls[0].pending; await settle();
+    assert.doesNotMatch(f.byId('pc-reference-status').textContent, /Reference tone\.wav|ba7816bf/);
+    assert.equal(f.byId('pc-export').disabled, true);
+    f.api.onExport(); assert.deepEqual(f.saved, []);
+    assert.equal(f.calls.requests.length, 0);
+  });
+}
+
+test('inactive picker deliveries clear their input without reading a File', async t => {
+  let inspections = 0;
+  const f = mount(t, { inspectReference: async file => { inspections++; return inspectPlayerReferenceFile(file); } });
+  f.api.onHide(); await f.choose(referenceFile());
+  assert.equal(inspections, 0);
+  f.api.onShow(); f.api.dispose(); await f.choose(referenceFile());
+  assert.equal(inspections, 0);
+  f.api.onExport(); assert.deepEqual(f.saved, []);
+});
+
+test('capture uses its selected reference snapshot and refuses picker or clear handlers while busy', async t => {
+  const waitGate = deferred(), inspections = [];
+  const f = mount(t, { fixture: captureFixture({ waitGate }), inspectReference: async file => {
+    inspections.push(file.name); return inspectPlayerReferenceFile(file);
+  } });
+  f.set('pc-reference', 'Original label');
+  await f.choose(referenceFile()); await referenceReady(f);
+  await f.click('pc-start');
+  assert.equal(f.byId('pc-reference-file').disabled, true);
+  f.set('pc-reference', 'Changed label');
+  await f.choose(referenceFile('abd', 'Different.wav')); await f.click('pc-reference-clear');
+  assert.deepEqual(inspections, ['Reference tone.wav']);
+  waitGate.resolve(); await settle(); await f.click('pc-export');
+  const value = f.saved[0].value;
+  assert.equal(value.selectedReference.fileName, 'Reference tone.wav');
+  assert.equal(value.selectedReference.sha256, ABC);
+  assert.equal(value.record.source.referenceId, 'Original label');
+  assert.equal(value.record.source.referenceHashSha256, ABC);
+});
+
+test('new or cleared selection discards prior capture details, and failed reads leave no old reference', async t => {
+  const f = mount(t);
+  await f.choose(referenceFile()); await referenceReady(f);
+  await f.click('pc-start'); assert.equal(f.byId('pc-export').disabled, false);
+  await f.choose({ size: 3, name: 'Unavailable.wav', async arrayBuffer() { throw new Error('File no longer available'); } });
+  await referenceReady(f);
+  assert.match(f.byId('pc-reference-status').textContent, /could not be read.*File no longer available/);
+  assert.equal(f.byId('pc-result').hidden, true);
+  f.api.onExport(); assert.deepEqual(f.saved, []);
+  await f.click('pc-start'); await f.click('pc-export');
+  assert.equal(f.saved[0].value.selectedReference, null);
+  assert.equal(f.saved[0].value.record.source.referenceHashSha256, null);
+  await f.choose(referenceFile()); await referenceReady(f);
+  await f.click('pc-start');
+  await f.click('pc-reference-clear');
+  assert.equal(f.byId('pc-export').disabled, true);
+  assert.equal(f.byId('pc-result').hidden, true);
+  assert.match(f.byId('pc-reference-status').textContent, /No reference file selected/);
+});
+
+test('leaving after a completed reference selection clears it before another capture', async t => {
+  const f = mount(t);
+  await f.choose(referenceFile()); await referenceReady(f);
+  f.api.onHide(); f.api.onShow();
+  await f.click('pc-start'); await f.click('pc-export');
+  assert.equal(f.saved[0].value.selectedReference, null);
+  assert.equal(f.saved[0].value.record.source.referenceHashSha256, null);
+  assert.equal(f.byId('pc-reference-file').value, '');
 });

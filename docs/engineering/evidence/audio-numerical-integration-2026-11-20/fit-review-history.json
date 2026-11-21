@@ -1,0 +1,12 @@
+{
+  "bundle": "fit-review-history.bundle",
+  "tip": "e0c06b70f2ed0e5a6705ded3037164f815af135b",
+  "tree": "d68c6c029f2c5ddd0c2918acd297c36b450e59ff",
+  "excluded_ancestors": [
+    "5f256bdd3630738292c36c1b343a4161d5078a48",
+    "eafaa53ade2b626a1817792dbab36a2b95dedd58"
+  ],
+  "bytes": 428715,
+  "sha256": "f9fb060bc70aead44536edade933f7d19f4cec379791c9e695f36904e0f14849",
+  "verified": true
+}

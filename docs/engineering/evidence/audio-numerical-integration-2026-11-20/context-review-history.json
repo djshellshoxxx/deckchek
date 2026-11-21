@@ -1,0 +1,9 @@
+{
+  "recordedAtUTC": "2026-11-21T08:00:10.894869+00:00",
+  "tip": "eafaa53ade2b626a1817792dbab36a2b95dedd58",
+  "tree": "a7ba52d1208efa0818841b46a2c8dc5351e8e967",
+  "bytes": 172784,
+  "sha256": "ff8f00f752310072a8cfd174c899697707e31be7afe475206e49f551fed11f59",
+  "verificationStdout": "The bundle contains this ref:\neafaa53ade2b626a1817792dbab36a2b95dedd58 HEAD\nThe bundle requires these 2 refs:\n8dbef3a91f4d88d01ec5a570265258443fd7f3cc \naded4981b623a0dab7e04e65fa0ca8ab06528e69 \nThe bundle uses this hash algorithm: sha1\n",
+  "verificationStderr": "docs/engineering/evidence/audio-numerical-integration-2026-11-20/context-review-history.bundle is okay\n"
+}

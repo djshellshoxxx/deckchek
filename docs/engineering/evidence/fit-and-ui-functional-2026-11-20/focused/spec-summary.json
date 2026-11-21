@@ -1,0 +1,17 @@
+{
+  "source": "focused/run.tap",
+  "actual_format": "Node.js spec reporter",
+  "retained_filename_reason": "The existing generic driver named stdout run.tap; original first-run bytes are preserved.",
+  "bytes": 8257,
+  "sha256": "e3c49de363d42265d611ecb3f87007524f942829f397ceb8b58817979ad22f5b",
+  "counts": {
+    "tests": 82,
+    "suites": 0,
+    "pass": 82,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "rerun_performed": false
+}

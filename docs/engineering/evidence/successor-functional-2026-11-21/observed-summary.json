@@ -1,0 +1,67 @@
+{
+  "schema": "deckchek.successor-full-node-observed-summary.v1",
+  "source_commit": "fb81960b417ad16c155b7793814cbb4a7545d41e",
+  "source_tree": "724274fae453a867e4adf5009deef7b0cf4b190c",
+  "counts": {
+    "tests": 2359,
+    "suites": 0,
+    "pass": 2358,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "root_result_lines": 2359,
+  "plan_line": [
+    "1..2359"
+  ],
+  "failed_cases": [],
+  "skipped_cases": [
+    {
+      "status": "ok",
+      "number": 921,
+      "title": "optional corpus robustness check over a local Mixxx controllers folder (MIXXX_CONTROLLERS_DIR) # SKIP MIXXX_CONTROLLERS_DIR not set"
+    }
+  ],
+  "selected_passed_cases": [
+    {
+      "status": "ok",
+      "number": 22,
+      "title": "harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted"
+    },
+    {
+      "status": "ok",
+      "number": 68,
+      "title": "bug 6: a failed attempt releases its capture, so an immediate retry records and analyses"
+    },
+    {
+      "status": "ok",
+      "number": 805,
+      "title": "preset names accept declared strings and use complete Public defaults for other values"
+    },
+    {
+      "status": "ok",
+      "number": 806,
+      "title": "restored invalid preset rules stay editable and explicit Custom overrides keep their meaning"
+    },
+    {
+      "status": "ok",
+      "number": 1435,
+      "title": "a real selected File produces the exact known SHA-256 and only immutable metadata"
+    },
+    {
+      "status": "ok",
+      "number": 1570,
+      "title": "finite but unrepresentable chart axes fail closed with a visible PDF warning"
+    }
+  ],
+  "tracked_hash_maps_equal": true,
+  "tracked_file_count": 2125,
+  "test_file_count": 193,
+  "qualifications": [
+    "One original full top-level Node selection on this exact frozen source.",
+    "No diagnostic collector or additional engine/optimization switch was enabled.",
+    "Passing assertions expose no new raw audio-fit observation and establish no numerical repair or cause.",
+    "Separate performance, rendered UI, native/platform and physical qualification gates were not executed by this lane."
+  ]
+}

@@ -3,9 +3,11 @@
 import { h, isNative, download } from '../dom.js';
 import { icon } from '../icons.js';
 import { settings, on } from '../state.js';
+import { showInspector } from '../shell.js';
 import { startLiveSession } from '../audio-io.js';
 import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { runCdjAcquisition, CDJ_MAX_CAPTURE_SECONDS } from '../../player/acquisition.js';
+import { inspectPlayerReferenceFile } from '../../player/reference-file.js';
 
 const REASONS = Object.freeze({
   buffer_overruns_reported: 'The input reported dropped samples.',
@@ -33,8 +35,10 @@ const processing = value => ({ unknown: 'Unknown', enabled: 'On', disabled: 'Off
 export function createPlayerCaptureScreen(section, {
   acquire = runCdjAcquisition, startCapture = startLiveSession, native = isNative,
   save = download, pairPicker = createPairPicker, selectPairs = currentPairs,
+  inspectReference = inspectPlayerReferenceFile,
 } = {}) {
   let current = null, last = null, visible = true, disposed = false;
+  let referenceTask = null, selectedReference = null;
   const fields = {};
   function input(name, label, attrs = {}) {
     const el = h('input', { id: `pc-${name}`, type: 'text', maxlength: 240, ...attrs });
@@ -54,6 +58,16 @@ export function createPlayerCaptureScreen(section, {
   const cancel = h('button', { id: 'pc-cancel', type: 'button', class: 'btn btn-secondary', text: 'Cancel capture', onclick: () => abort() });
   const clear = h('button', { id: 'pc-clear', type: 'button', class: 'btn btn-ghost', text: 'Clear details', onclick: () => { if (!disposed && visible && !current && last) { discard(); setStatus('Capture details cleared.'); } } });
   const exportButton = h('button', { id: 'pc-export', type: 'button', class: 'btn btn-secondary', text: 'Export capture details', onclick: () => exportDetails() });
+  const referenceFile = h('input', { id: 'pc-reference-file', type: 'file', accept: 'audio/*,.wav,.aiff,.aif,.flac,.mp3',
+    'aria-describedby': 'pc-reference-help pc-reference-status', onchange: event => {
+      const file = event.target.files?.[0] || null;
+      event.target.value = ''; // also relinquish a picker result delivered after hide/disposal
+      return chooseReference(file);
+    } });
+  const referenceStatus = h('p', { id: 'pc-reference-status', class: 'hint pc-reference-status', role: 'status', 'aria-live': 'polite',
+    text: 'No reference file selected. You can still record a capture.' });
+  const referenceClear = h('button', { id: 'pc-reference-clear', type: 'button', class: 'btn btn-secondary', text: 'Clear reference file',
+    onclick: () => { if (!disposed && visible && !current) cancelReference(); } });
   const setup = h('fieldset', { class: 'pc-fields field-grid' },
     h('legend', { class: 'card-title', text: 'Capture setup' }),
     h('div', { class: 'field' }, h('span', { class: 'field-label', text: 'Input selected in the top bar' }), device),
@@ -63,11 +77,16 @@ export function createPlayerCaptureScreen(section, {
     input('model', 'Player model (optional)'),
     input('firmware', 'Firmware (optional)'),
     select('medium', 'Source medium', [['', 'Unknown'], ['audio_cd', 'Audio CD'], ['cd_r', 'CD-R'], ['usb', 'USB'], ['sd', 'SD'], ['other', 'Other']]),
-    input('reference', 'Reference track or file name (optional)'),
+    input('reference', 'Reference track label (optional)'),
+    h('div', { class: 'field pc-reference' },
+      h('label', { class: 'field-label', for: 'pc-reference-file', text: 'Reference file (optional, up to 32 MiB)' }),
+      referenceFile,
+      h('p', { id: 'pc-reference-help', class: 'hint', text: 'The SHA-256 identifies this file’s bytes. It does not verify its audio content or what the player is playing. The file is read locally and is not saved or uploaded.' }),
+      referenceStatus, referenceClear),
     input('pitch', 'Displayed pitch (%) — optional', { type: 'number', step: 'any' }),
     select('keylock', 'Key Lock / Master Tempo', [['unknown', 'Unknown'], ['disabled', 'Off'], ['enabled', 'On']]),
     select('fx', 'Player effects', [['unknown', 'Unknown'], ['disabled', 'Off'], ['enabled', 'On']]));
-  const unsupported = h('p', { class: 'banner banner-info', hidden: Boolean(native()), text: 'Live capture requires the DeckChek desktop app. The browser preview shows setup guidance only.' });
+  const unsupported = h('p', { class: 'banner banner-info', hidden: Boolean(native()), text: 'Live capture requires the DeckChek desktop app. You can prepare reference-file details here.' });
   section.replaceChildren(
     h('header', { class: 'screen-head' }, h('div', { class: 'screen-title' },
       h('span', { class: 'screen-icon', html: icon('plug', { size: 24 }) }),
@@ -80,13 +99,15 @@ export function createPlayerCaptureScreen(section, {
       h('div', { class: 'pc-actions' }, start, cancel), status),
     result,
     h('div', { class: 'pc-actions' }, exportButton, clear),
-    h('p', { class: 'hint', text: 'The export contains capture details and entered settings, including device names and any driver messages. Audio is not saved or exported. Leaving this screen clears the details.' }));
+    h('p', { class: 'hint', text: 'The export contains capture details and entered settings, including device names, any driver messages and the selected reference filename and hash. Audio is not saved or exported. Leaving this screen clears the details and reference selection.' }));
 
   function setStatus(message) { status.textContent = message; }
   function update() {
     if (disposed) return;
     setup.disabled = Boolean(current);
-    start.disabled = Boolean(current) || !native() || !visible;
+    start.disabled = Boolean(current || referenceTask) || !native() || !visible;
+    referenceFile.disabled = Boolean(current || referenceTask);
+    referenceClear.disabled = Boolean(current) || (!selectedReference && !referenceTask) || Boolean(referenceTask?.controller.signal.aborted);
     cancel.disabled = !current || current.controller.signal.aborted;
     clear.disabled = Boolean(current) || !last;
     exportButton.disabled = Boolean(current) || !last || !visible;
@@ -101,6 +122,41 @@ export function createPlayerCaptureScreen(section, {
     update();
   }
   const active = request => current === request && !request.controller.signal.aborted && visible && !disposed;
+  const referenceActive = request => referenceTask === request && !request.controller.signal.aborted && visible && !disposed;
+
+  function cancelReference() {
+    referenceTask?.controller.abort();
+    selectedReference = null;
+    referenceFile.value = '';
+    discard();
+    referenceStatus.textContent = referenceTask ? 'Reference selection cancelled. Waiting for the local read to finish.' : 'No reference file selected. You can still record a capture.';
+    update();
+  }
+
+  async function chooseReference(file) {
+    if (disposed || !visible || current || referenceTask) return;
+    selectedReference = null;
+    referenceFile.value = ''; // retain no File in the input after taking the local snapshot
+    discard();
+    if (!file) { cancelReference(); return; }
+    const request = { controller: new AbortController() };
+    referenceTask = request; update();
+    referenceStatus.textContent = 'Computing the selected file’s SHA-256…';
+    try {
+      const descriptor = await inspectReference(file, { signal: request.controller.signal });
+      if (!referenceActive(request)) return;
+      selectedReference = descriptor;
+      referenceStatus.textContent = `${descriptor.fileName} · ${descriptor.byteLength.toLocaleString()} bytes · SHA-256 ${descriptor.sha256}`;
+    } catch (error) {
+      if (referenceActive(request)) referenceStatus.textContent = `Reference file could not be read: ${error?.message || String(error)}`;
+    } finally {
+      if (referenceTask === request) {
+        referenceTask = null;
+        if (!disposed && request.controller.signal.aborted) referenceStatus.textContent = 'No reference file selected. You can still record a capture.';
+        update();
+      }
+    }
+  }
 
   function renderDetails() {
     const { acquisition: a, record: r } = last;
@@ -120,6 +176,10 @@ export function createPlayerCaptureScreen(section, {
       ['Dropped samples reported', shown(a.quality.overrunSamples)],
       ['Stream errors reported', shown(a.quality.streamErrors)],
       ['Entered player model', shown(r.asset.model)],
+      ['Reference track label', shown(r.source.referenceId)],
+      ['Selected reference file', last.selectedReference?.fileName || 'Not selected'],
+      ['Selected-file SHA-256', last.selectedReference?.sha256 || 'Not available'],
+      ['Played reference identity', 'Not verified'],
       ['Entered displayed pitch', r.pitch.displayedPercent == null ? 'Unknown' : `${r.pitch.displayedPercent}%`],
       ['Entered Key Lock / effects', `${processing(r.processing.keylock)} / ${processing(r.processing.fx)}`],
     ];
@@ -133,7 +193,7 @@ export function createPlayerCaptureScreen(section, {
   }
 
   async function begin() {
-    if (disposed || !visible || current) return;
+    if (disposed || !visible || current || referenceTask) return;
     if (!native()) { setStatus('Live capture requires the DeckChek desktop app.'); return; }
     const durationSeconds = Number(fields.duration.value);
     if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > CDJ_MAX_CAPTURE_SECONDS) {
@@ -145,9 +205,11 @@ export function createPlayerCaptureScreen(section, {
     const request = { controller: new AbortController() };
     // Snapshot operator assertions and shared input selection before any await.
     const deviceName = settings.deviceName || null;
+    const referenceSnapshot = selectedReference;
     const operator = {
       asset: { manufacturer: textOrNull(fields.manufacturer), model: textOrNull(fields.model), firmware: textOrNull(fields.firmware) },
-      source: { medium: fields.medium.value || null, referenceId: textOrNull(fields.reference) },
+      source: { medium: fields.medium.value || null, referenceId: textOrNull(fields.reference) || referenceSnapshot?.fileName || null,
+        referenceHashSha256: referenceSnapshot?.sha256 || null },
       processing: { keylock: fields.keylock.value, fx: fields.fx.value },
       pitch: { displayedPercent },
     };
@@ -166,7 +228,7 @@ export function createPlayerCaptureScreen(section, {
       });
       if (!active(request)) return;
       // Deliberately retain no reference to captured.audio or the full return object.
-      last = { acquisition: captured.acquisition, record: captured.record };
+      last = { acquisition: captured.acquisition, record: captured.record, selectedReference: referenceSnapshot };
       renderDetails();
       setStatus('Capture details are ready. Audio has not been saved.');
     } catch (error) {
@@ -183,23 +245,38 @@ export function createPlayerCaptureScreen(section, {
   function exportDetails() {
     if (disposed || !visible || current || !last) return;
     try {
-      save(`deckchek-player-capture-${last.acquisition.runId}.json`, JSON.stringify({ acquisition: last.acquisition, record: last.record }, null, 2), 'application/json');
+      save(`deckchek-player-capture-${last.acquisition.runId}.json`, JSON.stringify({ acquisition: last.acquisition, record: last.record, selectedReference: last.selectedReference }, null, 2), 'application/json');
       setStatus('Capture details exported. The file contains metadata only.');
     } catch (error) { setStatus(`Export could not finish: ${error?.message || String(error)}`); }
   }
   const offSettings = on('settings', ({ key } = {}) => { if (key === 'deviceName') update(); });
   update();
   return {
-    onShow() { if (disposed) return; visible = true; update(); pair.refresh(); },
-    onHide() { visible = false; abort(); discard(); setStatus(''); },
-    onEscape() { if (!current) return false; abort(); return true; },
+    onShow() { if (disposed) return; visible = true; showPlayerGuide(); update(); pair.refresh(); },
+    onHide() { visible = false; abort(); discard(); cancelReference(); setStatus(''); },
+    onEscape() { if (current) { abort(); return true; } if (referenceTask) { cancelReference(); return true; } return false; },
     onExport: exportDetails,
     dispose() {
       if (disposed) return;
-      visible = false; abort(); discard(); disposed = true; offSettings();
+      visible = false; abort(); discard(); cancelReference(); disposed = true; offSettings();
       pair.el?.dispatchEvent(new Event('pair-picker-dispose'));
     },
   };
+}
+
+function showPlayerGuide() {
+  showInspector({ title: 'Player capture guide', open: false,
+    body: h('div', { class: 'inspect' },
+      h('p', { text: 'Capture one input pair for 1–30 seconds in the desktop app. These provisional details do not measure pitch accuracy or create a History run or diagnostic report.' }),
+      h('h3', { text: 'Reference identity' }),
+      h('p', { text: 'An optional reference file is read locally to identify its exact bytes with SHA-256. This does not verify audio content or what the player is playing. The file is not saved or uploaded.' }),
+      h('h3', { text: 'Export and reset' }),
+      h('p', { text: 'Export capture details saves metadata, including entered settings, the selected file name and hash, device names and any driver messages. Audio is not included. Leaving this screen clears the captured details and selected-file identity.' }),
+      h('h3', { text: 'Shortcuts' }),
+      h('dl', { class: 'kv' },
+        h('dt', { text: 'Esc' }), h('dd', { text: 'Cancel the active capture or reference-file read' }),
+        h('dt', { text: 'Ctrl+E' }), h('dd', { text: 'Export completed capture details' }),
+        h('dt', { text: 'I' }), h('dd', { text: 'Toggle this guide' }))) });
 }
 
 export function playerCaptureScreenDefs() {

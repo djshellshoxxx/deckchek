@@ -1,6 +1,24 @@
-# DeckChek engineering checkpoint — 20 November 2026
+# DeckChek engineering checkpoint — 21 November 2026
 
-## Current acquisition and Fleet diagnostic continuation — 20 November 2026
+## Current source and ownership
+
+Use the [current continuation handoff](docs/DECKCHEK-CONTINUATION-HANDOFF.md).
+PR #74 is qualified and merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`;
+all applicable gates and complete-tree/parent proof are retained. All three fresh
+reference/PDF/UI/preset reviewers completed; the first complete source gate passed
+2,359 total / 2,358 pass / 0 fail / 1 optional Mixxx skip at `fb81960`, with 2,125
+unchanged tracked hashes. Read the [completed handoff](docs/engineering/SUCCESSOR_CONTINUATION_2026-11-21.md).
+The fixed published successor still needs its own hosted UI/platform gates.
+Earlier numerical failures remain unresolved. Root has separately frozen later
+History/Ledger fixes at `bdaf685` for the fresh round-five trio; its one functional
+worker owns the authorized focused execution. Root owns source and publication.
+All three workers finish before another rotation.
+
+The sections below are preserved historical checkpoints, not current resume
+or execution-ownership instructions. Fleet stays off and its diagnostic head
+stays fixed. No release or deployment occurred.
+
+## Historical acquisition and Fleet diagnostic continuation — 20 November 2026
 
 The [acquisition continuation](docs/engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
 `157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree

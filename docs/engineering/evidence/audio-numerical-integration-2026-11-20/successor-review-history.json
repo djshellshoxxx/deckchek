@@ -1,0 +1,18 @@
+{
+  "schema": "deckchek.successor-review-history.v1",
+  "tip": "19247c08633ce93d62d3f1e78acf3a4848754c51",
+  "tip_tree": "31b8a89757952c94ff6b45dac7d5177c1602b199",
+  "bundle": "successor-review-history.bundle",
+  "bytes": 239938,
+  "sha256": "8de4b1c508e600c1142b17ceec9230885011f2c55dedb14c3792bbea58f39878",
+  "excluded_ancestors": [
+    "b5d0cfd850120946160ef93b7cf2372bb981172e",
+    "fb81960b417ad16c155b7793814cbb4a7545d41e"
+  ],
+  "worker_commits": [
+    "759466483067474531e14dfe26b0a5216c9de8c3",
+    "36d0806e20b27426fe0cab5cd1dd47e6f049638a",
+    "8cf178770995da69f6f111d5212310e44499f5ae"
+  ],
+  "verified": true
+}

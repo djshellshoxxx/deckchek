@@ -1,0 +1,59 @@
+{
+  "head": "78403038c530a981b732d5ac0210539edf37fc77",
+  "tree": "5986c675b123203ecaf46f352d99a25b539c9f9f",
+  "localHead": "285ccd0dd6993d5a56ae31906bd64a9712f8ad1b",
+  "parents": [
+    "6295c3eb5b470b34f2a1010b040b1694780e0ee9"
+  ],
+  "branch": "integration/deckchek-player-capture-20261120",
+  "pullRequest": 74,
+  "url": "https://github.com/djshellshoxxx/deckchek/pull/74",
+  "draft": true,
+  "baseAtPublication": "099c99c055322ef668be23e6ae50a2968614cc6d",
+  "completeTreeFetchedAndCompared": true,
+  "orderedParentAndInputAncestryVerified": true,
+  "branchAndPullRequestReadbackVerified": true,
+  "initialTestedMerge": {
+    "head": "62457f033c4b5d1bff3586959703f87e9e42835e",
+    "tree": "5986c675b123203ecaf46f352d99a25b539c9f9f",
+    "parents": [
+      "099c99c055322ef668be23e6ae50a2968614cc6d",
+      "78403038c530a981b732d5ac0210539edf37fc77"
+    ],
+    "fetchedWholeTreeCompared": true
+  },
+  "pr71": {
+    "state": "closed",
+    "merged": false,
+    "originalHead": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+    "originalBranchPreserved": true,
+    "ancestryVerified": true
+  },
+  "initialWorkflowRuns": [
+    {
+      "id": 44877877101,
+      "name": "DeckChek tests",
+      "head": "78403038c530a981b732d5ac0210539edf37fc77",
+      "status": "queued",
+      "conclusion": null,
+      "attempt": 1
+    },
+    {
+      "id": 44877877027,
+      "name": "DeckChek nightly",
+      "head": "78403038c530a981b732d5ac0210539edf37fc77",
+      "status": "queued",
+      "conclusion": null,
+      "attempt": 1
+    },
+    {
+      "id": 44877877090,
+      "name": "Cross-platform desktop release",
+      "head": "78403038c530a981b732d5ac0210539edf37fc77",
+      "status": "queued",
+      "conclusion": null,
+      "attempt": 1
+    }
+  ],
+  "qualification": "Draft fixed head. All six player/usage workers complete and fresh full JS passes; exact-source hosted UI/native/platform checks required. Issue72 unresolved/open; issue69/AC6 open; no release/deployment."
+}

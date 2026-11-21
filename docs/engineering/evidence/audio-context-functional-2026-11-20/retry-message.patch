@@ -1,0 +1,24 @@
+diff --git a/tests/audio-runner-lifecycle.test.mjs b/tests/audio-runner-lifecycle.test.mjs
+index fd67c41..1648f92 100644
+--- a/tests/audio-runner-lifecycle.test.mjs
++++ b/tests/audio-runner-lifecycle.test.mjs
+@@ -178,7 +178,18 @@ test('bug 1: a capture that cannot start plays nothing, saves nothing, and Try a
+   await m.click('aq-run'); await settle();
+   assert.equal(m.calls.play.length, 1);
+   assert.equal(m.finished.length, 1, 'the retry is saved once');
+-  assert.equal(m.finished[0].status, 'pass', m.finished[0].detail);
++  // Serialize only already-returned evidence after the actual retry analysis. This does not
++  // rerun a numerical helper or change the fixture, lifecycle, threshold or asserted status.
++  assert.equal(m.finished[0].status, 'pass', `${m.finished[0].detail}\n[AQ-RETRY-CONTEXT] ${JSON.stringify({
++    result: m.finished[0],
++    playback: m.calls.play.map(({ buffer, opts, extra }) => ({
++      sampleRate: buffer.sampleRate, framesLeft: buffer.left.length, framesRight: buffer.right.length,
++      options: opts, output: extra,
++    })),
++    calls: { starts: m.calls.starts, plays: m.calls.play.length, saved: m.finished.length,
++      stops: m.calls.stop, stopAll: m.calls.stopAll, captureStops: m.calls.captureStops, cancels: m.calls.cancels,
++      waits: m.calls.waits },
++  }, (_, value) => typeof value === 'number' && !Number.isFinite(value) ? { nonFiniteNumber: String(value) } : value)}`);
+   assert.equal(m.finished[0].extra.captureIntegrity.source, 'live');
+   assert.equal(m.finished[0].extra.captureIntegrity.state, 'observed');
+   assert.ok(m.finished[0].measurements.length > 0);

@@ -1,0 +1,20 @@
+{
+  "DECKCHEK-CONTINUATION-HANDOFF": {
+    "archive": "docs/DECKCHEK-CONTINUATION-HANDOFF-HISTORY-2026-11-21.md",
+    "sha256": "2e61ad85e813d9f8cd9c8e104344b28e4e32711b72fb25162cdab092aed815e5",
+    "bytes": 74961,
+    "original_source": "d76f069e35b5392971a8ba2b27d8ed4016865155"
+  },
+  "IMPLEMENTATION-STATUS": {
+    "archive": "docs/IMPLEMENTATION-STATUS-HISTORY-2026-11-21.md",
+    "sha256": "668c0f994216a577dd01bfc5e9250bdb65cf4c28aa425253743172ea3a109e57",
+    "bytes": 85037,
+    "original_source": "d76f069e35b5392971a8ba2b27d8ed4016865155"
+  },
+  "FEATURE-MATRIX": {
+    "archive": "docs/FEATURE-MATRIX-HISTORY-2026-11-21.md",
+    "sha256": "66d7eb61ce7569cc3dd61139d5b00a1da290bd2dbc66eb7157c47b65f11bd321",
+    "bytes": 60858,
+    "original_source": "d76f069e35b5392971a8ba2b27d8ed4016865155"
+  }
+}

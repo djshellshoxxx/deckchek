@@ -1,0 +1,14 @@
+{
+  "head": "b8bf6ea10791b05a2188d176ae8b996528a10f08",
+  "tree": "9030b4d9eeb307f27c0d794dccf4a37895c2a602",
+  "localHead": "ded34d2dccfcf0ae51c78fa1492a57c161d32a1d",
+  "parents": [
+    "78403038c530a981b732d5ac0210539edf37fc77",
+    "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d"
+  ],
+  "branch": "checkpoint/deckchek-reference-source-20261120",
+  "fetchedWholeTreeIdentical": true,
+  "orderedParentsAndAncestryVerified": true,
+  "branchReadbackVerified": true,
+  "qualification": "All initial workers complete. Fresh independent full suite is still running and has recorded existing audio failures; full qualification is held. No browser/native/physical qualification claimed."
+}

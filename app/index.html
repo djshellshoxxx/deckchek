@@ -60,9 +60,9 @@
     <header class="topbar">
       <div class="product"><strong>DeckChek</strong><span class="beta">BETA</span></div>
       <div class="device-bar" role="group" aria-label="Input device">
-        <label class="topfield"><span class="topfield-label">Input</span><select id="device-select"></select></label>
+        <label class="topfield"><span class="topfield-label">Input</span><select id="device-select" aria-label="Input device"></select></label>
         <button type="button" class="btn btn-ghost btn-icon" id="device-refresh" aria-label="Refresh input devices" data-tooltip="Refresh input devices"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/></svg></button>
-        <label class="topfield"><span class="topfield-label">Rate</span><select id="rate-select" data-tooltip="Sample rate used to match a calibration profile"><option value="44100">44.1 kHz</option><option value="48000">48 kHz</option><option value="88200">88.2 kHz</option><option value="96000">96 kHz</option></select></label>
+        <label class="topfield"><span class="topfield-label">Rate</span><select id="rate-select" aria-label="Sample rate" data-tooltip="Sample rate used to match a calibration profile"><option value="44100">44.1 kHz</option><option value="48000">48 kHz</option><option value="88200">88.2 kHz</option><option value="96000">96 kHz</option></select></label>
         <button type="button" class="chip-button" id="cal-chip"></button>
       </div>
       <div class="app-actions">

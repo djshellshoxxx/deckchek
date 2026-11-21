@@ -1,0 +1,84 @@
+--- a/app/audio-quality.js
++++ b/app/audio-quality.js
+@@ -4,6 +4,7 @@
+ import { normalizeMeasurement, dbfs, rms, clippingCount, humMetrics } from './core.js';
+ import { markerSignal, detectMarkerLag, fitTone, refineToneFrequency } from './calibration.js';
+ import { evaluatePass } from './device-checks.js';
++import { audioFitTraceBegin, audioFitTraceStage, audioFitTraceReadout } from '../tools/diagnostics/audio-fit-recorder.mjs';
+ 
+ export const AQ_VERSION = 1;
+ export const AQ_ANALYSIS_VERSION = 2; // v2 judges response flatness by the worst channel, not the signed mean
+@@ -156,6 +157,7 @@
+     out.issues.push(issue('BAD_INPUT', 'Capture buffers, sample rate or analysis options are invalid.')); return out;
+   }
+   if (!L.every(Number.isFinite) || !R.every(Number.isFinite)) { out.issues.push(issue('BAD_INPUT', 'The recording contains non-finite samples. No measurements were produced.')); return out; }
++  const fitTrace = audioFitTraceBegin(captured, meta, { chainFloor, calibrated, trimSec, maxLagSec });
+   const marker = markerSignal(sr, 1);
+   const eL = rms(L), eR = rms(R);
+   if (Math.max(eL, eR) < db2amp(-80)) { out.issues.push(issue('NO_SIGNAL', 'The capture is silent. Check the cable, the output selection and the input gain.')); return out; }
+@@ -187,13 +189,17 @@
+   const per = {};
+   for (const [c, x] of Object.entries(chans)) {
+     const xs = slice(x, toneSeg), f0 = fAt(1000);
++    audioFitTraceStage(fitTrace, 'before-fundamental', c, xs, null, { sampleRate: sr, f0, clockPpm, shift, trim, lagSamples: out.lagSamples });
+     const fit = fitTone(xs, sr, f0);
++    audioFitTraceStage(fitTrace, 'fundamental-return', c, xs, fit, { sampleRate: sr, f0 });
+     const toneRms = fit.amplitude / Math.SQRT2;
+     let thdn = toneRms > 0 ? (fit.residualRms / toneRms) * 100 : NaN;
++    audioFitTraceStage(fitTrace, 'cached-tone-rms-initial-thdn', c, xs, fit, { toneRms, thdn });
+     let flags = calibrated ? [] : ['uncalibrated-chain'];
+     if (chainFloor?.thdnPercent > 0) { thdn = Math.sqrt(Math.max(0, thdn ** 2 - chainFloor.thdnPercent ** 2)); flags = [...flags, 'chain-corrected']; }
+     let harm = 0;
+     for (let k = 2; k <= 9 && k * f0 < 0.45 * sr; k++) harm += fitTone(xs, sr, k * f0).amplitude ** 2;
++    audioFitTraceStage(fitTrace, 'after-harmonics', c, xs, fit, { toneRms, thdn, harm });
+     const thd = fit.amplitude > 0 ? (Math.sqrt(harm) / fit.amplitude) * 100 : NaN;
+     const sil = slice(x, seg('silence')[0], Math.round(0.1 * sr));
+     const dc = sil.reduce((a, v) => a + v, 0) / sil.length;
+@@ -201,6 +207,7 @@
+     const noiseA = aWeightedRms(centred, sr), noiseU = rms(centred);
+     const hum = humMetrics(sil, sr);
+     const low = fitAt(x, seg('lin-low')[0]), high = fitAt(x, seg('lin-high')[0]);
++    audioFitTraceStage(fitTrace, 'after-low-high', c, xs, fit, { toneRms, thdn, harm, thd, dc, noiseA, noiseU }, { low, high });
+     const lowS = seg('lin-low')[0], highS = seg('lin-high')[0];
+     per[c] = {
+       fit, flags, thdn, thd, dc, noiseA, noiseU, hum,
+@@ -215,12 +222,15 @@
+     // polarity: phase of the capture against the ideal stimulus phase at the slice start
+     const ph = fit.phase - 2 * Math.PI * 1000 * trim / sr;
+     per[c].phaseDeg = Math.atan2(Math.sin(ph), Math.cos(ph)) * 180 / Math.PI;
++    audioFitTraceStage(fitTrace, 'after-channel-metrics', c, xs, fit, { toneRms, thdn, harm, thd, gainDb: per[c].gainDb, snr: per[c].snr, phaseDeg: per[c].phaseDeg });
+   }
+   out.channels = per;
++  audioFitTraceReadout(fitTrace, 'after-both-channels', out, per);
+   for (const c of ['L', 'R']) if (dbfs(per[c].fit.amplitude) < -70) out.issues.push(issue('CHANNEL_DEAD', `The ${c === 'L' ? 'left' : 'right'} channel is below −70 dBFS during the tone.`, 'warning'));
+ 
+   // Frequency response retains the signed stereo mean and both channel deviations.
+   const ref1k = Object.fromEntries(Object.keys(chans).map(c => [c, per[c].fit.amplitude]));
++  audioFitTraceReadout(fitTrace, 'response-reference', out, per, ref1k);
+   for (const s of seg('resp').filter(x => !x.skipped)) {
+     const devs = Object.entries(chans).map(([c, x]) => 20 * Math.log10(Math.max(fitAt(x, s).amplitude, 1e-12) / Math.max(ref1k[c], 1e-12)));
+     out.response.push({ hz: s.hz, devDb: round(devs.reduce((a, b) => a + b, 0) / devs.length, 3), devLeftDb: round(devs[0], 3), devRightDb: round(devs[1], 3) });
+@@ -228,6 +238,7 @@
+   // crosstalk
+   const sepOf = (drv, leak, name) => { const s = seg(name)[0]; const a = fitAt(chans[drv], s).amplitude, b = fitAt(chans[leak], s).amplitude; return 20 * Math.log10(Math.max(a, 1e-12) / Math.max(b, 1e-12)); };
+   const sepLR = sepOf('L', 'R', 'xtalk-L'), sepRL = sepOf('R', 'L', 'xtalk-R');
++  audioFitTraceReadout(fitTrace, 'after-response-and-crosstalk', out, per, ref1k, { sepLR, sepRL });
+ 
+   const w = c => per[c];
+   const worst = k => Math.max(w('L')[k], w('R')[k]);
+@@ -238,6 +249,7 @@
+   const flags = per.L.flags;
+   const polarityInv = (Math.abs(w('L').phaseDeg) > 90 || Math.abs(w('R').phaseDeg) > 90) ? 1 : 0;
+   const hum = Math.max(w('L').hum.mainsDb - dbfs(w('L').fit.amplitude), w('R').hum.mainsDb - dbfs(w('R').fit.amplitude));
++  audioFitTraceReadout(fitTrace, 'after-hum-read', out, per, ref1k, { bal, polarityInv, hum });
+   const ms = out.measurements;
+   ms.push(
+     m('aq_gain_db', 'Output gain (capture vs digital level)', round((w('L').gainDb + w('R').gainDb) / 2, 2), 'dB', { confidence: calibrated ? 1 : 0.6, qualityFlags: flags }),
+@@ -263,6 +275,7 @@
+   );
+   out.separation = { leftToRight: round(sepLR, 1), rightToLeft: round(sepRL, 1) };
+   out.valid = true;
++  audioFitTraceReadout(fitTrace, 'return', out, per, ref1k, { bal, polarityInv, hum, sepLR, sepRL }, { left: L, right: R });
+   return out;
+ }
+ 

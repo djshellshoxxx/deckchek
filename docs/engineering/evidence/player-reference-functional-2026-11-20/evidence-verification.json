@@ -1,0 +1,71 @@
+{
+  "method": "Static Git tree/blob and retained byte checks only; no project execution.",
+  "results": {
+    "pdf-original": {
+      "source": "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d",
+      "tree": "f0c06c626acc477a2191f23653b7d42a37cbba8b",
+      "tracked_files": 1655,
+      "counts": {
+        "tests": 28,
+        "suites": 0,
+        "pass": 28,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "log_bytes": 5758,
+      "log_sha256": "3d3fd808003cc8c31e28adf0049538e176a013f89ae06f7eacc6f14213b3b3c5",
+      "unchanged_and_immutable": true
+    },
+    "combined-focused": {
+      "source": "dd11f41dc41e102ddd8bf7f34e87153afa994f59",
+      "tree": "d6272a78da9791fc40cb0cdeff238cb68d979c5f",
+      "tracked_files": 1908,
+      "counts": {
+        "tests": 132,
+        "suites": 0,
+        "pass": 132,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "log_bytes": 29628,
+      "log_sha256": "95abf54baa565c395efb52d761339810e1f69f02eecd180a516190844d7325cc",
+      "unchanged_and_immutable": true
+    },
+    "player-smoke-syntax": {
+      "source": "dd11f41dc41e102ddd8bf7f34e87153afa994f59",
+      "tree": "d6272a78da9791fc40cb0cdeff238cb68d979c5f",
+      "tracked_files": 1908,
+      "counts": {},
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged_and_immutable": true
+    },
+    "pdf-smoke-syntax": {
+      "source": "dd11f41dc41e102ddd8bf7f34e87153afa994f59",
+      "tree": "d6272a78da9791fc40cb0cdeff238cb68d979c5f",
+      "tracked_files": 1908,
+      "counts": {},
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged_and_immutable": true
+    }
+  },
+  "distinct_git_blobs_verified": 1834,
+  "production_source": "447019568d6a0cc0ce0fe16412e9ac99c204f604",
+  "production_equal": true,
+  "coordinated_source_changes": [
+    "app/report-pdf.js",
+    "app/ui/screens/player-capture.js"
+  ],
+  "original_pdf_candidate_paths": [
+    "app/report-pdf.js",
+    "tests/report-pdf.test.mjs"
+  ],
+  "spec10_unchanged": true,
+  "original_audio_failure_unchanged": true,
+  "driver_sha256": "7b29b5930845595301abf68c69d21539f2553fdcb3906981cd60a4baa3877901"
+}

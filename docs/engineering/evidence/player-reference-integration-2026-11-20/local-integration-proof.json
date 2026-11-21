@@ -1,0 +1,28 @@
+{
+  "source": "ded34d2dccfcf0ae51c78fa1492a57c161d32a1d",
+  "tree": "9030b4d9eeb307f27c0d794dccf4a37895c2a602",
+  "evidenceLedgersVerified": {
+    "player-reference-functional-2026-11-20": 24,
+    "player-reference-acceptance-2026-11-20": 9
+  },
+  "counts": {
+    "tests": 2357,
+    "pass": 2354,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "tapBytes": 541141,
+  "tapSha256": "29ef19e0e0916e94e4c1ce0b27be3805f173375686cd522cf9aa8db11a77dec4",
+  "trackedHashes": 1943,
+  "mapsEqual": true,
+  "runtimeTestsUnchanged": true,
+  "audioPathsUnchangedFromOriginalFailureAndPriorPass": [
+    "app/audio-quality.js",
+    "app/calibration.js",
+    "tests/audio-quality.test.mjs",
+    "tests/audio-runner-lifecycle.test.mjs"
+  ],
+  "disposition": "All six workers complete; bounded source accepted but full gate failed. Hold for separate audio diagnosis; no rerun or cause claim."
+}

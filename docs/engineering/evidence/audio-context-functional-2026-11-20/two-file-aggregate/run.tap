@@ -1,0 +1,241 @@
+TAP version 13
+# Subtest: stimulus: peak is exactly 1, segments are ordered, inside the buffer, edges faded
+ok 1 - stimulus: peak is exactly 1, segments are ordered, inside the buffer, edges faded
+  ---
+  duration_ms: 20.490453
+  type: 'test'
+  ...
+# Subtest: A-weighting matches IEC 61672 reference gains
+ok 2 - A-weighting matches IEC 61672 reference gains
+  ---
+  duration_ms: 37.15648
+  type: 'test'
+  ...
+# Subtest: clean pass-through: no findings, gain/delay recovered
+ok 3 - clean pass-through: no findings, gain/delay recovered
+  ---
+  duration_ms: 472.162851
+  type: 'test'
+  ...
+# Subtest: harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted
+not ok 4 - harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted
+  ---
+  duration_ms: 245.56827
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-audio-functional-context/tests/audio-quality.test.mjs:75:1'
+  failureType: 'testCodeFailure'
+  error: '16972224339301138 vs 4.347826086956522'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-audio-functional-context/tests/audio-quality.test.mjs:80:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: noise floor, SNR and DC are measured
+ok 5 - noise floor, SNR and DC are measured
+  ---
+  duration_ms: 405.768234
+  type: 'test'
+  ...
+# Subtest: frequency response roll-off, crosstalk, polarity, dropout and clock offset
+ok 6 - frequency response roll-off, crosstalk, polarity, dropout and clock offset
+  ---
+  duration_ms: 1262.128284
+  type: 'test'
+  ...
+# Subtest: regression: opposite stereo response errors cannot cancel into a clean flatness result
+ok 7 - regression: opposite stereo response errors cannot cancel into a clean flatness result
+  ---
+  duration_ms: 851.659452
+  type: 'test'
+  ...
+# Subtest: bad captures give an issue, never a crash
+ok 8 - bad captures give an issue, never a crash
+  ---
+  duration_ms: 485.673669
+  type: 'test'
+  ...
+# Subtest: thresholds and spec notes
+ok 9 - thresholds and spec notes
+  ---
+  duration_ms: 0.674804
+  type: 'test'
+  ...
+# Subtest: unavailable audio measurements never describe incomplete checks as all passed
+ok 10 - unavailable audio measurements never describe incomplete checks as all passed
+  ---
+  duration_ms: 0.526141
+  type: 'test'
+  ...
+# Subtest: non-finite samples and malformed capture formats cannot become numerical evidence
+ok 11 - non-finite samples and malformed capture formats cannot become numerical evidence
+  ---
+  duration_ms: 83.295054
+  type: 'test'
+  ...
+# Subtest: safePlayLevel never exceeds -12 dBFS and maps non-numeric input to the -12 dBFS default
+ok 12 - safePlayLevel never exceeds -12 dBFS and maps non-numeric input to the -12 dBFS default
+  ---
+  duration_ms: 0.255675
+  type: 'test'
+  ...
+# Subtest: the exported test signal (WAV) peaks at -12 dBFS, never full scale, and its meta matches the file
+ok 13 - the exported test signal (WAV) peaks at -12 dBFS, never full scale, and its meta matches the file
+  ---
+  duration_ms: 467.959054
+  type: 'test'
+  ...
+# Subtest: a recording made elsewhere may start several seconds early when maxLagSec allows it
+ok 14 - a recording made elsewhere may start several seconds early when maxLagSec allows it
+  ---
+  duration_ms: 345.871516
+  type: 'test'
+  ...
+# Subtest: clipping is counted in every driven segment: an input that overloads only on the -12 dBFS step is REVIEW, not a device FAIL
+ok 15 - clipping is counted in every driven segment: an input that overloads only on the -12 dBFS step is REVIEW, not a device FAIL
+  ---
+  duration_ms: 454.377391
+  type: 'test'
+  ...
+# Subtest: setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+ok 16 - setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+  ---
+  duration_ms: 262.568888
+  type: 'test'
+  ...
+# Subtest: keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+ok 17 - keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+  ---
+  duration_ms: 18.762668
+  type: 'test'
+  ...
+# Subtest: progress reserves the final stage until analysis completes and disappears with results
+ok 18 - progress reserves the final stage until analysis completes and disappears with results
+  ---
+  duration_ms: 258.154759
+  type: 'test'
+  ...
+# Subtest: bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+not ok 19 - bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+  ---
+  duration_ms: 252.881769
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-audio-functional-context/tests/audio-runner-lifecycle.test.mjs:182:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    3 of 9 checks failed: balance, response, polarity.
+    [AQ-RETRY-CONTEXT] {"result":{"status":"fail","detail":"3 of 9 checks failed: balance, response, polarity.","criterion":"audio-quality","measurements":[{"metricId":"aq_gain_db","label":"Output gain (capture vs digital level)","value":-110,"unit":"dB","origin":"measured","confidence":0.6,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_thdn_percent","label":"THD+N at 1 kHz","value":0,"unit":"%","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_thdn_db","label":"THD+N at 1 kHz","value":-151.12,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_thd_percent","label":"THD (harmonics 2–9)","value":6935867070.3903,"unit":"%","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_noise_floor_dbfs","label":"Noise floor (A-weighted)","value":-140,"unit":"dBFS","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_noise_unweighted_dbfs","label":"Noise floor (unweighted)","value":-140,"unit":"dBFS","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_snr_db","label":"Signal-to-noise (A-weighted)","value":217,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_dc_offset_percent","label":"DC offset","value":0,"unit":"%","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_hum_db","label":"Mains hum vs tone","value":0,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_balance_db","label":"Channel balance L−R","value":-220,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_polarity_inverted","label":"Polarity inverted","value":1,"unit":"bool","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_separation_db","label":"Channel separation at 1 kHz","value":220,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain","noise-limited"]},{"metricId":"aq_response_flatness_db","label":"Frequency response flatness 100 Hz–10 kHz","value":220,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":["uncalibrated-chain"]},{"metricId":"aq_response_low_db","label":"Response at 20 Hz","value":110,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_response_high_db","label":"Response at 20000 Hz","value":110,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_linearity_db","label":"Level linearity (−40 vs −12 dBFS)","value":0,"unit":"dB","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_clipping_samples","label":"Clipped samples in the test tones","value":0,"unit":"samples","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_dropouts","label":"Dropouts / glitches in tone","value":0,"unit":"events","origin":"measured","confidence":1,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_clock_offset_ppm","label":"Capture vs playback clock offset","value":0,"unit":"ppm","origin":"measured","confidence":0.7,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]},{"metricId":"aq_latency_ms","label":"Playback-to-capture delay","value":4.4,"unit":"ms","origin":"measured","confidence":0.6,"uncertainty":null,"referenceLow":null,"referenceHigh":null,"qualityFlags":[]}],"findings":[{"id":"aq-balance","severity":"warning","title":"Left and right levels differ","meaning":"A channel imbalance above 0.5 dB shifts the stereo image.","action":"Check the balance setting and the output pots or faders; compare cables.","evidence":["Fail: |-220|<=0.5 dB (DeckChek test definition)"]},{"id":"aq-response","severity":"warning","title":"Frequency response is not flat","meaning":"The level changes by more than 1 dB between 100 Hz and 10 kHz, so the output is audibly tilted or filtered.","action":"Check EQ, filter and isolator positions are neutral, then retest.","evidence":["Fail: 220<=1 dB (DeckChek test definition)"]},{"id":"aq-polarity","severity":"error","title":"Polarity is inverted","meaning":"A channel is out of phase with the digital signal; mixed with a correct channel, bass cancels.","action":"Check for a miswired cable or output; correct the wiring.","evidence":["Fail: 1==0 bool (DeckChek test definition)"]},{"id":"aq-channel_dead","severity":"warning","title":"The left channel is below −70 dBFS during the tone.","meaning":"","action":""}],"extra":{"response":[{"hz":20,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":50,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":100,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":200,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":500,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":1000,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":2000,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":5000,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":10000,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":15000,"devDb":110,"devLeftDb":220,"devRightDb":0},{"hz":20000,"devDb":110,"devLeftDb":220,"devRightDb":0}],"separation":{"leftToRight":220,"rightToLeft":220},"thresholds":[{"id":"thdn","status":"pass","detail":"Pass: 0<=0.3 % (DeckChek test definition)"},{"id":"snr","status":"pass","detail":"Pass: 217>=70 dB (DeckChek test definition)"},{"id":"xtalk","status":"pass","detail":"Pass: 220>=50 dB (DeckChek test definition)"},{"id":"balance","status":"fail","detail":"Fail: |-220|<=0.5 dB (DeckChek test definition)"},{"id":"response","status":"fail","detail":"Fail: 220<=1 dB (DeckChek test definition)"},{"id":"linearity","status":"pass","detail":"Pass: 0<=0.5 dB (DeckChek test definition)"},{"id":"dropouts","status":"pass","detail":"Pass: 0==0 events (DeckChek test definition)"},{"id":"polarity","status":"fail","detail":"Fail: 1==0 bool (DeckChek test definition)"},{"id":"clip","status":"pass","detail":"Pass: 0==0 samples (DeckChek test definition)"}],"outputDevice":"USB Out","inputDevice":"Interface","playLevelDbfs":-12,"sampleRate":48000,"calibrated":false,"calibration":{"state":"none","reasons":[],"profileId":null,"profileCreatedAt":null,"profileDevice":null,"profileSampleRate":null,"capturedDevice":"Interface","capturedSampleRate":48000},"captureQuality":{"framesCaptured":675091,"overrunSamples":0,"clippedSamplesL":0,"clippedSamplesR":0,"streamErrors":0,"streamErrorMessages":[],"truncated":false,"callbackCount":1,"maxCallbackGapMs":1,"pairs":[]},"streamErrors":[],"captureIntegrity":{"source":"live","state":"observed","reasons":[]},"analysisVersion":2}},"playback":[{"sampleRate":48000,"framesLeft":578880,"framesRight":578880,"options":{"levelDbfs":-12,"capDbfs":-12,"loop":false},"output":{"device":"USB Out"}}],"calls":{"starts":2,"plays":1,"saved":1,"stops":[7],"stopAll":0,"captureStops":1,"cancels":0,"waits":[300,12560]}}
+    
+    'fail' !== 'pass'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'pass'
+  actual: 'fail'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-audio-functional-context/tests/audio-runner-lifecycle.test.mjs:197:10)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: bug 1: a preempt during playback stops this run's voice and saves nothing
+ok 20 - bug 1: a preempt during playback stops this run's voice and saves nothing
+  ---
+  duration_ms: 20.55098
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose with nothing running never stops other screens' playback
+ok 21 - bug 2: dispose with nothing running never stops other screens' playback
+  ---
+  duration_ms: 1.209524
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+ok 22 - bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+  ---
+  duration_ms: 52.958082
+  type: 'test'
+  ...
+# Subtest: bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+ok 23 - bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+  ---
+  duration_ms: 95.023087
+  type: 'test'
+  ...
+# Subtest: bug 3: a capture result that arrives after dispose never renders or saves
+ok 24 - bug 3: a capture result that arrives after dispose never renders or saves
+  ---
+  duration_ms: 21.982527
+  type: 'test'
+  ...
+# Subtest: bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+ok 25 - bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+  ---
+  duration_ms: 260.068859
+  type: 'test'
+  ...
+# Subtest: bug 6: an attempt without measurements is shown but not saved, and Run again works
+ok 26 - bug 6: an attempt without measurements is shown but not saved, and Run again works
+  ---
+  duration_ms: 300.227751
+  type: 'test'
+  ...
+# Subtest: bug 5: the saved test signal WAV peaks at -12 dBFS
+ok 27 - bug 5: the saved test signal WAV peaks at -12 dBFS
+  ---
+  duration_ms: 106.868603
+  type: 'test'
+  ...
+# Subtest: native capture faults are displayed and saved as REVIEW with their original quality evidence
+ok 28 - native capture faults are displayed and saved as REVIEW with their original quality evidence
+  ---
+  duration_ms: 251.199247
+  type: 'test'
+  ...
+# Subtest: stereo response plots expose opposite channel errors instead of displaying a flat average
+ok 29 - stereo response plots expose opposite channel errors instead of displaying a flat average
+  ---
+  duration_ms: 354.50394
+  type: 'test'
+  ...
+# Subtest: bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+ok 30 - bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+  ---
+  duration_ms: 337.47072
+  type: 'test'
+  ...
+# Subtest: browser preview: no live run, but the WAV and file analysis stay available
+ok 31 - browser preview: no live run, but the WAV and file analysis stay available
+  ---
+  duration_ms: 1.26644
+  type: 'test'
+  ...
+# Subtest: the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+ok 32 - the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+  ---
+  duration_ms: 426.571949
+  type: 'test'
+  ...
+# Subtest: FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+ok 33 - FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+  ---
+  duration_ms: 0.789796
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 31
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8537.716925

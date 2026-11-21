@@ -46,10 +46,11 @@ export const MAX_OWNER_CHARS = 80;
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const isPreset = name => typeof name === 'string' && own(PRESETS, name);
 
 /** Rules for a preset: {preset, serialMode, fields, items:{}, ownerName:''}. Unknown names fall back to Public. */
 export function makeRules(name = DEFAULT_PRESET) {
-  const p = PRESETS[name] ? name : DEFAULT_PRESET;
+  const p = isPreset(name) ? name : DEFAULT_PRESET;
   return { preset: p, serialMode: PRESETS[p].serialMode, fields: { ...PRESETS[p].fields }, items: {}, ownerName: '' };
 }
 
@@ -64,7 +65,7 @@ const MAX_ITEM_SCAN = 10000;
 export function normalizeRules(raw) {
   const r = isObj(raw) ? raw : {};
   const base = makeRules(r.preset === 'custom' ? DEFAULT_PRESET : r.preset);
-  const out = { ...base, preset: PRESETS[r.preset] || r.preset === 'custom' ? r.preset : base.preset };
+  const out = { ...base, preset: isPreset(r.preset) || r.preset === 'custom' ? r.preset : base.preset };
   if (SERIAL_MODES.includes(r.serialMode)) out.serialMode = r.serialMode;
   if (isObj(r.fields)) for (const k of FIELD_KEYS) if (typeof r.fields[k] === 'boolean') out.fields[k] = r.fields[k];
   out.items = {};
@@ -90,8 +91,8 @@ export function normalizeRules(raw) {
 
 /** True when the rules equal their preset (no field, serial or per-item change). */
 export function matchesPreset(rules) {
+  if (!isPreset(rules?.preset) || !isObj(rules.fields)) return false;
   const p = PRESETS[rules?.preset];
-  if (!p) return false;
   return rules.serialMode === p.serialMode && FIELD_KEYS.every(k => rules.fields[k] === p.fields[k])
     && Object.values(rules.items || {}).every(o => o.serialMode === undefined && !(o.fields && Object.keys(o.fields).length));
 }

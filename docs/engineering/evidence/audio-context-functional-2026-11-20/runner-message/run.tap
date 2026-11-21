@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+ok 1 - setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+  ---
+  duration_ms: 327.672895
+  type: 'test'
+  ...
+# Subtest: keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+ok 2 - keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+  ---
+  duration_ms: 35.459933
+  type: 'test'
+  ...
+# Subtest: progress reserves the final stage until analysis completes and disappears with results
+ok 3 - progress reserves the final stage until analysis completes and disappears with results
+  ---
+  duration_ms: 281.015649
+  type: 'test'
+  ...
+# Subtest: bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+ok 4 - bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+  ---
+  duration_ms: 306.926144
+  type: 'test'
+  ...
+# Subtest: bug 1: a preempt during playback stops this run's voice and saves nothing
+ok 5 - bug 1: a preempt during playback stops this run's voice and saves nothing
+  ---
+  duration_ms: 16.051169
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose with nothing running never stops other screens' playback
+ok 6 - bug 2: dispose with nothing running never stops other screens' playback
+  ---
+  duration_ms: 1.195078
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+ok 7 - bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+  ---
+  duration_ms: 14.996082
+  type: 'test'
+  ...
+# Subtest: bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+ok 8 - bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+  ---
+  duration_ms: 42.692264
+  type: 'test'
+  ...
+# Subtest: bug 3: a capture result that arrives after dispose never renders or saves
+ok 9 - bug 3: a capture result that arrives after dispose never renders or saves
+  ---
+  duration_ms: 20.962215
+  type: 'test'
+  ...
+# Subtest: bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+ok 10 - bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+  ---
+  duration_ms: 398.718237
+  type: 'test'
+  ...
+# Subtest: bug 6: an attempt without measurements is shown but not saved, and Run again works
+ok 11 - bug 6: an attempt without measurements is shown but not saved, and Run again works
+  ---
+  duration_ms: 283.769946
+  type: 'test'
+  ...
+# Subtest: bug 5: the saved test signal WAV peaks at -12 dBFS
+ok 12 - bug 5: the saved test signal WAV peaks at -12 dBFS
+  ---
+  duration_ms: 66.474368
+  type: 'test'
+  ...
+# Subtest: native capture faults are displayed and saved as REVIEW with their original quality evidence
+ok 13 - native capture faults are displayed and saved as REVIEW with their original quality evidence
+  ---
+  duration_ms: 249.338562
+  type: 'test'
+  ...
+# Subtest: stereo response plots expose opposite channel errors instead of displaying a flat average
+ok 14 - stereo response plots expose opposite channel errors instead of displaying a flat average
+  ---
+  duration_ms: 312.725947
+  type: 'test'
+  ...
+# Subtest: bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+ok 15 - bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+  ---
+  duration_ms: 364.145935
+  type: 'test'
+  ...
+# Subtest: browser preview: no live run, but the WAV and file analysis stay available
+ok 16 - browser preview: no live run, but the WAV and file analysis stay available
+  ---
+  duration_ms: 1.697853
+  type: 'test'
+  ...
+# Subtest: the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+ok 17 - the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+  ---
+  duration_ms: 465.988093
+  type: 'test'
+  ...
+# Subtest: FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+ok 18 - FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+  ---
+  duration_ms: 0.830679
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3311.667985

@@ -3,6 +3,8 @@
 // printable layout, the print host (stylesheet wait, sanitising) and the mocked WebView2 path.
 // The Export PDF buttons themselves arrive with M5-pdf-integration.
 import { tauriMock, watchConsole } from './core.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const WIN_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0';
 
@@ -44,7 +46,7 @@ function installPrintSpy() {
   });
 }
 
-export default async function run({ browser, base, check }) {
+export default async function run({ browser, base, check, SHOTS }) {
   const errors = [];
 
   // ----- browser mode (dark theme): AC-6 fallback -----
@@ -88,6 +90,39 @@ export default async function run({ browser, base, check }) {
   const pdf = await pp.pdf({ preferCSSPageSize: true, printBackground: true });
   const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page(?![a-z])/g) || []).length;
   check('pdf: printable report paginates in Chromium (>= 2 pages, > 5 KB)', pdf.subarray(0, 5).toString() === '%PDF-' && pdf.length > 5120 && pages >= 2, `${pages} pages, ${pdf.length} bytes`);
+
+  // Finite input spans can overflow only after axis rounding. Keep the ordinary
+  // chart and render explicit placeholders for both X and Y boundary cases.
+  const axisReport = await page.evaluate(async report => {
+    const m = await import('./report-pdf.js');
+    return m.composePrintable('run', { ...report, notes: '', measurements: [], findings: [], charts: [
+      { title: 'Ordinary reference chart', series: [{ points: [[0, 0], [1, 1]] }] },
+      { title: 'Rounded X-axis unavailable', series: [{ points: [[-8e307, 0], [8e307, 1]] }] },
+      { title: 'Rounded Y-axis unavailable', series: [{ points: [[0, -8e307], [1, 8e307]] }] },
+    ] }, { paper: 'a4', appVersion: '0.0.5' });
+  }, REPORT);
+  await pp.setContent(axisReport.html);
+  await pp.emulateMedia({ media: 'print' });
+  const axisView = await pp.evaluate(() => ({
+    placeholders: [...document.querySelectorAll('.dc-chart-missing')].map(element => {
+      const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+      return { text: element.textContent, width: rect.width, height: rect.height, display: style.display,
+        visibility: style.visibility, fontSize: parseFloat(style.fontSize) };
+    }),
+    charts: document.querySelectorAll('.dc-chart svg polyline').length,
+    invalidCoordinates: [...document.querySelectorAll('.dc-chart svg')].some(svg => /NaN|Infinity/.test(svg.outerHTML)),
+  }));
+  check('pdf: rounded X/Y axis overflow has visible readable print placeholders',
+    axisReport.warnings.length === 2 && axisView.placeholders.length === 2 &&
+    axisView.placeholders.every(item => /Chart unavailable: Rounded [XY]-axis unavailable/.test(item.text) &&
+      item.width > 0 && item.height > 0 && item.display !== 'none' && item.visibility === 'visible' && item.fontSize >= 12));
+  check('pdf: an ordinary chart remains rendered beside unavailable axes without nonfinite SVG coordinates',
+    axisView.charts === 1 && !axisView.invalidCoordinates);
+  await pp.screenshot({ path: path.join(SHOTS, 'pdf-axis-fallback.png'), fullPage: true });
+  const axisPdf = await pp.pdf({ preferCSSPageSize: true, printBackground: true });
+  fs.writeFileSync(path.join(SHOTS, 'pdf-axis-fallback.pdf'), axisPdf);
+  check('pdf: the mixed ordinary/unavailable-axis report produces a Chromium PDF',
+    axisPdf.subarray(0, 5).toString() === '%PDF-' && axisPdf.length > 2000, `${axisPdf.length} bytes`);
   await pp.close();
 
   // Print host: link-stylesheet fallback is awaited, active content stripped, state machine.

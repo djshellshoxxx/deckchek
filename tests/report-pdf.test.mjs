@@ -105,6 +105,30 @@ test('niceTicks: covers the range with 1/2/2.5/5 x 10^n steps', () => {
   }
 });
 
+test('finite but unrepresentable chart axes fail closed with a visible PDF warning', () => {
+  const extremeSeries = [
+    [[0, 0], [Number.MIN_VALUE, 1]], // underflow during tick-step calculation
+    [[-1e308, 0], [1e308, 1]], // overflow during span calculation
+    [[-8e307, 0], [8e307, 1]], // finite input span, infinite rounded X-axis span
+    [[0, -8e307], [1, 8e307]], // finite input span, infinite rounded Y-axis span
+  ];
+  for (const points of extremeSeries) {
+    const chart = { title: 'Unrepresentable axis', series: [{ label: 'Channel', points }] };
+    assert.throws(() => renderChartSvg(chart), /unrepresentable axis range/);
+    const report = composePrintable('run', run({ charts: [chart] }), { now: NOW, css: CSS });
+    assert.deepEqual(report.warnings, [{ code: 'chart', message: 'Chart unavailable: Unrepresentable axis' }]);
+    assert.ok(report.html.includes('Chart unavailable: Unrepresentable axis'));
+    assert.ok(!/points="(?:NaN|Infinity|-Infinity)/.test(report.html), 'do not emit invalid SVG coordinates');
+  }
+  const ordinary = niceTicks(1e-320, 2e-320);
+  assert.ok(Number.isFinite(ordinary.step) && ordinary.step > 0, 'representable tiny axes remain supported');
+  for (const count of [4, 6]) assert.throws(() => niceTicks(-8e307, 8e307, count), /unrepresentable axis range/);
+  for (const points of [[[0, 0], [1, 1]], [[1e-320, 0], [2e-320, 1]], [[-7e307, 0], [7e307, 1]]]) {
+    const svg = renderChartSvg({ series: [{ points }] });
+    assert.doesNotMatch(svg, /(?:NaN|Infinity)/, 'representable normal, tiny and large axes keep finite output');
+  }
+});
+
 test('decimate keeps endpoints and caps the count', () => {
   const pts = Array.from({ length: 10001 }, (_, i) => [i, i]);
   const d = decimate(pts, 100);

@@ -5,6 +5,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { watchConsole, tauriMock, setViewport, a11yAudit } from './core.mjs';
 
+const REFERENCE_SHA256 = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
+// Identity-only fixture: these are deliberately not a decoded or validated audio file.
+const referenceFile = () => ({ name: 'Reference tone.wav', mimeType: 'audio/wav', buffer: Buffer.from('abc') });
+async function selectReference(page) {
+  await page.setInputFiles('#pc-reference-file', referenceFile());
+  await page.waitForFunction(expected => !document.getElementById('pc-reference-file').disabled &&
+    document.getElementById('pc-reference-status').textContent.includes(expected), REFERENCE_SHA256);
+}
+
 function playerNativeMock() {
   const original = window.__TAURI__.core.invoke;
   const state = { starts: [], stops: [], running: false, lease: 100, diagnosticWrites: 0 };
@@ -65,12 +74,23 @@ export default async function run({ browser, base, check, SHOTS }) {
     check('player: public opt-in persists and opens the capture preview',
       await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.ui.v1') || '{}').features?.playerCapture === true) &&
       await page.locator('#screen-player-capture').isVisible());
+    check('player: entering the route replaces the previous workflow guide',
+      await page.locator('#inspector-title').textContent() === 'Player capture guide' &&
+      /do not measure pitch accuracy/.test(await page.locator('#inspector-body').textContent()) &&
+      /Export completed capture details/.test(await page.locator('#inspector-body').textContent()));
     check('player: browser capture/export stay disabled with a desktop requirement',
       await page.locator('#pc-start').isDisabled() && await page.locator('#pc-export').isDisabled() &&
       /desktop app/.test(await page.locator('#screen-player-capture').innerText()));
     check('player: preview states the unmeasured and unsaved boundaries',
       /Pitch accuracy is not measured/.test(await page.locator('#screen-player-capture').innerText()) &&
       /Audio is not saved or exported/.test(await page.locator('#screen-player-capture').innerText()));
+    await selectReference(page);
+    check('player: browser File selection identifies exact bytes without enabling native capture',
+      (await page.locator('#pc-reference-status').textContent()).includes(REFERENCE_SHA256) &&
+      await page.locator('#pc-start').isDisabled() && await page.locator('#pc-export').isDisabled() &&
+      await page.locator('#pc-reference-file').evaluate(input => input.value === '' && input.files.length === 0));
+    check('player: selected-file help separates byte identity from audio and playback verification',
+      /does not verify its audio content or what the player is playing/.test(await page.locator('#pc-reference-help').textContent()));
     const names = await a11yAudit(page);
     check('player: desktop controls have accessible names and usable target sizes',
       !names.unnamed.length && !names.small.length, [...names.unnamed, ...names.small].slice(0, 3).join(' | '));
@@ -84,6 +104,9 @@ export default async function run({ browser, base, check, SHOTS }) {
     check('player: public disable hides the active route and leaves it',
       await page.locator('.rail-item[data-screen="player-capture"]').count() === 0 &&
       !await page.locator('#screen-player-capture').isVisible());
+    check('player: disabling the preview clears its selected-file identity',
+      /No reference file selected/.test(await page.locator('#pc-reference-status').textContent()) &&
+      await page.locator('#pc-reference-file').evaluate(input => input.files.length === 0));
   } finally { await preview.close(); }
 
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', acceptDownloads: true });
@@ -99,6 +122,7 @@ export default async function run({ browser, base, check, SHOTS }) {
     await page.fill('#pc-duration', '1');
     await page.fill('#pc-model', 'Fixture player'); await page.fill('#pc-firmware', '1.2');
     await page.fill('#pc-reference', 'Reference tone'); await page.fill('#pc-pitch', '2');
+    await selectReference(page);
     await page.selectOption('#pc-medium', 'usb');
     await page.selectOption('#pc-keylock', 'disabled'); await page.selectOption('#pc-fx', 'disabled');
     await page.click('#pc-start');
@@ -117,10 +141,18 @@ export default async function run({ browser, base, check, SHOTS }) {
     const pendingDownload = page.waitForEvent('download'); await page.click('#pc-export');
     const downloaded = await pendingDownload;
     const exported = JSON.parse(fs.readFileSync(await downloaded.path(), 'utf8'));
-    check('player: the real local download contains only acquisition and record metadata',
-      JSON.stringify(Object.keys(exported).sort()) === '["acquisition","record"]' &&
+    check('player: the real local download contains only acquisition, record and selected-file metadata',
+      JSON.stringify(Object.keys(exported).sort()) === '["acquisition","record","selectedReference"]' &&
       exported.acquisition.retention === 'ephemeral_audio_only' && exported.acquisition.rawEvidenceRefs.length === 0 &&
       exported.record.capture.rawEvidenceRefs.length === 0 && !Object.hasOwn(exported, 'audio'));
+    check('player: exported file identity matches the selected bytes and is still unverified playback',
+      exported.selectedReference.fileName === 'Reference tone.wav' && exported.selectedReference.byteLength === 3 &&
+      exported.selectedReference.sha256 === REFERENCE_SHA256 && exported.selectedReference.digestAlgorithm === 'SHA-256' &&
+      exported.selectedReference.hashBasis === 'selected_file_bytes' && exported.selectedReference.bytesRetained === false &&
+      exported.selectedReference.playbackIdentity === 'unverified' &&
+      exported.record.source.referenceHashSha256 === REFERENCE_SHA256 && exported.record.source.referenceId === 'Reference tone' &&
+      exported.record.source.referenceFrequencyHz === null &&
+      Object.values(exported.selectedReference).every(value => value === null || typeof value !== 'object'));
     check('player: exported observations remain nominal and the record stays unverified/report-ineligible',
       exported.acquisition.observed.nominalSampleRateHz === 44100 && exported.acquisition.observed.measuredSampleRateHz === null &&
       exported.acquisition.observed.deviceName === 'Observed recorder' && exported.acquisition.requested.deviceName === 'Requested input' &&
@@ -140,6 +172,10 @@ export default async function run({ browser, base, check, SHOTS }) {
     await page.click('#pc-clear');
     check('player: Clear removes completed metadata and disables export',
       await page.locator('#pc-result').isHidden() && await page.locator('#pc-export').isDisabled());
+    await page.click('#pc-reference-clear');
+    check('player: explicit reference clear removes the selected-file identity',
+      /No reference file selected/.test(await page.locator('#pc-reference-status').textContent()) &&
+      await page.locator('#pc-reference-file').evaluate(input => input.files.length === 0));
 
     await page.fill('#pc-duration', '30'); await page.click('#pc-start');
     await page.waitForFunction(() => window.__playerCaptureSmoke.starts.length === 2);
