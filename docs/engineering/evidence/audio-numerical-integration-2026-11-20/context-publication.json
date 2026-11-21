@@ -1,0 +1,11 @@
+{
+  "head": "17080df79ba94554b81c006d6372c8b59dca795a",
+  "tree": "12e12ec78822ac73c9d2f18e1ca68884d725e6bd",
+  "localHead": "28babc55f9cabf1b946aae25c1517e4c048f191d",
+  "parent": "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+  "branch": "checkpoint/deckchek-audio-context-20261120",
+  "fetchedWholeTreeVerified": true,
+  "orderedParentAndAncestryVerified": true,
+  "refReadbackVerified": true,
+  "qualification": "All six audio reviewers complete; numerical failures unresolved. Toolbar/guide/ledger successor under new independent review; no PR or acceptance claim."
+}

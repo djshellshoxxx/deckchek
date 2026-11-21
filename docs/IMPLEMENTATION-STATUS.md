@@ -1,10 +1,16 @@
 # DeckChek implementation status
 
+## Qualified player consolidation — 21 November 2026
+
+PR [#74](https://github.com/djshellshoxxx/deckchek/pull/74) merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`, with complete-tree equality to its tested merge, fresh current-base proof and expected-head guard. All applicable standard/nightly jobs, six desktop builds and five platform smokes passed. Issues #66/#70 closed; #69/#72/#73/#75 remain open. See the [merge record](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md).
+
+The active successor trio retains frozen source `eafaa53`. Its focused UI/privacy selection passed **82/82**, with all 2,036 tracked hashes unchanged; raw output uses the SPEC reporter. Both new smoke modules passed syntax checks. Actual new rendering and the single reviewed audio fit trace remain pending. The numerical qualification hold remains.
+
 ## Current audio investigation and UI/privacy successor — 20 November 2026
 
 All six audio workers completed the [context handoff](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md). A distinct aggregate observation reproduced both failures, **33 total / 31 pass / 2 fail**, with all 2,007 tracked hashes unchanged. Actual saved retry measurements are retained, but no numerical cause or production audio correction is established. The original complete reference/PDF gate remains held.
 
-The successor adds a responsive toolbar correction, a Player guide and bounded ledger preset #75 validation. Three fresh workers review those changes and a narrow fit-field trace; only their functional worker executes project code. Fixed #74 follows its separate hosted gates. Issues #69/#72/#75, AC-6, default-off Fleet and physical limits remain open and unchanged.
+The successor adds a responsive toolbar correction, a Player guide and bounded ledger preset #75 validation. Three fresh workers review those changes and a narrow fit-field trace; only their functional worker executes project code. PR #74 is now qualified and merged; see the current merge record. Issues #69/#72/#75, AC-6, default-off Fleet and physical limits remain open and unchanged.
 
 ## Previous reference/PDF continuation — full qualification held
 

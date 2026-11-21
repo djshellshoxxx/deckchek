@@ -15,3 +15,9 @@ The consolidated source is `eafaa53ade2b626a1817792dbab36a2b95dedd58`, tree `a7b
 Fresh fit_code_round3, fit_functional_round3 and fit_security_round3 review that source. Only the functional worker executes project code: one reviewed focused UI/ledger selection, smoke syntax checks, then one separately reviewed fit-field trace in a disposable exact-source copy. The trace observes actual entry/slice identity and immutable fundamental-fit snapshots before and after intervening fits. Committed product audio, assertions and thresholds stay unchanged. No browser retry, engine flags, broad suite or blind rerun. All three finish before another fresh set starts.
 
 The [initial checkpoint proof](evidence/audio-numerical-integration-2026-11-20/initial-publication.json) binds durable `aded4981b623a0dab7e04e65fa0ca8ab06528e69`. Original full failures, #69/AC-6, #72 and #75 remain open. Fixed #74 and Fleet heads stay fixed. Ordinary merges require complete applicable gates, current-base/tree proof and expected-head guards. No release, deployment, physical qualification or credit exhaustion is claimed.
+
+## Qualified parent and current observations — 21 November 2026
+
+The [PR #74 merge record](PLAYER_CAPTURE_MERGE_2026-11-21.md) records completed gates and verified merge `77c26f44710c6dfb1c986fb79266c233e2ae688c`. Its source head remains fixed. Issues #66/#70 closed through that merge; #69/#72/#73/#75 remain open. The [context publication proof](evidence/audio-numerical-integration-2026-11-20/context-publication.json) records durable checkpoint `17080df79ba94554b81c006d6372c8b59dca795a`.
+
+The active functional worker observed 82/82 focused UI/privacy cases passing with 2,036 tracked hashes unchanged, and both smoke modules passed syntax checks. The output was SPEC, not TAP; no rerun is planned to change its format. Actual rendering and the one reviewed fit trace remain pending. All three reports must finish before rotation.
