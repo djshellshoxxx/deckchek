@@ -145,6 +145,34 @@ test('proposeFromSessions: asset filter, snake_case, source, dedupe against exis
   assert.deepEqual(p.map(s => [s.sessionId, s.source]), [['a', 'deckchek'], ['c', 'djlog']]);
 });
 
+test('one proposal per session, including numeric-zero IDs and invalid earlier copies', () => {
+  const sessions = [
+    { id: 'dupe', startedAt: iso(0), endedAt: iso(1) },
+    { id: 'dupe', startedAt: iso(2), endedAt: iso(3) },
+    { id: 'recover', startedAt: iso(4), endedAt: iso(4) },
+    { id: 'recover', startedAt: iso(5), endedAt: iso(6) },
+    { id: 0, startedAt: iso(7), endedAt: iso(8) },
+    { id: 0, startedAt: iso(9), endedAt: iso(10) },
+  ];
+  const p = proposeFromSessions(sessions, 'deck-1');
+  assert.deepEqual(p.map(x => [x.sessionId, x.hours]), [['dupe', 1], ['recover', 1], [0, 1]]);
+  assert.deepEqual(proposeFromSessions(sessions, 'deck-1', { existing: [{ session_id: 0 }, { sessionId: 'dupe' }] })
+    .map(x => x.sessionId), ['recover']);
+});
+
+test('source whitelist excludes inherited Object property names in all three paths', async () => {
+  for (const source of ['constructor', 'toString', '__proto__']) {
+    assert.equal(totalHours([e('bogus', 0, 1, source)]), 0);
+    const p = proposeFromSessions([{ id: 'p', startedAt: iso(0), endedAt: iso(1), source }], 'deck-1');
+    assert.equal(p.length, 1);
+    assert.equal(p[0].source, 'deckchek');
+    let invoked = 0;
+    const api = createUsageApi({ invoke: async () => { invoked++; return { id: 'x' }; } });
+    await assert.rejects(api.add({ assetId: 'deck-1', startedAt: iso(0), hours: 1, source }), /usage source/);
+    assert.equal(invoked, 0);
+  }
+});
+
 test('bridge passes exactly the Rust command and argument names', async () => {
   const calls = [];
   const invoke = async (cmd, args) => { calls.push([cmd, args]); return cmd === 'usage_list' ? [] : cmd === 'usage_delete' ? true : { id: 'u1' }; };

@@ -1,0 +1,48 @@
+{
+  "head": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+  "tree": "3ccdec9c3c7dce2827009ae5206603248122b63e",
+  "localHead": "3d0667bbefae56701edf1e543b2a06876e8ac054",
+  "parents": [
+    "36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371"
+  ],
+  "branch": "integration/deckchek-redaction-20261120",
+  "pullRequest": 71,
+  "url": "https://github.com/djshellshoxxx/deckchek/pull/71",
+  "draft": true,
+  "baseAtPublication": "099c99c055322ef668be23e6ae50a2968614cc6d",
+  "completeTreeFetchedAndCompared": true,
+  "pr68": {
+    "state": "closed",
+    "merged": false,
+    "originalHead": "d36517ff5bb9134288f7a8aedbc62066da874099",
+    "branchPreserved": true,
+    "ancestryVerified": true
+  },
+  "initialWorkflowRuns": [
+    {
+      "id": 44874227898,
+      "name": "DeckChek nightly",
+      "head": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+      "status": "queued",
+      "conclusion": null,
+      "attempt": 1
+    },
+    {
+      "id": 44874227899,
+      "name": "DeckChek tests",
+      "head": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+      "status": "in_progress",
+      "conclusion": null,
+      "attempt": 1
+    },
+    {
+      "id": 44874228003,
+      "name": "Cross-platform desktop release",
+      "head": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+      "status": "in_progress",
+      "conclusion": null,
+      "attempt": 1
+    }
+  ],
+  "qualification": "Draft hold: original full-suite audio failure unresolved; exact-source hosted/native gates pending. Issue69 remains open. No release/deployment."
+}

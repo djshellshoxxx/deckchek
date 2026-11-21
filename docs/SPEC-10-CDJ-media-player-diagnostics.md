@@ -7,10 +7,20 @@ provisional evidence/JSON contract and single-pair capture-owning API have
 independent source reviews and focused tests. The
 [current acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md)
 records owned capture lifecycle, native observations distinct from defaults,
-immutable metadata and separately ephemeral audio. No production player UI
-consumes the API yet. Retained reference/raw bytes, persistence/report wiring,
-scientific characterization and physical validation remain unfinished. Records
-remain unverified and ineligible for reports. The complete workflow and
+immutable metadata and separately ephemeral audio. A successor now wires that
+API into the app's Player capture screen behind the default-off
+`features.playerCapture` opt-in. This capture-only preview is undergoing its own
+source and runtime acceptance; it is not a released or qualified diagnostic.
+It records one input pair for 1–30 seconds, separates requested/operator fields
+from native observations, cancels on leaving the screen, and offers a local
+metadata-only JSON export. Leaving clears captured result metadata; operator
+form values may remain for another capture, and no secure-memory-erasure claim
+is made. No waveform samples are saved by this UI.
+
+Retained reference/raw bytes, pitch-measurement integration, persistence/report
+wiring, scientific characterization and physical validation remain unfinished.
+Records remain unverified and ineligible for reports. The proposed flag is not
+a new roadmap milestone or release commitment. The complete workflow and
 acceptance gates below remain open.
 Date: 2026-10-06
 Related: SPEC-02 (DVS), SPEC-04 (database), SPEC-06 (reports), SPEC-08 (validation), SPEC-09 (roadmap).

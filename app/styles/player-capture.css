@@ -1,0 +1,14 @@
+/* Provisional player capture uses the shared theme and form components. */
+#screen-player-capture { display: grid; gap: 18px; }
+#screen-player-capture[hidden] { display: none; }
+.pc-fields { border: 0; margin: 18px 0; padding: 0; min-width: 0; }
+.pc-fields legend { padding: 0 0 14px; }
+.pc-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.pc-status { margin: 12px 0 0; overflow-wrap: anywhere; }
+.pc-status:empty { display: none; }
+.pc-summary { margin: 0 0 16px; }
+.pc-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px 24px; margin: 0; }
+.pc-facts dt { color: var(--text-muted); font-size: 13px; }
+.pc-facts dd { margin: 3px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pc-reasons { margin: 18px 0 0; padding-left: 20px; }
+.pc-reasons li + li { margin-top: 6px; }

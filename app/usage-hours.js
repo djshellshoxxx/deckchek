@@ -28,7 +28,7 @@ function normalize(raw, index) {
   if (!raw || typeof raw !== 'object') return null;
   const startMs = toMs(pick(raw, 'startedAt', 'started_at'));
   const hours = typeof raw.hours === 'number' ? raw.hours : NaN;
-  const pri = SOURCE_PRIORITY[raw.source];
+  const pri = Object.hasOwn(SOURCE_PRIORITY, raw.source) ? SOURCE_PRIORITY[raw.source] : null;
   if (!Number.isFinite(startMs) || !Number.isFinite(hours) || hours <= 0 || hours > MAX_ENTRY_HOURS || !pri) return null;
   const durMs = Math.round(hours * HOUR_MS);
   if (durMs <= 0) return null;
@@ -115,7 +115,8 @@ export function totalHours(entries, { since = null, until = null, includeUnconfi
 export function proposeFromSessions(sessions, assetId, { capHours = DEFAULT_CAP_HOURS, existing = [] } = {}) {
   const cap = Number.isFinite(capHours) && capHours > 0 ? Math.min(capHours, MAX_ENTRY_HOURS) : DEFAULT_CAP_HOURS;
   const seen = new Set((Array.isArray(existing) ? existing : [])
-    .map(x => (x && pick(x, 'sessionId', 'session_id')) || null).filter(Boolean));
+    .map(x => x && pick(x, 'sessionId', 'session_id'))
+    .filter(id => id !== null && id !== undefined && id !== ''));
   const out = [];
   for (const s of Array.isArray(sessions) ? sessions : []) {
     if (!s || typeof s !== 'object') continue;
@@ -132,11 +133,14 @@ export function proposeFromSessions(sessions, assetId, { capHours = DEFAULT_CAP_
       kind: 'play',
       startedAt: new Date(a).toISOString(),
       hours: Math.round(Math.min(raw, cap) * 10000) / 10000,
-      source: SOURCE_PRIORITY[s.source] ? s.source : 'deckchek',
+      source: Object.hasOwn(SOURCE_PRIORITY, s.source) ? s.source : 'deckchek',
       sessionId: s.id ?? null,
       capped,
       confirmed: 0,
     });
+    // Do not propose the same recorded session twice in one batch.
+    // Mark it only after a valid proposal so a malformed earlier copy does not shadow it.
+    if (s.id !== undefined && s.id !== null) seen.add(s.id);
   }
   return out.sort((x, y) => Date.parse(x.startedAt) - Date.parse(y.startedAt));
 }
@@ -148,7 +152,7 @@ function validateInput(input) {
   if (typeof input.hours !== 'number' || !Number.isFinite(input.hours) || input.hours < 0 || input.hours > MAX_ENTRY_HOURS) {
     throw new Error(`usage hours must be between 0 and ${MAX_ENTRY_HOURS}`);
   }
-  if (!SOURCE_PRIORITY[input.source]) throw new Error(`usage source must be one of ${Object.keys(SOURCE_PRIORITY).join(', ')}`);
+  if (!Object.hasOwn(SOURCE_PRIORITY, input.source)) throw new Error(`usage source must be one of ${Object.keys(SOURCE_PRIORITY).join(', ')}`);
   if (input.kind !== undefined && !KINDS.includes(input.kind)) throw new Error(`usage kind must be one of ${KINDS.join(', ')}`);
   return input;
 }

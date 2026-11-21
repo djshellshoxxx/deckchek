@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: priority order is manual > djlog > deckchek > import
+ok 1 - priority order is manual > djlog > deckchek > import
+  ---
+  duration_ms: 1.008205
+  type: 'test'
+  ...
+# Subtest: disjoint entries pass through sorted by start
+ok 2 - disjoint entries pass through sorted by start
+  ---
+  duration_ms: 1.339954
+  type: 'test'
+  ...
+# Subtest: higher priority removes overlapping lower-priority time
+ok 3 - higher priority removes overlapping lower-priority time
+  ---
+  duration_ms: 0.432781
+  type: 'test'
+  ...
+# Subtest: partial overlap trims the lower-priority span only
+ok 4 - partial overlap trims the lower-priority span only
+  ---
+  duration_ms: 0.195464
+  type: 'test'
+  ...
+# Subtest: full containment of a lower-priority entry removes it
+ok 5 - full containment of a lower-priority entry removes it
+  ---
+  duration_ms: 0.226541
+  type: 'test'
+  ...
+# Subtest: same-source overlaps are unioned, never double counted
+ok 6 - same-source overlaps are unioned, never double counted
+  ---
+  duration_ms: 0.21282
+  type: 'test'
+  ...
+# Subtest: adjacent segments of the same entry are coalesced
+ok 7 - adjacent segments of the same entry are coalesced
+  ---
+  duration_ms: 0.163706
+  type: 'test'
+  ...
+# Subtest: three-way priority chain
+ok 8 - three-way priority chain
+  ---
+  duration_ms: 0.191658
+  type: 'test'
+  ...
+# Subtest: input order does not matter
+ok 9 - input order does not matter
+  ---
+  duration_ms: 1.68333
+  type: 'test'
+  ...
+# Subtest: the ledger is not mutated and invalid entries are ignored
+ok 10 - the ledger is not mutated and invalid entries are ignored
+  ---
+  duration_ms: 0.394253
+  type: 'test'
+  ...
+# Subtest: unconfirmed proposals are excluded unless asked for; snake_case rows work
+ok 11 - unconfirmed proposals are excluded unless asked for; snake_case rows work
+  ---
+  duration_ms: 0.327302
+  type: 'test'
+  ...
+# Subtest: since clips an entry that straddles the boundary; until too
+ok 12 - since clips an entry that straddles the boundary; until too
+  ---
+  duration_ms: 0.19269
+  type: 'test'
+  ...
+# Subtest: since is applied after priority resolution (a baseline never resurrects trimmed time)
+ok 13 - since is applied after priority resolution (a baseline never resurrects trimmed time)
+  ---
+  duration_ms: 0.15301
+  type: 'test'
+  ...
+# Subtest: kind filter
+ok 14 - kind filter
+  ---
+  duration_ms: 0.161052
+  type: 'test'
+  ...
+# Subtest: minute-level precision has no float drift over many entries
+ok 15 - minute-level precision has no float drift over many entries
+  ---
+  duration_ms: 3.779572
+  type: 'test'
+  ...
+# Subtest: proposeFromSessions: durations, cap, ids, ordering
+ok 16 - proposeFromSessions: durations, cap, ids, ordering
+  ---
+  duration_ms: 0.660914
+  type: 'test'
+  ...
+# Subtest: proposeFromSessions: asset filter, snake_case, source, dedupe against existing
+ok 17 - proposeFromSessions: asset filter, snake_case, source, dedupe against existing
+  ---
+  duration_ms: 0.171919
+  type: 'test'
+  ...
+# Subtest: one proposal per session, including numeric-zero IDs and invalid earlier copies
+ok 18 - one proposal per session, including numeric-zero IDs and invalid earlier copies
+  ---
+  duration_ms: 0.150916
+  type: 'test'
+  ...
+# Subtest: source whitelist excludes inherited Object property names in all three paths
+ok 19 - source whitelist excludes inherited Object property names in all three paths
+  ---
+  duration_ms: 0.789767
+  type: 'test'
+  ...
+# Subtest: bridge passes exactly the Rust command and argument names
+ok 20 - bridge passes exactly the Rust command and argument names
+  ---
+  duration_ms: 0.341443
+  type: 'test'
+  ...
+# Subtest: bridge without Tauri reports unsupported instead of pretending
+ok 21 - bridge without Tauri reports unsupported instead of pretending
+  ---
+  duration_ms: 0.192319
+  type: 'test'
+  ...
+# Subtest: contract example matches the bridge
+ok 22 - contract example matches the bridge
+  ---
+  duration_ms: 0.371569
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95.703858
