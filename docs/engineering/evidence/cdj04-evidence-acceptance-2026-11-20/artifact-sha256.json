@@ -1,0 +1,18 @@
+{
+  "independent-focused.json": {
+    "bytes": 2141,
+    "sha256": "a4144acb9585fba0632bd4d83fec6912fd247dcce3597bffaef67035f26cace1"
+  },
+  "independent-focused.tap": {
+    "bytes": 5130,
+    "sha256": "bd99a5b9dd939b214f2b9eaac540ea55090985797c45a38fc646060220c45a6f"
+  },
+  "tracked-after.json": {
+    "bytes": 177502,
+    "sha256": "97b626cd4f4e5a16664e9987b7829519370b4ced66919b8e8293656c1ec3c042"
+  },
+  "tracked-before.json": {
+    "bytes": 177502,
+    "sha256": "97b626cd4f4e5a16664e9987b7829519370b4ced66919b8e8293656c1ec3c042"
+  }
+}

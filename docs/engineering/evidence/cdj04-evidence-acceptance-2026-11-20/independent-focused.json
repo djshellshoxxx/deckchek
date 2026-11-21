@@ -1,0 +1,46 @@
+{
+  "after_manifest_sha256": "97b626cd4f4e5a16664e9987b7829519370b4ced66919b8e8293656c1ec3c042",
+  "before_manifest_sha256": "97b626cd4f4e5a16664e9987b7829519370b4ced66919b8e8293656c1ec3c042",
+  "changed_tracked_files": [],
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "completed_at_utc": "2026-11-21T02:42:37.935338+00:00",
+  "counts": {
+    "cancelled": 0,
+    "fail": 0,
+    "pass": 21,
+    "skipped": 0,
+    "suites": 0,
+    "tests": 21,
+    "todo": 0
+  },
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-evidence-functional-acceptance",
+  "enclosing_duration_ns": 191611824,
+  "enclosing_duration_seconds": 0.191611824,
+  "exit_code": 0,
+  "head_after": "25b65d6821ec40766b8cae855699c70ea7672770",
+  "node_path": "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+  "node_version": "v22.23.4",
+  "review_role": "fresh independent functional acceptance",
+  "scope": "Existing focused 10 evidence + 11 unchanged pitch tests; no new tests, native/full-suite/browser/database/HTML/hardware execution; no probes authored.",
+  "source_commit": "25b65d6821ec40766b8cae855699c70ea7672770",
+  "source_file_sha256": {
+    "app/player/evidence-record.js": "52e7e28403610375ba3db26f2b7e94db3a334fb0b916205489442b754e9a4207",
+    "app/player/pitch-display.js": "040a0703f8d68cecedae43616b977378f11baf5f6ac8e18be487e1bd85262988",
+    "tests/cdj-evidence-record.test.mjs": "34021a157c944f98abe8a706d1afdbf47fad0c2541e4b654b7133d29279638ab",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f"
+  },
+  "source_tree": "0305261c09b33c6f29250a9c313484e3dea0f397",
+  "started_at_utc": "2026-11-21T02:42:37.743703+00:00",
+  "status_after": "",
+  "status_before": "",
+  "tap_duration_ms": 107.835942,
+  "tap_sha256": "bd99a5b9dd939b214f2b9eaac540ea55090985797c45a38fc646060220c45a6f",
+  "tracked_file_count": 1590,
+  "tracked_hashes_unchanged": true,
+  "tree_after": "0305261c09b33c6f29250a9c313484e3dea0f397"
+}

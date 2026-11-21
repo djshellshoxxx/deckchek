@@ -1,6 +1,29 @@
 # DeckChek implementation status
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current consolidation and evidence continuation — 20 November 2026
+
+PRs #54, #58 and #59 are merged. Current main at this checkpoint is
+`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. #58 and #59 passed all applicable standard,
+nightly, six-build and five-packaged-smoke gates; both merged trees matched
+their qualified candidates exactly.
+
+The [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) consolidates the provisional
+CDJ evidence record from #60/#61 and corrects dense reference transport,
+serialization validation ordering and unknown-uncertainty reasons. Three initial
+workers completed, followed by three fresh acceptance workers. Independent
+verification passed **21/21** at source `25b65d6821ec40766b8cae855699c70ea7672770`,
+tree `0305261c09b33c6f29250a9c313484e3dea0f397`, with all 1,590 tracked hashes
+unchanged. Durable equivalent source is `2be82734281c76bf55c867b814fc2b0bc96e7201`.
+
+The evidence continuation requires its own hosted qualification. Its records
+remain unverified and ineligible for reports; capture, SQLite/history, HTML
+export, scientific metadata and physical validation remain unfinished. Native
+and browser existing-unit profile assignment is already implemented; physical
+device identity and continuity remain separate gates. Use the linked current
+report and live refs for the next action. Dated snapshots below preserve history
+and do not describe the current queue. Fleet stays off by default.
+
+## Historical source41 — incident evidence, profile provenance and preview integrity
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 
@@ -286,14 +309,14 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 - Quartz-lock acquisition, drag/recovery and true torque proxy workflows.
 - Full DVS decoder capabilities, cue-wear tests and DVS media history; scratch-stress skip thresholds still need calibration on a sacrificial record (FS-14).
 - Mature vinyl classifiers and held-out false-positive corpus validation.
-- Native device-profile association and broader incident windows/shock/DVS/feedback-onset isolation outcomes. The optional native latest-reading attachment is implemented with explicit selected-monitor provenance, separate clocks and immutable atomic pairing; it does not implement a surrounding measurement window. Source40 selected native catalog transfer and its device-profile/history exclusions remain unchanged.
+- Broader incident windows/shock/DVS/feedback-onset isolation outcomes. Explicit existing-unit device-profile assignment is implemented in both native and browser catalogs; it does not establish physical identity or rewrite historical results. The optional native latest-reading attachment is implemented with explicit selected-monitor provenance, separate clocks and immutable atomic pairing; it does not implement a surrounding measurement window. Source40 selected native catalog transfer and its device-profile/history exclusions remain unchanged.
 - Physical MIDI identity/continuity, receiving direction, complete control mapping and actual MIDItest consumer integration remain unqualified. Source41 leaves **3 conditional MIDI profiles / 9 requirements** and **22 conditional audio profiles**. Accepted profile-bound learned maps and manual/mode-specific transport evidence do not close these physical/consumer/research gaps.
 - Fleet (FS-23, default off pending qualification): owner's real-database and hardware walkthrough (H-23); trend dashboards beyond the current view.
 - Hardware validation of M7/M8 H-20 to H-23 and H-31 to H-33, including shared WASAPI capture and monitor limits, actual VirtualDJ format, a real Gear Ledger publishing/privacy walkthrough and owner export/import workflows. The pack preview/copy candidate has 16/16, 32/32 and 3/3 verification; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)** and hosted execution remains source-specific.
 - Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.
 - Device-profile pass thresholds and most specs are unverified research (marked in the UI and reports); identity of the DDJ-S8 and Technics MK4 units must be confirmed on the hardware.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
-- CDJ transport/media/digital-output diagnostics beyond shared audio/pitch/DVS analysis.
+- Complete CDJ capture, provenance, persistence/reporting, transport/media/digital-output and scientific validation. The isolated calculation and provisional evidence/JSON contract are independently reviewed; this does not complete a production player workflow.
 - Model-specific service workflows and Technician/Engineering worksheets beyond the generic FS-22 job sheet.
 - Installer/update validation and release signing.
 - The platform workflow includes macOS arm64/x64 and Linux x64/x86 package builds, with packaged self-tests for macOS and Linux x64. Linux x86 has no packaged runtime smoke; final integration platform builds/self-tests and real audio-hardware qualification remain pending.
@@ -302,6 +325,6 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 
 The repository now contains an offline-analysis and live-capture beta with a full desktop GUI shell, catalog persistence, and deterministic diagnostic workflows. It is useful for file analysis and native audio-interface capture with evidence-first findings. It is not yet a complete implementation of every feature in SPEC-00 through SPEC-19.
 
-Hardware-dependent measurements still require known-reference validation. Source39 completed the six-build/five-self-test platform matrix; source40 completed primary native/browser gates only. These exact-source results are [recorded separately](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). Final source41 and integration gates, Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
+Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The new evidence continuation needs its own hosted gates. Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
 
 - Final fixes (GAP-02, 08, 13, 15, 18): an input-pair picker sits wherever a capture is set up (Quick Check and the DVS/Speed/Cartridge flows, timecode runner, calibration, wear map, scratch, latency measure, hum, feedback), default 1-2 and remembered per input; `latency_play_and_capture` takes `pairs`. The scratch test uses the shared Stop-and-continue flow and ends cleanly if another feature takes the input. `--debug-crash` (debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) raises a controlled panic at the end of setup so the crash prompt can be tested (H-02). `runtime_status` was removed. The wizard listen test uses the remembered pair but has no picker of its own.

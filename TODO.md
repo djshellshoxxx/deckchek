@@ -1,6 +1,29 @@
 # DeckChek build queue
 
-## Current CDJ calculation follow-up — 20 November 2026
+## Current consolidation and evidence continuation — 20 November 2026
+
+PRs #54, #58 and #59 are merged. Current main at this checkpoint is
+`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. #58 and #59 passed all applicable standard,
+nightly, six-build and five-packaged-smoke gates; both merged trees matched
+their qualified candidates exactly.
+
+The [current continuation](docs/engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) consolidates the provisional
+CDJ evidence record from #60/#61 and corrects dense reference transport,
+serialization validation ordering and unknown-uncertainty reasons. Three initial
+workers completed, followed by three fresh acceptance workers. Independent
+verification passed **21/21** at source `25b65d6821ec40766b8cae855699c70ea7672770`,
+tree `0305261c09b33c6f29250a9c313484e3dea0f397`, with all 1,590 tracked hashes
+unchanged. Durable equivalent source is `2be82734281c76bf55c867b814fc2b0bc96e7201`.
+
+The evidence continuation requires its own hosted qualification. Its records
+remain unverified and ineligible for reports; capture, SQLite/history, HTML
+export, scientific metadata and physical validation remain unfinished. Native
+and browser existing-unit profile assignment is already implemented; physical
+device identity and continuity remain separate gates. Use the linked current
+report and live refs for the next action. Dated snapshots below preserve history
+and do not describe the current queue. Fleet stays off by default.
+
+## Historical CDJ calculation checkpoint — 20 November 2026
 
 The [current continuation](docs/engineering/CDJ04_CONTINUATION_2026-11-20.md) retains unchanged Ledger candidate #58 and
 original CDJ-04 prototype #57, and fixes three numerical-contract defects in the
@@ -18,7 +41,7 @@ published head and source-specific results while the separate successor qualifie
 Nine superseded input PRs are closed with branches retained; #54's final hosted
 gates remain open. Read live refs and the current report before integration.
 
-## Published Ledger candidate — 20 November 2026
+## Historical Ledger publication checkpoint — 20 November 2026
 
 Main is `e49ea1bbafb5005fdf1dfcf60d885b82d0191471` after PR #46 merged.
 The [current Ledger continuation](docs/engineering/LEDGER_CONSOLIDATION_2026-11-20.md) consolidates #47 and the #49–#56
@@ -266,7 +289,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Resolve the remaining 2 conditional MIDI profiles / 6 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
-- [ ] CDJ/media-player transport, media and digital-output diagnostics.
+- [ ] Complete CDJ/media-player capture, evidence persistence/reporting and transport/media/digital-output diagnostics. The isolated pitch calculation and provisional evidence/JSON contract are independently reviewed; production and physical acceptance remain open.
 - [ ] Controller/MIDI/HID DeckChek workflows.
 - [ ] Model-specific service workflows beyond the generic FS-22 job sheet.
 - [ ] Code signing and auto-update.
