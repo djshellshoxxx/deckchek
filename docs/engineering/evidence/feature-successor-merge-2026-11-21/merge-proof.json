@@ -1,0 +1,27 @@
+{
+  "schema": "deckchek.feature-successor-merge-proof.v1",
+  "recorded_at_utc": "2026-11-21T10:24:23.914Z",
+  "pull_request": 79,
+  "merged_at_utc": "2026-11-21T10:22:05Z",
+  "merge_commit": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+  "main_readback": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+  "expected_head": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "tree": "32ca272be2daeee6c4c1f47ccd5bd0ed0ac9909e",
+  "ordered_parents": [
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "f76908766d53992e20382b9cbe73a668a28a6d1a"
+  ],
+  "tested_merge": "7c5bf0632cd7f32e63b6f9fd275fd5fc4e46febc",
+  "expected_head_guard_used": true,
+  "merge_method": "merge",
+  "fetched_complete_tree_matches_qualified_head": true,
+  "actual_ordered_parents_verified": true,
+  "all_applicable_first_attempt_workflows_passed": [
+    44887748227,
+    44887748226,
+    44887748303
+  ],
+  "release_jobs_skipped": true,
+  "no_release_or_deployment": true,
+  "later_successor_qualification": "Held separately: round8 e5614ff first full2395/2393/1/1; issue72 remains open"
+}

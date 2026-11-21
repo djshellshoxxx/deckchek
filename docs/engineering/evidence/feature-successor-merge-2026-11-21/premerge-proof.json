@@ -1,0 +1,205 @@
+{
+  "schema": "deckchek.feature-successor-premerge-proof.v1",
+  "recorded_at_utc": "2026-11-21T10:21:50.261Z",
+  "pull_request": 79,
+  "head": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "base": "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+  "tested_merge": "7c5bf0632cd7f32e63b6f9fd275fd5fc4e46febc",
+  "head_and_tested_merge_tree": "32ca272be2daeee6c4c1f47ccd5bd0ed0ac9909e",
+  "verified_ordered_parents": [
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "f76908766d53992e20382b9cbe73a668a28a6d1a"
+  ],
+  "complete_tree_diff_empty": true,
+  "current_main_matches_tested_base": true,
+  "fresh_git_fetch_verified": true,
+  "mergeable": true,
+  "mergeable_state": "clean",
+  "runs": [
+    {
+      "id": 44887748227,
+      "name": "DeckChek tests",
+      "run_attempt": 1,
+      "head_sha": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-11-21T09:13:55Z",
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44887748227",
+      "jobs": [
+        {
+          "id": 136796633451,
+          "name": "rust-tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633689,
+          "name": "javascript-tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633767,
+          "name": "ui-smoke",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 44887748226,
+      "name": "DeckChek nightly",
+      "run_attempt": 1,
+      "head_sha": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-11-21T10:16:42Z",
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44887748226",
+      "jobs": [
+        {
+          "id": 136796633657,
+          "name": "js-fuzz-and-stress",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633798,
+          "name": "cargo-fuzz",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633843,
+          "name": "rust-stress",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633882,
+          "name": "rust-asan",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633918,
+          "name": "windows-rust-tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 44887748303,
+      "name": "Cross-platform desktop release",
+      "run_attempt": 1,
+      "head_sha": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-11-21T09:43:18Z",
+      "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44887748303",
+      "jobs": [
+        {
+          "id": 136796633584,
+          "name": "tests / rust-tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633836,
+          "name": "tests / ui-smoke",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796633885,
+          "name": "tests / javascript-tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136796634593,
+          "name": "release-checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 136799149254,
+          "name": "build (macos-15, macos-arm64, app,dmg)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136799149276,
+          "name": "build (ubuntu-22.04, linux-x86, i686-unknown-linux-gnu, deb)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136799149283,
+          "name": "build (ubuntu-22.04, linux-x64, deb,appimage)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136799149284,
+          "name": "build (windows-latest, windows-x64, nsis,msi)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136799149285,
+          "name": "build (windows-latest, windows-x86, i686-pc-windows-msvc, nsis,msi)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136799149305,
+          "name": "build (macos-15-intel, macos-x64, app,dmg)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806059113,
+          "name": "smoke (ubuntu-22.04, linux-x64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806059131,
+          "name": "smoke (windows-latest, windows-x86)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806059132,
+          "name": "smoke (windows-latest, windows-x64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806059140,
+          "name": "smoke (macos-15, macos-arm64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806059220,
+          "name": "smoke (macos-15-intel, macos-x64)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 136806283086,
+          "name": "release",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "disposition": "All applicable first-attempt gates succeeded; release jobs intentionally skipped. Expected-head guarded ordinary merge authorized by existing task."
+}
+
