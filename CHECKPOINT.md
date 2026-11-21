@@ -4,14 +4,15 @@
 
 Use the [current continuation handoff](docs/DECKCHEK-CONTINUATION-HANDOFF.md).
 PR #74 is qualified and merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`;
-all applicable gates and complete-tree/parent proof are retained. The held
-reference/PDF/UI/preset successor has completed all three fit round-three
-reviews. Its 82 focused cases passed. The single 33-case instrumented
-diagnostic passed but does not clear the original numerical hold. The
-[current fresh handoff](docs/engineering/FIT_AND_UI_CONTINUATION_2026-11-21.md)
-assigns the next independent trio and one full-source gate to its sole
-functional executor. Root owns consolidation, product corrections and
-publication. All three workers finish before another rotation.
+all applicable gates and complete-tree/parent proof are retained. All three fresh
+reference/PDF/UI/preset reviewers completed; the first complete source gate passed
+2,359 total / 2,358 pass / 0 fail / 1 optional Mixxx skip at `fb81960`, with 2,125
+unchanged tracked hashes. Read the [completed handoff](docs/engineering/SUCCESSOR_CONTINUATION_2026-11-21.md).
+The fixed published successor still needs its own hosted UI/platform gates.
+Earlier numerical failures remain unresolved. Root has separately frozen later
+History/Ledger fixes at `bdaf685` for the fresh round-five trio; its one functional
+worker owns the authorized focused execution. Root owns source and publication.
+All three workers finish before another rotation.
 
 The sections below are preserved historical checkpoints, not current resume
 or execution-ownership instructions. Fleet stays off and its diagnostic head

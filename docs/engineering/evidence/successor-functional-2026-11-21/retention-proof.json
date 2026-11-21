@@ -1,0 +1,52 @@
+{
+  "schema": "deckchek.successor-first-outcome-retention.v1",
+  "created_at_utc": "2026-11-21T08:42:38.995012+00:00",
+  "copied_verbatim_file_count": 9,
+  "files": {
+    "result.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/result.json",
+      "bytes": 10517,
+      "sha256": "7ad509925d87148b994a0d43581e999bd37d5ad783b9cd0621ed1f89807ae310"
+    },
+    "run.tap": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/run.tap",
+      "bytes": 540148,
+      "sha256": "102009e4ba4133f6d90dee363e928458595de332183fe7cf32b43cd8a221c962"
+    },
+    "running.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/running.json",
+      "bytes": 9802,
+      "sha256": "f13a79715109ba97394835ecee8b25152efebd7b430518ff2ef841b66872dc50"
+    },
+    "source-comparison.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/source-comparison.json",
+      "bytes": 2828,
+      "sha256": "9393fa3ad448212ea0fc50c2f517b08ffdd0aec31e2985053b59d2db85b32194"
+    },
+    "stderr.log": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-files.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/test-files.json",
+      "bytes": 7407,
+      "sha256": "ad3294eb9c80c832f8dba90996a2a3ad13b20bace05934c7fecf1a869533df2b"
+    },
+    "tracked-after.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/tracked-after.json",
+      "bytes": 259974,
+      "sha256": "dcc086aef2fea3dcac56a373746805d931f96149f1dccce059fd3d9c95f64b69"
+    },
+    "tracked-before.json": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-raw/tracked-before.json",
+      "bytes": 259974,
+      "sha256": "dcc086aef2fea3dcac56a373746805d931f96149f1dccce059fd3d9c95f64b69"
+    },
+    "run-full-node.py": {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-successor-round4-run.py",
+      "bytes": 5286,
+      "sha256": "a025f920419a4263c8db6a7e909b8f423a528e3cfab7b1de602221473c63f6bb"
+    }
+  }
+}

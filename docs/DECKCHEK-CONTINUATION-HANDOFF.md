@@ -21,15 +21,15 @@ usage correction are consolidated. Issues #66/#70 closed through the merge.
 The [merge record](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md) links all
 three workflows and retained machine-readable proof. Original branches remain.
 
-## Held successor and priorities
+## Reviewed successor and priorities
 
 | Work | Current evidence | Remaining gate or work |
 | --- | --- | --- |
-| Optional reference-file identity | Exact bounded SHA-256 metadata, owned pending-read/late-picker handling; six completed reviewers and 132 focused passes | Complete successor qualification; actual new-source browser smoke. No decoding, retained bytes or playback identity is claimed |
+| Optional reference-file identity | Exact bounded SHA-256 metadata, owned pending-read/late-picker handling; six completed reviewers and 132 focused passes | Local full gate passed; hosted/platform qualification and actual new-source browser smoke remain. No decoding, retained bytes or playback identity is claimed |
 | PDF axis #73 | Rounded-span representability guard; original candidate preserved; reviewed focused cases pass | Combined qualification and actual print/browser smoke; broader tick accuracy is not claimed |
 | Shared toolbar and Player guide | Responsive geometry correction, accessible input/rate names and contextual guide; current static reviews found no blocker | New real-browser geometry checks, including 320/420/800/1440 widths |
-| Ledger preset #75 | Primitive-string own-key validation and malformed-field handling preserve defaults and explicit/custom overrides | Independent final review and exact-source qualification; issue stays open until an implementing merge |
-| Numerical #72 investigation | Original complete failures, later passes and bounded diagnostics retained; no production audio correction | Establish a supported cause or bounded correction; instrumented passes do not clear the existing full-suite hold |
+| Ledger preset #75 | Primitive-string own-key validation and malformed-field handling preserve defaults and explicit/custom overrides | All three fresh reviews and local full gate complete; hosted qualification and implementing merge remain |
+| Numerical #72 investigation | Original complete failures, later passes and bounded diagnostics retained; no production audio correction | Establish a supported cause or bounded correction; the new source passed its complete local gate but does not repair the older failed observations |
 | Broader diagnostics privacy #69 | Accepted bounded redaction on main | Unchanged AC-6 and full privacy acceptance remain incomplete |
 | Player production workflow | Owned 1–30 second one-pair preview and provisional metadata export on main | Retained evidence, pitch integration, persistence/reports, transport/media/digital output and scientific/physical qualification |
 | Fleet | Default off; fixed hosted diagnostic and original timing failures retained | No causal performance conclusion or threshold change; hardware/owner walkthrough remains |
@@ -43,38 +43,37 @@ Source contracts:
 
 ## Current workers and exact source
 
-All six initial/fresh audio-context workers finished before the current fresh
-trio began. The completed workers were `fit_code_round3`, `fit_functional_round3` and
-`fit_security_round3`. They reviewed shared source
-`eafaa53ade2b626a1817792dbab36a2b95dedd58`, tree
-`a7ba52d1208efa0818841b46a2c8dc5351e8e967`; do not rebase their observations.
+All preceding audio/context/fit workers and all three fresh successor reviewers
+are complete. The successor trio reviewed frozen `fb81960b417ad16c155b7793814cbb4a7545d41e`,
+complete tree `724274fae453a867e4adf5009deef7b0cf4b190c`. Its exact published
+source is `b5d0cfd850120946160ef93b7cf2372bb981172e`. Their final commits are
+code `759466483067474531e14dfe26b0a5216c9de8c3`, functional
+`36d0806e20b27426fe0cab5cd1dd47e6f049638a`, and static defensive security
+`8cf178770995da69f6f111d5212310e44499f5ae`.
 
-Only the functional worker executes project code. Code/security lanes inspect
-source and retained data. The security lane performs static defensive review;
-it does not run the application, tests, probes or scanners. Root owns product
-corrections, consolidation, publication and exact-source CI/merge proof.
+The first complete serial Node24/TAP run selected all 193 top-level test files:
+**2,359 total / 2,358 pass / 0 fail / 1 optional Mixxx skip**, exit 0,
+363.495 seconds, no timeout or stderr. All **2,125 tracked hashes**, source/tree
+and clean status stayed unchanged. Both static peers independently verified the
+12-file functional manifest and complete source maps. No new material source
+blocker was identified. See the [successor handoff](engineering/SUCCESSOR_CONTINUATION_2026-11-21.md).
+Hosted rendering/platform qualification remains specific to the published head.
 
-The one six-file UI/privacy selection passed **82/82**, with all **2,036**
-tracked hashes unchanged. Its 8,257-byte output is the Node SPEC reporter,
-despite an inherited `run.tap` filename; no format-only rerun occurred. Both
-new smoke modules passed separate syntax checks. Actual new rendering is still
-unobserved locally.
+A fresh round-five trio (`inventory_code_round5`, `inventory_functional_round5`,
+`inventory_security_round5`) now reviews subsequent issues #76/#77. Root's
+separate `implementation/deckchek-inventory-history-20261121` froze candidate
+`bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0`, tree
+`c897840779dcf999ccfde6815cf8cf82062fed59`, after consolidating this successor.
+That later candidate is outside the 2,359-test gate. Its functional worker alone
+may run the authorized focused selection and smoke syntax check. Do not overlap
+root's Ledger API/screen, History feed/screen or associated tests/tooling.
 
-The three reviewed diagnostic tools at `f3a8a5d551d35941d3258feb34f6b2dd1bba1e3f`
-changed no committed product or tests. An exact disposable copy received
-thirteen reversible observation lines. After code, static-security and root
-review, its single original two-file Node24/TAP run passed **33/33** in
-9.777 seconds with **2,039** source/copy hashes and inventory unchanged.
-Both child traces were complete, without errors, truncation or drops.
-Additional reads, hashing, identity tracking and allocation change execution
-context: this pass neither repairs nor qualifies untouched production.
-
-All three reports and all 68 functional evidence files are integrated. The
-[fresh successor handoff](engineering/FIT_AND_UI_CONTINUATION_2026-11-21.md)
-assigns new code, functional/bug-hunt and static defensive workers. Only the
-new functional lane executes one complete serial Node24 gate for this changed
-consolidation, preserving the first outcome and source maps. All three must
-finish before another rotation. No identical numerical diagnostic is repeated.
+Code/security lanes inspect source and retained data. Security stays static and
+defensive, without application/tests/probes/scanners. Root owns corrections,
+consolidation, publication and CI/merge proof. All three current workers must
+finish before rotation. The earlier [fit observation](engineering/FIT_AND_UI_CONTINUATION_2026-11-21.md)
+retains its 82 focused passes, one 33/33 disposable trace, all 68 evidence files
+and explicit observer effects. No identical numerical diagnostic is repeated.
 
 ## Retained numerical outcomes
 
@@ -95,6 +94,7 @@ and the complete linked reports/artifacts.
 
 | Checkpoint | Published head | Purpose |
 | --- | --- | --- |
+| Reviewed successor source | `b5d0cfd850120946160ef93b7cf2372bb981172e` | Exact complete tree of local frozen `fb81960`; all previous fit reports/history |
 | Qualified merge record | `5f256bdd3630738292c36c1b343a4161d5078a48` | Exact tree of local `d76f069`; complete #74 gates and merged-main ancestry |
 | Audio context | `17080df79ba94554b81c006d6372c8b59dca795a` | All six completed audio reports, failures and root toolbar/preset corrections; original Git history bundle |
 | Initial audio diagnosis | `aded4981b623a0dab7e04e65fa0ca8ab06528e69` | Initial three completed reports, unchanged failed selection and six-call observation |

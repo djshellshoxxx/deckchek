@@ -9,9 +9,11 @@ source-specific results are historical.
 PR [#74](https://github.com/djshellshoxxx/deckchek/pull/74) is qualified and merged
 as `77c26f44710c6dfb1c986fb79266c233e2ae688c`. The default-off Player preview,
 corrected outcome/usage behavior and bounded redaction are on main. Reference
-identity, PDF-axis, toolbar/guide and ledger preset corrections are on the held
-successor. Its 82 focused cases passed; the earlier complete numerical gate
-failed, and the 33-case instrumented pass does not clear that hold. See the
+identity, PDF-axis, toolbar/guide and ledger preset corrections are on a reviewed
+successor. Its own first complete serial Node24 gate passed: **2,359 total /
+2,358 pass / 0 fail / 1 optional Mixxx skip**, with all 2,125 tracked hashes
+unchanged. All three fresh reviews are complete. Source-specific hosted UI and
+platform gates remain pending; earlier numerical failures remain unresolved. See the
 [merge proof](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md) and
 [audio context](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md).
 
