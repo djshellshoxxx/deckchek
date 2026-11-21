@@ -1,0 +1,118 @@
+{
+  "kind": "root-round17-final-static-custody",
+  "freeze": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+  "all_three_final_handoffs_received": true,
+  "source": {
+    "paths": 2546,
+    "distinct_blobs": 2288,
+    "summed_bytes": 88465624,
+    "top_level_tests": 207,
+    "ordered_source_map_sha256": "e02518433215984d516ed73d2f104acc93ed1f80a428ebf6b07ad61b3af32c5d"
+  },
+  "independent_method": "Git recursive tree inventory and full immutable blob reads with recomputed Git SHA-1, then full working bytes and regular/executable modes in all four worktrees; no project execution.",
+  "reports": [
+    {
+      "lane": "code",
+      "worktree": "deckchek-pregig-recovery-code",
+      "commit": "e9ffdd526c590df6c2ebc5cf23f947e3ec5c9528",
+      "tree": "21e92e9baa90157ab3115c9a509e875a85178092",
+      "report": "docs/engineering/PREGIG_RECOVERY_CODE_AUDIT_2026-11-21.md",
+      "bytes": 43727,
+      "sha256": "39ca23a2ede70e75a058507ba5ec416d0da5f0c198c456e63f2c62e62301d682",
+      "blob": "90b5ef7ac10e9c785862403554022caf84cc8ef5",
+      "additions": 1,
+      "mode": "100644",
+      "parent": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+      "report_fully_read_by_root": true
+    },
+    {
+      "lane": "functional",
+      "worktree": "deckchek-pregig-recovery-functional",
+      "commit": "aafcc5ddb63cca87b3142d57155c6d2b96333daa",
+      "tree": "401d96f27204f2bf62ab3a1c5f3ad34be2ca7d36",
+      "report": "docs/engineering/PREGIG_RECOVERY_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "bytes": 37536,
+      "sha256": "5004727b39ec10adb72779d0640fda71d6ddbe3dd7396bf23d80489a705a79a3",
+      "blob": "77099e66eb0a785fef4d557ec7b585f258e83d53",
+      "additions": 29,
+      "mode": "100644",
+      "parent": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+      "report_fully_read_by_root": true
+    },
+    {
+      "lane": "security",
+      "worktree": "deckchek-pregig-recovery-security",
+      "commit": "ef102e281e5ca3388dbfb9c6b66756f3eb2ced36",
+      "tree": "55f23911b71d8255177aecb65fff59376b2320b0",
+      "report": "docs/engineering/PREGIG_RECOVERY_SECURITY_AUDIT_2026-11-21.md",
+      "bytes": 45374,
+      "sha256": "d695c46562fd0750a4214b4d03333d3f77f07a7f3562a8492d44d207a46dc2be",
+      "blob": "8071e00ee50d91eeca8a181a6c33d1d093c415d4",
+      "additions": 1,
+      "mode": "100644",
+      "parent": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+      "report_fully_read_by_root": true
+    }
+  ],
+  "worktree_checks": [
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery",
+      "working_paths_verified": 2546,
+      "clean": true,
+      "original_paths_verified": 2546,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-code",
+      "working_paths_verified": 2547,
+      "clean": true,
+      "original_paths_verified": 2546,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-functional",
+      "working_paths_verified": 2575,
+      "clean": true,
+      "original_paths_verified": 2546,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-security",
+      "working_paths_verified": 2547,
+      "clean": true,
+      "original_paths_verified": 2546,
+      "original_test_inventory_equal": true
+    }
+  ],
+  "original_first": {
+    "cases": 132,
+    "passed": 132,
+    "failed": 0,
+    "skipped": 0,
+    "project_seconds": 15.125495306994708,
+    "no_additional_execution": true
+  },
+  "root_prior_proofs": [
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-root-preflight-proof.json",
+      "bytes": 1841,
+      "sha256": "550329a244c41245a7ba36166a979c6c6bfe5f0e97d6281fd7ac69dfb8dd7f75"
+    },
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-root-first-proof.json",
+      "bytes": 5167,
+      "sha256": "306cffc6f05c94ebd9361027e50a0b08b050760d417c6059c3852343bc7f479d"
+    },
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-root-package-proof.json",
+      "bytes": 9723,
+      "sha256": "a15b85da84a0eb51b2c96e45dc10e9f0ffe89d04b80e7d83cf15477663e7789e"
+    }
+  ],
+  "limitations": [
+    "Scoped browser storage/recovery and fake-native JavaScript PDF composition only.",
+    "Pre-existing native preset deletion/retained association remains queued.",
+    "Complete-source audio HOLD, native backup 85, fixed published heads and Fleet-off preserved."
+  ]
+}

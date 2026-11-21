@@ -1,0 +1,71 @@
+{
+  "schema": "deckchek.pregig-recovery-functional-custody.v1",
+  "verification_mode": "Independent Python standard-library data inspection; no additional project execution or import",
+  "verified_at_utc": "2026-11-21T14:34:28.862277+00:00",
+  "source_commit": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "source_tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+  "source_parents": [
+    "f4d727cb9243b60594dc0df73da3d0808d698b81"
+  ],
+  "source_worktree": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-functional",
+  "source_branch": "review/deckchek-pregig-recovery-functional-20261121",
+  "tracked_paths": 2546,
+  "distinct_blobs": 2288,
+  "summed_tracked_bytes": 88465624,
+  "top_level_test_files": 207,
+  "canonical_source_map_sha256": "e02518433215984d516ed73d2f104acc93ed1f80a428ebf6b07ad61b3af32c5d",
+  "full_source_before_after_and_frozen_git_equal": true,
+  "immutable_blob_sha1_and_working_bytes_modes_independently_verified": true,
+  "working_checkout_clean_before_packaging": true,
+  "all_source_and_test_inventories_equal": true,
+  "controls_equal_originals_and_authorized_hashes": true,
+  "runtime_binary_and_original_identity_streams_verified": true,
+  "original_result_exit_code": 0,
+  "original_recorder_exit_code": 0,
+  "project_elapsed_seconds": 15.125495306994708,
+  "tap_duration_ms": "15014.516442",
+  "no_timeout_signals_or_recorder_postflight_error": true,
+  "original_tap_counts": {
+    "tests": 132,
+    "suites": 0,
+    "pass": 132,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "original_tap_plan": "1..132",
+  "ordered_case_names_numbers_outcomes_subtests_match_source_inventory": true,
+  "expected_case_counts_by_file": {
+    "tests/pre-gig.test.mjs": 59,
+    "tests/pregig-storage-screen.test.mjs": 19,
+    "tests/pregig-storage.test.mjs": 26,
+    "tests/pregig-ui.test.mjs": 17,
+    "tests/text-file-boundary.test.mjs": 11
+  },
+  "new_pregig_case_count": 49,
+  "new_pregig_cases_passed": 49,
+  "older_case_count": 83,
+  "ordered_names_sha256": "ccf2e633ca355f23b87b3e57c7eacf00a9ec31c5a3e42414f1847e5c21bb3dfb",
+  "ordered_file_names_sha256": "5d0e0990e498fcbf958a8ac086138a25d1895b48de20d28f89ab5f9a9e952344",
+  "historical_older_names_passed_once": 83,
+  "historical_older_duration_sum_ms": "14628.461681",
+  "original_artifact_count": 24,
+  "original_summed_bytes": 2870756,
+  "all_original_copies_byte_equal": true,
+  "authorized_launcher_argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-recorder.py",
+    "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-selection.json"
+  ],
+  "authorized_launcher_cwd": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-functional",
+  "authorized_bash_login": false,
+  "authorization": "Root explicitly authorized this exact FIRST after receiving all three source and complete-control ACCEPTs, reading every recorder/config/launcher line and independently verifying source/runtime/controls. Exactly two fixed 10-second Node identity calls and one fixed five-original-file serial 132-case argv were authorized, TERM at 55 seconds/KILL at 60 seconds. No rerun or expanded execution.",
+  "original_artifacts_directory": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw",
+  "retained_focused_directory": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused",
+  "limits": [
+    "Real JavaScript PDF composition and adapter reached a fake native command boundary; no actual native PDF was rendered or inspected.",
+    "No browser, native application, native database, OS-dialog, physical audio or release qualification.",
+    "The original complete-source audio HOLD, native #85 boundary and Fleet default-off state remain unchanged."
+  ]
+}

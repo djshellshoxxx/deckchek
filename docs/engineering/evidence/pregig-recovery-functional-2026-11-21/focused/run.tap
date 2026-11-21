@@ -1,0 +1,802 @@
+TAP version 13
+# Subtest: timecode: clean deck passes with no fix needed
+ok 1 - timecode: clean deck passes with no fix needed
+  ---
+  duration_ms: 1.927105
+  type: 'test'
+  ...
+# Subtest: timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)
+ok 2 - timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)
+  ---
+  duration_ms: 1.116238
+  type: 'test'
+  ...
+# Subtest: timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter
+ok 3 - timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter
+  ---
+  duration_ms: 0.512846
+  type: 'test'
+  ...
+# Subtest: timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red
+ok 4 - timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red
+  ---
+  duration_ms: 0.363269
+  type: 'test'
+  ...
+# Subtest: timecode dropouts: 0 passes, 1 amber, 2 red
+ok 5 - timecode dropouts: 0 passes, 1 amber, 2 red
+  ---
+  duration_ms: 0.311481
+  type: 'test'
+  ...
+# Subtest: timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format
+ok 6 - timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format
+  ---
+  duration_ms: 0.385834
+  type: 'test'
+  ...
+# Subtest: timecode: worst metric wins, every issue gets one fix, unverified format warns
+ok 7 - timecode: worst metric wins, every issue gets one fix, unverified format warns
+  ---
+  duration_ms: 0.351451
+  type: 'test'
+  ...
+# Subtest: timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error
+ok 8 - timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error
+  ---
+  duration_ms: 0.356559
+  type: 'test'
+  ...
+# Subtest: timecode: capture problems become actions, not crashes
+ok 9 - timecode: capture problems become actions, not crashes
+  ---
+  duration_ms: 0.593408
+  type: 'test'
+  ...
+# Subtest: signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel
+ok 10 - signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel
+  ---
+  duration_ms: 0.595781
+  type: 'test'
+  ...
+# Subtest: hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored
+ok 11 - hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored
+  ---
+  duration_ms: 0.439795
+  type: 'test'
+  ...
+# Subtest: hum that could not be measured is amber with a retry, never a silent pass
+ok 12 - hum that could not be measured is amber with a retry, never a silent pass
+  ---
+  duration_ms: 0.193623
+  type: 'test'
+  ...
+# Subtest: audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber
+ok 13 - audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber
+  ---
+  duration_ms: 0.498674
+  type: 'test'
+  ...
+# Subtest: midi: present passes, optional missing is amber, required missing is red, no backend is unsupported
+ok 14 - midi: present passes, optional missing is amber, required missing is red, no backend is unsupported
+  ---
+  duration_ms: 0.3972
+  type: 'test'
+  ...
+# Subtest: headphones: yes passes, no is red with cue advice, skip or none is skipped
+ok 15 - headphones: yes passes, no is red with cue advice, skip or none is skipped
+  ---
+  duration_ms: 0.221104
+  type: 'test'
+  ...
+# Subtest: software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive
+ok 16 - software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive
+  ---
+  duration_ms: 1.584957
+  type: 'test'
+  ...
+# Subtest: software: not installed and not running are amber with actions; no backend is unsupported
+ok 17 - software: not installed and not running are amber with actions; no backend is unsupported
+  ---
+  duration_ms: 0.342018
+  type: 'test'
+  ...
+# Subtest: system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded
+ok 18 - system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded
+  ---
+  duration_ms: 3.392071
+  type: 'test'
+  ...
+# Subtest: evidence errors become "Check could not run" with a retry for every kind
+ok 19 - evidence errors become "Check could not run" with a retry for every kind
+  ---
+  duration_ms: 0.572586
+  type: 'test'
+  ...
+# Subtest: every red or amber result carries a fix with a label and plain-English text
+ok 20 - every red or amber result carries a fix with a label and plain-English text
+  ---
+  duration_ms: 0.45001
+  type: 'test'
+  ...
+# Subtest: rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green
+ok 21 - rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green
+  ---
+  duration_ms: 0.717134
+  type: 'test'
+  ...
+# Subtest: rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)
+ok 22 - rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)
+  ---
+  duration_ms: 0.176787
+  type: 'test'
+  ...
+# Subtest: rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording
+ok 23 - rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording
+  ---
+  duration_ms: 0.307626
+  type: 'test'
+  ...
+# Subtest: buildPlan orders parallel steps first, then per-deck steps, then the headphone cue
+ok 24 - buildPlan orders parallel steps first, then per-deck steps, then the headphone cue
+  ---
+  duration_ms: 0.404231
+  type: 'test'
+  ...
+# Subtest: buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget
+ok 25 - buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget
+  ---
+  duration_ms: 0.338663
+  type: 'test'
+  ...
+# Subtest: built-in presets validate and reference the owner's real gear profile ids and known formats
+ok 26 - built-in presets validate and reference the owner's real gear profile ids and known formats
+  ---
+  duration_ms: 0.808653
+  type: 'test'
+  ...
+# Subtest: built-in presets load through loadBuiltinPresets and bad ones are reported
+ok 27 - built-in presets load through loadBuiltinPresets and bad ones are reported
+  ---
+  duration_ms: 0.744857
+  type: 'test'
+  ...
+# Subtest: validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references
+ok 28 - validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references
+  ---
+  duration_ms: 0.771156
+  type: 'test'
+  ...
+# Subtest: presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)
+ok 29 - presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)
+  ---
+  duration_ms: 2.975912
+  type: 'test'
+  ...
+# Subtest: presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library
+ok 30 - presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library
+  ---
+  duration_ms: 0.930598
+  type: 'test'
+  ...
+# Subtest: formatForMedia resolves timecode media only, from the library, in any container shape
+ok 31 - formatForMedia resolves timecode media only, from the library, in any container shape
+  ---
+  duration_ms: 0.195626
+  type: 'test'
+  ...
+# Subtest: the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)
+ok 32 - the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)
+  ---
+  duration_ms: 0.33692
+  type: 'test'
+  ...
+# Subtest: namesMatch is forgiving but refuses tiny fragments
+ok 33 - namesMatch is forgiving but refuses tiny fragments
+  ---
+  duration_ms: 0.134754
+  type: 'test'
+  ...
+# Subtest: diffRuns lists which steps changed and whether they improved (AC-6)
+ok 34 - diffRuns lists which steps changed and whether they improved (AC-6)
+  ---
+  duration_ms: 0.404652
+  type: 'test'
+  ...
+# Subtest: synthetic Traktor MK2 timecode from the generator passes both deck steps
+ok 35 - synthetic Traktor MK2 timecode from the generator passes both deck steps
+  ---
+  duration_ms: 708.085709
+  type: 'test'
+  ...
+# Subtest: synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)
+ok 36 - synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)
+  ---
+  duration_ms: 1217.654018
+  type: 'test'
+  ...
+# Subtest: synthetic: one muted channel is red, naming the channel; silence is a no-signal red
+ok 37 - synthetic: one muted channel is red, naming the channel; silence is a no-signal red
+  ---
+  duration_ms: 520.617387
+  type: 'test'
+  ...
+# Subtest: synthetic: dropouts and a wrong-format record are caught
+ok 38 - synthetic: dropouts and a wrong-format record are caught
+  ---
+  duration_ms: 1069.322033
+  type: 'test'
+  ...
+# Subtest: synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier
+ok 39 - synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier
+  ---
+  duration_ms: 3000.81844
+  type: 'test'
+  ...
+# Subtest: synthetic needle-up hum is measured on the lifted segment
+ok 40 - synthetic needle-up hum is measured on the lifted segment
+  ---
+  duration_ms: 366.534245
+  type: 'test'
+  ...
+# Subtest: summarizeTimecode exposes plain numbers and handles failures
+ok 41 - summarizeTimecode exposes plain numbers and handles failures
+  ---
+  duration_ms: 289.009166
+  type: 'test'
+  ...
+# Subtest: runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)
+ok 42 - runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)
+  ---
+  duration_ms: 589.332902
+  type: 'test'
+  ...
+# Subtest: runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green
+ok 43 - runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green
+  ---
+  duration_ms: 1174.196624
+  type: 'test'
+  ...
+# Subtest: runPregig: a pair the interface does not offer is reported as no such input, not a failure
+ok 44 - runPregig: a pair the interface does not offer is reported as no such input, not a failure
+  ---
+  duration_ms: 1194.769707
+  type: 'test'
+  ...
+# Subtest: deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair
+ok 45 - deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair
+  ---
+  duration_ms: 0.194153
+  type: 'test'
+  ...
+# Subtest: runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)
+ok 46 - runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)
+  ---
+  duration_ms: 0.588026
+  type: 'test'
+  ...
+# Subtest: runPregig: a thrown step is an error row, the verdict is amber and the other steps still run
+ok 47 - runPregig: a thrown step is an error row, the verdict is amber and the other steps still run
+  ---
+  duration_ms: 587.428292
+  type: 'test'
+  ...
+# Subtest: runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)
+ok 48 - runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)
+  ---
+  duration_ms: 620.830928
+  type: 'test'
+  ...
+# Subtest: runPregig: manual time is reported separately and excluded from the duration
+ok 49 - runPregig: manual time is reported separately and excluded from the duration
+  ---
+  duration_ms: 600.007153
+  type: 'test'
+  ...
+# Subtest: runPregig: orchestration overhead with instant mocked captures stays far below 5 s
+ok 50 - runPregig: orchestration overhead with instant mocked captures stays far below 5 s
+  ---
+  duration_ms: 24.724573
+  type: 'test'
+  ...
+# Subtest: runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice
+ok 51 - runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice
+  ---
+  duration_ms: 602.303042
+  type: 'test'
+  ...
+# Subtest: runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps
+ok 52 - runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps
+  ---
+  duration_ms: 578.340806
+  type: 'test'
+  ...
+# Subtest: runPregig: needle-up hum asks the user, captures the lifted segment and grades it
+ok 53 - runPregig: needle-up hum asks the user, captures the lifted segment and grades it
+  ---
+  duration_ms: 393.695503
+  type: 'test'
+  ...
+# Subtest: runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)
+ok 54 - runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)
+  ---
+  duration_ms: 0.349926
+  type: 'test'
+  ...
+# Subtest: createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair
+ok 55 - createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair
+  ---
+  duration_ms: 0.505891
+  type: 'test'
+  ...
+# Subtest: toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths
+ok 56 - toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths
+  ---
+  duration_ms: 584.148078
+  type: 'test'
+  ...
+# Subtest: createPregigApi (native) sends exactly the contract argument names
+ok 57 - createPregigApi (native) sends exactly the contract argument names
+  ---
+  duration_ms: 0.4255
+  type: 'test'
+  ...
+# Subtest: createPregigApi (browser) stores runs and presets locally with the same shapes
+ok 58 - createPregigApi (browser) stores runs and presets locally with the same shapes
+  ---
+  duration_ms: 2.776726
+  type: 'test'
+  ...
+# Subtest: contract examples are real step results shapes (states the database accepts)
+ok 59 - contract examples are real step results shapes (states the database accepts)
+  ---
+  duration_ms: 0.095463
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig
+ok 60 - Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig
+  ---
+  duration_ms: 37.025002
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry
+ok 61 - Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry
+  ---
+  duration_ms: 2.982065
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh
+ok 62 - Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh
+  ---
+  duration_ms: 4.310723
+  type: 'test'
+  ...
+# Subtest: Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry
+ok 63 - Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry
+  ---
+  duration_ms: 5.768075
+  type: 'test'
+  ...
+# Subtest: Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending
+ok 64 - Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending
+  ---
+  duration_ms: 4.294488
+  type: 'test'
+  ...
+# Subtest: Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry
+ok 65 - Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry
+  ---
+  duration_ms: 3.783981
+  type: 'test'
+  ...
+# Subtest: Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable
+ok 66 - Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable
+  ---
+  duration_ms: 2.784768
+  type: 'test'
+  ...
+# Subtest: Pre-gig an acknowledged preset save finishes while an optional refresh is still pending
+ok 67 - Pre-gig an acknowledged preset save finishes while an optional refresh is still pending
+  ---
+  duration_ms: 3.115947
+  type: 'test'
+  ...
+# Subtest: Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds
+ok 68 - Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds
+  ---
+  duration_ms: 12.469212
+  type: 'test'
+  ...
+# Subtest: Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested
+ok 69 - Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested
+  ---
+  duration_ms: 5.754554
+  type: 'test'
+  ...
+# Subtest: Pre-gig Done preserves an unsaved result until the user confirms discarding it
+ok 70 - Pre-gig Done preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 9.459636
+  type: 'test'
+  ...
+# Subtest: Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it
+ok 71 - Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 12.225766
+  type: 'test'
+  ...
+# Subtest: Pre-gig running everything again preserves an unsaved result until the user confirms discarding it
+ok 72 - Pre-gig running everything again preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 10.457307
+  type: 'test'
+  ...
+# Subtest: Pre-gig a late failed History request cannot replace a newer successful read
+ok 73 - Pre-gig a late failed History request cannot replace a newer successful read
+  ---
+  duration_ms: 1.862091
+  type: 'test'
+  ...
+# Subtest: Pre-gig disposal retires a pending History presentation and the Save callback
+ok 74 - Pre-gig disposal retires a pending History presentation and the Save callback
+  ---
+  duration_ms: 1.204712
+  type: 'test'
+  ...
+# Subtest: Pre-gig import retains the parsed draft after a failed save and retries without picking the file again
+ok 75 - Pre-gig import retains the parsed draft after a failed save and retries without picking the file again
+  ---
+  duration_ms: 5.098938
+  type: 'test'
+  ...
+# Subtest: Pre-gig displays future-version presets read-only without running or rewriting their contents
+ok 76 - Pre-gig displays future-version presets read-only without running or rewriting their contents
+  ---
+  duration_ms: 1.714028
+  type: 'test'
+  ...
+# Subtest: Pre-gig PDF keeps the tested interface after the same saved preset is edited
+ok 77 - Pre-gig PDF keeps the tested interface after the same saved preset is edited
+  ---
+  duration_ms: 11.47073
+  type: 'test'
+  ...
+# Subtest: Pre-gig PDF preparation cannot export or announce a result retired before its handoff
+ok 78 - Pre-gig PDF preparation cannot export or announce a result retired before its handoff
+  ---
+  duration_ms: 3.501927
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig treats only a confirmed absent key as an empty collection
+ok 79 - browser Pre-gig treats only a confirmed absent key as an empty collection
+  ---
+  duration_ms: 1.62244
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves malformed JSON through reads and attempted writes
+ok 80 - browser Pre-gig runs preserves malformed JSON through reads and attempted writes
+  ---
+  duration_ms: 0.606252
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves empty text through reads and attempted writes
+ok 81 - browser Pre-gig runs preserves empty text through reads and attempted writes
+  ---
+  duration_ms: 0.364949
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves non-array JSON through reads and attempted writes
+ok 82 - browser Pre-gig runs preserves non-array JSON through reads and attempted writes
+  ---
+  duration_ms: 0.309916
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves partly invalid rows through reads and attempted writes
+ok 83 - browser Pre-gig runs preserves partly invalid rows through reads and attempted writes
+  ---
+  duration_ms: 0.627264
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves duplicate ids through reads and attempted writes
+ok 84 - browser Pre-gig runs preserves duplicate ids through reads and attempted writes
+  ---
+  duration_ms: 0.42569
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves invalid nested data through reads and attempted writes
+ok 85 - browser Pre-gig runs preserves invalid nested data through reads and attempted writes
+  ---
+  duration_ms: 0.297036
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig runs preserves unrepresentable JSON numbers through reads and attempted writes
+ok 86 - browser Pre-gig runs preserves unrepresentable JSON numbers through reads and attempted writes
+  ---
+  duration_ms: 0.387052
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves malformed JSON through reads and attempted writes
+ok 87 - browser Pre-gig presets preserves malformed JSON through reads and attempted writes
+  ---
+  duration_ms: 0.343085
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves empty text through reads and attempted writes
+ok 88 - browser Pre-gig presets preserves empty text through reads and attempted writes
+  ---
+  duration_ms: 0.457338
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves non-array JSON through reads and attempted writes
+ok 89 - browser Pre-gig presets preserves non-array JSON through reads and attempted writes
+  ---
+  duration_ms: 0.181563
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves partly invalid rows through reads and attempted writes
+ok 90 - browser Pre-gig presets preserves partly invalid rows through reads and attempted writes
+  ---
+  duration_ms: 1.82828
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves duplicate ids through reads and attempted writes
+ok 91 - browser Pre-gig presets preserves duplicate ids through reads and attempted writes
+  ---
+  duration_ms: 0.360813
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves invalid nested data through reads and attempted writes
+ok 92 - browser Pre-gig presets preserves invalid nested data through reads and attempted writes
+  ---
+  duration_ms: 0.213682
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig presets preserves unrepresentable JSON numbers through reads and attempted writes
+ok 93 - browser Pre-gig presets preserves unrepresentable JSON numbers through reads and attempted writes
+  ---
+  duration_ms: 0.153812
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig read denial refuses every dependent mutation and recovers without replacing data
+ok 94 - browser Pre-gig read denial refuses every dependent mutation and recovers without replacing data
+  ---
+  duration_ms: 0.672762
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig save run reports a denied write and succeeds only after storage accepts retry
+ok 95 - browser Pre-gig save run reports a denied write and succeeds only after storage accepts retry
+  ---
+  duration_ms: 0.509777
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig create preset reports a denied write and succeeds only after storage accepts retry
+ok 96 - browser Pre-gig create preset reports a denied write and succeeds only after storage accepts retry
+  ---
+  duration_ms: 0.354844
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig edit preset reports a denied write and succeeds only after storage accepts retry
+ok 97 - browser Pre-gig edit preset reports a denied write and succeeds only after storage accepts retry
+  ---
+  duration_ms: 0.321624
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig delete preset reports a denied write and succeeds only after storage accepts retry
+ok 98 - browser Pre-gig delete preset reports a denied write and succeeds only after storage accepts retry
+  ---
+  duration_ms: 0.256726
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig refuses missing providers and missing writer methods
+ok 99 - browser Pre-gig refuses missing providers and missing writer methods
+  ---
+  duration_ms: 1.700417
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig does not treat a non-string undefined storage read as confirmed absence
+ok 100 - browser Pre-gig does not treat a non-string undefined storage read as confirmed absence
+  ---
+  duration_ms: 0.173381
+  type: 'test'
+  ...
+# Subtest: native Pre-gig bypasses a throwing browser storage getter while browser errors remain typed
+ok 101 - native Pre-gig bypasses a throwing browser storage getter while browser errors remain typed
+  ---
+  duration_ms: 0.789868
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig preserves the newest-one-hundred retention rule and complete result details
+ok 102 - browser Pre-gig preserves the newest-one-hundred retention rule and complete result details
+  ---
+  duration_ms: 135.699468
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig retains future preset versions and existing string-JSON records without writes
+ok 103 - browser Pre-gig retains future preset versions and existing string-JSON records without writes
+  ---
+  duration_ms: 6.447526
+  type: 'test'
+  ...
+# Subtest: browser Pre-gig refuses unserializable or non-finite new data before replacing prior bytes
+ok 104 - browser Pre-gig refuses unserializable or non-finite new data before replacing prior bytes
+  ---
+  duration_ms: 0.457088
+  type: 'test'
+  ...
+# Subtest: describeStep: an input pair the interface lacks reads as "no such input", not a failure
+ok 105 - describeStep: an input pair the interface lacks reads as "no such input", not a failure
+  ---
+  duration_ms: 1.238824
+  type: 'test'
+  ...
+# Subtest: describeStep: every engine state has a word and a tone; live states are not chips
+ok 106 - describeStep: every engine state has a word and a tone; live states are not chips
+  ---
+  duration_ms: 0.1663
+  type: 'test'
+  ...
+# Subtest: verdictView: only deck B unmeasured gives an amber "Not fully checked" that says why
+ok 107 - verdictView: only deck B unmeasured gives an amber "Not fully checked" that says why
+  ---
+  duration_ms: 1.010089
+  type: 'test'
+  ...
+# Subtest: verdictView: red stays red and still notes deck B; green copy is the engine copy
+ok 108 - verdictView: red stays red and still notes deck B; green copy is the engine copy
+  ---
+  duration_ms: 0.273671
+  type: 'test'
+  ...
+# Subtest: fixButtons: keeps actions, dedupes, info entries have no action
+ok 109 - fixButtons: keeps actions, dedupes, info entries have no action
+  ---
+  duration_ms: 0.260793
+  type: 'test'
+  ...
+# Subtest: evidenceRows: labels, units, nesting, empties dropped
+ok 110 - evidenceRows: labels, units, nesting, empties dropped
+  ---
+  duration_ms: 0.441093
+  type: 'test'
+  ...
+# Subtest: rerunTargets and mergeRerun: only the chosen steps change and the verdict is recomputed
+ok 111 - rerunTargets and mergeRerun: only the chosen steps change and the verdict is recomputed
+  ---
+  duration_ms: 0.509116
+  type: 'test'
+  ...
+# Subtest: compareView: trends and headline
+ok 112 - compareView: trends and headline
+  ---
+  duration_ms: 0.313721
+  type: 'test'
+  ...
+# Subtest: profilesForPreset: judges only the rig, not every profile in the library
+ok 113 - profilesForPreset: judges only the rig, not every profile in the library
+  ---
+  duration_ms: 0.390097
+  type: 'test'
+  ...
+# Subtest: runMatchesPreset: built-ins match by notes, saved presets by id
+ok 114 - runMatchesPreset: built-ins match by notes, saved presets by id
+  ---
+  duration_ms: 0.23292
+  type: 'test'
+  ...
+# Subtest: time text
+ok 115 - time text
+  ---
+  duration_ms: 0.331509
+  type: 'test'
+  ...
+# Subtest: controller: full run keeps deck input-pair skip honest, saves once, compares on the second run
+ok 116 - controller: full run keeps deck input-pair skip honest, saves once, compares on the second run
+  ---
+  duration_ms: 4.338665
+  type: 'test'
+  ...
+# Subtest: controller: cancel keeps partial results as cancelled; rerun merges and saves a new run
+ok 117 - controller: cancel keeps partial results as cancelled; rerun merges and saves a new run
+  ---
+  duration_ms: 1.122087
+  type: 'test'
+  ...
+# Subtest: controller: failed browser persistence retains the completed result and retry never repeats the check
+ok 118 - controller: failed browser persistence retains the completed result and retry never repeats the check
+  ---
+  duration_ms: 2.429604
+  type: 'test'
+  ...
+# Subtest: controller: overlapping save retries share one write and cannot be replaced by a new run or reset
+ok 119 - controller: overlapping save retries share one write and cannot be replaced by a new run or reset
+  ---
+  duration_ms: 5.597378
+  type: 'test'
+  ...
+# Subtest: controller: unavailable history does not become an empty baseline or a successful save
+ok 120 - controller: unavailable history does not become an empty baseline or a successful save
+  ---
+  duration_ms: 0.53903
+  type: 'test'
+  ...
+# Subtest: controller: a failed save after rerun cannot retain the previous result success marker
+ok 121 - controller: a failed save after rerun cannot retain the previous result success marker
+  ---
+  duration_ms: 0.661605
+  type: 'test'
+  ...
+# Subtest: pre-gig refuses an oversized selected preset before reading or saving
+ok 122 - pre-gig refuses an oversized selected preset before reading or saving
+  ---
+  duration_ms: 9.466206
+  type: 'test'
+  ...
+# Subtest: pre-gig catches file read errors and preserves the existing preset collection
+ok 123 - pre-gig catches file read errors and preserves the existing preset collection
+  ---
+  duration_ms: 2.835024
+  type: 'test'
+  ...
+# Subtest: pre-gig rejects mismatched read lengths before parsing or saving
+ok 124 - pre-gig rejects mismatched read lengths before parsing or saving
+  ---
+  duration_ms: 1.605564
+  type: 'test'
+  ...
+# Subtest: pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode presets
+ok 125 - pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode presets
+  ---
+  duration_ms: 2.345348
+  type: 'test'
+  ...
+# Subtest: pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset
+ok 126 - pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset
+  ---
+  duration_ms: 1.428038
+  type: 'test'
+  ...
+# Subtest: media import rejects malformed UTF-8 instead of storing replacement text
+ok 127 - media import rejects malformed UTF-8 instead of storing replacement text
+  ---
+  duration_ms: 3.634366
+  type: 'test'
+  ...
+# Subtest: media import rejects invalid declared sizes before reading
+ok 128 - media import rejects invalid declared sizes before reading
+  ---
+  duration_ms: 2.479299
+  type: 'test'
+  ...
+# Subtest: media import rejects mismatched read lengths and preserves normal one-read imports
+ok 129 - media import rejects mismatched read lengths and preserves normal one-read imports
+  ---
+  duration_ms: 4.18284
+  type: 'test'
+  ...
+# Subtest: media import reports byte-read failures without storing a profile
+ok 130 - media import reports byte-read failures without storing a profile
+  ---
+  duration_ms: 1.289669
+  type: 'test'
+  ...
+# Subtest: bounded text reads preserve UTF-8 BOM compatibility and measure the byte boundary
+ok 131 - bounded text reads preserve UTF-8 BOM compatibility and measure the byte boundary
+  ---
+  duration_ms: 1.097391
+  type: 'test'
+  ...
+# Subtest: bounded text reads reject incomplete reads and non-buffer results before decoding
+ok 132 - bounded text reads reject incomplete reads and non-buffer results before decoding
+  ---
+  duration_ms: 0.380592
+  type: 'test'
+  ...
+1..132
+# tests 132
+# suites 0
+# pass 132
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15014.516442

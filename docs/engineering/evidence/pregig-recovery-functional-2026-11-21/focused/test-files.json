@@ -1,0 +1,7 @@
+[
+  "tests/pre-gig.test.mjs",
+  "tests/pregig-storage-screen.test.mjs",
+  "tests/pregig-storage.test.mjs",
+  "tests/pregig-ui.test.mjs",
+  "tests/text-file-boundary.test.mjs"
+]

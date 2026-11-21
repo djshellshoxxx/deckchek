@@ -187,7 +187,8 @@ export function profilesForPreset(preset, all = []) {
  */
 export function createPregigController({ api, deps = {}, ui = {}, profiles = () => [], appVersion = '0.0.0', now = () => Date.now() } = {}) {
   const listeners = new Set();
-  const st = { phase: 'idle', preset: null, plan: [], steps: new Map(), run: null, abort: null, prompt: null, startedMs: 0, saved: null, error: null, previous: null, compare: null, rerunning: null };
+  const st = { phase: 'idle', preset: null, plan: [], steps: new Map(), run: null, abort: null, prompt: null, startedMs: 0, saved: null, saving: false, error: null, previous: null, compare: null, rerunning: null };
+  let saveTask = null;
   const emit = () => listeners.forEach(fn => fn(st));
   const closePrompt = value => { const p = st.prompt; if (p) { st.prompt = null; p.resolve(value); } };
 
@@ -209,16 +210,29 @@ export function createPregigController({ api, deps = {}, ui = {}, profiles = () 
     } finally { st.abort = null; closePrompt('skip'); }
   }
 
-  async function finishAndSave(run, preset) {
-    st.run = run; st.phase = 'done'; st.compare = null;
-    try {
-      const input = toRunInput(run, { appVersion: typeof appVersion === 'function' ? await appVersion() : appVersion, notes: runNotes(preset) });
-      st.previous = await findPrevious(preset);
-      st.saved = await api.saveRun(input);
-      st.error = null;
-    } catch (e) { st.saved = null; st.error = `The result could not be saved to history: ${e?.message || e}`; }
-    if (st.previous) st.compare = compareView(diffRuns({ verdict: st.previous.run.verdict, steps: st.previous.steps }, run), stepLabel);
+  function saveFinishedRun() {
+    if (st.saving) return saveTask;
+    if (st.phase !== 'done' || !st.run || st.saved) return Promise.resolve(st.saved);
+    const run = st.run, preset = st.preset;
+    st.saving = true; st.error = null;
+    // Install the shared task before emitting: repeated Save/Retry actions join this attempt.
+    saveTask = Promise.resolve().then(async () => {
+      try {
+        const input = toRunInput(run, { appVersion: typeof appVersion === 'function' ? await appVersion() : appVersion, notes: runNotes(preset) });
+        st.previous = await findPrevious(preset);
+        st.saved = await api.saveRun(input);
+        st.error = null;
+      } catch (e) { st.saved = null; st.error = `The result could not be saved to history: ${e?.message || e}`; }
+      if (st.previous) st.compare = compareView(diffRuns({ verdict: st.previous.run.verdict, steps: st.previous.steps }, run), stepLabel);
+      return st.saved;
+    }).finally(() => { st.saving = false; saveTask = null; emit(); });
     emit();
+    return saveTask;
+  }
+
+  function finishAndSave(run, preset) {
+    st.run = run; st.preset = preset; st.phase = 'done'; st.compare = null; st.previous = null; st.saved = null;
+    return saveFinishedRun();
   }
 
   async function findPrevious(preset) {
@@ -233,7 +247,7 @@ export function createPregigController({ api, deps = {}, ui = {}, profiles = () 
     isRunning: () => st.phase === 'running',
     /** Start a full run. `skip` = step ids the user unticked. */
     async start(preset, { skip = [] } = {}) {
-      if (st.phase === 'running') return null;
+      if (st.phase === 'running' || st.saving) return null;
       st.preset = preset; st.plan = buildPlan(preset, { skip }); st.run = null; st.saved = null; st.error = null; st.compare = null; st.previous = null;
       st.steps = new Map(st.plan.map(s => [s.id, { state: s.enabled ? 'pending' : 'skipped', result: s.enabled ? null : undefined }]));
       st.phase = 'running'; st.startedMs = now(); emit();
@@ -246,7 +260,7 @@ export function createPregigController({ api, deps = {}, ui = {}, profiles = () 
     cancel() { if (st.phase !== 'running') return false; st.abort?.abort(); closePrompt('skip'); emit(); return true; },
     /** Re-run some steps and merge them into the current result. */
     async rerun(ids, { preempt = false } = {}) {
-      if (st.phase === 'running' || !st.run || !ids.length) return null;
+      if (st.phase === 'running' || st.saving || !st.run || !ids.length) return null;
       st.phase = 'running'; st.rerunning = ids; st.startedMs = now();
       for (const id of ids) st.steps.set(id, { state: 'pending', result: null });
       emit();
@@ -263,7 +277,9 @@ export function createPregigController({ api, deps = {}, ui = {}, profiles = () 
     },
     /** Answer the manual prompt: headphones 'yes' | 'no' | 'skip'; needle-up true | false. */
     answer(value) { closePrompt(value); emit(); },
-    reset() { if (st.phase === 'running') return; st.phase = 'idle'; st.run = null; st.steps = new Map(); st.saved = null; st.compare = null; st.error = null; emit(); },
+    /** Retry persistence of the retained result without running any measurement again. */
+    retrySave: saveFinishedRun,
+    reset() { if (st.phase === 'running' || st.saving) return; st.phase = 'idle'; st.run = null; st.steps = new Map(); st.saved = null; st.compare = null; st.error = null; emit(); },
     async compareWith(detail) {
       if (!st.run || !detail) return null;
       st.compare = compareView(diffRuns({ verdict: detail.run.verdict, steps: detail.steps }, st.run), stepLabel);

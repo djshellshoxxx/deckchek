@@ -1,0 +1,29 @@
+{
+  "local_source": "1572c42b74aca3df77eb01a7f36bfc0f554429ea",
+  "published_commit": "34afefa58ac5e8346006087587b113c2a82d5a39",
+  "tree": "949f6c334a725b84084736f15e9b9efcf6807e14",
+  "ordered_parents": [
+    "f262a715d5cc9618285f4fe2d89b8dde2fc0fe9b"
+  ],
+  "whole_tree_identical": true,
+  "zero_diff": true,
+  "parent_ancestry_verified": true,
+  "source_checkout_clean": true,
+  "project_execution": false,
+  "schema": "deckchek.backup-service-publication.v1",
+  "branch": "checkpoint/deckchek-backup-service-held-20261121",
+  "qualified_main": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+  "fresh_main_and_player_refs_equal": true,
+  "new_reference_absent_before_creation": true,
+  "exact_reference_readback": true,
+  "local_binding_merge": "79df36c828631d9f5906bc7e93783cfe225888fc",
+  "local_binding_parents": [
+    "1572c42b74aca3df77eb01a7f36bfc0f554429ea",
+    "34afefa58ac5e8346006087587b113c2a82d5a39"
+  ],
+  "bundle_bytes": 657179,
+  "bundle_sha256": "8614b7ac0277c9ace4a9fea2d7230321967f288e4eb51211fe4ff6c02391fc0a",
+  "bundle_prerequisites": 20,
+  "all_bundle_prerequisites_ancestors_of_parent": true,
+  "release_or_deployment": false
+}

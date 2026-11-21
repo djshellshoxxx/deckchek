@@ -800,8 +800,8 @@ test('createPregigApi (browser) stores runs and presets locally with the same sh
   assert.equal(await api.deletePreset(p.id), true);
   assert.equal(await api.deletePreset(p.id), false);
   const broken = createPregigApi({ invoke: null, storage: { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } } });
-  assert.deepEqual(await broken.listRuns(), []);
-  await broken.saveRun(CONTRACT.pregig_save_run.request.run);
+  await assert.rejects(broken.listRuns(), { code: 'PREGIG_STORAGE_UNAVAILABLE' });
+  await assert.rejects(broken.saveRun(CONTRACT.pregig_save_run.request.run), { code: 'PREGIG_STORAGE_UNAVAILABLE' });
 });
 
 test('contract examples are real step results shapes (states the database accepts)', () => {

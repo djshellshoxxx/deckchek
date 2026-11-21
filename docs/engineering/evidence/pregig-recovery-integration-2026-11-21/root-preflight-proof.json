@@ -1,0 +1,49 @@
+{
+  "freeze": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+  "parents": [
+    "f4d727cb9243b60594dc0df73da3d0808d698b81"
+  ],
+  "controls": [
+    {
+      "kind": "recorder",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-recorder.py",
+      "bytes": 22756,
+      "sha256": "b3c3a4a65369d05c71d7be909a77976384bc55e42a30a4129e875da4032a6bd2"
+    },
+    {
+      "kind": "config",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-selection.json",
+      "bytes": 22348,
+      "sha256": "12ce92d9bd00c35365569dcecbad678c94b44ee20b48bcd5693f1e43a0a96df2"
+    },
+    {
+      "kind": "launcher",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-launcher.txt",
+      "bytes": 247,
+      "sha256": "e2b39fe5397d304f225452f40022b43131fb8f95fc7623d22aa67562fc3ba21b"
+    }
+  ],
+  "source_paths": 2546,
+  "distinct_blobs": 2288,
+  "summed_bytes": 88465624,
+  "source_map_sha256": "e02518433215984d516ed73d2f104acc93ed1f80a428ebf6b07ad61b3af32c5d",
+  "ordered_case_count": 132,
+  "ordered_name_sha256": "ccf2e633ca355f23b87b3e57c7eacf00a9ec31c5a3e42414f1847e5c21bb3dfb",
+  "ordered_file_name_sha256": "5d0e0990e498fcbf958a8ac086138a25d1895b48de20d28f89ab5f9a9e952344",
+  "older_names": 83,
+  "new_names": 49,
+  "historical_duration_sum_ms": "14628.461681",
+  "project_seconds": 60,
+  "term_after_seconds": 55,
+  "node_binary": {
+    "bytes": 126951512,
+    "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+    "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "full_control_text_reviewed": true,
+  "clean": true,
+  "output_absent": true,
+  "forbidden_environment_names": [],
+  "root_executed_project": false
+}

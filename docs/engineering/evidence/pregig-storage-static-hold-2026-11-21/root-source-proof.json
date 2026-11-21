@@ -1,0 +1,75 @@
+{
+  "disposition": "FINAL static HOLD; no execution",
+  "freeze": "b7a979cfc24eca569713ff319c5838eaa13d1a34",
+  "tree": "8fd5bb4744c3f9837728e54f8a046e193af23ea8",
+  "parents": [
+    "5b2ff5c90cae4838c8beefe4b998a71ea93b4c94"
+  ],
+  "paths": 2535,
+  "distinct_blobs": 2277,
+  "bytes": 87672414,
+  "top_level_test_files": 207,
+  "source_identity_sha256": "fbb02a5e4de05f39edf6480229ec5d74ead7e48882e2d4f3e1ad1788725509a4",
+  "root_read_all_three_reports": true,
+  "all_original_git_blob_ids_recomputed": true,
+  "source_worktree_unchanged": true,
+  "all_three_final_reports_complete": true,
+  "reports": [
+    {
+      "lane": "code",
+      "head": "3e863501f2dfa5f4fa029a761fd81d24f01a574c",
+      "tree": "a49dd1aa8af4f1ee1eebb9625f470a2d64382834",
+      "parents": [
+        "b7a979cfc24eca569713ff319c5838eaa13d1a34"
+      ],
+      "report": "docs/engineering/PREGIG_STORAGE_CODE_AUDIT_2026-11-21.md",
+      "bytes": 29668,
+      "sha256": "653aa4b81afc665e3a99b479be52bb65106f86593b1f2c53a37a2d5e9da75603",
+      "blob": "d89f85db4f5ab240227ae37d3e6c3199a22ae918",
+      "mode": "100644",
+      "clean": true,
+      "all_original_working_bytes_and_modes_unchanged": true,
+      "only_owned_report_added": true
+    },
+    {
+      "lane": "functional",
+      "head": "6bc0db3ab13c18363e0d5b51c04057b0922b5e06",
+      "tree": "9d0e9feb513dd7807febc814fa080de63ce7a54f",
+      "parents": [
+        "b7a979cfc24eca569713ff319c5838eaa13d1a34"
+      ],
+      "report": "docs/engineering/PREGIG_STORAGE_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "bytes": 33338,
+      "sha256": "fc1157f140e8007baecec12ccf1f303f06ef7cf56161745ed07e20b17ae6f19d",
+      "blob": "db238c8285358bc9de7fc64cb75e1506835c58ea",
+      "mode": "100644",
+      "clean": true,
+      "all_original_working_bytes_and_modes_unchanged": true,
+      "only_owned_report_added": true
+    },
+    {
+      "lane": "security",
+      "head": "201350e15c67d75b8e3caacd389e8d3c78a9a1ea",
+      "tree": "52e17af43e749765cb038ab89cc100458ea63186",
+      "parents": [
+        "b7a979cfc24eca569713ff319c5838eaa13d1a34"
+      ],
+      "report": "docs/engineering/PREGIG_STORAGE_SECURITY_AUDIT_2026-11-21.md",
+      "bytes": 36365,
+      "sha256": "4e1ffc11d68ead25469b53e2e90ab93796a7fc1752f5814f028f64bf7553a38a",
+      "blob": "d70669f9c257aa76a7fb5597b0cf6a0cd0d96d80",
+      "mode": "100644",
+      "clean": true,
+      "all_original_working_bytes_and_modes_unchanged": true,
+      "only_owned_report_added": true
+    }
+  ],
+  "project_execution_authorized": false,
+  "project_execution_performed": false,
+  "findings": [
+    "Pending preset form edits and nested draft ownership",
+    "Catalog initialization counted as a Pre-gig write",
+    "PDF run and device provenance across awaits",
+    "Per-case document lifetime versus cached feedback hosts"
+  ]
+}

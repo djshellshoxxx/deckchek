@@ -1,0 +1,662 @@
+[
+  {
+    "outcome": "ok",
+    "number": 1,
+    "name": "timecode: clean deck passes with no fix needed"
+  },
+  {
+    "outcome": "ok",
+    "number": 2,
+    "name": "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)"
+  },
+  {
+    "outcome": "ok",
+    "number": 3,
+    "name": "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter"
+  },
+  {
+    "outcome": "ok",
+    "number": 4,
+    "name": "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red"
+  },
+  {
+    "outcome": "ok",
+    "number": 5,
+    "name": "timecode dropouts: 0 passes, 1 amber, 2 red"
+  },
+  {
+    "outcome": "ok",
+    "number": 6,
+    "name": "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format"
+  },
+  {
+    "outcome": "ok",
+    "number": 7,
+    "name": "timecode: worst metric wins, every issue gets one fix, unverified format warns"
+  },
+  {
+    "outcome": "ok",
+    "number": 8,
+    "name": "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error"
+  },
+  {
+    "outcome": "ok",
+    "number": 9,
+    "name": "timecode: capture problems become actions, not crashes"
+  },
+  {
+    "outcome": "ok",
+    "number": 10,
+    "name": "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel"
+  },
+  {
+    "outcome": "ok",
+    "number": 11,
+    "name": "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored"
+  },
+  {
+    "outcome": "ok",
+    "number": 12,
+    "name": "hum that could not be measured is amber with a retry, never a silent pass"
+  },
+  {
+    "outcome": "ok",
+    "number": 13,
+    "name": "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber"
+  },
+  {
+    "outcome": "ok",
+    "number": 14,
+    "name": "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported"
+  },
+  {
+    "outcome": "ok",
+    "number": 15,
+    "name": "headphones: yes passes, no is red with cue advice, skip or none is skipped"
+  },
+  {
+    "outcome": "ok",
+    "number": 16,
+    "name": "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive"
+  },
+  {
+    "outcome": "ok",
+    "number": 17,
+    "name": "software: not installed and not running are amber with actions; no backend is unsupported"
+  },
+  {
+    "outcome": "ok",
+    "number": 18,
+    "name": "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded"
+  },
+  {
+    "outcome": "ok",
+    "number": 19,
+    "name": "evidence errors become \"Check could not run\" with a retry for every kind"
+  },
+  {
+    "outcome": "ok",
+    "number": 20,
+    "name": "every red or amber result carries a fix with a label and plain-English text"
+  },
+  {
+    "outcome": "ok",
+    "number": 21,
+    "name": "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green"
+  },
+  {
+    "outcome": "ok",
+    "number": 22,
+    "name": "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)"
+  },
+  {
+    "outcome": "ok",
+    "number": 23,
+    "name": "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording"
+  },
+  {
+    "outcome": "ok",
+    "number": 24,
+    "name": "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue"
+  },
+  {
+    "outcome": "ok",
+    "number": 25,
+    "name": "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget"
+  },
+  {
+    "outcome": "ok",
+    "number": 26,
+    "name": "built-in presets validate and reference the owner's real gear profile ids and known formats"
+  },
+  {
+    "outcome": "ok",
+    "number": 27,
+    "name": "built-in presets load through loadBuiltinPresets and bad ones are reported"
+  },
+  {
+    "outcome": "ok",
+    "number": 28,
+    "name": "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references"
+  },
+  {
+    "outcome": "ok",
+    "number": 29,
+    "name": "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)"
+  },
+  {
+    "outcome": "ok",
+    "number": 30,
+    "name": "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library"
+  },
+  {
+    "outcome": "ok",
+    "number": 31,
+    "name": "formatForMedia resolves timecode media only, from the library, in any container shape"
+  },
+  {
+    "outcome": "ok",
+    "number": 32,
+    "name": "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)"
+  },
+  {
+    "outcome": "ok",
+    "number": 33,
+    "name": "namesMatch is forgiving but refuses tiny fragments"
+  },
+  {
+    "outcome": "ok",
+    "number": 34,
+    "name": "diffRuns lists which steps changed and whether they improved (AC-6)"
+  },
+  {
+    "outcome": "ok",
+    "number": 35,
+    "name": "synthetic Traktor MK2 timecode from the generator passes both deck steps"
+  },
+  {
+    "outcome": "ok",
+    "number": 36,
+    "name": "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)"
+  },
+  {
+    "outcome": "ok",
+    "number": 37,
+    "name": "synthetic: one muted channel is red, naming the channel; silence is a no-signal red"
+  },
+  {
+    "outcome": "ok",
+    "number": 38,
+    "name": "synthetic: dropouts and a wrong-format record are caught"
+  },
+  {
+    "outcome": "ok",
+    "number": 39,
+    "name": "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier"
+  },
+  {
+    "outcome": "ok",
+    "number": 40,
+    "name": "synthetic needle-up hum is measured on the lifted segment"
+  },
+  {
+    "outcome": "ok",
+    "number": 41,
+    "name": "summarizeTimecode exposes plain numbers and handles failures"
+  },
+  {
+    "outcome": "ok",
+    "number": 42,
+    "name": "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)"
+  },
+  {
+    "outcome": "ok",
+    "number": 43,
+    "name": "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green"
+  },
+  {
+    "outcome": "ok",
+    "number": 44,
+    "name": "runPregig: a pair the interface does not offer is reported as no such input, not a failure"
+  },
+  {
+    "outcome": "ok",
+    "number": 45,
+    "name": "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair"
+  },
+  {
+    "outcome": "ok",
+    "number": 46,
+    "name": "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)"
+  },
+  {
+    "outcome": "ok",
+    "number": 47,
+    "name": "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run"
+  },
+  {
+    "outcome": "ok",
+    "number": 48,
+    "name": "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)"
+  },
+  {
+    "outcome": "ok",
+    "number": 49,
+    "name": "runPregig: manual time is reported separately and excluded from the duration"
+  },
+  {
+    "outcome": "ok",
+    "number": 50,
+    "name": "runPregig: orchestration overhead with instant mocked captures stays far below 5 s"
+  },
+  {
+    "outcome": "ok",
+    "number": 51,
+    "name": "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice"
+  },
+  {
+    "outcome": "ok",
+    "number": 52,
+    "name": "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps"
+  },
+  {
+    "outcome": "ok",
+    "number": 53,
+    "name": "runPregig: needle-up hum asks the user, captures the lifted segment and grades it"
+  },
+  {
+    "outcome": "ok",
+    "number": 54,
+    "name": "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)"
+  },
+  {
+    "outcome": "ok",
+    "number": 55,
+    "name": "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair"
+  },
+  {
+    "outcome": "ok",
+    "number": 56,
+    "name": "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths"
+  },
+  {
+    "outcome": "ok",
+    "number": 57,
+    "name": "createPregigApi (native) sends exactly the contract argument names"
+  },
+  {
+    "outcome": "ok",
+    "number": 58,
+    "name": "createPregigApi (browser) stores runs and presets locally with the same shapes"
+  },
+  {
+    "outcome": "ok",
+    "number": 59,
+    "name": "contract examples are real step results shapes (states the database accepts)"
+  },
+  {
+    "outcome": "ok",
+    "number": 60,
+    "name": "Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig"
+  },
+  {
+    "outcome": "ok",
+    "number": 61,
+    "name": "Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 62,
+    "name": "Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh"
+  },
+  {
+    "outcome": "ok",
+    "number": 63,
+    "name": "Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 64,
+    "name": "Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending"
+  },
+  {
+    "outcome": "ok",
+    "number": 65,
+    "name": "Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 66,
+    "name": "Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable"
+  },
+  {
+    "outcome": "ok",
+    "number": 67,
+    "name": "Pre-gig an acknowledged preset save finishes while an optional refresh is still pending"
+  },
+  {
+    "outcome": "ok",
+    "number": 68,
+    "name": "Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds"
+  },
+  {
+    "outcome": "ok",
+    "number": 69,
+    "name": "Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested"
+  },
+  {
+    "outcome": "ok",
+    "number": 70,
+    "name": "Pre-gig Done preserves an unsaved result until the user confirms discarding it"
+  },
+  {
+    "outcome": "ok",
+    "number": 71,
+    "name": "Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it"
+  },
+  {
+    "outcome": "ok",
+    "number": 72,
+    "name": "Pre-gig running everything again preserves an unsaved result until the user confirms discarding it"
+  },
+  {
+    "outcome": "ok",
+    "number": 73,
+    "name": "Pre-gig a late failed History request cannot replace a newer successful read"
+  },
+  {
+    "outcome": "ok",
+    "number": 74,
+    "name": "Pre-gig disposal retires a pending History presentation and the Save callback"
+  },
+  {
+    "outcome": "ok",
+    "number": 75,
+    "name": "Pre-gig import retains the parsed draft after a failed save and retries without picking the file again"
+  },
+  {
+    "outcome": "ok",
+    "number": 76,
+    "name": "Pre-gig displays future-version presets read-only without running or rewriting their contents"
+  },
+  {
+    "outcome": "ok",
+    "number": 77,
+    "name": "Pre-gig PDF keeps the tested interface after the same saved preset is edited"
+  },
+  {
+    "outcome": "ok",
+    "number": 78,
+    "name": "Pre-gig PDF preparation cannot export or announce a result retired before its handoff"
+  },
+  {
+    "outcome": "ok",
+    "number": 79,
+    "name": "browser Pre-gig treats only a confirmed absent key as an empty collection"
+  },
+  {
+    "outcome": "ok",
+    "number": 80,
+    "name": "browser Pre-gig runs preserves malformed JSON through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 81,
+    "name": "browser Pre-gig runs preserves empty text through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 82,
+    "name": "browser Pre-gig runs preserves non-array JSON through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 83,
+    "name": "browser Pre-gig runs preserves partly invalid rows through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 84,
+    "name": "browser Pre-gig runs preserves duplicate ids through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 85,
+    "name": "browser Pre-gig runs preserves invalid nested data through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 86,
+    "name": "browser Pre-gig runs preserves unrepresentable JSON numbers through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 87,
+    "name": "browser Pre-gig presets preserves malformed JSON through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 88,
+    "name": "browser Pre-gig presets preserves empty text through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 89,
+    "name": "browser Pre-gig presets preserves non-array JSON through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 90,
+    "name": "browser Pre-gig presets preserves partly invalid rows through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 91,
+    "name": "browser Pre-gig presets preserves duplicate ids through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 92,
+    "name": "browser Pre-gig presets preserves invalid nested data through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 93,
+    "name": "browser Pre-gig presets preserves unrepresentable JSON numbers through reads and attempted writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 94,
+    "name": "browser Pre-gig read denial refuses every dependent mutation and recovers without replacing data"
+  },
+  {
+    "outcome": "ok",
+    "number": 95,
+    "name": "browser Pre-gig save run reports a denied write and succeeds only after storage accepts retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 96,
+    "name": "browser Pre-gig create preset reports a denied write and succeeds only after storage accepts retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 97,
+    "name": "browser Pre-gig edit preset reports a denied write and succeeds only after storage accepts retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 98,
+    "name": "browser Pre-gig delete preset reports a denied write and succeeds only after storage accepts retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 99,
+    "name": "browser Pre-gig refuses missing providers and missing writer methods"
+  },
+  {
+    "outcome": "ok",
+    "number": 100,
+    "name": "browser Pre-gig does not treat a non-string undefined storage read as confirmed absence"
+  },
+  {
+    "outcome": "ok",
+    "number": 101,
+    "name": "native Pre-gig bypasses a throwing browser storage getter while browser errors remain typed"
+  },
+  {
+    "outcome": "ok",
+    "number": 102,
+    "name": "browser Pre-gig preserves the newest-one-hundred retention rule and complete result details"
+  },
+  {
+    "outcome": "ok",
+    "number": 103,
+    "name": "browser Pre-gig retains future preset versions and existing string-JSON records without writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 104,
+    "name": "browser Pre-gig refuses unserializable or non-finite new data before replacing prior bytes"
+  },
+  {
+    "outcome": "ok",
+    "number": 105,
+    "name": "describeStep: an input pair the interface lacks reads as \"no such input\", not a failure"
+  },
+  {
+    "outcome": "ok",
+    "number": 106,
+    "name": "describeStep: every engine state has a word and a tone; live states are not chips"
+  },
+  {
+    "outcome": "ok",
+    "number": 107,
+    "name": "verdictView: only deck B unmeasured gives an amber \"Not fully checked\" that says why"
+  },
+  {
+    "outcome": "ok",
+    "number": 108,
+    "name": "verdictView: red stays red and still notes deck B; green copy is the engine copy"
+  },
+  {
+    "outcome": "ok",
+    "number": 109,
+    "name": "fixButtons: keeps actions, dedupes, info entries have no action"
+  },
+  {
+    "outcome": "ok",
+    "number": 110,
+    "name": "evidenceRows: labels, units, nesting, empties dropped"
+  },
+  {
+    "outcome": "ok",
+    "number": 111,
+    "name": "rerunTargets and mergeRerun: only the chosen steps change and the verdict is recomputed"
+  },
+  {
+    "outcome": "ok",
+    "number": 112,
+    "name": "compareView: trends and headline"
+  },
+  {
+    "outcome": "ok",
+    "number": 113,
+    "name": "profilesForPreset: judges only the rig, not every profile in the library"
+  },
+  {
+    "outcome": "ok",
+    "number": 114,
+    "name": "runMatchesPreset: built-ins match by notes, saved presets by id"
+  },
+  {
+    "outcome": "ok",
+    "number": 115,
+    "name": "time text"
+  },
+  {
+    "outcome": "ok",
+    "number": 116,
+    "name": "controller: full run keeps deck input-pair skip honest, saves once, compares on the second run"
+  },
+  {
+    "outcome": "ok",
+    "number": 117,
+    "name": "controller: cancel keeps partial results as cancelled; rerun merges and saves a new run"
+  },
+  {
+    "outcome": "ok",
+    "number": 118,
+    "name": "controller: failed browser persistence retains the completed result and retry never repeats the check"
+  },
+  {
+    "outcome": "ok",
+    "number": 119,
+    "name": "controller: overlapping save retries share one write and cannot be replaced by a new run or reset"
+  },
+  {
+    "outcome": "ok",
+    "number": 120,
+    "name": "controller: unavailable history does not become an empty baseline or a successful save"
+  },
+  {
+    "outcome": "ok",
+    "number": 121,
+    "name": "controller: a failed save after rerun cannot retain the previous result success marker"
+  },
+  {
+    "outcome": "ok",
+    "number": 122,
+    "name": "pre-gig refuses an oversized selected preset before reading or saving"
+  },
+  {
+    "outcome": "ok",
+    "number": 123,
+    "name": "pre-gig catches file read errors and preserves the existing preset collection"
+  },
+  {
+    "outcome": "ok",
+    "number": 124,
+    "name": "pre-gig rejects mismatched read lengths before parsing or saving"
+  },
+  {
+    "outcome": "ok",
+    "number": 125,
+    "name": "pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode presets"
+  },
+  {
+    "outcome": "ok",
+    "number": 126,
+    "name": "pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset"
+  },
+  {
+    "outcome": "ok",
+    "number": 127,
+    "name": "media import rejects malformed UTF-8 instead of storing replacement text"
+  },
+  {
+    "outcome": "ok",
+    "number": 128,
+    "name": "media import rejects invalid declared sizes before reading"
+  },
+  {
+    "outcome": "ok",
+    "number": 129,
+    "name": "media import rejects mismatched read lengths and preserves normal one-read imports"
+  },
+  {
+    "outcome": "ok",
+    "number": 130,
+    "name": "media import reports byte-read failures without storing a profile"
+  },
+  {
+    "outcome": "ok",
+    "number": 131,
+    "name": "bounded text reads preserve UTF-8 BOM compatibility and measure the byte boundary"
+  },
+  {
+    "outcome": "ok",
+    "number": 132,
+    "name": "bounded text reads reject incomplete reads and non-buffer results before decoding"
+  }
+]

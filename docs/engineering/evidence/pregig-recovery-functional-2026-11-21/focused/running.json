@@ -1,0 +1,161 @@
+{
+  "schema": "deckchek.pregig-recovery-focused-gate.v1",
+  "source_commit": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "source_tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+  "source_branch": "review/deckchek-pregig-recovery-functional-20261121",
+  "source_parents": [
+    "f4d727cb9243b60594dc0df73da3d0808d698b81"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-functional",
+  "driver_original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-recorder.py",
+  "config_original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-selection.json",
+  "output_original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw",
+  "driver_sha256": "b3c3a4a65369d05c71d7be909a77976384bc55e42a30a4129e875da4032a6bd2",
+  "config_sha256": "12ce92d9bd00c35365569dcecbad678c94b44ee20b48bcd5693f1e43a0a96df2",
+  "python_version": "3.12.14",
+  "python_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "recorder_started_at_utc": "2026-11-21T14:30:45.951054+00:00",
+  "runtime_identity_calls": [
+    {
+      "label": "node-version",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.005187937000300735,
+      "stdout_bytes": 9,
+      "stdout_sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "node-runtime",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.08976787300343858,
+      "stdout_bytes": 782,
+      "stdout_sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "project_command_started": false,
+  "exit_code": null,
+  "timed_out": false,
+  "termination_events": [],
+  "execution_budget_seconds": 60,
+  "termination_signal_after_seconds": 55,
+  "termination_grace_seconds": 5,
+  "scope": "One explicit five-file focused serial TAP selection, 132 source-derived cases. Original cumulative Pre-gig adapter, controller and screen, actual strict-text and PDF/DOM consumers and unchanged bounded synthetic DSP cases in the original core test file. The PDF case uses the real JavaScript adapter with a fake native command boundary. No full suite, build/verifier, browser/native app launch, physical-audio collector, scanner/probe, extracted implementation, separate project command, rerun or additional instrumentation.",
+  "source_state_before": {
+    "branch": "review/deckchek-pregig-recovery-functional-20261121",
+    "commit": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+    "tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+    "parents": [
+      "f4d727cb9243b60594dc0df73da3d0808d698b81"
+    ],
+    "status": ""
+  },
+  "forbidden_environment_variable_names": [],
+  "full_source_map_sha256_before": "e02518433215984d516ed73d2f104acc93ed1f80a428ebf6b07ad61b3af32c5d",
+  "immutable_distinct_blob_count": 2288,
+  "summed_tracked_bytes": 88465624,
+  "source_working_bytes_modes_verified_before": true,
+  "tracked_file_count": 2546,
+  "all_top_level_test_file_count": 207,
+  "status_before": "",
+  "selected_source_identities_before": {
+    "tests/pre-gig.test.mjs": {
+      "bytes": 50840,
+      "sha256": "f813fa152e82998fa67ea49a2d78a7fa2d0cf214f600ab92b86bc94384c76d12"
+    },
+    "tests/pregig-storage-screen.test.mjs": {
+      "bytes": 23899,
+      "sha256": "2779ff267b814db961bd250612093cb4875cc51f1683fd7ec162f46e7ecad5ad"
+    },
+    "tests/pregig-storage.test.mjs": {
+      "bytes": 9582,
+      "sha256": "0fc88abc7554c9785a9e0f5dae8cdfdcc8b46f0be84d0a9710ec6d30cc6d6b4f"
+    },
+    "tests/pregig-ui.test.mjs": {
+      "bytes": 14311,
+      "sha256": "c18d29747b125d940ce273ec9744954b74f913a8343b32d9c082d7c7d9b6be55"
+    },
+    "tests/text-file-boundary.test.mjs": {
+      "bytes": 7893,
+      "sha256": "7e63b3bc04fd1da8a66b15ef20d5956072bec7dca238dece64d7355f2a2f1b23"
+    }
+  },
+  "test_file_count": 5,
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "optional_external_corpus_present": false,
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "node_executable_bytes": 126951512,
+  "node_executable_sha256_before": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "node_resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ]
+  },
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/pre-gig.test.mjs",
+    "tests/pregig-storage-screen.test.mjs",
+    "tests/pregig-storage.test.mjs",
+    "tests/pregig-ui.test.mjs",
+    "tests/text-file-boundary.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T14:30:51.210232+00:00"
+}

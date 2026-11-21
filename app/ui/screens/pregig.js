@@ -50,10 +50,10 @@ function stateBadge(view) {
 }
 
 /** Small modal built from DOM nodes; resolves when closed. Esc and the Cancel button both close it. */
-function openDialog({ title, body, actions, labelId = 'pg-dlg-title' }) {
+function openDialog({ title, body, actions, labelId = 'pg-dlg-title', canClose = () => true }) {
   const trigger = document.activeElement;
   const dlg = h('dialog', { class: 'pg-dialog', 'aria-labelledby': labelId });
-  const close = value => { if (dlg.open) dlg.close(); dlg.remove(); if (trigger?.isConnected) trigger.focus(); settle(value); };
+  const close = value => { if (!canClose() || !dlg.isConnected) return; if (dlg.open) dlg.close(); dlg.remove(); if (trigger?.isConnected) trigger.focus(); settle(value); };
   let settle = () => {};
   const done = new Promise(res => { settle = res; });
   const acts = actions(close);
@@ -75,6 +75,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   const st = {
     tab: 'check', presets: [], problems: [], presetId: storageGet(LAST_PRESET_KEY, null), skip: new Set(), expanded: new Set(), history: null, historyOpen: new Map(), historyCompare: null,
     notice: null, timer: null, focusPrompt: null, loading: true,
+    presetError: null, historyError: null, historyLoading: false, presetLoad: 0, historyLoad: 0, disposed: false, replacing: false,
   };
   const S = ctl.state;
 
@@ -82,12 +83,13 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('pass', { size: 24 })}</span><div><h1 tabindex="-1">Pre-gig check</h1>
       <p class="lede">One button checks your whole rig and tells you if you are ready to play, with a fix beside every problem.</p></div></div></header>
     <div id="pg-notice" class="pg-notice" role="status" aria-live="polite"></div>
+    <div id="pg-storage-status" class="pg-notice" aria-live="polite"></div>
     <div class="tabs" role="tablist" aria-label="Pre-gig sections" id="pg-tabs"></div>
     <div id="pg-panel" class="pg-panel" role="tabpanel" tabindex="-1"></div>`;
   const q = s => section.querySelector(s);
-  const panel = q('#pg-panel'), tabs = q('#pg-tabs'), noticeEl = q('#pg-notice');
+  const panel = q('#pg-panel'), tabs = q('#pg-tabs'), noticeEl = q('#pg-notice'), storageStatus = q('#pg-storage-status');
 
-  const currentPreset = () => st.presets.find(p => p.id === st.presetId) || st.presets[0] || null;
+  const currentPreset = () => st.presets.find(p => p.id === st.presetId) || (!st.presetError ? st.presets[0] : null) || null;
 
   // ------------------------------------------------------------ input pairs per deck (GAP-02)
   // The preset says which inputs each deck is plugged into (deck B on a Traktor Audio 8 DJ: 3-4). The Inputs boxes on the
@@ -116,26 +118,48 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   };
 
   // ------------------------------------------------------------ presets
+  function presetView(row) {
+    try {
+      const body = typeof row.json === 'string' ? JSON.parse(row.json) : row.json;
+      const p = { ...body, id: row.id, name: row.name, builtin: false }, v = validatePreset(p);
+      if (typeof row.id !== 'string' || !row.id || !v.ok) throw new Error();
+      return { ...v.preset, readOnly: v.readOnly };
+    } catch { throw new Error('A saved preset could not be read completely. Its original contents were kept.'); }
+  }
+
   async function loadPresets() {
+    if (st.disposed) return false;
+    const request = ++st.presetLoad, current = () => !st.disposed && request === st.presetLoad;
     st.loading = true; render();
     const known = lib.profiles?.length ? new Set(lib.profiles.map(p => p.id)) : null;
     const { presets: builtin, problems } = await loadBuiltinPresets(undefined, { knownProfileIds: known });
+    if (!current()) return false;
     st.problems = problems;
-    let mine = [];
     try {
       const rows = await api.listPresets();
-      mine = rows.map(r => ({ ...(typeof r.json === 'string' ? JSON.parse(r.json) : r.json), id: r.id, name: r.name, builtin: false })).filter(p => validatePreset(p).ok || p.v > 1);
-    } catch (e) { setNotice(`Your saved presets could not be loaded: ${friendly(e)}`, 'warn'); }
-    st.presets = [...builtin, ...mine];
-    if (!st.presets.some(p => p.id === st.presetId)) st.presetId = st.presets[0]?.id ?? null;
-    st.loading = false; render();
+      if (!current()) return false;
+      if (!Array.isArray(rows)) throw new Error();
+      const mine = rows.map(presetView);
+      if (new Set(mine.map(p => p.id)).size !== mine.length) throw new Error();
+      st.presets = [...builtin, ...mine]; st.presetError = null;
+      if (!st.presets.some(p => p.id === st.presetId)) st.presetId = st.presets[0]?.id ?? null;
+      return true;
+    } catch {
+      if (!current()) return false;
+      if (!st.presets.length) st.presets = builtin;
+      st.presetError = 'Your saved presets are unavailable. Previously loaded copies may be out of date. Retry loading them, or explicitly choose a built-in preset.';
+      return false;
+    } finally { if (current()) { st.loading = false; render(); } }
   }
 
   async function savePreset(preset) {
-    const { id, builtin, ...body } = preset;
+    const { id, builtin, readOnly, ...body } = preset;
     const row = await api.upsertPreset({ id: builtin ? undefined : id, name: preset.name, json: body });
-    await loadPresets();
-    st.presetId = row.id; storageSet(LAST_PRESET_KEY, row.id); render();
+    // A failed refresh must retain the row whose write already acknowledged success.
+    st.presets = [...st.presets.filter(p => p.id !== row.id), presetView(row)];
+    if (S.phase === 'idle') { st.presetId = row.id; storageSet(LAST_PRESET_KEY, row.id); }
+    // Acknowledgement completes this save; an optional refresh owns its read status.
+    void loadPresets();
     return row;
   }
 
@@ -187,21 +211,42 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
       err.replaceChildren(...v.errors.map(e => h('p', { text: e.message })));
       return v.ok ? out : null;
     };
-    return { form, collect, check };
+    let disabledBeforeSave = null;
+    const setBusy = busy => {
+      if (busy) {
+        if (disabledBeforeSave) return;
+        disabledBeforeSave = new Map([...form.querySelectorAll('input,select,textarea,button')].map(control => [control, !!control.disabled]));
+        for (const control of disabledBeforeSave.keys()) control.disabled = true;
+      } else {
+        for (const [control, disabled] of disabledBeforeSave || []) control.disabled = disabled;
+        disabledBeforeSave = null;
+      }
+    };
+    return { form, collect, check, setBusy, showError: text => { err.textContent = text; } };
   }
 
   async function editPreset(preset, { isNew = false } = {}) {
+    if (preset.readOnly || validatePreset(preset).readOnly) { setNotice('This preset needs a newer DeckChek version and cannot be edited here.', 'warn'); return; }
     const formPreset = preset.builtin ? duplicatePreset(preset) : preset;
     const f = presetForm(formPreset);
+    let saving = false;
     const title = isNew ? 'New preset' : preset.builtin ? 'Edit a copy of this built-in preset' : 'Edit preset';
     const dlg = openDialog({
-      title, body: f.form,
+      title, body: f.form, canClose: () => !saving,
       actions: close => [
-        h('button', { type: 'button', class: 'btn btn-primary', 'data-action': 'save', text: 'Save preset', onclick: async () => {
+        h('button', { type: 'button', class: 'btn btn-primary', 'data-action': 'save', text: 'Save preset', onclick: async e => {
+          if (saving || st.disposed || !dlg.dlg.isConnected) return;
+          const button = e.currentTarget;
           const out = f.check();
           if (!out) return;
-          try { await savePreset({ ...out, id: preset.builtin || isNew ? undefined : preset.id }); close(true); toast(`Saved "${out.name}".`, { type: 'success', timeout: 2500 }); }
-          catch (e) { setNotice(`Could not save the preset: ${friendly(e)}`, 'error'); }
+          const submitted = structuredClone(out);
+          saving = true; button.disabled = true; f.setBusy(true);
+          try {
+            await savePreset({ ...submitted, id: preset.builtin || isNew ? undefined : preset.id });
+            saving = false;
+            if (!st.disposed && dlg.dlg.isConnected) { close(true); toast(`Saved "${submitted.name}".`, { type: 'success', timeout: 2500 }); }
+          } catch (error) { if (!st.disposed && dlg.dlg.isConnected) f.showError(`Could not save the preset: ${friendly(error)}`); }
+          finally { saving = false; f.setBusy(false); button.disabled = false; }
         } }),
         h('button', { type: 'button', class: 'btn btn-secondary', text: 'Cancel', onclick: () => close(null) })],
     });
@@ -246,10 +291,31 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     catch (e) { setNotice(`That preset could not be imported: ${friendly(e)}`, 'error'); return; }
     if (!parsed.ok) { setNotice(`That preset could not be imported: ${parsed.errors.map(e => e.message).join(' ')}`, 'error'); return; }
     try { await savePreset({ ...parsed.preset, id: undefined, builtin: false }); setNotice(`Imported "${parsed.preset.name}".`); }
-    catch (e) { setNotice(`Could not save the imported preset: ${friendly(e)}`, 'error'); }
+    catch (e) { retryImportedPreset({ ...parsed.preset, id: undefined, builtin: false }, e); }
   }
 
-  const exportPreset = preset => { const { id, builtin, ...body } = preset; download(`${preset.name.replace(/[^\w.-]+/g, '-')}.deckchek-preset.json`, exportPresetJson(body), 'application/json'); };
+  function retryImportedPreset(preset, failure) {
+    const error = h('p', { role: 'alert', text: `The imported preset was not saved: ${friendly(failure)}` });
+    let saving = false;
+    const dlg = openDialog({
+      title: 'Imported preset not saved', canClose: () => !saving,
+      body: h('div', {}, h('p', { text: `The imported draft "${preset.name}" is still available here. Retry saving it when storage is available.` }), error),
+      actions: close => [
+        h('button', { type: 'button', class: 'btn btn-primary', id: 'pg-retry-import', text: 'Retry saving preset', onclick: async e => {
+          if (saving || st.disposed || !dlg.dlg.isConnected) return;
+          const button = e.currentTarget; saving = true; button.disabled = true;
+          try {
+            await savePreset(preset); saving = false;
+            if (!st.disposed && dlg.dlg.isConnected) { close(true); setNotice(`Imported "${preset.name}".`); }
+          } catch (e) { if (dlg.dlg.isConnected) error.textContent = `The imported preset was not saved: ${friendly(e)}`; }
+          finally { saving = false; button.disabled = false; }
+        } }),
+        h('button', { type: 'button', class: 'btn btn-secondary', text: 'Discard unsaved import', onclick: () => close(null) }),
+      ],
+    });
+  }
+
+  const exportPreset = preset => { const { id, builtin, readOnly, ...body } = preset; download(`${preset.name.replace(/[^\w.-]+/g, '-')}.deckchek-preset.json`, exportPresetJson(body), 'application/json'); };
 
   async function deletePreset(preset) {
     if (!await confirmDialog({ title: 'Delete this preset?', body: `"${preset.name}" will be removed. Your check history stays.`, confirmLabel: 'Delete preset' })) return;
@@ -277,6 +343,12 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   }
 
   function render() {
+    if (st.disposed) return;
+    storageStatus.replaceChildren();
+    if (st.presetError) storageStatus.append(h('div', { class: 'banner banner-warn', id: 'pg-presets-unavailable', role: 'alert' },
+      h('span', { class: 'banner-text', text: st.presetError }),
+      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'pg-retry-presets', text: 'Retry loading presets', disabled: st.loading,
+        onclick: () => { if (!st.loading && !st.disposed) loadPresets(); } })));
     renderTabs();
     panel.replaceChildren();
     if (st.tab === 'history') { renderHistory(); return; }
@@ -286,6 +358,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
 
   // ------------------------------------------------------------ rendering: check
   function presetChips(preset) {
+    if (preset.readOnly) return h('p', { class: 'hint', text: 'This preset needs a newer DeckChek version. You can view its name, export it or delete it; its contents remain unchanged.' });
     const items = [
       ['Interface', preset.audioDevice], ['Software', preset.software || 'Not set'], ['Rate', `${preset.sampleRate} Hz`],
       ['Decks', preset.decks.map(d => `${d.id} (inputs ${pairText(d.input)})`).join(', ')],
@@ -295,7 +368,9 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   }
 
   function pickerRow(preset, running) {
-    const sel = h('select', { id: 'pg-preset', disabled: running || !st.presets.length, onchange: e => { st.presetId = e.target.value; storageSet(LAST_PRESET_KEY, st.presetId); st.skip.clear(); if (S.phase === 'done') ctl.reset(); render(); } },
+    const sel = h('select', { id: 'pg-preset', disabled: running || S.saving || !st.presets.length, onchange: e => choosePreset(e.target.value) },
+      ...(!preset ? [h('option', { value: '', text: 'Choose a preset', selected: true, disabled: true })] : []),
+      ...(preset && !st.presets.some(p => p.id === preset.id) ? [h('option', { value: preset.id, text: `${preset.name} (used for this check)`, selected: true, disabled: true })] : []),
       ...st.presets.map(p => h('option', { value: p.id, text: `${p.name}${p.builtin ? ' (built in)' : ''}`, selected: p.id === preset?.id })));
     return h('div', { class: 'pg-picker' }, h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'pg-preset', text: 'Your rig' }), sel),
       h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Edit presets', disabled: running, onclick: () => selectTab('presets') }));
@@ -303,8 +378,13 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
 
   function renderCheck() {
     if (st.loading) { panel.append(h('p', { class: 'hint', text: 'Loading your presets…' })); return; }
-    const preset = currentPreset();
-    if (!preset) { panel.append(emptyState()); return; }
+    const preset = S.phase === 'running' || S.phase === 'done' ? S.preset : currentPreset();
+    if (!preset) {
+      if (st.presetError) panel.append(pickerRow(null, false), h('p', { class: 'hint', text: 'Saved presets have not been loaded. Retry above before deciding whether they are missing.' }));
+      else panel.append(emptyState());
+      return;
+    }
+    if (preset.readOnly) { panel.append(pickerRow(preset, false), presetChips(preset)); return; }
     const running = S.phase === 'running', done = S.phase === 'done';
     const plan = running || done ? S.plan : buildPlan(preset, { skip: [...st.skip] });
     panel.append(pickerRow(preset, running));
@@ -382,7 +462,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
         h('p', { class: 'pg-verdict-copy', text: v.copy }),
         ...v.notices.map(n => h('p', { class: 'pg-verdict-note', 'data-notice': 'coming-next', text: n })),
         run.rollup?.partial ? h('p', { class: 'pg-verdict-note', text: 'Partial check: some checks only run in the Windows desktop app.' }) : null,
-        S.saved ? null : S.error ? null : h('p', { class: 'pg-verdict-note', text: 'Saving to history…' })));
+        h('p', { class: 'pg-verdict-note', text: S.saving ? 'Saving to History…' : S.saved ? 'Saved to History.' : 'Not saved to History. Keep this result open to retry saving, or save it as a file.' })));
   }
 
   function fixFirstCard(run) {
@@ -395,7 +475,7 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
         h('div', { class: 'pg-fixhead' }, stateBadge(describeStep({ state: r.state, result: r })), h('strong', { text: r.label })),
         h('p', { class: 'pg-fixsum', text: r.summary }),
         h('div', { class: 'pg-fixbtns' }, ...fixesFor(r).map(b => fixButton(b, r)),
-          fixesFor(r).some(b => b.kind === 'retry') ? null : h('div', { class: 'pg-fix' }, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-fix': 'retry', 'aria-label': `Check ${r.label} again`, onclick: () => ctl.rerun([r.stepId]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Check again' }))))))));
+          fixesFor(r).some(b => b.kind === 'retry') ? null : h('div', { class: 'pg-fix' }, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-fix': 'retry', 'aria-label': `Check ${r.label} again`, onclick: () => rerunChecks([r.stepId]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Check again' }))))))));
   }
 
   // The engine's own fixes plus the cross-links to Hum hunter / Stylus / Latency (only for features that are on).
@@ -406,8 +486,8 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     const primary = b.kind !== 'info';
     const label = b.kind === 'retry' ? 'Check again' : b.label;
     const run = () => {
-      if (b.kind === 'retry') return ctl.rerun([r.stepId]);
-      if (b.kind === 'preempt') return ctl.rerun([r.stepId], { preempt: true });
+      if (b.kind === 'retry') return rerunChecks([r.stepId]);
+      if (b.kind === 'preempt') return rerunChecks([r.stepId], { preempt: true });
       if (b.kind === 'navigate' && b.to) return navigateTo(b.to);
       if (b.kind === 'settings' && b.target) return openWindowsSettings(b.target, { invoke: nativeInvoke });
       return null;
@@ -450,19 +530,21 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
           view.headline ? h('div', { class: 'pg-row-sum', text: view.headline }) : null,
           view.detail ? h('div', { class: 'pg-row-detail', text: view.detail }) : null),
         h('div', { class: 'pg-row-actions' },
-          canRerun ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-rerun': step.id, 'aria-label': `Re-run ${step.label}`, onclick: () => ctl.rerun([step.id]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Re-run' })) : null,
+          canRerun ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-rerun': step.id, 'aria-label': `Re-run ${step.label}`, onclick: () => rerunChecks([step.id]) }, h('span', { html: icon('refresh', { size: 16 }) }), h('span', { text: 'Re-run' })) : null,
           rows.length ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'aria-expanded': String(open), 'aria-label': `${open ? 'Hide' : 'Show'} details for ${step.label}`, onclick: () => { if (open) st.expanded.delete(step.id); else st.expanded.add(step.id); render(); } }, h('span', { text: open ? 'Hide' : 'Details' })) : null)),
       open && rows.length ? h('dl', { class: 'pg-evidence' }, ...rows.flatMap(r => [h('dt', { text: r.label }), h('dd', { text: r.value })])) : null);
   }
 
   function afterActions() {
+    const run = S.run;
     const targets = rerunTargets(S.run);
     return h('div', { class: 'pg-after' },
-      h('button', { type: 'button', class: 'btn btn-primary', id: 'pg-rerun-failed', disabled: !targets.length, onclick: () => ctl.rerun(targets) }, h('span', { text: 'Re-run problem checks' }), h('kbd', { text: 'Ctrl+R' })),
-      h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-run-again', onclick: () => startRun() }, h('span', { text: 'Run everything again' }), h('kbd', { text: 'Ctrl+G' })),
+      !S.saved ? h('button', { type: 'button', class: 'btn btn-primary', id: 'pg-retry-save', disabled: S.saving, text: S.saving ? 'Saving to History…' : 'Retry saving to History', onclick: () => { if (!st.disposed && S.run === run) return ctl.retrySave(); } }) : null,
+      h('button', { type: 'button', class: 'btn btn-primary', id: 'pg-rerun-failed', disabled: S.saving || !targets.length, onclick: () => rerunChecks(targets) }, h('span', { text: 'Re-run problem checks' }), h('kbd', { text: 'Ctrl+R' })),
+      h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-run-again', disabled: S.saving, onclick: () => startRun() }, h('span', { text: 'Run everything again' }), h('kbd', { text: 'Ctrl+G' })),
       h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-export', onclick: () => exportRun() }, h('span', { html: icon('download', { size: 16 }) }), h('span', { text: 'Save result' }), h('kbd', { text: 'Ctrl+E' })),
       pdfExportEnabled() ? h('button', { type: 'button', class: 'btn btn-secondary', id: 'pg-export-pdf', onclick: e => exportRunPdf(e.currentTarget) }, h('span', { html: icon('download', { size: 16 }) }), h('span', { text: 'Export PDF' })) : null,
-      h('button', { type: 'button', class: 'btn btn-ghost', id: 'pg-back', onclick: () => { ctl.reset(); render(); } }, h('span', { text: 'Done' })));
+      h('button', { type: 'button', class: 'btn btn-ghost', id: 'pg-back', disabled: S.saving, onclick: async () => { if (await allowResultReplacement()) { ctl.reset(); render(); } } }, h('span', { text: 'Done' })));
   }
 
   function compareCard(c, title) {
@@ -475,10 +557,39 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
   }
 
   // ------------------------------------------------------------ run control
+  async function allowResultReplacement() {
+    if (st.disposed || st.replacing || S.saving || S.phase === 'running') return false;
+    if (!S.run || S.saved) return true;
+    const run = S.run;
+    st.replacing = true;
+    try {
+      const accepted = await confirmDialog({ title: 'Discard this unsaved result?',
+        body: 'This check has not been saved to History. Keep it open to retry saving, or save the result as a file before replacing it.',
+        confirmLabel: 'Discard result' });
+      return accepted && !st.disposed && !S.saving && S.run === run && S.phase === 'done';
+    } finally { st.replacing = false; }
+  }
+
+  async function choosePreset(id, { showCheck = false } = {}) {
+    if (st.disposed || S.saving || S.phase === 'running') return;
+    if (id !== st.presetId) {
+      if (!await allowResultReplacement()) { render(); return; }
+      st.presetId = id; storageSet(LAST_PRESET_KEY, id); st.skip.clear();
+      if (S.phase === 'done') ctl.reset();
+    }
+    if (showCheck) selectTab('check'); else render();
+  }
+
+  async function rerunChecks(ids, options) {
+    if (!ids.length || !await allowResultReplacement()) return;
+    return ctl.rerun(ids, options);
+  }
+
   async function startRun() {
     const preset = currentPreset();
-    if (!preset || S.phase === 'running') return;
+    if (!preset || preset.readOnly || S.phase === 'running' || S.saving || st.loading || st.disposed) return;
     if (!preset.decks?.length) return;
+    if (!await allowResultReplacement() || currentPreset() !== preset) return;
     const chosen = withChosenPairs(preset);
     const used = chosen.decks.map(d => d.input[0]);
     if (new Set(used).size !== used.length) { setNotice('Two decks are set to the same inputs. Choose a different input pair for one of them in the Inputs boxes, then start again.', 'warn'); return; }
@@ -498,24 +609,27 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     }, 500);
   }
 
-  function exportRun() {
-    if (!S.run) return;
-    const text = JSON.stringify({ deckchek: 'pre-gig-result', preset: S.run.presetName, startedAt: S.run.startedAt, verdict: S.run.verdict, results: S.run.results.map(({ stepId, state, summary, evidence, fix }) => ({ stepId, state, summary, evidence, fix })) }, null, 2);
-    download(`pre-gig-${S.run.startedAt.slice(0, 16).replace(/[:T]/g, '-')}.json`, text, 'application/json');
+  function exportRun(run = S.run) {
+    if (!run || st.disposed) return;
+    const text = JSON.stringify({ deckchek: 'pre-gig-result', preset: run.presetName, startedAt: run.startedAt, verdict: run.verdict, results: run.results.map(({ stepId, state, summary, evidence, fix }) => ({ stepId, state, summary, evidence, fix })) }, null, 2);
+    download(`pre-gig-${run.startedAt.slice(0, 16).replace(/[:T]/g, '-')}.json`, text, 'application/json');
     toast('Saved the check result as a file.', { type: 'success', timeout: 2500 });
   }
 
   /** PDF of the finished check (FS-03 kind "pregig"); the print dialog is the fallback in the browser preview. */
   async function exportRunPdf(button) {
-    if (!S.run) { toast('Run a check first, then export it.'); return; }
+    const run = S.run, preset = S.preset;
+    if (!run) { toast('Run a check first, then export it.'); return; }
+    const isCurrent = () => !st.disposed && S.phase === 'done' && S.run === run;
     await ensurePregigPrintable();
-    return exportPdfWithFeedback(PREGIG_KIND, pregigPrintData(S.run, { device: currentPreset()?.audioDevice || '' }), { button, htmlFallback: exportRun });
+    if (!isCurrent()) return { stale: true };
+    return exportPdfWithFeedback(PREGIG_KIND, pregigPrintData(run, { device: preset?.audioDevice || '' }), { button, isCurrent, htmlFallback: () => exportRun(run) });
   }
-  onFeatureChange(({ name } = {}) => { if (name === 'pdfExport' && active.screen?.def.id === 'pregig') render(); });
+  const stopFeatureListener = onFeatureChange(({ name } = {}) => { if (name === 'pdfExport' && active.screen?.def.id === 'pregig') render(); });
 
   // announce each finished step once, and the verdict once
   let announced = new Set(), lastPhase = 'idle';
-  ctl.subscribe(state => {
+  const stopControllerListener = ctl.subscribe(state => {
     for (const [id, v] of state.steps) {
       if (!v.result || v.state === 'pending' || v.state === 'running') continue;
       const key = `${state.startedMs}:${id}:${v.state}`;
@@ -536,23 +650,34 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     panel.append(h('ul', { class: 'pg-preset-list' }, ...st.presets.map(p => h('li', { class: 'card pg-preset', 'data-preset': p.id },
       h('div', { class: 'pg-preset-main' }, h('h2', { class: 'card-title', text: p.name }), h('span', { class: 'pg-preset-tag', text: p.builtin ? 'Built in' : 'Yours' }), presetChips(p)),
       h('div', { class: 'pg-preset-actions' },
-        h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Use for the check', onclick: () => { st.presetId = p.id; storageSet(LAST_PRESET_KEY, p.id); if (S.phase === 'done') ctl.reset(); selectTab('check'); } }),
-        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-act': 'edit', text: p.builtin ? 'Edit a copy' : 'Edit', onclick: () => editPreset(p) }),
-        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-act': 'duplicate', text: 'Duplicate', onclick: async () => { try { await savePreset({ ...duplicatePreset(p), builtin: false }); } catch (e) { setNotice(friendly(e), 'error'); } } }),
+        h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Use for the check', disabled: S.saving || S.phase === 'running', onclick: () => choosePreset(p.id, { showCheck: true }) }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-act': 'edit', text: p.builtin ? 'Edit a copy' : 'Edit', disabled: p.readOnly, onclick: () => editPreset(p) }),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-act': 'duplicate', text: 'Duplicate', disabled: p.readOnly, onclick: async () => { if (p.readOnly) return; try { await savePreset({ ...duplicatePreset(p), builtin: false }); } catch (e) { setNotice(friendly(e), 'error'); } } }),
         h('button', { type: 'button', class: 'btn btn-ghost btn-sm', 'data-act': 'export', text: 'Export', onclick: () => exportPreset(p) }),
         !p.builtin ? h('button', { type: 'button', class: 'btn btn-danger-ghost btn-sm', 'data-act': 'delete', text: 'Delete', onclick: () => deletePreset(p) }) : null)))));
   }
 
   // ------------------------------------------------------------ rendering: history
   async function loadHistory() {
-    st.history = null; render();
-    try { st.history = await api.listRuns(null, 50); } catch (e) { st.history = []; setNotice(`History could not be loaded: ${friendly(e)}`, 'error'); }
-    render();
+    if (st.disposed) return;
+    const request = ++st.historyLoad, current = () => !st.disposed && request === st.historyLoad;
+    st.historyLoading = true; st.historyCompare = null; render();
+    try {
+      const rows = await api.listRuns(null, 50);
+      if (!current()) return;
+      if (!Array.isArray(rows)) throw new Error();
+      st.history = rows; st.historyError = null; st.historyOpen.clear();
+    } catch {
+      if (current()) st.historyError = 'History is unavailable. Previously loaded results may be out of date. Your stored checks were not replaced.';
+    } finally { if (current()) { st.historyLoading = false; render(); } }
   }
 
   function renderHistory() {
-    if (st.history == null) { panel.append(h('p', { class: 'hint', text: 'Loading history…' })); return; }
-    if (!st.history.length) { panel.append(h('div', { class: 'card pg-empty', id: 'pg-history-empty' }, h('h2', { class: 'card-title', text: 'No checks yet' }), h('p', { text: 'Every finished check is saved here so you can see what changed.' }),
+    if (st.historyError) panel.append(h('div', { class: 'banner banner-warn', id: 'pg-history-unavailable', role: 'alert' }, h('span', { class: 'banner-text', text: st.historyError }),
+      h('button', { type: 'button', class: 'btn btn-secondary btn-sm', id: 'pg-retry-history', text: 'Retry loading history', disabled: st.historyLoading, onclick: () => { if (!st.historyLoading) loadHistory(); } })));
+    if (st.historyLoading || (st.history == null && !st.historyError)) { panel.append(h('p', { class: 'hint', text: 'Loading history…' })); return; }
+    if (st.history == null || (st.historyError && !st.history.length)) return;
+    if (!st.history.length) { panel.append(h('div', { class: 'card pg-empty', id: 'pg-history-empty' }, h('h2', { class: 'card-title', text: 'No checks yet' }), h('p', { text: 'Finished checks appear here after they have been saved successfully.' }),
       h('button', { type: 'button', class: 'btn btn-primary', text: 'Run a check', onclick: () => selectTab('check') }))); return; }
     if (st.historyCompare) panel.append(compareCard(st.historyCompare, 'Compared with the latest check'));
     panel.append(h('ul', { class: 'pg-history', id: 'pg-history' }, ...st.history.map((r, i) => {
@@ -583,7 +708,8 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     } catch (e) { setNotice(friendly(e), 'error'); }
     render();
   }
-  function rerunFromHistory(r) {
+  async function rerunFromHistory(r) {
+    if (!await allowResultReplacement()) return;
     const preset = st.presets.find(p => runMatchesPreset(r, p)) || currentPreset();
     if (preset) { st.presetId = preset.id; storageSet(LAST_PRESET_KEY, preset.id); }
     ctl.reset(); st.tab = 'check'; render(); startRun();
@@ -591,11 +717,11 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
 
   // ------------------------------------------------------------ keyboard (this screen only)
   function onKey(e) {
-    if (active.screen?.def.id !== 'pregig' || !isEnabled('pregig') || document.querySelector('dialog[open]')) return;
+    if (st.disposed || active.screen?.def.id !== 'pregig' || !isEnabled('pregig') || document.querySelector('dialog[open]')) return;
     const ctrl = e.ctrlKey || e.metaKey;
     const k = e.key.toLowerCase();
     if (ctrl && !e.shiftKey && !e.altKey && k === 'g') { e.preventDefault(); if (S.phase !== 'running' && currentPreset()) { st.tab = 'check'; render(); startRun(); } return; }
-    if (ctrl && !e.shiftKey && !e.altKey && k === 'r') { e.preventDefault(); const t = S.run ? rerunTargets(S.run) : []; if (S.phase === 'done' && t.length) ctl.rerun(t); return; }
+    if (ctrl && !e.shiftKey && !e.altKey && k === 'r') { e.preventDefault(); const t = S.run ? rerunTargets(S.run) : []; if (S.phase === 'done' && t.length) rerunChecks(t); return; }
     if (S.prompt && !ctrl && !e.altKey && !isTypingTarget(e.target)) {
       if (S.prompt.kind === 'headphones') {
         if (k === 'y') { e.preventDefault(); ctl.answer('yes'); } else if (k === 'n') { e.preventDefault(); ctl.answer('no'); } else if (k === 's') { e.preventDefault(); ctl.answer('skip'); }
@@ -615,7 +741,19 @@ export function createPregigScreen(section, { api = createPregigApi(), nativeInv
     /** Esc cancels a running check. */
     onEscape() { if (S.phase === 'running') { ctl.cancel(); return true; } return false; },
     onExport() { if (S.run) exportRun(); else toast('Run a check first, then save the result.'); },
-    onSave() { toast('Every finished check is saved to History automatically.'); },
+    async onSave() {
+      if (st.disposed) return;
+      if (S.phase !== 'done' || !S.run) { toast('Finish a check before saving it to History.'); return; }
+      if (S.saving) { toast('Saving to History…'); return; }
+      if (S.saved) { toast('This result is saved to History.'); return; }
+      const run = S.run, saved = await ctl.retrySave();
+      if (saved && !st.disposed && S.run === run) toast('Saved the result to History.', { type: 'success' });
+    },
+    dispose() {
+      st.disposed = true; st.presetLoad++; st.historyLoad++;
+      clearInterval(st.timer); stopFeatureListener(); stopControllerListener();
+      document.removeEventListener?.('keydown', onKey);
+    },
     onEnter() { return false; },
     /** For tests and deep links. */
     controller: ctl,

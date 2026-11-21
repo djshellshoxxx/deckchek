@@ -58,3 +58,15 @@ provenance. A corrected candidate and fresh cohort follow all three FINALs.
 Population Compare #88 and System Health #89 remain queued source-derived
 findings. No release, deployment, CI dispatch, native/browser qualification,
 audio rerun, permission change or credit-exhaustion claim is made here.
+
+## Verified durable publication
+
+The held checkpoint is now durable at
+[`34afefa58ac5e8346006087587b113c2a82d5a39`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-backup-service-held-20261121).
+Its complete tree `949f6c334a725b84084736f15e9b9efcf6807e14` exactly matches
+prepared local source `1572c42b74aca3df77eb01a7f36bfc0f554429ea`; its sole
+ordered parent is the fixed Player checkpoint. Root fetched the published commit,
+verified every tree entry and a zero diff, checked the fresh main/Player refs and
+absent new ref, created the branch and verified its exact readback. The branch
+is now fixed. The [publication proof](evidence/backup-service-integration-2026-11-21/checkpoint-publication.json)
+records those checks. No release, deployment or new CI dispatch occurred.

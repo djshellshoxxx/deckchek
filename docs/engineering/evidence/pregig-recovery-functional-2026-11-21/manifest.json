@@ -1,0 +1,260 @@
+{
+  "schema": "deckchek.pregig-recovery-functional-evidence-manifest.v1",
+  "source_commit": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "source_tree": "285b665343d91b6cabebc0f0210fa661865d7305",
+  "source_parents": [
+    "f4d727cb9243b60594dc0df73da3d0808d698b81"
+  ],
+  "original_directory": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw",
+  "original_artifact_count": 24,
+  "original_summed_bytes": 2870756,
+  "artifacts": [
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/all-top-level-test-files-after.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/all-top-level-test-files-after.json",
+      "bytes": 7980,
+      "sha256": "1b33bccda423b6ad29ff438079fa8e0e0297dabc37b9f9fa9f29023953ca7d7e",
+      "git_blob_oid": "0604b2fff1558eec6f112d1d9760b752b72ef85c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/all-top-level-test-files.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/all-top-level-test-files.json",
+      "bytes": 7980,
+      "sha256": "1b33bccda423b6ad29ff438079fa8e0e0297dabc37b9f9fa9f29023953ca7d7e",
+      "git_blob_oid": "0604b2fff1558eec6f112d1d9760b752b72ef85c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/authorized-selection.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/authorized-selection.json",
+      "bytes": 22348,
+      "sha256": "12ce92d9bd00c35365569dcecbad678c94b44ee20b48bcd5693f1e43a0a96df2",
+      "git_blob_oid": "4acc49e6167ac709bb49705bda7422130f30d3d9",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/expected-case-names.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/expected-case-names.json",
+      "bytes": 11908,
+      "sha256": "3b16636da8e9c3e7b63bc78e8692579504c0e39fe3e27b39b7942c11f2872f35",
+      "git_blob_oid": "e1fc77b8dd3a0e04c92048884d761c6a8ec561b9",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/full-source-after.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/full-source-after.json",
+      "bytes": 651771,
+      "sha256": "1fe5add540691eb00185fa31a00d1812748f88899c2e969b383d7ddba7f17910",
+      "git_blob_oid": "7bcc9e4813a424dcfa7c1740babc1cc8270773c2",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/full-source-before.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/full-source-before.json",
+      "bytes": 651771,
+      "sha256": "1fe5add540691eb00185fa31a00d1812748f88899c2e969b383d7ddba7f17910",
+      "git_blob_oid": "7bcc9e4813a424dcfa7c1740babc1cc8270773c2",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/node-runtime.stderr",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/node-runtime.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/node-runtime.stdout",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/node-runtime.stdout",
+      "bytes": 782,
+      "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "git_blob_oid": "cfa5df7499e4e4869bab5cbab94b9b9dc479949e",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/node-version.stderr",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/node-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/node-version.stdout",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/node-version.stdout",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "git_blob_oid": "22fbfc060a4e628c604aabc07ac2f2a5fdc51fb6",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/ordered-outcomes.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/ordered-outcomes.json",
+      "bytes": 19456,
+      "sha256": "832b2a10d2f315431a5910708444d7dab2436c128524be2e5eb57bd30e2814a1",
+      "git_blob_oid": "408f2fb16a98ed22547432b8542dc2150d138d8e",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/result.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/result.json",
+      "bytes": 9411,
+      "sha256": "8c152852d3170fafbbc787174f1b96b067e269a95aa4787ba7d6e73b59a89a74",
+      "git_blob_oid": "9cefb802be843a123457e3fb070f0dd6cd1f1361",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/run-focused-node.py",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run-focused-node.py",
+      "bytes": 22756,
+      "sha256": "b3c3a4a65369d05c71d7be909a77976384bc55e42a30a4129e875da4032a6bd2",
+      "git_blob_oid": "6f0e6b5b31b979465923793a74f688273252cf94",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/run.tap",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+      "bytes": 31900,
+      "sha256": "655d53c1ef68f1d62eefdb06834b840bb0b7bd8c60da22019ac82cd8b4e25cdc",
+      "git_blob_oid": "0c85bce72aea8d55e860ac7c1fa4b6e33d9f127c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/running.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/running.json",
+      "bytes": 6577,
+      "sha256": "81b18594b4db3e0b90cd1b312b5abbe63fe002e29dc316bd6fa9600fe247a883",
+      "git_blob_oid": "dcff62d966cab1e41df5d39c0d6d269f0b2452c8",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/source-tree-entries.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/source-tree-entries.json",
+      "bytes": 455122,
+      "sha256": "7925f7ef09df022d94cc624c7c1eb25ab17567211a1791ee849005b9786c9250",
+      "git_blob_oid": "e94c12c98728cfcbf0cbc7a91d9538c374b68c33",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/stderr.log",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/test-files.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/test-files.json",
+      "bytes": 177,
+      "sha256": "0b56b88db635d41a1f9701717942349249dd3218f62ac96e653fd1b582b0fc47",
+      "git_blob_oid": "70efde2e0f346ea77fe9c5dfaf2d3a94ed259691",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-after.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-after.json",
+      "bytes": 325276,
+      "sha256": "2752d5dcc47b21fb714086f5c7e5f6404c7a991ea52ce3a57cb0d64ea1a57306",
+      "git_blob_oid": "853afe4f28834535ade9e72b7c241c2d12ec4b90",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-before.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-before.json",
+      "bytes": 325276,
+      "sha256": "2752d5dcc47b21fb714086f5c7e5f6404c7a991ea52ce3a57cb0d64ea1a57306",
+      "git_blob_oid": "853afe4f28834535ade9e72b7c241c2d12ec4b90",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-inventory-after.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-inventory-after.json",
+      "bytes": 152148,
+      "sha256": "5cbdb863511ed113bd052918bee722079bd8ffd39f04b96991dd023e2c93f7e7",
+      "git_blob_oid": "73816631c592c5efff218b7528198c255cef547e",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-inventory-before.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-inventory-before.json",
+      "bytes": 152148,
+      "sha256": "5cbdb863511ed113bd052918bee722079bd8ffd39f04b96991dd023e2c93f7e7",
+      "git_blob_oid": "73816631c592c5efff218b7528198c255cef547e",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-top-level-test-files-after.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-top-level-test-files-after.json",
+      "bytes": 7980,
+      "sha256": "1b33bccda423b6ad29ff438079fa8e0e0297dabc37b9f9fa9f29023953ca7d7e",
+      "git_blob_oid": "0604b2fff1558eec6f112d1d9760b752b72ef85c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-raw/tracked-top-level-test-files.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/tracked-top-level-test-files.json",
+      "bytes": 7980,
+      "sha256": "1b33bccda423b6ad29ff438079fa8e0e0297dabc37b9f9fa9f29023953ca7d7e",
+      "git_blob_oid": "0604b2fff1558eec6f112d1d9760b752b72ef85c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    }
+  ],
+  "additional_original_copies": [
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-pregig-recovery-round17-focused-launcher.txt",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/authorized-launcher.txt",
+      "bytes": 247,
+      "sha256": "e2b39fe5397d304f225452f40022b43131fb8f95fc7623d22aa67562fc3ba21b",
+      "git_blob_oid": "da2b693bbc5688a06d76798d384985209ad2632c",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/pregig-recovery-functional-r17-cases.json",
+      "retained_path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/independent-case-inventory.json",
+      "bytes": 41647,
+      "sha256": "5646a9a796a805af9d1653a48242047f5307794e4740a479f6d58d47d365b177",
+      "git_blob_oid": "2fcef42dedd80f581d83dbe3134155fe13cb4a7b",
+      "original_mode": "100644",
+      "retained_mode": "100644"
+    }
+  ],
+  "independent_verification": {
+    "path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/custody-check.json",
+    "bytes": 3852,
+    "sha256": "abccb1749054cc587569893f55cf1b15692c6494ee6cbb22d5ba23c9dcac50e1",
+    "git_blob_oid": "0edcad3134235a3bdeb5379927cfe216b091be02"
+  },
+  "limits": [
+    "Real JavaScript PDF composition and adapter reached a fake native command boundary; no actual native PDF was rendered or inspected.",
+    "No browser, native application, native database, OS-dialog, physical audio or release qualification.",
+    "The original complete-source audio HOLD, native #85 boundary and Fleet default-off state remain unchanged."
+  ]
+}

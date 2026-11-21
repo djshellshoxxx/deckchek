@@ -1,0 +1,1252 @@
+{
+  "files": [
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "cases": 59,
+      "older": 59,
+      "added": 0
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "cases": 19,
+      "older": 0,
+      "added": 19
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "cases": 26,
+      "older": 0,
+      "added": 26
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "cases": 17,
+      "older": 13,
+      "added": 4
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "cases": 11,
+      "older": 11,
+      "added": 0
+    }
+  ],
+  "cases": 132,
+  "older_cases": 83,
+  "added_cases": 49,
+  "ordered_names_sha256": "ccf2e633ca355f23b87b3e57c7eacf00a9ec31c5a3e42414f1847e5c21bb3dfb",
+  "ordered_file_names_sha256": "5d0e0990e498fcbf958a8ac086138a25d1895b48de20d28f89ab5f9a9e952344",
+  "original_tap_sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+  "historical_duration_sum_ms": "14628.461681",
+  "ordered_cases": [
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode: clean deck passes with no fix needed",
+      "line": 26,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)",
+      "line": 32,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter",
+      "line": 43,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red",
+      "line": 51,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode dropouts: 0 passes, 1 amber, 2 red",
+      "line": 59,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format",
+      "line": 67,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode: worst metric wins, every issue gets one fix, unverified format warns",
+      "line": 77,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error",
+      "line": 88,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "timecode: capture problems become actions, not crashes",
+      "line": 101,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel",
+      "line": 121,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored",
+      "line": 132,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "hum that could not be measured is amber with a retry, never a silent pass",
+      "line": 142,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber",
+      "line": 151,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported",
+      "line": 166,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "headphones: yes passes, no is red with cue advice, skip or none is skipped",
+      "line": 180,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive",
+      "line": 196,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "software: not installed and not running are amber with actions; no backend is unsupported",
+      "line": 212,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded",
+      "line": 222,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "evidence errors become \"Check could not run\" with a retry for every kind",
+      "line": 242,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "every red or amber result carries a fix with a label and plain-English text",
+      "line": 253,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green",
+      "line": 272,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)",
+      "line": 291,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording",
+      "line": 301,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue",
+      "line": 312,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget",
+      "line": 323,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "built-in presets validate and reference the owner's real gear profile ids and known formats",
+      "line": 338,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "built-in presets load through loadBuiltinPresets and bad ones are reported",
+      "line": 353,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references",
+      "line": 366,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)",
+      "line": 391,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library",
+      "line": 419,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "formatForMedia resolves timecode media only, from the library, in any container shape",
+      "line": 436,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)",
+      "line": 444,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "namesMatch is forgiving but refuses tiny fragments",
+      "line": 450,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "diffRuns lists which steps changed and whether they improved (AC-6)",
+      "line": 459,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic Traktor MK2 timecode from the generator passes both deck steps",
+      "line": 480,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)",
+      "line": 487,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic: one muted channel is red, naming the channel; silence is a no-signal red",
+      "line": 495,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic: dropouts and a wrong-format record are caught",
+      "line": 508,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier",
+      "line": 517,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "synthetic needle-up hum is measured on the lifted segment",
+      "line": 535,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "summarizeTimecode exposes plain numbers and handles failures",
+      "line": 542,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)",
+      "line": 568,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green",
+      "line": 583,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: a pair the interface does not offer is reported as no such input, not a failure",
+      "line": 593,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair",
+      "line": 609,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)",
+      "line": 618,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run",
+      "line": 632,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)",
+      "line": 642,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: manual time is reported separately and excluded from the duration",
+      "line": 658,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: orchestration overhead with instant mocked captures stays far below 5 s",
+      "line": 668,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice",
+      "line": 675,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps",
+      "line": 690,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: needle-up hum asks the user, captures the lifted segment and grades it",
+      "line": 701,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)",
+      "line": 715,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair",
+      "line": 724,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths",
+      "line": 745,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "createPregigApi (native) sends exactly the contract argument names",
+      "line": 762,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "createPregigApi (browser) stores runs and presets locally with the same shapes",
+      "line": 780,
+      "added": false
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "name": "contract examples are real step results shapes (states the database accepts)",
+      "line": 807,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig",
+      "line": 77,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry",
+      "line": 92,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh",
+      "line": 106,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry",
+      "line": 118,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending",
+      "line": 136,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry",
+      "line": 148,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable",
+      "line": 168,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig an acknowledged preset save finishes while an optional refresh is still pending",
+      "line": 180,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds",
+      "line": 191,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested",
+      "line": 211,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig Done preserves an unsaved result until the user confirms discarding it",
+      "line": 225,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it",
+      "line": 225,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig running everything again preserves an unsaved result until the user confirms discarding it",
+      "line": 225,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig a late failed History request cannot replace a newer successful read",
+      "line": 235,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig disposal retires a pending History presentation and the Save callback",
+      "line": 245,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig import retains the parsed draft after a failed save and retries without picking the file again",
+      "line": 254,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig displays future-version presets read-only without running or rewriting their contents",
+      "line": 271,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig PDF keeps the tested interface after the same saved preset is edited",
+      "line": 303,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "name": "Pre-gig PDF preparation cannot export or announce a result retired before its handoff",
+      "line": 319,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig treats only a confirmed absent key as an empty collection",
+      "line": 29,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves malformed JSON through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves empty text through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves non-array JSON through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves partly invalid rows through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves duplicate ids through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves invalid nested data through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig runs preserves unrepresentable JSON numbers through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves malformed JSON through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves empty text through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves non-array JSON through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves partly invalid rows through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves duplicate ids through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves invalid nested data through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig presets preserves unrepresentable JSON numbers through reads and attempted writes",
+      "line": 45,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig read denial refuses every dependent mutation and recovers without replacing data",
+      "line": 55,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig save run reports a denied write and succeeds only after storage accepts retry",
+      "line": 72,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig create preset reports a denied write and succeeds only after storage accepts retry",
+      "line": 72,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig edit preset reports a denied write and succeeds only after storage accepts retry",
+      "line": 72,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig delete preset reports a denied write and succeeds only after storage accepts retry",
+      "line": 72,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig refuses missing providers and missing writer methods",
+      "line": 82,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig does not treat a non-string undefined storage read as confirmed absence",
+      "line": 96,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "native Pre-gig bypasses a throwing browser storage getter while browser errors remain typed",
+      "line": 102,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig preserves the newest-one-hundred retention rule and complete result details",
+      "line": 116,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig retains future preset versions and existing string-JSON records without writes",
+      "line": 127,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-storage.test.mjs",
+      "name": "browser Pre-gig refuses unserializable or non-finite new data before replacing prior bytes",
+      "line": 137,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "describeStep: an input pair the interface lacks reads as \"no such input\", not a failure",
+      "line": 15,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "describeStep: every engine state has a word and a tone; live states are not chips",
+      "line": 24,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "verdictView: only deck B unmeasured gives an amber \"Not fully checked\" that says why",
+      "line": 34,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "verdictView: red stays red and still notes deck B; green copy is the engine copy",
+      "line": 44,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "fixButtons: keeps actions, dedupes, info entries have no action",
+      "line": 52,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "evidenceRows: labels, units, nesting, empties dropped",
+      "line": 59,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "rerunTargets and mergeRerun: only the chosen steps change and the verdict is recomputed",
+      "line": 67,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "compareView: trends and headline",
+      "line": 78,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "profilesForPreset: judges only the rig, not every profile in the library",
+      "line": 85,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "runMatchesPreset: built-ins match by notes, saved presets by id",
+      "line": 91,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "time text",
+      "line": 98,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: full run keeps deck input-pair skip honest, saves once, compares on the second run",
+      "line": 112,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: cancel keeps partial results as cancelled; rerun merges and saves a new run",
+      "line": 132,
+      "added": false
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: failed browser persistence retains the completed result and retry never repeats the check",
+      "line": 151,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: overlapping save retries share one write and cannot be replaced by a new run or reset",
+      "line": 170,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: unavailable history does not become an empty baseline or a successful save",
+      "line": 185,
+      "added": true
+    },
+    {
+      "file": "tests/pregig-ui.test.mjs",
+      "name": "controller: a failed save after rerun cannot retain the previous result success marker",
+      "line": 196,
+      "added": true
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "pre-gig refuses an oversized selected preset before reading or saving",
+      "line": 50,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "pre-gig catches file read errors and preserves the existing preset collection",
+      "line": 58,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "pre-gig rejects mismatched read lengths before parsing or saving",
+      "line": 65,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode presets",
+      "line": 72,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset",
+      "line": 81,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "media import rejects malformed UTF-8 instead of storing replacement text",
+      "line": 106,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "media import rejects invalid declared sizes before reading",
+      "line": 114,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "media import rejects mismatched read lengths and preserves normal one-read imports",
+      "line": 124,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "media import reports byte-read failures without storing a profile",
+      "line": 133,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "bounded text reads preserve UTF-8 BOM compatibility and measure the byte boundary",
+      "line": 140,
+      "added": false
+    },
+    {
+      "file": "tests/text-file-boundary.test.mjs",
+      "name": "bounded text reads reject incomplete reads and non-buffer results before decoding",
+      "line": 148,
+      "added": false
+    }
+  ],
+  "historical_matches": [
+    {
+      "name": "timecode: clean deck passes with no fix needed",
+      "original_case": 1537,
+      "duration_ms": "1.596144"
+    },
+    {
+      "name": "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)",
+      "original_case": 1538,
+      "duration_ms": "0.920295"
+    },
+    {
+      "name": "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter",
+      "original_case": 1539,
+      "duration_ms": "0.419576"
+    },
+    {
+      "name": "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red",
+      "original_case": 1540,
+      "duration_ms": "0.23446"
+    },
+    {
+      "name": "timecode dropouts: 0 passes, 1 amber, 2 red",
+      "original_case": 1541,
+      "duration_ms": "0.256043"
+    },
+    {
+      "name": "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format",
+      "original_case": 1542,
+      "duration_ms": "0.287629"
+    },
+    {
+      "name": "timecode: worst metric wins, every issue gets one fix, unverified format warns",
+      "original_case": 1543,
+      "duration_ms": "0.249082"
+    },
+    {
+      "name": "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error",
+      "original_case": 1544,
+      "duration_ms": "0.270904"
+    },
+    {
+      "name": "timecode: capture problems become actions, not crashes",
+      "original_case": 1545,
+      "duration_ms": "0.445846"
+    },
+    {
+      "name": "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel",
+      "original_case": 1546,
+      "duration_ms": "0.41517"
+    },
+    {
+      "name": "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored",
+      "original_case": 1547,
+      "duration_ms": "0.38173"
+    },
+    {
+      "name": "hum that could not be measured is amber with a retry, never a silent pass",
+      "original_case": 1548,
+      "duration_ms": "0.121552"
+    },
+    {
+      "name": "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber",
+      "original_case": 1549,
+      "duration_ms": "0.347679"
+    },
+    {
+      "name": "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported",
+      "original_case": 1550,
+      "duration_ms": "0.325556"
+    },
+    {
+      "name": "headphones: yes passes, no is red with cue advice, skip or none is skipped",
+      "original_case": 1551,
+      "duration_ms": "0.137856"
+    },
+    {
+      "name": "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive",
+      "original_case": 1552,
+      "duration_ms": "1.629173"
+    },
+    {
+      "name": "software: not installed and not running are amber with actions; no backend is unsupported",
+      "original_case": 1553,
+      "duration_ms": "0.228241"
+    },
+    {
+      "name": "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded",
+      "original_case": 1554,
+      "duration_ms": "2.764589"
+    },
+    {
+      "name": "evidence errors become \"Check could not run\" with a retry for every kind",
+      "original_case": 1555,
+      "duration_ms": "0.471374"
+    },
+    {
+      "name": "every red or amber result carries a fix with a label and plain-English text",
+      "original_case": 1556,
+      "duration_ms": "0.306497"
+    },
+    {
+      "name": "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green",
+      "original_case": 1557,
+      "duration_ms": "0.519515"
+    },
+    {
+      "name": "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)",
+      "original_case": 1558,
+      "duration_ms": "0.107651"
+    },
+    {
+      "name": "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording",
+      "original_case": 1559,
+      "duration_ms": "0.171746"
+    },
+    {
+      "name": "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue",
+      "original_case": 1560,
+      "duration_ms": "0.329573"
+    },
+    {
+      "name": "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget",
+      "original_case": 1561,
+      "duration_ms": "0.246318"
+    },
+    {
+      "name": "built-in presets validate and reference the owner's real gear profile ids and known formats",
+      "original_case": 1562,
+      "duration_ms": "0.500999"
+    },
+    {
+      "name": "built-in presets load through loadBuiltinPresets and bad ones are reported",
+      "original_case": 1563,
+      "duration_ms": "0.578383"
+    },
+    {
+      "name": "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references",
+      "original_case": 1564,
+      "duration_ms": "0.565434"
+    },
+    {
+      "name": "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)",
+      "original_case": 1565,
+      "duration_ms": "1.109507"
+    },
+    {
+      "name": "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library",
+      "original_case": 1566,
+      "duration_ms": "0.579075"
+    },
+    {
+      "name": "formatForMedia resolves timecode media only, from the library, in any container shape",
+      "original_case": 1567,
+      "duration_ms": "0.170684"
+    },
+    {
+      "name": "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)",
+      "original_case": 1568,
+      "duration_ms": "0.271465"
+    },
+    {
+      "name": "namesMatch is forgiving but refuses tiny fragments",
+      "original_case": 1569,
+      "duration_ms": "0.082393"
+    },
+    {
+      "name": "diffRuns lists which steps changed and whether they improved (AC-6)",
+      "original_case": 1570,
+      "duration_ms": "0.311736"
+    },
+    {
+      "name": "synthetic Traktor MK2 timecode from the generator passes both deck steps",
+      "original_case": 1571,
+      "duration_ms": "645.959926"
+    },
+    {
+      "name": "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)",
+      "original_case": 1572,
+      "duration_ms": "1245.642168"
+    },
+    {
+      "name": "synthetic: one muted channel is red, naming the channel; silence is a no-signal red",
+      "original_case": 1573,
+      "duration_ms": "510.310811"
+    },
+    {
+      "name": "synthetic: dropouts and a wrong-format record are caught",
+      "original_case": 1574,
+      "duration_ms": "1128.430237"
+    },
+    {
+      "name": "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier",
+      "original_case": 1575,
+      "duration_ms": "3108.456015"
+    },
+    {
+      "name": "synthetic needle-up hum is measured on the lifted segment",
+      "original_case": 1576,
+      "duration_ms": "365.582738"
+    },
+    {
+      "name": "summarizeTimecode exposes plain numbers and handles failures",
+      "original_case": 1577,
+      "duration_ms": "269.962371"
+    },
+    {
+      "name": "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)",
+      "original_case": 1578,
+      "duration_ms": "773.089053"
+    },
+    {
+      "name": "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green",
+      "original_case": 1579,
+      "duration_ms": "1192.396027"
+    },
+    {
+      "name": "runPregig: a pair the interface does not offer is reported as no such input, not a failure",
+      "original_case": 1580,
+      "duration_ms": "1299.8799"
+    },
+    {
+      "name": "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair",
+      "original_case": 1581,
+      "duration_ms": "0.174512"
+    },
+    {
+      "name": "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)",
+      "original_case": 1582,
+      "duration_ms": "0.725008"
+    },
+    {
+      "name": "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run",
+      "original_case": 1583,
+      "duration_ms": "595.33317"
+    },
+    {
+      "name": "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)",
+      "original_case": 1584,
+      "duration_ms": "662.471205"
+    },
+    {
+      "name": "runPregig: manual time is reported separately and excluded from the duration",
+      "original_case": 1585,
+      "duration_ms": "576.932094"
+    },
+    {
+      "name": "runPregig: orchestration overhead with instant mocked captures stays far below 5 s",
+      "original_case": 1586,
+      "duration_ms": "23.195493"
+    },
+    {
+      "name": "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice",
+      "original_case": 1587,
+      "duration_ms": "568.128377"
+    },
+    {
+      "name": "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps",
+      "original_case": 1588,
+      "duration_ms": "563.063765"
+    },
+    {
+      "name": "runPregig: needle-up hum asks the user, captures the lifted segment and grades it",
+      "original_case": 1589,
+      "duration_ms": "474.465055"
+    },
+    {
+      "name": "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)",
+      "original_case": 1590,
+      "duration_ms": "0.505519"
+    },
+    {
+      "name": "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair",
+      "original_case": 1591,
+      "duration_ms": "0.655555"
+    },
+    {
+      "name": "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths",
+      "original_case": 1592,
+      "duration_ms": "565.64826"
+    },
+    {
+      "name": "createPregigApi (native) sends exactly the contract argument names",
+      "original_case": 1593,
+      "duration_ms": "0.347311"
+    },
+    {
+      "name": "createPregigApi (browser) stores runs and presets locally with the same shapes",
+      "original_case": 1594,
+      "duration_ms": "1.857419"
+    },
+    {
+      "name": "contract examples are real step results shapes (states the database accepts)",
+      "original_case": 1595,
+      "duration_ms": "0.102755"
+    },
+    {
+      "name": "describeStep: an input pair the interface lacks reads as \"no such input\", not a failure",
+      "original_case": 1596,
+      "duration_ms": "1.45224"
+    },
+    {
+      "name": "describeStep: every engine state has a word and a tone; live states are not chips",
+      "original_case": 1597,
+      "duration_ms": "0.229304"
+    },
+    {
+      "name": "verdictView: only deck B unmeasured gives an amber \"Not fully checked\" that says why",
+      "original_case": 1598,
+      "duration_ms": "0.927443"
+    },
+    {
+      "name": "verdictView: red stays red and still notes deck B; green copy is the engine copy",
+      "original_case": 1599,
+      "duration_ms": "0.247932"
+    },
+    {
+      "name": "fixButtons: keeps actions, dedupes, info entries have no action",
+      "original_case": 1600,
+      "duration_ms": "0.229704"
+    },
+    {
+      "name": "evidenceRows: labels, units, nesting, empties dropped",
+      "original_case": 1601,
+      "duration_ms": "0.396335"
+    },
+    {
+      "name": "rerunTargets and mergeRerun: only the chosen steps change and the verdict is recomputed",
+      "original_case": 1602,
+      "duration_ms": "0.329715"
+    },
+    {
+      "name": "compareView: trends and headline",
+      "original_case": 1603,
+      "duration_ms": "0.329885"
+    },
+    {
+      "name": "profilesForPreset: judges only the rig, not every profile in the library",
+      "original_case": 1604,
+      "duration_ms": "0.571228"
+    },
+    {
+      "name": "runMatchesPreset: built-ins match by notes, saved presets by id",
+      "original_case": 1605,
+      "duration_ms": "0.297927"
+    },
+    {
+      "name": "time text",
+      "original_case": 1606,
+      "duration_ms": "0.520882"
+    },
+    {
+      "name": "controller: full run keeps deck input-pair skip honest, saves once, compares on the second run",
+      "original_case": 1607,
+      "duration_ms": "3.939284"
+    },
+    {
+      "name": "controller: cancel keeps partial results as cancelled; rerun merges and saves a new run",
+      "original_case": 1608,
+      "duration_ms": "1.050807"
+    },
+    {
+      "name": "pre-gig refuses an oversized selected preset before reading or saving",
+      "original_case": 2162,
+      "duration_ms": "8.898891"
+    },
+    {
+      "name": "pre-gig catches file read errors and preserves the existing preset collection",
+      "original_case": 2163,
+      "duration_ms": "1.658023"
+    },
+    {
+      "name": "pre-gig rejects mismatched read lengths before parsing or saving",
+      "original_case": 2164,
+      "duration_ms": "2.187209"
+    },
+    {
+      "name": "pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode presets",
+      "original_case": 2165,
+      "duration_ms": "2.053057"
+    },
+    {
+      "name": "pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset",
+      "original_case": 2166,
+      "duration_ms": "1.263049"
+    },
+    {
+      "name": "media import rejects malformed UTF-8 instead of storing replacement text",
+      "original_case": 2167,
+      "duration_ms": "2.42688"
+    },
+    {
+      "name": "media import rejects invalid declared sizes before reading",
+      "original_case": 2168,
+      "duration_ms": "2.912851"
+    },
+    {
+      "name": "media import rejects mismatched read lengths and preserves normal one-read imports",
+      "original_case": 2169,
+      "duration_ms": "3.154814"
+    },
+    {
+      "name": "media import reports byte-read failures without storing a profile",
+      "original_case": 2170,
+      "duration_ms": "1.4701"
+    },
+    {
+      "name": "bounded text reads preserve UTF-8 BOM compatibility and measure the byte boundary",
+      "original_case": 2171,
+      "duration_ms": "0.948746"
+    },
+    {
+      "name": "bounded text reads reject incomplete reads and non-buffer results before decoding",
+      "original_case": 2172,
+      "duration_ms": "0.296756"
+    }
+  ]
+}

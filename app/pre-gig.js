@@ -715,8 +715,40 @@ export function toRunInput(run, {appVersion = '0.0.0', sessionId = null, venueId
 }
 
 const LS_RUNS = 'deckchek.pregig.runs.v1', LS_PRESETS = 'deckchek.pregig.presets.v1', LS_MAX = 100;
+const storedText = value => typeof value === 'string' && value.trim().length > 0;
+const optionalText = value => value == null || typeof value === 'string';
+const RUN_VERDICTS = new Set(['green', 'amber', 'red', 'incomplete', 'cancelled']);
+const storageFailure = (code, message) => Object.assign(new Error(message), { name: 'PregigStorageError', code });
+
+// A partly readable collection is unknown, not an empty registry that may be overwritten.
+function validStoredRun(row) {
+  return isObj(row) && storedText(row.id) && storedText(row.startedAt) && optionalText(row.finishedAt)
+    && RUN_VERDICTS.has(row.verdict) && storedText(row.appVersion)
+    && (row.durationMs == null || (Number.isSafeInteger(row.durationMs) && row.durationMs >= 0))
+    && ['presetId', 'sessionId', 'venueId', 'notes'].every(key => optionalText(row[key]))
+    && Array.isArray(row.steps) && row.steps.every(step => isObj(step) && storedText(step.stepId)
+      && STEP_STATES.includes(step.state) && typeof step.summary === 'string' && optionalText(step.deck)
+      && (step.evidence == null || isObj(step.evidence)) && (step.fix == null || Array.isArray(step.fix)));
+}
+
+function validStoredPreset(row) {
+  if (!isObj(row) || !storedText(row.id) || !storedText(row.name) || row.builtin !== false
+    || !optionalText(row.setupId) || !storedText(row.createdAt) || !storedText(row.updatedAt)) return false;
+  try {
+    const text = typeof row.json === 'string' ? row.json : JSON.stringify(row.json);
+    // Future versions retain their original JSON and existing read-only contract.
+    return parsePresetJson(text).ok;
+  } catch { return false; }
+}
+
+function validCollection(list, validRow) {
+  if (!Array.isArray(list)) return false;
+  const ids = new Set();
+  return list.every(row => validRow(row) && !ids.has(row.id) && !!ids.add(row.id));
+}
+
 /** Run and preset store: native commands in the app, localStorage in the browser. */
-export function createPregigApi({invoke = globalThis.window?.__TAURI__?.core?.invoke, storage = globalThis.localStorage ?? null, now = () => new Date().toISOString(), newId = () => globalThis.crypto?.randomUUID?.() ?? `pg-${Date.now()}-${Math.random().toString(16).slice(2)}`} = {}) {
+export function createPregigApi({invoke = globalThis.window?.__TAURI__?.core?.invoke, storage, now = () => new Date().toISOString(), newId = () => globalThis.crypto?.randomUUID?.() ?? `pg-${Date.now()}-${Math.random().toString(16).slice(2)}`} = {}) {
   if (typeof invoke === 'function') {
     return {native: true,
       saveRun: run => invoke('pregig_save_run', {run}),
@@ -726,22 +758,50 @@ export function createPregigApi({invoke = globalThis.window?.__TAURI__?.core?.in
       upsertPreset: preset => invoke('pregig_preset_upsert', {preset}),
       deletePreset: id => invoke('pregig_preset_delete', {id})};
   }
-  const read = key => { try { const v = JSON.parse(storage?.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
-  const write = (key, list) => { try { storage?.setItem(key, JSON.stringify(list)); } catch { /* storage unavailable: nothing to do */ } };
+  const provider = method => {
+    try {
+      const value = storage === undefined ? globalThis.localStorage : storage;
+      if (typeof value?.[method] !== 'function') throw new Error();
+      return value;
+    } catch { throw storageFailure('PREGIG_STORAGE_UNAVAILABLE', 'Browser storage is unavailable. Your existing Pre-gig data was not changed.'); }
+  };
+  const read = (key, validRow) => {
+    let raw;
+    try { raw = provider('getItem').getItem(key); }
+    catch { throw storageFailure('PREGIG_STORAGE_UNAVAILABLE', 'Browser storage could not be read. Your existing Pre-gig data was not changed.'); }
+    if (raw === null) return [];
+    try {
+      if (typeof raw !== 'string') throw new Error();
+      const list = JSON.parse(raw, (_key, value) => { if (typeof value === 'number' && !finite(value)) throw new Error(); return value; });
+      if (!validCollection(list, validRow)) throw new Error();
+      return list;
+    } catch { throw storageFailure('PREGIG_STORAGE_INVALID', 'Saved Pre-gig data could not be read completely. Its original contents were kept.'); }
+  };
+  const write = (key, list, validRow) => {
+    let text;
+    try {
+      if (!validCollection(list, validRow)) throw new Error();
+      text = JSON.stringify(list, (_key, value) => { if (typeof value === 'number' && !finite(value)) throw new Error(); return value; });
+      if (!validCollection(JSON.parse(text), validRow)) throw new Error();
+    } catch { throw storageFailure('PREGIG_DATA_INVALID', 'This Pre-gig data could not be saved. Your existing data was not changed.'); }
+    try { provider('setItem').setItem(key, text); }
+    catch { throw storageFailure('PREGIG_STORAGE_WRITE_FAILED', 'Browser storage could not save the change. Keep this result or preset open and try again.'); }
+  };
   const summary = r => { const {steps, ...run} = r; return {...run, stepCount: steps.length, failCount: steps.filter(s => s.state === 'fail' || s.state === 'error').length, warnCount: steps.filter(s => s.state === 'warn').length}; };
   return {native: false,
-    async saveRun(run) { const id = newId(); write(LS_RUNS, [{...run, id}, ...read(LS_RUNS)].slice(0, LS_MAX)); return {id}; },
-    async listRuns(presetId = null, limit = null) { return read(LS_RUNS).filter(r => presetId == null || r.presetId === presetId).slice(0, limit || LS_MAX).map(summary); },
+    async saveRun(run) { const list = read(LS_RUNS, validStoredRun), id = newId(); write(LS_RUNS, [{...run, id}, ...list].slice(0, LS_MAX), validStoredRun); return {id}; },
+    async listRuns(presetId = null, limit = null) { return read(LS_RUNS, validStoredRun).filter(r => presetId == null || r.presetId === presetId).slice(0, limit || LS_MAX).map(summary); },
     async getRun(id) {
-      const r = read(LS_RUNS).find(x => x.id === id);
+      const r = read(LS_RUNS, validStoredRun).find(x => x.id === id);
       return r ? {run: summary(r), steps: r.steps.map((s, i) => ({id: `${id}-${i}`, runId: id, ...s}))} : null;
     },
-    async listPresets() { return read(LS_PRESETS).sort((a, b) => a.name.localeCompare(b.name)); },
+    async listPresets() { return read(LS_PRESETS, validStoredPreset).sort((a, b) => a.name.localeCompare(b.name)); },
     async upsertPreset(preset) {
-      const list = read(LS_PRESETS), t = now(), i = preset.id ? list.findIndex(p => p.id === preset.id) : -1;
+      const list = read(LS_PRESETS, validStoredPreset), t = now(), i = preset.id ? list.findIndex(p => p.id === preset.id) : -1;
+      if (!storedText(preset.name)) throw storageFailure('PREGIG_DATA_INVALID', 'Give the preset a name before saving it.');
       const row = {id: preset.id || newId(), name: preset.name.trim(), builtin: false, setupId: preset.setupId ?? null, json: preset.json, createdAt: i >= 0 ? list[i].createdAt : t, updatedAt: t};
       if (i >= 0) list[i] = row; else list.push(row);
-      write(LS_PRESETS, list); return row;
+      write(LS_PRESETS, list, validStoredPreset); return row;
     },
-    async deletePreset(id) { const l = read(LS_PRESETS), k = l.filter(p => p.id !== id); write(LS_PRESETS, k); return k.length !== l.length; }};
+    async deletePreset(id) { const list = read(LS_PRESETS, validStoredPreset), kept = list.filter(p => p.id !== id); if (kept.length === list.length) return false; write(LS_PRESETS, kept, validStoredPreset); return true; }};
 }

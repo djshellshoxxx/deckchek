@@ -92,21 +92,58 @@ native result, reload attempts coalesce, and confirmation distinguishes the
 database commit from local settings application. Native failure leaves the
 current document usable. These are scoped JavaScript results; real WebView,
 native synchronization and the original full-source audio HOLD remain open.
-All three FINALs are consolidated locally with the completed Service work.
-Root owns implementation, CI, integration and publication. A fresh trio follows
-the next frozen candidate; no additional project command is authorized.
+The completed backup and Service work is now durable at
+[`34afefa58ac5e8346006087587b113c2a82d5a39`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-backup-service-held-20261121).
+Root verified its complete tree, sole Player parent and exact branch reference;
+the [publication proof](engineering/evidence/backup-service-integration-2026-11-21/checkpoint-publication.json)
+is retained in the successor history. Issues #85 and #86 record the completed
+scoped work and remain open for their stated remaining work and qualification.
+
+All three round-sixteen Pre-gig workers are FINAL static HOLD. Root read and
+independently verified all three sole-report commits and all 2,535 original
+source paths. They confirmed pending preset draft loss, PDF result/device
+provenance drift, catalog setup counted as Pre-gig writes, and fixture documents
+that disagree with cached feedback hosts. No project execution or FIRST occurred.
+The [completed static handoff](engineering/PREGIG_STORAGE_STATIC_HOLD_CONTINUATION_2026-11-21.md)
+preserves the original source and reports.
+
+All three round-seventeen Pre-gig workers supplied FINAL scoped ACCEPT. The
+single five-file FIRST at `2ac0cf4` passed **132/132**, including all 49 cumulative
+additions, in 15.125495306994708 seconds, with no failures, skips, timeout or
+stderr. Root read all three reports and independently verified their exact
+owned-only commits, all 2,546 original source paths, all ordered outcomes and
+all 26 original evidence-copy bindings. The reports, 28-file evidence package
+and four independent root proofs are consolidated. Read the
+[completed Pre-gig handoff](engineering/PREGIG_RECOVERY_CONTINUATION_2026-11-21.md).
+
+The change preserves unavailable/corrupt storage, requires acknowledged writes,
+retains failed-save results and drafts, and binds pending saves and PDF preparation
+to their retained data. The original round-sixteen static HOLD remains preserved.
+[#87](https://github.com/djshellshoxxx/deckchek/issues/87) stays open for qualified
+integration and a separate pre-existing native association correction: deleting
+an active or retained-unsaved result's preset can leave its later save unable to
+satisfy native validation. The focused browser/fake-native pass does not close it.
+
+All three completed Pre-gig FINALs preceded the fresh round-eighteen code,
+functional/bug and defensive security cohort. It now reviews separate System
+Health [#89](https://github.com/djshellshoxxx/deckchek/issues/89) source at
+`2a807525c70712332e84cecbaf29dd876b5e03cd`. That source is outside this Pre-gig
+checkpoint. Its nine-file selection has 208 authored cases, 35 new, with no
+project execution yet authorized. Coverage distinguishes incomplete, failed,
+unsupported and pending areas in the view, HTML/PDF, diagnostics and setup.
+Only its functional worker may later run a separately root-reviewed exact FIRST
+after all three source and full-control dispositions. All three current FINALs
+must precede another rotation. Root owns implementation, CI, integration and
+publication; the Pre-gig held checkpoint is being prepared separately.
 
 Scheduled-backup settings [#85](https://github.com/djshellshoxxx/deckchek/issues/85)
 stays open: the native owner/cache, startup and exit protocol remains unfinished.
-Root is authoring browser Pre-gig persistence and save recovery for
-[#87](https://github.com/djshellshoxxx/deckchek/issues/87). The candidate and its
-new storage/controller/screen regressions require fresh review and their own
-FIRST gate; authored changes are not passing evidence. Population Compare
-[#88](https://github.com/djshellshoxxx/deckchek/issues/88) is queued for excessive
-synchronous work on large valid packs, based on static source analysis.
-The original full-source audio HOLD, fixed published heads and Fleet default-off
-remain. No credit-exhaustion result exists.
-Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88 remain outside qualified PR #79.
+Population Compare [#88](https://github.com/djshellshoxxx/deckchek/issues/88) remains
+queued for excessive synchronous work on large valid packs. These are source
+findings, not observed platform failures. The original complete-source audio
+HOLD, fixed published heads and Fleet default-off remain. The same hourly
+continuation stays enabled; no credit-exhaustion result exists.
+Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88/#89 remain outside qualified PR #79.
 
 ## Cloud continuation: M7 data and statistics foundations (2026-10-22)
 

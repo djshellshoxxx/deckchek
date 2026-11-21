@@ -92,21 +92,58 @@ native result, reload attempts coalesce, and confirmation distinguishes the
 database commit from local settings application. Native failure leaves the
 current document usable. These are scoped JavaScript results; real WebView,
 native synchronization and the original full-source audio HOLD remain open.
-All three FINALs are consolidated locally with the completed Service work.
-Root owns implementation, CI, integration and publication. A fresh trio follows
-the next frozen candidate; no additional project command is authorized.
+The completed backup and Service work is now durable at
+[`34afefa58ac5e8346006087587b113c2a82d5a39`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-backup-service-held-20261121).
+Root verified its complete tree, sole Player parent and exact branch reference;
+the [publication proof](engineering/evidence/backup-service-integration-2026-11-21/checkpoint-publication.json)
+is retained in the successor history. Issues #85 and #86 record the completed
+scoped work and remain open for their stated remaining work and qualification.
+
+All three round-sixteen Pre-gig workers are FINAL static HOLD. Root read and
+independently verified all three sole-report commits and all 2,535 original
+source paths. They confirmed pending preset draft loss, PDF result/device
+provenance drift, catalog setup counted as Pre-gig writes, and fixture documents
+that disagree with cached feedback hosts. No project execution or FIRST occurred.
+The [completed static handoff](engineering/PREGIG_STORAGE_STATIC_HOLD_CONTINUATION_2026-11-21.md)
+preserves the original source and reports.
+
+All three round-seventeen Pre-gig workers supplied FINAL scoped ACCEPT. The
+single five-file FIRST at `2ac0cf4` passed **132/132**, including all 49 cumulative
+additions, in 15.125495306994708 seconds, with no failures, skips, timeout or
+stderr. Root read all three reports and independently verified their exact
+owned-only commits, all 2,546 original source paths, all ordered outcomes and
+all 26 original evidence-copy bindings. The reports, 28-file evidence package
+and four independent root proofs are consolidated. Read the
+[completed Pre-gig handoff](engineering/PREGIG_RECOVERY_CONTINUATION_2026-11-21.md).
+
+The change preserves unavailable/corrupt storage, requires acknowledged writes,
+retains failed-save results and drafts, and binds pending saves and PDF preparation
+to their retained data. The original round-sixteen static HOLD remains preserved.
+[#87](https://github.com/djshellshoxxx/deckchek/issues/87) stays open for qualified
+integration and a separate pre-existing native association correction: deleting
+an active or retained-unsaved result's preset can leave its later save unable to
+satisfy native validation. The focused browser/fake-native pass does not close it.
+
+All three completed Pre-gig FINALs preceded the fresh round-eighteen code,
+functional/bug and defensive security cohort. It now reviews separate System
+Health [#89](https://github.com/djshellshoxxx/deckchek/issues/89) source at
+`2a807525c70712332e84cecbaf29dd876b5e03cd`. That source is outside this Pre-gig
+checkpoint. Its nine-file selection has 208 authored cases, 35 new, with no
+project execution yet authorized. Coverage distinguishes incomplete, failed,
+unsupported and pending areas in the view, HTML/PDF, diagnostics and setup.
+Only its functional worker may later run a separately root-reviewed exact FIRST
+after all three source and full-control dispositions. All three current FINALs
+must precede another rotation. Root owns implementation, CI, integration and
+publication; the Pre-gig held checkpoint is being prepared separately.
 
 Scheduled-backup settings [#85](https://github.com/djshellshoxxx/deckchek/issues/85)
 stays open: the native owner/cache, startup and exit protocol remains unfinished.
-Root is authoring browser Pre-gig persistence and save recovery for
-[#87](https://github.com/djshellshoxxx/deckchek/issues/87). The candidate and its
-new storage/controller/screen regressions require fresh review and their own
-FIRST gate; authored changes are not passing evidence. Population Compare
-[#88](https://github.com/djshellshoxxx/deckchek/issues/88) is queued for excessive
-synchronous work on large valid packs, based on static source analysis.
-The original full-source audio HOLD, fixed published heads and Fleet default-off
-remain. No credit-exhaustion result exists.
-Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88 remain outside qualified PR #79.
+Population Compare [#88](https://github.com/djshellshoxxx/deckchek/issues/88) remains
+queued for excessive synchronous work on large valid packs. These are source
+findings, not observed platform failures. The original complete-source audio
+HOLD, fixed published heads and Fleet default-off remain. The same hourly
+continuation stays enabled; no credit-exhaustion result exists.
+Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88/#89 remain outside qualified PR #79.
 
 ## Current implementation snapshot
 
@@ -122,7 +159,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Diagnostics bundle and crash prompt (FS-02) | Implemented | Local zip, redaction, crash marker on exit; nothing uploaded. |
 | Open external links (FS-07) | Implemented | Allowlist plus confirm dialog; desktop command is authoritative. |
 | Test media library (FS-06) | Implemented | On by default (no flag in the spec; `testMedia` defaults on and Experimental features can switch it off). Picker prefill, result and History record of the medium used. Choosing a timecode medium sets the decoder format explicitly: the DVS form has a Timecode format field (Auto-detect is only the fallback), and the scratch test and control-vinyl forms take a medium to set their format. The M6 forms for pre-gig, stylus and latency do not take a medium. |
-| Backup and restore (FS-08) | Implemented software; webview prerequisite awaiting fresh review; native #85 open | Existing native backup/safety/schedule/free-space behavior and separate browser/native catalog/history formats remain. Native schema 25 backup retains incident evidence. Source40 primary native/browser checks completed at their own tree; catalog browser checks use deterministic IPC fixtures. Actual restore/dialog/platform qualification remains scoped. Automatic backups currently rely on a potentially absent/stale webview-settings cache; [#85](https://github.com/djshellshoxxx/deckchek/issues/85) remains open. |
+| Backup and restore (FS-08) | Scoped webview recovery reviewed, FIRST 193/193; native #85 open | Existing native backup/safety/schedule/free-space behavior and separate browser/native catalog/history formats remain. Native schema 25 backup retains incident evidence. Source40 primary native/browser checks completed at their own tree; catalog browser checks use deterministic IPC fixtures. Actual restore/dialog/platform qualification remains scoped. Automatic backups currently rely on a potentially absent/stale webview-settings cache; [#85](https://github.com/djshellshoxxx/deckchek/issues/85) remains open. |
 | Stylus wear tracker (FS-12) | Implemented, flag `stylusWear`, hardware-unvalidated | Hours ledger (manual, DeckChek capture sessions and DJ-log proposals), life gauge, benchmark entry, trend charts with regression, degradation alerts, snooze, replacement reset, PDF report. Benchmarks can be entered, filled from saved runs, or acquired through the guided stereo/isolated-channel/optional-timecode workflow. Evidence and lifecycle corrections, including the version-3 Hann measurement basis, have passed independent review; browser/platform and physical repeatability acceptance remain pending. |
 | Booth feedback and hum hunter (FS-15) | Implemented bounded software; flags and physical gates retained | Existing hum/feedback, seven manual incident categories, immutable context, pagination, saved supports and passive LF A/B remain. Native incidents can optionally attach one selected already-running monitor generation’s latest reading frozen at press, with an atomic immutable pair and bounded report/history detail. Default OFF; no new capture, PCM or post-press window. Broader windows/shock/DVS/onset outcomes and H-15 remain open. [Contract](incident-metric-evidence.md). |
 | Saved support descriptions (FS-15 prerequisite) | Implemented; current descriptions remain distinct from captured A/B context | Equipment saves descriptive fields and setup assignments while preserving legacy structure and hidden context. Asset replacement clears its former settings link; bound venue changes reject. Reports label current support context and propagate failed/missing measured-history reads. Browser workspace JSON excludes supports/setups; the separate catalog file transfers them with unresolved native-only references disclosed. No isolation-performance or hardware claim. |
@@ -130,11 +167,11 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Native support-history working memory | Implemented; full-application qualification open | Streaming global validation retains bounded pages and full comparison originals without changing list limits, transactions, errors or stored values. The measured Rust peak excludes SQLite/C and process RSS; additional parsing increases cumulative allocation and sampled debug time. [Source38 proof and limits](DECKCHEK-NATIVE-HISTORY-FOLLOWUP.md). |
 | Scratch stress test (FS-14) | Implemented, hardware-validation pending | Guided baby/transform/chirp protocol with metronome, results, history and compare; flag `scratchTest`. Each run stores the cartridge, setup and control-vinyl side, and Compare groups by all three plus format and tempo. PDF report. Skip thresholds are uncalibrated and labelled so. If another feature holds the input the test shows a plain error, not the "Stop and continue" dialog (follow-up). |
 | DVS latency and buffer tuner (FS-11) | Implemented, flag `latencyTuner`, hardware-unvalidated | Four steps: Measure (patch-cable guide, WASAPI round trip with k=2 uncertainty and reported-vs-measured), Buffer test (idle and CPU-load sweep, detects at run time whether Windows honours the buffer size: A honoured, B partly, C ignored, D streams fail), Recommendation (per Serato / Traktor / rekordbox with their own setting names, typed ASIO buffer labelled as typed), Windows tuning checklist (pass / review / unknown with check command, manual path and Win+R shortcut; nothing is changed) plus the busiest programs and running DJ software after a scan. Every value is labelled WASAPI, not ASIO. Latest runs are saved; export is JSON (Ctrl+E) or PDF. Entry points: Quick Check, Calibration and pre-gig fixes link here (M6 cross-links). rekordbox and Traktor Pro 4 setting names are unverified. |
-| Pre-gig check (FS-10) | Implemented, flag `pregig`, hardware-unvalidated | One Start button, live checklist with a status word per step, green / amber / red verdict with fix-it buttons, single-step and problem-only re-run, comparison with the previous run, history with compare, presets (three built-in rigs, create, from gear, edit, duplicate, delete, import/export). Each deck captures on its own input pair (deck B on 3-4 for the Traktor Audio 8 DJ rig); per-deck Inputs boxes on the start card are remembered per interface, and a pair the interface lacks shows "No such input" (not a failure, verdict "Not fully checked"). Control-vinyl formats come from the test-media library. Hum thresholds are unmeasured defaults; Result exports as JSON or PDF (FS-03 kind `pregig`); Quick Check links to it. Fix actions link to Hum hunter, Stylus and Latency, and "Open ... settings" opens Windows Settings through a fixed three-page allowlist (sound, power, microphone privacy), copying the Win+R shortcut if that fails. |
+| Pre-gig check (FS-10) | Scoped browser recovery reviewed, FIRST 132/132; native association and hardware qualification open | One Start button, live checklist with a status word per step, green / amber / red verdict with fix-it buttons, single-step and problem-only re-run, comparison with the previous run, history with compare, presets (three built-in rigs, create, from gear, edit, duplicate, delete, import/export). Each deck captures on its own input pair (deck B on 3-4 for the Traktor Audio 8 DJ rig); per-deck Inputs boxes on the start card are remembered per interface, and a pair the interface lacks shows "No such input" (not a failure, verdict "Not fully checked"). Control-vinyl formats come from the test-media library. Hum thresholds are unmeasured defaults; Result exports as JSON or PDF (FS-03 kind `pregig`); Quick Check links to it. Fix actions link to Hum hunter, Stylus and Latency, and "Open ... settings" opens Windows Settings through a fixed three-page allowlist (sound, power, microphone privacy), copying the Win+R shortcut if that fails. |
 | Mobile companion (FS-30) | Implemented, desktop import behind flag `phoneImport`, PWA not hosted, hardware-unvalidated | `mobile/` PWA: speed by reference tone with uncertainty, mains strobe helper (dot rows, on-screen strobe with photosensitivity confirmation), plinth vibration (0.5-30 Hz, relative), indicative SPL (uncalibrated banner, A/C), offline, export as `.deckchek-mobile.json` / share sheet / QR (hash, not a signature). Desktop: Import phone results (paste, file or QR text) adds a run with origin `phone` to History and an asset (`0018_session_origin`). QR import preserves significant chunk whitespace through the actual parser; bounded codepoint framing and generated-mobile parity are covered by the [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md). Deploy is manual-dispatch only until the hosting decision (R12). |
 | Used-gear certificate (FS-20) | Implemented, flag `certificates`, hardware-unvalidated | Ed25519-signed certificate per unit (key per install, DPAPI on Windows), strict verifier (VALID, MODIFIED, UNVERIFIABLE, plus EXPIRED), `.deckchek-cert.json` plus PDF with fingerprint and QR `deckchek:cert:v1:<sha256>`. Certificates and Verify certificate screens (Ctrl+Shift+V). No JSON is embedded in the PDF, so a PDF cannot be verified on its own. |
 | Unit vs population (FS-21) | Implemented; pack candidate verified, independent acceptance ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`); hardware-unvalidated | Existing Spec/My units/Population behavior and contributor thresholds remain. Candidate Save uses only the current completed preview’s private rows/metadata snapshot and rejects stale/duplicate ownership. Copy discloses month metadata and avoids guaranteed unlinkability after token reset. Persistent 16/16, related 32/32 and unchanged independent 3/3 passed; hosted execution remains source-specific. |
-| Service worksheets (FS-22) | Implemented, flag `service`, hardware-unvalidated | Repair jobs `J-<year>-<seq>` with intake, before/after measurements from the device runner, append-only work log, up to 10 photos and a printable job sheet (Ctrl+J for a new job). Customer details stay local and are kept out of workspace export, packs, ledgers and the diagnostics bundle. |
+| Service worksheets (FS-22) | Scoped comparison correction reviewed, FIRST 123/123; qualified integration and hardware acceptance open | Repair jobs `J-<year>-<seq>` with intake, before/after measurements from the device runner, append-only work log, up to 10 photos and a printable job sheet (Ctrl+J for a new job). Customer details stay local and are kept out of workspace export, packs, ledgers and the diagnostics bundle. |
 | Venue fleet dashboard (FS-23) | Implemented, flag `fleet` (default off; manual opt-in), hardware-unvalidated | Fleet grid with filters and CSV export, venue/booth/position editor, placement, maintenance log, reminders in days or confirmed hours with templates and snooze, start-up banner, printable booth sheet. Hours are estimates from the usage ledger, not measured runtime. |
 | Timecode doctor live monitor (FS-31) | Implemented, flag `liveMonitor`, hardware-unvalidated | Existing up-to-two-deck monitor, retention, tray and acquired-carrier negative-SNR behavior remain. Optional native incident evidence selects an already-running generation and freezes its latest frame; separate clocks and operator context are disclosed. No lease/start/stop/preemption or new DSP window. WASAPI/shared-software, cold-start and changing-pitch noise limits remain. |
 | MIDI mapper studio (FS-32) | Implemented, flag `mapperStudio`, hardware-unvalidated | Existing Mixxx/VirtualDJ round trips, Serato/Traktor reports and strict XML remain. A learned map stays associated with its originating product profile when an asset changes product; explicit import and same/unknown legacy identity retain their contract. Actual VirtualDJ format and physical MIDI qualification remain open. |

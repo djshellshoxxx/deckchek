@@ -31,11 +31,11 @@ async function mountPreset(t) {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const host = document.createElement('section'); document.body.append(host);
   const writes = [];
-  const api = { listPresets: async () => [], upsertPreset: async value => { writes.push(structuredClone(value)); return { id: 'new-preset', ...value }; } };
-  createPregigScreen(host, { api, nativeInvoke: null });
+  const api = { listPresets: async () => [], upsertPreset: async value => { writes.push(structuredClone(value)); return { ...value, id: 'new-preset' }; } };
+  const screen = createPregigScreen(host, { api, nativeInvoke: null });
   await settle();
   host.querySelector('#pg-tab-presets').dispatch('click');
-  t.after(() => host.remove());
+  t.after(() => { screen.dispose(); host.remove(); });
   return { host, writes };
 }
 async function choosePreset(host, selected) {
@@ -75,6 +75,7 @@ test('pre-gig consumes one strict UTF-8 snapshot while retaining valid Unicode p
   assert.deepEqual(selected.reads, { text: 0, bytes: 1 });
   assert.equal(f.writes.length, 1);
   assert.equal(f.writes[0].name, preset.name);
+  assert.match(f.host.querySelector('#pg-notice').textContent, /Imported/);
 });
 
 test('pre-gig rejects malformed UTF-8 without saving a replacement-decoded preset', async t => {
