@@ -232,13 +232,15 @@ test('findings sorted error > warning > info > ok and summarized', () => {
   assert.equal(s.counts.error, 2);
   assert.match(s.headline, /2 problems/);
   assert.equal(summarizeFindings([{ severity: 'warning' }]).status, 'warn');
-  assert.equal(summarizeFindings([{ severity: 'ok' }, { severity: 'info' }]).status, 'pass');
+  assert.equal(summarizeFindings([{ severity: 'ok' }, { severity: 'info' }]).status, 'warn', 'finding severity alone cannot establish completed scan coverage');
   assert.equal(summarizeFindings([]).status, 'info');
 });
 
 test('scan errors surface as an info finding; report HTML escapes content', () => {
   const f = interp({ events: { ...events([]), errors: ['Access denied reading Security log'] } });
   assert.ok(f.some(x => x.id === 'events-scan-errors'));
+  assert.ok(!f.some(x => x.id === 'evt-ok'));
+  assert.equal(summarizeFindings(f).status, 'warn');
   const html = buildSystemReportHtml({ findings: [{ id: 'a', area: 'drivers', severity: 'error', title: '<b>x</b>', meaning: 'm', action: 'a', evidence: ['e'], when: null }] });
   assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;') && !html.includes('<b>x</b>'));
   assert.ok(html.includes('What to do'));

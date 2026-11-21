@@ -1,0 +1,242 @@
+{
+  "canonical_file_manifest_sha256": "4589e210609449652e0727b361adeb3866cd59b674ea1768ba0d705e4544fe72",
+  "file_count": 39,
+  "files": [
+    {
+      "bytes": 163,
+      "mode": "0644",
+      "name": "authorized-command.txt",
+      "sha256": "0649a232312480d98de0a73d601adcf5f98e67ace93c9e7f4113d943b532ec3c"
+    },
+    {
+      "bytes": 4995,
+      "mode": "0644",
+      "name": "authorized-launcher.py",
+      "sha256": "aceb51fb67f805280a8f5090cbd7fbc1b4895596463f02c44eddc52126985f58"
+    },
+    {
+      "bytes": 28712,
+      "mode": "0644",
+      "name": "authorized-selection.json",
+      "sha256": "ef68e00e9c9749d5cb294cbdc90b93326616ba62dc1e8fe8098da35f9bc0522a"
+    },
+    {
+      "bytes": 17005,
+      "mode": "0644",
+      "name": "expected-case-names.json",
+      "sha256": "7e86a40b3089c8e5e2da3198b36bb75e950ae5477a2ca4ce632e135555dffa7f"
+    },
+    {
+      "bytes": 570148,
+      "mode": "0644",
+      "name": "full-source-after.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    {
+      "bytes": 570148,
+      "mode": "0644",
+      "name": "full-source-before.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    {
+      "bytes": 3,
+      "mode": "0644",
+      "name": "ignored-files-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "bytes": 3,
+      "mode": "0644",
+      "name": "ignored-files-before.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "bytes": 95393,
+      "mode": "0644",
+      "name": "independent-case-inventory.json",
+      "sha256": "c1baf00572ad94123b03a0d03a944dfa7da232ccdf05e5154e5e4958ce3268a1"
+    },
+    {
+      "bytes": 570148,
+      "mode": "0644",
+      "name": "independent-source-identity.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    {
+      "bytes": 365237,
+      "mode": "0644",
+      "name": "index-after.json",
+      "sha256": "9786ce6d68c119ac9dcf1d53999940197812bc43b3594ea3d90f7f9d46f78c96"
+    },
+    {
+      "bytes": 365237,
+      "mode": "0644",
+      "name": "index-before.json",
+      "sha256": "9786ce6d68c119ac9dcf1d53999940197812bc43b3594ea3d90f7f9d46f78c96"
+    },
+    {
+      "bytes": 160944,
+      "mode": "0644",
+      "name": "index-flags-after.json",
+      "sha256": "b2548d56571cde2ba003c81b8aa6a5175a4c4ab879c85c17240c7d93bf2c3742"
+    },
+    {
+      "bytes": 160944,
+      "mode": "0644",
+      "name": "index-flags-before.json",
+      "sha256": "b2548d56571cde2ba003c81b8aa6a5175a4c4ab879c85c17240c7d93bf2c3742"
+    },
+    {
+      "bytes": 0,
+      "mode": "0644",
+      "name": "node-runtime.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 782,
+      "mode": "0644",
+      "name": "node-runtime.stdout",
+      "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604"
+    },
+    {
+      "bytes": 0,
+      "mode": "0644",
+      "name": "node-version.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 9,
+      "mode": "0644",
+      "name": "node-version.stdout",
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14"
+    },
+    {
+      "bytes": 40193,
+      "mode": "0644",
+      "name": "ordered-outcomes.json",
+      "sha256": "b997ea0e14fb313108777b40f02c6ac953ea6942f51ccea17cd8ea94e603780a"
+    },
+    {
+      "bytes": 155772,
+      "mode": "0644",
+      "name": "physical-files-after.json",
+      "sha256": "48eb24bbe794e3a059c41201a20c11127a932e843e88c538c568c4db9a1a3f37"
+    },
+    {
+      "bytes": 155772,
+      "mode": "0644",
+      "name": "physical-files-before.json",
+      "sha256": "48eb24bbe794e3a059c41201a20c11127a932e843e88c538c568c4db9a1a3f37"
+    },
+    {
+      "bytes": 325991,
+      "mode": "0644",
+      "name": "raw-index-after.bin",
+      "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724"
+    },
+    {
+      "bytes": 325991,
+      "mode": "0644",
+      "name": "raw-index-before.bin",
+      "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724"
+    },
+    {
+      "bytes": 16273,
+      "mode": "0644",
+      "name": "result.json",
+      "sha256": "f6dc907791d3ea2c1c95a7df08e6c5f6ebc2ae69f1910b193427189906c9372a"
+    },
+    {
+      "bytes": 27466,
+      "mode": "0644",
+      "name": "run-focused-node.py",
+      "sha256": "e1f06e547e65c992b09f2354777a9d816e52b02a925d9ad012d7e0941cd9718b"
+    },
+    {
+      "bytes": 46741,
+      "mode": "0644",
+      "name": "run.tap",
+      "sha256": "86183d4b10829868a892bb738171f711b560fa3eaeb79a87cdc10d200b02d1dc"
+    },
+    {
+      "bytes": 10548,
+      "mode": "0644",
+      "name": "running.json",
+      "sha256": "5faca9f8e6b64700c232c0af7a7c91ee77dc413a45a751b9fa50584197268602"
+    },
+    {
+      "bytes": 2002,
+      "mode": "0644",
+      "name": "selected-source-identities.json",
+      "sha256": "835c87214d17ef68ee00bcd4ba794b2790be610a4429621a242db595ffdfbdcd"
+    },
+    {
+      "bytes": 269,
+      "mode": "0644",
+      "name": "source-state-after.json",
+      "sha256": "971455e3591e0326dbbcfd0a4d0d3b3faa21e59f22e9594d7dd01925d642069d"
+    },
+    {
+      "bytes": 269,
+      "mode": "0644",
+      "name": "source-state-before.json",
+      "sha256": "971455e3591e0326dbbcfd0a4d0d3b3faa21e59f22e9594d7dd01925d642069d"
+    },
+    {
+      "bytes": 339377,
+      "mode": "0644",
+      "name": "source-tree-after.json",
+      "sha256": "d9a91b35b80517e279cc146dcb439053bc2d4f9bf7b4374bf87da165e61f72aa"
+    },
+    {
+      "bytes": 339377,
+      "mode": "0644",
+      "name": "source-tree-before.json",
+      "sha256": "d9a91b35b80517e279cc146dcb439053bc2d4f9bf7b4374bf87da165e61f72aa"
+    },
+    {
+      "bytes": 0,
+      "mode": "0644",
+      "name": "stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 16998,
+      "mode": "0644",
+      "name": "top-level-tests-after.json",
+      "sha256": "f5431ba070f578148e493c77d43412281ec3839cc7a392a8a04477570182d3af"
+    },
+    {
+      "bytes": 16998,
+      "mode": "0644",
+      "name": "top-level-tests-before.json",
+      "sha256": "f5431ba070f578148e493c77d43412281ec3839cc7a392a8a04477570182d3af"
+    },
+    {
+      "bytes": 155772,
+      "mode": "0644",
+      "name": "tracked-files-after.json",
+      "sha256": "48eb24bbe794e3a059c41201a20c11127a932e843e88c538c568c4db9a1a3f37"
+    },
+    {
+      "bytes": 155772,
+      "mode": "0644",
+      "name": "tracked-files-before.json",
+      "sha256": "48eb24bbe794e3a059c41201a20c11127a932e843e88c538c568c4db9a1a3f37"
+    },
+    {
+      "bytes": 3,
+      "mode": "0644",
+      "name": "untracked-files-after.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "bytes": 3,
+      "mode": "0644",
+      "name": "untracked-files-before.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  ],
+  "original_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw",
+  "total_bytes": 5041458
+}

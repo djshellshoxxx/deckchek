@@ -1,0 +1,269 @@
+{
+  "authorized_launcher_argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-I",
+    "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py"
+  ],
+  "blocked_environment_names": [],
+  "child_environment": {
+    "fixture_update_permitted": false,
+    "forbidden_variables_present": false,
+    "inherited_except_node_path_prefix": true,
+    "node_path_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "controls_before": {
+    "authorized-command.txt": {
+      "bytes": 163,
+      "is_symlink": false,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-command.txt",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-command.txt",
+      "sha256": "0649a232312480d98de0a73d601adcf5f98e67ace93c9e7f4113d943b532ec3c"
+    },
+    "authorized-launcher.py": {
+      "bytes": 4995,
+      "is_symlink": false,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+      "sha256": "aceb51fb67f805280a8f5090cbd7fbc1b4895596463f02c44eddc52126985f58"
+    },
+    "authorized-selection.json": {
+      "bytes": 28712,
+      "is_symlink": false,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-selection.json",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-selection.json",
+      "sha256": "ef68e00e9c9749d5cb294cbdc90b93326616ba62dc1e8fe8098da35f9bc0522a"
+    },
+    "independent-case-inventory.json": {
+      "bytes": 95393,
+      "is_symlink": false,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+      "sha256": "c1baf00572ad94123b03a0d03a944dfa7da232ccdf05e5154e5e4958ce3268a1"
+    },
+    "independent-source-identity.json": {
+      "bytes": 570148,
+      "is_symlink": false,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    "run-focused-node.py": {
+      "bytes": 27466,
+      "is_symlink": false,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-recorder.py",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-recorder.py",
+      "sha256": "e1f06e547e65c992b09f2354777a9d816e52b02a925d9ad012d7e0941cd9718b"
+    }
+  },
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+  "execution_scope": "One authorized original-file FIRST; no rerun or scope expansion",
+  "expected_cases": 208,
+  "new_cases": 35,
+  "node_runtime": {
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ],
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "versions": {
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "node": "24.22.3",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    }
+  },
+  "older_cases": 173,
+  "output_directory": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw",
+  "project": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--test",
+      "--test-concurrency=1",
+      "--test-reporter=tap",
+      "tests/pre-gig.test.mjs",
+      "tests/pregig-storage-screen.test.mjs",
+      "tests/report-pdf.test.mjs",
+      "tests/service-panel-lifecycle.test.mjs",
+      "tests/setup-wizard-model.test.mjs",
+      "tests/support-dialog.test.mjs",
+      "tests/system-check.test.mjs",
+      "tests/system-health-coverage.test.mjs",
+      "tests/system-health-screen.test.mjs"
+    ],
+    "budget_seconds": 60,
+    "post_kill_reap_seconds": 5,
+    "reap_timeout": false,
+    "started_utc": "2026-11-21T15:27:03.822566+00:00",
+    "term_after_seconds": 55,
+    "timed_out": false
+  },
+  "project_launch_attempted": true,
+  "project_started": false,
+  "python": {
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "version": "3.12.14"
+  },
+  "recorder_argv": [
+    "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-recorder.py",
+    "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-selection.json",
+    "e1f06e547e65c992b09f2354777a9d816e52b02a925d9ad012d7e0941cd9718b",
+    "aceb51fb67f805280a8f5090cbd7fbc1b4895596463f02c44eddc52126985f58"
+  ],
+  "runtime_files_before": {
+    "git_binary": {
+      "bytes": 4082768,
+      "is_symlink": false,
+      "mode": "0755",
+      "path": "/usr/bin/git",
+      "resolved_path": "/usr/bin/git",
+      "sha256": "356db14e102d68a1a37d8a1ac577dfd678d45d46e92f468bef8b7154e7bfdc60"
+    },
+    "node_binary": {
+      "bytes": 126951512,
+      "is_symlink": false,
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa"
+    },
+    "python_binary": {
+      "bytes": 30894944,
+      "is_symlink": true,
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+    }
+  },
+  "runtime_identity_calls": [
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "budget_seconds": 10,
+      "elapsed_seconds": 0.008570441001211293,
+      "finished_utc": "2026-11-21T15:27:03.741251+00:00",
+      "label": "node-version",
+      "pid": 21,
+      "reap_timeout": false,
+      "returncode": 0,
+      "started_utc": "2026-11-21T15:27:03.732670+00:00",
+      "stderr": {
+        "bytes": 0,
+        "file": "node-version.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 9,
+        "file": "node-version.stdout",
+        "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14"
+      },
+      "timed_out": false
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "budget_seconds": 10,
+      "elapsed_seconds": 0.06395462300133659,
+      "finished_utc": "2026-11-21T15:27:03.805270+00:00",
+      "label": "node-runtime",
+      "pid": 22,
+      "reap_timeout": false,
+      "returncode": 0,
+      "started_utc": "2026-11-21T15:27:03.741332+00:00",
+      "stderr": {
+        "bytes": 0,
+        "file": "node-runtime.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 782,
+        "file": "node-runtime.stdout",
+        "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604"
+      },
+      "timed_out": false
+    }
+  ],
+  "schema": "deckchek-system-health-coverage-focused-result-v1",
+  "source_before": {
+    "bytes": 91604989,
+    "distinct_blob_count": 2317,
+    "index_file": {
+      "bytes": 325991,
+      "is_symlink": false,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+      "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724"
+    },
+    "index_sha256": "2d0e3b21eef9be6a2aa64358262c994a5047a86877338c8821f07180d61e85f2",
+    "path_count": 2586,
+    "physical_files_sha256": "83837b80462c2af3de67d28acbf38ee3b3e082db9795a5c5191c6f7da3c59813",
+    "source_map_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa",
+    "state": {
+      "branch": "review/deckchek-system-health-functional-20261121",
+      "head": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "parents": [
+        "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+      ],
+      "status_porcelain": "",
+      "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a"
+    },
+    "test_inventory_sha256": "2e1b804e9ebb01341b6cde056853f868637b7df918f6722237da379356897b31"
+  },
+  "source_branch": "review/deckchek-system-health-functional-20261121",
+  "source_commit": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "source_parents": [
+    "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+  ],
+  "source_tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "started_utc": "2026-11-21T15:27:02.581941+00:00",
+  "test_files": [
+    "tests/pre-gig.test.mjs",
+    "tests/pregig-storage-screen.test.mjs",
+    "tests/report-pdf.test.mjs",
+    "tests/service-panel-lifecycle.test.mjs",
+    "tests/setup-wizard-model.test.mjs",
+    "tests/support-dialog.test.mjs",
+    "tests/system-check.test.mjs",
+    "tests/system-health-coverage.test.mjs",
+    "tests/system-health-screen.test.mjs"
+  ]
+}

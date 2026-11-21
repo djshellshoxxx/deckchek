@@ -77,6 +77,19 @@ test('answers are merged, sanitized and bounded', () => {
   assert.equal(run(s, WIN, { type: 'answer', patch: 'oops' }), s);
 });
 
+test('setup summary retains incomplete driver coverage through persistence and clears it for a new attempt', () => {
+  let s = run(initialWizardState(), WIN, { type: 'start' }, { type: 'answer', patch: { health: { errors: 0, warnings: 0, complete: false } } });
+  const saved = JSON.parse(JSON.stringify(serializeWizardState(s)));
+  s = migrateWizardState(saved);
+  assert.deepEqual(s.answers.health, { errors: 0, warnings: 0, complete: false });
+  assert.match(summarize(s, WIN).text, /0 errors, 0 warnings · driver scan incomplete/);
+  s = run(s, WIN, { type: 'answer', patch: { health: null } });
+  assert.equal(s.answers.health, null); assert.match(summarize(s, WIN).text, /System Health: Not scanned/);
+  s = run(s, WIN, { type: 'answer', patch: { health: { errors: 0, warnings: 0, complete: true } } });
+  assert.equal(s.answers.health.complete, true); assert.doesNotMatch(summarize(s, WIN).text, /incomplete/);
+  assert.deepEqual(sanitizeAnswers({ health: { errors: 0, warnings: 0, complete: 'true' } }).health, { errors: 0, warnings: 0 });
+});
+
 test('resume after step N restores step and answers (AC-2)', () => {
   let s = run(initialWizardState(), WIN, { type: 'start' }, { type: 'answer', patch: { inputDevice: 'Rig', sampleRate: 44100 } }, { type: 'next' }, { type: 'next' });
   const saved = JSON.parse(JSON.stringify({ ...serializeWizardState(s), version: 1, updatedAt: s.updatedAt }));

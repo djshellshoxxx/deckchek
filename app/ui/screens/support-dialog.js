@@ -37,13 +37,15 @@ export function buildClientContext({ systemHealth, nav = globalThis.navigator, u
 }
 
 async function collectSystemHealth() {
-  const { createSystemBridge, interpretSystemScan, summarizeFindings } = await import('../../system-check.js');
+  const { createSystemBridge, interpretSystemScan, summarizeFindings, systemScanCoverage } = await import('../../system-check.js');
   const bridge = createSystemBridge();
   if (!bridge.isAvailable()) return null;
   const [drivers, events, logs] = await Promise.allSettled([bridge.scanDrivers(), bridge.scanEvents({ days: 14 }), bridge.scanDjLogs()]);
   const val = r => (r.status === 'fulfilled' ? r.value : null);
-  const findings = interpretSystemScan({ drivers: val(drivers), events: val(events), logs: val(logs) });
-  return { summary: summarizeFindings(findings), findings: findings.map(f => ({ id: f.id, severity: f.severity, title: f.title })) };
+  const scans = { drivers: val(drivers), events: val(events), logs: val(logs) };
+  const states = Object.fromEntries([['drivers', drivers], ['events', events], ['djLogs', logs]].map(([area, result]) => [area, result.status === 'fulfilled' ? 'done' : 'error']));
+  const findings = interpretSystemScan(scans), coverage = systemScanCoverage(scans, { states });
+  return { summary: summarizeFindings(findings, coverage), coverage, findings: findings.map(f => ({ id: f.id, area: f.area, scanState: f.scanState, severity: f.severity, title: f.title })) };
 }
 
 const isTyping = el => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) && el.type !== 'checkbox';

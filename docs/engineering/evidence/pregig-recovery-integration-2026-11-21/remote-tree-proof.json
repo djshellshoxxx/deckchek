@@ -1,0 +1,11 @@
+{
+  "prepared": "5673f7e0506615abbd033e868167800116550fe0",
+  "remote_commit": "42a0b70cf9e97648b783d723d6f64ff89eea111e",
+  "tree": "b18cafe8a11f72b190f8ac47937124908b18ca0d",
+  "ordered_parents": [
+    "34afefa58ac5e8346006087587b113c2a82d5a39"
+  ],
+  "complete_tree_and_recursive_entry_equality": true,
+  "zero_diff": true,
+  "clean_prepared_source": true
+}

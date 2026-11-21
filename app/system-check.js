@@ -3,6 +3,62 @@
 
 export const SEVERITY_ORDER = { error: 0, warning: 1, info: 2, ok: 3 };
 export const UNSUPPORTED_NOTE = 'System Health scans run in the Windows desktop app';
+export const SYSTEM_SCAN_AREAS = Object.freeze(['drivers', 'events', 'djLogs']);
+const AREA_LABEL = { drivers: 'Audio drivers', events: 'Windows event logs', djLogs: 'DJ software logs' };
+const SCAN_KEY = { drivers: 'drivers', events: 'events', djLogs: 'logs' };
+const SCAN_FIELDS = { drivers: ['drivers', 'asioDrivers'], events: ['events'], djLogs: ['apps'] };
+const COVERAGE_LABEL = { complete: 'Complete', partial: 'Incomplete', failed: 'Failed', unsupported: 'Unavailable here', pending: 'Scanning', unscanned: 'Not scanned' };
+const COVERAGE_DETAIL = {
+  complete: 'The requested scan completed without reported collection errors.',
+  partial: 'Some data could not be read or the response was incomplete. Available findings do not cover the whole area.',
+  failed: 'The scan did not return a usable result. Retry this area before relying on an overall all-clear.',
+  unsupported: 'This scan is unavailable in this environment; this area was not checked.',
+  pending: 'The scan has not finished. Its previous result is not part of the current verdict.',
+  unscanned: 'This area has no scan result.',
+};
+
+function coverageSummary(areas) {
+  const counts = { complete: 0, partial: 0, failed: 0, unsupported: 0, pending: 0, unscanned: 0 };
+  for (const area of areas) counts[area.state]++;
+  const gaps = Object.entries(counts).filter(([state, count]) => state !== 'complete' && count > 0)
+    .map(([state, count]) => `${count} ${COVERAGE_LABEL[state].toLowerCase()}`);
+  return { areas, counts, complete: areas.length > 0 && counts.complete === areas.length,
+    completed: counts.complete, total: areas.length,
+    summary: `${counts.complete} of ${areas.length} scan areas complete${gaps.length ? `; ${gaps.join(', ')}` : ''}.` };
+}
+
+function coverageArea(area, state) {
+  return { area, label: AREA_LABEL[area], state, status: COVERAGE_LABEL[state], detail: COVERAGE_DETAIL[state] };
+}
+
+/** Coverage is independent of finding severity. `states` describes the current command attempts. */
+export function systemScanCoverage(scans = {}, { states = {}, areas = SYSTEM_SCAN_AREAS } = {}) {
+  const required = SYSTEM_SCAN_AREAS.filter(area => areas.includes(area));
+  return coverageSummary(required.map(area => {
+    const scan = scans[SCAN_KEY[area]], attempt = states[area];
+    let state;
+    if (attempt === 'loading') state = 'pending';
+    else if (attempt === 'error') state = 'failed';
+    else if (attempt === 'idle' || !scan) state = 'unscanned';
+    else if (scan.supported === false) state = 'unsupported';
+    else if (scan.supported !== true || typeof scan !== 'object' || Array.isArray(scan)) state = 'failed';
+    else if (!Array.isArray(scan.errors) || scan.errors.length || SCAN_FIELDS[area].some(key => !Array.isArray(scan[key]))) state = 'partial';
+    else state = 'complete';
+    return coverageArea(area, state);
+  }));
+}
+
+function coverageFromFindings(findings) {
+  if (findings.length === 1 && findings[0].id === 'system-unsupported') {
+    const unavailable = findings[0].scanAreas || SYSTEM_SCAN_AREAS;
+    return coverageSummary(SYSTEM_SCAN_AREAS.map(area => coverageArea(area, unavailable.includes(area) ? 'unsupported' : 'unscanned')));
+  }
+  return coverageSummary(SYSTEM_SCAN_AREAS.map(area => {
+    const states = findings.filter(f => f.area === area).map(f => f.scanState).filter(state => state in COVERAGE_LABEL);
+    const state = ['failed', 'pending', 'partial', 'unsupported', 'unscanned', 'complete'].find(value => states.includes(value)) || 'unscanned';
+    return coverageArea(area, state);
+  }));
+}
 
 // ---------------------------------------------------------------- bridge
 const emptyScan = (extra = {}) => ({ supported: false, scannedAt: new Date().toISOString(), errors: [], ...extra });
@@ -14,7 +70,8 @@ export function createSystemBridge(invoke) {
     const fn = call();
     if (typeof fn !== 'function') return fallback;
     const out = await fn(cmd, args);
-    return out && typeof out === 'object' ? out : fallback;
+    if (!out || typeof out !== 'object' || Array.isArray(out)) throw new Error('This scan returned an invalid response. Retry the scan.');
+    return out;
   };
   return {
     isAvailable: () => typeof call() === 'function',
@@ -396,48 +453,65 @@ export function interpretSystemScan({ drivers = null, events = null, logs = null
   const provided = Object.values(scans).filter(Boolean);
   const findings = [];
   if (provided.length && provided.every(s => s.supported === false)) {
-    findings.push(mk('drivers', 'system-unsupported', 'info', UNSUPPORTED_NOTE, 'This check reads Windows drivers, the Windows event log and DJ-program log files, which are only available when DeckChek runs as the Windows desktop app. Nothing was scanned.', 'Open DeckChek on the Windows computer you use for DJing and run the scan there.', { evidence: provided.flatMap(s => arr(s.errors)) }));
+    findings.push(mk('drivers', 'system-unsupported', 'info', UNSUPPORTED_NOTE, 'This check reads Windows drivers, the Windows event log and DJ-program log files, which are only available when DeckChek runs as the Windows desktop app. Nothing was scanned.', 'Open DeckChek on the Windows computer you use for DJing and run the scan there.', { evidence: provided.flatMap(s => arr(s.errors)), scanAreas: SYSTEM_SCAN_AREAS.filter(area => scans[SCAN_KEY[area]]) }));
     return findings;
   }
-  const partial = (scan, area, label) => {
-    const errs = arr(scan.errors);
-    if (errs.length) findings.push(mk(area, `${area}-scan-errors`, 'info', `${label} scan was incomplete`, 'Part of the scan could not read some data (often because of permissions), so results for this area may be missing items.', 'Run DeckChek as administrator to read protected logs, then scan again.', { evidence: errs.slice(0, 5).map(String), when: scan.scannedAt || null }));
-  };
   const nowMs = typeof now === 'number' ? now : new Date(now).getTime();
-  if (drivers && drivers.supported !== false) { findings.push(...interpretDrivers(drivers, nowMs)); partial(drivers, 'drivers', 'Driver'); }
-  if (events && events.supported !== false) { findings.push(...interpretEvents(events)); partial(events, 'events', 'Event log'); }
-  if (logs && logs.supported !== false) { findings.push(...interpretDjLogs(logs)); partial(logs, 'djLogs', 'DJ software log'); }
+  const coverage = systemScanCoverage(scans);
+  for (const { area, state, label, detail } of coverage.areas) {
+    const scan = scans[SCAN_KEY[area]];
+    if (!scan) continue; // Subset consumers deliberately omit areas; coverage still records the gap.
+    let items = [];
+    if (state === 'complete' || state === 'partial') {
+      items = area === 'drivers' ? interpretDrivers(scan, nowMs) : area === 'events' ? interpretEvents(scan) : interpretDjLogs(scan);
+      // A partial collection can retain real faults, but cannot supply an area-wide all-clear.
+      if (state !== 'complete') items = items.filter(f => f.severity !== 'ok');
+    }
+    findings.push(...items.map(f => ({ ...f, scanState: state })));
+    if (state !== 'complete') {
+      const suffix = state === 'partial' ? 'errors' : state;
+      findings.push(mk(area, `${area}-scan-${suffix}`, 'info', `${label}: ${COVERAGE_LABEL[state].toLowerCase()}`, detail,
+        state === 'unsupported' ? 'Run the scan in the Windows desktop app.' : 'Retry this area. Review its scan notes if collection remains incomplete.',
+        { scanState: state, evidence: arr(scan.errors).slice(0, 5).map(String), when: scan.scannedAt || null }));
+    }
+  }
   return findings.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || t(b.when) - t(a.when));
 }
 
 /** Overall verdict: status is fail | warn | pass | info (matches the app's status chips). */
-export function summarizeFindings(findings = []) {
+export function summarizeFindings(findings = [], coverage = coverageFromFindings(findings)) {
   const counts = { error: 0, warning: 0, info: 0, ok: 0 };
   for (const f of findings) if (f.severity in counts) counts[f.severity]++;
-  const only = findings.length === 1 && findings[0].id === 'system-unsupported';
+  const only = coverage.total > 0 && coverage.counts.unsupported === coverage.total;
   let status, headline;
-  if (!findings.length) { status = 'info'; headline = 'No scan results yet.'; }
-  else if (only) { status = 'info'; headline = `${UNSUPPORTED_NOTE}.`; }
-  else if (counts.error) {
+  if (counts.error) {
     status = 'fail';
     headline = `${plural(counts.error, 'problem')} found${counts.warning ? ` and ${plural(counts.warning, 'warning')}` : ''} — these can cause crashes, dropouts or missing devices.`;
   } else if (counts.warning) {
     status = 'warn';
-    headline = `${plural(counts.warning, 'thing')} worth checking — no serious problems found.`;
+    headline = `${plural(counts.warning, 'thing')} worth checking in the available results.`;
+  } else if (only) { status = 'info'; headline = `${UNSUPPORTED_NOTE}.`; }
+  else if (!findings.length && coverage.counts.unscanned === coverage.total) { status = 'info'; headline = 'No scan results yet.'; }
+  else if (!coverage.complete) {
+    status = 'warn';
+    headline = 'System Health scan is incomplete.';
   } else {
     status = 'pass';
-    headline = 'No problems found with your audio drivers, event logs or DJ software.';
+    headline = coverage.total === SYSTEM_SCAN_AREAS.length
+      ? 'No problems found in the completed audio-driver, event-log and DJ-software scans.'
+      : 'No problems found in the completed scan areas.';
   }
-  return { status, counts, headline };
+  return { status, counts, headline, coverage };
 }
 
 // ---------------------------------------------------------------- report
 const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SEV_LABEL = { error: 'ERROR', warning: 'WARNING', info: 'INFO', ok: 'OK' };
-const AREA_LABEL = { drivers: 'Audio drivers', events: 'Windows event logs', djLogs: 'DJ software logs' };
 
 /** Self-contained HTML report (no external assets). */
-export function buildSystemReportHtml({ findings = [], summary = summarizeFindings(findings), generatedAt = new Date().toISOString(), drivers = null } = {}) {
+export function buildSystemReportHtml({ findings = [], summary: suppliedSummary, coverage = suppliedSummary?.coverage, generatedAt = new Date().toISOString(), drivers = null } = {}) {
+  const summary = summarizeFindings(findings, coverage);
+  const coverageTable = `<h2>Scan coverage</h2><p>${escHtml(summary.coverage.summary)}</p><table><thead><tr><th>Area</th><th>Coverage</th><th>Meaning</th></tr></thead><tbody>${summary.coverage.areas.map(area => `<tr><th>${escHtml(area.label)}</th><td>${escHtml(area.status)}</td><td>${escHtml(area.detail)}</td></tr>`).join('')}</tbody></table>`;
   const color = { error: '#B3261E', warning: '#8A5A00', info: '#0B5FCC', ok: '#0B7A55' };
   const sections = ['drivers', 'events', 'djLogs'].map(area => {
     const items = findings.filter(f => f.area === area);
@@ -449,5 +523,5 @@ export function buildSystemReportHtml({ findings = [], summary = summarizeFindin
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DeckChek System Health report</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#14171c}article{border:1px solid #d5d9e0;border-radius:8px;padding:.6rem 1rem;margin:.8rem 0}h1{margin-bottom:.2rem}.sev{font-size:.75rem;letter-spacing:.06em}table{border-collapse:collapse;width:100%;font-size:13px}th,td{border-bottom:1px solid #d5d9e0;padding:4px 8px;text-align:left}ul{font:13px/1.4 ui-monospace,monospace;color:#444}</style></head><body>
 <h1>DeckChek System Health report</h1><p>Generated ${escHtml(stamp(generatedAt))}</p>
-<p><strong>${escHtml(summary.headline)}</strong> ${summary.counts.error} error(s), ${summary.counts.warning} warning(s), ${summary.counts.info} info, ${summary.counts.ok} OK.</p>${sections}${driverTable}</body></html>`;
+<p><strong>${escHtml(summary.headline)}</strong> ${summary.counts.error} error(s), ${summary.counts.warning} warning(s), ${summary.counts.info} info, ${summary.counts.ok} OK.</p>${coverageTable}${sections}${driverTable}</body></html>`;
 }

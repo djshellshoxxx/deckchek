@@ -106,14 +106,16 @@ export function savedActions(path) {
  * and the print-dialog fallback are handled there; this only reports the outcome.
  * `htmlFallback` (optional) is offered on a failure as "Export HTML instead".
  * `isCurrent` scopes feedback and retries to a caller's view without cancelling a submitted export.
+ * `onBusyChange` lets a persistent owner restore its controls after direct exports and toast retries.
  * Never throws. Returns the exportPdf result, or {error} / {busy:true} / {stale:true}.
  */
-export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, button = null, isCurrent = () => true } = {}) {
+export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, button = null, isCurrent = () => true, onBusyChange = () => {} } = {}) {
   const label = PDF_LABEL[kind] || 'Report';
   if (!isCurrent()) return { stale: true };
   if (!pdfExportEnabled()) return { disabled: true };
   if (button?.disabled) return { busy: true };
   if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+  onBusyChange(true);
   const endProgress = toast(`Creating PDF… ${label.toLowerCase()}`, { type: 'info', timeout: 0 });
   try {
     const { exportPdf, readPdfSettings } = await import('../report-pdf.js');
@@ -135,13 +137,14 @@ export async function exportPdfWithFeedback(kind, data, { htmlFallback = null, b
     const message = error?.code === 'busy' ? 'A PDF is already being created. Wait for it to finish.'
       : `The PDF could not be created: ${error?.message || error}${error?.retryable ? ' You can try again.' : ''}`;
     const actions = [];
-    if (error?.retryable || error?.code === 'timeout') actions.push({ label: 'Retry', run: () => exportPdfWithFeedback(kind, data, { htmlFallback, button, isCurrent }) });
+    if (error?.retryable || error?.code === 'timeout') actions.push({ label: 'Retry', run: () => exportPdfWithFeedback(kind, data, { htmlFallback, button, isCurrent, onBusyChange }) });
     if (htmlFallback) actions.push({ label: 'Export HTML instead', run: () => { if (isCurrent()) htmlFallback(); } });
     toast(message, { type: 'error', ...(actions.length ? { actions } : {}) });
     return { error };
   } finally {
     endProgress();
     if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
+    onBusyChange(false);
   }
 }
 

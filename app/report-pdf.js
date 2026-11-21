@@ -343,8 +343,8 @@ registerPrintableKind('systemHealth', {
   title: 'DeckChek System Health report',
   device: d => d?.computerName || 'This computer',
   summary: d => {
-    const s = d?.summary || summarizeFindings(d?.findings || []);
-    return [['Verdict', s.headline], ['Findings', `${s.counts.error} error, ${s.counts.warning} warning, ${s.counts.info} info, ${s.counts.ok} OK`]];
+    const s = summarizeFindings(d?.findings || [], d?.coverage || d?.summary?.coverage);
+    return [['Verdict', s.headline], ['Scan coverage', s.coverage.summary], ['Findings', `${s.counts.error} error, ${s.counts.warning} warning, ${s.counts.info} info, ${s.counts.ok} OK`]];
   },
   build: (d = {}) => {
     const drivers = d.drivers && Array.isArray(d.drivers.drivers) ? { ...d.drivers, drivers: capRows(d.drivers.drivers).rows } : d.drivers;

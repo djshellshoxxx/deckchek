@@ -1,0 +1,257 @@
+{
+  "budget_rationale": "The 173 matched retained original case durations total 14913.288587 ms. Round this to 15 s for historical case work; allow 20 s for 35 new cases and changed assertions, plus 20 s for startup, module loading, filesystem and host variability. Send TERM at 55 s from the project launch attempt and KILL at 60 s if still active. A separate maximum 5 s wait after KILL only reaps the already-signaled process; it does not authorize further work or any retry. Each of the two identity calls has its own 10 s deadline and immediate KILL on timeout, followed by the same bounded reap. Preserve every assertion and original selected source file.",
+  "case_counts": {
+    "new": 35,
+    "older": 173,
+    "total": 208
+  },
+  "command": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -I /workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+  "controls": [
+    {
+      "bytes": 27466,
+      "lines": 479,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-recorder.py",
+      "sha256": "e1f06e547e65c992b09f2354777a9d816e52b02a925d9ad012d7e0941cd9718b"
+    },
+    {
+      "bytes": 28712,
+      "lines": 480,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-selection.json",
+      "sha256": "ef68e00e9c9749d5cb294cbdc90b93326616ba62dc1e8fe8098da35f9bc0522a"
+    },
+    {
+      "bytes": 4995,
+      "lines": 95,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+      "sha256": "aceb51fb67f805280a8f5090cbd7fbc1b4895596463f02c44eddc52126985f58"
+    },
+    {
+      "bytes": 163,
+      "lines": 1,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-command.txt",
+      "sha256": "0649a232312480d98de0a73d601adcf5f98e67ace93c9e7f4113d943b532ec3c"
+    },
+    {
+      "bytes": 570148,
+      "lines": 1,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    {
+      "bytes": 95393,
+      "lines": 2794,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+      "sha256": "c1baf00572ad94123b03a0d03a944dfa7da232ccdf05e5154e5e4958ce3268a1"
+    }
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+  "environment_rejection": {
+    "present_names": [
+      "NODE_OPTIONS",
+      "UPDATE_FIXTURES",
+      "MIXXX_CONTROLLERS_DIR"
+    ],
+    "present_prefixes": [
+      "DECKCHEK_AUDIO_"
+    ]
+  },
+  "launcher_denial": "A pre-execution pin failure prints its original traceback to the command stderr, leaves the raw output directory absent, and permits no automatic retry. Preserve that original command result as evidence.",
+  "only_authorizable_node_argv": [
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--version"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--test",
+      "--test-concurrency=1",
+      "--test-reporter=tap",
+      "tests/pre-gig.test.mjs",
+      "tests/pregig-storage-screen.test.mjs",
+      "tests/report-pdf.test.mjs",
+      "tests/service-panel-lifecycle.test.mjs",
+      "tests/setup-wizard-model.test.mjs",
+      "tests/support-dialog.test.mjs",
+      "tests/system-check.test.mjs",
+      "tests/system-health-coverage.test.mjs",
+      "tests/system-health-screen.test.mjs"
+    ]
+  ],
+  "ordered_file_names_sha256": "9ceda94adb8e00b72d093870907a50393db9da779449e31f8c01bd6a8fac71bf",
+  "ordered_names_sha256": "145174e3bed3c471c063bd7d9d92cd2caa141047ace531f7ac3a94b531eea5e4",
+  "ordered_source_records_sha256": "19da1355909acf22efd6e6e741bf284e6c6a06f4b82d3abc2e29e8485fe9ce79",
+  "original_retention_on_success": [
+    "authorized-command.txt",
+    "authorized-launcher.py",
+    "authorized-selection.json",
+    "expected-case-names.json",
+    "full-source-after.json",
+    "full-source-before.json",
+    "ignored-files-after.json",
+    "ignored-files-before.json",
+    "independent-case-inventory.json",
+    "independent-source-identity.json",
+    "index-after.json",
+    "index-before.json",
+    "index-flags-after.json",
+    "index-flags-before.json",
+    "node-runtime.stderr",
+    "node-runtime.stdout",
+    "node-version.stderr",
+    "node-version.stdout",
+    "ordered-outcomes.json",
+    "physical-files-after.json",
+    "physical-files-before.json",
+    "raw-index-after.bin",
+    "raw-index-before.bin",
+    "result.json",
+    "run-focused-node.py",
+    "run.tap",
+    "running.json",
+    "selected-source-identities.json",
+    "source-state-after.json",
+    "source-state-before.json",
+    "source-tree-after.json",
+    "source-tree-before.json",
+    "stderr.log",
+    "top-level-tests-after.json",
+    "top-level-tests-before.json",
+    "tracked-files-after.json",
+    "tracked-files-before.json",
+    "untracked-files-after.json",
+    "untracked-files-before.json"
+  ],
+  "prior_recorder_read_completely": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run-focused-node.py (22756 bytes, 385 lines); prior configuration and one-line launcher also read completely before adaptation.",
+  "raw_index_pin": {
+    "bytes": 325991,
+    "is_symlink": false,
+    "mode": "0644",
+    "path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+    "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+    "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724"
+  },
+  "raw_output_currently_absent": true,
+  "raw_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw",
+  "retained_error_files_if_needed": [
+    "recorder-error.txt",
+    "postflight-error.txt",
+    "tap-validation-error.txt"
+  ],
+  "runtime_file_pins": {
+    "git_binary": {
+      "bytes": 4082768,
+      "is_symlink": false,
+      "mode": "0755",
+      "path": "/usr/bin/git",
+      "resolved_path": "/usr/bin/git",
+      "sha256": "356db14e102d68a1a37d8a1ac577dfd678d45d46e92f468bef8b7154e7bfdc60"
+    },
+    "node_binary": {
+      "bytes": 126951512,
+      "is_symlink": false,
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa"
+    },
+    "python_binary": {
+      "bytes": 30894944,
+      "is_symlink": true,
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+    }
+  },
+  "source_branch": "review/deckchek-system-health-functional-20261121",
+  "source_commit": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "source_counts": {
+    "bytes": 91604989,
+    "distinct_blobs": 2317,
+    "paths": 2586,
+    "top_level_tests": 209
+  },
+  "source_inventory": [
+    {
+      "added": 0,
+      "cases": 59,
+      "file": "tests/pre-gig.test.mjs",
+      "historical_duration_ms": "14590.668619",
+      "older": 59
+    },
+    {
+      "added": 0,
+      "cases": 19,
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "historical_duration_ms": "139.283950",
+      "older": 19
+    },
+    {
+      "added": 0,
+      "cases": 28,
+      "file": "tests/report-pdf.test.mjs",
+      "historical_duration_ms": "74.806864",
+      "older": 28
+    },
+    {
+      "added": 0,
+      "cases": 28,
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "historical_duration_ms": "85.352739",
+      "older": 28
+    },
+    {
+      "added": 1,
+      "cases": 15,
+      "file": "tests/setup-wizard-model.test.mjs",
+      "historical_duration_ms": "8.078872",
+      "older": 14
+    },
+    {
+      "added": 0,
+      "cases": 3,
+      "file": "tests/support-dialog.test.mjs",
+      "historical_duration_ms": "2.426278",
+      "older": 3
+    },
+    {
+      "added": 0,
+      "cases": 22,
+      "file": "tests/system-check.test.mjs",
+      "historical_duration_ms": "12.671265",
+      "older": 22
+    },
+    {
+      "added": 15,
+      "cases": 15,
+      "file": "tests/system-health-coverage.test.mjs",
+      "historical_duration_ms": "0",
+      "older": 0
+    },
+    {
+      "added": 19,
+      "cases": 19,
+      "file": "tests/system-health-screen.test.mjs",
+      "historical_duration_ms": "0",
+      "older": 0
+    }
+  ],
+  "source_map_canonical_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa",
+  "source_parents": [
+    "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+  ],
+  "source_tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "static_self_review": "Every authored recorder/configuration/launcher/command line has been read as text. Independent Python stdlib data comparison verifies exact control hashes and inventory cross-pins; no control import, compilation, syntax command, Node identity, project test, build, browser, native or probe has run.",
+  "status": "UNEXECUTED; full static review and distinct root exact-byte FIRST authorization are still required"
+}

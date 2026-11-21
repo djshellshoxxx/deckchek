@@ -122,26 +122,47 @@ integration and a separate pre-existing native association correction: deleting
 an active or retained-unsaved result's preset can leave its later save unable to
 satisfy native validation. The focused browser/fake-native pass does not close it.
 
-All three completed Pre-gig FINALs preceded the fresh round-eighteen code,
-functional/bug and defensive security cohort. It now reviews separate System
-Health [#89](https://github.com/djshellshoxxx/deckchek/issues/89) source at
-`2a807525c70712332e84cecbaf29dd876b5e03cd`. That source is outside this Pre-gig
-checkpoint. Its nine-file selection has 208 authored cases, 35 new, with no
-project execution yet authorized. Coverage distinguishes incomplete, failed,
-unsupported and pending areas in the view, HTML/PDF, diagnostics and setup.
-Only its functional worker may later run a separately root-reviewed exact FIRST
-after all three source and full-control dispositions. All three current FINALs
-must precede another rotation. Root owns implementation, CI, integration and
-publication; the Pre-gig held checkpoint is being prepared separately.
+All three round-eighteen System Health workers supplied FINAL scoped ACCEPT.
+The single nine-file FIRST at `2a807525` passed **208/208**, including all 35
+new cases, in 15.929411565994087 seconds, with no failures, cancellations, skips,
+TODOs, timeout or stderr. Root read every report and independently verified the
+exact owned-only commits, all 2,586 original paths, all 208 ordered outcomes,
+all 47 source-copy bindings and the complete 49-file evidence package. Read the
+[completed System Health handoff](docs/engineering/SYSTEM_HEALTH_COVERAGE_CONTINUATION_2026-11-21.md).
+Coverage remains explicit through the actual screen, HTML/PDF, diagnostics and
+driver-only setup. Failed or incomplete collection cannot become HEALTHY; real
+faults retain severity. The FIRST is consumed. Native collectors, real browser
+layout, rendered PDFs and whole-source qualification remain outside this pass.
+
+Root separately authored the next Pre-gig preset ownership candidate at
+`ac31e02874df314a9b035ccb5aecea688e080f4f`. It protects running, saving and
+retained results against preset deletion and reserves pending deletion against
+competing screen transitions. Thirteen new screen cases bring its proposed
+five-file selection to 145. This separate candidate is **unexecuted** and is not
+part of the System Health checkpoint. All three System Health FINALs preceded
+the fresh round-nineteen code, functional/bug and defensive security review at
+`bd74570beb84885788bd88949449c0859ecd6d70`. A later FIRST requires all three
+source/control dispositions and separate exact authorization.
+Two inherited LOW System Health follow-ups remain queued: delayed announcement
+ownership and partial-result absence wording. Root owns implementation, CI,
+integration and publication.
+
+The completed Pre-gig held checkpoint is now durable at
+[`42a0b70cf9e97648b783d723d6f64ff89eea111e`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-pregig-recovery-held-20261121),
+with the complete tree, sole Backup/Service parent and exact reference verified.
+Read its [publication proof](docs/engineering/evidence/pregig-recovery-integration-2026-11-21/checkpoint-publication.json).
+Issue #87 records the scoped completion and remains open.
 
 Scheduled-backup settings [#85](https://github.com/djshellshoxxx/deckchek/issues/85)
 stays open: the native owner/cache, startup and exit protocol remains unfinished.
 Population Compare [#88](https://github.com/djshellshoxxx/deckchek/issues/88) remains
-queued for excessive synchronous work on large valid packs. These are source
-findings, not observed platform failures. The original complete-source audio
+queued for excessive synchronous work on large valid packs. Photo reattachment
+integrity [#90](https://github.com/djshellshoxxx/deckchek/issues/90) is separately
+queued for length-only reuse of existing content. These are source findings,
+not observed platform failures. The original complete-source audio
 HOLD, fixed published heads and Fleet default-off remain. The same hourly
 continuation stays enabled; no credit-exhaustion result exists.
-Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88/#89 remain outside qualified PR #79.
+Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88/#89/#90 remain outside qualified PR #79.
 
 The sections below are preserved historical checkpoints, not current resume
 or execution-ownership instructions. Fleet stays off and its diagnostic head

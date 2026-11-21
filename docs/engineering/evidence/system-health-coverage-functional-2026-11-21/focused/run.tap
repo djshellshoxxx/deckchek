@@ -1,0 +1,1258 @@
+TAP version 13
+# Subtest: timecode: clean deck passes with no fix needed
+ok 1 - timecode: clean deck passes with no fix needed
+  ---
+  duration_ms: 1.865173
+  type: 'test'
+  ...
+# Subtest: timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)
+ok 2 - timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)
+  ---
+  duration_ms: 1.082047
+  type: 'test'
+  ...
+# Subtest: timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter
+ok 3 - timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter
+  ---
+  duration_ms: 0.488774
+  type: 'test'
+  ...
+# Subtest: timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red
+ok 4 - timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red
+  ---
+  duration_ms: 0.376246
+  type: 'test'
+  ...
+# Subtest: timecode dropouts: 0 passes, 1 amber, 2 red
+ok 5 - timecode dropouts: 0 passes, 1 amber, 2 red
+  ---
+  duration_ms: 0.31315
+  type: 'test'
+  ...
+# Subtest: timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format
+ok 6 - timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format
+  ---
+  duration_ms: 0.390898
+  type: 'test'
+  ...
+# Subtest: timecode: worst metric wins, every issue gets one fix, unverified format warns
+ok 7 - timecode: worst metric wins, every issue gets one fix, unverified format warns
+  ---
+  duration_ms: 0.374543
+  type: 'test'
+  ...
+# Subtest: timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error
+ok 8 - timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error
+  ---
+  duration_ms: 0.355174
+  type: 'test'
+  ...
+# Subtest: timecode: capture problems become actions, not crashes
+ok 9 - timecode: capture problems become actions, not crashes
+  ---
+  duration_ms: 0.489015
+  type: 'test'
+  ...
+# Subtest: signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel
+ok 10 - signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel
+  ---
+  duration_ms: 0.565119
+  type: 'test'
+  ...
+# Subtest: hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored
+ok 11 - hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored
+  ---
+  duration_ms: 0.427472
+  type: 'test'
+  ...
+# Subtest: hum that could not be measured is amber with a retry, never a silent pass
+ok 12 - hum that could not be measured is amber with a retry, never a silent pass
+  ---
+  duration_ms: 0.177327
+  type: 'test'
+  ...
+# Subtest: audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber
+ok 13 - audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber
+  ---
+  duration_ms: 0.492751
+  type: 'test'
+  ...
+# Subtest: midi: present passes, optional missing is amber, required missing is red, no backend is unsupported
+ok 14 - midi: present passes, optional missing is amber, required missing is red, no backend is unsupported
+  ---
+  duration_ms: 0.382295
+  type: 'test'
+  ...
+# Subtest: headphones: yes passes, no is red with cue advice, skip or none is skipped
+ok 15 - headphones: yes passes, no is red with cue advice, skip or none is skipped
+  ---
+  duration_ms: 0.282886
+  type: 'test'
+  ...
+# Subtest: software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive
+ok 16 - software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive
+  ---
+  duration_ms: 2.313517
+  type: 'test'
+  ...
+# Subtest: software: not installed and not running are amber with actions; no backend is unsupported
+ok 17 - software: not installed and not running are amber with actions; no backend is unsupported
+  ---
+  duration_ms: 0.28568
+  type: 'test'
+  ...
+# Subtest: system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded
+ok 18 - system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded
+  ---
+  duration_ms: 3.634472
+  type: 'test'
+  ...
+# Subtest: evidence errors become "Check could not run" with a retry for every kind
+ok 19 - evidence errors become "Check could not run" with a retry for every kind
+  ---
+  duration_ms: 0.565851
+  type: 'test'
+  ...
+# Subtest: every red or amber result carries a fix with a label and plain-English text
+ok 20 - every red or amber result carries a fix with a label and plain-English text
+  ---
+  duration_ms: 0.460733
+  type: 'test'
+  ...
+# Subtest: rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green
+ok 21 - rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green
+  ---
+  duration_ms: 0.730919
+  type: 'test'
+  ...
+# Subtest: rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)
+ok 22 - rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)
+  ---
+  duration_ms: 0.177147
+  type: 'test'
+  ...
+# Subtest: rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording
+ok 23 - rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording
+  ---
+  duration_ms: 0.287031
+  type: 'test'
+  ...
+# Subtest: buildPlan orders parallel steps first, then per-deck steps, then the headphone cue
+ok 24 - buildPlan orders parallel steps first, then per-deck steps, then the headphone cue
+  ---
+  duration_ms: 0.373441
+  type: 'test'
+  ...
+# Subtest: buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget
+ok 25 - buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget
+  ---
+  duration_ms: 0.363416
+  type: 'test'
+  ...
+# Subtest: built-in presets validate and reference the owner's real gear profile ids and known formats
+ok 26 - built-in presets validate and reference the owner's real gear profile ids and known formats
+  ---
+  duration_ms: 0.698149
+  type: 'test'
+  ...
+# Subtest: built-in presets load through loadBuiltinPresets and bad ones are reported
+ok 27 - built-in presets load through loadBuiltinPresets and bad ones are reported
+  ---
+  duration_ms: 0.746833
+  type: 'test'
+  ...
+# Subtest: validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references
+ok 28 - validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references
+  ---
+  duration_ms: 0.769587
+  type: 'test'
+  ...
+# Subtest: presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)
+ok 29 - presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)
+  ---
+  duration_ms: 2.928952
+  type: 'test'
+  ...
+# Subtest: presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library
+ok 30 - presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library
+  ---
+  duration_ms: 0.680593
+  type: 'test'
+  ...
+# Subtest: formatForMedia resolves timecode media only, from the library, in any container shape
+ok 31 - formatForMedia resolves timecode media only, from the library, in any container shape
+  ---
+  duration_ms: 0.269845
+  type: 'test'
+  ...
+# Subtest: the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)
+ok 32 - the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)
+  ---
+  duration_ms: 0.329475
+  type: 'test'
+  ...
+# Subtest: namesMatch is forgiving but refuses tiny fragments
+ok 33 - namesMatch is forgiving but refuses tiny fragments
+  ---
+  duration_ms: 0.13272
+  type: 'test'
+  ...
+# Subtest: diffRuns lists which steps changed and whether they improved (AC-6)
+ok 34 - diffRuns lists which steps changed and whether they improved (AC-6)
+  ---
+  duration_ms: 0.526541
+  type: 'test'
+  ...
+# Subtest: synthetic Traktor MK2 timecode from the generator passes both deck steps
+ok 35 - synthetic Traktor MK2 timecode from the generator passes both deck steps
+  ---
+  duration_ms: 696.048647
+  type: 'test'
+  ...
+# Subtest: synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)
+ok 36 - synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)
+  ---
+  duration_ms: 1255.829363
+  type: 'test'
+  ...
+# Subtest: synthetic: one muted channel is red, naming the channel; silence is a no-signal red
+ok 37 - synthetic: one muted channel is red, naming the channel; silence is a no-signal red
+  ---
+  duration_ms: 515.502997
+  type: 'test'
+  ...
+# Subtest: synthetic: dropouts and a wrong-format record are caught
+ok 38 - synthetic: dropouts and a wrong-format record are caught
+  ---
+  duration_ms: 1122.21455
+  type: 'test'
+  ...
+# Subtest: synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier
+ok 39 - synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier
+  ---
+  duration_ms: 3081.279402
+  type: 'test'
+  ...
+# Subtest: synthetic needle-up hum is measured on the lifted segment
+ok 40 - synthetic needle-up hum is measured on the lifted segment
+  ---
+  duration_ms: 373.916324
+  type: 'test'
+  ...
+# Subtest: summarizeTimecode exposes plain numbers and handles failures
+ok 41 - summarizeTimecode exposes plain numbers and handles failures
+  ---
+  duration_ms: 378.948117
+  type: 'test'
+  ...
+# Subtest: runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)
+ok 42 - runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)
+  ---
+  duration_ms: 590.825865
+  type: 'test'
+  ...
+# Subtest: runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green
+ok 43 - runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green
+  ---
+  duration_ms: 1182.483992
+  type: 'test'
+  ...
+# Subtest: runPregig: a pair the interface does not offer is reported as no such input, not a failure
+ok 44 - runPregig: a pair the interface does not offer is reported as no such input, not a failure
+  ---
+  duration_ms: 1196.168447
+  type: 'test'
+  ...
+# Subtest: deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair
+ok 45 - deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair
+  ---
+  duration_ms: 0.191467
+  type: 'test'
+  ...
+# Subtest: runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)
+ok 46 - runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)
+  ---
+  duration_ms: 0.470427
+  type: 'test'
+  ...
+# Subtest: runPregig: a thrown step is an error row, the verdict is amber and the other steps still run
+ok 47 - runPregig: a thrown step is an error row, the verdict is amber and the other steps still run
+  ---
+  duration_ms: 588.245116
+  type: 'test'
+  ...
+# Subtest: runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)
+ok 48 - runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)
+  ---
+  duration_ms: 618.554198
+  type: 'test'
+  ...
+# Subtest: runPregig: manual time is reported separately and excluded from the duration
+ok 49 - runPregig: manual time is reported separately and excluded from the duration
+  ---
+  duration_ms: 575.529406
+  type: 'test'
+  ...
+# Subtest: runPregig: orchestration overhead with instant mocked captures stays far below 5 s
+ok 50 - runPregig: orchestration overhead with instant mocked captures stays far below 5 s
+  ---
+  duration_ms: 24.286399
+  type: 'test'
+  ...
+# Subtest: runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice
+ok 51 - runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice
+  ---
+  duration_ms: 590.005422
+  type: 'test'
+  ...
+# Subtest: runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps
+ok 52 - runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps
+  ---
+  duration_ms: 570.175049
+  type: 'test'
+  ...
+# Subtest: runPregig: needle-up hum asks the user, captures the lifted segment and grades it
+ok 53 - runPregig: needle-up hum asks the user, captures the lifted segment and grades it
+  ---
+  duration_ms: 423.968871
+  type: 'test'
+  ...
+# Subtest: runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)
+ok 54 - runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)
+  ---
+  duration_ms: 0.294622
+  type: 'test'
+  ...
+# Subtest: createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair
+ok 55 - createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair
+  ---
+  duration_ms: 0.504348
+  type: 'test'
+  ...
+# Subtest: toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths
+ok 56 - toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths
+  ---
+  duration_ms: 590.653956
+  type: 'test'
+  ...
+# Subtest: createPregigApi (native) sends exactly the contract argument names
+ok 57 - createPregigApi (native) sends exactly the contract argument names
+  ---
+  duration_ms: 0.438248
+  type: 'test'
+  ...
+# Subtest: createPregigApi (browser) stores runs and presets locally with the same shapes
+ok 58 - createPregigApi (browser) stores runs and presets locally with the same shapes
+  ---
+  duration_ms: 2.603322
+  type: 'test'
+  ...
+# Subtest: contract examples are real step results shapes (states the database accepts)
+ok 59 - contract examples are real step results shapes (states the database accepts)
+  ---
+  duration_ms: 0.158649
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig
+ok 60 - Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig
+  ---
+  duration_ms: 37.819949
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry
+ok 61 - Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry
+  ---
+  duration_ms: 2.850915
+  type: 'test'
+  ...
+# Subtest: Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh
+ok 62 - Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh
+  ---
+  duration_ms: 3.690927
+  type: 'test'
+  ...
+# Subtest: Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry
+ok 63 - Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry
+  ---
+  duration_ms: 5.465454
+  type: 'test'
+  ...
+# Subtest: Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending
+ok 64 - Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending
+  ---
+  duration_ms: 3.562835
+  type: 'test'
+  ...
+# Subtest: Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry
+ok 65 - Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry
+  ---
+  duration_ms: 3.831609
+  type: 'test'
+  ...
+# Subtest: Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable
+ok 66 - Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable
+  ---
+  duration_ms: 2.768771
+  type: 'test'
+  ...
+# Subtest: Pre-gig an acknowledged preset save finishes while an optional refresh is still pending
+ok 67 - Pre-gig an acknowledged preset save finishes while an optional refresh is still pending
+  ---
+  duration_ms: 3.099038
+  type: 'test'
+  ...
+# Subtest: Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds
+ok 68 - Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds
+  ---
+  duration_ms: 12.496642
+  type: 'test'
+  ...
+# Subtest: Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested
+ok 69 - Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested
+  ---
+  duration_ms: 6.266358
+  type: 'test'
+  ...
+# Subtest: Pre-gig Done preserves an unsaved result until the user confirms discarding it
+ok 70 - Pre-gig Done preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 9.643593
+  type: 'test'
+  ...
+# Subtest: Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it
+ok 71 - Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 14.872231
+  type: 'test'
+  ...
+# Subtest: Pre-gig running everything again preserves an unsaved result until the user confirms discarding it
+ok 72 - Pre-gig running everything again preserves an unsaved result until the user confirms discarding it
+  ---
+  duration_ms: 11.576838
+  type: 'test'
+  ...
+# Subtest: Pre-gig a late failed History request cannot replace a newer successful read
+ok 73 - Pre-gig a late failed History request cannot replace a newer successful read
+  ---
+  duration_ms: 1.353064
+  type: 'test'
+  ...
+# Subtest: Pre-gig disposal retires a pending History presentation and the Save callback
+ok 74 - Pre-gig disposal retires a pending History presentation and the Save callback
+  ---
+  duration_ms: 0.853332
+  type: 'test'
+  ...
+# Subtest: Pre-gig import retains the parsed draft after a failed save and retries without picking the file again
+ok 75 - Pre-gig import retains the parsed draft after a failed save and retries without picking the file again
+  ---
+  duration_ms: 3.511427
+  type: 'test'
+  ...
+# Subtest: Pre-gig displays future-version presets read-only without running or rewriting their contents
+ok 76 - Pre-gig displays future-version presets read-only without running or rewriting their contents
+  ---
+  duration_ms: 2.244863
+  type: 'test'
+  ...
+# Subtest: Pre-gig PDF keeps the tested interface after the same saved preset is edited
+ok 77 - Pre-gig PDF keeps the tested interface after the same saved preset is edited
+  ---
+  duration_ms: 9.878896
+  type: 'test'
+  ...
+# Subtest: Pre-gig PDF preparation cannot export or announce a result retired before its handoff
+ok 78 - Pre-gig PDF preparation cannot export or announce a result retired before its handoff
+  ---
+  duration_ms: 4.734386
+  type: 'test'
+  ...
+# Subtest: suggestPdfName: pattern, kinds, local timestamp
+ok 79 - suggestPdfName: pattern, kinds, local timestamp
+  ---
+  duration_ms: 1.614587
+  type: 'test'
+  ...
+# Subtest: deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+ok 80 - deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+  ---
+  duration_ms: 0.300141
+  type: 'test'
+  ...
+# Subtest: cssString: quotes, backslashes and markup cannot break out of the <style> block
+ok 81 - cssString: quotes, backslashes and markup cannot break out of the <style> block
+  ---
+  duration_ms: 0.403967
+  type: 'test'
+  ...
+# Subtest: formatStamp is local YYYY-MM-DD HH:mm
+ok 82 - formatStamp is local YYYY-MM-DD HH:mm
+  ---
+  duration_ms: 0.205539
+  type: 'test'
+  ...
+# Subtest: defaultPaper: Letter for US-style regions, A4 elsewhere
+ok 83 - defaultPaper: Letter for US-style regions, A4 elsewhere
+  ---
+  duration_ms: 2.701089
+  type: 'test'
+  ...
+# Subtest: normalizePdfOptions / readPdfSettings
+ok 84 - normalizePdfOptions / readPdfSettings
+  ---
+  duration_ms: 1.060013
+  type: 'test'
+  ...
+# Subtest: niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+ok 85 - niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+  ---
+  duration_ms: 0.750228
+  type: 'test'
+  ...
+# Subtest: finite but unrepresentable chart axes fail closed with a visible PDF warning
+ok 86 - finite but unrepresentable chart axes fail closed with a visible PDF warning
+  ---
+  duration_ms: 5.559986
+  type: 'test'
+  ...
+# Subtest: decimate keeps endpoints and caps the count
+ok 87 - decimate keeps endpoints and caps the count
+  ---
+  duration_ms: 0.790057
+  type: 'test'
+  ...
+# Subtest: renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+ok 88 - renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+  ---
+  duration_ms: 0.703067
+  type: 'test'
+  ...
+# Subtest: severity icons differ by shape and keep the text label (AC-5)
+ok 89 - severity icons differ by shape and keep the text label (AC-5)
+  ---
+  duration_ms: 0.310467
+  type: 'test'
+  ...
+# Subtest: extractReportParts: styles from head, body only, scripts dropped
+ok 90 - extractReportParts: styles from head, body only, scripts dropped
+  ---
+  duration_ms: 0.469696
+  type: 'test'
+  ...
+# Subtest: buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+ok 91 - buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+  ---
+  duration_ms: 1.209167
+  type: 'test'
+  ...
+# Subtest: print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+ok 92 - print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+  ---
+  duration_ms: 1.62969
+  type: 'test'
+  ...
+# Subtest: partial: a failing chart becomes a placeholder and a warning
+ok 93 - partial: a failing chart becomes a placeholder and a warning
+  ---
+  duration_ms: 1.299152
+  type: 'test'
+  ...
+# Subtest: run: raw measurement table only when asked; row caps
+ok 94 - run: raw measurement table only when asked; row caps
+  ---
+  duration_ms: 3.364076
+  type: 'test'
+  ...
+# Subtest: device: serial redaction option, title and file name
+ok 95 - device: serial redaction option, title and file name
+  ---
+  duration_ms: 2.693918
+  type: 'test'
+  ...
+# Subtest: systemHealth: every finding has icon + severity text + evidence (AC-5)
+ok 96 - systemHealth: every finding has icon + severity text + evidence (AC-5)
+  ---
+  duration_ms: 2.045324
+  type: 'test'
+  ...
+# Subtest: registerPrintableKind: later features add kinds without editing report-pdf.js
+ok 97 - registerPrintableKind: later features add kinds without editing report-pdf.js
+  ---
+  duration_ms: 0.839282
+  type: 'test'
+  ...
+# Subtest: exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+ok 98 - exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+  ---
+  duration_ms: 1.303539
+  type: 'test'
+  ...
+# Subtest: exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+ok 99 - exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+  ---
+  duration_ms: 1.047615
+  type: 'test'
+  ...
+# Subtest: exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+ok 100 - exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+  ---
+  duration_ms: 1.525082
+  type: 'test'
+  ...
+# Subtest: exportPdf: backend errors fall back to the print dialog and report the error
+ok 101 - exportPdf: backend errors fall back to the print dialog and report the error
+  ---
+  duration_ms: 1.255236
+  type: 'test'
+  ...
+# Subtest: exportPdf: timeout rejects with a retryable error (AC-7)
+ok 102 - exportPdf: timeout rejects with a retryable error (AC-7)
+  ---
+  duration_ms: 41.695364
+  type: 'test'
+  ...
+# Subtest: exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+ok 103 - exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+  ---
+  duration_ms: 3.403715
+  type: 'test'
+  ...
+# Subtest: normalizePdfError handles strings and objects
+ok 104 - normalizePdfError handles strings and objects
+  ---
+  duration_ms: 0.242023
+  type: 'test'
+  ...
+# Subtest: loadPrintCss fetches once and tolerates failure
+ok 105 - loadPrintCss fetches once and tolerates failure
+  ---
+  duration_ms: 0.355945
+  type: 'test'
+  ...
+# Subtest: report fixture for the Windows PrintToPdf test is up to date
+ok 106 - report fixture for the Windows PrintToPdf test is up to date
+  ---
+  duration_ms: 0.523687
+  type: 'test'
+  ...
+# Subtest: late customer resolve leaves the replacement panel and feedback alone
+ok 107 - late customer resolve leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 8.704452
+  type: 'test'
+  ...
+# Subtest: late customer reject leaves the replacement panel and feedback alone
+ok 108 - late customer reject leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 1.396799
+  type: 'test'
+  ...
+# Subtest: current customer submission reports failure and can be retried
+ok 109 - current customer submission reports failure and can be retried
+  ---
+  duration_ms: 3.345428
+  type: 'test'
+  ...
+# Subtest: late job details resolve leaves the replacement panel and feedback alone
+ok 110 - late job details resolve leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 1.229457
+  type: 'test'
+  ...
+# Subtest: late job details reject leaves the replacement panel and feedback alone
+ok 111 - late job details reject leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 1.273003
+  type: 'test'
+  ...
+# Subtest: current job details submission reports failure and can be retried
+ok 112 - current job details submission reports failure and can be retried
+  ---
+  duration_ms: 1.340375
+  type: 'test'
+  ...
+# Subtest: a cancelled customer editor cannot reload or toast over the replacement editor
+ok 113 - a cancelled customer editor cannot reload or toast over the replacement editor
+  ---
+  duration_ms: 2.56833
+  type: 'test'
+  ...
+# Subtest: late saved-run link resolve preserves the current panel and feedback
+ok 114 - late saved-run link resolve preserves the current panel and feedback
+  ---
+  duration_ms: 1.640896
+  type: 'test'
+  ...
+# Subtest: late saved-run link reject preserves the current panel and feedback
+ok 115 - late saved-run link reject preserves the current panel and feedback
+  ---
+  duration_ms: 0.690778
+  type: 'test'
+  ...
+# Subtest: current saved-run linking still refreshes and reports the linked phase
+ok 116 - current saved-run linking still refreshes and reports the linked phase
+  ---
+  duration_ms: 0.868455
+  type: 'test'
+  ...
+# Subtest: late photo unlink resolve does not reload or announce in another panel
+ok 117 - late photo unlink resolve does not reload or announce in another panel
+  ---
+  duration_ms: 1.174325
+  type: 'test'
+  ...
+# Subtest: late photo unlink reject does not reload or announce in another panel
+ok 118 - late photo unlink reject does not reload or announce in another panel
+  ---
+  duration_ms: 0.680342
+  type: 'test'
+  ...
+# Subtest: late photo attach resolve preserves the submitted write and suppresses obsolete feedback
+ok 119 - late photo attach resolve preserves the submitted write and suppresses obsolete feedback
+  ---
+  duration_ms: 7.822727
+  type: 'test'
+  ...
+# Subtest: late photo attach reject preserves the submitted write and suppresses obsolete feedback
+ok 120 - late photo attach reject preserves the submitted write and suppresses obsolete feedback
+  ---
+  duration_ms: 2.911445
+  type: 'test'
+  ...
+# Subtest: photo success is not announced when a refresh is superseded by navigation
+ok 121 - photo success is not announced when a refresh is superseded by navigation
+  ---
+  duration_ms: 3.481883
+  type: 'test'
+  ...
+# Subtest: a submitted photo batch finishes all its attachments after leaving the panel
+ok 122 - a submitted photo batch finishes all its attachments after leaving the panel
+  ---
+  duration_ms: 4.658271
+  type: 'test'
+  ...
+# Subtest: current photo attachment success retains its visible feedback and releases the button
+ok 123 - current photo attachment success retains its visible feedback and releases the button
+  ---
+  duration_ms: 3.384557
+  type: 'test'
+  ...
+# Subtest: current photo attachment failure retains its visible feedback and releases the button
+ok 124 - current photo attachment failure retains its visible feedback and releases the button
+  ---
+  duration_ms: 2.376222
+  type: 'test'
+  ...
+# Subtest: HTML export captures the clicked sheet options before asynchronous preparation
+ok 125 - HTML export captures the clicked sheet options before asynchronous preparation
+  ---
+  duration_ms: 5.137742
+  type: 'test'
+  ...
+# Subtest: late HTML export resolve completes the submitted save without feedback in another panel
+ok 126 - late HTML export resolve completes the submitted save without feedback in another panel
+  ---
+  duration_ms: 3.078296
+  type: 'test'
+  ...
+# Subtest: late HTML export reject completes the submitted save without feedback in another panel
+ok 127 - late HTML export reject completes the submitted save without feedback in another panel
+  ---
+  duration_ms: 2.290773
+  type: 'test'
+  ...
+# Subtest: HTML export preparation abandons a retired panel before opening a save dialog
+ok 128 - HTML export preparation abandons a retired panel before opening a save dialog
+  ---
+  duration_ms: 1.055076
+  type: 'test'
+  ...
+# Subtest: current HTML export failure retains a working retry and cancellation stays quiet
+ok 129 - current HTML export failure retains a working retry and cancellation stays quiet
+  ---
+  duration_ms: 5.993808
+  type: 'test'
+  ...
+# Subtest: PDF export captures the clicked sheet options and still reports current success
+ok 130 - PDF export captures the clicked sheet options and still reports current success
+  ---
+  duration_ms: 4.885052
+  type: 'test'
+  ...
+# Subtest: late PDF export resolve preserves the backend result and current-screen feedback
+ok 131 - late PDF export resolve preserves the backend result and current-screen feedback
+  ---
+  duration_ms: 3.76627
+  type: 'test'
+  ...
+# Subtest: late PDF export reject preserves the backend result and current-screen feedback
+ok 132 - late PDF export reject preserves the backend result and current-screen feedback
+  ---
+  duration_ms: 2.379956
+  type: 'test'
+  ...
+# Subtest: a PDF retry offered on a previous panel cannot start another export after navigation
+ok 133 - a PDF retry offered on a previous panel cannot start another export after navigation
+  ---
+  duration_ms: 3.826871
+  type: 'test'
+  ...
+# Subtest: current PDF failure can retry and callers without ownership callbacks retain feedback
+ok 134 - current PDF failure can retry and callers without ownership callbacks retain feedback
+  ---
+  duration_ms: 3.235553
+  type: 'test'
+  ...
+# Subtest: step list: seven steps on Windows, health dropped elsewhere (AC-7)
+ok 135 - step list: seven steps on Windows, health dropped elsewhere (AC-7)
+  ---
+  duration_ms: 1.560926
+  type: 'test'
+  ...
+# Subtest: start, next, back and the bounds
+ok 136 - start, next, back and the bounds
+  ---
+  duration_ms: 1.11813
+  type: 'test'
+  ...
+# Subtest: skip semantics: skipping a step records it and advances; the summary cannot be skipped
+ok 137 - skip semantics: skipping a step records it and advances; the summary cannot be skipped
+  ---
+  duration_ms: 0.307082
+  type: 'test'
+  ...
+# Subtest: answers are merged, sanitized and bounded
+ok 138 - answers are merged, sanitized and bounded
+  ---
+  duration_ms: 0.751088
+  type: 'test'
+  ...
+# Subtest: setup summary retains incomplete driver coverage through persistence and clears it for a new attempt
+ok 139 - setup summary retains incomplete driver coverage through persistence and clears it for a new attempt
+  ---
+  duration_ms: 1.454776
+  type: 'test'
+  ...
+# Subtest: resume after step N restores step and answers (AC-2)
+ok 140 - resume after step N restores step and answers (AC-2)
+  ---
+  duration_ms: 0.287712
+  type: 'test'
+  ...
+# Subtest: re-run keeps prefilled answers, restarts at step 1 and clears the skip marks (AC-8)
+ok 141 - re-run keeps prefilled answers, restarts at step 1 and clears the skip marks (AC-8)
+  ---
+  duration_ms: 0.569576
+  type: 'test'
+  ...
+# Subtest: finish completes only an active wizard
+ok 142 - finish completes only an active wizard
+  ---
+  duration_ms: 0.283426
+  type: 'test'
+  ...
+# Subtest: migrateWizardState never throws and resets what it cannot trust
+ok 143 - migrateWizardState never throws and resets what it cannot trust
+  ---
+  duration_ms: 0.606521
+  type: 'test'
+  ...
+# Subtest: summarize copes with missing answers and per-env rows
+ok 144 - summarize copes with missing answers and per-env rows
+  ---
+  duration_ms: 0.471048
+  type: 'test'
+  ...
+# Subtest: resume window is 30 days (AC-2)
+ok 145 - resume window is 30 days (AC-2)
+  ---
+  duration_ms: 0.247812
+  type: 'test'
+  ...
+# Subtest: startup decision: fresh, upgrade install, resumable, finished, flag off (AC-1, AC-2, AC-10)
+ok 146 - startup decision: fresh, upgrade install, resumable, finished, flag off (AC-1, AC-2, AC-10)
+  ---
+  duration_ms: 0.723928
+  type: 'test'
+  ...
+# Subtest: level verdict table (spec §6)
+ok 147 - level verdict table (spec §6)
+  ---
+  duration_ms: 0.526151
+  type: 'test'
+  ...
+# Subtest: test tone is capped at -12 dBFS and defaults to -20 (AC-4)
+ok 148 - test tone is capped at -12 dBFS and defaults to -20 (AC-4)
+  ---
+  duration_ms: 0.161052
+  type: 'test'
+  ...
+# Subtest: calibration default (AC-5) and announcements
+ok 149 - calibration default (AC-5) and announcements
+  ---
+  duration_ms: 0.190797
+  type: 'test'
+  ...
+# Subtest: bundleFileName is deckchek-diagnostics-YYYYMMDD-HHmm.zip in local time
+ok 150 - bundleFileName is deckchek-diagnostics-YYYYMMDD-HHmm.zip in local time
+  ---
+  duration_ms: 1.025091
+  type: 'test'
+  ...
+# Subtest: buildClientContext picks WebView2 version, locale and settings; omits systemHealth when absent
+ok 151 - buildClientContext picks WebView2 version, locale and settings; omits systemHealth when absent
+  ---
+  duration_ms: 0.999192
+  type: 'test'
+  ...
+# Subtest: sizeText
+ok 152 - sizeText
+  ---
+  duration_ms: 0.202635
+  type: 'test'
+  ...
+# Subtest: bridge: no backend gives supported:false payloads
+ok 153 - bridge: no backend gives supported:false payloads
+  ---
+  duration_ms: 1.854007
+  type: 'test'
+  ...
+# Subtest: bridge: wraps the three commands
+ok 154 - bridge: wraps the three commands
+  ---
+  duration_ms: 0.339671
+  type: 'test'
+  ...
+# Subtest: unsupported scans yield a single info finding
+ok 155 - unsupported scans yield a single info finding
+  ---
+  duration_ms: 0.542956
+  type: 'test'
+  ...
+# Subtest: every required problem code has a meaning and action
+ok 156 - every required problem code has a meaning and action
+  ---
+  duration_ms: 0.367513
+  type: 'test'
+  ...
+# Subtest: driver problem code 43 is an error with USB advice; 45 is info
+ok 157 - driver problem code 43 is an error with USB advice; 45 is info
+  ---
+  duration_ms: 1.188155
+  type: 'test'
+  ...
+# Subtest: every known code produces a finding
+ok 158 - every known code produces a finding
+  ---
+  duration_ms: 2.30239
+  type: 'test'
+  ...
+# Subtest: unsigned driver is a warning
+ok 159 - unsigned driver is a warning
+  ---
+  duration_ms: 0.370867
+  type: 'test'
+  ...
+# Subtest: ASIO: missing DLL, bad signature, generic and multiple
+ok 160 - ASIO: missing DLL, bad signature, generic and multiple
+  ---
+  duration_ms: 0.546391
+  type: 'test'
+  ...
+# Subtest: generic Microsoft USB audio driver for vendor hardware is info
+ok 161 - generic Microsoft USB audio driver for vendor hardware is info
+  ---
+  duration_ms: 0.779551
+  type: 'test'
+  ...
+# Subtest: very old drivers (>3 years) are info
+ok 162 - very old drivers (>3 years) are info
+  ---
+  duration_ms: 0.61888
+  type: 'test'
+  ...
+# Subtest: healthy drivers produce an ok finding
+ok 163 - healthy drivers produce an ok finding
+  ---
+  duration_ms: 0.298378
+  type: 'test'
+  ...
+# Subtest: Application Error 1000: exception meanings and module heuristics
+ok 164 - Application Error 1000: exception meanings and module heuristics
+  ---
+  duration_ms: 2.723002
+  type: 'test'
+  ...
+# Subtest: repeated events are grouped with count and first/last time
+ok 165 - repeated events are grouped with count and first/last time
+  ---
+  duration_ms: 0.59878
+  type: 'test'
+  ...
+# Subtest: hang 1002 and WER 1001
+ok 166 - hang 1002 and WER 1001
+  ---
+  duration_ms: 0.655065
+  type: 'test'
+  ...
+# Subtest: audio service failures (SCM 7000..7034)
+ok 167 - audio service failures (SCM 7000..7034)
+  ---
+  duration_ms: 0.830498
+  type: 'test'
+  ...
+# Subtest: Kernel-PnP, USB hub/xHCI and portcls/usbaudio events
+ok 168 - Kernel-PnP, USB hub/xHCI and portcls/usbaudio events
+  ---
+  duration_ms: 0.778851
+  type: 'test'
+  ...
+# Subtest: no events gives ok with period
+ok 169 - no events gives ok with period
+  ---
+  duration_ms: 0.186801
+  type: 'test'
+  ...
+# Subtest: DJ crash dump/report: "X crashed on <date>" with module and exception
+ok 170 - DJ crash dump/report: "X crashed on <date>" with module and exception
+  ---
+  duration_ms: 0.956087
+  type: 'test'
+  ...
+# Subtest: DJ log lines: errors, crashes and dropouts
+ok 171 - DJ log lines: errors, crashes and dropouts
+  ---
+  duration_ms: 1.481416
+  type: 'test'
+  ...
+# Subtest: installed app with no issues is ok; uninstalled apps omitted
+ok 172 - installed app with no issues is ok; uninstalled apps omitted
+  ---
+  duration_ms: 0.256536
+  type: 'test'
+  ...
+# Subtest: findings sorted error > warning > info > ok and summarized
+ok 173 - findings sorted error > warning > info > ok and summarized
+  ---
+  duration_ms: 0.526501
+  type: 'test'
+  ...
+# Subtest: scan errors surface as an info finding; report HTML escapes content
+ok 174 - scan errors surface as an info finding; report HTML escapes content
+  ---
+  duration_ms: 0.490718
+  type: 'test'
+  ...
+# Subtest: System Health native responses must be objects instead of silently becoming unsupported scans
+ok 175 - System Health native responses must be objects instead of silently becoming unsupported scans
+  ---
+  duration_ms: 2.247648
+  type: 'test'
+  ...
+# Subtest: System Health all-clear requires three completed scan areas and preserves benign information
+ok 176 - System Health all-clear requires three completed scan areas and preserves benign information
+  ---
+  duration_ms: 1.897171
+  type: 'test'
+  ...
+# Subtest: System Health incomplete drivers collection cannot produce an area or system all-clear
+ok 177 - System Health incomplete drivers collection cannot produce an area or system all-clear
+  ---
+  duration_ms: 0.591429
+  type: 'test'
+  ...
+# Subtest: System Health incomplete events collection cannot produce an area or system all-clear
+ok 178 - System Health incomplete events collection cannot produce an area or system all-clear
+  ---
+  duration_ms: 0.254502
+  type: 'test'
+  ...
+# Subtest: System Health incomplete djLogs collection cannot produce an area or system all-clear
+ok 179 - System Health incomplete djLogs collection cannot produce an area or system all-clear
+  ---
+  duration_ms: 0.203586
+  type: 'test'
+  ...
+# Subtest: System Health retains a real fault and its severity when another area is incomplete
+ok 180 - System Health retains a real fault and its severity when another area is incomplete
+  ---
+  duration_ms: 0.757338
+  type: 'test'
+  ...
+# Subtest: System Health mixed supported and unavailable areas remains incomplete
+ok 181 - System Health mixed supported and unavailable areas remains incomplete
+  ---
+  duration_ms: 0.234262
+  type: 'test'
+  ...
+# Subtest: System Health all unsupported scans remain informational with no checked areas
+ok 182 - System Health all unsupported scans remain informational with no checked areas
+  ---
+  duration_ms: 0.300692
+  type: 'test'
+  ...
+# Subtest: System Health a rejected command stays failed even when the other two scans are clean
+ok 183 - System Health a rejected command stays failed even when the other two scans are clean
+  ---
+  duration_ms: 0.284006
+  type: 'test'
+  ...
+# Subtest: System Health three rejected commands cannot become an empty successful scan
+ok 184 - System Health three rejected commands cannot become an empty successful scan
+  ---
+  duration_ms: 0.338689
+  type: 'test'
+  ...
+# Subtest: System Health distinguishes missing coverage from a pending replacement scan
+ok 185 - System Health distinguishes missing coverage from a pending replacement scan
+  ---
+  duration_ms: 0.271839
+  type: 'test'
+  ...
+# Subtest: System Health incomplete response shape cannot certify collection completion
+ok 186 - System Health incomplete response shape cannot certify collection completion
+  ---
+  duration_ms: 0.241043
+  type: 'test'
+  ...
+# Subtest: System Health driver-only setup explicitly declares its narrower scan coverage
+ok 187 - System Health driver-only setup explicitly declares its narrower scan coverage
+  ---
+  duration_ms: 0.246661
+  type: 'test'
+  ...
+# Subtest: System Health serialized findings preserve coverage instead of relying on ok and info counts
+ok 188 - System Health serialized findings preserve coverage instead of relying on ok and info counts
+  ---
+  duration_ms: 0.320702
+  type: 'test'
+  ...
+# Subtest: System Health HTML and real PDF composition retain the same missing area and recompute stale summaries
+ok 189 - System Health HTML and real PDF composition retain the same missing area and recompute stale summaries
+  ---
+  duration_ms: 1.838172
+  type: 'test'
+  ...
+# Subtest: System Health screen calls all three scans and shows HEALTHY only after complete clean coverage
+ok 190 - System Health screen calls all three scans and shows HEALTHY only after complete clean coverage
+  ---
+  duration_ms: 53.371401
+  type: 'test'
+  ...
+# Subtest: System Health screen retains failed drivers coverage and repairs it through the actual Retry control
+ok 191 - System Health screen retains failed drivers coverage and repairs it through the actual Retry control
+  ---
+  duration_ms: 55.061972
+  type: 'test'
+  ...
+# Subtest: System Health screen retains failed events coverage and repairs it through the actual Retry control
+ok 192 - System Health screen retains failed events coverage and repairs it through the actual Retry control
+  ---
+  duration_ms: 15.544
+  type: 'test'
+  ...
+# Subtest: System Health screen retains failed djLogs coverage and repairs it through the actual Retry control
+ok 193 - System Health screen retains failed djLogs coverage and repairs it through the actual Retry control
+  ---
+  duration_ms: 7.983288
+  type: 'test'
+  ...
+# Subtest: System Health screen keeps partial drivers collection visible without an all-clear finding
+ok 194 - System Health screen keeps partial drivers collection visible without an all-clear finding
+  ---
+  duration_ms: 10.023745
+  type: 'test'
+  ...
+# Subtest: System Health screen keeps partial events collection visible without an all-clear finding
+ok 195 - System Health screen keeps partial events collection visible without an all-clear finding
+  ---
+  duration_ms: 7.593752
+  type: 'test'
+  ...
+# Subtest: System Health screen keeps partial djLogs collection visible without an all-clear finding
+ok 196 - System Health screen keeps partial djLogs collection visible without an all-clear finding
+  ---
+  duration_ms: 6.711746
+  type: 'test'
+  ...
+# Subtest: System Health screen shows mixed unsupported coverage while retaining successful areas
+ok 197 - System Health screen shows mixed unsupported coverage while retaining successful areas
+  ---
+  duration_ms: 12.32982
+  type: 'test'
+  ...
+# Subtest: System Health screen reports all unsupported scans as unavailable instead of healthy
+ok 198 - System Health screen reports all unsupported scans as unavailable instead of healthy
+  ---
+  duration_ms: 25.642929
+  type: 'test'
+  ...
+# Subtest: System Health browser preview performs no scan and remains informational
+ok 199 - System Health browser preview performs no scan and remains informational
+  ---
+  duration_ms: 2.236341
+  type: 'test'
+  ...
+# Subtest: System Health screen keeps a real driver problem above incomplete collection coverage
+ok 200 - System Health screen keeps a real driver problem above incomplete collection coverage
+  ---
+  duration_ms: 17.737608
+  type: 'test'
+  ...
+# Subtest: System Health pending Retry coalesces clicks and blocks exports and event-period replacement
+ok 201 - System Health pending Retry coalesces clicks and blocks exports and event-period replacement
+  ---
+  duration_ms: 11.408395
+  type: 'test'
+  ...
+# Subtest: System Health three failed scans retain an exportable incomplete result
+ok 202 - System Health three failed scans retain an exportable incomplete result
+  ---
+  duration_ms: 5.996882
+  type: 'test'
+  ...
+# Subtest: System Health actual HTML and PDF actions retain the same failed-area coverage
+ok 203 - System Health actual HTML and PDF actions retain the same failed-area coverage
+  ---
+  duration_ms: 12.021527
+  type: 'test'
+  ...
+# Subtest: System Health disposal retires a pending scan and export callbacks
+ok 204 - System Health disposal retires a pending scan and export callbacks
+  ---
+  duration_ms: 4.853013
+  type: 'test'
+  ...
+# Subtest: System Health a replacement scan retires pending PDF preparation and keeps exports disabled
+ok 205 - System Health a replacement scan retires pending PDF preparation and keeps exports disabled
+  ---
+  duration_ms: 11.525792
+  type: 'test'
+  ...
+# Subtest: System Health an invalid native response remains a failed area with an actual Retry action
+ok 206 - System Health an invalid native response remains a failed area with an actual Retry action
+  ---
+  duration_ms: 8.135056
+  type: 'test'
+  ...
+# Subtest: diagnostics actual health collection retains failed coverage in the native context
+ok 207 - diagnostics actual health collection retains failed coverage in the native context
+  ---
+  duration_ms: 12.624333
+  type: 'test'
+  ...
+# Subtest: System Health toast PDF Retry retains busy ownership and restores controls for an intervening scan
+ok 208 - System Health toast PDF Retry retains busy ownership and restores controls for an intervening scan
+  ---
+  duration_ms: 14.669056
+  type: 'test'
+  ...
+1..208
+# tests 208
+# suites 0
+# pass 208
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15821.975168

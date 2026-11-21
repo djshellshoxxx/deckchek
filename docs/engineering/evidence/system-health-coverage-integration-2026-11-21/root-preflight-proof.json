@@ -1,0 +1,193 @@
+{
+  "all_three_source_and_control_accepts_received": true,
+  "authorization": false,
+  "control_manifest_sha256": "f3f9d913a3a0fcd90260ed7ae7f81ad04bf08cbe8a6b3e88bc453624a2af2188",
+  "controls": [
+    {
+      "bytes": 27466,
+      "lines": 479,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-recorder.py",
+      "sha256": "e1f06e547e65c992b09f2354777a9d816e52b02a925d9ad012d7e0941cd9718b"
+    },
+    {
+      "bytes": 28712,
+      "lines": 480,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-selection.json",
+      "sha256": "ef68e00e9c9749d5cb294cbdc90b93326616ba62dc1e8fe8098da35f9bc0522a"
+    },
+    {
+      "bytes": 4995,
+      "lines": 95,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+      "sha256": "aceb51fb67f805280a8f5090cbd7fbc1b4895596463f02c44eddc52126985f58"
+    },
+    {
+      "bytes": 163,
+      "lines": 1,
+      "mode": "0600",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-command.txt",
+      "sha256": "0649a232312480d98de0a73d601adcf5f98e67ace93c9e7f4113d943b532ec3c"
+    },
+    {
+      "bytes": 570148,
+      "lines": 1,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+      "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2"
+    },
+    {
+      "bytes": 95393,
+      "lines": 2794,
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+      "sha256": "c1baf00572ad94123b03a0d03a944dfa7da232ccdf05e5154e5e4958ce3268a1"
+    }
+  ],
+  "forbidden_environment_names": [],
+  "freeze": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "full_controls_read_as_text": true,
+  "historical_bindings": {
+    "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap": 154,
+    "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap": 19
+  },
+  "historical_duration_ms": "14913.288587",
+  "historical_taps": [
+    {
+      "bytes": 555767,
+      "cases": 2420,
+      "footer": {
+        "fail": 1,
+        "pass": 2418,
+        "skipped": 1,
+        "tests": 2420
+      },
+      "path": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+      "sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953"
+    },
+    {
+      "bytes": 31900,
+      "cases": 132,
+      "footer": {
+        "fail": 0,
+        "pass": 132,
+        "skipped": 0,
+        "tests": 132
+      },
+      "path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+      "sha256": "655d53c1ef68f1d62eefdb06834b840bb0b7bd8c60da22019ac82cd8b4e25cdc"
+    }
+  ],
+  "kind": "round18-root-independent-static-preflight",
+  "new_cases": 35,
+  "older_cases": 173,
+  "ordered_cases": 208,
+  "ordered_file_names_sha256": "9ceda94adb8e00b72d093870907a50393db9da779449e31f8c01bd6a8fac71bf",
+  "ordered_names_sha256": "145174e3bed3c471c063bd7d9d92cd2caa141047ace531f7ac3a94b531eea5e4",
+  "ordered_source_records_sha256": "19da1355909acf22efd6e6e741bf284e6c6a06f4b82d3abc2e29e8485fe9ce79",
+  "original_source_map_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa",
+  "parents": [
+    "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+  ],
+  "project_execution": false,
+  "raw_output_absent": true,
+  "runtime_and_index": [
+    {
+      "bytes": 126951512,
+      "is_symlink": false,
+      "kind": "node_binary",
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa"
+    },
+    {
+      "bytes": 30894944,
+      "is_symlink": true,
+      "kind": "python_binary",
+      "mode": "0755",
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+      "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7"
+    },
+    {
+      "bytes": 4082768,
+      "is_symlink": false,
+      "kind": "git_binary",
+      "mode": "0755",
+      "path": "/usr/bin/git",
+      "resolved_path": "/usr/bin/git",
+      "sha256": "356db14e102d68a1a37d8a1ac577dfd678d45d46e92f468bef8b7154e7bfdc60"
+    },
+    {
+      "bytes": 325991,
+      "is_symlink": false,
+      "kind": "index_file",
+      "mode": "0644",
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+      "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+      "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724"
+    }
+  ],
+  "source_bytes": 91604989,
+  "source_distinct_blobs": 2317,
+  "source_paths": 2586,
+  "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "verified_at_utc": "2026-11-21T15:26:00.791559+00:00",
+  "worktrees": [
+    {
+      "branch": "implementation/deckchek-system-health-20261121",
+      "clean": true,
+      "complete_physical_index_mode_flags_inventory": true,
+      "head": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "original_paths_unchanged": 2586,
+      "parents": [
+        "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+      ],
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health",
+      "test_files": 209,
+      "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a"
+    },
+    {
+      "branch": "review/deckchek-system-health-code-20261121",
+      "clean": true,
+      "complete_physical_index_mode_flags_inventory": true,
+      "head": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "original_paths_unchanged": 2586,
+      "parents": [
+        "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+      ],
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-code",
+      "test_files": 209,
+      "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a"
+    },
+    {
+      "branch": "review/deckchek-system-health-functional-20261121",
+      "clean": true,
+      "complete_physical_index_mode_flags_inventory": true,
+      "head": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "original_paths_unchanged": 2586,
+      "parents": [
+        "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+      ],
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+      "test_files": 209,
+      "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a"
+    },
+    {
+      "branch": "review/deckchek-system-health-security-20261121",
+      "clean": true,
+      "complete_physical_index_mode_flags_inventory": true,
+      "head": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "original_paths_unchanged": 2586,
+      "parents": [
+        "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+      ],
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-security",
+      "test_files": 209,
+      "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a"
+    }
+  ]
+}

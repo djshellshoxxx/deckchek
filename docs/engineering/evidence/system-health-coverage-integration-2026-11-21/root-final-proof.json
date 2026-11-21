@@ -1,0 +1,145 @@
+{
+  "kind": "root-round18-final-static-custody",
+  "freeze": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "all_three_final_handoffs_received": true,
+  "source": {
+    "paths": 2586,
+    "distinct_blobs": 2317,
+    "summed_bytes": 91604989,
+    "top_level_tests": 209,
+    "ordered_source_map_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa"
+  },
+  "independent_method": "Full immutable Git object and working byte/mode verification in all four worktrees, complete physical/index/flag/test inventories, all 208 report rows bound to independently derived source and original TAP; Python standard library and Git only, no project execution.",
+  "reports": [
+    {
+      "lane": "code",
+      "worktree": "deckchek-system-health-code",
+      "commit": "560adb89ba36410fa6bc2693daff0fc775421e6c",
+      "tree": "bd55716438f073567963d545e7cda93c5b171c92",
+      "report": "docs/engineering/SYSTEM_HEALTH_COVERAGE_CODE_AUDIT_2026-11-21.md",
+      "bytes": 55957,
+      "lines": 429,
+      "sha256": "8c7c5ad5e3ffece597ee0f3c2666efc28514b959f79491a537792a240fa392b1",
+      "blob": "1e84725657ff4967110cde47aa53166859741c5e",
+      "additions": 1,
+      "parent": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "mode": "100644",
+      "report_fully_read_by_root": true,
+      "all_208_report_rows_independently_bound": true
+    },
+    {
+      "lane": "functional",
+      "worktree": "deckchek-system-health-functional",
+      "commit": "82dcfd5d092533b2932d6bfbaca9b13a382b6173",
+      "tree": "e37c29644002b44c9e8e3fe35f86f68d18587804",
+      "report": "docs/engineering/SYSTEM_HEALTH_COVERAGE_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "bytes": 66918,
+      "lines": 404,
+      "sha256": "e3c7f425d584344ae6ba317b48788a7a3b2c863c940f4f1434b27c7a469ed80a",
+      "blob": "e0815b278901c2c8ca57338e910d07348ee8646a",
+      "additions": 50,
+      "parent": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "mode": "100644",
+      "report_fully_read_by_root": true,
+      "all_208_report_rows_independently_bound": true
+    },
+    {
+      "lane": "security",
+      "worktree": "deckchek-system-health-security",
+      "commit": "7d9cd18cc49c5223a51ab408d85d7765fa78d9e1",
+      "tree": "137b443451ecf6e42bf3a8712448398ee1af1046",
+      "report": "docs/engineering/SYSTEM_HEALTH_COVERAGE_SECURITY_AUDIT_2026-11-21.md",
+      "bytes": 70917,
+      "lines": 496,
+      "sha256": "ac680bd2b6826860ce38aa79261c42b7e133a666b06b3d7a2a022f54528b06b2",
+      "blob": "e324b51402fb4715ce7b10f518126a0d83212b8f",
+      "additions": 1,
+      "parent": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+      "mode": "100644",
+      "report_fully_read_by_root": true,
+      "all_208_report_rows_independently_bound": true
+    }
+  ],
+  "worktree_checks": [
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-system-health",
+      "working_paths_verified": 2586,
+      "original_paths_verified": 2586,
+      "clean": true,
+      "exact_physical_index_flags_modes": true,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-system-health-code",
+      "working_paths_verified": 2587,
+      "original_paths_verified": 2586,
+      "clean": true,
+      "exact_physical_index_flags_modes": true,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+      "working_paths_verified": 2636,
+      "original_paths_verified": 2586,
+      "clean": true,
+      "exact_physical_index_flags_modes": true,
+      "original_test_inventory_equal": true
+    },
+    {
+      "worktree": "/workspace/scratch/6f2247f2f463/deckchek-system-health-security",
+      "working_paths_verified": 2587,
+      "original_paths_verified": 2586,
+      "clean": true,
+      "exact_physical_index_flags_modes": true,
+      "original_test_inventory_equal": true
+    }
+  ],
+  "original_first": {
+    "cases": 208,
+    "passed": 208,
+    "failed": 0,
+    "skipped": 0,
+    "older_cases": 173,
+    "new_cases": 35,
+    "project_seconds": 15.929411565994087,
+    "tap_duration_ms": "15821.975168",
+    "no_additional_execution": true
+  },
+  "retained_evidence": {
+    "files": 49,
+    "bytes": 5234454,
+    "source_copy_pairs": 47,
+    "full_manifest_sha256": "926240ff713ee9fbbcbb5af922a3b9d2a55fda58e89630d0e74700ac6fecbc93",
+    "original_raw_files": 39,
+    "original_raw_bytes": 5041458,
+    "all_sources_unchanged": true
+  },
+  "root_prior_proofs": [
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-root-preflight-proof.json",
+      "bytes": 7265,
+      "sha256": "3d16c0f8d6ee1d2a8bdc1cf1280673ef456e96ff677c811fc57b26d1f6bfe6fd"
+    },
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-root-first-proof.json",
+      "bytes": 10832,
+      "sha256": "d73f6894e7cc04001e3e2f4b9c458c75fab95893658bc8ca346b9b70f5216836"
+    },
+    {
+      "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-root-package-proof.json",
+      "bytes": 11335,
+      "sha256": "b6fe8532c74282fec72070d40f7ef37cd321132291472eaadf9100754547c473"
+    }
+  ],
+  "root_case_derivation": {
+    "path": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-root-derived-cases.json",
+    "bytes": 31501,
+    "sha256": "054baab0cc3165aace8d7ae00f77e58d4ba0d99e8815b22039ab505daf4f6942"
+  },
+  "queued_nonblocking_followups": [
+    "Inherited delayed announcement revision ownership",
+    "Inherited partial-result absence wording"
+  ],
+  "no_project_execution_authorized": true
+}

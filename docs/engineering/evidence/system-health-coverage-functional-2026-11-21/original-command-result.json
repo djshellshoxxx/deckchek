@@ -1,0 +1,32 @@
+{
+  "description": "Original tool command results for the one root-authorized R18 FIRST launcher; no retry.",
+  "command": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -I /workspace/scratch/6f2247f2f463/deckchek-system-health-round18-authorized-launcher.py",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+  "login": false,
+  "chunks": [
+    {
+      "chunk_id": "5910e5",
+      "wall_time_seconds": 1.00094438,
+      "session_id": 47516,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "chunk_id": "1c66b0",
+      "wall_time_seconds": 5.001271531,
+      "session_id": 47516,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "chunk_id": "ddcd1c",
+      "wall_time_seconds": 0.000015853,
+      "exit_code": 0,
+      "original_token_count": 69,
+      "output": "{\"output_directory\": \"/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw\", \"project_returncode\": 0, \"project_started\": true, \"success\": true, \"tap_counts\": {\"cancelled\": 0, \"fail\": 0, \"pass\": 208, \"skipped\": 0, \"suites\": 0, \"tests\": 208, \"todo\": 0}}\n"
+    }
+  ],
+  "combined_original_output": "{\"output_directory\": \"/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw\", \"project_returncode\": 0, \"project_started\": true, \"success\": true, \"tap_counts\": {\"cancelled\": 0, \"fail\": 0, \"pass\": 208, \"skipped\": 0, \"suites\": 0, \"tests\": 208, \"todo\": 0}}\n",
+  "final_exit_code": 0
+}
+

@@ -1,0 +1,480 @@
+{
+  "schema": "deckchek-system-health-coverage-focused-selection-v1",
+  "source_root": "/workspace/scratch/6f2247f2f463/deckchek-system-health-functional",
+  "source_commit": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "source_tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "source_branch": "review/deckchek-system-health-functional-20261121",
+  "source_parents": [
+    "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+  ],
+  "expected_tracked_file_count": 2586,
+  "expected_distinct_blob_count": 2317,
+  "expected_total_source_bytes": 91604989,
+  "expected_all_top_level_test_count": 209,
+  "expected_source_map_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa",
+  "source_identity_file": {
+    "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+    "resolved_path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-source-identity.json",
+    "bytes": 570148,
+    "sha256": "94581a9ecc12e1d0eede372336b42368b9876693431283b196894ded92ffb3b2",
+    "mode": "0644",
+    "is_symlink": false
+  },
+  "case_inventory_file": {
+    "path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+    "resolved_path": "/workspace/scratch/6f2247f2f463/system-health-functional-round18-case-inventory.json",
+    "bytes": 95393,
+    "sha256": "c1baf00572ad94123b03a0d03a944dfa7da232ccdf05e5154e5e4958ce3268a1",
+    "mode": "0644",
+    "is_symlink": false
+  },
+  "expected_node_version": "v24.22.3",
+  "node_binary": {
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "bytes": 126951512,
+    "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+    "mode": "0755",
+    "is_symlink": false
+  },
+  "python_binary": {
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "bytes": 30894944,
+    "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "mode": "0755",
+    "is_symlink": true
+  },
+  "git_binary": {
+    "path": "/usr/bin/git",
+    "resolved_path": "/usr/bin/git",
+    "bytes": 4082768,
+    "sha256": "356db14e102d68a1a37d8a1ac577dfd678d45d46e92f468bef8b7154e7bfdc60",
+    "mode": "0755",
+    "is_symlink": false
+  },
+  "execution_budget_seconds": 60,
+  "termination_signal_after_seconds": 55,
+  "identity_budget_seconds": 10,
+  "post_kill_reap_seconds": 5,
+  "environment_rejection": {
+    "present_names": [
+      "NODE_OPTIONS",
+      "UPDATE_FIXTURES",
+      "MIXXX_CONTROLLERS_DIR"
+    ],
+    "present_prefixes": [
+      "DECKCHEK_AUDIO_"
+    ]
+  },
+  "raw_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-system-health-round18-focused-raw",
+  "expected_test_file_count": 9,
+  "source_paths": [
+    "tests/pre-gig.test.mjs",
+    "tests/pregig-storage-screen.test.mjs",
+    "tests/report-pdf.test.mjs",
+    "tests/service-panel-lifecycle.test.mjs",
+    "tests/setup-wizard-model.test.mjs",
+    "tests/support-dialog.test.mjs",
+    "tests/system-check.test.mjs",
+    "tests/system-health-coverage.test.mjs",
+    "tests/system-health-screen.test.mjs"
+  ],
+  "expected_sources": {
+    "tests/pre-gig.test.mjs": {
+      "bytes": 50840,
+      "sha256": "f813fa152e82998fa67ea49a2d78a7fa2d0cf214f600ab92b86bc94384c76d12",
+      "mode": "100644",
+      "oid": "123e554cbc7fd95ef1335cf11f77ff46c02e8d59"
+    },
+    "tests/pregig-storage-screen.test.mjs": {
+      "bytes": 23899,
+      "sha256": "2779ff267b814db961bd250612093cb4875cc51f1683fd7ec162f46e7ecad5ad",
+      "mode": "100644",
+      "oid": "a3413004846069c96e7035e5f6c46abc7fbb30e1"
+    },
+    "tests/report-pdf.test.mjs": {
+      "bytes": 26922,
+      "sha256": "49ce09abefb69a3f0439c0a00cf407298d5965bd26d64db2b44ac9b0b2b1dc81",
+      "mode": "100644",
+      "oid": "eff90411282632004de620b12d76b32e541444e5"
+    },
+    "tests/service-panel-lifecycle.test.mjs": {
+      "bytes": 19516,
+      "sha256": "d746cccf0b7798f90da862ecd8587c1130a88dffa1422af4e05eb2663a0e02b0",
+      "mode": "100644",
+      "oid": "748c3690f5995850c1d3d36f685d57bf24d24840"
+    },
+    "tests/setup-wizard-model.test.mjs": {
+      "bytes": 14817,
+      "sha256": "0722214564200f0b92b5b0a9d34cce32679cbe5a35d582fd639521e21238e2f0",
+      "mode": "100644",
+      "oid": "72f1bf85d7806c0e451ca62382ec80459a2535be"
+    },
+    "tests/support-dialog.test.mjs": {
+      "bytes": 1132,
+      "sha256": "c356f4910e22b3ecd5270b53411a077886acf609b7e00300799f44cdc0bab097",
+      "mode": "100644",
+      "oid": "62d0bcf16f137bb86af25c5496b50f6605e0956e"
+    },
+    "tests/system-check.test.mjs": {
+      "bytes": 15702,
+      "sha256": "06ebdcfa10d4d496621142e715f2dc2285539bae67aa707726f7ba6f42851f31",
+      "mode": "100644",
+      "oid": "97fb09e9297af8d9c059fa574a27449031a69863"
+    },
+    "tests/system-health-coverage.test.mjs": {
+      "bytes": 8773,
+      "sha256": "37f22f85627cf5e49dddd19661ffd96556806ab6761035fa63ec9c7b56e224f3",
+      "mode": "100644",
+      "oid": "6ac1d4744c085636690b6a49388122230c75239e"
+    },
+    "tests/system-health-screen.test.mjs": {
+      "bytes": 15090,
+      "sha256": "f290025bced7842865b2b9d1b84463a5e2a1d220be21302917d8b2dba16cf634",
+      "mode": "100644",
+      "oid": "fc7709d76712bb4250c7eb123a5369465c518ce1"
+    }
+  },
+  "expected_case_count": 208,
+  "older_case_count": 173,
+  "new_case_count": 35,
+  "case_count_by_file": {
+    "tests/pre-gig.test.mjs": 59,
+    "tests/pregig-storage-screen.test.mjs": 19,
+    "tests/report-pdf.test.mjs": 28,
+    "tests/service-panel-lifecycle.test.mjs": 28,
+    "tests/setup-wizard-model.test.mjs": 15,
+    "tests/support-dialog.test.mjs": 3,
+    "tests/system-check.test.mjs": 22,
+    "tests/system-health-coverage.test.mjs": 15,
+    "tests/system-health-screen.test.mjs": 19
+  },
+  "expected_case_names_by_file": {
+    "tests/pre-gig.test.mjs": [
+      "timecode: clean deck passes with no fix needed",
+      "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)",
+      "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter",
+      "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red",
+      "timecode dropouts: 0 passes, 1 amber, 2 red",
+      "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format",
+      "timecode: worst metric wins, every issue gets one fix, unverified format warns",
+      "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error",
+      "timecode: capture problems become actions, not crashes",
+      "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel",
+      "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored",
+      "hum that could not be measured is amber with a retry, never a silent pass",
+      "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber",
+      "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported",
+      "headphones: yes passes, no is red with cue advice, skip or none is skipped",
+      "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive",
+      "software: not installed and not running are amber with actions; no backend is unsupported",
+      "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded",
+      "evidence errors become \"Check could not run\" with a retry for every kind",
+      "every red or amber result carries a fix with a label and plain-English text",
+      "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green",
+      "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)",
+      "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording",
+      "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue",
+      "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget",
+      "built-in presets validate and reference the owner's real gear profile ids and known formats",
+      "built-in presets load through loadBuiltinPresets and bad ones are reported",
+      "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references",
+      "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)",
+      "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library",
+      "formatForMedia resolves timecode media only, from the library, in any container shape",
+      "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)",
+      "namesMatch is forgiving but refuses tiny fragments",
+      "diffRuns lists which steps changed and whether they improved (AC-6)",
+      "synthetic Traktor MK2 timecode from the generator passes both deck steps",
+      "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)",
+      "synthetic: one muted channel is red, naming the channel; silence is a no-signal red",
+      "synthetic: dropouts and a wrong-format record are caught",
+      "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier",
+      "synthetic needle-up hum is measured on the lifted segment",
+      "summarizeTimecode exposes plain numbers and handles failures",
+      "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)",
+      "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green",
+      "runPregig: a pair the interface does not offer is reported as no such input, not a failure",
+      "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair",
+      "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)",
+      "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run",
+      "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)",
+      "runPregig: manual time is reported separately and excluded from the duration",
+      "runPregig: orchestration overhead with instant mocked captures stays far below 5 s",
+      "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice",
+      "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps",
+      "runPregig: needle-up hum asks the user, captures the lifted segment and grades it",
+      "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)",
+      "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair",
+      "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths",
+      "createPregigApi (native) sends exactly the contract argument names",
+      "createPregigApi (browser) stores runs and presets locally with the same shapes",
+      "contract examples are real step results shapes (states the database accepts)"
+    ],
+    "tests/pregig-storage-screen.test.mjs": [
+      "Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig",
+      "Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry",
+      "Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh",
+      "Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry",
+      "Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending",
+      "Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry",
+      "Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable",
+      "Pre-gig an acknowledged preset save finishes while an optional refresh is still pending",
+      "Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds",
+      "Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested",
+      "Pre-gig Done preserves an unsaved result until the user confirms discarding it",
+      "Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it",
+      "Pre-gig running everything again preserves an unsaved result until the user confirms discarding it",
+      "Pre-gig a late failed History request cannot replace a newer successful read",
+      "Pre-gig disposal retires a pending History presentation and the Save callback",
+      "Pre-gig import retains the parsed draft after a failed save and retries without picking the file again",
+      "Pre-gig displays future-version presets read-only without running or rewriting their contents",
+      "Pre-gig PDF keeps the tested interface after the same saved preset is edited",
+      "Pre-gig PDF preparation cannot export or announce a result retired before its handoff"
+    ],
+    "tests/report-pdf.test.mjs": [
+      "suggestPdfName: pattern, kinds, local timestamp",
+      "deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap",
+      "cssString: quotes, backslashes and markup cannot break out of the <style> block",
+      "formatStamp is local YYYY-MM-DD HH:mm",
+      "defaultPaper: Letter for US-style regions, A4 elsewhere",
+      "normalizePdfOptions / readPdfSettings",
+      "niceTicks: covers the range with 1/2/2.5/5 x 10^n steps",
+      "finite but unrepresentable chart axes fail closed with a visible PDF warning",
+      "decimate keeps endpoints and caps the count",
+      "renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4",
+      "severity icons differ by shape and keep the text label (AC-5)",
+      "extractReportParts: styles from head, body only, scripts dropped",
+      "buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts",
+      "print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)",
+      "partial: a failing chart becomes a placeholder and a warning",
+      "run: raw measurement table only when asked; row caps",
+      "device: serial redaction option, title and file name",
+      "systemHealth: every finding has icon + severity text + evidence (AC-5)",
+      "registerPrintableKind: later features add kinds without editing report-pdf.js",
+      "exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments",
+      "exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)",
+      "exportPdf: pdf_render \"unsupported\" falls back and is remembered for the session",
+      "exportPdf: backend errors fall back to the print dialog and report the error",
+      "exportPdf: timeout rejects with a retryable error (AC-7)",
+      "exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time",
+      "normalizePdfError handles strings and objects",
+      "loadPrintCss fetches once and tolerates failure",
+      "report fixture for the Windows PrintToPdf test is up to date"
+    ],
+    "tests/service-panel-lifecycle.test.mjs": [
+      "late customer resolve leaves the replacement panel and feedback alone",
+      "late customer reject leaves the replacement panel and feedback alone",
+      "current customer submission reports failure and can be retried",
+      "late job details resolve leaves the replacement panel and feedback alone",
+      "late job details reject leaves the replacement panel and feedback alone",
+      "current job details submission reports failure and can be retried",
+      "a cancelled customer editor cannot reload or toast over the replacement editor",
+      "late saved-run link resolve preserves the current panel and feedback",
+      "late saved-run link reject preserves the current panel and feedback",
+      "current saved-run linking still refreshes and reports the linked phase",
+      "late photo unlink resolve does not reload or announce in another panel",
+      "late photo unlink reject does not reload or announce in another panel",
+      "late photo attach resolve preserves the submitted write and suppresses obsolete feedback",
+      "late photo attach reject preserves the submitted write and suppresses obsolete feedback",
+      "photo success is not announced when a refresh is superseded by navigation",
+      "a submitted photo batch finishes all its attachments after leaving the panel",
+      "current photo attachment success retains its visible feedback and releases the button",
+      "current photo attachment failure retains its visible feedback and releases the button",
+      "HTML export captures the clicked sheet options before asynchronous preparation",
+      "late HTML export resolve completes the submitted save without feedback in another panel",
+      "late HTML export reject completes the submitted save without feedback in another panel",
+      "HTML export preparation abandons a retired panel before opening a save dialog",
+      "current HTML export failure retains a working retry and cancellation stays quiet",
+      "PDF export captures the clicked sheet options and still reports current success",
+      "late PDF export resolve preserves the backend result and current-screen feedback",
+      "late PDF export reject preserves the backend result and current-screen feedback",
+      "a PDF retry offered on a previous panel cannot start another export after navigation",
+      "current PDF failure can retry and callers without ownership callbacks retain feedback"
+    ],
+    "tests/setup-wizard-model.test.mjs": [
+      "step list: seven steps on Windows, health dropped elsewhere (AC-7)",
+      "start, next, back and the bounds",
+      "skip semantics: skipping a step records it and advances; the summary cannot be skipped",
+      "answers are merged, sanitized and bounded",
+      "setup summary retains incomplete driver coverage through persistence and clears it for a new attempt",
+      "resume after step N restores step and answers (AC-2)",
+      "re-run keeps prefilled answers, restarts at step 1 and clears the skip marks (AC-8)",
+      "finish completes only an active wizard",
+      "migrateWizardState never throws and resets what it cannot trust",
+      "summarize copes with missing answers and per-env rows",
+      "resume window is 30 days (AC-2)",
+      "startup decision: fresh, upgrade install, resumable, finished, flag off (AC-1, AC-2, AC-10)",
+      "level verdict table (spec §6)",
+      "test tone is capped at -12 dBFS and defaults to -20 (AC-4)",
+      "calibration default (AC-5) and announcements"
+    ],
+    "tests/support-dialog.test.mjs": [
+      "bundleFileName is deckchek-diagnostics-YYYYMMDD-HHmm.zip in local time",
+      "buildClientContext picks WebView2 version, locale and settings; omits systemHealth when absent",
+      "sizeText"
+    ],
+    "tests/system-check.test.mjs": [
+      "bridge: no backend gives supported:false payloads",
+      "bridge: wraps the three commands",
+      "unsupported scans yield a single info finding",
+      "every required problem code has a meaning and action",
+      "driver problem code 43 is an error with USB advice; 45 is info",
+      "every known code produces a finding",
+      "unsigned driver is a warning",
+      "ASIO: missing DLL, bad signature, generic and multiple",
+      "generic Microsoft USB audio driver for vendor hardware is info",
+      "very old drivers (>3 years) are info",
+      "healthy drivers produce an ok finding",
+      "Application Error 1000: exception meanings and module heuristics",
+      "repeated events are grouped with count and first/last time",
+      "hang 1002 and WER 1001",
+      "audio service failures (SCM 7000..7034)",
+      "Kernel-PnP, USB hub/xHCI and portcls/usbaudio events",
+      "no events gives ok with period",
+      "DJ crash dump/report: \"X crashed on <date>\" with module and exception",
+      "DJ log lines: errors, crashes and dropouts",
+      "installed app with no issues is ok; uninstalled apps omitted",
+      "findings sorted error > warning > info > ok and summarized",
+      "scan errors surface as an info finding; report HTML escapes content"
+    ],
+    "tests/system-health-coverage.test.mjs": [
+      "System Health native responses must be objects instead of silently becoming unsupported scans",
+      "System Health all-clear requires three completed scan areas and preserves benign information",
+      "System Health incomplete drivers collection cannot produce an area or system all-clear",
+      "System Health incomplete events collection cannot produce an area or system all-clear",
+      "System Health incomplete djLogs collection cannot produce an area or system all-clear",
+      "System Health retains a real fault and its severity when another area is incomplete",
+      "System Health mixed supported and unavailable areas remains incomplete",
+      "System Health all unsupported scans remain informational with no checked areas",
+      "System Health a rejected command stays failed even when the other two scans are clean",
+      "System Health three rejected commands cannot become an empty successful scan",
+      "System Health distinguishes missing coverage from a pending replacement scan",
+      "System Health incomplete response shape cannot certify collection completion",
+      "System Health driver-only setup explicitly declares its narrower scan coverage",
+      "System Health serialized findings preserve coverage instead of relying on ok and info counts",
+      "System Health HTML and real PDF composition retain the same missing area and recompute stale summaries"
+    ],
+    "tests/system-health-screen.test.mjs": [
+      "System Health screen calls all three scans and shows HEALTHY only after complete clean coverage",
+      "System Health screen retains failed drivers coverage and repairs it through the actual Retry control",
+      "System Health screen retains failed events coverage and repairs it through the actual Retry control",
+      "System Health screen retains failed djLogs coverage and repairs it through the actual Retry control",
+      "System Health screen keeps partial drivers collection visible without an all-clear finding",
+      "System Health screen keeps partial events collection visible without an all-clear finding",
+      "System Health screen keeps partial djLogs collection visible without an all-clear finding",
+      "System Health screen shows mixed unsupported coverage while retaining successful areas",
+      "System Health screen reports all unsupported scans as unavailable instead of healthy",
+      "System Health browser preview performs no scan and remains informational",
+      "System Health screen keeps a real driver problem above incomplete collection coverage",
+      "System Health pending Retry coalesces clicks and blocks exports and event-period replacement",
+      "System Health three failed scans retain an exportable incomplete result",
+      "System Health actual HTML and PDF actions retain the same failed-area coverage",
+      "System Health disposal retires a pending scan and export callbacks",
+      "System Health a replacement scan retires pending PDF preparation and keeps exports disabled",
+      "System Health an invalid native response remains a failed area with an actual Retry action",
+      "diagnostics actual health collection retains failed coverage in the native context",
+      "System Health toast PDF Retry retains busy ownership and restores controls for an intervening scan"
+    ]
+  },
+  "expected_ordered_names_sha256": "145174e3bed3c471c063bd7d9d92cd2caa141047ace531f7ac3a94b531eea5e4",
+  "expected_ordered_file_names_sha256": "9ceda94adb8e00b72d093870907a50393db9da779449e31f8c01bd6a8fac71bf",
+  "expected_ordered_source_records_sha256": "19da1355909acf22efd6e6e741bf284e6c6a06f4b82d3abc2e29e8485fe9ce79",
+  "source_inventory_method": "Independent Python stdlib text registration inventory and manually reviewed loop expansion; no JavaScript evaluation. The retained inventory binds every ordered name to its original file/line, addition status, and original historical TAP case and exact duration where applicable.",
+  "historical_timing_context": {
+    "original_taps": [
+      {
+        "path": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "bytes": 555767,
+        "sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+        "cases": 2420
+      },
+      {
+        "path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "bytes": 31900,
+        "sha256": "655d53c1ef68f1d62eefdb06834b840bb0b7bd8c60da22019ac82cd8b4e25cdc",
+        "cases": 132
+      }
+    ],
+    "matched_older_cases": 173,
+    "new_cases_without_timing": 35,
+    "older_case_duration_sum_ms": "14913.288587",
+    "per_file": [
+      {
+        "file": "tests/pre-gig.test.mjs",
+        "cases": 59,
+        "older": 59,
+        "added": 0,
+        "historical_duration_ms": "14590.668619"
+      },
+      {
+        "file": "tests/pregig-storage-screen.test.mjs",
+        "cases": 19,
+        "older": 19,
+        "added": 0,
+        "historical_duration_ms": "139.283950"
+      },
+      {
+        "file": "tests/report-pdf.test.mjs",
+        "cases": 28,
+        "older": 28,
+        "added": 0,
+        "historical_duration_ms": "74.806864"
+      },
+      {
+        "file": "tests/service-panel-lifecycle.test.mjs",
+        "cases": 28,
+        "older": 28,
+        "added": 0,
+        "historical_duration_ms": "85.352739"
+      },
+      {
+        "file": "tests/setup-wizard-model.test.mjs",
+        "cases": 15,
+        "older": 14,
+        "added": 1,
+        "historical_duration_ms": "8.078872"
+      },
+      {
+        "file": "tests/support-dialog.test.mjs",
+        "cases": 3,
+        "older": 3,
+        "added": 0,
+        "historical_duration_ms": "2.426278"
+      },
+      {
+        "file": "tests/system-check.test.mjs",
+        "cases": 22,
+        "older": 22,
+        "added": 0,
+        "historical_duration_ms": "12.671265"
+      },
+      {
+        "file": "tests/system-health-coverage.test.mjs",
+        "cases": 15,
+        "older": 0,
+        "added": 15,
+        "historical_duration_ms": "0"
+      },
+      {
+        "file": "tests/system-health-screen.test.mjs",
+        "cases": 19,
+        "older": 0,
+        "added": 19,
+        "historical_duration_ms": "0"
+      }
+    ],
+    "budget_rationale": "The 173 matched retained original case durations total 14913.288587 ms. Round this to 15 s for historical case work; allow 20 s for 35 new cases and changed assertions, plus 20 s for startup, module loading, filesystem and host variability. Send TERM at 55 s from the project launch attempt and KILL at 60 s if still active. A separate maximum 5 s wait after KILL only reaps the already-signaled process; it does not authorize further work or any retry. Each of the two identity calls has its own 10 s deadline and immediate KILL on timeout, followed by the same bounded reap. Preserve every assertion and original selected source file."
+  },
+  "scope": "ONE original-file Node --test --test-concurrency=1 --test-reporter=tap invocation of these nine files only, after exactly two pinned Node identity calls. No imports, syntax checks, build, browser, scanner, native, physical, copied implementation, adversarial reproduction, rerun, or expanded selection is authorized by these unexecuted controls.",
+  "index_file": {
+    "path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+    "resolved_path": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-integration/.git/worktrees/deckchek-system-health-functional/index",
+    "bytes": 325991,
+    "sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724",
+    "mode": "0644",
+    "is_symlink": false
+  },
+  "expected_index_flags": "H for every path; no skip-worktree or assume-unchanged flags"
+}

@@ -17,7 +17,7 @@ import { confirmDialog, go } from '../shell.js';
 import { createCalibrationScreen } from '../screens/calibration.js';
 import { ensureLibrary, lib, refreshUnits, unitsFor } from '../devices/library-state.js';
 import { CATEGORIES, CATEGORY_LABELS, imageUrl } from '../../devices/library.js';
-import { createSystemBridge, interpretSystemScan, summarizeFindings, UNSUPPORTED_NOTE } from '../../system-check.js';
+import { createSystemBridge, interpretSystemScan, summarizeFindings, systemScanCoverage, UNSUPPORTED_NOTE } from '../../system-check.js';
 import { generateSine } from '../../advanced.js';
 import { isEnabled } from '../../features.js';
 import { wizardAutomationBypass } from '../../catalog-store.js';
@@ -605,6 +605,8 @@ export async function openSetupWizard({ resume = false, state = null } = {}) {
     const bridge = createSystemBridge();
     let unsupported = false;
     const run = async () => {
+      unsupported = false;
+      patch({ health: null });
       host.innerHTML = '<div class="wiz-skeleton" aria-hidden="true"><span></span><span></span></div><p class="sr-only" role="status">Scanning drivers…</p>';
       setNext({ disabled: false });
       try {
@@ -616,8 +618,8 @@ export async function openSetupWizard({ resume = false, state = null } = {}) {
           return;
         }
         const findings = interpretSystemScan({ drivers: payload });
-        const sum = summarizeFindings(findings);
-        patch({ health: { errors: sum.counts.error, warnings: sum.counts.warning } });
+        const sum = summarizeFindings(findings, systemScanCoverage({ drivers: payload }, { areas: ['drivers'] }));
+        patch({ health: { errors: sum.counts.error, warnings: sum.counts.warning, complete: sum.coverage.complete } });
         const top = findings.filter(f => f.severity === 'error' || f.severity === 'warning').slice(0, 3);
         const SEV = { error: 'fail', warning: 'warn' };
         host.innerHTML = `<div class="verdict verdict-compact verdict-${sum.status}"><div class="verdict-main"><div class="verdict-chip">${chip(sum.status, sum.status === 'pass' ? 'CLEAR' : sum.status === 'fail' ? 'PROBLEMS' : sum.status === 'warn' ? 'CHECK' : 'INFO')}</div><div><p class="verdict-headline">${esc(sum.headline)}</p><p class="muted small">${sum.counts.error} error${sum.counts.error === 1 ? '' : 's'}, ${sum.counts.warning} warning${sum.counts.warning === 1 ? '' : 's'}</p></div></div></div>

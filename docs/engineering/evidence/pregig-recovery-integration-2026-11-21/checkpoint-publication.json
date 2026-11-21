@@ -1,0 +1,51 @@
+{
+  "kind": "held-checkpoint-publication",
+  "verified_at_utc": "2026-11-21T15:10:30.527Z",
+  "branch": "checkpoint/deckchek-pregig-recovery-held-20261121",
+  "published_commit": "42a0b70cf9e97648b783d723d6f64ff89eea111e",
+  "published_tree": "b18cafe8a11f72b190f8ac47937124908b18ca0d",
+  "ordered_parents": [
+    "34afefa58ac5e8346006087587b113c2a82d5a39"
+  ],
+  "prepared_local_commit": "5673f7e0506615abbd033e868167800116550fe0",
+  "consolidated_original_tip": "674e3a5b68aef0e0c2a19a05a117bdef8a11c579",
+  "binding_merge": "e395df58021f25069b3298772b83deae0ac60854",
+  "binding_merge_parents": [
+    "5673f7e0506615abbd033e868167800116550fe0",
+    "42a0b70cf9e97648b783d723d6f64ff89eea111e"
+  ],
+  "fresh_main": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+  "checks": {
+    "remote_tree_matches_complete_prepared_tree": true,
+    "recursive_entries_equal": true,
+    "zero_diff": true,
+    "exact_sole_parent": true,
+    "fixed_parent_ref_unchanged": true,
+    "fresh_destination_404_before_creation": true,
+    "exact_ref_readback": true,
+    "original_history_bundle_verified": true,
+    "all_21_bundle_prerequisites_ancestors_of_published_parent": true
+  },
+  "ref_readback": {
+    "ref": "refs/heads/checkpoint/deckchek-pregig-recovery-held-20261121",
+    "node_id": "REF_kwDOU9aKJNoAPHJlZnMvaGVhZHMvY2hlY2twb2ludC9kZWNrY2hlay1wcmVnaWctcmVjb3ZlcnktaGVsZC0yMDI2MTEyMQ",
+    "url": "https://api.github.com/repos/djshellshoxxx/deckchek/git/refs/heads/checkpoint/deckchek-pregig-recovery-held-20261121",
+    "object": {
+      "sha": "42a0b70cf9e97648b783d723d6f64ff89eea111e",
+      "type": "commit",
+      "url": "https://api.github.com/repos/djshellshoxxx/deckchek/git/commits/42a0b70cf9e97648b783d723d6f64ff89eea111e"
+    }
+  },
+  "first": {
+    "tests": 132,
+    "pass": 132,
+    "fail": 0,
+    "skip": 0,
+    "project_seconds": 15.125495306994708
+  },
+  "limits": [
+    "Held checkpoint, not main integration or release.",
+    "Original full-source audio failure, native preset association and native backup 85 remain open.",
+    "No additional project execution or native/platform qualification."
+  ]
+}

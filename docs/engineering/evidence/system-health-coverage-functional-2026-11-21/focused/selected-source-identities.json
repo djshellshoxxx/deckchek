@@ -1,0 +1,56 @@
+{
+  "tests/pre-gig.test.mjs": {
+    "bytes": 50840,
+    "mode": "100644",
+    "oid": "123e554cbc7fd95ef1335cf11f77ff46c02e8d59",
+    "sha256": "f813fa152e82998fa67ea49a2d78a7fa2d0cf214f600ab92b86bc94384c76d12"
+  },
+  "tests/pregig-storage-screen.test.mjs": {
+    "bytes": 23899,
+    "mode": "100644",
+    "oid": "a3413004846069c96e7035e5f6c46abc7fbb30e1",
+    "sha256": "2779ff267b814db961bd250612093cb4875cc51f1683fd7ec162f46e7ecad5ad"
+  },
+  "tests/report-pdf.test.mjs": {
+    "bytes": 26922,
+    "mode": "100644",
+    "oid": "eff90411282632004de620b12d76b32e541444e5",
+    "sha256": "49ce09abefb69a3f0439c0a00cf407298d5965bd26d64db2b44ac9b0b2b1dc81"
+  },
+  "tests/service-panel-lifecycle.test.mjs": {
+    "bytes": 19516,
+    "mode": "100644",
+    "oid": "748c3690f5995850c1d3d36f685d57bf24d24840",
+    "sha256": "d746cccf0b7798f90da862ecd8587c1130a88dffa1422af4e05eb2663a0e02b0"
+  },
+  "tests/setup-wizard-model.test.mjs": {
+    "bytes": 14817,
+    "mode": "100644",
+    "oid": "72f1bf85d7806c0e451ca62382ec80459a2535be",
+    "sha256": "0722214564200f0b92b5b0a9d34cce32679cbe5a35d582fd639521e21238e2f0"
+  },
+  "tests/support-dialog.test.mjs": {
+    "bytes": 1132,
+    "mode": "100644",
+    "oid": "62d0bcf16f137bb86af25c5496b50f6605e0956e",
+    "sha256": "c356f4910e22b3ecd5270b53411a077886acf609b7e00300799f44cdc0bab097"
+  },
+  "tests/system-check.test.mjs": {
+    "bytes": 15702,
+    "mode": "100644",
+    "oid": "97fb09e9297af8d9c059fa574a27449031a69863",
+    "sha256": "06ebdcfa10d4d496621142e715f2dc2285539bae67aa707726f7ba6f42851f31"
+  },
+  "tests/system-health-coverage.test.mjs": {
+    "bytes": 8773,
+    "mode": "100644",
+    "oid": "6ac1d4744c085636690b6a49388122230c75239e",
+    "sha256": "37f22f85627cf5e49dddd19661ffd96556806ab6761035fa63ec9c7b56e224f3"
+  },
+  "tests/system-health-screen.test.mjs": {
+    "bytes": 15090,
+    "mode": "100644",
+    "oid": "fc7709d76712bb4250c7eb123a5369465c518ce1",
+    "sha256": "f290025bced7842865b2b9d1b84463a5e2a1d220be21302917d8b2dba16cf634"
+  }
+}

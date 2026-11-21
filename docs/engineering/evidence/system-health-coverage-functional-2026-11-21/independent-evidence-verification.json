@@ -1,0 +1,79 @@
+{
+  "all_208_ordered_names_and_outcomes_match_source": true,
+  "all_2586_immutable_working_bytes_modes_index_and_inventories_match": true,
+  "all_39_original_files_match_expected_inventory": true,
+  "all_before_after_custody_and_controls_unchanged": true,
+  "all_case_duration_fields_retained": true,
+  "all_stderr_empty": true,
+  "cases": 208,
+  "current_case_duration_sum_ms": "15044.333251",
+  "exact_tap_grammar_validated": true,
+  "exactly_two_identity_calls_then_one_project_invocation": true,
+  "new": 35,
+  "no_timeout_or_signals": true,
+  "older": 173,
+  "per_file_current_duration_ms": [
+    {
+      "cases": 59,
+      "current_duration_ms": "14403.634976",
+      "file": "tests/pre-gig.test.mjs"
+    },
+    {
+      "cases": 19,
+      "current_duration_ms": "140.521128",
+      "file": "tests/pregig-storage-screen.test.mjs"
+    },
+    {
+      "cases": 28,
+      "current_duration_ms": "79.301652",
+      "file": "tests/report-pdf.test.mjs"
+    },
+    {
+      "cases": 28,
+      "current_duration_ms": "85.197142",
+      "file": "tests/service-panel-lifecycle.test.mjs"
+    },
+    {
+      "cases": 15,
+      "current_duration_ms": "9.260025",
+      "file": "tests/setup-wizard-model.test.mjs"
+    },
+    {
+      "cases": 3,
+      "current_duration_ms": "2.226918",
+      "file": "tests/support-dialog.test.mjs"
+    },
+    {
+      "cases": 22,
+      "current_duration_ms": "18.693014",
+      "file": "tests/system-check.test.mjs"
+    },
+    {
+      "cases": 15,
+      "current_duration_ms": "10.027740",
+      "file": "tests/system-health-coverage.test.mjs"
+    },
+    {
+      "cases": 19,
+      "current_duration_ms": "295.470656",
+      "file": "tests/system-health-screen.test.mjs"
+    }
+  ],
+  "project_elapsed_seconds": 15.929411565994087,
+  "raw_file_count": 39,
+  "raw_index_sha256": "ad1a0910ae3fe8cfa1aaccf7af7ed66819b3c1cebdb13d9f425fa741f1b4f724",
+  "raw_manifest_canonical_sha256": "4589e210609449652e0727b361adeb3866cd59b674ea1768ba0d705e4544fe72",
+  "raw_total_bytes": 5041458,
+  "scope": "Independent Python stdlib and read-only Git examination of original completed FIRST evidence and immutable source; no further project execution",
+  "source_branch": "review/deckchek-system-health-functional-20261121",
+  "source_commit": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "source_map_sha256": "11f639792299bf8b5aaf9035e94459138fd2d9ab02ce51f2c2c5f584e51765fa",
+  "source_parents": [
+    "b7f3031a185e14a502c7e7e86c6495ea3601d73a"
+  ],
+  "source_tree": "00c536bad160a5f81fbbc8cea1b7fe62594e2c7a",
+  "tap_bytes": 46741,
+  "tap_duration_ms": "15821.975168",
+  "tap_lines": 1258,
+  "tap_sha256": "86183d4b10829868a892bb738171f711b560fa3eaeb79a87cdc10d200b02d1dc"
+}

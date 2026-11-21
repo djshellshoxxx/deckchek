@@ -6,7 +6,7 @@ import { icon, chip } from '../icons.js';
 import { toast, announce } from '../live.js';
 import { exportPdfWithFeedback, pdfExportEnabled } from '../persistence.js';
 import { onFeatureChange } from '../../features.js';
-import { createSystemBridge, interpretSystemScan, summarizeFindings, buildSystemReportHtml, parseDriverDate } from '../../system-check.js';
+import { createSystemBridge, interpretSystemScan, summarizeFindings, systemScanCoverage, buildSystemReportHtml, parseDriverDate } from '../../system-check.js';
 
 const SEV_CHIP = { error: ['fail', 'ERROR'], warning: ['warn', 'WARNING'], info: ['info', 'INFO'], ok: ['pass', 'OK'] };
 const AREAS = [
@@ -33,7 +33,7 @@ export function createSystemScreen(section) {
   const state = {
     days: 14, unsupported: !bridge.isAvailable(), started: false,
     areas: { drivers: { status: 'idle' }, events: { status: 'idle' }, djLogs: { status: 'idle' } }, // status: idle|loading|done|error
-    scannedAt: null, timer: null,
+    scannedAt: null, timer: null, disposed: false, revision: 0, pdfBusy: false,
   };
 
   section.innerHTML = `
@@ -52,45 +52,55 @@ export function createSystemScreen(section) {
   const unsupportedByBackend = () => AREAS.every(a => state.areas[a.id].status === 'done' && state.areas[a.id].data?.supported === false);
   const anyBusy = () => AREAS.some(a => state.areas[a.id].status === 'loading');
   const findings = () => interpretSystemScan(data());
+  const coverage = () => systemScanCoverage(data(), { states: Object.fromEntries(AREAS.map(a => [a.id, state.areas[a.id].status])) });
+  const summary = (all = findings()) => summarizeFindings(all, coverage());
 
   async function scanArea(id) {
     const area = AREAS.find(a => a.id === id);
-    state.areas[id] = { status: 'loading' };
+    if (!area || state.disposed || state.areas[id].status === 'loading') return;
+    const attempt = { status: 'loading' };
+    state.started = true; state.revision++;
+    state.areas[id] = attempt;
     render();
     try {
       const payload = await (id === 'events' ? bridge.scanEvents({ days: state.days }) : bridge[area.scan]());
+      if (state.disposed || state.areas[id] !== attempt) return;
       state.areas[id] = { status: 'done', data: payload };
       state.scannedAt = payload?.scannedAt ? new Date(payload.scannedAt).getTime() || Date.now() : Date.now();
     } catch (error) {
+      if (state.disposed || state.areas[id] !== attempt) return;
       state.areas[id] = { status: 'error', error: String(error?.message || error) };
+      state.scannedAt = Date.now();
     }
     render();
   }
 
   async function runAll() {
-    if (anyBusy()) return;
+    if (state.disposed || anyBusy()) return;
     state.started = true;
     await Promise.all(AREAS.map(a => scanArea(a.id)));
-    const f = findings(), s = summarizeFindings(f);
-    const failed = AREAS.filter(a => state.areas[a.id].status === 'error').length;
-    announce(failed === AREAS.length ? 'System Health scan failed.' : `System Health scan complete. ${s.headline}`, { assertive: s.status === 'fail' });
-    if (failed && failed < AREAS.length) toast(`${failed} of 3 scans failed. Use the Retry button in that section.`, { type: 'warn' });
+    if (state.disposed) return;
+    const s = summary();
+    announce(`${s.coverage.complete ? 'System Health scan complete.' : 'System Health scan finished.'} ${s.headline} ${s.coverage.summary}`, { assertive: s.status === 'fail' });
+    if (!s.coverage.complete && !unsupportedByBackend()) toast(`${s.coverage.summary} Use Retry or Rescan in the affected section.`, { type: 'warn' });
   }
 
   // ---------- rendering ----------
   function renderStatus() {
+    if (state.disposed) return;
     const el = $('#sys-status');
     const done = AREAS.filter(a => ['done', 'error'].includes(state.areas[a.id].status)).length;
     if (anyBusy()) el.textContent = `Scanning… ${done} of 3 areas finished`;
-    else if (state.scannedAt) el.textContent = `Last scan ${ago(Date.now() - state.scannedAt)} · ${formatDate(new Date(state.scannedAt).toISOString())}`;
+    else if (state.scannedAt) el.textContent = `Last scan attempt ${ago(Date.now() - state.scannedAt)} · ${formatDate(new Date(state.scannedAt).toISOString())}`;
     else el.textContent = '';
     $('#sys-run').disabled = anyBusy() || state.unsupported;
     $('#sys-export').disabled = anyBusy() || !state.scannedAt || unsupportedByBackend();
-    $('#sys-export-pdf').disabled = $('#sys-export').disabled;
+    $('#sys-export-pdf').disabled = $('#sys-export').disabled || state.pdfBusy;
     $('#sys-run').querySelector('span').textContent = state.scannedAt ? 'Run full scan again' : 'Run full scan';
   }
 
   function render() {
+    if (state.disposed) return;
     renderStatus();
     if (state.unsupported || unsupportedByBackend()) { body.replaceChildren(unsupportedCard()); return; }
     if (!state.started) { body.replaceChildren(introCard()); return; }
@@ -126,7 +136,7 @@ export function createSystemScreen(section) {
   function verdictCard() {
     const loading = anyBusy();
     const all = findings();
-    const sum = summarizeFindings(all);
+    const sum = summary(all);
     const el = h('section', { class: `verdict verdict-${loading ? 'info' : sum.status}`, 'aria-label': 'System Health verdict', id: 'sys-verdict' });
     const counts = sum.counts;
     const pill = (sev, n) => `<span class="sys-count">${chip(SEV_CHIP[sev][0], `${n} ${SEV_CHIP[sev][1].toLowerCase()}`, { size: 14 })}</span>`;
@@ -134,8 +144,9 @@ export function createSystemScreen(section) {
       el.innerHTML = `<div class="verdict-main"><div class="verdict-chip">${chip('info', 'SCANNING')}</div><div><p class="verdict-headline">Scanning your system…</p><p class="muted verdict-action">Results appear below as each area finishes.</p></div></div>`;
       return el;
     }
-    const label = { pass: 'HEALTHY', warn: 'CHECK', fail: 'PROBLEMS', info: 'INFO' }[sum.status];
+    const label = !sum.coverage.complete && sum.status === 'warn' ? 'INCOMPLETE' : { pass: 'HEALTHY', warn: 'CHECK', fail: 'PROBLEMS', info: 'INFO' }[sum.status];
     el.innerHTML = `<div class="verdict-main"><div class="verdict-chip">${chip(sum.status, label)}</div><div><p class="verdict-headline" id="sys-headline">${esc(sum.headline)}</p>
+      <p class="muted" id="sys-coverage">${esc(sum.coverage.summary)}</p>
       <div class="sys-counts">${pill('error', counts.error)}${pill('warning', counts.warning)}${pill('info', counts.info)}${pill('ok', counts.ok)}</div></div></div>`;
     return el;
   }
@@ -150,7 +161,11 @@ export function createSystemScreen(section) {
       const sel = h('select', { id: 'sys-days', 'aria-label': 'Event log period' });
       [7, 14, 30, 90].forEach(d => sel.append(h('option', { value: d, text: `Last ${d} days`, selected: d === state.days ? true : null })));
       sel.value = String(state.days);
-      sel.addEventListener('change', () => { state.days = Number(sel.value); scanArea('events'); });
+      sel.disabled = anyBusy();
+      sel.addEventListener('change', () => {
+        if (state.disposed || anyBusy()) { sel.value = String(state.days); return; }
+        state.days = Number(sel.value); scanArea('events');
+      });
       tools.append(sel);
     }
     const busy = st.status === 'loading';
@@ -164,6 +179,8 @@ export function createSystemScreen(section) {
       return sec;
     }
     if (st.status !== 'done') return sec;
+    const areaCoverage = coverage().areas.find(item => item.area === area.id);
+    if (areaCoverage.state === 'unsupported' || areaCoverage.state === 'failed') { sec.append(findingList(items)); return sec; }
     if (area.id === 'drivers') sec.append(...driverTables(st.data));
     if (area.id === 'djLogs') sec.append(...djAppCards(st.data, items));
     else sec.append(findingList(items));
@@ -200,7 +217,7 @@ export function createSystemScreen(section) {
   // ---------- drivers ----------
   function driverTables(scan) {
     const out = [];
-    const drivers = [...(scan.drivers || [])].sort((a, b) => (Number(!!b.problemCode) - Number(!!a.problemCode)) || String(a.deviceName).localeCompare(String(b.deviceName)));
+    const drivers = (Array.isArray(scan.drivers) ? [...scan.drivers] : []).sort((a, b) => (Number(!!b.problemCode) - Number(!!a.problemCode)) || String(a.deviceName).localeCompare(String(b.deviceName)));
     const signed = d => (d.isSigned === true ? chip('pass', 'Signed', { size: 14 }) : d.isSigned === false ? chip('warn', 'Unsigned', { size: 14 }) : chip('info', 'Unknown', { size: 14 }));
     const status = d => {
       if (d.present === false) return chip('info', 'Not connected', { size: 14 });
@@ -219,7 +236,7 @@ export function createSystemScreen(section) {
           <td class="num">${esc(d.driverVersion || '—')}<span class="muted small">${dt ? esc(shortDate(dt.toISOString())) : '—'}</span></td><td>${signed(d)}</td><td>${status(d)}</td></tr>`; }).join('')}</tbody></table>`;
       out.push(wrap);
     }
-    const asio = scan.asioDrivers || [];
+    const asio = Array.isArray(scan.asioDrivers) ? scan.asioDrivers : [];
     out.push(h('h3', { class: 'sys-sub', text: `ASIO drivers (${asio.length})` }));
     if (!asio.length) out.push(h('p', { class: 'muted', text: 'No ASIO drivers are registered. DJ software will use Windows (WASAPI) audio, which has higher latency.' }));
     else {
@@ -236,7 +253,7 @@ export function createSystemScreen(section) {
   // ---------- DJ software ----------
   function djAppCards(scan, items) {
     const out = [];
-    const apps = (scan.apps || []);
+    const apps = Array.isArray(scan.apps) ? scan.apps : [];
     const installed = apps.filter(a => a.installed);
     const missing = apps.filter(a => !a.installed).map(a => a.app);
     const named = new Set(installed.map(a => a.app));
@@ -277,10 +294,12 @@ export function createSystemScreen(section) {
   // ---------- export ----------
   function reportArgs() {
     const all = findings();
-    return { findings: all, summary: summarizeFindings(all), generatedAt: new Date().toISOString(), drivers: state.areas.drivers.status === 'done' ? state.areas.drivers.data : null };
+    const currentSummary = summary(all);
+    return { findings: all, summary: currentSummary, coverage: currentSummary.coverage, generatedAt: new Date().toISOString(), drivers: state.areas.drivers.status === 'done' ? state.areas.drivers.data : null };
   }
   function exportReport() {
-    if (!state.scannedAt || unsupportedByBackend()) { toast('Run a scan first, then export the report.', { type: 'warn' }); return; }
+    if (state.disposed) return;
+    if (anyBusy() || !state.scannedAt || unsupportedByBackend()) { toast('Finish a scan first, then export the report.', { type: 'warn' }); return; }
     const html = buildSystemReportHtml(reportArgs());
     download(`deckchek-system-health-${new Date().toISOString().slice(0, 10)}.html`, html, 'text/html');
     toast('System Health report exported.', { type: 'success', timeout: 3000 });
@@ -289,16 +308,22 @@ export function createSystemScreen(section) {
   $('#sys-run').addEventListener('click', runAll);
   $('#sys-export').addEventListener('click', exportReport);
   function exportPdf() {
-    if (!state.scannedAt || unsupportedByBackend()) { toast('Run a scan first, then export the report.', { type: 'warn' }); return; }
+    if (state.disposed || state.pdfBusy) return;
+    if (anyBusy() || !state.scannedAt || unsupportedByBackend()) { toast('Finish a scan first, then export the report.', { type: 'warn' }); return; }
     const args = reportArgs();
-    return exportPdfWithFeedback('systemHealth', args, { button: $('#sys-export-pdf'), htmlFallback: () => download(`deckchek-system-health-${new Date().toISOString().slice(0, 10)}.html`, buildSystemReportHtml(args), 'text/html') });
+    const revision = state.revision;
+    return exportPdfWithFeedback('systemHealth', args, { button: $('#sys-export-pdf'),
+      isCurrent: () => !state.disposed && state.revision === revision && !anyBusy(),
+      onBusyChange: busy => { state.pdfBusy = busy; renderStatus(); },
+      htmlFallback: () => download(`deckchek-system-health-${new Date().toISOString().slice(0, 10)}.html`, buildSystemReportHtml(args), 'text/html') });
   }
   $('#sys-export-pdf').addEventListener('click', exportPdf);
-  onFeatureChange(({ name }) => { if (name === 'pdfExport') $('#sys-export-pdf').hidden = !pdfExportEnabled(); });
+  const offFeatures = onFeatureChange(({ name }) => { if (!state.disposed && name === 'pdfExport') $('#sys-export-pdf').hidden = !pdfExportEnabled(); });
   render();
 
   return {
     onShow() {
+      if (state.disposed) return;
       document.getElementById('inspector-title').textContent = 'About System Health';
       document.getElementById('inspector-body').innerHTML = `<div class="inspect"><p>Reads Windows' own records about your audio setup. Nothing is changed on your computer.</p><h3>Drivers</h3><p>Every audio and DJ-hardware driver, whether it is digitally signed, and whether Windows reports the device as working (Device Manager problem codes).</p><h3>Event logs</h3><p>Audio, USB and driver errors from the System log, and crashes or freezes of DJ programs from the Application log, for the last 14 days.</p><h3>DJ software logs</h3><p>Log files and crash reports written by Serato, Traktor, rekordbox, VirtualDJ, Mixxx, djay and Engine DJ.</p><h3>Reading the results</h3><p>Each finding says what it means and what to do. Errors usually explain crashes, dropouts or missing devices; warnings are worth fixing before a gig.</p></div>`;
       state.unsupported = !bridge.isAvailable();
@@ -308,5 +333,12 @@ export function createSystemScreen(section) {
     },
     onHide() { clearInterval(state.timer); },
     onExport: exportReport,
+    dispose() {
+      if (state.disposed) return;
+      state.disposed = true; state.revision++; clearInterval(state.timer); offFeatures();
+      $('#sys-run').removeEventListener('click', runAll);
+      $('#sys-export').removeEventListener('click', exportReport);
+      $('#sys-export-pdf').removeEventListener('click', exportPdf);
+    },
   };
 }

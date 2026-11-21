@@ -1,0 +1,2794 @@
+{
+  "freeze": "2a807525c70712332e84cecbaf29dd876b5e03cd",
+  "source_parent": "2ac0cf4dc25cb17471149ba64c83b3855c319d45",
+  "files": [
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "cases": 59,
+      "older": 59,
+      "added": 0,
+      "historical_duration_ms": "14590.668619"
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "cases": 19,
+      "older": 19,
+      "added": 0,
+      "historical_duration_ms": "139.283950"
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "cases": 28,
+      "older": 28,
+      "added": 0,
+      "historical_duration_ms": "74.806864"
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "cases": 28,
+      "older": 28,
+      "added": 0,
+      "historical_duration_ms": "85.352739"
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "cases": 15,
+      "older": 14,
+      "added": 1,
+      "historical_duration_ms": "8.078872"
+    },
+    {
+      "file": "tests/support-dialog.test.mjs",
+      "cases": 3,
+      "older": 3,
+      "added": 0,
+      "historical_duration_ms": "2.426278"
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "cases": 22,
+      "older": 22,
+      "added": 0,
+      "historical_duration_ms": "12.671265"
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "cases": 15,
+      "older": 0,
+      "added": 15,
+      "historical_duration_ms": "0"
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "cases": 19,
+      "older": 0,
+      "added": 19,
+      "historical_duration_ms": "0"
+    }
+  ],
+  "cases": 208,
+  "older_cases": 173,
+  "added_cases": 35,
+  "historical_duration_ms": "14913.288587",
+  "ordered_name_sha256": "145174e3bed3c471c063bd7d9d92cd2caa141047ace531f7ac3a94b531eea5e4",
+  "ordered_file_name_sha256": "9ceda94adb8e00b72d093870907a50393db9da779449e31f8c01bd6a8fac71bf",
+  "ordered_source_records_sha256": "19da1355909acf22efd6e6e741bf284e6c6a06f4b82d3abc2e29e8485fe9ce79",
+  "historical_tap_identities": [
+    {
+      "path": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+      "bytes": 555767,
+      "sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+      "cases": 2420
+    },
+    {
+      "path": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+      "bytes": 31900,
+      "sha256": "655d53c1ef68f1d62eefdb06834b840bb0b7bd8c60da22019ac82cd8b4e25cdc",
+      "cases": 132
+    }
+  ],
+  "ordered_cases": [
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 26,
+      "name": "timecode: clean deck passes with no fix needed",
+      "ordinal": 1,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1537,
+        "outcome": "ok",
+        "duration_ms": "1.596144"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 32,
+      "name": "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)",
+      "ordinal": 2,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1538,
+        "outcome": "ok",
+        "duration_ms": "0.920295"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 43,
+      "name": "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter",
+      "ordinal": 3,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1539,
+        "outcome": "ok",
+        "duration_ms": "0.419576"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 51,
+      "name": "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red",
+      "ordinal": 4,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1540,
+        "outcome": "ok",
+        "duration_ms": "0.23446"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 59,
+      "name": "timecode dropouts: 0 passes, 1 amber, 2 red",
+      "ordinal": 5,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1541,
+        "outcome": "ok",
+        "duration_ms": "0.256043"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 67,
+      "name": "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format",
+      "ordinal": 6,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1542,
+        "outcome": "ok",
+        "duration_ms": "0.287629"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 77,
+      "name": "timecode: worst metric wins, every issue gets one fix, unverified format warns",
+      "ordinal": 7,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1543,
+        "outcome": "ok",
+        "duration_ms": "0.249082"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 88,
+      "name": "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error",
+      "ordinal": 8,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1544,
+        "outcome": "ok",
+        "duration_ms": "0.270904"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 101,
+      "name": "timecode: capture problems become actions, not crashes",
+      "ordinal": 9,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1545,
+        "outcome": "ok",
+        "duration_ms": "0.445846"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 121,
+      "name": "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel",
+      "ordinal": 10,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1546,
+        "outcome": "ok",
+        "duration_ms": "0.41517"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 132,
+      "name": "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored",
+      "ordinal": 11,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1547,
+        "outcome": "ok",
+        "duration_ms": "0.38173"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 142,
+      "name": "hum that could not be measured is amber with a retry, never a silent pass",
+      "ordinal": 12,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1548,
+        "outcome": "ok",
+        "duration_ms": "0.121552"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 151,
+      "name": "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber",
+      "ordinal": 13,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1549,
+        "outcome": "ok",
+        "duration_ms": "0.347679"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 166,
+      "name": "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported",
+      "ordinal": 14,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1550,
+        "outcome": "ok",
+        "duration_ms": "0.325556"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 180,
+      "name": "headphones: yes passes, no is red with cue advice, skip or none is skipped",
+      "ordinal": 15,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1551,
+        "outcome": "ok",
+        "duration_ms": "0.137856"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 196,
+      "name": "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive",
+      "ordinal": 16,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1552,
+        "outcome": "ok",
+        "duration_ms": "1.629173"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 212,
+      "name": "software: not installed and not running are amber with actions; no backend is unsupported",
+      "ordinal": 17,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1553,
+        "outcome": "ok",
+        "duration_ms": "0.228241"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 222,
+      "name": "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded",
+      "ordinal": 18,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1554,
+        "outcome": "ok",
+        "duration_ms": "2.764589"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 242,
+      "name": "evidence errors become \"Check could not run\" with a retry for every kind",
+      "ordinal": 19,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1555,
+        "outcome": "ok",
+        "duration_ms": "0.471374"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 253,
+      "name": "every red or amber result carries a fix with a label and plain-English text",
+      "ordinal": 20,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1556,
+        "outcome": "ok",
+        "duration_ms": "0.306497"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 272,
+      "name": "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green",
+      "ordinal": 21,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1557,
+        "outcome": "ok",
+        "duration_ms": "0.519515"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 291,
+      "name": "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)",
+      "ordinal": 22,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1558,
+        "outcome": "ok",
+        "duration_ms": "0.107651"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 301,
+      "name": "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording",
+      "ordinal": 23,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1559,
+        "outcome": "ok",
+        "duration_ms": "0.171746"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 312,
+      "name": "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue",
+      "ordinal": 24,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1560,
+        "outcome": "ok",
+        "duration_ms": "0.329573"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 323,
+      "name": "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget",
+      "ordinal": 25,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1561,
+        "outcome": "ok",
+        "duration_ms": "0.246318"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 338,
+      "name": "built-in presets validate and reference the owner's real gear profile ids and known formats",
+      "ordinal": 26,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1562,
+        "outcome": "ok",
+        "duration_ms": "0.500999"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 353,
+      "name": "built-in presets load through loadBuiltinPresets and bad ones are reported",
+      "ordinal": 27,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1563,
+        "outcome": "ok",
+        "duration_ms": "0.578383"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 366,
+      "name": "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references",
+      "ordinal": 28,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1564,
+        "outcome": "ok",
+        "duration_ms": "0.565434"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 391,
+      "name": "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)",
+      "ordinal": 29,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1565,
+        "outcome": "ok",
+        "duration_ms": "1.109507"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 419,
+      "name": "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library",
+      "ordinal": 30,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1566,
+        "outcome": "ok",
+        "duration_ms": "0.579075"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 436,
+      "name": "formatForMedia resolves timecode media only, from the library, in any container shape",
+      "ordinal": 31,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1567,
+        "outcome": "ok",
+        "duration_ms": "0.170684"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 444,
+      "name": "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)",
+      "ordinal": 32,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1568,
+        "outcome": "ok",
+        "duration_ms": "0.271465"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 450,
+      "name": "namesMatch is forgiving but refuses tiny fragments",
+      "ordinal": 33,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1569,
+        "outcome": "ok",
+        "duration_ms": "0.082393"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 459,
+      "name": "diffRuns lists which steps changed and whether they improved (AC-6)",
+      "ordinal": 34,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1570,
+        "outcome": "ok",
+        "duration_ms": "0.311736"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 480,
+      "name": "synthetic Traktor MK2 timecode from the generator passes both deck steps",
+      "ordinal": 35,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1571,
+        "outcome": "ok",
+        "duration_ms": "645.959926"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 487,
+      "name": "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)",
+      "ordinal": 36,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1572,
+        "outcome": "ok",
+        "duration_ms": "1245.642168"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 495,
+      "name": "synthetic: one muted channel is red, naming the channel; silence is a no-signal red",
+      "ordinal": 37,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1573,
+        "outcome": "ok",
+        "duration_ms": "510.310811"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 508,
+      "name": "synthetic: dropouts and a wrong-format record are caught",
+      "ordinal": 38,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1574,
+        "outcome": "ok",
+        "duration_ms": "1128.430237"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 517,
+      "name": "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier",
+      "ordinal": 39,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1575,
+        "outcome": "ok",
+        "duration_ms": "3108.456015"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 535,
+      "name": "synthetic needle-up hum is measured on the lifted segment",
+      "ordinal": 40,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1576,
+        "outcome": "ok",
+        "duration_ms": "365.582738"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 542,
+      "name": "summarizeTimecode exposes plain numbers and handles failures",
+      "ordinal": 41,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1577,
+        "outcome": "ok",
+        "duration_ms": "269.962371"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 568,
+      "name": "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)",
+      "ordinal": 42,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1578,
+        "outcome": "ok",
+        "duration_ms": "773.089053"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 583,
+      "name": "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green",
+      "ordinal": 43,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1579,
+        "outcome": "ok",
+        "duration_ms": "1192.396027"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 593,
+      "name": "runPregig: a pair the interface does not offer is reported as no such input, not a failure",
+      "ordinal": 44,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1580,
+        "outcome": "ok",
+        "duration_ms": "1299.8799"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 609,
+      "name": "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair",
+      "ordinal": 45,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1581,
+        "outcome": "ok",
+        "duration_ms": "0.174512"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 618,
+      "name": "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)",
+      "ordinal": 46,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1582,
+        "outcome": "ok",
+        "duration_ms": "0.725008"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 632,
+      "name": "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run",
+      "ordinal": 47,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1583,
+        "outcome": "ok",
+        "duration_ms": "595.33317"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 642,
+      "name": "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)",
+      "ordinal": 48,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1584,
+        "outcome": "ok",
+        "duration_ms": "662.471205"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 658,
+      "name": "runPregig: manual time is reported separately and excluded from the duration",
+      "ordinal": 49,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1585,
+        "outcome": "ok",
+        "duration_ms": "576.932094"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 668,
+      "name": "runPregig: orchestration overhead with instant mocked captures stays far below 5 s",
+      "ordinal": 50,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1586,
+        "outcome": "ok",
+        "duration_ms": "23.195493"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 675,
+      "name": "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice",
+      "ordinal": 51,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1587,
+        "outcome": "ok",
+        "duration_ms": "568.128377"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 690,
+      "name": "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps",
+      "ordinal": 52,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1588,
+        "outcome": "ok",
+        "duration_ms": "563.063765"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 701,
+      "name": "runPregig: needle-up hum asks the user, captures the lifted segment and grades it",
+      "ordinal": 53,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1589,
+        "outcome": "ok",
+        "duration_ms": "474.465055"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 715,
+      "name": "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)",
+      "ordinal": 54,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1590,
+        "outcome": "ok",
+        "duration_ms": "0.505519"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 724,
+      "name": "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair",
+      "ordinal": 55,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1591,
+        "outcome": "ok",
+        "duration_ms": "0.655555"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 745,
+      "name": "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths",
+      "ordinal": 56,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1592,
+        "outcome": "ok",
+        "duration_ms": "565.64826"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 762,
+      "name": "createPregigApi (native) sends exactly the contract argument names",
+      "ordinal": 57,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1593,
+        "outcome": "ok",
+        "duration_ms": "0.347311"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 780,
+      "name": "createPregigApi (browser) stores runs and presets locally with the same shapes",
+      "ordinal": 58,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1594,
+        "outcome": "ok",
+        "duration_ms": "1.857419"
+      }
+    },
+    {
+      "file": "tests/pre-gig.test.mjs",
+      "line": 807,
+      "name": "contract examples are real step results shapes (states the database accepts)",
+      "ordinal": 59,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1595,
+        "outcome": "ok",
+        "duration_ms": "0.102755"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 77,
+      "name": "Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig",
+      "ordinal": 60,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 60,
+        "outcome": "ok",
+        "duration_ms": "37.025002"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 92,
+      "name": "Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry",
+      "ordinal": 61,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 61,
+        "outcome": "ok",
+        "duration_ms": "2.982065"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 106,
+      "name": "Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh",
+      "ordinal": 62,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 62,
+        "outcome": "ok",
+        "duration_ms": "4.310723"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 118,
+      "name": "Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry",
+      "ordinal": 63,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 63,
+        "outcome": "ok",
+        "duration_ms": "5.768075"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 136,
+      "name": "Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending",
+      "ordinal": 64,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 64,
+        "outcome": "ok",
+        "duration_ms": "4.294488"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 148,
+      "name": "Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry",
+      "ordinal": 65,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 65,
+        "outcome": "ok",
+        "duration_ms": "3.783981"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 168,
+      "name": "Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable",
+      "ordinal": 66,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 66,
+        "outcome": "ok",
+        "duration_ms": "2.784768"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 180,
+      "name": "Pre-gig an acknowledged preset save finishes while an optional refresh is still pending",
+      "ordinal": 67,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 67,
+        "outcome": "ok",
+        "duration_ms": "3.115947"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 191,
+      "name": "Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds",
+      "ordinal": 68,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 68,
+        "outcome": "ok",
+        "duration_ms": "12.469212"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 211,
+      "name": "Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested",
+      "ordinal": 69,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 69,
+        "outcome": "ok",
+        "duration_ms": "5.754554"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 225,
+      "name": "Pre-gig Done preserves an unsaved result until the user confirms discarding it",
+      "ordinal": 70,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 70,
+        "outcome": "ok",
+        "duration_ms": "9.459636"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 225,
+      "name": "Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it",
+      "ordinal": 71,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 71,
+        "outcome": "ok",
+        "duration_ms": "12.225766"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 225,
+      "name": "Pre-gig running everything again preserves an unsaved result until the user confirms discarding it",
+      "ordinal": 72,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 72,
+        "outcome": "ok",
+        "duration_ms": "10.457307"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 235,
+      "name": "Pre-gig a late failed History request cannot replace a newer successful read",
+      "ordinal": 73,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 73,
+        "outcome": "ok",
+        "duration_ms": "1.862091"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 245,
+      "name": "Pre-gig disposal retires a pending History presentation and the Save callback",
+      "ordinal": 74,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 74,
+        "outcome": "ok",
+        "duration_ms": "1.204712"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 254,
+      "name": "Pre-gig import retains the parsed draft after a failed save and retries without picking the file again",
+      "ordinal": 75,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 75,
+        "outcome": "ok",
+        "duration_ms": "5.098938"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 271,
+      "name": "Pre-gig displays future-version presets read-only without running or rewriting their contents",
+      "ordinal": 76,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 76,
+        "outcome": "ok",
+        "duration_ms": "1.714028"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 303,
+      "name": "Pre-gig PDF keeps the tested interface after the same saved preset is edited",
+      "ordinal": 77,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 77,
+        "outcome": "ok",
+        "duration_ms": "11.47073"
+      }
+    },
+    {
+      "file": "tests/pregig-storage-screen.test.mjs",
+      "line": 319,
+      "name": "Pre-gig PDF preparation cannot export or announce a result retired before its handoff",
+      "ordinal": 78,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/pregig-recovery-functional-2026-11-21/focused/run.tap",
+        "original_case": 78,
+        "outcome": "ok",
+        "duration_ms": "3.501927"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 33,
+      "name": "suggestPdfName: pattern, kinds, local timestamp",
+      "ordinal": 79,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1624,
+        "outcome": "ok",
+        "duration_ms": "1.507523"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 41,
+      "name": "deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap",
+      "ordinal": 80,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1625,
+        "outcome": "ok",
+        "duration_ms": "0.336746"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 54,
+      "name": "cssString: quotes, backslashes and markup cannot break out of the <style> block",
+      "ordinal": 81,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1626,
+        "outcome": "ok",
+        "duration_ms": "0.329585"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 63,
+      "name": "formatStamp is local YYYY-MM-DD HH:mm",
+      "ordinal": 82,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1627,
+        "outcome": "ok",
+        "duration_ms": "0.171377"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 70,
+      "name": "defaultPaper: Letter for US-style regions, A4 elsewhere",
+      "ordinal": 83,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1628,
+        "outcome": "ok",
+        "duration_ms": "2.574655"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 75,
+      "name": "normalizePdfOptions / readPdfSettings",
+      "ordinal": 84,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1629,
+        "outcome": "ok",
+        "duration_ms": "0.971689"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 90,
+      "name": "niceTicks: covers the range with 1/2/2.5/5 x 10^n steps",
+      "ordinal": 85,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1630,
+        "outcome": "ok",
+        "duration_ms": "0.718538"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 108,
+      "name": "finite but unrepresentable chart axes fail closed with a visible PDF warning",
+      "ordinal": 86,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1631,
+        "outcome": "ok",
+        "duration_ms": "4.471533"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 132,
+      "name": "decimate keeps endpoints and caps the count",
+      "ordinal": 87,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1632,
+        "outcome": "ok",
+        "duration_ms": "0.704988"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 141,
+      "name": "renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4",
+      "ordinal": 88,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1633,
+        "outcome": "ok",
+        "duration_ms": "0.530697"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 157,
+      "name": "severity icons differ by shape and keep the text label (AC-5)",
+      "ordinal": 89,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1634,
+        "outcome": "ok",
+        "duration_ms": "0.324216"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 167,
+      "name": "extractReportParts: styles from head, body only, scripts dropped",
+      "ordinal": 90,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1635,
+        "outcome": "ok",
+        "duration_ms": "0.413791"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 174,
+      "name": "buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts",
+      "ordinal": 91,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1636,
+        "outcome": "ok",
+        "duration_ms": "1.180462"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 191,
+      "name": "print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)",
+      "ordinal": 92,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1637,
+        "outcome": "ok",
+        "duration_ms": "1.46528"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 205,
+      "name": "partial: a failing chart becomes a placeholder and a warning",
+      "ordinal": 93,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1638,
+        "outcome": "ok",
+        "duration_ms": "1.259821"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 212,
+      "name": "run: raw measurement table only when asked; row caps",
+      "ordinal": 94,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1639,
+        "outcome": "ok",
+        "duration_ms": "3.001937"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 223,
+      "name": "device: serial redaction option, title and file name",
+      "ordinal": 95,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1640,
+        "outcome": "ok",
+        "duration_ms": "2.26457"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 235,
+      "name": "systemHealth: every finding has icon + severity text + evidence (AC-5)",
+      "ordinal": 96,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1641,
+        "outcome": "ok",
+        "duration_ms": "1.498259"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 258,
+      "name": "registerPrintableKind: later features add kinds without editing report-pdf.js",
+      "ordinal": 97,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1642,
+        "outcome": "ok",
+        "duration_ms": "0.638599"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 303,
+      "name": "exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments",
+      "ordinal": 98,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1643,
+        "outcome": "ok",
+        "duration_ms": "1.153362"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 319,
+      "name": "exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)",
+      "ordinal": 99,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1644,
+        "outcome": "ok",
+        "duration_ms": "0.964307"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 335,
+      "name": "exportPdf: pdf_render \"unsupported\" falls back and is remembered for the session",
+      "ordinal": 100,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1645,
+        "outcome": "ok",
+        "duration_ms": "1.28575"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 348,
+      "name": "exportPdf: backend errors fall back to the print dialog and report the error",
+      "ordinal": 101,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1646,
+        "outcome": "ok",
+        "duration_ms": "1.262946"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 361,
+      "name": "exportPdf: timeout rejects with a retryable error (AC-7)",
+      "ordinal": 102,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1647,
+        "outcome": "ok",
+        "duration_ms": "41.501395"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 381,
+      "name": "exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time",
+      "ordinal": 103,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1648,
+        "outcome": "ok",
+        "duration_ms": "3.093845"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 400,
+      "name": "normalizePdfError handles strings and objects",
+      "ordinal": 104,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1649,
+        "outcome": "ok",
+        "duration_ms": "0.264247"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 406,
+      "name": "loadPrintCss fetches once and tolerates failure",
+      "ordinal": 105,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1650,
+        "outcome": "ok",
+        "duration_ms": "0.335624"
+      }
+    },
+    {
+      "file": "tests/report-pdf.test.mjs",
+      "line": 418,
+      "name": "report fixture for the Windows PrintToPdf test is up to date",
+      "ordinal": 106,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1651,
+        "outcome": "ok",
+        "duration_ms": "0.581122"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 67,
+      "name": "late customer resolve leaves the replacement panel and feedback alone",
+      "ordinal": 107,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1877,
+        "outcome": "ok",
+        "duration_ms": "7.941544"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 67,
+      "name": "late customer reject leaves the replacement panel and feedback alone",
+      "ordinal": 108,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1878,
+        "outcome": "ok",
+        "duration_ms": "1.361498"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 81,
+      "name": "current customer submission reports failure and can be retried",
+      "ordinal": 109,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1879,
+        "outcome": "ok",
+        "duration_ms": "3.322282"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 67,
+      "name": "late job details resolve leaves the replacement panel and feedback alone",
+      "ordinal": 110,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1880,
+        "outcome": "ok",
+        "duration_ms": "1.136648"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 67,
+      "name": "late job details reject leaves the replacement panel and feedback alone",
+      "ordinal": 111,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1881,
+        "outcome": "ok",
+        "duration_ms": "1.185281"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 81,
+      "name": "current job details submission reports failure and can be retried",
+      "ordinal": 112,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1882,
+        "outcome": "ok",
+        "duration_ms": "1.428309"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 92,
+      "name": "a cancelled customer editor cannot reload or toast over the replacement editor",
+      "ordinal": 113,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1883,
+        "outcome": "ok",
+        "duration_ms": "2.377885"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 110,
+      "name": "late saved-run link resolve preserves the current panel and feedback",
+      "ordinal": 114,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1884,
+        "outcome": "ok",
+        "duration_ms": "1.858289"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 110,
+      "name": "late saved-run link reject preserves the current panel and feedback",
+      "ordinal": 115,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1885,
+        "outcome": "ok",
+        "duration_ms": "0.683773"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 123,
+      "name": "current saved-run linking still refreshes and reports the linked phase",
+      "ordinal": 116,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1886,
+        "outcome": "ok",
+        "duration_ms": "0.834672"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 131,
+      "name": "late photo unlink resolve does not reload or announce in another panel",
+      "ordinal": 117,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1887,
+        "outcome": "ok",
+        "duration_ms": "0.99896"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 131,
+      "name": "late photo unlink reject does not reload or announce in another panel",
+      "ordinal": 118,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1888,
+        "outcome": "ok",
+        "duration_ms": "0.718817"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 154,
+      "name": "late photo attach resolve preserves the submitted write and suppresses obsolete feedback",
+      "ordinal": 119,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1889,
+        "outcome": "ok",
+        "duration_ms": "7.350211"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 154,
+      "name": "late photo attach reject preserves the submitted write and suppresses obsolete feedback",
+      "ordinal": 120,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1890,
+        "outcome": "ok",
+        "duration_ms": "2.927245"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 171,
+      "name": "photo success is not announced when a refresh is superseded by navigation",
+      "ordinal": 121,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1891,
+        "outcome": "ok",
+        "duration_ms": "3.28154"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 186,
+      "name": "a submitted photo batch finishes all its attachments after leaving the panel",
+      "ordinal": 122,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1892,
+        "outcome": "ok",
+        "duration_ms": "5.76857"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 200,
+      "name": "current photo attachment success retains its visible feedback and releases the button",
+      "ordinal": 123,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1893,
+        "outcome": "ok",
+        "duration_ms": "3.271986"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 200,
+      "name": "current photo attachment failure retains its visible feedback and releases the button",
+      "ordinal": 124,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1894,
+        "outcome": "ok",
+        "duration_ms": "2.311775"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 211,
+      "name": "HTML export captures the clicked sheet options before asynchronous preparation",
+      "ordinal": 125,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1895,
+        "outcome": "ok",
+        "duration_ms": "5.441335"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 225,
+      "name": "late HTML export resolve completes the submitted save without feedback in another panel",
+      "ordinal": 126,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1896,
+        "outcome": "ok",
+        "duration_ms": "2.34174"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 225,
+      "name": "late HTML export reject completes the submitted save without feedback in another panel",
+      "ordinal": 127,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1897,
+        "outcome": "ok",
+        "duration_ms": "2.180586"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 238,
+      "name": "HTML export preparation abandons a retired panel before opening a save dialog",
+      "ordinal": 128,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1898,
+        "outcome": "ok",
+        "duration_ms": "1.099983"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 247,
+      "name": "current HTML export failure retains a working retry and cancellation stays quiet",
+      "ordinal": 129,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1899,
+        "outcome": "ok",
+        "duration_ms": "7.492455"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 274,
+      "name": "PDF export captures the clicked sheet options and still reports current success",
+      "ordinal": 130,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1900,
+        "outcome": "ok",
+        "duration_ms": "4.859115"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 286,
+      "name": "late PDF export resolve preserves the backend result and current-screen feedback",
+      "ordinal": 131,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1901,
+        "outcome": "ok",
+        "duration_ms": "4.263475"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 286,
+      "name": "late PDF export reject preserves the backend result and current-screen feedback",
+      "ordinal": 132,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1902,
+        "outcome": "ok",
+        "duration_ms": "2.57388"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 299,
+      "name": "a PDF retry offered on a previous panel cannot start another export after navigation",
+      "ordinal": 133,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1903,
+        "outcome": "ok",
+        "duration_ms": "3.204834"
+      }
+    },
+    {
+      "file": "tests/service-panel-lifecycle.test.mjs",
+      "line": 309,
+      "name": "current PDF failure can retry and callers without ownership callbacks retain feedback",
+      "ordinal": 134,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1904,
+        "outcome": "ok",
+        "duration_ms": "3.136051"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 14,
+      "name": "step list: seven steps on Windows, health dropped elsewhere (AC-7)",
+      "ordinal": 135,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1966,
+        "outcome": "ok",
+        "duration_ms": "1.416959"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 22,
+      "name": "start, next, back and the bounds",
+      "ordinal": 136,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1967,
+        "outcome": "ok",
+        "duration_ms": "1.138702"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 42,
+      "name": "skip semantics: skipping a step records it and advances; the summary cannot be skipped",
+      "ordinal": 137,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1968,
+        "outcome": "ok",
+        "duration_ms": "0.493572"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 61,
+      "name": "answers are merged, sanitized and bounded",
+      "ordinal": 138,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1969,
+        "outcome": "ok",
+        "duration_ms": "0.627554"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 80,
+      "name": "setup summary retains incomplete driver coverage through persistence and clears it for a new attempt",
+      "ordinal": 139,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 93,
+      "name": "resume after step N restores step and answers (AC-2)",
+      "ordinal": 140,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1970,
+        "outcome": "ok",
+        "duration_ms": "0.501093"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 108,
+      "name": "re-run keeps prefilled answers, restarts at step 1 and clears the skip marks (AC-8)",
+      "ordinal": 141,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1971,
+        "outcome": "ok",
+        "duration_ms": "0.963608"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 121,
+      "name": "finish completes only an active wizard",
+      "ordinal": 142,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1972,
+        "outcome": "ok",
+        "duration_ms": "0.167472"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 130,
+      "name": "migrateWizardState never throws and resets what it cannot trust",
+      "ordinal": 143,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1973,
+        "outcome": "ok",
+        "duration_ms": "0.463266"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 152,
+      "name": "summarize copes with missing answers and per-env rows",
+      "ordinal": 144,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1974,
+        "outcome": "ok",
+        "duration_ms": "0.448624"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 172,
+      "name": "resume window is 30 days (AC-2)",
+      "ordinal": 145,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1975,
+        "outcome": "ok",
+        "duration_ms": "0.33931"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 184,
+      "name": "startup decision: fresh, upgrade install, resumable, finished, flag off (AC-1, AC-2, AC-10)",
+      "ordinal": 146,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1976,
+        "outcome": "ok",
+        "duration_ms": "0.687503"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 207,
+      "name": "level verdict table (spec §6)",
+      "ordinal": 147,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1977,
+        "outcome": "ok",
+        "duration_ms": "0.560312"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 229,
+      "name": "test tone is capped at -12 dBFS and defaults to -20 (AC-4)",
+      "ordinal": 148,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1978,
+        "outcome": "ok",
+        "duration_ms": "0.134122"
+      }
+    },
+    {
+      "file": "tests/setup-wizard-model.test.mjs",
+      "line": 240,
+      "name": "calibration default (AC-5) and announcements",
+      "ordinal": 149,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 1979,
+        "outcome": "ok",
+        "duration_ms": "0.136775"
+      }
+    },
+    {
+      "file": "tests/support-dialog.test.mjs",
+      "line": 5,
+      "name": "bundleFileName is deckchek-diagnostics-YYYYMMDD-HHmm.zip in local time",
+      "ordinal": 150,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2098,
+        "outcome": "ok",
+        "duration_ms": "1.506886"
+      }
+    },
+    {
+      "file": "tests/support-dialog.test.mjs",
+      "line": 9,
+      "name": "buildClientContext picks WebView2 version, locale and settings; omits systemHealth when absent",
+      "ordinal": 151,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2099,
+        "outcome": "ok",
+        "duration_ms": "0.733262"
+      }
+    },
+    {
+      "file": "tests/support-dialog.test.mjs",
+      "line": 17,
+      "name": "sizeText",
+      "ordinal": 152,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2100,
+        "outcome": "ok",
+        "duration_ms": "0.18613"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 16,
+      "name": "bridge: no backend gives supported:false payloads",
+      "ordinal": 153,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2134,
+        "outcome": "ok",
+        "duration_ms": "1.900588"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 23,
+      "name": "bridge: wraps the three commands",
+      "ordinal": 154,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2135,
+        "outcome": "ok",
+        "duration_ms": "0.287302"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 31,
+      "name": "unsupported scans yield a single info finding",
+      "ordinal": 155,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2136,
+        "outcome": "ok",
+        "duration_ms": "0.374563"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 41,
+      "name": "every required problem code has a meaning and action",
+      "ordinal": 156,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2137,
+        "outcome": "ok",
+        "duration_ms": "0.30576"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 52,
+      "name": "driver problem code 43 is an error with USB advice; 45 is info",
+      "ordinal": 157,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2138,
+        "outcome": "ok",
+        "duration_ms": "0.762517"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 61,
+      "name": "every known code produces a finding",
+      "ordinal": 158,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2139,
+        "outcome": "ok",
+        "duration_ms": "0.632311"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 70,
+      "name": "unsigned driver is a warning",
+      "ordinal": 159,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2140,
+        "outcome": "ok",
+        "duration_ms": "0.222835"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 77,
+      "name": "ASIO: missing DLL, bad signature, generic and multiple",
+      "ordinal": 160,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2141,
+        "outcome": "ok",
+        "duration_ms": "0.994145"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 91,
+      "name": "generic Microsoft USB audio driver for vendor hardware is info",
+      "ordinal": 161,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2142,
+        "outcome": "ok",
+        "duration_ms": "0.484418"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 98,
+      "name": "very old drivers (>3 years) are info",
+      "ordinal": 162,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2143,
+        "outcome": "ok",
+        "duration_ms": "0.357758"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 106,
+      "name": "healthy drivers produce an ok finding",
+      "ordinal": 163,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2144,
+        "outcome": "ok",
+        "duration_ms": "0.15965"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 111,
+      "name": "Application Error 1000: exception meanings and module heuristics",
+      "ordinal": 164,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2145,
+        "outcome": "ok",
+        "duration_ms": "1.728689"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 128,
+      "name": "repeated events are grouped with count and first/last time",
+      "ordinal": 165,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2146,
+        "outcome": "ok",
+        "duration_ms": "0.413642"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 138,
+      "name": "hang 1002 and WER 1001",
+      "ordinal": 166,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2147,
+        "outcome": "ok",
+        "duration_ms": "0.443427"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 151,
+      "name": "audio service failures (SCM 7000..7034)",
+      "ordinal": 167,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2148,
+        "outcome": "ok",
+        "duration_ms": "0.416927"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 160,
+      "name": "Kernel-PnP, USB hub/xHCI and portcls/usbaudio events",
+      "ordinal": 168,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2149,
+        "outcome": "ok",
+        "duration_ms": "0.410828"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 171,
+      "name": "no events gives ok with period",
+      "ordinal": 169,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2150,
+        "outcome": "ok",
+        "duration_ms": "0.096465"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 182,
+      "name": "DJ crash dump/report: \"X crashed on <date>\" with module and exception",
+      "ordinal": 170,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2151,
+        "outcome": "ok",
+        "duration_ms": "0.749778"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 192,
+      "name": "DJ log lines: errors, crashes and dropouts",
+      "ordinal": 171,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2152,
+        "outcome": "ok",
+        "duration_ms": "1.071852"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 213,
+      "name": "installed app with no issues is ok; uninstalled apps omitted",
+      "ordinal": 172,
+      "status": "older",
+      "assertions_changed_round18": false,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2153,
+        "outcome": "ok",
+        "duration_ms": "0.135794"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 224,
+      "name": "findings sorted error > warning > info > ok and summarized",
+      "ordinal": 173,
+      "status": "older",
+      "assertions_changed_round18": true,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2154,
+        "outcome": "ok",
+        "duration_ms": "0.37226"
+      }
+    },
+    {
+      "file": "tests/system-check.test.mjs",
+      "line": 239,
+      "name": "scan errors surface as an info finding; report HTML escapes content",
+      "ordinal": 174,
+      "status": "older",
+      "assertions_changed_round18": true,
+      "historical": {
+        "original_tap": "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+        "original_case": 2155,
+        "outcome": "ok",
+        "duration_ms": "0.349756"
+      }
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 15,
+      "name": "System Health native responses must be objects instead of silently becoming unsupported scans",
+      "ordinal": 175,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 24,
+      "name": "System Health all-clear requires three completed scan areas and preserves benign information",
+      "ordinal": 176,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 35,
+      "name": "System Health incomplete drivers collection cannot produce an area or system all-clear",
+      "ordinal": 177,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 35,
+      "name": "System Health incomplete events collection cannot produce an area or system all-clear",
+      "ordinal": 178,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 35,
+      "name": "System Health incomplete djLogs collection cannot produce an area or system all-clear",
+      "ordinal": 179,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 46,
+      "name": "System Health retains a real fault and its severity when another area is incomplete",
+      "ordinal": 180,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 57,
+      "name": "System Health mixed supported and unavailable areas remains incomplete",
+      "ordinal": 181,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 65,
+      "name": "System Health all unsupported scans remain informational with no checked areas",
+      "ordinal": 182,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 75,
+      "name": "System Health a rejected command stays failed even when the other two scans are clean",
+      "ordinal": 183,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 84,
+      "name": "System Health three rejected commands cannot become an empty successful scan",
+      "ordinal": 184,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 91,
+      "name": "System Health distinguishes missing coverage from a pending replacement scan",
+      "ordinal": 185,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 100,
+      "name": "System Health incomplete response shape cannot certify collection completion",
+      "ordinal": 186,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 113,
+      "name": "System Health driver-only setup explicitly declares its narrower scan coverage",
+      "ordinal": 187,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 123,
+      "name": "System Health serialized findings preserve coverage instead of relying on ok and info counts",
+      "ordinal": 188,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-coverage.test.mjs",
+      "line": 132,
+      "name": "System Health HTML and real PDF composition retain the same missing area and recompute stale summaries",
+      "ordinal": 189,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 54,
+      "name": "System Health screen calls all three scans and shows HEALTHY only after complete clean coverage",
+      "ordinal": 190,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 63,
+      "name": "System Health screen retains failed drivers coverage and repairs it through the actual Retry control",
+      "ordinal": 191,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 63,
+      "name": "System Health screen retains failed events coverage and repairs it through the actual Retry control",
+      "ordinal": 192,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 63,
+      "name": "System Health screen retains failed djLogs coverage and repairs it through the actual Retry control",
+      "ordinal": 193,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 78,
+      "name": "System Health screen keeps partial drivers collection visible without an all-clear finding",
+      "ordinal": 194,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 78,
+      "name": "System Health screen keeps partial events collection visible without an all-clear finding",
+      "ordinal": 195,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 78,
+      "name": "System Health screen keeps partial djLogs collection visible without an all-clear finding",
+      "ordinal": 196,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 90,
+      "name": "System Health screen shows mixed unsupported coverage while retaining successful areas",
+      "ordinal": 197,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 99,
+      "name": "System Health screen reports all unsupported scans as unavailable instead of healthy",
+      "ordinal": 198,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 107,
+      "name": "System Health browser preview performs no scan and remains informational",
+      "ordinal": 199,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 113,
+      "name": "System Health screen keeps a real driver problem above incomplete collection coverage",
+      "ordinal": 200,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 123,
+      "name": "System Health pending Retry coalesces clicks and blocks exports and event-period replacement",
+      "ordinal": 201,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 136,
+      "name": "System Health three failed scans retain an exportable incomplete result",
+      "ordinal": 202,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 148,
+      "name": "System Health actual HTML and PDF actions retain the same failed-area coverage",
+      "ordinal": 203,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 162,
+      "name": "System Health disposal retires a pending scan and export callbacks",
+      "ordinal": 204,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 174,
+      "name": "System Health a replacement scan retires pending PDF preparation and keeps exports disabled",
+      "ordinal": 205,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 186,
+      "name": "System Health an invalid native response remains a failed area with an actual Retry action",
+      "ordinal": 206,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 196,
+      "name": "diagnostics actual health collection retains failed coverage in the native context",
+      "ordinal": 207,
+      "status": "added",
+      "assertions_changed_round18": false
+    },
+    {
+      "file": "tests/system-health-screen.test.mjs",
+      "line": 216,
+      "name": "System Health toast PDF Retry retains busy ownership and restores controls for an intervening scan",
+      "ordinal": 208,
+      "status": "added",
+      "assertions_changed_round18": false
+    }
+  ]
+}

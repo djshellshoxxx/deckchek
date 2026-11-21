@@ -61,3 +61,20 @@ Root owns further implementation, integration, CI and publication. No source
 execution is performed while preparing this checkpoint. The same hourly
 continuation remains enabled, with existing credit-stop handling and no inferred
 credit-exhaustion condition.
+
+## Observed publication
+
+Root published the intended new branch and verified its exact readback at
+`42a0b70cf9e97648b783d723d6f64ff89eea111e`, complete tree
+`b18cafe8a11f72b190f8ac47937124908b18ca0d`, sole parent
+`34afefa58ac5e8346006087587b113c2a82d5a39`. Fresh main and fixed parent were
+unchanged, and the destination returned 404 immediately before creation.
+Fetched Git objects matched every prepared tree entry with zero diff.
+
+The [publication proof](evidence/pregig-recovery-integration-2026-11-21/checkpoint-publication.json)
+and [remote tree proof](evidence/pregig-recovery-integration-2026-11-21/remote-tree-proof.json)
+retain the observed identities. Binding merge `e395df58021f25069b3298772b83deae0ac60854`
+preserves the prepared original history as first parent and the exact published
+commit as second parent, with the same whole tree. This proof follow-up does not
+move the fixed published ref. Issue #87 records the scoped completion and remains
+open; its original body is preserved. No main merge, release or deployment occurred.

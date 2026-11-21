@@ -1,0 +1,1458 @@
+[
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode: clean deck passes with no fix needed",
+    "ordinal": 1,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode SNR: 25 passes, 24.9 amber, 20 amber, 19.9 red (AC-3 action and DVS link)",
+    "ordinal": 2,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode balance: 1.5 passes, 1.6 amber, 3 amber, 3.1 red, sign does not matter",
+    "ordinal": 3,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode phase error: 10 passes, 10.1 amber, 20 amber, 20.1 red",
+    "ordinal": 4,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode dropouts: 0 passes, 1 amber, 2 red",
+    "ordinal": 5,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode speed: 1% passes, 1.1% amber (pitch), 5% amber, 5.1% red means wrong format",
+    "ordinal": 6,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode: worst metric wins, every issue gets one fix, unverified format warns",
+    "ordinal": 7,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode: no signal is red with needle, switch and cable advice; missing evidence is skipped, errors are amber-level error",
+    "ordinal": 8,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "timecode: capture problems become actions, not crashes",
+    "ordinal": 9,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "signal level: -50 dBFS passes, -50.1 on either channel is red and names the channel",
+    "ordinal": 10,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "hum: 40 dB below the carrier is amber, 25 dB is red, above 40 passes; hum below the floor margin is ignored",
+    "ordinal": 11,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "hum that could not be measured is amber with a retry, never a silent pass",
+    "ordinal": 12,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "audio: missing interface is red with connection and Sound-settings actions; sample-rate mismatch is amber",
+    "ordinal": 13,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "midi: present passes, optional missing is amber, required missing is red, no backend is unsupported",
+    "ordinal": 14,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "headphones: yes passes, no is red with cue advice, skip or none is skipped",
+    "ordinal": 15,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "software: crash within 1 h red, within 24 h amber, older passes; boundaries inclusive",
+    "ordinal": 16,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "software: not installed and not running are amber with actions; no backend is unsupported",
+    "ordinal": 17,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "system: driver and event findings filtered to the preset gear, warnings amber, errors red, unsupported excluded",
+    "ordinal": 18,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "evidence errors become \"Check could not run\" with a retry for every kind",
+    "ordinal": 19,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "every red or amber result carries a fix with a label and plain-English text",
+    "ordinal": 20,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "rollUp matrix (AC-2): fail is red, warn or error is amber, skipped required is incomplete, else green",
+    "ordinal": 21,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "rollUp: unsupported steps are excluded from the verdict and mark the check partial (AC-5)",
+    "ordinal": 22,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "rollUp: top problems sorted red, amber, then skipped required; copy matches the spec wording",
+    "ordinal": 23,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "buildPlan orders parallel steps first, then per-deck steps, then the headphone cue",
+    "ordinal": 24,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "buildPlan honours skip and only, drops MIDI and software when the preset has none, and stays inside the 120 s budget",
+    "ordinal": 25,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "built-in presets validate and reference the owner's real gear profile ids and known formats",
+    "ordinal": 26,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "built-in presets load through loadBuiltinPresets and bad ones are reported",
+    "ordinal": 27,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "validatePreset: bad deck ids, duplicates, inputs, formats, rates, MIDI and gear references",
+    "ordinal": 28,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "presets: newer versions are read-only, import rejects >256 kB and junk, export/duplicate round-trip (AC-8)",
+    "ordinal": 29,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "presetFromEquipment builds a valid preset from real profiles; deck B defaults to inputs 3-4 and the format comes from the media library",
+    "ordinal": 30,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "formatForMedia resolves timecode media only, from the library, in any container shape",
+    "ordinal": 31,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "the built-in rigs on a multi-pair interface put deck A on 1-2 and deck B on 3-4 (Traktor Audio 8 DJ)",
+    "ordinal": 32,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "namesMatch is forgiving but refuses tiny fragments",
+    "ordinal": 33,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "diffRuns lists which steps changed and whether they improved (AC-6)",
+    "ordinal": 34,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic Traktor MK2 timecode from the generator passes both deck steps",
+    "ordinal": 35,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic: noisy carrier is amber then red as the SNR falls (real analyzeTimecode)",
+    "ordinal": 36,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic: one muted channel is red, naming the channel; silence is a no-signal red",
+    "ordinal": 37,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic: dropouts and a wrong-format record are caught",
+    "ordinal": 38,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic hum: 50 Hz and 60 Hz families are detected and graded against the carrier",
+    "ordinal": 39,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "synthetic needle-up hum is measured on the lifted segment",
+    "ordinal": 40,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "summarizeTimecode exposes plain numbers and handles failures",
+    "ordinal": 41,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: an all-ready rig produces a green verdict with every automatic step passing (AC-1)",
+    "ordinal": 42,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: deck B captures input pair 3-4 and deck A pair 1-2, so a two-deck rig can be green",
+    "ordinal": 43,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: a pair the interface does not offer is reported as no such input, not a failure",
+    "ordinal": 44,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "deckPairFirst maps zero-based deck inputs to the 1-based first channel of a stereo pair",
+    "ordinal": 45,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: audio interface missing is red, signal steps are skipped (blocked) and nothing is captured (AC-4)",
+    "ordinal": 46,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: a thrown step is an error row, the verdict is amber and the other steps still run",
+    "ordinal": 47,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: Esc cancels, finished steps are kept and the rest are skipped (cancelled) (AC-7)",
+    "ordinal": 48,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: manual time is reported separately and excluded from the duration",
+    "ordinal": 49,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: orchestration overhead with instant mocked captures stays far below 5 s",
+    "ordinal": 50,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: CAPTURE_BUSY offers to stop the other capture, retries once and records the choice",
+    "ordinal": 51,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: one capture feeds both deck steps; only/skip re-run just the chosen steps",
+    "ordinal": 52,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: needle-up hum asks the user, captures the lifted segment and grades it",
+    "ordinal": 53,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "runPregig: no desktop backend leaves required steps skipped and the verdict incomplete (AC-5)",
+    "ordinal": 54,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "createNativeDeps drives the Tauri commands with the pre-gig capture holder and captures the deck input pair",
+    "ordinal": 55,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "toRunInput maps a run to the pregig_save_run contract, redacting Windows user paths",
+    "ordinal": 56,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "createPregigApi (native) sends exactly the contract argument names",
+    "ordinal": 57,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "createPregigApi (browser) stores runs and presets locally with the same shapes",
+    "ordinal": 58,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "contract examples are real step results shapes (states the database accepts)",
+    "ordinal": 59,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig screen keeps unavailable preset storage visible across tabs and retries without silently choosing a rig",
+    "ordinal": 60,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig screen distinguishes unavailable History from confirmed empty History and recovers on Retry",
+    "ordinal": 61,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig screen retains previously loaded History with a persistent unavailable message after a failed refresh",
+    "ordinal": 62,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig preset Save keeps the same draft and inline error after denied persistence, then confirms one successful retry",
+    "ordinal": 63,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig preset Save coalesces repeated clicks and keeps the dialog open while persistence is pending",
+    "ordinal": 64,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig a failed pending preset save restores draft editing and preserves every entered value for retry",
+    "ordinal": 65,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig keeps an acknowledged preset and truthful success when the subsequent list refresh is unavailable",
+    "ordinal": 66,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig an acknowledged preset save finishes while an optional refresh is still pending",
+    "ordinal": 67,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig actual Retry and shell Save retain the completed result and never claim persistence before it succeeds",
+    "ordinal": 68,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig saving a different preset keeps an unsaved check attached to the rig it actually tested",
+    "ordinal": 69,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig Done preserves an unsaved result until the user confirms discarding it",
+    "ordinal": 70,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig choosing another preset preserves an unsaved result until the user confirms discarding it",
+    "ordinal": 71,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig running everything again preserves an unsaved result until the user confirms discarding it",
+    "ordinal": 72,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig a late failed History request cannot replace a newer successful read",
+    "ordinal": 73,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig disposal retires a pending History presentation and the Save callback",
+    "ordinal": 74,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig import retains the parsed draft after a failed save and retries without picking the file again",
+    "ordinal": 75,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig displays future-version presets read-only without running or rewriting their contents",
+    "ordinal": 76,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig PDF keeps the tested interface after the same saved preset is edited",
+    "ordinal": 77,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Pre-gig PDF preparation cannot export or announce a result retired before its handoff",
+    "ordinal": 78,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "suggestPdfName: pattern, kinds, local timestamp",
+    "ordinal": 79,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap",
+    "ordinal": 80,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "cssString: quotes, backslashes and markup cannot break out of the <style> block",
+    "ordinal": 81,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "formatStamp is local YYYY-MM-DD HH:mm",
+    "ordinal": 82,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "defaultPaper: Letter for US-style regions, A4 elsewhere",
+    "ordinal": 83,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "normalizePdfOptions / readPdfSettings",
+    "ordinal": 84,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "niceTicks: covers the range with 1/2/2.5/5 x 10^n steps",
+    "ordinal": 85,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "finite but unrepresentable chart axes fail closed with a visible PDF warning",
+    "ordinal": 86,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "decimate keeps endpoints and caps the count",
+    "ordinal": 87,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4",
+    "ordinal": 88,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "severity icons differ by shape and keep the text label (AC-5)",
+    "ordinal": 89,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "extractReportParts: styles from head, body only, scripts dropped",
+    "ordinal": 90,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts",
+    "ordinal": 91,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)",
+    "ordinal": 92,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "partial: a failing chart becomes a placeholder and a warning",
+    "ordinal": 93,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "run: raw measurement table only when asked; row caps",
+    "ordinal": 94,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "device: serial redaction option, title and file name",
+    "ordinal": 95,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "systemHealth: every finding has icon + severity text + evidence (AC-5)",
+    "ordinal": 96,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "registerPrintableKind: later features add kinds without editing report-pdf.js",
+    "ordinal": 97,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments",
+    "ordinal": 98,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)",
+    "ordinal": 99,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: pdf_render \"unsupported\" falls back and is remembered for the session",
+    "ordinal": 100,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: backend errors fall back to the print dialog and report the error",
+    "ordinal": 101,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: timeout rejects with a retryable error (AC-7)",
+    "ordinal": 102,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time",
+    "ordinal": 103,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "normalizePdfError handles strings and objects",
+    "ordinal": 104,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "loadPrintCss fetches once and tolerates failure",
+    "ordinal": 105,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "report fixture for the Windows PrintToPdf test is up to date",
+    "ordinal": 106,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late customer resolve leaves the replacement panel and feedback alone",
+    "ordinal": 107,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late customer reject leaves the replacement panel and feedback alone",
+    "ordinal": 108,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current customer submission reports failure and can be retried",
+    "ordinal": 109,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late job details resolve leaves the replacement panel and feedback alone",
+    "ordinal": 110,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late job details reject leaves the replacement panel and feedback alone",
+    "ordinal": 111,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current job details submission reports failure and can be retried",
+    "ordinal": 112,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "a cancelled customer editor cannot reload or toast over the replacement editor",
+    "ordinal": 113,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late saved-run link resolve preserves the current panel and feedback",
+    "ordinal": 114,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late saved-run link reject preserves the current panel and feedback",
+    "ordinal": 115,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current saved-run linking still refreshes and reports the linked phase",
+    "ordinal": 116,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late photo unlink resolve does not reload or announce in another panel",
+    "ordinal": 117,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late photo unlink reject does not reload or announce in another panel",
+    "ordinal": 118,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late photo attach resolve preserves the submitted write and suppresses obsolete feedback",
+    "ordinal": 119,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late photo attach reject preserves the submitted write and suppresses obsolete feedback",
+    "ordinal": 120,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "photo success is not announced when a refresh is superseded by navigation",
+    "ordinal": 121,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "a submitted photo batch finishes all its attachments after leaving the panel",
+    "ordinal": 122,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current photo attachment success retains its visible feedback and releases the button",
+    "ordinal": 123,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current photo attachment failure retains its visible feedback and releases the button",
+    "ordinal": 124,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "HTML export captures the clicked sheet options before asynchronous preparation",
+    "ordinal": 125,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late HTML export resolve completes the submitted save without feedback in another panel",
+    "ordinal": 126,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late HTML export reject completes the submitted save without feedback in another panel",
+    "ordinal": 127,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "HTML export preparation abandons a retired panel before opening a save dialog",
+    "ordinal": 128,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current HTML export failure retains a working retry and cancellation stays quiet",
+    "ordinal": 129,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "PDF export captures the clicked sheet options and still reports current success",
+    "ordinal": 130,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late PDF export resolve preserves the backend result and current-screen feedback",
+    "ordinal": 131,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "late PDF export reject preserves the backend result and current-screen feedback",
+    "ordinal": 132,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "a PDF retry offered on a previous panel cannot start another export after navigation",
+    "ordinal": 133,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "current PDF failure can retry and callers without ownership callbacks retain feedback",
+    "ordinal": 134,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "step list: seven steps on Windows, health dropped elsewhere (AC-7)",
+    "ordinal": 135,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "start, next, back and the bounds",
+    "ordinal": 136,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "skip semantics: skipping a step records it and advances; the summary cannot be skipped",
+    "ordinal": 137,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "answers are merged, sanitized and bounded",
+    "ordinal": 138,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "setup summary retains incomplete driver coverage through persistence and clears it for a new attempt",
+    "ordinal": 139,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "resume after step N restores step and answers (AC-2)",
+    "ordinal": 140,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "re-run keeps prefilled answers, restarts at step 1 and clears the skip marks (AC-8)",
+    "ordinal": 141,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "finish completes only an active wizard",
+    "ordinal": 142,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "migrateWizardState never throws and resets what it cannot trust",
+    "ordinal": 143,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "summarize copes with missing answers and per-env rows",
+    "ordinal": 144,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "resume window is 30 days (AC-2)",
+    "ordinal": 145,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "startup decision: fresh, upgrade install, resumable, finished, flag off (AC-1, AC-2, AC-10)",
+    "ordinal": 146,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "level verdict table (spec §6)",
+    "ordinal": 147,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "test tone is capped at -12 dBFS and defaults to -20 (AC-4)",
+    "ordinal": 148,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "calibration default (AC-5) and announcements",
+    "ordinal": 149,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "bundleFileName is deckchek-diagnostics-YYYYMMDD-HHmm.zip in local time",
+    "ordinal": 150,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "buildClientContext picks WebView2 version, locale and settings; omits systemHealth when absent",
+    "ordinal": 151,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "sizeText",
+    "ordinal": 152,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "bridge: no backend gives supported:false payloads",
+    "ordinal": 153,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "bridge: wraps the three commands",
+    "ordinal": 154,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "unsupported scans yield a single info finding",
+    "ordinal": 155,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "every required problem code has a meaning and action",
+    "ordinal": 156,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "driver problem code 43 is an error with USB advice; 45 is info",
+    "ordinal": 157,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "every known code produces a finding",
+    "ordinal": 158,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "unsigned driver is a warning",
+    "ordinal": 159,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "ASIO: missing DLL, bad signature, generic and multiple",
+    "ordinal": 160,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "generic Microsoft USB audio driver for vendor hardware is info",
+    "ordinal": 161,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "very old drivers (>3 years) are info",
+    "ordinal": 162,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "healthy drivers produce an ok finding",
+    "ordinal": 163,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Application Error 1000: exception meanings and module heuristics",
+    "ordinal": 164,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "repeated events are grouped with count and first/last time",
+    "ordinal": 165,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "hang 1002 and WER 1001",
+    "ordinal": 166,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "audio service failures (SCM 7000..7034)",
+    "ordinal": 167,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "Kernel-PnP, USB hub/xHCI and portcls/usbaudio events",
+    "ordinal": 168,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "no events gives ok with period",
+    "ordinal": 169,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "DJ crash dump/report: \"X crashed on <date>\" with module and exception",
+    "ordinal": 170,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "DJ log lines: errors, crashes and dropouts",
+    "ordinal": 171,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "installed app with no issues is ok; uninstalled apps omitted",
+    "ordinal": 172,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "findings sorted error > warning > info > ok and summarized",
+    "ordinal": 173,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "scan errors surface as an info finding; report HTML escapes content",
+    "ordinal": 174,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health native responses must be objects instead of silently becoming unsupported scans",
+    "ordinal": 175,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health all-clear requires three completed scan areas and preserves benign information",
+    "ordinal": 176,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health incomplete drivers collection cannot produce an area or system all-clear",
+    "ordinal": 177,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health incomplete events collection cannot produce an area or system all-clear",
+    "ordinal": 178,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health incomplete djLogs collection cannot produce an area or system all-clear",
+    "ordinal": 179,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health retains a real fault and its severity when another area is incomplete",
+    "ordinal": 180,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health mixed supported and unavailable areas remains incomplete",
+    "ordinal": 181,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health all unsupported scans remain informational with no checked areas",
+    "ordinal": 182,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health a rejected command stays failed even when the other two scans are clean",
+    "ordinal": 183,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health three rejected commands cannot become an empty successful scan",
+    "ordinal": 184,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health distinguishes missing coverage from a pending replacement scan",
+    "ordinal": 185,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health incomplete response shape cannot certify collection completion",
+    "ordinal": 186,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health driver-only setup explicitly declares its narrower scan coverage",
+    "ordinal": 187,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health serialized findings preserve coverage instead of relying on ok and info counts",
+    "ordinal": 188,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health HTML and real PDF composition retain the same missing area and recompute stale summaries",
+    "ordinal": 189,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen calls all three scans and shows HEALTHY only after complete clean coverage",
+    "ordinal": 190,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen retains failed drivers coverage and repairs it through the actual Retry control",
+    "ordinal": 191,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen retains failed events coverage and repairs it through the actual Retry control",
+    "ordinal": 192,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen retains failed djLogs coverage and repairs it through the actual Retry control",
+    "ordinal": 193,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen keeps partial drivers collection visible without an all-clear finding",
+    "ordinal": 194,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen keeps partial events collection visible without an all-clear finding",
+    "ordinal": 195,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen keeps partial djLogs collection visible without an all-clear finding",
+    "ordinal": 196,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen shows mixed unsupported coverage while retaining successful areas",
+    "ordinal": 197,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen reports all unsupported scans as unavailable instead of healthy",
+    "ordinal": 198,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health browser preview performs no scan and remains informational",
+    "ordinal": 199,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health screen keeps a real driver problem above incomplete collection coverage",
+    "ordinal": 200,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health pending Retry coalesces clicks and blocks exports and event-period replacement",
+    "ordinal": 201,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health three failed scans retain an exportable incomplete result",
+    "ordinal": 202,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health actual HTML and PDF actions retain the same failed-area coverage",
+    "ordinal": 203,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health disposal retires a pending scan and export callbacks",
+    "ordinal": 204,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health a replacement scan retires pending PDF preparation and keeps exports disabled",
+    "ordinal": 205,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health an invalid native response remains a failed area with an actual Retry action",
+    "ordinal": 206,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "diagnostics actual health collection retains failed coverage in the native context",
+    "ordinal": 207,
+    "outcome": "ok"
+  },
+  {
+    "directive": null,
+    "directive_reason": null,
+    "name": "System Health toast PDF Retry retains busy ownership and restores controls for an intervening scan",
+    "ordinal": 208,
+    "outcome": "ok"
+  }
+]

@@ -73,7 +73,10 @@ export function sanitizeAnswers(raw, steps = STEP_IDS, base = emptyAnswers()) {
     if (raw.health === null) out.health = null;
     else if (isObj(raw.health)) {
       const errors = finite(raw.health.errors), warnings = finite(raw.health.warnings);
-      if (errors !== null && warnings !== null && errors >= 0 && warnings >= 0) out.health = { errors: Math.floor(errors), warnings: Math.floor(warnings) };
+      if (errors !== null && warnings !== null && errors >= 0 && warnings >= 0) {
+        out.health = { errors: Math.floor(errors), warnings: Math.floor(warnings) };
+        if (typeof raw.health.complete === 'boolean') out.health.complete = raw.health.complete;
+      }
     }
   }
   if (has('skippedSteps') && Array.isArray(raw.skippedSteps)) out.skippedSteps = [...new Set(raw.skippedSteps.filter(x => steps.includes(x)))];
@@ -262,7 +265,7 @@ export function summarize(state, env) {
     { id: 'gear', label: 'Owned gear', value: a.ownedProductIds.length ? `${a.ownedProductIds.length} product${a.ownedProductIds.length === 1 ? '' : 's'}` : 'None selected' },
   ];
   if (steps.includes('health')) {
-    rows.push({ id: 'health', label: 'System Health', value: a.health ? `${a.health.errors} error${a.health.errors === 1 ? '' : 's'}, ${a.health.warnings} warning${a.health.warnings === 1 ? '' : 's'}` : 'Not scanned' });
+    rows.push({ id: 'health', label: 'System Health', value: a.health ? `${a.health.errors} error${a.health.errors === 1 ? '' : 's'}, ${a.health.warnings} warning${a.health.warnings === 1 ? '' : 's'}${a.health.complete === false ? ' · driver scan incomplete' : ''}` : 'Not scanned' });
   }
   return { rows, text: ['DeckChek setup summary', ...rows.map(r => `${r.label}: ${r.value}`)].join('\n'), skippedSteps: [...a.skippedSteps] };
 }
