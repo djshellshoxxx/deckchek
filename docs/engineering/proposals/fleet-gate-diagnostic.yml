@@ -1,0 +1,224 @@
+# INERT PROPOSAL: this path is not an Actions workflow. Root may publish the
+# reviewed bytes on the named diagnostic branch; never replace nightly.yml.
+name: DeckChek Fleet gate context experiment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [diagnostic/fleet-gate-context-20261121]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fleet-gate-context-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-context:
+    runs-on: ubuntu-22.04
+    # Per-step maxima below total 69 minutes, leaving six for job overhead.
+    # Provider cancellation or runner loss can still interrupt artifact delivery.
+    timeout-minutes: 75
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: -Zsanitizer=address
+      RUSTDOCFLAGS: -Zsanitizer=address
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - name: Check out the exact failed PR65 merge
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+        with:
+          ref: 5702a450d9a7faa3efb80c5b67de69386ae07540
+          path: source
+          persist-credentials: false
+      - name: Check out immutable diagnostic tooling
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          persist-credentials: false
+      - name: Install the failed run's compiler and native prerequisites
+        timeout-minutes: 10
+        run: |
+          rustup toolchain install nightly-2026-11-21 --profile minimal --component rust-src
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: Verify identity and record measurement conditions
+        timeout-minutes: 2
+        working-directory: source
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, platform, subprocess
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fleet-gate-context'
+          out.mkdir()
+          def command(*args):
+              return subprocess.check_output(args, text=True).strip()
+          def optional(path):
+              try: return pathlib.Path(path).read_text()
+              except OSError: return None
+          commit = command('git', 'rev-parse', 'HEAD')
+          tree = command('git', 'rev-parse', 'HEAD^{tree}')
+          assert commit == '5702a450d9a7faa3efb80c5b67de69386ae07540', commit
+          assert tree == 'a2e4f571ac3a9c7d976db911a5fed3f910c3ea26', tree
+          assert not command('git', 'status', '--porcelain', '--untracked-files=no')
+          rust = command('rustc', '+nightly-2026-11-21', '--version', '--verbose')
+          assert 'commit-hash: c7d5ba59d' in rust, rust
+          assert hashlib.sha256(pathlib.Path('src-tauri/src/fleet.rs').read_bytes()).hexdigest() == '3555c7d515aa64c383098ded7954e2f65c4899ae4589018ffaf0d03f54cef186'
+          context = {
+              'sourceCommit':commit, 'sourceTree':tree,
+              'toolingCommit':command('git', '-C', '../tooling', 'rev-parse', 'HEAD'),
+              'toolingTree':command('git', '-C', '../tooling', 'rev-parse', 'HEAD^{tree}'),
+              'rustc':rust, 'cargo':command('cargo', '+nightly-2026-11-21', '--version'),
+              'cc':command('cc', '--version'), 'kernelRelease':platform.release(),
+              'machine':platform.machine(), 'cpuCount':os.cpu_count(),
+              'cpuAffinity':sorted(os.sched_getaffinity(0)),
+              'cpuMax':optional('/sys/fs/cgroup/cpu.max'),
+              'schedSchedstats':optional('/proc/sys/kernel/sched_schedstats'),
+              'osRelease':optional('/etc/os-release'),
+              'environment':{k:os.environ.get(k) for k in ['RUSTFLAGS','RUSTDOCFLAGS',
+                  'ASAN_OPTIONS','CARGO_INCREMENTAL','ImageOS','ImageVersion',
+                  'GITHUB_SHA','GITHUB_WORKFLOW_REF','GITHUB_WORKFLOW_SHA']},
+              'nativeSdkVersions':command('pkg-config', '--modversion', 'gtk+-3.0',
+                  'webkit2gtk-4.1', 'alsa', 'ayatana-appindicator3-0.1'),
+              'generatorSha256':hashlib.sha256(pathlib.Path('../tooling/tools/fleet-gate-diagnostic.py').read_bytes()).hexdigest(),
+              'limits':'one untouched baseline; separate instrumented full suite; separate bounded isolated phases; original PR65 failure remains failed; no causal or qualification claim from a diagnostic pass'
+          }
+          (out / 'context.json').write_text(json.dumps(context, indent=2) + '\n')
+          for name in ['Cargo.toml','Cargo.lock']:
+              (out / name).write_bytes((pathlib.Path('src-tauri') / name).read_bytes())
+          print(json.dumps(context, indent=2))
+          PY
+          cat > "$RUNNER_TEMP/fleet-gate-context/run.py" <<'PY'
+          import hashlib, json, os, pathlib, re, signal, subprocess, sys, time
+          stage = sys.argv[1]
+          extra = {'baseline':[], 'instrumented':['--','--show-output'],
+              'phases':['fleet::fleet_gate_diagnostic::bounded_phase_measurements',
+                  '--','--ignored','--exact','--nocapture']}[stage]
+          argv = ['cargo','+nightly-2026-11-21','test','--locked','--manifest-path',
+              'src-tauri/Cargo.toml','-j','4','--lib','--target',
+              'x86_64-unknown-linux-gnu'] + extra
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fleet-gate-context'
+          log = out / (stage + '.log')
+          started = time.monotonic()
+          with log.open('wb') as stream:
+              process = subprocess.Popen(argv, stdout=stream, stderr=subprocess.STDOUT,
+                  start_new_session=True)
+              try:
+                  code = process.wait(timeout=180 if stage == 'phases' else 1200)
+              except subprocess.TimeoutExpired:
+                  try: os.killpg(process.pid, signal.SIGTERM)
+                  except ProcessLookupError: pass
+                  try: process.wait(timeout=5)
+                  except subprocess.TimeoutExpired: pass
+                  try: os.killpg(process.pid, signal.SIGKILL)
+                  except ProcessLookupError: pass
+                  process.wait()
+                  code = 124
+          text = log.read_text(errors='replace')
+          matches = re.findall(r'test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out;', text)
+          counts = dict(zip(['passed','failed','ignored','measured','filtered'], map(int,matches[-1]))) if len(matches) == 1 else None
+          def records(marker):
+              return [json.loads(line.split(marker,1)[1]) for line in text.splitlines() if marker in line]
+          gates = records('FLEET_GATE_CONTEXT ')
+          samples = records('FLEET_PHASE_SAMPLE ')
+          sql = records('FLEET_SQL_CONTEXT ')
+          if stage == 'phases':
+              complete = bool(counts and counts['passed'] == 1 and counts['failed'] == 0
+                  and counts['ignored'] == 0 and counts['filtered'] == 775 and counts['measured'] == 0
+                  and [x['pair'] for x in samples] == [0,1,2,3]
+                  and all(x['rows'] == 2000 and x['allRowsEqual'] and len(x['phases']) == 4 for x in samples)
+                  and len(sql) == 1 and sql[0]['migrations'] == 25 and len(sql[0]['queryPlans']) == 6)
+          else:
+              complete = bool(counts and counts['passed'] + counts['failed'] == 767
+                  and counts['ignored'] == (8 if stage == 'baseline' else 9)
+                  and counts['filtered'] == 0 and counts['measured'] == 0
+                  and (not gates if stage == 'baseline' else len(gates) == 1 and gates[0]['budgetMs'] == 200))
+          binaries = []
+          for candidate in re.findall(r'Running unittests[^\n]* \(([^\n]+)\)', text):
+              path = pathlib.Path(candidate)
+              if path.is_file():
+                  binaries.append({'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+          record = {'stage':stage,'argv':argv,'cwd':str(pathlib.Path.cwd()),
+              'elapsedSeconds':time.monotonic()-started,'exitCode':code,
+              'testsReached':counts is not None,'testCounts':counts,'evidenceComplete':complete,
+              'gateRecords':gates,'phaseRecords':samples,'sqlRecords':sql,'binaries':binaries,
+              'logSha256':hashlib.sha256(log.read_bytes()).hexdigest(),
+              'fleetSha256':hashlib.sha256(pathlib.Path('src-tauri/src/fleet.rs').read_bytes()).hexdigest(),
+              'manifestSha256':hashlib.sha256(pathlib.Path('src-tauri/Cargo.toml').read_bytes()).hexdigest(),
+              'lockSha256':hashlib.sha256(pathlib.Path('src-tauri/Cargo.lock').read_bytes()).hexdigest(),
+              'migrationSha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest()
+                  for p in sorted(pathlib.Path('database/migrations').glob('[0-9][0-9][0-9][0-9]_*.sql'))},
+              'trackedStatus':subprocess.check_output(['git','status','--porcelain','--untracked-files=no'],text=True)}
+          (out / (stage + '.json')).write_text(json.dumps(record, indent=2)+'\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write('tests_ran='+str(record['testsReached'] and complete and bool(binaries)).lower()+'\n')
+          print(text)
+          print(json.dumps(record, indent=2))
+          # Preserve failures in JSON; the final step makes any failure fail the job.
+          PY
+      - name: Preserve one untouched full-suite ASan baseline
+        timeout-minutes: 21
+        id: baseline
+        working-directory: source
+        run: python3 "$RUNNER_TEMP/fleet-gate-context/run.py" baseline
+      - name: Generate the reviewed transient overlay and feature record
+        timeout-minutes: 2
+        if: steps.baseline.outputs.tests_ran == 'true'
+        working-directory: source
+        run: |
+          cargo +nightly-2026-11-21 tree --locked --offline --manifest-path src-tauri/Cargo.toml --target x86_64-unknown-linux-gnu --edges features > "$RUNNER_TEMP/fleet-gate-context/native-features.txt"
+          python3 ../tooling/tools/fleet-gate-diagnostic.py --source . --expected-commit 5702a450d9a7faa3efb80c5b67de69386ae07540 --expected-tree a2e4f571ac3a9c7d976db911a5fed3f910c3ea26 "$RUNNER_TEMP/fleet-gate-context/overlay"
+          cp "$RUNNER_TEMP/fleet-gate-context/overlay/fleet.rs" src-tauri/src/fleet.rs
+      - name: Record context in the full suite with default test parallelism
+        timeout-minutes: 21
+        if: steps.baseline.outputs.tests_ran == 'true'
+        id: instrumented
+        working-directory: source
+        run: python3 "$RUNNER_TEMP/fleet-gate-context/run.py" instrumented
+      - name: Record four exact-source phase pairs and bundled SQLite plans
+        timeout-minutes: 4
+        if: steps.instrumented.outputs.tests_ran == 'true'
+        working-directory: source
+        run: python3 "$RUNNER_TEMP/fleet-gate-context/run.py" phases
+      - name: Preserve all evidence, including failures
+        timeout-minutes: 4
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fleet-gate-context
+          path: ${{ runner.temp }}/fleet-gate-context
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain any failed or incomplete invocation as a failed job
+        timeout-minutes: 1
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, sys
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'fleet-gate-context'
+          failed = []
+          proof_path = out / 'overlay/source-proof.json'
+          proof = json.loads(proof_path.read_text()) if proof_path.exists() else None
+          for stage in ['baseline','instrumented','phases']:
+              path = out / (stage + '.json')
+              if not path.exists():
+                  failed.append(stage + ': no completed record')
+                  continue
+              result = json.loads(path.read_text())
+              expected_status = '' if stage == 'baseline' else ' M src-tauri/src/fleet.rs\n'
+              hashes_match = all(result[key] == hashlib.sha256((out / filename).read_bytes()).hexdigest()
+                  for key, filename in [('manifestSha256','Cargo.toml'),('lockSha256','Cargo.lock')])
+              fleet_hash = ('3555c7d515aa64c383098ded7954e2f65c4899ae4589018ffaf0d03f54cef186'
+                  if stage == 'baseline' else proof['overlaySha256'] if proof else None)
+              if (result['exitCode'] != 0 or not result['evidenceComplete']
+                  or result['trackedStatus'] != expected_status or not hashes_match
+                  or result['fleetSha256'] != fleet_hash or not result['binaries']
+                  or (proof is not None and result['migrationSha256'] != proof['migrationSha256'])):
+                  failed.append(stage + ': exit ' + str(result['exitCode']))
+          print(json.dumps({'failedOrIncomplete':failed,'diagnosticOnly':True}))
+          sys.exit(bool(failed))
+          PY

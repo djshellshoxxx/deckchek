@@ -1,0 +1,15 @@
+{
+  "recordedAtUtc": "2026-11-21T04:26:45.035109+00:00",
+  "inspectedPriorDiagnosticRoots": [
+    "/workspace/scratch/6f2247f2f463/fleet-native-measurement",
+    "/workspace/scratch/6f2247f2f463/fleet-diagnostic-functional-proof"
+  ],
+  "cachedSqliteRusqliteOrDiagnosticBinaries": [],
+  "cachedRustToolchainDirectories": [
+    "nightly-2026-11-20-x86_64-unknown-linux-gnu"
+  ],
+  "oldFailedCompileTargetRetained": true,
+  "newCompilerDownloaded": false,
+  "nativeBuildAttempted": false,
+  "notes": "Read-only cache inventory. Earlier cc1 kill cause remains unknown; old artifacts were preserved. No general resource-cause inference."
+}

@@ -1,0 +1,63 @@
+{
+  "recorded_at_utc": "2026-11-21T04:18:56Z",
+  "pull_request": 67,
+  "url": "https://github.com/djshellshoxxx/deckchek/pull/67",
+  "state": "open",
+  "draft": true,
+  "branch": "integration/deckchek-cdj04-acquisition-20261120",
+  "head": "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+  "tree": "f7e32678dd89880a7dce642424100e77c5e22374",
+  "verified_local_head": "2d6d2099f382a23ce1932842755d8efcb0799d7b",
+  "accepted_source": "55f7ea2c8759c985bbbd463f374ca2c78d99a669",
+  "accepted_tree": "54a86922bfd8cca87c076b755edd0b3432034aee",
+  "durable_equivalent_source": "63fa54d1d2c01e4a862f25b6b4583196665d9e93",
+  "base": "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+  "whole_remote_tree_fetched_and_equal": true,
+  "pr65_is_ancestor": true,
+  "runtime_diff_from_accepted": [],
+  "runtime_diff_from_pr65": [
+    "app/player/acquisition.js",
+    "tests/cdj-acquisition.test.mjs"
+  ],
+  "initial_workers_complete": 3,
+  "fresh_workers_complete": 3,
+  "fresh_verification": {
+    "node": "22.23.4",
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "syntax_passed": 2,
+    "tracked_hashes_unchanged": 1643,
+    "tap_sha256": "f4551b41a24ccf9aef4b91396415c5ded04eb4a0a3b718b09020fc5f865ee588"
+  },
+  "workflows_at_observation": [
+    {
+      "id": 44865459717,
+      "name": "DeckChek nightly",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "id": 44865459630,
+      "name": "Cross-platform desktop release",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "id": 44865459691,
+      "name": "DeckChek tests",
+      "status": "queued",
+      "conclusion": null
+    }
+  ],
+  "active_blocker": "PR65 nightly ASan Fleet timer failed at201.565999ms versus200ms; cause unestablished. Current fresh Fleet worker set owns diagnosis. Source-specific applicable gates remain necessary for PR67.",
+  "automation_handoff_updated": true,
+  "automation_schedule_preserved": true,
+  "limits": [
+    "Acquisition API is not consumed by production UI.",
+    "No retained raw/reference bytes or physical/scientific qualification.",
+    "Published heads65 and67 remain fixed."
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "sourceCommit": "e49ea1bbafb5005fdf1dfcf60d885b82d0191471",
+  "fleetSourceSha256": "3555c7d515aa64c383098ded7954e2f65c4899ae4589018ffaf0d03f54cef186",
+  "databaseSourceSha256": "68ce838bc71de162beb7df1d987c5e533d4d845a249d37ba4c7e87d32930c0f1",
+  "repositoryLockSha256": "2e959fe81ccb6492f89b3cd10647a81d094506b0f72806c097ef523259d55a74",
+  "harnessSha256": "d18621004ba3b3deff68b7a9456edd0c9ef6b5eead1e23480f24a928c07bcb63",
+  "snippetSha256": {
+    "error": "fe78ad7a76c21f846c004929ce5c3c2e5cd2cb7e4b5503ff5ff93e115797fd25",
+    "usage": "31e224d0a6baf0715956a5db89736f423c42850e6e245b23576f1484835e7e74",
+    "reminders": "f17d317a1ef417d4d42a79cae838291a20497cbe3b2684e29cc08fdc17f1748c",
+    "database": "c84976136e6560dd7f539401c71350248210eafe74fe648f476183c081197d6c",
+    "regression": "7e9166beaf01e05eea504645ab774325537ea6af93a912498f8a68a343586659",
+    "migrations": "320f5e49563dc42195ce9086b2575fc77a12485cf04961384f960dc4ccc5c773"
+  },
+  "migrationSha256": {
+    "0001_initial.sql": "5a3a65437e7eca9d89df34980ea3b6829b502747d4d5f8713b7ce10d48087944",
+    "0002_device_library.sql": "0cfaa51daf4b317d26c3e47f5a4d2dec5ce21512cbe057d727aa2cf28e9249cc",
+    "0003_app_state.sql": "537674fcd42b51366ff197acbb9e54cd313a0356964b7a40685c771343d2814e",
+    "0004_test_media.sql": "0cbca93961f8a897fa8e32e79a7f05e1a19ab0160235a3f14d5ed7cd284e3da1",
+    "0005_backup_log.sql": "6b5847d9656bb8132a8959d409d3b81c8836d7ab5957b57ddfeb28bbd7b07284",
+    "0006_asset_usage.sql": "727d793a80d789cc069b6dc8effdffd2c4faf991768b86050b901bab613a5620",
+    "0007_latency_tuner.sql": "6c94c225ff75c5c487fc2bab2c3ebbf28b07f5fbde7ebcd828147bdcad85ca04",
+    "0008_pregig.sql": "c04decb59f997bfe26778fd222508bcc3ad6aa54a7b621dc4ad53c5d6aa19b3f",
+    "0009_stylus_wear.sql": "a16cab2b86462b48dd1c550131fcdf10f6add75f5b4c852dd46e783fe033c1a5",
+    "0010_wear_map.sql": "2f8f7ee0d184e551aaec30c5bebc2c5ea159536fb462c84a858757124a718bd1",
+    "0011_scratch_stress.sql": "567a0b082b1c597876bd2f6149571c368b9856a99ffebea6a7921813b0f8f1e1",
+    "0012_hum_feedback.sql": "997d70a05139d5cbb8ab7a48296c0dc430c23114f07ad22abc7c60e262a753c7",
+    "0013_photo_store.sql": "ed74f33654ef089e1ee909b35b9e1e6cb93fa4046c63ce735ab576254f315962",
+    "0014_certificate.sql": "d5e8a9ffbd2dae71bd856826452a507484cab8e3d5902c13874865e9c35d5520",
+    "0015_unit_population.sql": "3141cc357ba4df9a833057c21a21d72ac5156aedd37d365c32019c393b1b9441",
+    "0016_service_worksheets.sql": "8946f7bf68aef65eee18fc6638d25aecd2ec6c3e5f25f01d4752efa7eaa6fa08",
+    "0017_fleet_dashboard.sql": "3a7beaafeff5668d6e836dc214cac4d94fe1e44b1c20bcc524f746341d8c3099",
+    "0018_session_origin.sql": "f5136ce8c10fe8399fe27d8e5f78d26d0644a8f63d632d50d141a1e9e349e7b4",
+    "0019_monitor_log.sql": "e53800baf62ce3879637e060c3da56fb56adab0be1bec4a80db52dc9aaa5bc19",
+    "0020_mapper_models.sql": "b123d037f41a51e7c8f565139a610246d240ecb711b3d095a992ff7624d31ada",
+    "0021_gear_ledger.sql": "3dd3cec50505ff2451b52f2db1aa448d07691615b6646ccfc9e7b779f01358f3",
+    "0022_unit_population_ext.sql": "0145d9f1ce7bf8033824fd01650b5d2d41ebe6b4f020a027166cdc677f00605c",
+    "0023_venue_incidents.sql": "91c4c1cbe5e8bac2abb8827aa75e974dc7ce2ec65634eb7b21d23d205840db2c",
+    "0024_support_isolation.sql": "c81b71ea697ba51d6e1ffd8bfe8de742edfa235b32a49e1aa3116df54a0c41de",
+    "0025_incident_metric_evidence.sql": "48bfbc0e675dcd4ed64c90df08004c203be08095505ce0009f015498f4af7025"
+  },
+  "originalRegressionIncluded": true,
+  "unchangedBudgetMs": 200,
+  "scope": "Linux extracted-source diagnostic, with app lock versions checked separately; not full Tauri or hosted qualification",
+  "runtime": "rustc 1.102.0-nightly (6905905bb 2026-11-19)",
+  "host": "x86_64-unknown-linux-gnu",
+  "asanOptions": "detect_leaks=0",
+  "rustflags": "-Zsanitizer=address",
+  "testThreads": 1,
+  "tests": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0
+  },
+  "logSha256": "1f9fe7a1613916682bfc04e81f409094db1f3dfddb0dda24e684e0fbb1f7eb13",
+  "measurement": {
+    "limits": "isolated diagnostic; allocation counts cover Rust requests, not SQLite C allocation or peak memory; not the full Tauri gate",
+    "migrations": 25,
+    "phaseNames": [
+      "completionQueryAndMap",
+      "usageQueryAndMap",
+      "reminderQueryAndJson",
+      "enrichment"
+    ],
+    "phases": [
+      {
+        "rustAllocationCalls": 4011,
+        "rustRequestedBytes": 728184,
+        "threadCpuNs": 20944550,
+        "wallNs": 20942838
+      },
+      {
+        "rustAllocationCalls": 4010,
+        "rustRequestedBytes": 323338,
+        "threadCpuNs": 10990903,
+        "wallNs": 10988582
+      },
+      {
+        "rustAllocationCalls": 32010,
+        "rustRequestedBytes": 1654504,
+        "threadCpuNs": 45509185,
+        "wallNs": 45515702
+      },
+      {
+        "rustAllocationCalls": 10000,
+        "rustRequestedBytes": 2812000,
+        "threadCpuNs": 27933314,
+        "wallNs": 27931386
+      }
+    ],
+    "rows": 2000,
+    "sqliteVersion": "3.54.1",
+    "unmodifiedBody": {
+      "rustAllocationCalls": 50031,
+      "rustRequestedBytes": 5518026,
+      "threadCpuNs": 110543836,
+      "wallNs": 110555698
+    }
+  },
+  "generatorSha256": "25078d29cf3b0fc7a9ee8baa5e04b8bf5a1ae6b341f7c66d129aa101a588a409",
+  "registryDependencyDrift": [],
+  "lockNormalization": "cargo update --offline --workspace pruned unused packages; zero package version updates; then 31-package lock matched repository versions/checksums",
+  "fullApplicationMetadata": "Attempt stopped with ENOSPC while fetching metadata; full feature-unification equivalence not established"
+}

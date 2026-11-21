@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "82016a79e363d687703c4e897d4ef2247fcb1028",
+  "sourceTree": "90a667533bbea1d77705d15274428011db3373b3",
+  "runtime": "rustc 1.102.0-nightly (6905905bb 2026-11-19)",
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/scratch/6f2247f2f463/fleet-diagnostic-functional-proof/harness/Cargo.toml",
+    "-j4",
+    "--lib",
+    "--target",
+    "x86_64-unknown-linux-gnu",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "environment": {
+    "RUSTFLAGS": "-Zsanitizer=address",
+    "RUSTDOCFLAGS": "-Zsanitizer=address",
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "exitCode": 101,
+  "elapsedSeconds": 15.237512457002595,
+  "registryPackageCount": 30,
+  "totalPackageCount": 31,
+  "registryIdentityAndChecksumMatch": true,
+  "lockMatchesAuthor": true,
+  "trackedFiles": 1536,
+  "changedFiles": [],
+  "statusAfter": "",
+  "logSha256": "679e1b97af068acd3f3d7ce8073281d765a1f9bbcdbaa6a8c177d8671ca7a94e",
+  "harnessSha256": "be053a3e036db507dca0b92f12b4ead01bbaafd0b8f11c2e3580e31547139cb4",
+  "measurement": null
+}

@@ -1,0 +1,40 @@
+[
+  {
+    "pr": 58,
+    "job_id": 136644300575,
+    "log": "pr58-asan-success.log",
+    "job": 136644300575,
+    "hits": [
+      "2026-11-21T00:17:19.1752138Z   nightly-x86_64-unknown-linux-gnu installed - rustc 1.102.0-nightly (6905905bb 2026-11-19)",
+      "2026-11-21T00:17:49.0907900Z ##[group]Run cargo +nightly test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib --target x86_64-unknown-linux-gnu",
+      "2026-11-21T00:17:49.0908813Z \u001b[36;1mcargo +nightly test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib --target x86_64-unknown-linux-gnu\u001b[0m",
+      "2026-11-21T00:17:49.0947125Z   RUSTFLAGS: -Zsanitizer=address",
+      "2026-11-21T00:17:49.0947493Z   RUSTDOCFLAGS: -Zsanitizer=address",
+      "2026-11-21T00:21:24.1485320Z test fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget ... ok",
+      "2026-11-21T00:23:46.0925842Z test result: ok. 767 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 211.38s"
+    ],
+    "meaning": "Historical source-specific success; compiler difference does not establish failure cause.",
+    "log_bytes": 193396,
+    "log_sha256": "e8e3f6ead6ff91e20904d839e2994987f60ffa1bbce3d383c89a17ca16b31024",
+    "git_blob": "009eb848948539c4a31a5a7d9d8d36546323ca34"
+  },
+  {
+    "pr": 59,
+    "job_id": 136649806620,
+    "log": "pr59-asan-success.log",
+    "job": 136649806620,
+    "hits": [
+      "2026-11-21T00:41:46.2680206Z   nightly-x86_64-unknown-linux-gnu installed - rustc 1.102.0-nightly (6905905bb 2026-11-19)",
+      "2026-11-21T00:42:25.5361190Z ##[group]Run cargo +nightly test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib --target x86_64-unknown-linux-gnu",
+      "2026-11-21T00:42:25.5361887Z \u001b[36;1mcargo +nightly test --locked --manifest-path src-tauri/Cargo.toml -j 4 --lib --target x86_64-unknown-linux-gnu\u001b[0m",
+      "2026-11-21T00:42:25.5417605Z   RUSTFLAGS: -Zsanitizer=address",
+      "2026-11-21T00:42:25.5417824Z   RUSTDOCFLAGS: -Zsanitizer=address",
+      "2026-11-21T00:45:47.5695469Z test fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget ... ok",
+      "2026-11-21T00:48:03.2863703Z test result: ok. 767 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 199.62s"
+    ],
+    "meaning": "Historical source-specific success; compiler difference does not establish failure cause.",
+    "log_bytes": 193390,
+    "log_sha256": "237bf69e9b7566ce6c99ec189b59d211b2c27dd08bab984c6981d3d14d82dd8f",
+    "git_blob": "0c1ae5cdc2a1a6ae3e22cdf65245a1f25d0b6a2f"
+  }
+]

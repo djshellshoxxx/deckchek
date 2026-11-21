@@ -1,0 +1,86 @@
+{
+  "recordedAtUtc": "2026-11-21T04:25:55.825992+00:00",
+  "sources": {
+    "failedMerge": {
+      "commit": "5702a450d9a7faa3efb80c5b67de69386ae07540",
+      "tree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+      "nativeTree": "10e575b294f2449efb166e359e4a07e1fcb687b3",
+      "migrationsTree": "875e0d614ee60c61e2db0d43ca364cf5473cfa09",
+      "vendorTree": "18047869da0b4dc46b274550b62c8ac931f994c4",
+      "fleetBlob": "734e405e653deade0115018a9faf7c53e8b5506c",
+      "manifestBlob": "608680be10402606eb9277343c787e8a43d4fa82",
+      "lockBlob": "a92f6f4418afc2dbd59f25464840010f112b7c8e",
+      "nightlyBlob": "64818e1109913d8dcdd244bdd62d31aca1029496"
+    },
+    "failedHead": {
+      "commit": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+      "tree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+      "nativeTree": "10e575b294f2449efb166e359e4a07e1fcb687b3",
+      "migrationsTree": "875e0d614ee60c61e2db0d43ca364cf5473cfa09",
+      "vendorTree": "18047869da0b4dc46b274550b62c8ac931f994c4",
+      "fleetBlob": "734e405e653deade0115018a9faf7c53e8b5506c",
+      "manifestBlob": "608680be10402606eb9277343c787e8a43d4fa82",
+      "lockBlob": "a92f6f4418afc2dbd59f25464840010f112b7c8e",
+      "nightlyBlob": "64818e1109913d8dcdd244bdd62d31aca1029496"
+    },
+    "workerBase": {
+      "commit": "c81646dde87676973fe08e081c216f2fa58aeeee",
+      "tree": "a1ff97563b88da9c80f8a298fbc58a01345e6218",
+      "nativeTree": "10e575b294f2449efb166e359e4a07e1fcb687b3",
+      "migrationsTree": "875e0d614ee60c61e2db0d43ca364cf5473cfa09",
+      "vendorTree": "18047869da0b4dc46b274550b62c8ac931f994c4",
+      "fleetBlob": "734e405e653deade0115018a9faf7c53e8b5506c",
+      "manifestBlob": "608680be10402606eb9277343c787e8a43d4fa82",
+      "lockBlob": "a92f6f4418afc2dbd59f25464840010f112b7c8e",
+      "nightlyBlob": "64818e1109913d8dcdd244bdd62d31aca1029496"
+    },
+    "toolingFreeze": {
+      "commit": "9796f80b7b9ec7dfbff26b47a9935ce4b44441e5",
+      "tree": "73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4",
+      "nativeTree": "10e575b294f2449efb166e359e4a07e1fcb687b3",
+      "migrationsTree": "875e0d614ee60c61e2db0d43ca364cf5473cfa09",
+      "vendorTree": "18047869da0b4dc46b274550b62c8ac931f994c4",
+      "fleetBlob": "734e405e653deade0115018a9faf7c53e8b5506c",
+      "manifestBlob": "608680be10402606eb9277343c787e8a43d4fa82",
+      "lockBlob": "a92f6f4418afc2dbd59f25464840010f112b7c8e",
+      "nightlyBlob": "64818e1109913d8dcdd244bdd62d31aca1029496"
+    },
+    "oldDiagnostic": {
+      "commit": "2c93d658f4703c863405064121c975f8679592eb",
+      "tree": "cb1fe753b0a9c649ec5f101c3f6f5f732acde926",
+      "nativeTree": "10e575b294f2449efb166e359e4a07e1fcb687b3",
+      "migrationsTree": "875e0d614ee60c61e2db0d43ca364cf5473cfa09",
+      "vendorTree": "18047869da0b4dc46b274550b62c8ac931f994c4",
+      "fleetBlob": "734e405e653deade0115018a9faf7c53e8b5506c",
+      "manifestBlob": "608680be10402606eb9277343c787e8a43d4fa82",
+      "lockBlob": "a92f6f4418afc2dbd59f25464840010f112b7c8e",
+      "nightlyBlob": "64818e1109913d8dcdd244bdd62d31aca1029496"
+    }
+  },
+  "failedMergeParents": [
+    "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+    "562609b4acc8bc24704cc864ef27c0b11c56bc00"
+  ],
+  "failure": {
+    "pullRequest": 65,
+    "runId": 44862296853,
+    "jobId": 136718158369,
+    "test": "fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget",
+    "wallNanoseconds": 201565999,
+    "budgetNanoseconds": 200000000,
+    "passed": 766,
+    "failed": 1,
+    "ignored": 8,
+    "suiteSeconds": 247.41,
+    "exitCode": 101,
+    "rustc": "rustc 1.102.0-nightly (c7d5ba59d 2026-11-20)",
+    "rawLogGitBlob": "e36208aa6bbc298052a132f662f9bf386d8f2cc7",
+    "rawLogSha256": "e3e01b87903722839f0308c353537d7b3619736f423425263154dc0f5237820d",
+    "cause": "unestablished"
+  },
+  "localNativeRuntime": "not attempted; no suitable cached binary, matching compiler or native SDKs",
+  "priorIndependentCompileFailurePreserved": true,
+  "priorAuthorMeasurementPreservedAsHistoricalOnly": true,
+  "proposalStatus": "inert; reviewed initial source, requires fresh acceptance before any activation",
+  "productionChange": null
+}
