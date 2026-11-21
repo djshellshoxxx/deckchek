@@ -1,27 +1,28 @@
 # DeckChek implementation status
 
-## Current consolidation and evidence continuation — 20 November 2026
+## Current Mobile QR consolidation — 20 November 2026
 
-PRs #54, #58 and #59 are merged. Current main at this checkpoint is
-`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. #58 and #59 passed all applicable standard,
-nightly, six-build and five-packaged-smoke gates; both merged trees matched
-their qualified candidates exactly.
+The [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) preserves the CDJ evidence candidate from #62,
+corrects #63's actual QR import path and implements #64's bounded framing API.
+Three initial workers completed, then three fresh code/functional/defensive
+workers accepted frozen source `7ae15e17d0c8247efde1ba26c59df4e13f4e321c`, tree
+`2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4`. Durable equivalent source is
+`912ecefd88a34233998f327f76fa18452716d02a`, with both original PR heads retained.
 
-The [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) consolidates the provisional
-CDJ evidence record from #60/#61 and corrects dense reference transport,
-serialization validation ordering and unknown-uncertainty reasons. Three initial
-workers completed, followed by three fresh acceptance workers. Independent
-verification passed **21/21** at source `25b65d6821ec40766b8cae855699c70ea7672770`,
-tree `0305261c09b33c6f29250a9c313484e3dea0f397`, with all 1,590 tracked hashes
-unchanged. Durable equivalent source is `2be82734281c76bf55c867b814fc2b0bc96e7201`.
+Independent full serial Node 22.23.4 verification passed **2,251 / zero failures /
+one expected optional skip** across 186 files. All 1,616 tracked hashes stayed
+unchanged. Generated mobile assets match the shared source. Framing preserves
+significant whitespace, Unicode and the existing transfer/QR limits. The final
+published successor requires its own applicable hosted gates; input branches
+and original failures remain preserved.
 
-The evidence continuation requires its own hosted qualification. Its records
-remain unverified and ineligible for reports; capture, SQLite/history, HTML
-export, scientific metadata and physical validation remain unfinished. Native
-and browser existing-unit profile assignment is already implemented; physical
-device identity and continuity remain separate gates. Use the linked current
-report and live refs for the next action. Dated snapshots below preserve history
-and do not describe the current queue. Fleet stays off by default.
+PRs #54/#58/#59 are merged; last verified main at this checkpoint is
+`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. CDJ evidence remains unverified and
+ineligible for reports: capture ownership, retained reference bytes, scientific
+metadata, SQLite/history/HTML integration and physical qualification remain
+unfinished. Native/browser device-profile assignment already exists. Fleet
+stays off by default. Use the current report and live refs for the next action;
+dated snapshots below preserve history and do not describe the current queue.
 
 ## Historical source41 — incident evidence, profile provenance and preview integrity
 
@@ -239,6 +240,8 @@ The UI and reports identify these as evidence/proxies where appropriate.
 - Not hardware- or Windows-validated: DPAPI is untested on Linux CI (the `windows` feature only compiles there). FS-31 alerts are in-window only; no OS notification plugin is linked.
 
 ## M8 additions: FS-30 Mobile companion (implemented and test-covered, hardware-unvalidated)
+
+The [20 November QR continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) corrects the actual framed import path, bounds custom framing and direct joining, and regenerates the mobile copies. Independent full-suite acceptance covers the combined source; physical scanning and the hosting decision remain open.
 
 - Desktop: `0018_session_origin.sql` (`session.origin` default `desktop`, `session.source_device`); `save_diagnostic_run` stores `origin` (`desktop` or `phone`) and `sourceDevice`, `get_run` returns them. `app/phone-run.js` builds, hashes, validates and frames (QR) the DeckChek Mobile v1 result; `app/ui/workflows/import-phone.js` is the "Import phone results" screen (flag `phoneImport`, wired, off by default): paste JSON or QR text or open a file, hash status as a word (matches, differs, none; a mismatch warns and never blocks), asset picker (serial or nickname hint preselects), Add to History with `origin: "phone"`. Phone measurements are tagged `phone`, flagged `uncalibrated` and never calibrated. Smoke `tools/smoke/phone-import.mjs`.
 - Hash: FS-00 canonical JSON only allows integers, so the hash is over `canonicalJson(hashView(export without sha256))`, where `hashView` turns every fractional number into its shortest decimal string. Integrity only, not a signature.

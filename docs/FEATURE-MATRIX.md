@@ -1,27 +1,28 @@
 # DeckChek Feature Matrix
 
-## Current consolidation and evidence continuation — 20 November 2026
+## Current Mobile QR consolidation — 20 November 2026
 
-PRs #54, #58 and #59 are merged. Current main at this checkpoint is
-`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. #58 and #59 passed all applicable standard,
-nightly, six-build and five-packaged-smoke gates; both merged trees matched
-their qualified candidates exactly.
+The [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) preserves the CDJ evidence candidate from #62,
+corrects #63's actual QR import path and implements #64's bounded framing API.
+Three initial workers completed, then three fresh code/functional/defensive
+workers accepted frozen source `7ae15e17d0c8247efde1ba26c59df4e13f4e321c`, tree
+`2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4`. Durable equivalent source is
+`912ecefd88a34233998f327f76fa18452716d02a`, with both original PR heads retained.
 
-The [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) consolidates the provisional
-CDJ evidence record from #60/#61 and corrects dense reference transport,
-serialization validation ordering and unknown-uncertainty reasons. Three initial
-workers completed, followed by three fresh acceptance workers. Independent
-verification passed **21/21** at source `25b65d6821ec40766b8cae855699c70ea7672770`,
-tree `0305261c09b33c6f29250a9c313484e3dea0f397`, with all 1,590 tracked hashes
-unchanged. Durable equivalent source is `2be82734281c76bf55c867b814fc2b0bc96e7201`.
+Independent full serial Node 22.23.4 verification passed **2,251 / zero failures /
+one expected optional skip** across 186 files. All 1,616 tracked hashes stayed
+unchanged. Generated mobile assets match the shared source. Framing preserves
+significant whitespace, Unicode and the existing transfer/QR limits. The final
+published successor requires its own applicable hosted gates; input branches
+and original failures remain preserved.
 
-The evidence continuation requires its own hosted qualification. Its records
-remain unverified and ineligible for reports; capture, SQLite/history, HTML
-export, scientific metadata and physical validation remain unfinished. Native
-and browser existing-unit profile assignment is already implemented; physical
-device identity and continuity remain separate gates. Use the linked current
-report and live refs for the next action. Dated snapshots below preserve history
-and do not describe the current queue. Fleet stays off by default.
+PRs #54/#58/#59 are merged; last verified main at this checkpoint is
+`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. CDJ evidence remains unverified and
+ineligible for reports: capture ownership, retained reference bytes, scientific
+metadata, SQLite/history/HTML integration and physical qualification remain
+unfinished. Native/browser device-profile assignment already exists. Fleet
+stays off by default. Use the current report and live refs for the next action;
+dated snapshots below preserve history and do not describe the current queue.
 
 ## Historical source41 — incident evidence, profile provenance and preview integrity
 
@@ -88,7 +89,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Scratch stress test (FS-14) | Implemented, hardware-validation pending | Guided baby/transform/chirp protocol with metronome, results, history and compare; flag `scratchTest`. Each run stores the cartridge, setup and control-vinyl side, and Compare groups by all three plus format and tempo. PDF report. Skip thresholds are uncalibrated and labelled so. If another feature holds the input the test shows a plain error, not the "Stop and continue" dialog (follow-up). |
 | DVS latency and buffer tuner (FS-11) | Implemented, flag `latencyTuner`, hardware-unvalidated | Four steps: Measure (patch-cable guide, WASAPI round trip with k=2 uncertainty and reported-vs-measured), Buffer test (idle and CPU-load sweep, detects at run time whether Windows honours the buffer size: A honoured, B partly, C ignored, D streams fail), Recommendation (per Serato / Traktor / rekordbox with their own setting names, typed ASIO buffer labelled as typed), Windows tuning checklist (pass / review / unknown with check command, manual path and Win+R shortcut; nothing is changed) plus the busiest programs and running DJ software after a scan. Every value is labelled WASAPI, not ASIO. Latest runs are saved; export is JSON (Ctrl+E) or PDF. Entry points: Quick Check, Calibration and pre-gig fixes link here (M6 cross-links). rekordbox and Traktor Pro 4 setting names are unverified. |
 | Pre-gig check (FS-10) | Implemented, flag `pregig`, hardware-unvalidated | One Start button, live checklist with a status word per step, green / amber / red verdict with fix-it buttons, single-step and problem-only re-run, comparison with the previous run, history with compare, presets (three built-in rigs, create, from gear, edit, duplicate, delete, import/export). Each deck captures on its own input pair (deck B on 3-4 for the Traktor Audio 8 DJ rig); per-deck Inputs boxes on the start card are remembered per interface, and a pair the interface lacks shows "No such input" (not a failure, verdict "Not fully checked"). Control-vinyl formats come from the test-media library. Hum thresholds are unmeasured defaults; Result exports as JSON or PDF (FS-03 kind `pregig`); Quick Check links to it. Fix actions link to Hum hunter, Stylus and Latency, and "Open ... settings" opens Windows Settings through a fixed three-page allowlist (sound, power, microphone privacy), copying the Win+R shortcut if that fails. |
-| Mobile companion (FS-30) | Implemented, desktop import behind flag `phoneImport`, PWA not hosted, hardware-unvalidated | `mobile/` PWA: speed by reference tone with uncertainty, mains strobe helper (dot rows, on-screen strobe with photosensitivity confirmation), plinth vibration (0.5-30 Hz, relative), indicative SPL (uncalibrated banner, A/C), offline, export as `.deckchek-mobile.json` / share sheet / QR (hash, not a signature). Desktop: Import phone results (paste, file or QR text) adds a run with origin `phone` to History and an asset (`0018_session_origin`). Deploy is manual-dispatch only until the hosting decision (R12). |
+| Mobile companion (FS-30) | Implemented, desktop import behind flag `phoneImport`, PWA not hosted, hardware-unvalidated | `mobile/` PWA: speed by reference tone with uncertainty, mains strobe helper (dot rows, on-screen strobe with photosensitivity confirmation), plinth vibration (0.5-30 Hz, relative), indicative SPL (uncalibrated banner, A/C), offline, export as `.deckchek-mobile.json` / share sheet / QR (hash, not a signature). Desktop: Import phone results (paste, file or QR text) adds a run with origin `phone` to History and an asset (`0018_session_origin`). QR import preserves significant chunk whitespace through the actual parser; bounded codepoint framing and generated-mobile parity are covered by the [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md). Deploy is manual-dispatch only until the hosting decision (R12). |
 | Used-gear certificate (FS-20) | Implemented, flag `certificates`, hardware-unvalidated | Ed25519-signed certificate per unit (key per install, DPAPI on Windows), strict verifier (VALID, MODIFIED, UNVERIFIABLE, plus EXPIRED), `.deckchek-cert.json` plus PDF with fingerprint and QR `deckchek:cert:v1:<sha256>`. Certificates and Verify certificate screens (Ctrl+Shift+V). No JSON is embedded in the PDF, so a PDF cannot be verified on its own. |
 | Unit vs population (FS-21) | Implemented; pack candidate verified, independent acceptance ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`); hardware-unvalidated | Existing Spec/My units/Population behavior and contributor thresholds remain. Candidate Save uses only the current completed preview’s private rows/metadata snapshot and rejects stale/duplicate ownership. Copy discloses month metadata and avoids guaranteed unlinkability after token reset. Persistent 16/16, related 32/32 and unchanged independent 3/3 passed; hosted execution remains source-specific. |
 | Service worksheets (FS-22) | Implemented, flag `service`, hardware-unvalidated | Repair jobs `J-<year>-<seq>` with intake, before/after measurements from the device runner, append-only work log, up to 10 photos and a printable job sheet (Ctrl+J for a new job). Customer details stay local and are kept out of workspace export, packs, ledgers and the diagnostics bundle. |

@@ -1,27 +1,28 @@
 # DeckChek engineering checkpoint — 20 November 2026
 
-## Current consolidation and evidence continuation — 20 November 2026
+## Current Mobile QR consolidation — 20 November 2026
 
-PRs #54, #58 and #59 are merged. Current main at this checkpoint is
-`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. #58 and #59 passed all applicable standard,
-nightly, six-build and five-packaged-smoke gates; both merged trees matched
-their qualified candidates exactly.
+The [current continuation](docs/engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) preserves the CDJ evidence candidate from #62,
+corrects #63's actual QR import path and implements #64's bounded framing API.
+Three initial workers completed, then three fresh code/functional/defensive
+workers accepted frozen source `7ae15e17d0c8247efde1ba26c59df4e13f4e321c`, tree
+`2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4`. Durable equivalent source is
+`912ecefd88a34233998f327f76fa18452716d02a`, with both original PR heads retained.
 
-The [current continuation](docs/engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) consolidates the provisional
-CDJ evidence record from #60/#61 and corrects dense reference transport,
-serialization validation ordering and unknown-uncertainty reasons. Three initial
-workers completed, followed by three fresh acceptance workers. Independent
-verification passed **21/21** at source `25b65d6821ec40766b8cae855699c70ea7672770`,
-tree `0305261c09b33c6f29250a9c313484e3dea0f397`, with all 1,590 tracked hashes
-unchanged. Durable equivalent source is `2be82734281c76bf55c867b814fc2b0bc96e7201`.
+Independent full serial Node 22.23.4 verification passed **2,251 / zero failures /
+one expected optional skip** across 186 files. All 1,616 tracked hashes stayed
+unchanged. Generated mobile assets match the shared source. Framing preserves
+significant whitespace, Unicode and the existing transfer/QR limits. The final
+published successor requires its own applicable hosted gates; input branches
+and original failures remain preserved.
 
-The evidence continuation requires its own hosted qualification. Its records
-remain unverified and ineligible for reports; capture, SQLite/history, HTML
-export, scientific metadata and physical validation remain unfinished. Native
-and browser existing-unit profile assignment is already implemented; physical
-device identity and continuity remain separate gates. Use the linked current
-report and live refs for the next action. Dated snapshots below preserve history
-and do not describe the current queue. Fleet stays off by default.
+PRs #54/#58/#59 are merged; last verified main at this checkpoint is
+`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. CDJ evidence remains unverified and
+ineligible for reports: capture ownership, retained reference bytes, scientific
+metadata, SQLite/history/HTML integration and physical qualification remain
+unfinished. Native/browser device-profile assignment already exists. Fleet
+stays off by default. Use the current report and live refs for the next action;
+dated snapshots below preserve history and do not describe the current queue.
 
 ## Historical CDJ calculation checkpoint — 20 November 2026
 
