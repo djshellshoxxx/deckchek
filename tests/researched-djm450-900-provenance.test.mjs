@@ -14,6 +14,10 @@ const fingerprint = value => createHash('sha256').update(JSON.stringify(value)).
 const originalIdentityNotes = 'Candidate hardware and software capabilities only; verify manual, revision, HID/MIDI transport, audio I/O, OS support and firmware on a physical unit. No claimed factory tolerances or MIDI identifiers.';
 const usbComputerLabel = 'USB Type-B computer connections';
 const usbComputerNotes = 'DRH1330C pp. 9, 14 identify computer USB connections and two Type-B terminals. These are computer connections, not USB host ports; the original key and count are retained for compatibility. https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf';
+const djm900MidiFaqs = [
+  'https://pioneer-support.zendesk.com/hc/en-us/articles/4405820145049',
+  'https://pioneer-support.zendesk.com/hc/en-us/articles/4405820176409',
+];
 const cases = [
   {
     id: 'pioneer-dj-djm-450', model: 'DJM-450', usbMidi: true,
@@ -30,11 +34,11 @@ const cases = [
     },
   },
   {
-    id: 'pioneer-dj-djm-900nxs2', model: 'DJM-900NXS2', usbMidi: null,
+    id: 'pioneer-dj-djm-900nxs2', model: 'DJM-900NXS2', usbMidi: true,
     midiManual: null,
     audioManual: 'https://downloads.support.alphatheta.com/manuals/dj-mixers/DJM-900NXS2/DJM-900NXS2_DRH1330C_quickstart-manual.pdf',
     audioEdition: 'DRH1330C', audioPage: 14, rate: 96000, masterDepth: 32,
-    originalSpecCount: 8, documentCount: 7,
+    originalSpecCount: 8, documentCount: 9,
     baseline: {
       profile: 'cb4897b5e9f05d77dc82db0573ff761a1fbd9b4ff00f130b78b4ec1820f3334d',
       specs: '1208c882bcb0f5c6e0bfba76ccd9cd9d90a688ae6a334b98f61314a33c8c16d1',
@@ -66,7 +70,7 @@ function sourcedSpec(profile, key, value, unit, source, edition, page) {
 for (const { id, model, usbMidi, midiManual, audioManual, audioEdition, audioPage, rate, masterDepth, originalSpecCount, documentCount, baseline } of cases) {
   const read = () => JSON.parse(readFileSync(new URL(`../app/devices/profiles/${id}.json`, import.meta.url), 'utf8'));
 
-  test(`${id}: exact-model manuals support only the recorded transport conclusion`, () => {
+  test(`${id}: exact-model manufacturer sources support only the recorded transport conclusion`, () => {
     const profile = read();
     assert.equal(validateProfile(profile).ok, true);
     assert.equal(profile.connectivity.midi.usbMidi, usbMidi);
@@ -82,8 +86,23 @@ for (const { id, model, usbMidi, midiManual, audioManual, audioEdition, audioPag
     if (midiManual) {
       sourcedSpec(profile, 'verified_usb_midi_transport', true, 'bool', midiManual, 'DRI1406B', 11);
     } else {
-      assert.equal(profile.specs.some(s => s.key === 'verified_usb_midi_transport'), false,
-        'unavailable exact transport evidence does not become a confirmed fact');
+      for (const url of djm900MidiFaqs) {
+        const references = profile.documents.filter(d => d.url === url);
+        assert.equal(references.length, 1, 'one exact-model FAQ reference');
+        assert.equal(references[0].type, 'support-article');
+        assert.equal(references[0].language, 'en');
+        assert.ok(references[0].title.includes(model));
+        assert.match(references[0].notes, /2026-11-20/);
+      }
+      const facts = profile.specs.filter(s => s.key === 'verified_usb_midi_transport');
+      assert.equal(facts.length, 1);
+      assert.equal(facts[0].value, true);
+      assert.equal(facts[0].unit, 'bool');
+      assert.equal(facts[0].confidence, 'confirmed');
+      assert.equal(facts[0].source, djm900MidiFaqs[0]);
+      assert.match(facts[0].notes, /USB-MIDI/);
+      assert.ok(facts[0].notes.includes(djm900MidiFaqs[1]));
+      assert.match(facts[0].notes, /receiving.*unqualified/);
     }
   });
 
@@ -94,7 +113,7 @@ for (const { id, model, usbMidi, midiManual, audioManual, audioEdition, audioPag
     sourcedSpec(profile, 'verified_other_ad_da_converter_depth', 24, 'bit', audioManual, audioEdition, audioPage);
     assert.equal(profile.specs.some(s => s.key === 'verified_ad_da_converter_depth'), false,
       'MASTER D/A and other converters keep the scopes used in the exact manual');
-    assert.equal(profile.specs.length, originalSpecCount + 3 + (midiManual ? 1 : 0));
+    assert.equal(profile.specs.length, originalSpecCount + 3 + (usbMidi ? 1 : 0));
     assert.deepEqual(profile.connectivity.audio, {
       usbChannelsIn: null, usbChannelsOut: null, sampleRatesHz: [], bitDepth: null,
     });

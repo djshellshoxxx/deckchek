@@ -237,6 +237,24 @@ test('ZIP text size preflight rejects oversize UTF-8 before encoding allocation'
   assert.deepEqual(readZip(archive)[0].data, new TextEncoder().encode(valid));
 });
 
+test('multibyte text fills the remaining archive budget exactly after an earlier entry', () => {
+  const cap = 20 * 1024 * 1024;
+  const prefix = { name: 'manifest.json', data: '{}' };
+  const name = 'notes.txt';
+  const overhead = 22 + 2 * (30 + 46)
+    + 2 * (enc(prefix.name).length + enc(name).length) + enc(prefix.data).length;
+  const suffix = 'é😀';
+  const text = 'x'.repeat(cap - overhead - enc(suffix).length) + suffix;
+
+  const archive = createZip([prefix, { name, data: text }], { date: new Date(2026, 0, 2) });
+  assert.equal(archive.length, cap);
+  const files = readZip(archive);
+  assert.deepEqual(files.map(file => file.name), [prefix.name, name]);
+  assert.equal(new TextDecoder().decode(files[1].data), text);
+  for (const file of files) assert.equal(crc32(file.data), file.crc);
+  assert.throws(() => createZip([prefix, { name, data: text + 'x' }]), /Zip too large/);
+});
+
 test('DOS year clamping never creates an impossible leap-day date', () => {
   const readPackedDate = input => {
     const bytes = createZip([{ name: 'date.txt', data: 'x' }], { date: input });

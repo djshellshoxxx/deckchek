@@ -1,6 +1,19 @@
 # DeckChek build queue
 
-## Current combined continuation — 19 November 2026
+## Current continuation — 20 November 2026
+
+PRs #34, #38 and #45 are merged. Verified main at this checkpoint is
+`f46abbea458ba2bb8c2f6d438eba4f5b0a58c948`, including ZIP corrections accepted
+by three fresh reviewers and passing standard, nightly and desktop workflows.
+Nine superseded stacked PRs are closed; their branches are preserved.
+PR #46's isolated Ledger diagnostics now target main with separate gates.
+
+The [current continuation report](docs/engineering/CONTINUATION_2026-11-20.md) records consolidation evidence,
+source-specific successor work, review handoffs and remaining qualification.
+Use it and live refs for the next action. The sections below preserve dated
+history; their old queue states do not describe current publication.
+
+## Historical combined continuation — 19 November 2026
 
 The candidate `integration/deckchek-consolidation-20261120` combines the latest
 PR #34 repairs with the ZIP stack from PRs #35–#37 and the independently reviewed
@@ -166,7 +179,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Implement logical MIDI IDs scoped by backend/direction, explicit selection, captured-output ownership and shared pending Runner/Mapper input claims; preserve exact legacy unique-name calls. [Source39 contract and review](docs/DECKCHEK-LOGICAL-MIDI-FOLLOWUP.md#logical-endpoint-selection-and-ownership) retain independent lifecycle findings and bounded proof.
 - [ ] Native MIDI: establish physical identity and qualify hot-plug continuity/same-name device substitution. Opaque logical IDs and readable names are not physical-device proof; failed native name reads remain unselectable. Qualify real Identity Reply/GM and the separate MIDItest consumer contract.
 - [ ] FS-35: run against real hardware (interface loopback calibrated first), compare with a reference analyser and validate the default thresholds before considering any tuning. Thresholds remain unchanged. Its live capture shows as "A live capture" in other features' busy dialogs.
-- [ ] Research manufacturer evidence for the **22** remaining conditional audio profiles and **3** conditional MIDI profiles / **9** requirements. Push3 now has documented 16-in/16-out USB channels; preserve unknown rates/bit depths, exact models, directions, connection modes and no-audio exclusions.
+- [ ] Research manufacturer evidence for the **22** remaining conditional audio profiles and **2** conditional MIDI profiles / **6** requirements. Push3 now has documented 16-in/16-out USB channels; preserve unknown rates/bit depths, exact models, directions, connection modes and no-audio exclusions.
 - [ ] Add `midi.generalMidi: true` to any profile whose device has a General MIDI sound source (none known yet) and verify manufacturer ids in real Identity Replies against the MIDI Association list.
 - [ ] Hardware: run MIDI conformance against real controllers (Active Sensing, Clock, Identity Reply) and the GM check against a real GM sound source.
 
@@ -181,7 +194,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Qualify broader incident windows, shock/DVS/onset isolation and actual hardware separately; the latest-reading attachment does not establish those outcomes.
 - [x] Prevent implicit learned-map reuse after an asset changes product profile; preserve same/unknown legacy identity and explicit import behavior.
 - [x] Source41 combined local qualification passed: full 1,975/0/1 and all 11 static/performance/syntax gates, with all 1,480 source hashes/tree unchanged. Prior bounded native 45/45 and strict Clippy are bound to the exact final inputs.
-- [ ] Complete PR #34 combined-source hosted checks and integration qualification; local success does not establish release/platform readiness.
+- [x] PR #34 and the subsequent #38/#45 consolidations are merged after applicable hosted checks; see the current continuation report. New successor changes require their own qualification; physical and release gates remain open.
 
 - [ ] Owner hardware runs H-00 to H-08 for v0.0.5; flip default-off flags after they pass.
 
@@ -211,7 +224,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [x] Record exact-model USB MIDI and scoped nominal audio/converter provenance for DDJ-GRV6 and XDJ-AZ; complete audio objects remain unknown and conditional.
 - [x] Record exact DJM-450 USB MIDI and scoped DJM-900NXS2 computer-port/converter provenance, preserving both unknown USB audio objects and all handwritten checks. Retain the combined research-marker failure and prefix-only correction.
 - [x] Record exact DDJ-REV1/REV5 USB MIDI and separately scoped nominal 48 kHz / 24-bit converter provenance, preserving all 16 handwritten tests and the same 37 research-seed IDs.
-- [ ] Resolve the remaining 3 conditional MIDI profiles / 9 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
+- [ ] Resolve the remaining 2 conditional MIDI profiles / 6 requirements from exact-model evidence; retain direction, receiving-port, map and physical-identity uncertainty.
 - [ ] SPEC-05 surrounding metrics and broader shock/DVS/feedback-onset isolation outcomes; qualify physical booth measurements independently.
 - [ ] Fleet/maintenance trend dashboards (reminders are done in FS-23).
 - [ ] CDJ/media-player transport, media and digital-output diagnostics.

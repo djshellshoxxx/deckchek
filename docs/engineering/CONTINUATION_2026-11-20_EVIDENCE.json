@@ -1,0 +1,36 @@
+{
+  "head": "33d01d24e81d71450cde80f74d1c5b94bf144ece",
+  "tree": "cfd21a14be36b9029c4766ba39a356e4a1fe89f4",
+  "runtime": "v22.23.4",
+  "trackedFiles": 1541,
+  "exitCode": 0,
+  "elapsedSeconds": 757.4202896179995,
+  "changedFiles": [],
+  "gitStatus": "",
+  "logSha256": "b102474534c35aa98b7d7b5136a3691b0f681756c9fc04e12916c962cb334342",
+  "remoteSourceCommit": "880234ff9bbc1dfb0660d2cdf00a1a9a81e4d533",
+  "testFileCount": 181,
+  "testSummary": {
+    "tests": 2201,
+    "pass": 2200,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "testDurationMs": 757042.395526,
+  "optionalSkip": "MIXXX_CONTROLLERS_DIR not set; local Mixxx controller corpus unavailable",
+  "command": "node --test --test-concurrency=1 tests/*.test.mjs",
+  "staticChecks": {
+    "changedJavaScriptSyntaxFiles": 10,
+    "deviceIndex": "passed",
+    "generatedCoverage": "passed",
+    "timecodeFacts": "passed",
+    "migrations": {
+      "count": 25,
+      "result": "passed"
+    },
+    "mobileVendorAndPrecache": "passed"
+  },
+  "scope": "Local JavaScript and listed static checks only. Hosted native, UI, packaged and nightly qualification apply separately to the published candidate. No hardware qualification."
+}
