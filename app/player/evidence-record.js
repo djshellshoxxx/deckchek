@@ -14,7 +14,14 @@ const ownObject = (value, label) => {
   // metadata cannot become asserted provenance (including polluted prototypes).
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) throw new TypeError(`${label} must be a plain object`);
-  return Object.assign(Object.create(null), value);
+  const snapshot = Object.create(null);
+  for (const key of Object.keys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    // Accessor-backed assertions must not execute while normalizing provenance.
+    if (!descriptor || !('value' in descriptor)) throw new TypeError(`${label}.${key} must be a data property`);
+    Object.defineProperty(snapshot, key, { value: descriptor.value, enumerable: true, writable: true, configurable: true });
+  }
+  return snapshot;
 };
 const text = (value, label, max = 240) => {
   if (value == null || value === '') return null;
