@@ -1,0 +1,181 @@
+{
+  "schema": "deckchek.mapper-storage-functional-evidence-manifest.v1",
+  "source_commit": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+  "source_tree": "2310fbe5335b7b3ae79acb7066f6a35891e1d9db",
+  "original_output_directory": "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw",
+  "original_driver_path": "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-gate.py",
+  "original_config_path": "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-focused-config.json",
+  "manifest_excludes_itself": true,
+  "file_count": 19,
+  "original_copy_count": 16,
+  "original_path_binding_count": 18,
+  "files": [
+    {
+      "path": "focused/all-top-level-test-files.json",
+      "kind": "original-copy",
+      "bytes": 7730,
+      "sha256": "02f42f38802ecd30f7d3ba70ad08d7d1add12cc746003695e9b2ec82e03909ac",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/all-top-level-test-files.json"
+      ]
+    },
+    {
+      "path": "focused/authorized-selection.json",
+      "kind": "original-copy",
+      "bytes": 887,
+      "sha256": "e765b2bb3c299c1b40e2027fde86e8196437c0a29a279fd5bbf18234dd3a6556",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/authorized-selection.json",
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-focused-config.json"
+      ]
+    },
+    {
+      "path": "focused/node-runtime.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/node-runtime.stderr"
+      ]
+    },
+    {
+      "path": "focused/node-runtime.stdout",
+      "kind": "original-copy",
+      "bytes": 622,
+      "sha256": "6cb0bc4df24892b1590f9d3eee48262c05f815244754f8f17ed4e7809acc0f07",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/node-runtime.stdout"
+      ]
+    },
+    {
+      "path": "focused/node-version.stderr",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/node-version.stderr"
+      ]
+    },
+    {
+      "path": "focused/node-version.stdout",
+      "kind": "original-copy",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/node-version.stdout"
+      ]
+    },
+    {
+      "path": "focused/result.json",
+      "kind": "original-copy",
+      "bytes": 3780,
+      "sha256": "aec949a3e07ecc3e215cbda1757e109a2f292ff90e16f7e78b08a93879070573",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/result.json"
+      ]
+    },
+    {
+      "path": "focused/run-focused-node.py",
+      "kind": "original-copy",
+      "bytes": 7843,
+      "sha256": "38081ab6149b268403e270c5745a01dc312b725f4affb70c56a15284549d3c6c",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/run-focused-node.py",
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-gate.py"
+      ]
+    },
+    {
+      "path": "focused/run.tap",
+      "kind": "original-copy",
+      "bytes": 22683,
+      "sha256": "a7ce4569e08502e72b076fd71ded003174543d507a6a2c4bf8a739907da14c41",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/run.tap"
+      ]
+    },
+    {
+      "path": "focused/running.json",
+      "kind": "original-copy",
+      "bytes": 3030,
+      "sha256": "f6e09fe17ef6fde622592144a8ecee2ceeb4f270706294db469437279a563913",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/running.json"
+      ]
+    },
+    {
+      "path": "focused/stderr.log",
+      "kind": "original-copy",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/stderr.log"
+      ]
+    },
+    {
+      "path": "focused/test-files.json",
+      "kind": "original-copy",
+      "bytes": 395,
+      "sha256": "3dc3c6d368f103bf78dba5d7b496181df4b63fa7cc8f62e8f7a88ebcd4334daa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/test-files.json"
+      ]
+    },
+    {
+      "path": "focused/tracked-after.json",
+      "kind": "original-copy",
+      "bytes": 288810,
+      "sha256": "d38a0d7cc7bb0ff494c72000834e133fd3be5566dfe19eccb204763097d8615e",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/tracked-after.json"
+      ]
+    },
+    {
+      "path": "focused/tracked-before.json",
+      "kind": "original-copy",
+      "bytes": 288810,
+      "sha256": "d38a0d7cc7bb0ff494c72000834e133fd3be5566dfe19eccb204763097d8615e",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/tracked-before.json"
+      ]
+    },
+    {
+      "path": "focused/tracked-inventory-after.json",
+      "kind": "original-copy",
+      "bytes": 131390,
+      "sha256": "6a65a4a6b4c62bcf5e370ae95680de65465654fdb475af45d3017ed1fc2ab8e0",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/tracked-inventory-after.json"
+      ]
+    },
+    {
+      "path": "focused/tracked-inventory-before.json",
+      "kind": "original-copy",
+      "bytes": 131390,
+      "sha256": "6a65a4a6b4c62bcf5e370ae95680de65465654fdb475af45d3017ed1fc2ab8e0",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/tracked-inventory-before.json"
+      ]
+    },
+    {
+      "path": "source-git-object-map.json",
+      "kind": "derived-data",
+      "bytes": 569488,
+      "sha256": "9ac935a6765d8e03c5afe58eeb2c7af584da3583a1aebcab4918b5f240f6b450",
+      "original_paths": []
+    },
+    {
+      "path": "source-proof.json",
+      "kind": "derived-data",
+      "bytes": 5235,
+      "sha256": "181ea704e2ecabbc7cf0aa8dfd21cdc62ebbdbec5030bce125c654bd383f3cf3",
+      "original_paths": []
+    },
+    {
+      "path": "observed-summary.json",
+      "kind": "derived-data",
+      "bytes": 32188,
+      "sha256": "4c8bf69f027404d3da84907a709517a86a5e0b19ff8af9a30de81403f7044ac3",
+      "original_paths": []
+    }
+  ]
+}

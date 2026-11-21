@@ -1,0 +1,13 @@
+[
+  "tests/mapper-followups.test.mjs",
+  "tests/mapper-lifecycle.test.mjs",
+  "tests/mapper-mixxx.test.mjs",
+  "tests/mapper-model.test.mjs",
+  "tests/mapper-profile-identity.test.mjs",
+  "tests/mapper-regressions.test.mjs",
+  "tests/mapper-storage-screen.test.mjs",
+  "tests/mapper-storage.test.mjs",
+  "tests/mapper-ui.test.mjs",
+  "tests/mapper-vdj.test.mjs",
+  "tests/mapper-xml.test.mjs"
+]

@@ -1,0 +1,808 @@
+{
+  "schema": "deckchek.mapper-storage-functional-observed-summary.v1",
+  "source_commit": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+  "source_tree": "2310fbe5335b7b3ae79acb7066f6a35891e1d9db",
+  "original_tap_path": "/workspace/scratch/6f2247f2f463/deckchek-mapper-storage-round9-raw/run.tap",
+  "retained_tap_path": "focused/run.tap",
+  "tap_sha256": "a7ce4569e08502e72b076fd71ded003174543d507a6a2c4bf8a739907da14c41",
+  "tap_bytes": 22683,
+  "first_project_command_ordinal": 1,
+  "project_command_count": 1,
+  "rerun_count": 0,
+  "exit_code": 0,
+  "timed_out": false,
+  "execution_elapsed_seconds": 2.172575306001818,
+  "tap_counts": {
+    "tests": 96,
+    "suites": 0,
+    "pass": 95,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "ordered_outcomes": [
+    {
+      "index": 1,
+      "status": "pass",
+      "name": "regression: a crafted Mixxx file whose script list makes a megabyte warning stays short in the live status",
+      "skip_reason": null,
+      "tap_line": 3,
+      "original_outcome_line": "ok 1 - regression: a crafted Mixxx file whose script list makes a megabyte warning stays short in the live status"
+    },
+    {
+      "index": 2,
+      "status": "pass",
+      "name": "regression: each warning or error placed in the live status is capped at 300 characters with an ellipsis",
+      "skip_reason": null,
+      "tap_line": 9,
+      "original_outcome_line": "ok 2 - regression: each warning or error placed in the live status is capped at 300 characters with an ellipsis"
+    },
+    {
+      "index": 3,
+      "status": "pass",
+      "name": "regression: browser store save refuses to overwrite a row with a newer model version (typed error)",
+      "skip_reason": null,
+      "tap_line": 15,
+      "original_outcome_line": "ok 3 - regression: browser store save refuses to overwrite a row with a newer model version (typed error)"
+    },
+    {
+      "index": 4,
+      "status": "pass",
+      "name": "regression: a derived selectknob/diff drops conflicting preserved transforms (rot64, spread64, \u2026) with a warning",
+      "skip_reason": null,
+      "tap_line": 21,
+      "original_outcome_line": "ok 4 - regression: a derived selectknob/diff drops conflicting preserved transforms (rot64, spread64, \u2026) with a warning"
+    },
+    {
+      "index": 5,
+      "status": "pass",
+      "name": "regression: an imported LED output attaches to the control whose MIDI message matches it",
+      "skip_reason": null,
+      "tap_line": 27,
+      "original_outcome_line": "ok 5 - regression: an imported LED output attaches to the control whose MIDI message matches it"
+    },
+    {
+      "index": 6,
+      "status": "pass",
+      "name": "regression: a lone 0x8n custom entry on the message of a generated note-off twin warns DUPLICATE_NOTE_OFF",
+      "skip_reason": null,
+      "tap_line": 33,
+      "original_outcome_line": "ok 6 - regression: a lone 0x8n custom entry on the message of a generated note-off twin warns DUPLICATE_NOTE_OFF"
+    },
+    {
+      "index": 7,
+      "status": "pass",
+      "name": "a save finishing after New empty cannot make the new mapping overwrite the old mapping",
+      "skip_reason": null,
+      "tap_line": 39,
+      "original_outcome_line": "ok 7 - a save finishing after New empty cannot make the new mapping overwrite the old mapping"
+    },
+    {
+      "index": 8,
+      "status": "pass",
+      "name": "a save finishing after Open keeps the opened mapping as the next save target",
+      "skip_reason": null,
+      "tap_line": 45,
+      "original_outcome_line": "ok 8 - a save finishing after Open keeps the opened mapping as the next save target"
+    },
+    {
+      "index": 9,
+      "status": "pass",
+      "name": "editing the current mapping during its first save keeps its returned id for later saves",
+      "skip_reason": null,
+      "tap_line": 51,
+      "original_outcome_line": "ok 9 - editing the current mapping during its first save keeps its returned id for later saves"
+    },
+    {
+      "index": 10,
+      "status": "pass",
+      "name": "a hidden cached mapper retains a completed save id when the same mapping is shown again",
+      "skip_reason": null,
+      "tap_line": 57,
+      "original_outcome_line": "ok 10 - a hidden cached mapper retains a completed save id when the same mapping is shown again"
+    },
+    {
+      "index": 11,
+      "status": "pass",
+      "name": "a failed save for a replaced mapping does not replace the current mapping status",
+      "skip_reason": null,
+      "tap_line": 63,
+      "original_outcome_line": "ok 11 - a failed save for a replaced mapping does not replace the current mapping status"
+    },
+    {
+      "index": 12,
+      "status": "pass",
+      "name": "Mapper Learn selects a duplicate-name input by ID and ignores its namesake",
+      "skip_reason": null,
+      "tap_line": 69,
+      "original_outcome_line": "ok 12 - Mapper Learn selects a duplicate-name input by ID and ignores its namesake"
+    },
+    {
+      "index": 13,
+      "status": "pass",
+      "name": "Mapper Learn preserves an existing same-ID connection and refuses a vanished selected ID",
+      "skip_reason": null,
+      "tap_line": 75,
+      "original_outcome_line": "ok 13 - Mapper Learn preserves an existing same-ID connection and refuses a vanished selected ID"
+    },
+    {
+      "index": 14,
+      "status": "pass",
+      "name": "a cancelled pending Mapper Learn cannot close its newer same-ID owner",
+      "skip_reason": null,
+      "tap_line": 81,
+      "original_outcome_line": "ok 14 - a cancelled pending Mapper Learn cannot close its newer same-ID owner"
+    },
+    {
+      "index": 15,
+      "status": "pass",
+      "name": "a late cancelled Mapper open cannot close the device runner successor on the same ID",
+      "skip_reason": null,
+      "tap_line": 87,
+      "original_outcome_line": "ok 15 - a late cancelled Mapper open cannot close the device runner successor on the same ID"
+    },
+    {
+      "index": 16,
+      "status": "pass",
+      "name": "a late disposed runner open cannot close its Mapper Learn successor on the same ID",
+      "skip_reason": null,
+      "tap_line": 93,
+      "original_outcome_line": "ok 16 - a late disposed runner open cannot close its Mapper Learn successor on the same ID"
+    },
+    {
+      "index": 17,
+      "status": "pass",
+      "name": "Mapper does not infer ID ownership from a matching display-name status",
+      "skip_reason": null,
+      "tap_line": 99,
+      "original_outcome_line": "ok 17 - Mapper does not infer ID ownership from a matching display-name status"
+    },
+    {
+      "index": 18,
+      "status": "pass",
+      "name": "AC-1: play/cue/sync/pitch/hotcue/loop export to the intended [ChannelN] controls",
+      "skip_reason": null,
+      "tap_line": 105,
+      "original_outcome_line": "ok 18 - AC-1: play/cue/sync/pitch/hotcue/loop export to the intended [ChannelN] controls"
+    },
+    {
+      "index": 19,
+      "status": "pass",
+      "name": "every vocabulary function serialises for Mixxx and reads back as itself",
+      "skip_reason": null,
+      "tap_line": 111,
+      "original_outcome_line": "ok 19 - every vocabulary function serialises for Mixxx and reads back as itself"
+    },
+    {
+      "index": 20,
+      "status": "pass",
+      "name": "AC-5: golden model round-trips export -> import unchanged after normalisation",
+      "skip_reason": null,
+      "tap_line": 117,
+      "original_outcome_line": "ok 20 - AC-5: golden model round-trips export -> import unchanged after normalisation"
+    },
+    {
+      "index": 21,
+      "status": "pass",
+      "name": "golden file diffs: Mixxx XML and script match the committed goldens",
+      "skip_reason": null,
+      "tap_line": 123,
+      "original_outcome_line": "ok 21 - golden file diffs: Mixxx XML and script match the committed goldens"
+    },
+    {
+      "index": 22,
+      "status": "pass",
+      "name": "shift layer, collisions, 14-bit and LEDs map to the documented Mixxx constructs",
+      "skip_reason": null,
+      "tap_line": 129,
+      "original_outcome_line": "ok 22 - shift layer, collisions, 14-bit and LEDs map to the documented Mixxx constructs"
+    },
+    {
+      "index": 23,
+      "status": "pass",
+      "name": "AC-3: a third-party Mixxx file imports into recognised functions plus preserved custom controls",
+      "skip_reason": null,
+      "tap_line": 135,
+      "original_outcome_line": "ok 23 - AC-3: a third-party Mixxx file imports into recognised functions plus preserved custom controls"
+    },
+    {
+      "index": 24,
+      "status": "pass",
+      "name": "AC-3: preserved custom controls, outputs, script files and author are written back unchanged",
+      "skip_reason": null,
+      "tap_line": 141,
+      "original_outcome_line": "ok 24 - AC-3: preserved custom controls, outputs, script files and author are written back unchanged"
+    },
+    {
+      "index": 25,
+      "status": "pass",
+      "name": "import tolerates comments, unknown elements, CRLF line ends and a UTF-8 BOM",
+      "skip_reason": null,
+      "tap_line": 147,
+      "original_outcome_line": "ok 25 - import tolerates comments, unknown elements, CRLF line ends and a UTF-8 BOM"
+    },
+    {
+      "index": 26,
+      "status": "pass",
+      "name": "import errors are typed, located and never thrown",
+      "skip_reason": null,
+      "tap_line": 153,
+      "original_outcome_line": "ok 26 - import errors are typed, located and never thrown"
+    },
+    {
+      "index": 27,
+      "status": "pass",
+      "name": "AC-4: export is blocked while bindings conflict",
+      "skip_reason": null,
+      "tap_line": 159,
+      "original_outcome_line": "ok 27 - AC-4: export is blocked while bindings conflict"
+    },
+    {
+      "index": 28,
+      "status": "pass",
+      "name": "file names and the script prefix are sanitised (FS-32 \u00a77)",
+      "skip_reason": null,
+      "tap_line": 165,
+      "original_outcome_line": "ok 28 - file names and the script prefix are sanitised (FS-32 \u00a77)"
+    },
+    {
+      "index": 29,
+      "status": "skip",
+      "name": "optional corpus robustness check over a local Mixxx controllers folder (MIXXX_CONTROLLERS_DIR)",
+      "skip_reason": "MIXXX_CONTROLLERS_DIR not set",
+      "tap_line": 171,
+      "original_outcome_line": "ok 29 - optional corpus robustness check over a local Mixxx controllers folder (MIXXX_CONTROLLERS_DIR) # SKIP MIXXX_CONTROLLERS_DIR not set"
+    },
+    {
+      "index": 30,
+      "status": "pass",
+      "name": "sanitizeModel keeps valid controls, drops unusable ones and caps lists (untrusted JSON)",
+      "skip_reason": null,
+      "tap_line": 177,
+      "original_outcome_line": "ok 30 - sanitizeModel keeps valid controls, drops unusable ones and caps lists (untrusted JSON)"
+    },
+    {
+      "index": 31,
+      "status": "pass",
+      "name": "a model from a newer DeckChek is read-only with a warning (FS-32 \u00a75)",
+      "skip_reason": null,
+      "tap_line": 183,
+      "original_outcome_line": "ok 31 - a model from a newer DeckChek is read-only with a warning (FS-32 \u00a75)"
+    },
+    {
+      "index": 32,
+      "status": "pass",
+      "name": "normalisation sorts by (layer, status, number) and derives stable ids from the MIDI triple",
+      "skip_reason": null,
+      "tap_line": 189,
+      "original_outcome_line": "ok 32 - normalisation sorts by (layer, status, number) and derives stable ids from the MIDI triple"
+    },
+    {
+      "index": 33,
+      "status": "pass",
+      "name": "parseJsonFile tells models from learned maps and reports bad JSON with a position",
+      "skip_reason": null,
+      "tap_line": 195,
+      "original_outcome_line": "ok 33 - parseJsonFile tells models from learned maps and reports bad JSON with a position"
+    },
+    {
+      "index": 34,
+      "status": "pass",
+      "name": "learning: raw MIDI bytes become controls; edits are immutable and keep ids unique",
+      "skip_reason": null,
+      "tap_line": 201,
+      "original_outcome_line": "ok 34 - learning: raw MIDI bytes become controls; edits are immutable and keep ids unique"
+    },
+    {
+      "index": 35,
+      "status": "pass",
+      "name": "vocabulary: tokens round-trip, descriptions and kinds are consistent",
+      "skip_reason": null,
+      "tap_line": 207,
+      "original_outcome_line": "ok 35 - vocabulary: tokens round-trip, descriptions and kinds are consistent"
+    },
+    {
+      "index": 36,
+      "status": "pass",
+      "name": "suggestions come from words and profile types, not from a model name",
+      "skip_reason": null,
+      "tap_line": 213,
+      "original_outcome_line": "ok 36 - suggestions come from words and profile types, not from a model name"
+    },
+    {
+      "index": 37,
+      "status": "pass",
+      "name": "AC-7: a learned map with no official profile becomes an editable model",
+      "skip_reason": null,
+      "tap_line": 219,
+      "original_outcome_line": "ok 37 - AC-7: a learned map with no official profile becomes an editable model"
+    },
+    {
+      "index": 38,
+      "status": "pass",
+      "name": "learned map merges over published profile controls and works for any profile",
+      "skip_reason": null,
+      "tap_line": 225,
+      "original_outcome_line": "ok 38 - learned map merges over published profile controls and works for any profile"
+    },
+    {
+      "index": 39,
+      "status": "pass",
+      "name": "AC-4: the same status+data1 bound twice blocks export and names both controls",
+      "skip_reason": null,
+      "tap_line": 231,
+      "original_outcome_line": "ok 39 - AC-4: the same status+data1 bound twice blocks export and names both controls"
+    },
+    {
+      "index": 40,
+      "status": "pass",
+      "name": "validation rules: ranges, decks, hot cues, shift modifier, kinds and target support",
+      "skip_reason": null,
+      "tap_line": 237,
+      "original_outcome_line": "ok 40 - validation rules: ranges, decks, hot cues, shift modifier, kinds and target support"
+    },
+    {
+      "index": 41,
+      "status": "pass",
+      "name": "preserved custom controls: custom vs custom duplicates warn, custom vs a new function blocks",
+      "skip_reason": null,
+      "tap_line": 243,
+      "original_outcome_line": "ok 41 - preserved custom controls: custom vs custom duplicates warn, custom vs a new function blocks"
+    },
+    {
+      "index": 42,
+      "status": "pass",
+      "name": "export size gate is 512 KB (FS-32 \u00a76)",
+      "skip_reason": null,
+      "tap_line": 249,
+      "original_outcome_line": "ok 42 - export size gate is 512 KB (FS-32 \u00a76)"
+    },
+    {
+      "index": 43,
+      "status": "pass",
+      "name": "AC-6: Traktor and Serato get a labelled Markdown report, escaped",
+      "skip_reason": null,
+      "tap_line": 255,
+      "original_outcome_line": "ok 43 - AC-6: Traktor and Serato get a labelled Markdown report, escaped"
+    },
+    {
+      "index": 44,
+      "status": "pass",
+      "name": "store: browser mode saves, lists, reads and deletes models in localStorage",
+      "skip_reason": null,
+      "tap_line": 261,
+      "original_outcome_line": "ok 44 - store: browser mode saves, lists, reads and deletes models in localStorage"
+    },
+    {
+      "index": 45,
+      "status": "pass",
+      "name": "store: desktop mode calls the mapper_model_* commands with their argument shapes",
+      "skip_reason": null,
+      "tap_line": 267,
+      "original_outcome_line": "ok 45 - store: desktop mode calls the mapper_model_* commands with their argument shapes"
+    },
+    {
+      "index": 46,
+      "status": "pass",
+      "name": "automatic unit loading ignores a known conflicting profile map",
+      "skip_reason": null,
+      "tap_line": 273,
+      "original_outcome_line": "ok 46 - automatic unit loading ignores a known conflicting profile map"
+    },
+    {
+      "index": 47,
+      "status": "pass",
+      "name": "automatic unit loading retains the same-profile learned map",
+      "skip_reason": null,
+      "tap_line": 280,
+      "original_outcome_line": "ok 47 - automatic unit loading retains the same-profile learned map"
+    },
+    {
+      "index": 48,
+      "status": "pass",
+      "name": "automatic unit loading retains null-profile legacy maps",
+      "skip_reason": null,
+      "tap_line": 287,
+      "original_outcome_line": "ok 48 - automatic unit loading retains null-profile legacy maps"
+    },
+    {
+      "index": 49,
+      "status": "pass",
+      "name": "automatic unit loading retains missing-profile legacy maps",
+      "skip_reason": null,
+      "tap_line": 294,
+      "original_outcome_line": "ok 49 - automatic unit loading retains missing-profile legacy maps"
+    },
+    {
+      "index": 50,
+      "status": "pass",
+      "name": "intentional Open file still imports the chosen conflicting-profile learned-map file",
+      "skip_reason": null,
+      "tap_line": 301,
+      "original_outcome_line": "ok 50 - intentional Open file still imports the chosen conflicting-profile learned-map file"
+    },
+    {
+      "index": 51,
+      "status": "pass",
+      "name": "regression: hostile legacy VirtualDJ action (\"shift ?\" + 200k spaces) imports in under 200 ms",
+      "skip_reason": null,
+      "tap_line": 307,
+      "original_outcome_line": "ok 51 - regression: hostile legacy VirtualDJ action (\"shift ?\" + 200k spaces) imports in under 200 ms"
+    },
+    {
+      "index": 52,
+      "status": "pass",
+      "name": "regression: learned-map label of 200k chars (\"loop \" x 40000) converts in under 200 ms",
+      "skip_reason": null,
+      "tap_line": 313,
+      "original_outcome_line": "ok 52 - regression: learned-map label of 200k chars (\"loop \" x 40000) converts in under 200 ms"
+    },
+    {
+      "index": 53,
+      "status": "pass",
+      "name": "regression: assigning a function to an imported custom control exports the function (Mixxx and VirtualDJ) [HIGH]",
+      "skip_reason": null,
+      "tap_line": 319,
+      "original_outcome_line": "ok 53 - regression: assigning a function to an imported custom control exports the function (Mixxx and VirtualDJ) [HIGH]"
+    },
+    {
+      "index": 54,
+      "status": "pass",
+      "name": "regression: imported Mixxx entries sharing one MIDI message (custom vs custom, press/release keys) export",
+      "skip_reason": null,
+      "tap_line": 325,
+      "original_outcome_line": "ok 54 - regression: imported Mixxx entries sharing one MIDI message (custom vs custom, press/release keys) export"
+    },
+    {
+      "index": 55,
+      "status": "pass",
+      "name": "regression: Mixxx option modifiers (invert, switch, soft-takeover) survive import -> export",
+      "skip_reason": null,
+      "tap_line": 331,
+      "original_outcome_line": "ok 55 - regression: Mixxx option modifiers (invert, switch, soft-takeover) survive import -> export"
+    },
+    {
+      "index": 56,
+      "status": "pass",
+      "name": "regression: controls sharing a function get their own script function (shift guard, encoder state)",
+      "skip_reason": null,
+      "tap_line": 337,
+      "original_outcome_line": "ok 56 - regression: controls sharing a function get their own script function (shift guard, encoder state)"
+    },
+    {
+      "index": 57,
+      "status": "pass",
+      "name": "regression: a relative function on an absolute control warns KIND_MISMATCH",
+      "skip_reason": null,
+      "tap_line": 343,
+      "original_outcome_line": "ok 57 - regression: a relative function on an absolute control warns KIND_MISMATCH"
+    },
+    {
+      "index": 58,
+      "status": "pass",
+      "name": "regression: LED on a hot cue set/clear control survives the Mixxx round trip (AC-5)",
+      "skip_reason": null,
+      "tap_line": 349,
+      "original_outcome_line": "ok 58 - regression: LED on a hot cue set/clear control survives the Mixxx round trip (AC-5)"
+    },
+    {
+      "index": 59,
+      "status": "pass",
+      "name": "regression: preserved scripts between 512 KB and 1 MB do not block the Mixxx export",
+      "skip_reason": null,
+      "tap_line": 355,
+      "original_outcome_line": "ok 59 - regression: preserved scripts between 512 KB and 1 MB do not block the Mixxx export"
+    },
+    {
+      "index": 60,
+      "status": "pass",
+      "name": "regression: names with C1 control characters are cleaned like Rust validates them",
+      "skip_reason": null,
+      "tap_line": 361,
+      "original_outcome_line": "ok 60 - regression: names with C1 control characters are cleaned like Rust validates them"
+    },
+    {
+      "index": 61,
+      "status": "pass",
+      "name": "regression: browser-mode save refuses a 51st mapping instead of deleting the oldest",
+      "skip_reason": null,
+      "tap_line": 367,
+      "original_outcome_line": "ok 61 - regression: browser-mode save refuses a 51st mapping instead of deleting the oldest"
+    },
+    {
+      "index": 62,
+      "status": "pass",
+      "name": "regression: importers cap controls at LIMITS.maxControls with one summary warning",
+      "skip_reason": null,
+      "tap_line": 373,
+      "original_outcome_line": "ok 62 - regression: importers cap controls at LIMITS.maxControls with one summary warning"
+    },
+    {
+      "index": 63,
+      "status": "pass",
+      "name": "Mapper displays a storage failure, retains the current draft and recovers only after a successful retry",
+      "skip_reason": null,
+      "tap_line": 379,
+      "original_outcome_line": "ok 63 - Mapper displays a storage failure, retains the current draft and recovers only after a successful retry"
+    },
+    {
+      "index": 64,
+      "status": "pass",
+      "name": "an absent Mapper key shows a genuine empty list and the first save becomes visible",
+      "skip_reason": null,
+      "tap_line": 385,
+      "original_outcome_line": "ok 64 - an absent Mapper key shows a genuine empty list and the first save becomes visible"
+    },
+    {
+      "index": 65,
+      "status": "pass",
+      "name": "an older failed native list cannot replace a newer successful saved-mapping refresh",
+      "skip_reason": null,
+      "tap_line": 391,
+      "original_outcome_line": "ok 65 - an older failed native list cannot replace a newer successful saved-mapping refresh"
+    },
+    {
+      "index": 66,
+      "status": "pass",
+      "name": "an absent Mapper key is empty and supports the first durable save",
+      "skip_reason": null,
+      "tap_line": 397,
+      "original_outcome_line": "ok 66 - an absent Mapper key is empty and supports the first durable save"
+    },
+    {
+      "index": 67,
+      "status": "pass",
+      "name": "malformed or non-array Mapper data rejects reads and mutations without changing a byte",
+      "skip_reason": null,
+      "tap_line": 403,
+      "original_outcome_line": "ok 67 - malformed or non-array Mapper data rejects reads and mutations without changing a byte"
+    },
+    {
+      "index": 68,
+      "status": "pass",
+      "name": "partially invalid or ambiguous Mapper rows cannot be silently filtered during a write",
+      "skip_reason": null,
+      "tap_line": 409,
+      "original_outcome_line": "ok 68 - partially invalid or ambiguous Mapper rows cannot be silently filtered during a write"
+    },
+    {
+      "index": 69,
+      "status": "pass",
+      "name": "an unreadable or missing browser store cannot be reported as empty or successfully saved",
+      "skip_reason": null,
+      "tap_line": 415,
+      "original_outcome_line": "ok 69 - an unreadable or missing browser store cannot be reported as empty or successfully saved"
+    },
+    {
+      "index": 70,
+      "status": "pass",
+      "name": "a throwing default storage getter is a read failure and is never consulted by native operations",
+      "skip_reason": null,
+      "tap_line": 421,
+      "original_outcome_line": "ok 70 - a throwing default storage getter is a read failure and is never consulted by native operations"
+    },
+    {
+      "index": 71,
+      "status": "pass",
+      "name": "valid rows retain order, metadata and newer model fields when another mapping changes",
+      "skip_reason": null,
+      "tap_line": 427,
+      "original_outcome_line": "ok 71 - valid rows retain order, metadata and newer model fields when another mapping changes"
+    },
+    {
+      "index": 72,
+      "status": "pass",
+      "name": "every mutation rereads storage instead of relying on an earlier valid list",
+      "skip_reason": null,
+      "tap_line": 433,
+      "original_outcome_line": "ok 72 - every mutation rereads storage instead of relying on an earlier valid list"
+    },
+    {
+      "index": 73,
+      "status": "pass",
+      "name": "blocked or missing setItem rejects a save/delete without claiming persistence",
+      "skip_reason": null,
+      "tap_line": 439,
+      "original_outcome_line": "ok 73 - blocked or missing setItem rejects a save/delete without claiming persistence"
+    },
+    {
+      "index": 74,
+      "status": "pass",
+      "name": "flag mapperStudio is wired and off by default",
+      "skip_reason": null,
+      "tap_line": 445,
+      "original_outcome_line": "ok 74 - flag mapperStudio is wired and off by default"
+    },
+    {
+      "index": 75,
+      "status": "pass",
+      "name": "AC-6: buildExport gives files for Mixxx/VirtualDJ and a labelled report for Traktor/Serato",
+      "skip_reason": null,
+      "tap_line": 451,
+      "original_outcome_line": "ok 75 - AC-6: buildExport gives files for Mixxx/VirtualDJ and a labelled report for Traktor/Serato"
+    },
+    {
+      "index": 76,
+      "status": "pass",
+      "name": "AC-4: rowFlags marks both conflicting rows \"Conflict\" (words, not colour)",
+      "skip_reason": null,
+      "tap_line": 457,
+      "original_outcome_line": "ok 76 - AC-4: rowFlags marks both conflicting rows \"Conflict\" (words, not colour)"
+    },
+    {
+      "index": 77,
+      "status": "pass",
+      "name": "classifyFiles checks size and type before anything is read",
+      "skip_reason": null,
+      "tap_line": 463,
+      "original_outcome_line": "ok 77 - classifyFiles checks size and type before anything is read"
+    },
+    {
+      "index": 78,
+      "status": "pass",
+      "name": "sniffXml and importTexts route each file to the right importer",
+      "skip_reason": null,
+      "tap_line": 469,
+      "original_outcome_line": "ok 78 - sniffXml and importTexts route each file to the right importer"
+    },
+    {
+      "index": 79,
+      "status": "pass",
+      "name": "savedMessage starts with \"Saved.\" and says where to copy the files",
+      "skip_reason": null,
+      "tap_line": 475,
+      "original_outcome_line": "ok 79 - savedMessage starts with \"Saved.\" and says where to copy the files"
+    },
+    {
+      "index": 80,
+      "status": "pass",
+      "name": "undo keeps independent snapshots and a bounded history",
+      "skip_reason": null,
+      "tap_line": 481,
+      "original_outcome_line": "ok 80 - undo keeps independent snapshots and a bounded history"
+    },
+    {
+      "index": 81,
+      "status": "pass",
+      "name": "function search matches labels, ids and categories",
+      "skip_reason": null,
+      "tap_line": 487,
+      "original_outcome_line": "ok 81 - function search matches labels, ids and categories"
+    },
+    {
+      "index": 82,
+      "status": "pass",
+      "name": "AC-2: export gives a definition/mapper pair with VDJscript actions",
+      "skip_reason": null,
+      "tap_line": 493,
+      "original_outcome_line": "ok 82 - AC-2: export gives a definition/mapper pair with VDJscript actions"
+    },
+    {
+      "index": 83,
+      "status": "pass",
+      "name": "every vocabulary function has a VirtualDJ action and reads back as itself",
+      "skip_reason": null,
+      "tap_line": 499,
+      "original_outcome_line": "ok 83 - every vocabulary function has a VirtualDJ action and reads back as itself"
+    },
+    {
+      "index": 84,
+      "status": "pass",
+      "name": "AC-5: export then import gives the same model after normalisation (14-bit and labels normalised)",
+      "skip_reason": null,
+      "tap_line": 505,
+      "original_outcome_line": "ok 84 - AC-5: export then import gives the same model after normalisation (14-bit and labels normalised)"
+    },
+    {
+      "index": 85,
+      "status": "pass",
+      "name": "a function on another deck than the definition entry is addressed with \"deck N\"",
+      "skip_reason": null,
+      "tap_line": 511,
+      "original_outcome_line": "ok 85 - a function on another deck than the definition entry is addressed with \"deck N\""
+    },
+    {
+      "index": 86,
+      "status": "pass",
+      "name": "AC-3: a third-party VirtualDJ definition + mapper imports with unknown actions preserved",
+      "skip_reason": null,
+      "tap_line": 517,
+      "original_outcome_line": "ok 86 - AC-3: a third-party VirtualDJ definition + mapper imports with unknown actions preserved"
+    },
+    {
+      "index": 87,
+      "status": "pass",
+      "name": "import reads the older single-file layout and the files in either order",
+      "skip_reason": null,
+      "tap_line": 523,
+      "original_outcome_line": "ok 87 - import reads the older single-file layout and the files in either order"
+    },
+    {
+      "index": 88,
+      "status": "pass",
+      "name": "import errors are typed and never thrown",
+      "skip_reason": null,
+      "tap_line": 529,
+      "original_outcome_line": "ok 88 - import errors are typed and never thrown"
+    },
+    {
+      "index": 89,
+      "status": "pass",
+      "name": "definition names are reduced to letters, digits and underscores",
+      "skip_reason": null,
+      "tap_line": 535,
+      "original_outcome_line": "ok 89 - definition names are reduced to letters, digits and underscores"
+    },
+    {
+      "index": 90,
+      "status": "pass",
+      "name": "parses elements, attributes, text, CDATA, comments, PIs, BOM and CRLF",
+      "skip_reason": null,
+      "tap_line": 541,
+      "original_outcome_line": "ok 90 - parses elements, attributes, text, CDATA, comments, PIs, BOM and CRLF"
+    },
+    {
+      "index": 91,
+      "status": "pass",
+      "name": "XXE: DOCTYPE and ENTITY declarations are rejected outright (fixture with a SYSTEM entity)",
+      "skip_reason": null,
+      "tap_line": 547,
+      "original_outcome_line": "ok 91 - XXE: DOCTYPE and ENTITY declarations are rejected outright (fixture with a SYSTEM entity)"
+    },
+    {
+      "index": 92,
+      "status": "pass",
+      "name": "size, element, attribute and depth caps reject input before it can grow",
+      "skip_reason": null,
+      "tap_line": 553,
+      "original_outcome_line": "ok 92 - size, element, attribute and depth caps reject input before it can grow"
+    },
+    {
+      "index": 93,
+      "status": "pass",
+      "name": "malformed XML returns a typed error with line and column, never throws",
+      "skip_reason": null,
+      "tap_line": 559,
+      "original_outcome_line": "ok 93 - malformed XML returns a typed error with line and column, never throws"
+    },
+    {
+      "index": 94,
+      "status": "pass",
+      "name": "random byte soup never throws from the parser or the importers",
+      "skip_reason": null,
+      "tap_line": 565,
+      "original_outcome_line": "ok 94 - random byte soup never throws from the parser or the importers"
+    },
+    {
+      "index": 95,
+      "status": "pass",
+      "name": "writer escapes text and attributes and drops characters XML cannot carry",
+      "skip_reason": null,
+      "tap_line": 571,
+      "original_outcome_line": "ok 95 - writer escapes text and attributes and drops characters XML cannot carry"
+    },
+    {
+      "index": 96,
+      "status": "pass",
+      "name": "round trip: hostile names and labels give well-formed Mixxx and VirtualDJ files that read back (FS-32 \u00a77)",
+      "skip_reason": null,
+      "tap_line": 577,
+      "original_outcome_line": "ok 96 - round trip: hostile names and labels give well-formed Mixxx and VirtualDJ files that read back (FS-32 \u00a77)"
+    }
+  ],
+  "new_screen_and_storage_cases": [
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73
+  ],
+  "complete_source_qualification": "HELD: the earlier complete gate at e5614ff retained 2,395 tests, 2,393 pass, one fail, one skip, and final relative gain -101 dB at -30 dBFS. This focused Mapper gate does not test or resolve that hold."
+}

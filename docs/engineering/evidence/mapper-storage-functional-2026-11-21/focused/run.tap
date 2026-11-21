@@ -1,0 +1,590 @@
+TAP version 13
+# Subtest: regression: a crafted Mixxx file whose script list makes a megabyte warning stays short in the live status
+ok 1 - regression: a crafted Mixxx file whose script list makes a megabyte warning stays short in the live status
+  ---
+  duration_ms: 106.045861
+  type: 'test'
+  ...
+# Subtest: regression: each warning or error placed in the live status is capped at 300 characters with an ellipsis
+ok 2 - regression: each warning or error placed in the live status is capped at 300 characters with an ellipsis
+  ---
+  duration_ms: 3.117602
+  type: 'test'
+  ...
+# Subtest: regression: browser store save refuses to overwrite a row with a newer model version (typed error)
+ok 3 - regression: browser store save refuses to overwrite a row with a newer model version (typed error)
+  ---
+  duration_ms: 3.703141
+  type: 'test'
+  ...
+# Subtest: regression: a derived selectknob/diff drops conflicting preserved transforms (rot64, spread64, …) with a warning
+ok 4 - regression: a derived selectknob/diff drops conflicting preserved transforms (rot64, spread64, …) with a warning
+  ---
+  duration_ms: 4.018204
+  type: 'test'
+  ...
+# Subtest: regression: an imported LED output attaches to the control whose MIDI message matches it
+ok 5 - regression: an imported LED output attaches to the control whose MIDI message matches it
+  ---
+  duration_ms: 0.803697
+  type: 'test'
+  ...
+# Subtest: regression: a lone 0x8n custom entry on the message of a generated note-off twin warns DUPLICATE_NOTE_OFF
+ok 6 - regression: a lone 0x8n custom entry on the message of a generated note-off twin warns DUPLICATE_NOTE_OFF
+  ---
+  duration_ms: 9.843121
+  type: 'test'
+  ...
+# Subtest: a save finishing after New empty cannot make the new mapping overwrite the old mapping
+ok 7 - a save finishing after New empty cannot make the new mapping overwrite the old mapping
+  ---
+  duration_ms: 15.071032
+  type: 'test'
+  ...
+# Subtest: a save finishing after Open keeps the opened mapping as the next save target
+ok 8 - a save finishing after Open keeps the opened mapping as the next save target
+  ---
+  duration_ms: 3.979025
+  type: 'test'
+  ...
+# Subtest: editing the current mapping during its first save keeps its returned id for later saves
+ok 9 - editing the current mapping during its first save keeps its returned id for later saves
+  ---
+  duration_ms: 3.721368
+  type: 'test'
+  ...
+# Subtest: a hidden cached mapper retains a completed save id when the same mapping is shown again
+ok 10 - a hidden cached mapper retains a completed save id when the same mapping is shown again
+  ---
+  duration_ms: 2.371832
+  type: 'test'
+  ...
+# Subtest: a failed save for a replaced mapping does not replace the current mapping status
+ok 11 - a failed save for a replaced mapping does not replace the current mapping status
+  ---
+  duration_ms: 2.102748
+  type: 'test'
+  ...
+# Subtest: Mapper Learn selects a duplicate-name input by ID and ignores its namesake
+ok 12 - Mapper Learn selects a duplicate-name input by ID and ignores its namesake
+  ---
+  duration_ms: 7.145059
+  type: 'test'
+  ...
+# Subtest: Mapper Learn preserves an existing same-ID connection and refuses a vanished selected ID
+ok 13 - Mapper Learn preserves an existing same-ID connection and refuses a vanished selected ID
+  ---
+  duration_ms: 2.335117
+  type: 'test'
+  ...
+# Subtest: a cancelled pending Mapper Learn cannot close its newer same-ID owner
+ok 14 - a cancelled pending Mapper Learn cannot close its newer same-ID owner
+  ---
+  duration_ms: 3.115749
+  type: 'test'
+  ...
+# Subtest: a late cancelled Mapper open cannot close the device runner successor on the same ID
+ok 15 - a late cancelled Mapper open cannot close the device runner successor on the same ID
+  ---
+  duration_ms: 3.308969
+  type: 'test'
+  ...
+# Subtest: a late disposed runner open cannot close its Mapper Learn successor on the same ID
+ok 16 - a late disposed runner open cannot close its Mapper Learn successor on the same ID
+  ---
+  duration_ms: 2.705262
+  type: 'test'
+  ...
+# Subtest: Mapper does not infer ID ownership from a matching display-name status
+ok 17 - Mapper does not infer ID ownership from a matching display-name status
+  ---
+  duration_ms: 2.069828
+  type: 'test'
+  ...
+# Subtest: AC-1: play/cue/sync/pitch/hotcue/loop export to the intended [ChannelN] controls
+ok 18 - AC-1: play/cue/sync/pitch/hotcue/loop export to the intended [ChannelN] controls
+  ---
+  duration_ms: 11.660891
+  type: 'test'
+  ...
+# Subtest: every vocabulary function serialises for Mixxx and reads back as itself
+ok 19 - every vocabulary function serialises for Mixxx and reads back as itself
+  ---
+  duration_ms: 42.541954
+  type: 'test'
+  ...
+# Subtest: AC-5: golden model round-trips export -> import unchanged after normalisation
+ok 20 - AC-5: golden model round-trips export -> import unchanged after normalisation
+  ---
+  duration_ms: 2.846825
+  type: 'test'
+  ...
+# Subtest: golden file diffs: Mixxx XML and script match the committed goldens
+ok 21 - golden file diffs: Mixxx XML and script match the committed goldens
+  ---
+  duration_ms: 0.677668
+  type: 'test'
+  ...
+# Subtest: shift layer, collisions, 14-bit and LEDs map to the documented Mixxx constructs
+ok 22 - shift layer, collisions, 14-bit and LEDs map to the documented Mixxx constructs
+  ---
+  duration_ms: 1.568916
+  type: 'test'
+  ...
+# Subtest: AC-3: a third-party Mixxx file imports into recognised functions plus preserved custom controls
+ok 23 - AC-3: a third-party Mixxx file imports into recognised functions plus preserved custom controls
+  ---
+  duration_ms: 1.535857
+  type: 'test'
+  ...
+# Subtest: AC-3: preserved custom controls, outputs, script files and author are written back unchanged
+ok 24 - AC-3: preserved custom controls, outputs, script files and author are written back unchanged
+  ---
+  duration_ms: 2.481456
+  type: 'test'
+  ...
+# Subtest: import tolerates comments, unknown elements, CRLF line ends and a UTF-8 BOM
+ok 25 - import tolerates comments, unknown elements, CRLF line ends and a UTF-8 BOM
+  ---
+  duration_ms: 1.746752
+  type: 'test'
+  ...
+# Subtest: import errors are typed, located and never thrown
+ok 26 - import errors are typed, located and never thrown
+  ---
+  duration_ms: 117.269701
+  type: 'test'
+  ...
+# Subtest: AC-4: export is blocked while bindings conflict
+ok 27 - AC-4: export is blocked while bindings conflict
+  ---
+  duration_ms: 7.855186
+  type: 'test'
+  ...
+# Subtest: file names and the script prefix are sanitised (FS-32 §7)
+ok 28 - file names and the script prefix are sanitised (FS-32 §7)
+  ---
+  duration_ms: 0.213681
+  type: 'test'
+  ...
+# Subtest: optional corpus robustness check over a local Mixxx controllers folder (MIXXX_CONTROLLERS_DIR)
+ok 29 - optional corpus robustness check over a local Mixxx controllers folder (MIXXX_CONTROLLERS_DIR) # SKIP MIXXX_CONTROLLERS_DIR not set
+  ---
+  duration_ms: 0.057276
+  type: 'test'
+  ...
+# Subtest: sanitizeModel keeps valid controls, drops unusable ones and caps lists (untrusted JSON)
+ok 30 - sanitizeModel keeps valid controls, drops unusable ones and caps lists (untrusted JSON)
+  ---
+  duration_ms: 7.761084
+  type: 'test'
+  ...
+# Subtest: a model from a newer DeckChek is read-only with a warning (FS-32 §5)
+ok 31 - a model from a newer DeckChek is read-only with a warning (FS-32 §5)
+  ---
+  duration_ms: 0.227612
+  type: 'test'
+  ...
+# Subtest: normalisation sorts by (layer, status, number) and derives stable ids from the MIDI triple
+ok 32 - normalisation sorts by (layer, status, number) and derives stable ids from the MIDI triple
+  ---
+  duration_ms: 1.110577
+  type: 'test'
+  ...
+# Subtest: parseJsonFile tells models from learned maps and reports bad JSON with a position
+ok 33 - parseJsonFile tells models from learned maps and reports bad JSON with a position
+  ---
+  duration_ms: 1.444299
+  type: 'test'
+  ...
+# Subtest: learning: raw MIDI bytes become controls; edits are immutable and keep ids unique
+ok 34 - learning: raw MIDI bytes become controls; edits are immutable and keep ids unique
+  ---
+  duration_ms: 1.074273
+  type: 'test'
+  ...
+# Subtest: vocabulary: tokens round-trip, descriptions and kinds are consistent
+ok 35 - vocabulary: tokens round-trip, descriptions and kinds are consistent
+  ---
+  duration_ms: 0.619891
+  type: 'test'
+  ...
+# Subtest: suggestions come from words and profile types, not from a model name
+ok 36 - suggestions come from words and profile types, not from a model name
+  ---
+  duration_ms: 2.19778
+  type: 'test'
+  ...
+# Subtest: AC-7: a learned map with no official profile becomes an editable model
+ok 37 - AC-7: a learned map with no official profile becomes an editable model
+  ---
+  duration_ms: 1.919252
+  type: 'test'
+  ...
+# Subtest: learned map merges over published profile controls and works for any profile
+ok 38 - learned map merges over published profile controls and works for any profile
+  ---
+  duration_ms: 0.518679
+  type: 'test'
+  ...
+# Subtest: AC-4: the same status+data1 bound twice blocks export and names both controls
+ok 39 - AC-4: the same status+data1 bound twice blocks export and names both controls
+  ---
+  duration_ms: 0.560753
+  type: 'test'
+  ...
+# Subtest: validation rules: ranges, decks, hot cues, shift modifier, kinds and target support
+ok 40 - validation rules: ranges, decks, hot cues, shift modifier, kinds and target support
+  ---
+  duration_ms: 0.682665
+  type: 'test'
+  ...
+# Subtest: preserved custom controls: custom vs custom duplicates warn, custom vs a new function blocks
+ok 41 - preserved custom controls: custom vs custom duplicates warn, custom vs a new function blocks
+  ---
+  duration_ms: 0.618689
+  type: 'test'
+  ...
+# Subtest: export size gate is 512 KB (FS-32 §6)
+ok 42 - export size gate is 512 KB (FS-32 §6)
+  ---
+  duration_ms: 1.233272
+  type: 'test'
+  ...
+# Subtest: AC-6: Traktor and Serato get a labelled Markdown report, escaped
+ok 43 - AC-6: Traktor and Serato get a labelled Markdown report, escaped
+  ---
+  duration_ms: 1.495716
+  type: 'test'
+  ...
+# Subtest: store: browser mode saves, lists, reads and deletes models in localStorage
+ok 44 - store: browser mode saves, lists, reads and deletes models in localStorage
+  ---
+  duration_ms: 14.221125
+  type: 'test'
+  ...
+# Subtest: store: desktop mode calls the mapper_model_* commands with their argument shapes
+ok 45 - store: desktop mode calls the mapper_model_* commands with their argument shapes
+  ---
+  duration_ms: 0.541193
+  type: 'test'
+  ...
+# Subtest: automatic unit loading ignores a known conflicting profile map
+ok 46 - automatic unit loading ignores a known conflicting profile map
+  ---
+  duration_ms: 18.695315
+  type: 'test'
+  ...
+# {"identity":"different","currentProfile":"profile-b","bindings":["cc:7","note:42"],"expected":["cc:7","note:42"],"savedMapPreserved":true}
+# Subtest: automatic unit loading retains the same-profile learned map
+ok 47 - automatic unit loading retains the same-profile learned map
+  ---
+  duration_ms: 6.314793
+  type: 'test'
+  ...
+# {"identity":"same","currentProfile":"profile-b","bindings":["cc:13","cc:7","note:11"],"expected":["cc:13","cc:7","note:11"],"savedMapPreserved":true}
+# Subtest: automatic unit loading retains null-profile legacy maps
+ok 48 - automatic unit loading retains null-profile legacy maps
+  ---
+  duration_ms: 5.169342
+  type: 'test'
+  ...
+# {"identity":"null","currentProfile":"profile-b","bindings":["cc:13","cc:7","note:11"],"expected":["cc:13","cc:7","note:11"],"savedMapPreserved":true}
+# Subtest: automatic unit loading retains missing-profile legacy maps
+ok 49 - automatic unit loading retains missing-profile legacy maps
+  ---
+  duration_ms: 3.752846
+  type: 'test'
+  ...
+# {"identity":"missing","currentProfile":"profile-b","bindings":["cc:13","cc:7","note:11"],"expected":["cc:13","cc:7","note:11"],"savedMapPreserved":true}
+# Subtest: intentional Open file still imports the chosen conflicting-profile learned-map file
+ok 50 - intentional Open file still imports the chosen conflicting-profile learned-map file
+  ---
+  duration_ms: 6.573691
+  type: 'test'
+  ...
+# Subtest: regression: hostile legacy VirtualDJ action ("shift ?" + 200k spaces) imports in under 200 ms
+ok 51 - regression: hostile legacy VirtualDJ action ("shift ?" + 200k spaces) imports in under 200 ms
+  ---
+  duration_ms: 10.342902
+  type: 'test'
+  ...
+# Subtest: regression: learned-map label of 200k chars ("loop " x 40000) converts in under 200 ms
+ok 52 - regression: learned-map label of 200k chars ("loop " x 40000) converts in under 200 ms
+  ---
+  duration_ms: 29.057755
+  type: 'test'
+  ...
+# Subtest: regression: assigning a function to an imported custom control exports the function (Mixxx and VirtualDJ) [HIGH]
+ok 53 - regression: assigning a function to an imported custom control exports the function (Mixxx and VirtualDJ) [HIGH]
+  ---
+  duration_ms: 15.033175
+  type: 'test'
+  ...
+# Subtest: regression: imported Mixxx entries sharing one MIDI message (custom vs custom, press/release keys) export
+ok 54 - regression: imported Mixxx entries sharing one MIDI message (custom vs custom, press/release keys) export
+  ---
+  duration_ms: 7.676337
+  type: 'test'
+  ...
+# Subtest: regression: Mixxx option modifiers (invert, switch, soft-takeover) survive import -> export
+ok 55 - regression: Mixxx option modifiers (invert, switch, soft-takeover) survive import -> export
+  ---
+  duration_ms: 1.547644
+  type: 'test'
+  ...
+# Subtest: regression: controls sharing a function get their own script function (shift guard, encoder state)
+ok 56 - regression: controls sharing a function get their own script function (shift guard, encoder state)
+  ---
+  duration_ms: 2.228457
+  type: 'test'
+  ...
+# Subtest: regression: a relative function on an absolute control warns KIND_MISMATCH
+ok 57 - regression: a relative function on an absolute control warns KIND_MISMATCH
+  ---
+  duration_ms: 0.378108
+  type: 'test'
+  ...
+# Subtest: regression: LED on a hot cue set/clear control survives the Mixxx round trip (AC-5)
+ok 58 - regression: LED on a hot cue set/clear control survives the Mixxx round trip (AC-5)
+  ---
+  duration_ms: 0.924668
+  type: 'test'
+  ...
+# Subtest: regression: preserved scripts between 512 KB and 1 MB do not block the Mixxx export
+ok 59 - regression: preserved scripts between 512 KB and 1 MB do not block the Mixxx export
+  ---
+  duration_ms: 0.521392
+  type: 'test'
+  ...
+# Subtest: regression: names with C1 control characters are cleaned like Rust validates them
+ok 60 - regression: names with C1 control characters are cleaned like Rust validates them
+  ---
+  duration_ms: 0.429314
+  type: 'test'
+  ...
+# Subtest: regression: browser-mode save refuses a 51st mapping instead of deleting the oldest
+ok 61 - regression: browser-mode save refuses a 51st mapping instead of deleting the oldest
+  ---
+  duration_ms: 6.451708
+  type: 'test'
+  ...
+# Subtest: regression: importers cap controls at LIMITS.maxControls with one summary warning
+ok 62 - regression: importers cap controls at LIMITS.maxControls with one summary warning
+  ---
+  duration_ms: 229.890459
+  type: 'test'
+  ...
+# Subtest: Mapper displays a storage failure, retains the current draft and recovers only after a successful retry
+ok 63 - Mapper displays a storage failure, retains the current draft and recovers only after a successful retry
+  ---
+  duration_ms: 12.701804
+  type: 'test'
+  ...
+# Subtest: an absent Mapper key shows a genuine empty list and the first save becomes visible
+ok 64 - an absent Mapper key shows a genuine empty list and the first save becomes visible
+  ---
+  duration_ms: 4.672106
+  type: 'test'
+  ...
+# Subtest: an older failed native list cannot replace a newer successful saved-mapping refresh
+ok 65 - an older failed native list cannot replace a newer successful saved-mapping refresh
+  ---
+  duration_ms: 3.179204
+  type: 'test'
+  ...
+# Subtest: an absent Mapper key is empty and supports the first durable save
+ok 66 - an absent Mapper key is empty and supports the first durable save
+  ---
+  duration_ms: 3.161508
+  type: 'test'
+  ...
+# Subtest: malformed or non-array Mapper data rejects reads and mutations without changing a byte
+ok 67 - malformed or non-array Mapper data rejects reads and mutations without changing a byte
+  ---
+  duration_ms: 2.471922
+  type: 'test'
+  ...
+# Subtest: partially invalid or ambiguous Mapper rows cannot be silently filtered during a write
+ok 68 - partially invalid or ambiguous Mapper rows cannot be silently filtered during a write
+  ---
+  duration_ms: 1.743298
+  type: 'test'
+  ...
+# Subtest: an unreadable or missing browser store cannot be reported as empty or successfully saved
+ok 69 - an unreadable or missing browser store cannot be reported as empty or successfully saved
+  ---
+  duration_ms: 0.617597
+  type: 'test'
+  ...
+# Subtest: a throwing default storage getter is a read failure and is never consulted by native operations
+ok 70 - a throwing default storage getter is a read failure and is never consulted by native operations
+  ---
+  duration_ms: 0.98509
+  type: 'test'
+  ...
+# Subtest: valid rows retain order, metadata and newer model fields when another mapping changes
+ok 71 - valid rows retain order, metadata and newer model fields when another mapping changes
+  ---
+  duration_ms: 6.79962
+  type: 'test'
+  ...
+# Subtest: every mutation rereads storage instead of relying on an earlier valid list
+ok 72 - every mutation rereads storage instead of relying on an earlier valid list
+  ---
+  duration_ms: 0.327973
+  type: 'test'
+  ...
+# Subtest: blocked or missing setItem rejects a save/delete without claiming persistence
+ok 73 - blocked or missing setItem rejects a save/delete without claiming persistence
+  ---
+  duration_ms: 0.461453
+  type: 'test'
+  ...
+# Subtest: flag mapperStudio is wired and off by default
+ok 74 - flag mapperStudio is wired and off by default
+  ---
+  duration_ms: 0.788224
+  type: 'test'
+  ...
+# Subtest: AC-6: buildExport gives files for Mixxx/VirtualDJ and a labelled report for Traktor/Serato
+ok 75 - AC-6: buildExport gives files for Mixxx/VirtualDJ and a labelled report for Traktor/Serato
+  ---
+  duration_ms: 10.414669
+  type: 'test'
+  ...
+# Subtest: AC-4: rowFlags marks both conflicting rows "Conflict" (words, not colour)
+ok 76 - AC-4: rowFlags marks both conflicting rows "Conflict" (words, not colour)
+  ---
+  duration_ms: 0.494483
+  type: 'test'
+  ...
+# Subtest: classifyFiles checks size and type before anything is read
+ok 77 - classifyFiles checks size and type before anything is read
+  ---
+  duration_ms: 0.618859
+  type: 'test'
+  ...
+# Subtest: sniffXml and importTexts route each file to the right importer
+ok 78 - sniffXml and importTexts route each file to the right importer
+  ---
+  duration_ms: 20.010109
+  type: 'test'
+  ...
+# Subtest: savedMessage starts with "Saved." and says where to copy the files
+ok 79 - savedMessage starts with "Saved." and says where to copy the files
+  ---
+  duration_ms: 0.289034
+  type: 'test'
+  ...
+# Subtest: undo keeps independent snapshots and a bounded history
+ok 80 - undo keeps independent snapshots and a bounded history
+  ---
+  duration_ms: 0.22643
+  type: 'test'
+  ...
+# Subtest: function search matches labels, ids and categories
+ok 81 - function search matches labels, ids and categories
+  ---
+  duration_ms: 0.267782
+  type: 'test'
+  ...
+# Subtest: AC-2: export gives a definition/mapper pair with VDJscript actions
+ok 82 - AC-2: export gives a definition/mapper pair with VDJscript actions
+  ---
+  duration_ms: 8.280986
+  type: 'test'
+  ...
+# Subtest: every vocabulary function has a VirtualDJ action and reads back as itself
+ok 83 - every vocabulary function has a VirtualDJ action and reads back as itself
+  ---
+  duration_ms: 20.822138
+  type: 'test'
+  ...
+# Subtest: AC-5: export then import gives the same model after normalisation (14-bit and labels normalised)
+ok 84 - AC-5: export then import gives the same model after normalisation (14-bit and labels normalised)
+  ---
+  duration_ms: 2.139282
+  type: 'test'
+  ...
+# Subtest: a function on another deck than the definition entry is addressed with "deck N"
+ok 85 - a function on another deck than the definition entry is addressed with "deck N"
+  ---
+  duration_ms: 0.578659
+  type: 'test'
+  ...
+# Subtest: AC-3: a third-party VirtualDJ definition + mapper imports with unknown actions preserved
+ok 86 - AC-3: a third-party VirtualDJ definition + mapper imports with unknown actions preserved
+  ---
+  duration_ms: 1.549817
+  type: 'test'
+  ...
+# Subtest: import reads the older single-file layout and the files in either order
+ok 87 - import reads the older single-file layout and the files in either order
+  ---
+  duration_ms: 1.78448
+  type: 'test'
+  ...
+# Subtest: import errors are typed and never thrown
+ok 88 - import errors are typed and never thrown
+  ---
+  duration_ms: 0.834543
+  type: 'test'
+  ...
+# Subtest: definition names are reduced to letters, digits and underscores
+ok 89 - definition names are reduced to letters, digits and underscores
+  ---
+  duration_ms: 0.151607
+  type: 'test'
+  ...
+# Subtest: parses elements, attributes, text, CDATA, comments, PIs, BOM and CRLF
+ok 90 - parses elements, attributes, text, CDATA, comments, PIs, BOM and CRLF
+  ---
+  duration_ms: 3.06995
+  type: 'test'
+  ...
+# Subtest: XXE: DOCTYPE and ENTITY declarations are rejected outright (fixture with a SYSTEM entity)
+ok 91 - XXE: DOCTYPE and ENTITY declarations are rejected outright (fixture with a SYSTEM entity)
+  ---
+  duration_ms: 1.104108
+  type: 'test'
+  ...
+# Subtest: size, element, attribute and depth caps reject input before it can grow
+ok 92 - size, element, attribute and depth caps reject input before it can grow
+  ---
+  duration_ms: 1.069666
+  type: 'test'
+  ...
+# Subtest: malformed XML returns a typed error with line and column, never throws
+ok 93 - malformed XML returns a typed error with line and column, never throws
+  ---
+  duration_ms: 0.482214
+  type: 'test'
+  ...
+# Subtest: random byte soup never throws from the parser or the importers
+ok 94 - random byte soup never throws from the parser or the importers
+  ---
+  duration_ms: 12.621133
+  type: 'test'
+  ...
+# Subtest: writer escapes text and attributes and drops characters XML cannot carry
+ok 95 - writer escapes text and attributes and drops characters XML cannot carry
+  ---
+  duration_ms: 1.014133
+  type: 'test'
+  ...
+# Subtest: round trip: hostile names and labels give well-formed Mixxx and VirtualDJ files that read back (FS-32 §7)
+ok 96 - round trip: hostile names and labels give well-formed Mixxx and VirtualDJ files that read back (FS-32 §7)
+  ---
+  duration_ms: 27.877312
+  type: 'test'
+  ...
+1..96
+# tests 96
+# suites 0
+# pass 95
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 2041.881272

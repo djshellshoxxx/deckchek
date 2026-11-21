@@ -25,14 +25,28 @@ new Quick Check browser rendering remains unqualified. Read the
 [completed held handoff](engineering/QUICK_LAYOUT_CONTINUATION_2026-11-21.md).
 Original first failures and reports remain intact.
 
-Round seven is complete: Mobile current-editor export details passed its first
-45/45 focused cases, official build and syntax check. All 45 case names also
-passed in round eight, with all 34 Mobile files unchanged. Persistence after
-denied writes is not claimed. Mapper #82 is the next separate seven-file
-preparation, unexecuted at this checkpoint; a fresh code/functional/static-defensive
-trio reviews it after the completed round-eight handoff. Only the functional lane
-may run root-reviewed bounded first commands. Root owns CI, publication and merges.
-Later #76/#77/#78/#80/#81/#82 remain outside qualified PR #79.
+The completed Quick Check/Mobile handoff is durable at
+[`1889bfc`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121),
+with complete-tree, ordered-parent and exact-ref proof. Its original worker
+history and first failures remain preserved.
+
+All three round-nine Mapper #82 workers completed. The first focused gate on
+`6b8a2b2` selected all 11 Mapper files: 96 total / 95 pass / zero fail / one
+optional Mixxx skip, exit 0 in 2.173 seconds. All 2,315 source hashes stayed
+unchanged; both peers and root independently verified every original, immutable
+source blob and ordered outcome. Unreadable collections cannot be overwritten by
+save/delete, the draft survives errors, and Retry can restore the saved list.
+The [completed Mapper handoff](engineering/MAPPER_STORAGE_CONTINUATION_2026-11-21.md)
+records the exact scope. This focused pass leaves the prior full-suite hold intact.
+
+Round seven's Mobile export work retains its first 45/45 focused pass, official
+build and syntax check. All 45 case names also passed in round eight; all 34
+Mobile files remain unchanged. Persistence after denied writes is not claimed.
+External-link session consent #84 is the next source-only preparation for a fresh
+code/functional/static-defensive trio after the completed Mapper handoff. Only
+the functional lane may execute root-reviewed bounded first commands. Root owns
+CI, publication and merges. Later #76/#77/#78/#80/#81/#82/#84 remain outside
+qualified PR #79.
 
 ## Cloud continuation: M7 data and statistics foundations (2026-10-22)
 

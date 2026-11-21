@@ -218,7 +218,7 @@ export function createMapperScreen(section) {
   const undo = createUndo();
   const st = {
     model: null, readOnly: false, savedId: null, assetId: null, profileId: null, selectedId: null, target: 'mixxx', force: false,
-    scripts: [], saved: [], learning: null, learnStart: null, savingModel: false, deleting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
+    scripts: [], saved: [], savedError: null, loadingSaved: false, learning: null, learnStart: null, savingModel: false, deleting: false, ports: [], port: '', exportView: 0, busy: false, lastLoaded: '',
   };
   // Edits and cached-screen navigation keep this identity; opening or creating a mapping replaces it.
   let modelGeneration = 0;
@@ -230,6 +230,11 @@ export function createMapperScreen(section) {
   const right = h('section', { class: 'card mp-pane mp-right', 'aria-labelledby': 'mp-export-title' });
   const deviceSelect = h('select', { id: 'mp-device', 'aria-label': 'Unit (device) to map' });
   const savedSelect = h('select', { id: 'mp-saved', 'aria-label': 'Saved mappings' });
+  const savedOpenBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-open-saved', text: 'Open', onclick: openSaved });
+  const savedDeleteBtn = h('button', { type: 'button', class: 'btn btn-ghost', id: 'mp-delete-saved', 'aria-label': 'Delete saved mapping', onclick: deleteSaved }, h('span', { html: icon('trash', { size: 18 }) }));
+  const savedStatus = h('p', { id: 'mp-saved-status', class: 'hint hint-warn', role: 'status' });
+  const savedRetry = h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-retry-saved', text: 'Retry saved mappings', onclick: refreshSaved });
+  const savedNotice = h('div', { class: 'mp-row', hidden: true }, savedStatus, savedRetry);
   const nameInput = h('input', { id: 'mp-name', type: 'text', maxlength: String(LIMITS.maxText), autocomplete: 'off', 'aria-label': 'Mapping name' });
   const saveModelBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-save-model', text: 'Save mapping', onclick: () => saveModel() });
   const decksSelect = h('select', { id: 'mp-decks', 'aria-label': 'Number of decks' }, ...[1, 2, 3, 4].map(n => h('option', { value: String(n), text: `${n} deck${n === 1 ? '' : 's'}` })));
@@ -431,13 +436,39 @@ export function createMapperScreen(section) {
     setStatus('Empty mapping. Press Learn (L) and move a control, then assign it a function.', 'info');
   }
 
+  let savedGeneration = 0;
   async function refreshSaved() {
-    try { st.saved = await mstore.list(); } catch { st.saved = []; }
+    const generation = ++savedGeneration;
+    st.loadingSaved = true;
+    savedSelect.disabled = savedOpenBtn.disabled = savedDeleteBtn.disabled = savedRetry.disabled = true;
+    savedSelect.replaceChildren(h('option', { value: '', text: 'Loading saved mappings…' }));
+    let rows;
+    try {
+      rows = await mstore.list();
+      if (!Array.isArray(rows)) throw new Error('Saved mappings returned an invalid list.');
+    } catch (e) {
+      if (generation !== savedGeneration) return false;
+      st.saved = [];
+      st.savedError = capMessage(`Could not load saved mappings. ${e?.message ?? e ?? ''}`);
+      savedSelect.replaceChildren(h('option', { value: '', text: 'Saved mappings unavailable' }));
+      savedStatus.textContent = st.savedError;
+      savedNotice.hidden = false;
+      return false;
+    } finally {
+      if (generation === savedGeneration) { st.loadingSaved = false; savedRetry.disabled = false; }
+    }
+    if (generation !== savedGeneration) return false;
+    st.saved = rows; st.savedError = null;
+    savedStatus.textContent = ''; savedNotice.hidden = true;
     savedSelect.replaceChildren(h('option', { value: '', text: st.saved.length ? 'Saved mappings…' : 'No saved mappings' }), ...st.saved.map(r => h('option', { value: r.id, text: `${r.name} (${r.controlCount} controls)` })));
+    savedSelect.disabled = false;
+    savedOpenBtn.disabled = savedDeleteBtn.disabled = !st.saved.length;
     if (st.savedId && st.saved.some(r => r.id === st.savedId)) savedSelect.value = st.savedId;
+    return true;
   }
 
   async function openSaved() {
+    if (st.loadingSaved || st.savedError !== null) return;
     const id = savedSelect.value;
     if (!id) return;
     try {
@@ -478,6 +509,7 @@ export function createMapperScreen(section) {
   }
 
   async function deleteSaved() {
+    if (st.loadingSaved || st.savedError !== null) return;
     const id = savedSelect.value;
     if (!id) return;
     const row = st.saved.find(r => r.id === id);
@@ -853,8 +885,8 @@ export function createMapperScreen(section) {
         h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-new', text: 'New empty', onclick: newModel })),
       h('div', { class: 'mp-row' },
         h('label', { class: 'mp-field', for: 'mp-saved' }, h('span', { class: 'field-label', text: 'Saved' }), savedSelect),
-        h('button', { type: 'button', class: 'btn btn-secondary', id: 'mp-open-saved', text: 'Open', onclick: openSaved }),
-        h('button', { type: 'button', class: 'btn btn-ghost', id: 'mp-delete-saved', 'aria-label': 'Delete saved mapping', onclick: deleteSaved }, h('span', { html: icon('trash', { size: 18 }) }))),
+        savedOpenBtn, savedDeleteBtn),
+      savedNotice,
       h('div', { class: 'mp-row' },
         h('label', { class: 'mp-field mp-grow', for: 'mp-name' }, h('span', { class: 'field-label', text: 'Mapping name' }), nameInput),
         h('label', { class: 'mp-field', for: 'mp-decks' }, h('span', { class: 'field-label', text: 'Decks' }), decksSelect),

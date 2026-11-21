@@ -1,0 +1,27 @@
+{
+  "schema": "deckchek.quick-layout-held-publication.v1",
+  "source_commit": "9a978153b18636ec9d4d660f5dee8dddec381dbe",
+  "published_commit": "1889bfc7c4b7db6d1d720fd554d674595e81f098",
+  "whole_tree": "7456f03415e8cd4d29db3689a90cdccd976e93b0",
+  "ordered_parents": [
+    "8664c590709dce34445bf23008e61053b592d608",
+    "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+  ],
+  "whole_tree_equal": true,
+  "changed_paths": [],
+  "all_parents_ancestors": true,
+  "publication_state": "new branch created and exact GitHub ref readback verified",
+  "qualification": "HELD: full gate has one unresolved relative-gain failure; no new PR or merge",
+  "branch": "checkpoint/deckchek-quick-layout-held-20261121",
+  "ref_readback_sha": "1889bfc7c4b7db6d1d720fd554d674595e81f098",
+  "verified_at_utc": "2026-11-21T10:40:02.234042+00:00",
+  "checkpoint_url": "https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121",
+  "original_history_bundle": {
+    "path": "docs/engineering/evidence/quick-layout-integration-2026-11-21/original-review-history.bundle",
+    "bytes": 591772,
+    "sha256": "14bbbb4a71bec244e80178fb5f372548634255c59ace7372f9cd2dbf29646022",
+    "tip": "d32ab0f1d302a2f271f6e850da27085d6df85370",
+    "all_16_prerequisites_available_from_publication_parents": true
+  },
+  "root_history_preserving_merge": "ffeb2e8b26341e674e72665ca442596365f348f4"
+}

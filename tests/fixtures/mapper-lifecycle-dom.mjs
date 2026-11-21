@@ -104,7 +104,7 @@ export function nativeMappings({ rows = [], beforeSave = async () => {}, ports =
   return { invoke, saved, saves, ports, midiOpens, midiCloses, opened, emitMidi: message => midiMessageListener?.({ payload: message }) };
 }
 
-export async function mountMapper(t, native = nativeMappings()) {
+export async function mountMapper(t, native = nativeMappings(), { storage } = {}) {
   const document = {
     createElement(tag) { return new Element(tag, this); },
     createTextNode(text) { const node = this.createElement('#text'); node.textContent = text; return node; },
@@ -120,8 +120,9 @@ export async function mountMapper(t, native = nativeMappings()) {
   main.append(section, other); document.body.append(element('nav', 'rail-list'), main);
   const globals = {
     document, Node: Element, CSS: { escape: value => String(value) },
-    window: { __TAURI__: { core: { invoke: native.invoke }, event: { listen: async (_, listener) => { midiMessageListener = listener; return () => { midiMessageListener = null; }; } } } },
+    window: native ? { __TAURI__: { core: { invoke: native.invoke }, event: { listen: async (_, listener) => { midiMessageListener = listener; return () => { midiMessageListener = null; }; } } } } : {},
     fetch: async () => ({ ok: true, json: async () => ({ profiles: [] }) }),
+    ...(storage === undefined ? {} : { localStorage: storage }),
   };
   const previous = Object.fromEntries(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });

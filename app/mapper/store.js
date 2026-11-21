@@ -8,6 +8,7 @@ import { LIMITS, sanitizeModel, cleanText, MODEL_VERSION } from './model.js';
 export const LOCAL_KEY = 'deckchek.mapper.v1';
 const MAX_LOCAL_MODELS = 50;
 const tauri = () => globalThis.window?.__TAURI__ ?? null;
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function summary(row) {
   const { model, ...rest } = row;
@@ -21,6 +22,15 @@ export class MapperVersionError extends Error {
     this.name = 'MapperVersionError';
     this.code = 'MAPPER_NEWER_VERSION';
     this.version = version;
+  }
+}
+
+/** A failed read is not an empty store and must never be used as the basis of a write. */
+export class MapperStorageError extends Error {
+  constructor() {
+    super('Saved mappings could not be read. The stored data has not been changed. Restore browser storage access or recover the saved data before saving or deleting mappings. You can still export your current mapping to a file.');
+    this.name = 'MapperStorageError';
+    this.code = 'MAPPER_STORAGE_READ';
   }
 }
 
@@ -47,13 +57,37 @@ export function checkSavable({ name, model }) {
   return { name: n, json };
 }
 
-export function createMapperStore({ api = tauri(), storage = globalThis.localStorage ?? null } = {}) {
+export function createMapperStore({ api = tauri(), storage } = {}) {
   const invoke = api?.core?.invoke;
+  // Resolve lazily so a blocked localStorage getter cannot prevent native operations.
+  const browserStorage = () => storage === undefined ? globalThis.localStorage : storage;
   const load = () => {
-    try { const v = JSON.parse(storage?.getItem(LOCAL_KEY) || '[]'); return Array.isArray(v) ? v.filter(r => r && typeof r.id === 'string') : []; } catch { return []; }
+    try {
+      const target = browserStorage();
+      if (typeof target?.getItem !== 'function') throw new MapperStorageError();
+      const raw = target.getItem(LOCAL_KEY);
+      if (raw === null) return []; // Only an absent key is a legitimate empty store.
+      if (typeof raw !== 'string') throw new MapperStorageError();
+      const rows = JSON.parse(raw), ids = new Set();
+      if (!Array.isArray(rows)) throw new MapperStorageError();
+      for (const row of rows) {
+        // Preserve unknown fields and future model versions. Refuse the whole collection
+        // when a row cannot be identified/read, rather than silently dropping part of it.
+        if (!isRecord(row) || typeof row.id !== 'string' || !row.id || ids.has(row.id)
+          || typeof row.name !== 'string' || !isRecord(row.model) || !Number.isInteger(row.model.version)) {
+          throw new MapperStorageError();
+        }
+        ids.add(row.id);
+      }
+      return rows;
+    } catch { throw new MapperStorageError(); }
   };
   const persist = rows => {
-    try { storage?.setItem(LOCAL_KEY, JSON.stringify(rows)); } catch { throw new Error('The browser did not let DeckChek store the mapping (storage full or blocked).'); }
+    try {
+      const target = browserStorage();
+      if (typeof target?.setItem !== 'function') throw new Error('Storage unavailable');
+      target.setItem(LOCAL_KEY, JSON.stringify(rows));
+    } catch { throw new Error('The browser did not let DeckChek store the mapping (storage full or blocked).'); }
   };
   return {
     native: Boolean(invoke),

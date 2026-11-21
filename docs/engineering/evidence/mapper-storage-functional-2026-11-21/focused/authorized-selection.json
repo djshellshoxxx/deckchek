@@ -1,0 +1,24 @@
+{
+  "schema": "deckchek.mapper-storage-focused-selection.v1",
+  "source_commit": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+  "source_tree": "2310fbe5335b7b3ae79acb7066f6a35891e1d9db",
+  "source_branch": "review/deckchek-mapper-storage-functional-20261121",
+  "expected_tracked_file_count": 2315,
+  "expected_all_top_level_test_count": 201,
+  "expected_test_file_count": 11,
+  "expected_node_version": "v24.22.3",
+  "execution_budget_seconds": 120,
+  "test_files": [
+    "tests/mapper-followups.test.mjs",
+    "tests/mapper-lifecycle.test.mjs",
+    "tests/mapper-mixxx.test.mjs",
+    "tests/mapper-model.test.mjs",
+    "tests/mapper-profile-identity.test.mjs",
+    "tests/mapper-regressions.test.mjs",
+    "tests/mapper-storage-screen.test.mjs",
+    "tests/mapper-storage.test.mjs",
+    "tests/mapper-ui.test.mjs",
+    "tests/mapper-vdj.test.mjs",
+    "tests/mapper-xml.test.mjs"
+  ]
+}

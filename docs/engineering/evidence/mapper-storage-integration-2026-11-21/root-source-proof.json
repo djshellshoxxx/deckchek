@@ -1,0 +1,89 @@
+{
+  "schema": "deckchek.mapper-storage-root-source-proof.v1",
+  "verified_at_utc": "2026-11-21T10:44:51.647697+00:00",
+  "source_commit": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+  "source_tree": "2310fbe5335b7b3ae79acb7066f6a35891e1d9db",
+  "manifest_sha256": "34dead9fbfed2f95ccbc846429dd2a70c73aecf91602daccbd291da906fd1403",
+  "manifest_entries": 19,
+  "original_copies": 16,
+  "original_path_bindings": 18,
+  "tracked_paths": 2315,
+  "both_original_maps_match_all_immutable_blobs_and_current_source": true,
+  "object_map_independently_rebuilt_and_matched": true,
+  "all_11_mapper_files_selected": true,
+  "all_top_level_test_file_count": 201,
+  "ordered_tap_outcomes": 96,
+  "counts": {
+    "tests": 96,
+    "suites": 0,
+    "pass": 95,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "new_cases_all_pass": [
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73
+  ],
+  "sole_optional_skip": 29,
+  "tap_sha256": "a7ce4569e08502e72b076fd71ded003174543d507a6a2c4bf8a739907da14c41",
+  "first_result_sha256": "aec949a3e07ecc3e215cbda1757e109a2f292ff90e16f7e78b08a93879070573",
+  "implementation_paths": [
+    "app/mapper/store.js",
+    "app/ui/screens/mapper.js",
+    "docs/engineering/MAPPER_STORAGE_IMPLEMENTATION_2026-11-21.md",
+    "tests/fixtures/mapper-lifecycle-dom.mjs",
+    "tests/mapper-model.test.mjs",
+    "tests/mapper-storage-screen.test.mjs",
+    "tests/mapper-storage.test.mjs"
+  ],
+  "all_implementation_bytes_unchanged": true,
+  "method": "Independent root Python data parsing and Git blob hashing only. No project, test, syntax, browser, native, packaged verifier or diagnostic execution.",
+  "qualification": "Mapper focused gate passed; earlier e5614ff complete-source relative-gain hold remains unresolved.",
+  "final_handoffs": [
+    {
+      "role": "code",
+      "commit": "2a46eb928c215c42510c5901ce155c9f053c684b",
+      "tree": "176e977ff201d6a77b7ab3ac86e984e358f9e7f3",
+      "parent": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+      "report": "docs/engineering/MAPPER_STORAGE_CODE_AUDIT_2026-11-21.md",
+      "report_sha256": "09d878e56c9183a53a342d72832492fbcfd911a6100df6b381c171a855b264c0",
+      "owned_path_count": 1,
+      "clean": true,
+      "committed_bytes_equal_reviewed_disk": true
+    },
+    {
+      "role": "functional",
+      "commit": "f2c8ff048fc17a99e2c7e8d0bc33fc5aaf5c2525",
+      "tree": "6fa5ff927765ceb150e0853fd7eb9cdae6a5516d",
+      "parent": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+      "report": "docs/engineering/MAPPER_STORAGE_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "report_sha256": "26c14f4fe228fff9f62326e7453b1f9e37d49a4a1c7ab8909e85317a9c907f51",
+      "owned_path_count": 21,
+      "clean": true,
+      "committed_bytes_equal_reviewed_disk": true
+    },
+    {
+      "role": "security",
+      "commit": "58688f4fd20e589afc2c9526b1f3f3748131eeb1",
+      "tree": "77c3b1396f7b7384c7140c04c4e7e09a62063c1a",
+      "parent": "6b8a2b29e7971a02c959e4da50bcad4363480a86",
+      "report": "docs/engineering/MAPPER_STORAGE_SECURITY_AUDIT_2026-11-21.md",
+      "report_sha256": "819a24314face734ebd5f42ee577b26de944446bee8354ae4c5025e45edd4e17",
+      "owned_path_count": 1,
+      "clean": true,
+      "committed_bytes_equal_reviewed_disk": true
+    }
+  ],
+  "all_three_finals_received_before_fresh_rotation": true
+}

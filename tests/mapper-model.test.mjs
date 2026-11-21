@@ -290,7 +290,7 @@ test('store: browser mode saves, lists, reads and deletes models in localStorage
   assert.equal(await st.remove(b.id), true);
   assert.equal(await st.remove(b.id), false);
   storage.setItem(LOCAL_KEY, '{corrupt');
-  assert.deepEqual(await st.list(), [], 'corrupt storage reads as empty');
+  await assert.rejects(st.list(), { code: 'MAPPER_STORAGE_READ' });
   await assert.rejects(st.save({ name: ' ', model }), /name/);
   assert.throws(() => checkSavable({ name: 'x', model: { version: 1, controls: [], pad: 'x'.repeat(LIMITS.maxModelBytes) } }), /too large/);
 });
