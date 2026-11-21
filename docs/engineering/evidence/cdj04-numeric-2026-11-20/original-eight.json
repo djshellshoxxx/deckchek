@@ -1,0 +1,22 @@
+{
+  "source": "d2ccfdaa4bd1a8f6da9a7cc632e4967cb8463092",
+  "tree": "30ee0e04b49fdc4a7e81fe5cb17effb76fffdd73",
+  "node": "v22.23.4",
+  "argv": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.1627138260009815,
+  "trackedFiles": 1531,
+  "changedFiles": [],
+  "statusAfter": "",
+  "logSha256": "fae587cd1be0dc50e1622e7e684ae0c0f5090f15a5044771497734112da603ba",
+  "sourceHashes": {
+    "app/player/pitch-display.js": "6fbd3f1e8fc5c3810ba4b53fbddfbc13011d2bb6133353b41684e89c64b26cb5",
+    "tests/cdj-pitch-display.test.mjs": "fd5f83e47c6d7fdd21a97688a81961224c7b87c1450864d886b28a1143dce905",
+    "docs/engineering/CDJ04_DISPLAY_PROTOTYPE_2026-11-20.md": "d3328f3d88e64f26dc179c6acd7db381d12173e873270e6b6650e9b780b41f60"
+  }
+}

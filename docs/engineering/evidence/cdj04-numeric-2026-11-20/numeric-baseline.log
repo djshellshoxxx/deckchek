@@ -1,0 +1,137 @@
+(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+ok 1 - CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+  ---
+  duration_ms: 1.76111
+  type: 'test'
+  ...
+# Subtest: CDJ-04 retains signed negative speed and display error
+ok 2 - CDJ-04 retains signed negative speed and display error
+  ---
+  duration_ms: 0.303849
+  type: 'test'
+  ...
+# Subtest: CDJ-04 zero offset is not silently converted into turntable RPM
+ok 3 - CDJ-04 zero offset is not silently converted into turntable RPM
+  ---
+  duration_ms: 0.292852
+  type: 'test'
+  ...
+# Subtest: CDJ-04 fails closed on each missing, false or unknown quality gate
+ok 4 - CDJ-04 fails closed on each missing, false or unknown quality gate
+  ---
+  duration_ms: 0.567898
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes invalid frequency and nonfinite inputs
+ok 5 - CDJ-04 excludes invalid frequency and nonfinite inputs
+  ---
+  duration_ms: 0.301515
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicitly verified model pitch range and in-range display
+ok 6 - CDJ-04 requires explicitly verified model pitch range and in-range display
+  ---
+  duration_ms: 0.23891
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicit nonzero uncertainty and provenance
+ok 7 - CDJ-04 requires explicit nonzero uncertainty and provenance
+  ---
+  duration_ms: 0.474016
+  type: 'test'
+  ...
+# Subtest: CDJ-04 is stateless and does not mutate the input record
+ok 8 - CDJ-04 is stateless and does not mutate the input record
+  ---
+  duration_ms: 1.413535
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+not ok 9 - CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+  ---
+  duration_ms: 1.861362
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:106:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:112:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: CDJ-04 excludes a display error that overflows from finite numeric inputs
+not ok 10 - CDJ-04 excludes a display error that overflows from finite numeric inputs
+  ---
+  duration_ms: 0.770163
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:117:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:126:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: CDJ-04 rejects unsupported numeric types before deriving metrics
+not ok 11 - CDJ-04 rejects unsupported numeric types before deriving metrics
+  ---
+  duration_ms: 0.378401
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:132:1'
+  failureType: 'testCodeFailure'
+  error: 'Cannot mix BigInt and other types, use explicit conversions'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    assessCdjPitchDisplay (file:///workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/app/player/pitch-display.js:46:51)
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-cdj04-functional/tests/cdj-pitch-display.test.mjs:138:20)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 8
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 146.784527
