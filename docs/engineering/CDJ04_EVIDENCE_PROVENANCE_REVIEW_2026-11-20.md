@@ -8,11 +8,11 @@ The initial `ownObject` returned caller objects verbatim. A custom-prototype obj
 
 ## Bounded correction
 
-The record validator now accepts ordinary or null-prototype JSON-like objects, snapshots only own enumerable properties onto a null-prototype object, rejects non-plain input nodes and uses `Number.isSafeInteger` for sample rates. Values remain provisional: no report eligibility, no measurement, no proof of waveform or capture provenance. The API does not attempt independent validation of source hashes, quality flags, capture clocks or reference identity.
+The record validator now accepts ordinary or null-prototype JSON-like objects, snapshots only own enumerable data properties onto a null-prototype object without invoking getters, rejects accessor-backed and non-plain input nodes and uses `Number.isSafeInteger` for sample rates. Values remain provisional: no report eligibility, no measurement, no proof of waveform or capture provenance. The API does not attempt independent validation of source hashes, quality flags, capture clocks or reference identity.
 
 ## Regression and qualification plan
 
-Two focused tests cover inherited quality/capture claims, exotic objects, null-prototype valid input, safe capture sample-rate integers and JSON round-trip. Prior six original tests are unchanged. Review all eight cases at exact resulting head and run the applicable hosted standard/nightly/desktop gates before integration.
+Two focused tests cover inherited quality/capture claims, accessor-backed claims without invoking getters, exotic objects, null-prototype valid input, safe capture sample-rate integers and JSON round-trip. Prior six original tests are unchanged. Review all eight cases at exact resulting head and run the applicable hosted standard/nightly/desktop gates before integration.
 
 Separate successor acceptances required:
 1. **Code review:** validate null-prototype snapshot does not change legitimate plain-object callers, serialization compatibility or missing-field semantics; inspect the exact patch, not the already-reviewed numeric helper.
