@@ -1,0 +1,14 @@
+{
+  "head": "6295c3eb5b470b34f2a1010b040b1694780e0ee9",
+  "tree": "39d4351da05fc1fc65f555874824555d96df5cd3",
+  "localHead": "f081881d4979e4385f255163660258784e27a264",
+  "parents": [
+    "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+    "b8dfc126c2480f303df105abd3759fedae49a192"
+  ],
+  "branch": "checkpoint/deckchek-player-capture-source-20261120",
+  "fetchedAndTreeIdentical": true,
+  "parentsAndAncestryVerified": true,
+  "refReadbackVerified": true,
+  "qualification": "All three initial workers complete. Fresh independent set active on identical local f081 tree; full suite pending. Local browser blocked before page load; no visual/native/physical qualification inferred."
+}

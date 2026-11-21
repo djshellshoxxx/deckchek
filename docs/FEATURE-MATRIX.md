@@ -1,6 +1,32 @@
 # DeckChek Feature Matrix
 
-## Current redaction and corrected outcome consolidation — 20 November 2026
+## Current player capture and usage consolidation — 20 November 2026
+
+All three initial workers and three fresh successors completed the
+[Player capture and usage handoff](engineering/PLAYER_CAPTURE_CONTINUATION_2026-11-20.md).
+The actual app has a default-off one-pair, 1–30 second capture preview with owned
+cancellation and provisional metadata export. Usage #70 adds same-batch valid
+proposal deduplication and own-property source membership; native validation is
+unchanged. Source `f081881d4979e4385f255163660258784e27a264`, tree
+`39d4351da05fc1fc65f555874824555d96df5cd3`, is preserved by durable equivalent
+`6295c3eb5b470b34f2a1010b040b1694780e0ee9`.
+
+Fresh complete serial Node24.22.3 verification passed **2,331 / 0 failures /
+1 optional skip**, **2,332 total across 191 files**, with **1,892 tracked hashes
+unchanged**. Static reviews found no remaining bounded blocker. Local Chromium
+failed before a page; this successor requires its own hosted rendered UI and
+native/platform gates. Original audio failure #72 remains unexplained; the
+33-test diagnostic selection did not establish matching predecessor order.
+Issue #69 and AC-6 remain open and unchanged.
+
+Accepted #66/#68 and bounded #69 changes are included from fixed #71. Publish
+this successor before superseding #71, retaining branches. #66/#70 close only
+through a qualified implementing merge. Main is last verified at
+`099c99c055322ef668be23e6ae50a2968614cc6d`. The next distinct trio reviews optional
+reference-file hashing and PDF #73 on an isolated successor. Retention, pitch
+integration, reports and scientific/physical gates remain open; Fleet stays off.
+
+## Historical redaction and corrected outcome consolidation — 20 November 2026
 
 The [current redaction handoff](engineering/REDACTION_CONTINUATION_2026-11-20.md)
 combines accepted device-outcome #66 and fractional-timestamp #68 corrections

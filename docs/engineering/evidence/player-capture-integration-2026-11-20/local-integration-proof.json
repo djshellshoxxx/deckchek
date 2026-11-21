@@ -1,0 +1,36 @@
+{
+  "localIntegratedHead": "20178f86d672586c752a23e21427d3fa4a68562d",
+  "reviewedSource": "f081881d4979e4385f255163660258784e27a264",
+  "reviewedTree": "39d4351da05fc1fc65f555874824555d96df5cd3",
+  "runtimeAndTestsUnchanged": true,
+  "evidenceLedgers": {
+    "player-capture-functional-2026-11-20": {
+      "entries": 26,
+      "verified": true
+    },
+    "player-capture-acceptance-2026-11-20": {
+      "entries": 9,
+      "verified": true
+    }
+  },
+  "fullSuiteCounts": {
+    "tests": 2332,
+    "pass": 2331,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "fullSuiteBytes": 534094,
+  "fullSuiteSha256": "253caf6728565590e5f7ffab76287776a6cedcecbba3ffe8ecb88fcb9c423bc1",
+  "trackedHashCount": 1892,
+  "trackedHashMapsEqual": true,
+  "freshReportCommits": {
+    "PLAYER_CAPTURE_CODE_ACCEPTANCE_2026-11-20.md": "58d1f4724aea038d786628cea9bf5c1b973c23ae",
+    "PLAYER_CAPTURE_SECURITY_ACCEPTANCE_2026-11-20.md": "8743cb8bf1ad2b7c388967ef15a06ad33ed7f887",
+    "PLAYER_CAPTURE_FUNCTIONAL_ACCEPTANCE_2026-11-20.md": "9a6950bb0d4341a1ff6bd89a7f6e78dacdb8c205"
+  },
+  "freshReportDigestsVerified": true,
+  "freshReportLinksChecked": 87,
+  "scope": "Static root integration verification; no project runtime executed."
+}
