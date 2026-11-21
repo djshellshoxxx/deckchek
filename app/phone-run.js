@@ -120,7 +120,9 @@ export const looksLikeFrames = text => typeof text === 'string' && text.trimStar
  * Returns {ok, json?, error?, missing?}.
  */
 export function joinQrFrames(input) {
-  const lines = (Array.isArray(input) ? input : String(input ?? '').split(/\r?\n/)).map(s => s.trim()).filter(Boolean);
+  // QR chunk bytes are significant: trim only whitespace before the frame prefix, not spaces inside the chunk.
+  const lines = (Array.isArray(input) ? input : String(input ?? '').split(/\r?\n/))
+    .map(s => s.replace(/\r$/, '').trimStart()).filter(Boolean);
   if (!lines.length) return { ok: false, error: 'No QR text to read.' };
   const parts = new Map();
   let total = null, id = null;
