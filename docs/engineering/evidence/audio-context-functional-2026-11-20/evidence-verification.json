@@ -1,0 +1,134 @@
+{
+  "verified_at_utc": "2026-11-21T07:53:29.329751+00:00",
+  "scope": "Retained-byte and Git-blob verification only; no project import, test rerun or analyzer call.",
+  "source_bindings": [
+    {
+      "run": "runner-message",
+      "commit": "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3",
+      "tree": "1e191df434541fbb7c36c84f739a26ac6b979626",
+      "tracked_files": 1994,
+      "distinct_blobs": 1879,
+      "all_tracked_bytes_match_git": true,
+      "original_case_order_verified": true,
+      "counts": {
+        "tests": 18,
+        "suites": 0,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "run": "two-file-aggregate",
+      "commit": "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864",
+      "tree": "0c24c00e4e3748992371c8d90303859a22f5dd4e",
+      "tracked_files": 2007,
+      "distinct_blobs": 1890,
+      "all_tracked_bytes_match_git": true,
+      "original_case_order_verified": true,
+      "counts": {
+        "tests": 33,
+        "suites": 0,
+        "pass": 31,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "distinct_git_blobs_hashed": 1890,
+  "unchanged_production_and_quality_test": {
+    "app/audio-quality.js": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6"
+    },
+    "app/calibration.js": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72"
+    },
+    "app/core.js": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247"
+    },
+    "app/devices/audio-session.js": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb"
+    },
+    "app/ui/devices/audio-runner.js": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "29048fb5c1c7c622d254a01cff712ad6695247b7246da08fcc08eb56d705c909",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "29048fb5c1c7c622d254a01cff712ad6695247b7246da08fcc08eb56d705c909",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "29048fb5c1c7c622d254a01cff712ad6695247b7246da08fcc08eb56d705c909"
+    },
+    "tests/audio-quality.test.mjs": {
+      "8dbef3a91f4d88d01ec5a570265258443fd7f3cc": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78"
+    }
+  },
+  "runner_case_declarations_identical": true,
+  "runner_assertion_call_count": 118,
+  "historical_complete_logs": [
+    {
+      "path": "redaction-acceptance-2026-11-20/full-suite.tap",
+      "bytes": 530581,
+      "sha256": "39036600b38a1a4301801afd2dfba573a485c8bc955c8db5551cdde1ccbcc197",
+      "counts": {
+        "tests": 2314,
+        "suites": 0,
+        "pass": 2312,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "player-reference-acceptance-2026-11-20/full-suite.tap",
+      "bytes": 541141,
+      "sha256": "29ef19e0e0916e94e4c1ce0b27be3805f173375686cd522cf9aa8db11a77dec4",
+      "counts": {
+        "tests": 2357,
+        "suites": 0,
+        "pass": 2354,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 1,
+        "todo": 0
+      }
+    },
+    {
+      "path": "audio-numerical-functional-2026-11-20/unchanged-selection/run.tap",
+      "bytes": 8482,
+      "sha256": "72372175dab192c8e851037de477f6084b11beeed8b4dda8a726f5c1040dfc69",
+      "counts": {
+        "tests": 33,
+        "suites": 0,
+        "pass": 32,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "observations": {
+    "finish_results": 10,
+    "live_results": 8,
+    "file_results": 2,
+    "all_live_post_suite_input_identities_equal": true,
+    "all_live_last_playback_identity_and_options_equal": true,
+    "retry_immediate_message_matches_final_result": true,
+    "file_inputs_explicitly_unobserved": true
+  },
+  "project_runtime_invocations_in_round": 2,
+  "third_runtime_invocation": "Not executed or queued.",
+  "qualification": "Both failures reproduced; no cause, raw-fit observation, pre-analysis input identity proof or production repair established.",
+  "result": "verified"
+}

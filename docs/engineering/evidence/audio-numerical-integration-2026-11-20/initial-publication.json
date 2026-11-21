@@ -1,0 +1,11 @@
+{
+  "head": "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+  "tree": "272f1ac0548388a5dbce9a09de99ebc731e8ed35",
+  "localHead": "318d8d72d89acd61c3d5699adcfc9efd5a2603a4",
+  "parent": "2022c97d8fb1f941de13e151be9627bbdfcc278e",
+  "branch": "checkpoint/deckchek-audio-initial-20261120",
+  "fetchedWholeTreeVerified": true,
+  "orderedParentAndAncestryVerified": true,
+  "refReadbackVerified": true,
+  "qualification": "Completed initial audio diagnosis; original numerical failures unresolved. No production repair or new PR."
+}

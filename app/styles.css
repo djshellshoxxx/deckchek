@@ -98,6 +98,7 @@ main { grid-column: 2; grid-row: 2; overflow: auto; outline: none; scroll-behavi
 .product strong { font: 700 16px/20px var(--font-display); letter-spacing: .01em; }
 .beta { font: 700 11px/14px var(--font-ui); letter-spacing: .08em; color: var(--review); background: var(--review-bg); border: 1px solid color-mix(in srgb, var(--review) 50%, transparent); border-radius: 999px; padding: 1px 7px; }
 .device-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; }
+.device-bar > button { flex: none; }
 .topfield { display: flex; align-items: center; gap: 0; border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--bg); height: 36px; min-width: 0; overflow: hidden; }
 .topfield:focus-within { border-color: var(--accent); }
 .topfield-label { font: 600 12px/16px var(--font-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); padding: 0 4px 0 10px; }
@@ -521,12 +522,22 @@ dialog[data-ui-assistance] { background: var(--surface); color: var(--text); }
 }
 @media (max-width: 940px) {
   :root { --rail-w: 72px; }
+  .app { grid-template-rows: minmax(56px, max-content) minmax(0, 1fr) 40px; }
+  .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .device-bar { flex: 1 1 450px; margin-left: 0; }
+  .app-actions { margin-left: auto; }
   .topfield-label { display: none; }
   .topfield select { max-width: 150px; }
   .stepper .step-label { font-size: 13px; }
   .timer { font-size: 44px; line-height: 48px; }
   .verdict { grid-template-columns: 1fr; }
   .verdict-side { justify-items: start; grid-auto-flow: column; align-items: center; }
+}
+@media (max-width: 600px) {
+  .device-bar { flex-basis: 100%; flex-wrap: wrap; }
+  .device-bar .topfield { flex: 1 1 110px; }
+  .device-bar .topfield:first-child { flex-basis: calc(100% - 44px); }
+  .device-bar .topfield select { width: 100%; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }

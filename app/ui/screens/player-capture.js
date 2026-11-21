@@ -3,6 +3,7 @@
 import { h, isNative, download } from '../dom.js';
 import { icon } from '../icons.js';
 import { settings, on } from '../state.js';
+import { showInspector } from '../shell.js';
 import { startLiveSession } from '../audio-io.js';
 import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { runCdjAcquisition, CDJ_MAX_CAPTURE_SECONDS } from '../../player/acquisition.js';
@@ -251,7 +252,7 @@ export function createPlayerCaptureScreen(section, {
   const offSettings = on('settings', ({ key } = {}) => { if (key === 'deviceName') update(); });
   update();
   return {
-    onShow() { if (disposed) return; visible = true; update(); pair.refresh(); },
+    onShow() { if (disposed) return; visible = true; showPlayerGuide(); update(); pair.refresh(); },
     onHide() { visible = false; abort(); discard(); cancelReference(); setStatus(''); },
     onEscape() { if (current) { abort(); return true; } if (referenceTask) { cancelReference(); return true; } return false; },
     onExport: exportDetails,
@@ -261,6 +262,21 @@ export function createPlayerCaptureScreen(section, {
       pair.el?.dispatchEvent(new Event('pair-picker-dispose'));
     },
   };
+}
+
+function showPlayerGuide() {
+  showInspector({ title: 'Player capture guide', open: false,
+    body: h('div', { class: 'inspect' },
+      h('p', { text: 'Capture one input pair for 1–30 seconds in the desktop app. These provisional details do not measure pitch accuracy or create a History run or diagnostic report.' }),
+      h('h3', { text: 'Reference identity' }),
+      h('p', { text: 'An optional reference file is read locally to identify its exact bytes with SHA-256. This does not verify audio content or what the player is playing. The file is not saved or uploaded.' }),
+      h('h3', { text: 'Export and reset' }),
+      h('p', { text: 'Export capture details saves metadata, including entered settings, the selected file name and hash, device names and any driver messages. Audio is not included. Leaving this screen clears the captured details and selected-file identity.' }),
+      h('h3', { text: 'Shortcuts' }),
+      h('dl', { class: 'kv' },
+        h('dt', { text: 'Esc' }), h('dd', { text: 'Cancel the active capture or reference-file read' }),
+        h('dt', { text: 'Ctrl+E' }), h('dd', { text: 'Export completed capture details' }),
+        h('dt', { text: 'I' }), h('dd', { text: 'Toggle this guide' }))) });
 }
 
 export function playerCaptureScreenDefs() {

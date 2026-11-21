@@ -1,0 +1,26 @@
+{
+  "baseline_commit": "8dbef3a91f4d88d01ec5a570265258443fd7f3cc",
+  "baseline_tree": "9f3376e0e936abb6df4c1bc73ce91aa1d7581224",
+  "instrumented_commit": "5b340667e21c2d7d5bf25ed7116ed1b21cc3acb3",
+  "instrumented_tree": "1e191df434541fbb7c36c84f739a26ac6b979626",
+  "path": "tests/audio-runner-lifecycle.test.mjs",
+  "original_sha256": "27b2bae6bd871c55959dbbbebce798c7033aeb5505950ec307677263d4687708",
+  "instrumented_sha256": "23c927d59d803241b7be45f653a9dbbbf6ccfd7be8b1ffa54a4dfb0815b0dede",
+  "patch_sha256": "c5fbad13fa12d4d9ebf210a5e63fbd3011b8c7c986891677c83652e517763f92",
+  "case_declarations_identical": true,
+  "case_count": 18,
+  "scope": "Only existing retry status assertion message changed. Original actual and expected operands, other assertions, fixtures, lifecycle callbacks and production are unchanged. Reached-message JSON describes the synthetic finish payload and existing playback options/counters; no input-byte hashes or raw internal fits are captured.",
+  "observation": "18/18 passed. Node emitted no failure message, so this invocation exposed no numeric payload; no repair or cause established.",
+  "aggregate": {
+    "commit": "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864",
+    "tree": "0c24c00e4e3748992371c8d90303859a22f5dd4e",
+    "test_sha256": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+    "serializer_sha256": "357df630ce649aa3481b8b0094693ec942acb0493888c2a4ae1da670cf706584",
+    "patch_sha256": "9a78aed16cbdb0091da04370d4a449071b6b0b3c853963c8219708312b1cd121",
+    "original_runner_cases": 18,
+    "original_runner_assertion_calls": 118,
+    "quality_test_and_production_unchanged": true,
+    "scope": "Opt-in fixture finish references only during original cases; hashing and serialization occur in final after hook. Live fixture audio/options are distinct from final result capture-integrity evidence. Imported-file input identity is explicitly unobserved. Delayed references extend lifetimes and are not pre-analysis copies. Raw internal fits and unrounded lag/clock fields are unavailable.",
+    "observation": "33 total / 31 pass / 2 fail; original cubic and retry failures reproduced. Ten completed results, eight live/two file. No cause or repair established."
+  }
+}

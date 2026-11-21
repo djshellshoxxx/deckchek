@@ -1,0 +1,217 @@
+{
+  "source_commit": "f26c247a44a70dd1e19f08ee1bee6dad7fe2f864",
+  "source_tree": "0c24c00e4e3748992371c8d90303859a22f5dd4e",
+  "counts": {
+    "tests": 33,
+    "suites": 0,
+    "pass": 31,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "failed_cases": [
+    "harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted",
+    "bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once"
+  ],
+  "finish_results": 10,
+  "live_results": 8,
+  "file_results": 2,
+  "all_live_input_post_suite_identities_equal": true,
+  "all_live_playback_last_identities_and_options_equal": true,
+  "first_three_results": [
+    {
+      "sequence": 1,
+      "attempt": 1,
+      "status": "pass",
+      "detail": "All output-quality checks passed.",
+      "measurements": {
+        "aq_gain_db": 0,
+        "aq_thdn_percent": 0,
+        "aq_thdn_db": -151.12,
+        "aq_thd_percent": 0,
+        "aq_noise_floor_dbfs": -140,
+        "aq_noise_unweighted_dbfs": -140,
+        "aq_snr_db": 217,
+        "aq_dc_offset_percent": 0,
+        "aq_hum_db": -220,
+        "aq_balance_db": 0,
+        "aq_polarity_inverted": 0,
+        "aq_separation_db": 220,
+        "aq_response_flatness_db": 0,
+        "aq_response_low_db": 0,
+        "aq_response_high_db": 0,
+        "aq_linearity_db": 0,
+        "aq_clipping_samples": 0,
+        "aq_dropouts": 0,
+        "aq_clock_offset_ppm": 0,
+        "aq_latency_ms": 4.4
+      },
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      }
+    },
+    {
+      "sequence": 2,
+      "attempt": 1,
+      "status": "pass",
+      "detail": "All output-quality checks passed.",
+      "measurements": {
+        "aq_gain_db": 0,
+        "aq_thdn_percent": 0,
+        "aq_thdn_db": -151.12,
+        "aq_thd_percent": 0,
+        "aq_noise_floor_dbfs": -140,
+        "aq_noise_unweighted_dbfs": -140,
+        "aq_snr_db": 217,
+        "aq_dc_offset_percent": 0,
+        "aq_hum_db": -220,
+        "aq_balance_db": 0,
+        "aq_polarity_inverted": 0,
+        "aq_separation_db": 220,
+        "aq_response_flatness_db": 0,
+        "aq_response_low_db": 0,
+        "aq_response_high_db": 0,
+        "aq_linearity_db": 0,
+        "aq_clipping_samples": 0,
+        "aq_dropouts": 0,
+        "aq_clock_offset_ppm": 0,
+        "aq_latency_ms": 4.4
+      },
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "callsAtFinish": {
+        "starts": 1,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      }
+    },
+    {
+      "sequence": 3,
+      "attempt": 2,
+      "status": "fail",
+      "detail": "3 of 9 checks failed: balance, response, polarity.",
+      "measurements": {
+        "aq_gain_db": -110,
+        "aq_thdn_percent": 0,
+        "aq_thdn_db": -151.12,
+        "aq_thd_percent": 6935867070.3903,
+        "aq_noise_floor_dbfs": -140,
+        "aq_noise_unweighted_dbfs": -140,
+        "aq_snr_db": 217,
+        "aq_dc_offset_percent": 0,
+        "aq_hum_db": 0,
+        "aq_balance_db": -220,
+        "aq_polarity_inverted": 1,
+        "aq_separation_db": 220,
+        "aq_response_flatness_db": 220,
+        "aq_response_low_db": 110,
+        "aq_response_high_db": 110,
+        "aq_linearity_db": 0,
+        "aq_clipping_samples": 0,
+        "aq_dropouts": 0,
+        "aq_clock_offset_ppm": 0,
+        "aq_latency_ms": 4.4
+      },
+      "input": {
+        "sampleRate": 48000,
+        "left": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "851d0bd53a969a6af4b6334256138ebf732496b67192b20919b09a6d7b26bd32"
+        },
+        "right": {
+          "type": "Float32Array",
+          "samples": 675091,
+          "bytes": 2700364,
+          "sha256": "488bc6ae51a99511d62a7913aa0f98c49c122fb988e4facae75429614c714f05"
+        }
+      },
+      "captureOptions": {
+        "deviceName": "Interface",
+        "maxSeconds": 18,
+        "pairs": null
+      },
+      "callsAtFinish": {
+        "starts": 2,
+        "plays": 1,
+        "saved": 1,
+        "stops": [
+          7
+        ],
+        "stopAll": 0,
+        "captureStops": 1,
+        "cancels": 0,
+        "waits": [
+          300,
+          12560
+        ]
+      }
+    }
+  ],
+  "retry_message_result_equals_final_snapshot": true,
+  "retry_message_counters_equal_final_snapshot": true,
+  "file_input_identities_explicitly_unobserved": true,
+  "qualification": "Unexpected retry/cubic outputs reproduced. No cause, raw-fit observation, pre-analysis byte-identity proof or production repair is established."
+}

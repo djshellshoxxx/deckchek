@@ -1,6 +1,12 @@
 # DeckChek implementation status
 
-## Current reference/PDF continuation — full qualification held
+## Current audio investigation and UI/privacy successor — 20 November 2026
+
+All six audio workers completed the [context handoff](engineering/AUDIO_CONTEXT_CONTINUATION_2026-11-20.md). A distinct aggregate observation reproduced both failures, **33 total / 31 pass / 2 fail**, with all 2,007 tracked hashes unchanged. Actual saved retry measurements are retained, but no numerical cause or production audio correction is established. The original complete reference/PDF gate remains held.
+
+The successor adds a responsive toolbar correction, a Player guide and bounded ledger preset #75 validation. Three fresh workers review those changes and a narrow fit-field trace; only their functional worker executes project code. Fixed #74 follows its separate hosted gates. Issues #69/#72/#75, AC-6, default-off Fleet and physical limits remain open and unchanged.
+
+## Previous reference/PDF continuation — full qualification held
 
 All three initial workers and three fresh successors completed the
 [reference-file/PDF review cycle](engineering/PLAYER_REFERENCE_CONTINUATION_2026-11-20.md).

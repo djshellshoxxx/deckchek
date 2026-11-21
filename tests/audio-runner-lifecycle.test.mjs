@@ -40,6 +40,10 @@ globalThis.document = { createElement: tag => new Element(tag), createTextNode: 
 after(() => Object.assign(globalThis, previous));
 
 const SR = 48000;
+// Diagnostic opt-in only: retain references after completed analyses, then hash/serialize
+// once in the final hook. No numerical helper is called by this observation path.
+const audioContextPath = process.env.DECKCHEK_AUDIO_CONTEXT_PATH;
+const completedAudioContexts = [];
 const turn = () => new Promise(resolve => setImmediate(resolve));
 const settle = async () => { for (let i = 0; i < 6; i++) await turn(); };
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
@@ -89,6 +93,7 @@ function io(plan = {}) {
   const wait = async ms => { calls.waits.push(ms); if (ms > 1000 && plan.waitPlay) await plan.waitPlay(attempt, options); };
   return {
     calls, audioOut, startCapture, wait,
+    observeCompletedCapture: () => ({ audio: recorded, options, attempt }),
     listInputs: async () => ({ devices: [{ name: 'Interface', isDefault: true }] }),
     liveAvailable: () => true,
     download: (name, data, type) => calls.downloads.push({ name, data, type }),
@@ -96,7 +101,16 @@ function io(plan = {}) {
 }
 function mount(deps = io(), test = { id: 'aq', method: 'audio:quality', title: 'Output quality', steps: ['Connect the output to the interface input.'] }) {
   const host = new Element('div'), finished = [];
-  const runner = runAudio(host, { test, profile: { model: 'Test', specs: [] }, finish: result => finished.push(result), ...deps });
+  const runner = runAudio(host, { test, profile: { model: 'Test', specs: [] }, finish: result => {
+    finished.push(result);
+    if (audioContextPath) completedAudioContexts.push({
+      mountKey: finished, test, result, playback: deps.calls.play.slice(),
+      capture: deps.observeCompletedCapture(),
+      calls: { starts: deps.calls.starts, plays: deps.calls.play.length, saved: finished.length,
+        stops: deps.calls.stop.slice(), stopAll: deps.calls.stopAll, captureStops: deps.calls.captureStops,
+        cancels: deps.calls.cancels, waits: deps.calls.waits.slice() },
+    });
+  }, ...deps });
   const click = async id => { const el = host.querySelector(`#${id}`); assert.ok(el, `#${id} is rendered`); await el.fire('click'); };
   return { host, runner, finished, calls: deps.calls, click };
 }
@@ -178,7 +192,18 @@ test('bug 1: a capture that cannot start plays nothing, saves nothing, and Try a
   await m.click('aq-run'); await settle();
   assert.equal(m.calls.play.length, 1);
   assert.equal(m.finished.length, 1, 'the retry is saved once');
-  assert.equal(m.finished[0].status, 'pass', m.finished[0].detail);
+  // Serialize only already-returned evidence after the actual retry analysis. This does not
+  // rerun a numerical helper or change the fixture, lifecycle, threshold or asserted status.
+  assert.equal(m.finished[0].status, 'pass', `${m.finished[0].detail}\n[AQ-RETRY-CONTEXT] ${JSON.stringify({
+    result: m.finished[0],
+    playback: m.calls.play.map(({ buffer, opts, extra }) => ({
+      sampleRate: buffer.sampleRate, framesLeft: buffer.left.length, framesRight: buffer.right.length,
+      options: opts, output: extra,
+    })),
+    calls: { starts: m.calls.starts, plays: m.calls.play.length, saved: m.finished.length,
+      stops: m.calls.stop, stopAll: m.calls.stopAll, captureStops: m.calls.captureStops, cancels: m.calls.cancels,
+      waits: m.calls.waits },
+  }, (_, value) => typeof value === 'number' && !Number.isFinite(value) ? { nonFiniteNumber: String(value) } : value)}`);
   assert.equal(m.finished[0].extra.captureIntegrity.source, 'live');
   assert.equal(m.finished[0].extra.captureIntegrity.state, 'observed');
   assert.ok(m.finished[0].measurements.length > 0);
@@ -416,4 +441,12 @@ test('FS-34 conditional test: Skip records a reason and starts nothing; an uncon
   const plain = mount(); await settle();
   assert.equal(plain.host.querySelector('#aq-skip'), null);
   plain.runner.dispose();
+});
+
+after(async () => {
+  if (!audioContextPath) return;
+  const { serializeAudioContexts } = await import('../tools/diagnostics/audio-context-serialize.mjs');
+  const observed = serializeAudioContexts(completedAudioContexts);
+  fs.writeFileSync(audioContextPath, `${JSON.stringify(observed, (_, value) =>
+    typeof value === 'number' && !Number.isFinite(value) ? { nonFiniteNumber: String(value) } : value, 2)}\n`, { flag: 'wx' });
 });

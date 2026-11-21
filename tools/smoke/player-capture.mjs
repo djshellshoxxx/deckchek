@@ -74,6 +74,10 @@ export default async function run({ browser, base, check, SHOTS }) {
     check('player: public opt-in persists and opens the capture preview',
       await page.evaluate(() => JSON.parse(localStorage.getItem('deckchek.ui.v1') || '{}').features?.playerCapture === true) &&
       await page.locator('#screen-player-capture').isVisible());
+    check('player: entering the route replaces the previous workflow guide',
+      await page.locator('#inspector-title').textContent() === 'Player capture guide' &&
+      /do not measure pitch accuracy/.test(await page.locator('#inspector-body').textContent()) &&
+      /Export completed capture details/.test(await page.locator('#inspector-body').textContent()));
     check('player: browser capture/export stay disabled with a desktop requirement',
       await page.locator('#pc-start').isDisabled() && await page.locator('#pc-export').isDisabled() &&
       /desktop app/.test(await page.locator('#screen-player-capture').innerText()));
