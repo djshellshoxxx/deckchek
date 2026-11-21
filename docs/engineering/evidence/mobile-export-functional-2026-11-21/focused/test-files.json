@@ -1,0 +1,8 @@
+[
+  "tests/mobile-build.test.mjs",
+  "tests/mobile-export.test.mjs",
+  "tests/mobile-results-details.test.mjs",
+  "tests/mobile-router.test.mjs",
+  "tests/phone-run.test.mjs",
+  "tests/qr.test.mjs"
+]

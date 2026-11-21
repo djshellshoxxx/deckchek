@@ -1,0 +1,12 @@
+{
+  "branch": "checkpoint/deckchek-inventory-mobile-held-20261121",
+  "sha": "8664c590709dce34445bf23008e61053b592d608",
+  "tree": "ec110ffc6fc4659cdab3fbc555b88dff4c639a01",
+  "local_head": "d795ff9883f5027fe17e69be6585930e4451233d",
+  "parent": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "verified_complete_tree": true,
+  "verified_ordered_parent": true,
+  "verified_exact_ref": true,
+  "recorded_at_utc": "2026-11-21T09:59:01.816621+00:00",
+  "disposition": "Held: preserve failed first complete gate; no merge or numerical repair"
+}

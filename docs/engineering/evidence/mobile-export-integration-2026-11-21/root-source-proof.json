@@ -1,0 +1,15 @@
+{
+  "verified_at_utc": "2026-11-21T10:00:13.256562+00:00",
+  "source": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "manifest_entries": 33,
+  "manifest_sha256": "eab397836489860b16f8fac58fd58d5b3c0f5259bb54a30f5511cc49f09c9f8e",
+  "original_bindings": 34,
+  "unique_original_copies": 29,
+  "immutable_source_files": 2235,
+  "complete_source_maps": 6,
+  "focused_tests": 45,
+  "focused_pass": 45,
+  "tap_bytes": 10439,
+  "tap_sha256": "7f29e94be18c528ad18b620b875a9f74986bd6819cc39c452077f58cbff3e4db",
+  "predecessor_complete_gate": "held"
+}

@@ -1,0 +1,193 @@
+{
+  "schema": "deckchek.quick-layout-source-comparison.v1",
+  "source_commit": "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed",
+  "source_tree": "b650f03ed07bbce442b3616357e0d04086f7f1d4",
+  "original_preparation_commit": "6b854265b92e70e8e95729b8e6da39c3f7619115",
+  "original_preparation_tree": "0bd65b9f836d80ca0251e69d075fb1ebfdc42cfc",
+  "original_preparation_executed": false,
+  "pre_freeze_correction_changed_paths": [
+    "docs/engineering/QUICK_LAYOUT_IMPLEMENTATION_2026-11-21.md",
+    "tools/smoke/shell-layout.mjs"
+  ],
+  "completed_round7_integration": "a5d8b0d0245f4e59e9d48aa7e75f45ba6856037d",
+  "round7_frozen_commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "predecessor_complete_gate_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "fixed_pr79_commit": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "code_changes_from_round7_integration": [
+    "app/styles.css",
+    "tests/audio-session.test.mjs",
+    "tools/smoke/shell-layout.mjs"
+  ],
+  "frozen_changed_code_sha256": {
+    "app/styles.css": "bbc5781bed9bfc89ad459bca0ee2be6369279b4182f4fa11f353a850172e39d6",
+    "tests/audio-session.test.mjs": "c2aa6917fb9a48bc4802fbc4658b9a0341a2bdcfa16bd808678e4c0589a27b9f",
+    "tools/smoke/shell-layout.mjs": "6bb9986f0c3339401d06fb03803288224f71399b02861108dd00ecfd03706374"
+  },
+  "unchanged_audio_sha256_by_source": {
+    "app/audio-quality.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6"
+    },
+    "app/calibration.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72"
+    },
+    "app/devices/audio-session.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb"
+    },
+    "app/audio-out.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac"
+    },
+    "tests/audio-quality.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78"
+    },
+    "tests/audio-runner-lifecycle.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d"
+    }
+  },
+  "audio_session_assertion_change": {
+    "path": "tests/audio-session.test.mjs",
+    "old_sha256": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3",
+    "new_sha256": "c2aa6917fb9a48bc4802fbc4658b9a0341a2bdcfa16bd808678e4c0589a27b9f",
+    "only_change_is_original_line_replaced_with": "  const gain = r.measurements.find(m => m.metricId === 'aq_gain_db').value;\n  assert.ok(Math.abs(gain) < 0.1, `gain is relative to the played level: measured ${gain} dB at ${quiet.calls.play[0].opts.levelDbfs} dBFS`);",
+    "original_line": "  assert.ok(Math.abs(r.measurements.find(m => m.metricId === 'aq_gain_db').value) < 0.1, 'gain is relative to the played level');",
+    "fixture_condition_threshold_unchanged": true
+  },
+  "mobile": {
+    "same_as_round7": true,
+    "tracked_file_count": 34,
+    "sha256": {
+      "mobile/README.md": "6bf02796181ebfbf7f5f4dcb3bf1af2bf98127bf5df9d245e8a83da92125f5b4",
+      "mobile/app.js": "998e9e1dd50d4a2083852b5b481d59b662212e6a865367793fcbeb2dd6b3c0ba",
+      "mobile/icons/icon-192.png": "843040a70f6b01d03fbba39bc597e64db6985ac551e8a5b9300efec71e76a44b",
+      "mobile/icons/icon-512.png": "6c70c978c6102d5eb25e14e2eacb36a73750babd7243fefe8e65f485de479aff",
+      "mobile/icons/icon-maskable-512.png": "f40a5f505fec994cc91ecea203f6cac367287a5123e867ecc4897435a6fb5c4c",
+      "mobile/index.html": "6a02a9c2ad47fec715f3f235a76af73197d4e83d87122ffbba0d2036f8019ac1",
+      "mobile/lib/audio.js": "52640622f3ca373086dec8e3cc7bda3d5aa146ef594869a5b2e562999003b1ad",
+      "mobile/lib/capture-worklet.js": "352f8787b2d42b1a5ecbf810892a2eb34ddd053935c6bc5e23e266822d9ff8dc",
+      "mobile/lib/export.js": "6a6bbe125b079f1b7ecbac183dc5bc3c71c1695288a804a77b8f5f78f71cfccd",
+      "mobile/lib/motion.js": "c6b4e30e0a90a214491711c3422640720541104d393587f0b36c92fd048864ff",
+      "mobile/lib/qr.js": "0e03117ec4bc47afeee6c051bd11959386b754f64b6994ba6edc46e36a5a2c71",
+      "mobile/lib/routes.js": "12b4dbd5ef1d71978286a132d05bb9aa6729d9b658737214a651bb84414bc979",
+      "mobile/lib/speed.js": "589ce7ddd81676f5770018540435162d94c8815983f3b037a6926e7af1751e83",
+      "mobile/lib/spl.js": "10cf7ca46e2aa0125592e4f5f2a8028d062c1c0daf34974f01863d53e2581c8c",
+      "mobile/lib/store.js": "a5d8a77a2f4f52025228889696fee10ecf01c101114a121d652a64595ba514fa",
+      "mobile/lib/strobe.js": "5dc6845e96fee8f0d37b7e19053839838546a41824475df56075ee361c90c132",
+      "mobile/lib/ui.js": "2e6cd4cfd7e9f1dc091012742a3e268528e941fc76d1e71a3eef6800c6e92279",
+      "mobile/lib/vibration.js": "1ba5fd1a07a3f34f68025bfa881ad1ad47bbaf2430b163a94a9a38f9e62e06b8",
+      "mobile/manifest.webmanifest": "6140a05fdad5ccd9db4a541deda9e14ad91433a73ed08781024d151f6f8a21a9",
+      "mobile/screens/results.js": "2f90b00a5879eaa53e65df52081461c8047ae08c5e039fceb45db9b39595a1c3",
+      "mobile/screens/speed.js": "2469d49df8951f5a979d8fec89f20dab23d31b862a9637c9c8bd0457c971c87f",
+      "mobile/screens/spl.js": "6a47cff17b7f1fd5ac801571dfcb04cca6795eb755fa945978850db6f9f55bdd",
+      "mobile/screens/strobe.js": "9fbc9b286f3800f5bfa81fed8a8f1f486c8ea54c8830ae04a149773958174a38",
+      "mobile/screens/vibration.js": "09f0cccdae9b06a52a5708492449ad1ebf9a5850f10db1e9cc2c0c3486cc378c",
+      "mobile/styles.css": "228687e83f5105375ccc6783c4dc70f3427e7f7dfc550a68919985c7d4b93255",
+      "mobile/sw.js": "07b2a1c77959bcc55f825f4d6db6ada92762ea494959a0938d749569978d77cd",
+      "mobile/vendor/VERSION": "351756a9d1e1945ffe2830cabcaae6bc5c59abff1ed535f3891b1a38d690c139",
+      "mobile/vendor/advanced.js": "d361fa2eab4ce80f9bb992108fa2d930fe722cd625f79a7f1cce6736218f7f2e",
+      "mobile/vendor/calibration.js": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "mobile/vendor/canonical-json.js": "1d34f1b5b6bc1094980ff22ab74ecf3d424b944db165e97df7f5c1daf89568c3",
+      "mobile/vendor/core.js": "f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247",
+      "mobile/vendor/phone-run.js": "a96373d0a0c2139d13400e88e6ba34604a7751876b7072e11f71b187eb8c6d39",
+      "mobile/vendor/qr.js": "218c682500bfadfb7d8881d5011cb20d627ff8954a142ba57f0062ddea321376",
+      "mobile/vendor/sha256.js": "149be96b973ffa7a0d4e1ae38f211f3b7db9f904ed2596701c6c90ea95883855"
+    },
+    "shared_vendor_pairs": 7,
+    "shared_sha256": {
+      "core.js": "f048beb943d8a6bec1c37332543e4c3a6f55edd7d45d8a16ed86b965a598c247",
+      "advanced.js": "d361fa2eab4ce80f9bb992108fa2d930fe722cd625f79a7f1cce6736218f7f2e",
+      "calibration.js": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "canonical-json.js": "1d34f1b5b6bc1094980ff22ab74ecf3d424b944db165e97df7f5c1daf89568c3",
+      "sha256.js": "149be96b973ffa7a0d4e1ae38f211f3b7db9f904ed2596701c6c90ea95883855",
+      "phone-run.js": "a96373d0a0c2139d13400e88e6ba34604a7751876b7072e11f71b187eb8c6d39",
+      "vendor/qr.js": "218c682500bfadfb7d8881d5011cb20d627ff8954a142ba57f0062ddea321376"
+    },
+    "independently_derived_build_stamp": "8f12f05a2c38",
+    "precache_entries": [
+      "./",
+      "./app.js",
+      "./icons/icon-192.png",
+      "./icons/icon-512.png",
+      "./icons/icon-maskable-512.png",
+      "./lib/audio.js",
+      "./lib/capture-worklet.js",
+      "./lib/export.js",
+      "./lib/motion.js",
+      "./lib/qr.js",
+      "./lib/routes.js",
+      "./lib/speed.js",
+      "./lib/spl.js",
+      "./lib/store.js",
+      "./lib/strobe.js",
+      "./lib/ui.js",
+      "./lib/vibration.js",
+      "./manifest.webmanifest",
+      "./screens/results.js",
+      "./screens/speed.js",
+      "./screens/spl.js",
+      "./screens/strobe.js",
+      "./screens/vibration.js",
+      "./styles.css",
+      "./vendor/VERSION",
+      "./vendor/advanced.js",
+      "./vendor/calibration.js",
+      "./vendor/canonical-json.js",
+      "./vendor/core.js",
+      "./vendor/phone-run.js",
+      "./vendor/qr.js",
+      "./vendor/sha256.js",
+      "./index.html"
+    ],
+    "separate_official_build_executed_this_round": false
+  },
+  "predecessor_complete_gate": {
+    "result_path": "docs/engineering/evidence/inventory-mobile-functional-2026-11-21/result.json",
+    "result_sha256": "ebdfe91813db6078e1e65d8b9578954772913c9516caf1e2113e5727363b3001",
+    "source_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+    "source_tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+    "tap_sha256": "bf5b091c0a20826a64cac1842d0d5b057a5dc91a46c5a68ebcca1b9e60f50eaa",
+    "tap_counts": {
+      "tests": 2391,
+      "suites": 0,
+      "pass": 2388,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 1,
+      "todo": 0
+    },
+    "exit_code": 1
+  },
+  "round7_focused_gate": {
+    "result_path": "docs/engineering/evidence/mobile-export-functional-2026-11-21/focused/result.json",
+    "result_sha256": "25d3610aa58844633dca0977eb92beb5c7ff73188e444b02245cae6a7bda0fdd",
+    "source_commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+    "source_tree": "c20d7b3f6bc36e8adf906d0eb2707902b66e3fc5",
+    "tap_sha256": "7f29e94be18c528ad18b620b875a9f74986bd6819cc39c452077f58cbff3e4db",
+    "tap_counts": {
+      "tests": 45,
+      "suites": 0,
+      "pass": 45,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "exit_code": 0
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schema": "deckchek.quick-layout-retention.v1",
+  "created_at_utc": "2026-11-21T10:17:59.522588+00:00",
+  "unique_retained_original_files": 18,
+  "original_bindings": 21,
+  "bindings": [
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/authorized-selection.json",
+      "retained_path": "full/authorized-selection.json",
+      "bytes": 8306,
+      "sha256": "63edeb575e417f56587d0fbf428044ab04f3ea67f9a7367dcd4dc283bfaeb9ff"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/result.json",
+      "retained_path": "full/result.json",
+      "bytes": 10920,
+      "sha256": "39fbb3a9fce6ae010ef5ebaad249d7a30ec3d7fc814b57f68668375bc9b0859e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/run-full-node.py",
+      "retained_path": "full/run-full-node.py",
+      "bytes": 6286,
+      "sha256": "281e043de5ebc64a612bbe1e8883805c810ea3592536702258da1cb4f1547b3c"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/run.tap",
+      "retained_path": "full/run.tap",
+      "bytes": 549295,
+      "sha256": "f90ff51c2829b6eb9c172d0d1cda81e4e845f3d95706063764d2c56dbdbeec9a"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/running.json",
+      "retained_path": "full/running.json",
+      "bytes": 10164,
+      "sha256": "4ce17a3e5cd18112c27de78ef9760d2eb80ba0553e1744934e6a07408723a2e3"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/stderr.log",
+      "retained_path": "full/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/test-files.json",
+      "retained_path": "full/test-files.json",
+      "bytes": 7653,
+      "sha256": "39cf9b56c40fb462e25abb63044854c0c4c657048ccacce51c5ad4154e07a309"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/tracked-after.json",
+      "retained_path": "full/tracked-after.json",
+      "bytes": 283588,
+      "sha256": "4d33b38d85b813f631d7a1fc3ef9ec266633d74e4c1c82f7338f2c572d81ded5"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-raw/tracked-before.json",
+      "retained_path": "full/tracked-before.json",
+      "bytes": 283588,
+      "sha256": "4d33b38d85b813f631d7a1fc3ef9ec266633d74e4c1c82f7338f2c572d81ded5"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/checked-shell-layout.mjs",
+      "retained_path": "syntax/checked-shell-layout.mjs",
+      "bytes": 9532,
+      "sha256": "6bb9986f0c3339401d06fb03803288224f71399b02861108dd00ecfd03706374"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/result.json",
+      "retained_path": "syntax/result.json",
+      "bytes": 1913,
+      "sha256": "4baeda1e9e4977587dd8ae2f4a28e7aaefb7baa755f476eea573a279ebed1b86"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/running.json",
+      "retained_path": "syntax/running.json",
+      "bytes": 1206,
+      "sha256": "2745b0f8a3400241a494b956918adb2315ff989e9012947978bb50c16f3fe522"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/syntax-recorder.py",
+      "retained_path": "syntax/syntax-recorder.py",
+      "bytes": 4907,
+      "sha256": "4e1b15c9cb0555e8623a38d34680668baef7176cc02449bc71312925a5d867f2"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/syntax.stderr",
+      "retained_path": "syntax/syntax.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/syntax.stdout",
+      "retained_path": "syntax/syntax.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/tracked-after.json",
+      "retained_path": "syntax/tracked-after.json",
+      "bytes": 283588,
+      "sha256": "4d33b38d85b813f631d7a1fc3ef9ec266633d74e4c1c82f7338f2c572d81ded5"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax-raw/tracked-before.json",
+      "retained_path": "syntax/tracked-before.json",
+      "bytes": 283588,
+      "sha256": "4d33b38d85b813f631d7a1fc3ef9ec266633d74e4c1c82f7338f2c572d81ded5"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-full-config.json",
+      "retained_path": "preparation/unexecuted-selection.json",
+      "bytes": 8306,
+      "sha256": "6a3b8dc57f3122e0bb3473600f00ee5afe2a7b374837e3bdef521c03d6732766"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-gate.py",
+      "retained_path": "full/run-full-node.py",
+      "bytes": 6286,
+      "sha256": "281e043de5ebc64a612bbe1e8883805c810ea3592536702258da1cb4f1547b3c"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-full-config-v2.json",
+      "retained_path": "full/authorized-selection.json",
+      "bytes": 8306,
+      "sha256": "63edeb575e417f56587d0fbf428044ab04f3ea67f9a7367dcd4dc283bfaeb9ff"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-quick-layout-round8-syntax.py",
+      "retained_path": "syntax/syntax-recorder.py",
+      "bytes": 4907,
+      "sha256": "4e1b15c9cb0555e8623a38d34680668baef7176cc02449bc71312925a5d867f2"
+    }
+  ]
+}

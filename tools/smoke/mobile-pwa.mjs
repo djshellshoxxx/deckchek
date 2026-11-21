@@ -91,7 +91,18 @@ export default async function run({ browser, tmp, check, SHOTS }) {
     await page.screenshot({ path: `${SHOTS}/mobile-export-dark.png` });
     await page.fill('#set-nick', 'Deck 1');
     await page.dispatchEvent('#set-nick', 'change');
-    check('mobile: asset label flows into the export', JSON.parse(await page.inputValue('#export-text')).assetHint.nickname === 'Deck 1' || true);
+    check('mobile: asset label flows into the export', JSON.parse(await page.inputValue('#export-text')).assetHint.nickname === 'Deck 1');
+    await page.fill('#set-serial', 'SMOKE-SERIAL');
+    check('mobile: serial edits refresh the open export', JSON.parse(await page.inputValue('#export-text')).assetHint.serial === 'SMOKE-SERIAL');
+    await page.click('#export-qr'); await page.waitForSelector('#qr-img');
+    await page.fill('#set-serial', '');
+    check('mobile: clearing a serial removes it and retires the old QR', JSON.parse(await page.inputValue('#export-text')).assetHint.serial === null
+      && await page.locator('#qr-img').count() === 0);
+    const [updatedDownload] = await Promise.all([page.waitForEvent('download'), page.click('#export-file')]);
+    const updatedExport = fs.readFileSync(await updatedDownload.path(), 'utf8');
+    const updatedParsed = parsePhoneRun(updatedExport);
+    check('mobile: edited file matches the displayed export and keeps a valid checksum', updatedExport === await page.inputValue('#export-text')
+      && updatedParsed.ok && updatedParsed.hashOk && updatedParsed.run.assetHint.nickname === 'Deck 1' && updatedParsed.run.assetHint.serial === null);
     await page.click('#set-redact');
     check('mobile: redacting the user agent removes it from the export', JSON.parse(await page.inputValue('#export-text')).device.userAgent === null);
     await page.click('#results-list [data-act="delete"]');

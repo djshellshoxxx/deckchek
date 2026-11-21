@@ -1,0 +1,15 @@
+{
+  "schema": "deckchek.mobile-export-focused.authorization.v1",
+  "source_commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "source_tree": "c20d7b3f6bc36e8adf906d0eb2707902b66e3fc5",
+  "expected_tracked_file_count": 2235,
+  "execution_budget_seconds": 120,
+  "test_files": [
+    "tests/mobile-build.test.mjs",
+    "tests/mobile-export.test.mjs",
+    "tests/mobile-results-details.test.mjs",
+    "tests/mobile-router.test.mjs",
+    "tests/phone-run.test.mjs",
+    "tests/qr.test.mjs"
+  ]
+}

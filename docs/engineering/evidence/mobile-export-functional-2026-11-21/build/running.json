@@ -1,0 +1,65 @@
+{
+  "schema": "deckchek.mobile-export-build.v1",
+  "source_commit": "58485ad53793733869af490c7e0da58a4090a1a1",
+  "source_tree": "766f08daed2b37635b9912352c71d1e48a4acfdf",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "tools/build-mobile.mjs"
+  ],
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "python_version": "3.12.14",
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "started_at_utc": "2026-11-21T09:43:40.682434+00:00",
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "termination_grace_seconds": 5,
+  "tracked_file_count": 2235,
+  "status_before": "",
+  "driver_sha256": "4b17d0b1c951c7f694948611736a94e83181647de3256c5c163b6ad3a73ab153",
+  "config_sha256": "8ddcbc4bbe32c3c69563155f651c3bb8067b5850663ece699542ffb36a0db84a",
+  "allowed_changes": [
+    "mobile/sw.js"
+  ],
+  "scope": "One normal official Mobile export cache build; no tests, browser/native launch or numerical diagnostic execution."
+}

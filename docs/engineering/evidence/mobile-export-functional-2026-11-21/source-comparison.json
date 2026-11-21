@@ -1,0 +1,104 @@
+{
+  "schema": "deckchek.mobile-export-source-comparison.v1",
+  "created_at_utc": "2026-11-21T09:52:18.036706+00:00",
+  "source_commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "source_tree": "c20d7b3f6bc36e8adf906d0eb2707902b66e3fc5",
+  "preparation_commit": "58485ad53793733869af490c7e0da58a4090a1a1",
+  "preparation_tree": "766f08daed2b37635b9912352c71d1e48a4acfdf",
+  "original_export_fix_commit": "70ba2821c74965f3ac215e4680e0e259456af7c5",
+  "predecessor_complete_gate_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "fixed_pr79_commit": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "generated_changes_from_preparation": [
+    "mobile/sw.js"
+  ],
+  "code_changes_from_predecessor": [
+    "mobile/screens/results.js",
+    "mobile/sw.js",
+    "tests/mobile-results-details.test.mjs",
+    "tools/smoke/mobile-pwa.mjs"
+  ],
+  "code_changes_from_fixed_pr79": [
+    "app/history-feed.js",
+    "app/ledger/api.js",
+    "app/ui/screens/history.js",
+    "app/ui/screens/ledger.js",
+    "mobile/app.js",
+    "mobile/lib/routes.js",
+    "mobile/screens/results.js",
+    "mobile/sw.js",
+    "tests/crosslinks.test.mjs",
+    "tests/history-feed-boundary.test.mjs",
+    "tests/history-load-screen.test.mjs",
+    "tests/ledger-enumeration-boundary.test.mjs",
+    "tests/ledger-load-screen.test.mjs",
+    "tests/mobile-results-details.test.mjs",
+    "tests/mobile-router.test.mjs",
+    "tools/smoke/inventory-history.mjs",
+    "tools/smoke/mobile-pwa.mjs"
+  ],
+  "frozen_code_sha256": {
+    "mobile/screens/results.js": "2f90b00a5879eaa53e65df52081461c8047ae08c5e039fceb45db9b39595a1c3",
+    "mobile/sw.js": "07b2a1c77959bcc55f825f4d6db6ada92762ea494959a0938d749569978d77cd",
+    "tests/mobile-results-details.test.mjs": "f66ef69e58d938199b5b63290395b50d88ef8da8982cf7b663df2a64b8b3e32f",
+    "tools/smoke/mobile-pwa.mjs": "ead9aadcad653e51c2ce908dabc4e6a45234cbf40f7ea9ff6efea97ee357de44"
+  },
+  "unchanged_audio_sha256_by_source": {
+    "app/audio-quality.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6"
+    },
+    "app/calibration.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72"
+    },
+    "app/devices/audio-session.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb"
+    },
+    "app/audio-out.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac"
+    },
+    "tests/audio-quality.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78"
+    },
+    "tests/audio-runner-lifecycle.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d"
+    },
+    "tests/audio-session.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3",
+      "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3"
+    }
+  },
+  "audio_identity_scope": "Byte identity only; no causal diagnosis or issue #72 repair is established.",
+  "predecessor_complete_gate": {
+    "result_path": "docs/engineering/evidence/inventory-mobile-functional-2026-11-21/result.json",
+    "result_sha256": "ebdfe91813db6078e1e65d8b9578954772913c9516caf1e2113e5727363b3001",
+    "source_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+    "source_tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+    "exit_code": 1,
+    "tap_counts": {
+      "tests": 2391,
+      "suites": 0,
+      "pass": 2388,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 1,
+      "todo": 0
+    },
+    "tap_sha256": "bf5b091c0a20826a64cac1842d0d5b057a5dc91a46c5a68ebcca1b9e60f50eaa",
+    "qualification": "HELD",
+    "failure_37": "Retry analysis verdict: balance, response and polarity checks failed.",
+    "failure_53": "Relative-gain assertion failed after both level-cap and lower-level assertions passed; this case retained no numeric gain."
+  },
+  "fixed_pr79_hosted_evidence_path": "docs/engineering/FEATURE_SUCCESSOR_HOSTED_EVIDENCE_2026-11-21.md"
+}

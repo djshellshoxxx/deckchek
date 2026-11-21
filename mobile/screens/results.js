@@ -9,13 +9,21 @@ const when = iso => { const d = new Date(iso); const p = n => String(n).padStart
 
 export default function mount(root, ctx) {
   const st = { openId: ctx.route?.id || null, qrIndex: 0 };
+  const savedSettings = getSettings();
+  // The open editor remains authoritative even if this browser refuses a preference write.
+  const exportSettings = {
+    assetNickname: typeof savedSettings.assetNickname === 'string' ? savedSettings.assetNickname : '',
+    assetSerial: typeof savedSettings.assetSerial === 'string' ? savedSettings.assetSerial : '',
+    redactUserAgent: Boolean(savedSettings.redactUserAgent),
+  };
   const list = el('ul', { class: 'result-list', id: 'results-list' });
   const panel = el('div', { id: 'export-panel' });
   const settingsCard = el('section', { class: 'card', 'aria-labelledby': 'set-h' });
 
   function exportText(run) {
-    const s = getSettings();
-    return exportRun({ ...run, assetHint: { nickname: s.assetNickname || run.assetHint?.nickname, serial: s.assetSerial || run.assetHint?.serial } }, { redactUserAgent: s.redactUserAgent });
+    const s = exportSettings;
+    // The visible fields own this export, including an intentional blank. Saved results stay unchanged.
+    return exportRun({ ...run, assetHint: { nickname: s.assetNickname, serial: s.assetSerial } }, { redactUserAgent: s.redactUserAgent });
   }
 
   function renderPanel() {
@@ -69,17 +77,31 @@ export default function mount(root, ctx) {
   }
 
   function renderSettings() {
-    const s = getSettings();
+    const s = exportSettings;
     const nick = el('input', { id: 'set-nick', type: 'text', maxlength: '120', value: s.assetNickname || '', placeholder: 'e.g. SL-1200MK4 #1' });
     const serial = el('input', { id: 'set-serial', type: 'text', maxlength: '80', value: s.assetSerial || '' });
     const redact = el('input', { id: 'set-redact', type: 'checkbox' });
     redact.checked = Boolean(s.redactUserAgent);
-    nick.addEventListener('change', () => setSettings({ assetNickname: nick.value.trim() }));
-    serial.addEventListener('change', () => setSettings({ assetSerial: serial.value.trim() }));
-    redact.addEventListener('change', () => { setSettings({ redactUserAgent: redact.checked }); renderPanel(); });
+    const updateDetail = (input, key) => () => {
+      const value = input.value.trim();
+      // An input event already refreshed the export. A redundant blur/change must not
+      // replace the action button that the person is currently tapping.
+      if (exportSettings[key] === value) return;
+      exportSettings[key] = value;
+      setSettings({ [key]: value });
+      renderPanel();
+    };
+    for (const [input, key] of [[nick, 'assetNickname'], [serial, 'assetSerial']]) {
+      const update = updateDetail(input, key);
+      input.addEventListener('input', update); input.addEventListener('change', update);
+    }
+    redact.addEventListener('change', () => {
+      exportSettings.redactUserAgent = redact.checked;
+      setSettings({ redactUserAgent: redact.checked }); renderPanel();
+    });
     settingsCard.replaceChildren(
       el('h2', { id: 'set-h', text: 'Export details' }),
-      el('p', { class: 'small', text: 'Helps the desktop app pick the right asset. Both are optional and stay on this phone until you export.' }),
+      el('p', { class: 'small', text: 'Helps the desktop app pick the right asset. Both are optional. Clear a field to leave it out of the export. Nothing is sent until you export.' }),
       el('div', { class: 'field-row' }, el('label', { for: 'set-nick', text: 'Turntable name' }), nick, el('label', { for: 'set-serial', text: 'Serial number' }), serial),
       el('label', { class: 'check', for: 'set-redact' }, redact, el('span', { text: 'Leave my browser and phone model out of exports' })));
   }

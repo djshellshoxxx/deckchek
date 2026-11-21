@@ -1,0 +1,311 @@
+{
+  "schema": "deckchek.mobile-export-observed-summary.v1",
+  "created_at_utc": "2026-11-21T09:52:17.987905+00:00",
+  "source_commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "source_tree": "c20d7b3f6bc36e8adf906d0eb2707902b66e3fc5",
+  "build": {
+    "result_path": "build/result.json",
+    "exit_code": 0,
+    "timed_out": false,
+    "changed_tracked_paths": [
+      "mobile/sw.js"
+    ]
+  },
+  "focused": {
+    "result_path": "focused/result.json",
+    "tap_counts": {
+      "tests": 45,
+      "suites": 0,
+      "pass": 45,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "tap_sha256": "7f29e94be18c528ad18b620b875a9f74986bd6819cc39c452077f58cbff3e4db",
+    "coverage": [
+      {
+        "path": "tests/mobile-build.test.mjs",
+        "case_count": 8,
+        "first_case": 1,
+        "last_case": 8,
+        "sha256": "931de067e2891ebcc67ee5e36a917ec6c1ac1d4d12b5f1e92923d1007c2be661"
+      },
+      {
+        "path": "tests/mobile-export.test.mjs",
+        "case_count": 7,
+        "first_case": 9,
+        "last_case": 15,
+        "sha256": "5cd7fe51864efdd83c6b01d9baea4dddaffe157fe723a9d0877670bb2777c818"
+      },
+      {
+        "path": "tests/mobile-results-details.test.mjs",
+        "case_count": 4,
+        "first_case": 16,
+        "last_case": 19,
+        "sha256": "f66ef69e58d938199b5b63290395b50d88ef8da8982cf7b663df2a64b8b3e32f"
+      },
+      {
+        "path": "tests/mobile-router.test.mjs",
+        "case_count": 3,
+        "first_case": 20,
+        "last_case": 22,
+        "sha256": "5cbeeab8c550b8b8fdc95b8f4b3cbb17a21be67072159e78ffaa20b47fca58f2"
+      },
+      {
+        "path": "tests/phone-run.test.mjs",
+        "case_count": 17,
+        "first_case": 23,
+        "last_case": 39,
+        "sha256": "1c97c0e73ed9740d4c4fe72a84cd9bc761616e48f113268c9b1a42f7f75f4008"
+      },
+      {
+        "path": "tests/qr.test.mjs",
+        "case_count": 6,
+        "first_case": 40,
+        "last_case": 45,
+        "sha256": "7e46951348d9c788d7d844fc3dd57c3ef3cd639e35bfd9c0de208af4f2612c56"
+      }
+    ],
+    "outcomes": [
+      {
+        "number": 1,
+        "status": "ok",
+        "name": "vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check)"
+      },
+      {
+        "number": 2,
+        "status": "ok",
+        "name": "--check notices a drifted vendor copy and a stale precache stamp; writing repairs them"
+      },
+      {
+        "number": 3,
+        "status": "ok",
+        "name": "service worker precaches every file of the app and nothing else (AC-2)"
+      },
+      {
+        "number": 4,
+        "status": "ok",
+        "name": "manifest is installable: name, scope, standalone, 192 and 512 PNG icons that exist and have those sizes"
+      },
+      {
+        "number": 5,
+        "status": "ok",
+        "name": "page contract: strict CSP, no inline script or style, no remote assets, no unsafe sinks"
+      },
+      {
+        "number": 6,
+        "status": "ok",
+        "name": "every relative import in mobile/ resolves to a shipped file, and the engines come from vendor/"
+      },
+      {
+        "number": 7,
+        "status": "ok",
+        "name": "the Pages workflow can only be started by hand and never deploys by default (hosting is undecided)"
+      },
+      {
+        "number": 8,
+        "status": "ok",
+        "name": "five screens, a photosensitivity confirmation before the strobe, and a persistent SPL banner"
+      },
+      {
+        "number": 9,
+        "status": "ok",
+        "name": "the phone and the desktop run the same format code"
+      },
+      {
+        "number": 10,
+        "status": "ok",
+        "name": "export round-trip from a real speed measurement: desktop parse, matching hash, same numbers (AC-5, AC-6)"
+      },
+      {
+        "number": 11,
+        "status": "ok",
+        "name": "export hash tamper is detected by the desktop parser"
+      },
+      {
+        "number": 12,
+        "status": "ok",
+        "name": "user agent can be redacted and never reaches the export"
+      },
+      {
+        "number": 13,
+        "status": "ok",
+        "name": "QR: a normal result is one QR; a large one is several, and each renders as a data-URI image"
+      },
+      {
+        "number": 14,
+        "status": "ok",
+        "name": "file name carries the kind, a compact UTC stamp and the .deckchek-mobile.json extension"
+      },
+      {
+        "number": 15,
+        "status": "ok",
+        "name": "an export that holds a value the format refuses throws instead of writing a bad file"
+      },
+      {
+        "number": 16,
+        "status": "ok",
+        "name": "Mobile edited export details reach text, file, share and clipboard with the same current checksum"
+      },
+      {
+        "number": 17,
+        "status": "ok",
+        "name": "Mobile explicit blanks omit saved hints and editing retires the visible QR until it is regenerated"
+      },
+      {
+        "number": 18,
+        "status": "ok",
+        "name": "Mobile blank visible export fields are authoritative and change-only edits also refresh the panel"
+      },
+      {
+        "number": 19,
+        "status": "ok",
+        "name": "Mobile current export details and redaction survive denied preference writes over readable old settings"
+      },
+      {
+        "number": 20,
+        "status": "ok",
+        "name": "Mobile recognizes all five declared routes and supported prefixes"
+      },
+      {
+        "number": 21,
+        "status": "ok",
+        "name": "Mobile falls back to Speed for empty, unsupported and inherited names"
+      },
+      {
+        "number": 22,
+        "status": "ok",
+        "name": "Mobile preserves result IDs and existing first-segment routing"
+      },
+      {
+        "number": 23,
+        "status": "ok",
+        "name": "export round-trip: parse returns the same measurements and a matching hash"
+      },
+      {
+        "number": 24,
+        "status": "ok",
+        "name": "hash is stable under key order and fractional numbers are hashed as decimal strings"
+      },
+      {
+        "number": 25,
+        "status": "ok",
+        "name": "tampering changes the hash: a warning, not a block"
+      },
+      {
+        "number": 26,
+        "status": "ok",
+        "name": "validator rejects unknown versions, wrong format, NaN/Infinity and oversize input"
+      },
+      {
+        "number": 27,
+        "status": "ok",
+        "name": "parse drops unknown fields and never returns the input objects"
+      },
+      {
+        "number": 28,
+        "status": "ok",
+        "name": "small exports are one plain-JSON QR; large ones split into frames that reassemble in any order"
+      },
+      {
+        "number": 29,
+        "status": "ok",
+        "name": "frame errors are specific: missing frame, mixed exports, damaged frame"
+      },
+      {
+        "number": 30,
+        "status": "ok",
+        "name": "QR framing preserves significant spaces at both sides of a frame boundary"
+      },
+      {
+        "number": 31,
+        "status": "ok",
+        "name": "desktop import preserves a significant-space-ended frame pasted last"
+      },
+      {
+        "number": 32,
+        "status": "ok",
+        "name": "QR options are bounded before even a single plain-JSON result is returned"
+      },
+      {
+        "number": 33,
+        "status": "ok",
+        "name": "framing preserves code points and refuses counts that the v1 headers cannot represent"
+      },
+      {
+        "number": 34,
+        "status": "ok",
+        "name": "framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap"
+      },
+      {
+        "number": 35,
+        "status": "ok",
+        "name": "framed output must stay one frame per line while small plain JSON remains unchanged"
+      },
+      {
+        "number": 36,
+        "status": "ok",
+        "name": "direct frame joining keeps result-style type errors and the complete raw input budget"
+      },
+      {
+        "number": 37,
+        "status": "ok",
+        "name": "a production export populated to its field limits remains inside the default QR budget"
+      },
+      {
+        "number": 38,
+        "status": "ok",
+        "name": "history run: origin phone, tagged measurements, asset link, device label, no calibration"
+      },
+      {
+        "number": 39,
+        "status": "ok",
+        "name": "buildExport applies limits and drops unknown fields"
+      },
+      {
+        "number": 40,
+        "status": "ok",
+        "name": "structure: finders, separators, timing, dark module, format info"
+      },
+      {
+        "number": 41,
+        "status": "ok",
+        "name": "round trip: ASCII, URL, JSON, UTF-8, ECC L and M, versions 1-10"
+      },
+      {
+        "number": 42,
+        "status": "ok",
+        "name": "every byte length 0..200 round-trips at both levels (versions 1-10)"
+      },
+      {
+        "number": 43,
+        "status": "ok",
+        "name": "level M is never smaller than L, and capacity is enforced"
+      },
+      {
+        "number": 44,
+        "status": "ok",
+        "name": "qrSvg: valid-looking svg, quiet zone, escaped label, deterministic"
+      },
+      {
+        "number": 45,
+        "status": "ok",
+        "name": "the decoder is not vacuous: a flipped data module breaks Reed-Solomon or the text"
+      }
+    ]
+  },
+  "syntax": {
+    "result_path": "syntax/result.json",
+    "exit_code": 0,
+    "timed_out": false,
+    "source_sha256": "ead9aadcad653e51c2ce908dabc4e6a45234cbf40f7ea9ff6efea97ee357de44"
+  },
+  "limits": [
+    "The six-file focused gate is not a complete-source gate.",
+    "Actual screen modules ran through a DOM fixture; file, share and clipboard boundaries were in-memory doubles.",
+    "The smoke module was syntax-parsed only; no browser or native behavior was exercised.",
+    "The predecessor complete gate remains held; issue #72 remains unresolved.",
+    "No numerical repair, diagnosis, full-suite rerun or qualification bypass is established."
+  ]
+}

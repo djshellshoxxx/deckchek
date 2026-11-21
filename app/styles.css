@@ -157,6 +157,8 @@ main { grid-column: 2; grid-row: 2; overflow: auto; outline: none; scroll-behavi
 .screen-title { display: flex; gap: 14px; align-items: flex-start; min-width: 0; flex: 1 1 420px; }
 .screen-icon { width: 44px; height: 44px; border-radius: var(--r-lg); background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
 .screen-title h1:focus { outline: none; }
+#screen-quick { grid-template-columns: minmax(0, 1fr); }
+#screen-quick .screen-title > div { min-width: 0; }
 .lede { color: var(--text-muted); margin-top: 4px; max-width: 70ch; }
 .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .section-title { font: 600 13px/16px var(--font-ui); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 12px; }
@@ -538,6 +540,21 @@ dialog[data-ui-assistance] { background: var(--surface); color: var(--text); }
   .device-bar .topfield { flex: 1 1 110px; }
   .device-bar .topfield:first-child { flex-basis: calc(100% - 44px); }
   .device-bar .topfield select { width: 100%; max-width: none; }
+  /* Quick Check's main pane is narrower than the viewport after the rail and padding. */
+  #screen-quick { padding-inline: 12px; }
+  #screen-quick .setup-grid, #screen-quick .setup-side,
+  #screen-quick .source-choices, #screen-quick .field-grid,
+  #screen-quick .field-inline { grid-template-columns: minmax(0, 1fr); }
+  #screen-quick .card { padding: 14px; }
+  #screen-quick .source-text, #screen-quick .hint > span,
+  #screen-quick .checklist li > span { min-width: 0; overflow-wrap: anywhere; }
+  #screen-quick .source[aria-disabled="true"] { padding-top: 36px; }
+  #screen-quick .stepper { gap: 4px; }
+  #screen-quick .stepper li::after { display: none; }
+  #screen-quick .step { width: 100%; min-width: 0; flex-direction: column; gap: 4px; padding-inline: 2px; white-space: normal; }
+  #screen-quick .step-label { overflow-wrap: anywhere; }
+  #screen-quick .btn { max-width: 100%; white-space: normal; }
+  #screen-quick .step-footer > .btn { width: 100%; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }

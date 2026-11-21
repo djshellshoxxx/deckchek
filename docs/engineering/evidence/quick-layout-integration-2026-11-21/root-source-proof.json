@@ -1,0 +1,35 @@
+{
+  "schema": "deckchek.quick-layout-root-verification.v1",
+  "verified_at_utc": "2026-11-21T10:20:36.239487+00:00",
+  "source_commit": "e5614ff1b8f7691e8193283a9b6ba01d5a7072ed",
+  "source_tree": "b650f03ed07bbce442b3616357e0d04086f7f1d4",
+  "manifest_sha256": "9445d5bf0336f3818bbfc69d1c7cb9d03d3a984b8e2eaeda0df0c18614d9aa29",
+  "manifest_files": 22,
+  "original_bindings": 21,
+  "unique_original_copies": 18,
+  "complete_immutable_blob_maps": 4,
+  "tracked_files_per_map": 2280,
+  "ordered_outcomes": 2395,
+  "tap_counts": {
+    "tests": 2395,
+    "suites": 0,
+    "pass": 2393,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "first_full_exit_code": 1,
+  "first_full_tap_bytes": 549295,
+  "first_full_tap_sha256": "f90ff51c2829b6eb9c172d0d1cda81e4e845f3d95706063764d2c56dbdbeec9a",
+  "first_full_result_sha256": "39fbb3a9fce6ae010ef5ebaad249d7a30ec3d7fc814b57f68668375bc9b0859e",
+  "syntax_exit_code": 0,
+  "syntax_result_sha256": "4baeda1e9e4977587dd8ae2f4a28e7aaefb7baa755f476eea573a279ebed1b86",
+  "unchanged_mobile_files": 34,
+  "shared_vendor_pairs": 7,
+  "disposition": "HELD: first complete run failed final relative-gain assertion; no cause or numerical repair established",
+  "limits": [
+    "Root verification used only retained bytes and immutable Git objects; no project code or submitted verifier executed.",
+    "No first outcome was rerun; syntax is not browser/native/physical qualification."
+  ]
+}

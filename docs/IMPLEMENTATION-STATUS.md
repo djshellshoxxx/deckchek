@@ -6,28 +6,33 @@ worker ownership and gates. The [dated history](IMPLEMENTATION-STATUS-HISTORY-20
 preserves the previous complete document; its older resume instructions and
 source-specific results are historical.
 
-PR #74 is qualified and merged at `77c26f44710c6dfb1c986fb79266c233e2ae688c`.
-Fixed draft [#79](https://github.com/djshellshoxxx/deckchek/pull/79), head
-`f76908766d53992e20382b9cbe73a668a28a6d1a`, has separate first local/hosted passes:
-2,359 JavaScript cases, 1,411 UI checks, six builds and five platform smokes.
-Final nightly cargo-fuzz remains pending. Never move that published head.
+Qualified main is `e36ddc41806b0f6639474f207e3b339e063a6e25`, the guarded
+PR [#79](https://github.com/djshellshoxxx/deckchek/pull/79) merge. All applicable
+first-attempt standard/nightly jobs, six builds and five platform smokes passed;
+release-only jobs were skipped. Its complete tree matches fixed head `f769087`.
+First local/hosted JavaScript gates each retained 2,359 total / 2,358 pass /
+one optional skip; actual UI smoke passed 1,411 checks. Read the
+[qualified merge proof](engineering/FEATURE_SUCCESSOR_MERGE_2026-11-21.md).
+#73/#75 closed through that merge; #72 stays open.
 
-All round-six workers completed. Later source `09c9afc` is **HELD** after its first
-complete 2,391-case run: 2,388 pass, two audio failures, one optional skip;
-all 2,177 source hashes unchanged. Retry verdict and final relative gain failed;
-the preceding playback-level assertions passed. No cause or repair is established,
-and #72 stays open. Complete first evidence and original recorder preflight are
-retained without a test rerun. Read the
-[held checkpoint](engineering/INVENTORY_MOBILE_CONTINUATION_2026-11-21.md) and
-[fixed-source hosted evidence](engineering/FEATURE_SUCCESSOR_HOSTED_EVIDENCE_2026-11-21.md).
+All three round-eight workers completed and their reports were integrated.
+Later frozen `e5614ff` remains **HELD** after its first complete 2,395-case gate:
+2,393 pass, one final relative-gain failure and one optional skip, with all 2,280
+source hashes unchanged. The retained value is −101 dB at −30 dBFS; earlier
+playback-level assertions passed. Cases 22/37 passed this observation, without
+establishing a numerical cause or repair. The separate smoke syntax check passed;
+new Quick Check browser rendering remains unqualified. Read the
+[completed held handoff](engineering/QUICK_LAYOUT_CONTINUATION_2026-11-21.md).
+Original first failures and reports remain intact.
 
-Fresh round-seven code/functional/static-defensive workers review #80 Mobile
-exports at separate `d3aa9ca`: official build and first focused run passed (45/45);
-syntax and final evidence review remain in progress. Current editor values own
-exports even after denied preference writes. This does not clear the full hold.
-Root owns #81 narrow Quick Check body layout and all CI/publication/merges. Only
-the functional lane runs reviewed bounded first tests. All three workers finish
-before another fresh trio. Later #76/#77/#78/#80/#81 are outside fixed #79.
+Round seven is complete: Mobile current-editor export details passed its first
+45/45 focused cases, official build and syntax check. All 45 case names also
+passed in round eight, with all 34 Mobile files unchanged. Persistence after
+denied writes is not claimed. Mapper #82 is the next separate seven-file
+preparation, unexecuted at this checkpoint; a fresh code/functional/static-defensive
+trio reviews it after the completed round-eight handoff. Only the functional lane
+may run root-reviewed bounded first commands. Root owns CI, publication and merges.
+Later #76/#77/#78/#80/#81/#82 remain outside qualified PR #79.
 
 ## Cloud continuation: M7 data and statistics foundations (2026-10-22)
 

@@ -1,0 +1,12 @@
+{
+  "branch": "checkpoint/deckchek-feature-qualified-20261121",
+  "sha": "7456aeeacb283bbf23965b67b84ffe7ee46a06d8",
+  "tree": "9f4793767a85f84a5cd79a9a4d0a965885d623ee",
+  "local_head": "0b1ee12f654ff8f079eff037433aeeb3130d1b61",
+  "parent": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+  "verified_complete_tree": true,
+  "verified_ordered_parent": true,
+  "verified_exact_ref": true,
+  "recorded_at_utc": "2026-11-21T10:25:56.901Z",
+  "disposition": "Qualified merge proof only; later full-source holds remain separate"
+}

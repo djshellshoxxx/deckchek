@@ -1,0 +1,212 @@
+{
+  "schema": "deckchek.mobile-export-retention.v1",
+  "created_at_utc": "2026-11-21T09:52:17.964953+00:00",
+  "unique_retained_original_files": 29,
+  "original_bindings": 34,
+  "bindings": [
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/authorized-build.json",
+      "retained_path": "build/authorized-build.json",
+      "bytes": 308,
+      "sha256": "8ddcbc4bbe32c3c69563155f651c3bb8067b5850663ece699542ffb36a0db84a"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/build-recorder.py",
+      "retained_path": "build/build-recorder.py",
+      "bytes": 6180,
+      "sha256": "4b17d0b1c951c7f694948611736a94e83181647de3256c5c163b6ad3a73ab153"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/build.stderr",
+      "retained_path": "build/build.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/build.stdout",
+      "retained_path": "build/build.stdout",
+      "bytes": 15,
+      "sha256": "6aca8799444f3dbb506688ab82b30d88aca73069a8b3e00d9629faa306196328"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/generated-commit.json",
+      "retained_path": "build/generated-commit.json",
+      "bytes": 666,
+      "sha256": "8e0b44a59c659ed4a6a1c79855ec34f8b10b16b6cb223064fb121b5ffc1efedc"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/generated.patch",
+      "retained_path": "build/generated.patch",
+      "bytes": 421,
+      "sha256": "399ec090be826083deb81ac78cb07d15190a37c8e815c8e7c4eaea423f2a1752"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/mobile-sw-after.js",
+      "retained_path": "build/mobile-sw-after.js",
+      "bytes": 2376,
+      "sha256": "07b2a1c77959bcc55f825f4d6db6ada92762ea494959a0938d749569978d77cd"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/mobile-sw-before.js",
+      "retained_path": "build/mobile-sw-before.js",
+      "bytes": 2376,
+      "sha256": "ede63eb2bd8f63332017bf87c70d454a3b4812903d2385de8c242c982545041c"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/result.json",
+      "retained_path": "build/result.json",
+      "bytes": 2757,
+      "sha256": "4f4ac9fce44d2199be6c9bf63503ffc14e4df9e7b04a315f0c02c6094261c5f0"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/running.json",
+      "retained_path": "build/running.json",
+      "bytes": 2082,
+      "sha256": "569beddc83aebe864cf4b5030cd65426efa40634f282e28618a94e443408a30e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/tracked-after.json",
+      "retained_path": "build/tracked-after.json",
+      "bytes": 276593,
+      "sha256": "b0d29e3c29e903af68c24d4cc71887f04102a9006f221e1e1d0e19bc9295223e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-raw/tracked-before.json",
+      "retained_path": "build/tracked-before.json",
+      "bytes": 276593,
+      "sha256": "d0fef6e4aea608921f13e5eb1d58d88c1c9397dbf597f9d503e7f6e6a88a5587"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/authorized-selection.json",
+      "retained_path": "focused/authorized-selection.json",
+      "bytes": 495,
+      "sha256": "244a3e5e4718829ea57ccd1b3fb59ef8b6df51937efdf097266fee2c70a79bf1"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/focused-recorder.py",
+      "retained_path": "focused/focused-recorder.py",
+      "bytes": 6391,
+      "sha256": "5e28829a3d57a5b14da7a249fbf74e82509a1e036b7cb34ed4c01ce54a1cb34e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/result.json",
+      "retained_path": "focused/result.json",
+      "bytes": 3731,
+      "sha256": "25d3610aa58844633dca0977eb92beb5c7ff73188e444b02245cae6a7bda0fdd"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/run.tap",
+      "retained_path": "focused/run.tap",
+      "bytes": 10439,
+      "sha256": "7f29e94be18c528ad18b620b875a9f74986bd6819cc39c452077f58cbff3e4db"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/running.json",
+      "retained_path": "focused/running.json",
+      "bytes": 2982,
+      "sha256": "e4cbc27b499d757c0b90e94ab9288df59d7d1b4a66790d217fa5a1ebe0788ca8"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/stderr.log",
+      "retained_path": "focused/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/test-files.json",
+      "retained_path": "focused/test-files.json",
+      "bytes": 200,
+      "sha256": "2e99e45b6942a9c1cd2d354b7dc99969225359003e766e15c8b37990bb8e2de3"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/tracked-after.json",
+      "retained_path": "focused/tracked-after.json",
+      "bytes": 276593,
+      "sha256": "b0d29e3c29e903af68c24d4cc71887f04102a9006f221e1e1d0e19bc9295223e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-raw/tracked-before.json",
+      "retained_path": "focused/tracked-before.json",
+      "bytes": 276593,
+      "sha256": "b0d29e3c29e903af68c24d4cc71887f04102a9006f221e1e1d0e19bc9295223e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/checked-mobile-pwa.mjs",
+      "retained_path": "syntax/checked-mobile-pwa.mjs",
+      "bytes": 14849,
+      "sha256": "ead9aadcad653e51c2ce908dabc4e6a45234cbf40f7ea9ff6efea97ee357de44"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/result.json",
+      "retained_path": "syntax/result.json",
+      "bytes": 1908,
+      "sha256": "77942bbdf1fafcc2e1e3fb9420983db9b74ab671c2cdd5393ed214dc5be8fce8"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/running.json",
+      "retained_path": "syntax/running.json",
+      "bytes": 1201,
+      "sha256": "523757280b4527e2fe96965dd6785d7af86681976afc29ba6f901c273b2afafd"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/syntax-recorder.py",
+      "retained_path": "syntax/syntax-recorder.py",
+      "bytes": 4930,
+      "sha256": "17dce012b3804fe19f25b893ad1d8c71fca285fe7660f1815010271c8e4f6056"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/syntax.stderr",
+      "retained_path": "syntax/syntax.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/syntax.stdout",
+      "retained_path": "syntax/syntax.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/tracked-after.json",
+      "retained_path": "syntax/tracked-after.json",
+      "bytes": 276593,
+      "sha256": "b0d29e3c29e903af68c24d4cc71887f04102a9006f221e1e1d0e19bc9295223e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax-raw/tracked-before.json",
+      "retained_path": "syntax/tracked-before.json",
+      "bytes": 276593,
+      "sha256": "b0d29e3c29e903af68c24d4cc71887f04102a9006f221e1e1d0e19bc9295223e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build.py",
+      "retained_path": "build/build-recorder.py",
+      "bytes": 6180,
+      "sha256": "4b17d0b1c951c7f694948611736a94e83181647de3256c5c163b6ad3a73ab153"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-build-config.json",
+      "retained_path": "build/authorized-build.json",
+      "bytes": 308,
+      "sha256": "8ddcbc4bbe32c3c69563155f651c3bb8067b5850663ece699542ffb36a0db84a"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused.py",
+      "retained_path": "focused/focused-recorder.py",
+      "bytes": 6391,
+      "sha256": "5e28829a3d57a5b14da7a249fbf74e82509a1e036b7cb34ed4c01ce54a1cb34e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-focused-config.json",
+      "retained_path": "focused/authorized-selection.json",
+      "bytes": 495,
+      "sha256": "244a3e5e4718829ea57ccd1b3fb59ef8b6df51937efdf097266fee2c70a79bf1"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-mobile-export-functional-round7-syntax.py",
+      "retained_path": "syntax/syntax-recorder.py",
+      "bytes": 4930,
+      "sha256": "17dce012b3804fe19f25b893ad1d8c71fca285fe7660f1815010271c8e4f6056"
+    }
+  ]
+}

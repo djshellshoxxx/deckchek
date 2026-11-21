@@ -91,7 +91,8 @@ test('session clamps the level to the -12 dBFS cap and honours a lower level', a
   assert.equal(hot.calls.play[0].opts.levelDbfs, -12);
   const quiet = fakes(); const r = await run(quiet, { playLevelDbfs: -30 });
   assert.equal(quiet.calls.play[0].opts.levelDbfs, -30);
-  assert.ok(Math.abs(r.measurements.find(m => m.metricId === 'aq_gain_db').value) < 0.1, 'gain is relative to the played level');
+  const gain = r.measurements.find(m => m.metricId === 'aq_gain_db').value;
+  assert.ok(Math.abs(gain) < 0.1, `gain is relative to the played level: measured ${gain} dB at ${quiet.calls.play[0].opts.levelDbfs} dBFS`);
 });
 
 test('regression: loss, stream errors and truncated capture retain evidence but cannot certify the device', async () => {

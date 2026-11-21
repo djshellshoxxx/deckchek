@@ -1,0 +1,124 @@
+{
+  "schema": "deckchek.quick-layout-original-history.v1",
+  "tip": "d32ab0f1d302a2f271f6e850da27085d6df85370",
+  "tip_tree": "89d3abda30223fc5ada65d562c0b7534fbe66d55",
+  "publication_parents": [
+    "8664c590709dce34445bf23008e61053b592d608",
+    "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+  ],
+  "bundle_bytes": 591772,
+  "bundle_sha256": "14bbbb4a71bec244e80178fb5f372548634255c59ace7372f9cd2dbf29646022",
+  "prerequisites": [
+    {
+      "prerequisite": "6cd827b0204bc450b8fc6236a179c7383dd52911",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "b8dfc126c2480f303df105abd3759fedae49a192",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "8664c590709dce34445bf23008e61053b592d608",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608"
+      ]
+    },
+    {
+      "prerequisite": "7456aeeacb283bbf23965b67b84ffe7ee46a06d8",
+      "ancestors_of_publication_parents": [
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "e36ddc41806b0f6639474f207e3b339e063a6e25",
+      "ancestors_of_publication_parents": [
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "b5d0cfd850120946160ef93b7cf2372bb981172e",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "5f256bdd3630738292c36c1b343a4161d5078a48",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "78403038c530a981b732d5ac0210539edf37fc77",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "099c99c055322ef668be23e6ae50a2968614cc6d",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "17080df79ba94554b81c006d6372c8b59dca795a",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    },
+    {
+      "prerequisite": "2022c97d8fb1f941de13e151be9627bbdfcc278e",
+      "ancestors_of_publication_parents": [
+        "8664c590709dce34445bf23008e61053b592d608",
+        "7456aeeacb283bbf23965b67b84ffe7ee46a06d8"
+      ]
+    }
+  ],
+  "bundle_verify_passed": true,
+  "scope": "Original local source, review and integration history through completed round 8; held outcome preserved."
+}

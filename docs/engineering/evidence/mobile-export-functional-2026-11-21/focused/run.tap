@@ -1,0 +1,280 @@
+TAP version 13
+# Subtest: vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check)
+ok 1 - vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check)
+  ---
+  duration_ms: 10.732886
+  type: 'test'
+  ...
+# Subtest: --check notices a drifted vendor copy and a stale precache stamp; writing repairs them
+ok 2 - --check notices a drifted vendor copy and a stale precache stamp; writing repairs them
+  ---
+  duration_ms: 36.951894
+  type: 'test'
+  ...
+# Subtest: service worker precaches every file of the app and nothing else (AC-2)
+ok 3 - service worker precaches every file of the app and nothing else (AC-2)
+  ---
+  duration_ms: 0.804753
+  type: 'test'
+  ...
+# Subtest: manifest is installable: name, scope, standalone, 192 and 512 PNG icons that exist and have those sizes
+ok 4 - manifest is installable: name, scope, standalone, 192 and 512 PNG icons that exist and have those sizes
+  ---
+  duration_ms: 0.461098
+  type: 'test'
+  ...
+# Subtest: page contract: strict CSP, no inline script or style, no remote assets, no unsafe sinks
+ok 5 - page contract: strict CSP, no inline script or style, no remote assets, no unsafe sinks
+  ---
+  duration_ms: 2.384144
+  type: 'test'
+  ...
+# Subtest: every relative import in mobile/ resolves to a shipped file, and the engines come from vendor/
+ok 6 - every relative import in mobile/ resolves to a shipped file, and the engines come from vendor/
+  ---
+  duration_ms: 1.708912
+  type: 'test'
+  ...
+# Subtest: the Pages workflow can only be started by hand and never deploys by default (hosting is undecided)
+ok 7 - the Pages workflow can only be started by hand and never deploys by default (hosting is undecided)
+  ---
+  duration_ms: 0.349143
+  type: 'test'
+  ...
+# Subtest: five screens, a photosensitivity confirmation before the strobe, and a persistent SPL banner
+ok 8 - five screens, a photosensitivity confirmation before the strobe, and a persistent SPL banner
+  ---
+  duration_ms: 0.29217
+  type: 'test'
+  ...
+# Subtest: the phone and the desktop run the same format code
+ok 9 - the phone and the desktop run the same format code
+  ---
+  duration_ms: 0.921434
+  type: 'test'
+  ...
+# Subtest: export round-trip from a real speed measurement: desktop parse, matching hash, same numbers (AC-5, AC-6)
+ok 10 - export round-trip from a real speed measurement: desktop parse, matching hash, same numbers (AC-5, AC-6)
+  ---
+  duration_ms: 736.367575
+  type: 'test'
+  ...
+# Subtest: export hash tamper is detected by the desktop parser
+ok 11 - export hash tamper is detected by the desktop parser
+  ---
+  duration_ms: 553.764294
+  type: 'test'
+  ...
+# Subtest: user agent can be redacted and never reaches the export
+ok 12 - user agent can be redacted and never reaches the export
+  ---
+  duration_ms: 553.170895
+  type: 'test'
+  ...
+# Subtest: QR: a normal result is one QR; a large one is several, and each renders as a data-URI image
+ok 13 - QR: a normal result is one QR; a large one is several, and each renders as a data-URI image
+  ---
+  duration_ms: 1352.868449
+  type: 'test'
+  ...
+# Subtest: file name carries the kind, a compact UTC stamp and the .deckchek-mobile.json extension
+ok 14 - file name carries the kind, a compact UTC stamp and the .deckchek-mobile.json extension
+  ---
+  duration_ms: 597.446755
+  type: 'test'
+  ...
+# Subtest: an export that holds a value the format refuses throws instead of writing a bad file
+ok 15 - an export that holds a value the format refuses throws instead of writing a bad file
+  ---
+  duration_ms: 555.410478
+  type: 'test'
+  ...
+# Subtest: Mobile edited export details reach text, file, share and clipboard with the same current checksum
+ok 16 - Mobile edited export details reach text, file, share and clipboard with the same current checksum
+  ---
+  duration_ms: 13.744848
+  type: 'test'
+  ...
+# Subtest: Mobile explicit blanks omit saved hints and editing retires the visible QR until it is regenerated
+ok 17 - Mobile explicit blanks omit saved hints and editing retires the visible QR until it is regenerated
+  ---
+  duration_ms: 61.387548
+  type: 'test'
+  ...
+# Subtest: Mobile blank visible export fields are authoritative and change-only edits also refresh the panel
+ok 18 - Mobile blank visible export fields are authoritative and change-only edits also refresh the panel
+  ---
+  duration_ms: 1.909756
+  type: 'test'
+  ...
+# Subtest: Mobile current export details and redaction survive denied preference writes over readable old settings
+ok 19 - Mobile current export details and redaction survive denied preference writes over readable old settings
+  ---
+  duration_ms: 34.439295
+  type: 'test'
+  ...
+# Subtest: Mobile recognizes all five declared routes and supported prefixes
+ok 20 - Mobile recognizes all five declared routes and supported prefixes
+  ---
+  duration_ms: 1.378388
+  type: 'test'
+  ...
+# Subtest: Mobile falls back to Speed for empty, unsupported and inherited names
+ok 21 - Mobile falls back to Speed for empty, unsupported and inherited names
+  ---
+  duration_ms: 0.275594
+  type: 'test'
+  ...
+# Subtest: Mobile preserves result IDs and existing first-segment routing
+ok 22 - Mobile preserves result IDs and existing first-segment routing
+  ---
+  duration_ms: 0.200051
+  type: 'test'
+  ...
+# Subtest: export round-trip: parse returns the same measurements and a matching hash
+ok 23 - export round-trip: parse returns the same measurements and a matching hash
+  ---
+  duration_ms: 4.459753
+  type: 'test'
+  ...
+# Subtest: hash is stable under key order and fractional numbers are hashed as decimal strings
+ok 24 - hash is stable under key order and fractional numbers are hashed as decimal strings
+  ---
+  duration_ms: 1.11327
+  type: 'test'
+  ...
+# Subtest: tampering changes the hash: a warning, not a block
+ok 25 - tampering changes the hash: a warning, not a block
+  ---
+  duration_ms: 1.498248
+  type: 'test'
+  ...
+# Subtest: validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+ok 26 - validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+  ---
+  duration_ms: 0.988634
+  type: 'test'
+  ...
+# Subtest: parse drops unknown fields and never returns the input objects
+ok 27 - parse drops unknown fields and never returns the input objects
+  ---
+  duration_ms: 0.528864
+  type: 'test'
+  ...
+# Subtest: small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+ok 28 - small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+  ---
+  duration_ms: 157.92994
+  type: 'test'
+  ...
+# Subtest: frame errors are specific: missing frame, mixed exports, damaged frame
+ok 29 - frame errors are specific: missing frame, mixed exports, damaged frame
+  ---
+  duration_ms: 8.524253
+  type: 'test'
+  ...
+# Subtest: QR framing preserves significant spaces at both sides of a frame boundary
+ok 30 - QR framing preserves significant spaces at both sides of a frame boundary
+  ---
+  duration_ms: 1.948058
+  type: 'test'
+  ...
+# Subtest: desktop import preserves a significant-space-ended frame pasted last
+ok 31 - desktop import preserves a significant-space-ended frame pasted last
+  ---
+  duration_ms: 1.58819
+  type: 'test'
+  ...
+# Subtest: QR options are bounded before even a single plain-JSON result is returned
+ok 32 - QR options are bounded before even a single plain-JSON result is returned
+  ---
+  duration_ms: 29.578938
+  type: 'test'
+  ...
+# Subtest: framing preserves code points and refuses counts that the v1 headers cannot represent
+ok 33 - framing preserves code points and refuses counts that the v1 headers cannot represent
+  ---
+  duration_ms: 3.681975
+  type: 'test'
+  ...
+# Subtest: framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap
+ok 34 - framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap
+  ---
+  duration_ms: 1655.223234
+  type: 'test'
+  ...
+# Subtest: framed output must stay one frame per line while small plain JSON remains unchanged
+ok 35 - framed output must stay one frame per line while small plain JSON remains unchanged
+  ---
+  duration_ms: 0.277615
+  type: 'test'
+  ...
+# Subtest: direct frame joining keeps result-style type errors and the complete raw input budget
+ok 36 - direct frame joining keeps result-style type errors and the complete raw input budget
+  ---
+  duration_ms: 8.48105
+  type: 'test'
+  ...
+# Subtest: a production export populated to its field limits remains inside the default QR budget
+ok 37 - a production export populated to its field limits remains inside the default QR budget
+  ---
+  duration_ms: 130.001875
+  type: 'test'
+  ...
+# Subtest: history run: origin phone, tagged measurements, asset link, device label, no calibration
+ok 38 - history run: origin phone, tagged measurements, asset link, device label, no calibration
+  ---
+  duration_ms: 2.066995
+  type: 'test'
+  ...
+# Subtest: buildExport applies limits and drops unknown fields
+ok 39 - buildExport applies limits and drops unknown fields
+  ---
+  duration_ms: 0.485745
+  type: 'test'
+  ...
+# Subtest: structure: finders, separators, timing, dark module, format info
+ok 40 - structure: finders, separators, timing, dark module, format info
+  ---
+  duration_ms: 27.450513
+  type: 'test'
+  ...
+# Subtest: round trip: ASCII, URL, JSON, UTF-8, ECC L and M, versions 1-10
+ok 41 - round trip: ASCII, URL, JSON, UTF-8, ECC L and M, versions 1-10
+  ---
+  duration_ms: 30.27829
+  type: 'test'
+  ...
+# Subtest: every byte length 0..200 round-trips at both levels (versions 1-10)
+ok 42 - every byte length 0..200 round-trips at both levels (versions 1-10)
+  ---
+  duration_ms: 131.331926
+  type: 'test'
+  ...
+# Subtest: level M is never smaller than L, and capacity is enforced
+ok 43 - level M is never smaller than L, and capacity is enforced
+  ---
+  duration_ms: 5.343436
+  type: 'test'
+  ...
+# Subtest: qrSvg: valid-looking svg, quiet zone, escaped label, deterministic
+ok 44 - qrSvg: valid-looking svg, quiet zone, escaped label, deterministic
+  ---
+  duration_ms: 2.836965
+  type: 'test'
+  ...
+# Subtest: the decoder is not vacuous: a flipped data module breaks Reed-Solomon or the text
+ok 45 - the decoder is not vacuous: a flipped data module breaks Reed-Solomon or the text
+  ---
+  duration_ms: 1.09222
+  type: 'test'
+  ...
+1..45
+# tests 45
+# suites 0
+# pass 45
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9294.072986

@@ -1,0 +1,17 @@
+{
+  "schema": "deckchek.mobile-export-generated-commit.v1",
+  "recorded_at_utc": "2026-11-21T09:44:21.262600+00:00",
+  "commit": "d3aa9ca25bd8fec352cbb628ddfcca90beabcdd4",
+  "tree": "c20d7b3f6bc36e8adf906d0eb2707902b66e3fc5",
+  "parent": "58485ad53793733869af490c7e0da58a4090a1a1",
+  "changed_paths": [
+    "mobile/sw.js"
+  ],
+  "status": "",
+  "tracked_file_count": 2235,
+  "tracked_hashes_match_build_after": true,
+  "service_worker_sha256": "07b2a1c77959bcc55f825f4d6db6ada92762ea494959a0938d749569978d77cd",
+  "build_stamp": "8f12f05a2c38",
+  "precache_entries": 33,
+  "build_result_sha256": "4f4ac9fce44d2199be6c9bf63503ffc14e4df9e7b04a315f0c02c6094261c5f0"
+}

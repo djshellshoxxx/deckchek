@@ -1,0 +1,10 @@
+{
+  "schema": "deckchek.mobile-export-build.authorization.v1",
+  "source_commit": "58485ad53793733869af490c7e0da58a4090a1a1",
+  "source_tree": "766f08daed2b37635b9912352c71d1e48a4acfdf",
+  "expected_tracked_file_count": 2235,
+  "execution_budget_seconds": 30,
+  "allowed_changes": [
+    "mobile/sw.js"
+  ]
+}
