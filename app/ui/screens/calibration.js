@@ -275,9 +275,13 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
     const save = h('button', { type: 'button', class: 'btn btn-primary', disabled: !profile.valid, html: `${icon('check', { size: 18 })}<span>Save for ${esc(target().deviceName)} @ ${esc(sampleRate)} Hz</span>` });
     save.addEventListener('click', () => {
       const p = { ...profile, sampleRate };
-      saveProfile(p, target().deviceName);
-      toast('Calibration profile saved. New results will be corrected.', { type: 'success' });
-      renderList();
+      try {
+        saveProfile(p, target().deviceName);
+        toast('Calibration profile saved. New results will be corrected.', { type: 'success' });
+        renderList();
+      } catch {
+        toast('The calibration profile could not be saved. Your stored profiles were not changed.', { type: 'error', details: false });
+      }
     });
     const exp = h('button', { type: 'button', class: 'btn btn-secondary', html: `${icon('download', { size: 18 })}<span>Export JSON</span>` });
     exp.addEventListener('click', () => download(`deckchek-calibration-${Date.now()}.json`, serializeProfile(profile), 'application/json'));
@@ -298,7 +302,12 @@ export function createCalibrationScreen(section, { embedded = false, sinkId = ''
       const view = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'View', onclick: () => showProfile(profile, profile.sampleRate) });
       const del = h('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-danger-ghost', 'aria-label': `Delete profile for ${profile.deviceName} at ${profile.sampleRate} Hz`, html: icon('trash', { size: 16 }) });
       del.addEventListener('click', async () => {
-        if (await confirmDialog({ title: 'Delete calibration profile?', body: `Results for ${profile.deviceName} @ ${profile.sampleRate} Hz will be uncalibrated until you run a new loopback.` })) { deleteProfile(key); renderList(); toast('Profile deleted.'); }
+        if (!await confirmDialog({ title: 'Delete calibration profile?', body: `Results for ${profile.deviceName} @ ${profile.sampleRate} Hz will be uncalibrated until you run a new loopback.` })) return;
+        try {
+          const deleted = deleteProfile(key); renderList(); toast(deleted ? 'Profile deleted.' : 'Profile is already absent.');
+        } catch {
+          toast('The calibration profile could not be deleted. Your stored profiles were not changed.', { type: 'error', details: false });
+        }
       });
       row.append(h('div', { class: 'row-actions' }, view, del));
       return row;

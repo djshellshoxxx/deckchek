@@ -6,6 +6,7 @@ import { h, isNative } from '../dom.js';
 import { icon } from '../icons.js';
 import { announce, toast } from '../live.js';
 import { exportSettingsBlob, importSettingsBlob } from '../state.js';
+import { requireRestoreReload, restoreReloadRequired } from '../../restore-session.js';
 import { exportWorkspace, importParsedWorkspace } from '../persistence.js';
 import { revealAppPath } from '../../external-links.js';
 import { readWorkspaceFile } from '../../export.js';
@@ -40,7 +41,7 @@ export function replacementLines(inspect) {
   const n = (v, one, many = `${one}s`) => `${v} ${v === 1 ? one : many}`;
   return [
     'Everything in your current database: test runs, equipment and asset records, MIDI maps.',
-    'Calibration profiles and app settings stored on this computer.',
+    'Calibration profiles and app settings when those parts are included in the backup. Parts not included keep their current values.',
     `They will be replaced by the backup: ${n(c.runs, 'run')}, ${n(c.assets, 'asset')}, ${n(c.profiles, 'calibration profile')}, ${n(c.midiMaps, 'MIDI map')}.`,
   ];
 }
@@ -50,6 +51,7 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
   const st = { busy: false, entries: [], schedule: null };
   let active = true, disposed = false, refreshGeneration = 0, visibilityGeneration = 0, busyOwner = null, nativeCatalogPanel = null;
   let workspaceChooser = null;
+  let restoreOutcome = null, outcomeDialog = null, outcomeView = null, reloadRequested = false;
   const modals = new Set();
   const visible = () => active && !disposed;
   const current = generation => visible() && generation === visibilityGeneration;
@@ -64,7 +66,7 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
     }
   }
   function acquireBusy(source) {
-    if (!visible() || st.busy) return null;
+    if (!visible() || st.busy || restoreReloadRequired()) return null;
     const owner = { source }; busyOwner = owner; st.busy = true;
     nativeCatalogPanel?.setExternalBusy(source !== 'native-catalog'); renderBusyState();
     return () => {
@@ -278,7 +280,7 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
           h('p', { class: 'data-restore-head', text: 'This will replace:' }),
           h('ul', { class: 'data-list', id: 'restore-replaces' }, ...replacementLines(inspect).map(l => h('li', { text: l }))),
           h('p', { class: 'data-safety', id: 'restore-safety' }, h('span', { html: icon('info', { size: 16 }) }),
-            h('span', { text: ' Before anything is replaced, DeckChek saves your current data as a safety backup in the backups folder. If the restore fails, your current data is left untouched. DeckChek reloads when the restore is done.' }))),
+            h('span', { text: ' Before the database is replaced, DeckChek saves a safety backup in the backups folder. A failed database restore leaves that database unchanged. After a successful database restore, DeckChek applies the included local settings. If any local settings cannot be applied, you must review the result and reload before continuing. Otherwise, DeckChek reloads automatically.' }))),
         h('label', { class: 'data-ack', for: 'restore-ack' }, check, h('span', { text: 'I understand this replaces my current data' })),
         err,
         h('div', { class: 'dialog-actions' }, cancel, ok)));
@@ -286,12 +288,68 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
   }
 
   async function finishRestore({ result }) {
+    // This boundary belongs to the committed restore, not to Data visibility or
+    // its feature flag. Set it before local writes/observers can resume callers
+    // that still hold settings or database state from the previous session.
+    requireRestoreReload();
     const applied = importSettingsBlob({ settings: result.settings, calibrationProfiles: result.calibrationProfiles });
-    const text = describeRestoreResult(result);
-    setStatus(applied.skipped ? `${text} ${applied.skipped} calibration profile(s) could not be restored.` : text, 'success');
-    toast('Restore complete. Reloading…', { type: 'success' });
+    restoreOutcome = { result, applied };
     st.busy = true; st.reloading = true; nativeCatalogPanel?.setExternalBusy(true); render();
-    setTimeout(() => globalThis.location?.reload(), 1800);
+    showRestoreOutcome();
+    if (applied.complete) {
+      const outcome = restoreOutcome;
+      setTimeout(() => { if (restoreOutcome === outcome) reloadRestoredSession(); }, 1800);
+    }
+  }
+
+  function reloadRestoredSession() {
+    if (reloadRequested) return;
+    try {
+      if (typeof globalThis.location?.reload !== 'function') throw new Error();
+      reloadRequested = true;
+      globalThis.location.reload();
+    } catch {
+      reloadRequested = false;
+      const error = outcomeDialog?.querySelector('#data-restore-reload-error');
+      if (error) error.textContent = 'DeckChek could not reload. Try Reload again, or close and reopen the app.';
+    }
+  }
+
+  function showRestoreOutcome() {
+    if (!restoreOutcome) return;
+    const outcome = restoreOutcome, view = {};
+    outcomeView = view;
+    const ownsOutcome = () => !reloadRequested && restoreOutcome === outcome && outcomeView === view && outcomeDialog?.isConnected;
+    const { result, applied } = restoreOutcome;
+    const message = describeRestoreResult(result, applied);
+    setStatus(message, applied.complete ? 'success' : 'error');
+    if (!outcomeDialog) {
+      outcomeDialog = h('dialog', { class: 'data-dialog', id: 'data-restore-outcome', 'aria-labelledby': 'data-restore-outcome-title', 'aria-describedby': 'data-restore-outcome-message data-restore-outcome-help' });
+      outcomeDialog.addEventListener('cancel', event => event.preventDefault());
+      outcomeDialog.addEventListener('close', () => {
+        // Esc/close cannot resume a renderer whose caches predate the restore.
+        if (outcomeDialog.isConnected && !outcomeDialog.open) {
+          outcomeDialog.showModal(); outcomeDialog.querySelector('button')?.focus();
+        }
+      });
+      document.body.append(outcomeDialog);
+    }
+    const actions = h('div', { class: 'dialog-actions' });
+    if (!applied.complete && [applied.settingsStatus, applied.calibrationStatus].includes('unavailable')) {
+      actions.append(h('button', { type: 'button', class: 'btn btn-secondary', id: 'data-restore-retry', text: 'Retry local settings', onclick: () => {
+        if (ownsOutcome()) void finishRestore({ result }); // never repeat the committed native DB restore
+      } }));
+    }
+    actions.append(h('button', { type: 'button', class: 'btn btn-primary', id: 'data-restore-reload', text: applied.complete ? 'Reload now' : 'Reload with current settings', onclick: () => {
+      if (ownsOutcome()) reloadRestoredSession();
+    } }));
+    outcomeDialog.replaceChildren(h('div', { class: 'dialog-form' },
+      h('h2', { id: 'data-restore-outcome-title', text: applied.complete ? 'Restore complete' : 'Review restored data' }),
+      h('p', { id: 'data-restore-outcome-message', role: applied.complete ? 'status' : 'alert', text: message }),
+      h('p', { id: 'data-restore-outcome-help', text: 'Reload DeckChek before continuing so every screen uses the restored database and settings.' }),
+      h('p', { id: 'data-restore-reload-error', role: 'alert' }), actions));
+    if (!outcomeDialog.open) outcomeDialog.showModal();
+    outcomeDialog.querySelector('button')?.focus();
   }
 
   // ----- schedule -----
@@ -372,7 +430,7 @@ export function createDataScreen(section, { archiveOptions = {}, catalogArchiveO
   render();
   refresh();
   return {
-    onShow: () => { if (disposed || active) return; active = true; render(); if (native) void refresh(); archivePanel?.setActive(true); catalogPanel?.setActive(true); nativeCatalogPanel?.setActive(true); },
+    onShow: () => { if (disposed || active) return; active = true; render(); if (native) void refresh(); archivePanel?.setActive(true); catalogPanel?.setActive(true); nativeCatalogPanel?.setActive(true); showRestoreOutcome(); },
     onHide: () => { if (!active || disposed) return; active = false; refreshGeneration++; visibilityGeneration++; workspaceChooser?.retire(); for (const owner of [...modals]) owner.retire(); archivePanel?.setActive(false); catalogPanel?.setActive(false); nativeCatalogPanel?.setActive(false); },
     dispose: () => { if (disposed) return; disposed = true; active = false; refreshGeneration++; visibilityGeneration++; workspaceChooser?.retire(); for (const owner of [...modals]) owner.retire(); archivePanel?.dispose(); catalogPanel?.dispose(); nativeCatalogPanel?.dispose(); },
   };

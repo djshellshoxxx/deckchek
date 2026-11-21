@@ -434,7 +434,12 @@ export function comparisonBlock(cmp) {
   box.append(live);
   if (!cmp) { live.append(h('p', { class: 'muted', text: 'Loading the comparison…' })); return box; }
   if (cmp.headline.length) box.append(h('ul', { class: 'svc-headline', id: 'svc-headline' }, ...cmp.headline.map(x => h('li', { html: `${chip(x.change === 'fixed' ? 'pass' : 'fail', CHANGE_TEXT[x.change], { size: 14 })} <span>${esc(x.title)}</span>` }))));
-  if (cmp.completeness.state === 'partial') live.append(h('div', { class: 'banner banner-warn', role: 'status', id: 'svc-partial', html: `${chip('warn')}<div class="banner-text"><strong>${esc(cmp.completeness.message)}</strong><span>Run the missing after tests for a complete comparison.</span></div>` }));
+  if (cmp.completeness.state === 'partial') {
+    const guidance = cmp.completeness.missingBefore > 0
+      ? `Link existing pre-repair measurements where available. Missing baselines remain unavailable.${cmp.completeness.missingAfter > 0 ? ' Run the missing after tests too.' : ''}`
+      : 'Run the missing after tests for a complete comparison.';
+    live.append(h('div', { class: 'banner banner-warn', role: 'status', id: 'svc-partial', html: `${chip('warn')}<div class="banner-text"><strong>${esc(cmp.completeness.message)}</strong><span>${esc(guidance)}</span></div>` }));
+  }
   else if (cmp.completeness.state === 'empty') live.append(h('p', { class: 'muted', text: 'No measured values are linked yet.' }));
   if (cmp.rows.length) {
     box.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data svc-table', id: 'svc-compare-table' }, h('caption', { text: 'Measured values: change judged at k = 2 (an asterisk marks an assumed uncertainty)' }),

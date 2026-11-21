@@ -1,0 +1,748 @@
+TAP version 13
+# Subtest: related links follow the feature flags
+ok 1 - related links follow the feature flags
+  ---
+  duration_ms: 2.683073
+  type: 'test'
+  ...
+# Subtest: equipment links depend on the product category and hand over the asset
+ok 2 - equipment links depend on the product category and hand over the asset
+  ---
+  duration_ms: 0.470818
+  type: 'test'
+  ...
+# Subtest: pre-gig cross fixes: only for problems, only for features that are on, no duplicates
+ok 3 - pre-gig cross fixes: only for problems, only for features that are on, no duplicates
+  ---
+  duration_ms: 0.861175
+  type: 'test'
+  ...
+# Subtest: every settings target the UI can ask for is on the fixed list
+ok 4 - every settings target the UI can ask for is on the fixed list
+  ---
+  duration_ms: 0.294612
+  type: 'test'
+  ...
+# Subtest: active cartridge: preferred, else most recently used, else first
+ok 5 - active cartridge: preferred, else most recently used, else first
+  ---
+  duration_ms: 0.284207
+  type: 'test'
+  ...
+# Subtest: stylus card model: wear percent, status and the next alert
+ok 6 - stylus card model: wear percent, status and the next alert
+  ---
+  duration_ms: 1.226083
+  type: 'test'
+  ...
+# Subtest: history rows map every feature run onto one shape
+ok 7 - history rows map every feature run onto one shape
+  ---
+  duration_ms: 1.289328
+  type: 'test'
+  ...
+# Subtest: loadFeatureRuns isolates failures and survives a missing backend
+ok 8 - loadFeatureRuns isolates failures and survives a missing backend
+  ---
+  duration_ms: 8.832025
+  type: 'test'
+  ...
+# Subtest: merge and filter the feed by type, newest first
+ok 9 - merge and filter the feed by type, newest first
+  ---
+  duration_ms: 0.650698
+  type: 'test'
+  ...
+# Subtest: pre-gig PDF: words not colours, everything escaped
+ok 10 - pre-gig PDF: words not colours, everything escaped
+  ---
+  duration_ms: 2.43507
+  type: 'test'
+  ...
+# Subtest: saved runs carry the real capture span (live) and an approximate one (file)
+ok 11 - saved runs carry the real capture span (live) and an approximate one (file)
+  ---
+  duration_ms: 53.053308
+  type: 'test'
+  ...
+# Subtest: customer searches retain the latest result and ignore an older reply
+ok 12 - customer searches retain the latest result and ignore an older reply
+  ---
+  duration_ms: 9.045175
+  type: 'test'
+  ...
+# Subtest: typing a new customer query invalidates the old request before the debounce starts
+ok 13 - typing a new customer query invalidates the old request before the debounce starts
+  ---
+  duration_ms: 1.964033
+  type: 'test'
+  ...
+# Subtest: late customer errors do not update feedback after new-customer-mode
+ok 14 - late customer errors do not update feedback after new-customer-mode
+  ---
+  duration_ms: 1.946706
+  type: 'test'
+  ...
+# Subtest: late customer errors do not update feedback after replacement-form
+ok 15 - late customer errors do not update feedback after replacement-form
+  ---
+  duration_ms: 2.152525
+  type: 'test'
+  ...
+# Subtest: deferred unit refresh preserves a chosen existing unit and unsaved fields
+ok 16 - deferred unit refresh preserves a chosen existing unit and unsaved fields
+  ---
+  duration_ms: 1.718453
+  type: 'test'
+  ...
+# Subtest: deferred unit refresh preserves a chosen new unit and unsaved fields
+ok 17 - deferred unit refresh preserves a chosen new unit and unsaved fields
+  ---
+  duration_ms: 2.251004
+  type: 'test'
+  ...
+# Subtest: a refreshed list never substitutes the preset for a selected unit that disappeared
+ok 18 - a refreshed list never substitutes the preset for a selected unit that disappeared
+  ---
+  duration_ms: 2.068019
+  type: 'test'
+  ...
+# Subtest: a current customer-search failure remains explicit and a later search can recover
+ok 19 - a current customer-search failure remains explicit and a later search can recover
+  ---
+  duration_ms: 1.758433
+  type: 'test'
+  ...
+# Subtest: the untouched unit preset remains selected after the initial refresh
+ok 20 - the untouched unit preset remains selected after the initial refresh
+  ---
+  duration_ms: 0.961545
+  type: 'test'
+  ...
+# Subtest: an explicitly cleared unit choice is not reset to the preset
+ok 21 - an explicitly cleared unit choice is not reset to the preset
+  ---
+  duration_ms: 1.613425
+  type: 'test'
+  ...
+# Subtest: the preserved new-unit model reaches the actual create payload
+ok 22 - the preserved new-unit model reaches the actual create payload
+  ---
+  duration_ms: 2.570774
+  type: 'test'
+  ...
+# Subtest: a retired form cannot dispatch a new customer lookup or job creation
+ok 23 - a retired form cannot dispatch a new customer lookup or job creation
+  ---
+  duration_ms: 1.207224
+  type: 'test'
+  ...
+# Subtest: late customer resolve leaves the replacement panel and feedback alone
+ok 24 - late customer resolve leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 8.654287
+  type: 'test'
+  ...
+# Subtest: late customer reject leaves the replacement panel and feedback alone
+ok 25 - late customer reject leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 2.603373
+  type: 'test'
+  ...
+# Subtest: current customer submission reports failure and can be retried
+ok 26 - current customer submission reports failure and can be retried
+  ---
+  duration_ms: 5.145203
+  type: 'test'
+  ...
+# Subtest: late job details resolve leaves the replacement panel and feedback alone
+ok 27 - late job details resolve leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 1.153905
+  type: 'test'
+  ...
+# Subtest: late job details reject leaves the replacement panel and feedback alone
+ok 28 - late job details reject leaves the replacement panel and feedback alone
+  ---
+  duration_ms: 1.267835
+  type: 'test'
+  ...
+# Subtest: current job details submission reports failure and can be retried
+ok 29 - current job details submission reports failure and can be retried
+  ---
+  duration_ms: 3.24704
+  type: 'test'
+  ...
+# Subtest: a cancelled customer editor cannot reload or toast over the replacement editor
+ok 30 - a cancelled customer editor cannot reload or toast over the replacement editor
+  ---
+  duration_ms: 4.676639
+  type: 'test'
+  ...
+# Subtest: late saved-run link resolve preserves the current panel and feedback
+ok 31 - late saved-run link resolve preserves the current panel and feedback
+  ---
+  duration_ms: 1.783501
+  type: 'test'
+  ...
+# Subtest: late saved-run link reject preserves the current panel and feedback
+ok 32 - late saved-run link reject preserves the current panel and feedback
+  ---
+  duration_ms: 0.660192
+  type: 'test'
+  ...
+# Subtest: current saved-run linking still refreshes and reports the linked phase
+ok 33 - current saved-run linking still refreshes and reports the linked phase
+  ---
+  duration_ms: 0.869767
+  type: 'test'
+  ...
+# Subtest: late photo unlink resolve does not reload or announce in another panel
+ok 34 - late photo unlink resolve does not reload or announce in another panel
+  ---
+  duration_ms: 0.965722
+  type: 'test'
+  ...
+# Subtest: late photo unlink reject does not reload or announce in another panel
+ok 35 - late photo unlink reject does not reload or announce in another panel
+  ---
+  duration_ms: 0.659081
+  type: 'test'
+  ...
+# Subtest: late photo attach resolve preserves the submitted write and suppresses obsolete feedback
+ok 36 - late photo attach resolve preserves the submitted write and suppresses obsolete feedback
+  ---
+  duration_ms: 7.976048
+  type: 'test'
+  ...
+# Subtest: late photo attach reject preserves the submitted write and suppresses obsolete feedback
+ok 37 - late photo attach reject preserves the submitted write and suppresses obsolete feedback
+  ---
+  duration_ms: 2.696322
+  type: 'test'
+  ...
+# Subtest: photo success is not announced when a refresh is superseded by navigation
+ok 38 - photo success is not announced when a refresh is superseded by navigation
+  ---
+  duration_ms: 2.249621
+  type: 'test'
+  ...
+# Subtest: a submitted photo batch finishes all its attachments after leaving the panel
+ok 39 - a submitted photo batch finishes all its attachments after leaving the panel
+  ---
+  duration_ms: 5.687408
+  type: 'test'
+  ...
+# Subtest: current photo attachment success retains its visible feedback and releases the button
+ok 40 - current photo attachment success retains its visible feedback and releases the button
+  ---
+  duration_ms: 2.181338
+  type: 'test'
+  ...
+# Subtest: current photo attachment failure retains its visible feedback and releases the button
+ok 41 - current photo attachment failure retains its visible feedback and releases the button
+  ---
+  duration_ms: 2.26207
+  type: 'test'
+  ...
+# Subtest: HTML export captures the clicked sheet options before asynchronous preparation
+ok 42 - HTML export captures the clicked sheet options before asynchronous preparation
+  ---
+  duration_ms: 5.794419
+  type: 'test'
+  ...
+# Subtest: late HTML export resolve completes the submitted save without feedback in another panel
+ok 43 - late HTML export resolve completes the submitted save without feedback in another panel
+  ---
+  duration_ms: 2.520558
+  type: 'test'
+  ...
+# Subtest: late HTML export reject completes the submitted save without feedback in another panel
+ok 44 - late HTML export reject completes the submitted save without feedback in another panel
+  ---
+  duration_ms: 2.150692
+  type: 'test'
+  ...
+# Subtest: HTML export preparation abandons a retired panel before opening a save dialog
+ok 45 - HTML export preparation abandons a retired panel before opening a save dialog
+  ---
+  duration_ms: 0.966493
+  type: 'test'
+  ...
+# Subtest: current HTML export failure retains a working retry and cancellation stays quiet
+ok 46 - current HTML export failure retains a working retry and cancellation stays quiet
+  ---
+  duration_ms: 7.313753
+  type: 'test'
+  ...
+# Subtest: PDF export captures the clicked sheet options and still reports current success
+ok 47 - PDF export captures the clicked sheet options and still reports current success
+  ---
+  duration_ms: 5.136019
+  type: 'test'
+  ...
+# Subtest: late PDF export resolve preserves the backend result and current-screen feedback
+ok 48 - late PDF export resolve preserves the backend result and current-screen feedback
+  ---
+  duration_ms: 2.483372
+  type: 'test'
+  ...
+# Subtest: late PDF export reject preserves the backend result and current-screen feedback
+ok 49 - late PDF export reject preserves the backend result and current-screen feedback
+  ---
+  duration_ms: 3.577878
+  type: 'test'
+  ...
+# Subtest: a PDF retry offered on a previous panel cannot start another export after navigation
+ok 50 - a PDF retry offered on a previous panel cannot start another export after navigation
+  ---
+  duration_ms: 2.726107
+  type: 'test'
+  ...
+# Subtest: current PDF failure can retry and callers without ownership callbacks retain feedback
+ok 51 - current PDF failure can retry and callers without ownership callbacks retain feedback
+  ---
+  duration_ms: 3.175512
+  type: 'test'
+  ...
+# Subtest: PII: a job with a new unit puts no customer data into the equipment that the workspace export carries
+ok 52 - PII: a job with a new unit puts no customer data into the equipment that the workspace export carries
+  ---
+  duration_ms: 1.784042
+  type: 'test'
+  ...
+# Subtest: PII: the browser diagnostics bundle (settings + runs) carries no customer data, even unredacted
+ok 53 - PII: the browser diagnostics bundle (settings + runs) carries no customer data, even unredacted
+  ---
+  duration_ms: 11.415768
+  type: 'test'
+  ...
+# Subtest: PII: the printed job sheet and its suggested file name omit the customer unless asked
+ok 54 - PII: the printed job sheet and its suggested file name omit the customer unless asked
+  ---
+  duration_ms: 10.122473
+  type: 'test'
+  ...
+# Subtest: PII: no Rust module other than service.rs reads the customer table, and no other JS module calls customer commands
+ok 55 - PII: no Rust module other than service.rs reads the customer table, and no other JS module calls customer commands
+  ---
+  duration_ms: 24.876698
+  type: 'test'
+  ...
+# Subtest: a late delete resolve preserves a replacement form without obsolete feedback
+ok 56 - a late delete resolve preserves a replacement form without obsolete feedback
+  ---
+  duration_ms: 29.251868
+  type: 'test'
+  ...
+# Subtest: a late delete reject preserves a replacement form without obsolete feedback
+ok 57 - a late delete reject preserves a replacement form without obsolete feedback
+  ---
+  duration_ms: 9.077685
+  type: 'test'
+  ...
+# Subtest: deletion cancellation performs no writes and restores focus to its current trigger
+ok 58 - deletion cancellation performs no writes and restores focus to its current trigger
+  ---
+  duration_ms: 4.912475
+  type: 'test'
+  ...
+# Subtest: current deletion reports retained customer details separately and still returns to the job list
+ok 59 - current deletion reports retained customer details separately and still returns to the job list
+  ---
+  duration_ms: 5.453678
+  type: 'test'
+  ...
+# Subtest: already confirmed customer cleanup finishes without interrupting a replacement form
+ok 60 - already confirmed customer cleanup finishes without interrupting a replacement form
+  ---
+  duration_ms: 5.212325
+  type: 'test'
+  ...
+# Subtest: a delete completed while Service is hidden does not revive the removed job on return
+ok 61 - a delete completed while Service is hidden does not revive the removed job on return
+  ---
+  duration_ms: 3.748435
+  type: 'test'
+  ...
+# Subtest: Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler
+ok 62 - Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler
+  ---
+  duration_ms: 0.981836
+  type: 'test'
+  ...
+# Subtest: Ctrl+J opens the form and respects a subsequent navigation away from the service screen
+ok 63 - Ctrl+J opens the form and respects a subsequent navigation away from the service screen
+  ---
+  duration_ms: 3.514763
+  type: 'test'
+  ...
+# Subtest: Ctrl+J leaves the feature-disabled and open-dialog cases alone
+ok 64 - Ctrl+J leaves the feature-disabled and open-dialog cases alone
+  ---
+  duration_ms: 1.513916
+  type: 'test'
+  ...
+# Subtest: a late job resolve after hide/show preserves the new job form and its input
+ok 65 - a late job resolve after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 3.170787
+  type: 'test'
+  ...
+# Subtest: a late job reject after hide/show preserves the new job form and its input
+ok 66 - a late job reject after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 4.121766
+  type: 'test'
+  ...
+# Subtest: a late comparison resolve after hide/show preserves the new job form and its input
+ok 67 - a late comparison resolve after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 4.076818
+  type: 'test'
+  ...
+# Subtest: a late comparison reject after hide/show preserves the new job form and its input
+ok 68 - a late comparison reject after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 3.787143
+  type: 'test'
+  ...
+# Subtest: current job loading still renders its comparison and current errors retain Retry
+ok 69 - current job loading still renders its comparison and current errors retain Retry
+  ---
+  duration_ms: 4.992364
+  type: 'test'
+  ...
+# Subtest: actual Service After panel announces missing baseline evidence and keeps the comparison step open
+ok 70 - actual Service After panel announces missing baseline evidence and keeps the comparison step open
+  ---
+  duration_ms: 64.021851
+  type: 'test'
+  ...
+# Subtest: late mixed-phase completeness updates the real Service warning without replacing unsaved status notes
+ok 71 - late mixed-phase completeness updates the real Service warning without replacing unsaved status notes
+  ---
+  duration_ms: 9.44014
+  type: 'test'
+  ...
+# Subtest: a late status resolve leaves a replacement new-job form and its feedback alone
+ok 72 - a late status resolve leaves a replacement new-job form and its feedback alone
+  ---
+  duration_ms: 7.364721
+  type: 'test'
+  ...
+# Subtest: a late work-log resolve cannot reload a job after a new form opens
+ok 73 - a late work-log resolve cannot reload a job after a new form opens
+  ---
+  duration_ms: 129.863767
+  type: 'test'
+  ...
+# Subtest: a late comparison resolve preserves unsaved work on the current job
+ok 74 - a late comparison resolve preserves unsaved work on the current job
+  ---
+  duration_ms: 7.496189
+  type: 'test'
+  ...
+# Subtest: a late status reject leaves a replacement new-job form and its feedback alone
+ok 75 - a late status reject leaves a replacement new-job form and its feedback alone
+  ---
+  duration_ms: 2.36147
+  type: 'test'
+  ...
+# Subtest: a late work-log reject cannot reload a job after a new form opens
+ok 76 - a late work-log reject cannot reload a job after a new form opens
+  ---
+  duration_ms: 125.001507
+  type: 'test'
+  ...
+# Subtest: a late comparison reject preserves unsaved work on the current job
+ok 77 - a late comparison reject preserves unsaved work on the current job
+  ---
+  duration_ms: 1.794177
+  type: 'test'
+  ...
+# Subtest: current status and work-log writes still reload their job and release the status controls
+ok 78 - current status and work-log writes still reload their job and release the status controls
+  ---
+  duration_ms: 5.648922
+  type: 'test'
+  ...
+# Subtest: a write pending on another job neither blocks the current status write nor releases its busy guard
+ok 79 - a write pending on another job neither blocks the current status write nor releases its busy guard
+  ---
+  duration_ms: 3.642686
+  type: 'test'
+  ...
+# Subtest: hidden Service status resolve stays quiet and keeps its private job view consistent
+ok 80 - hidden Service status resolve stays quiet and keeps its private job view consistent
+  ---
+  duration_ms: 63.796692
+  type: 'test'
+  ...
+# Subtest: hidden Service work-log resolve stays quiet while preserving the submitted change
+ok 81 - hidden Service work-log resolve stays quiet while preserving the submitted change
+  ---
+  duration_ms: 64.050385
+  type: 'test'
+  ...
+# Subtest: hidden Service status reject stays quiet and keeps its private job view consistent
+ok 82 - hidden Service status reject stays quiet and keeps its private job view consistent
+  ---
+  duration_ms: 63.265122
+  type: 'test'
+  ...
+# Subtest: hidden Service work-log reject stays quiet while preserving the submitted change
+ok 83 - hidden Service work-log reject stays quiet while preserving the submitted change
+  ---
+  duration_ms: 63.106003
+  type: 'test'
+  ...
+# Subtest: a late comparison updates hidden Service evidence without announcing on another screen
+ok 84 - a late comparison updates hidden Service evidence without announcing on another screen
+  ---
+  duration_ms: 63.431944
+  type: 'test'
+  ...
+# Subtest: Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step
+ok 85 - Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step
+  ---
+  duration_ms: 2.18195
+  type: 'test'
+  ...
+# Subtest: late comparison refreshes the after evidence without replacing its options or status note
+ok 86 - late comparison refreshes the after evidence without replacing its options or status note
+  ---
+  duration_ms: 2.313678
+  type: 'test'
+  ...
+# Subtest: late comparison refreshes the sheet evidence without replacing its options or status note
+ok 87 - late comparison refreshes the sheet evidence without replacing its options or status note
+  ---
+  duration_ms: 2.472858
+  type: 'test'
+  ...
+# Subtest: a late new-job create resolve preserves a replacement form
+ok 88 - a late new-job create resolve preserves a replacement form
+  ---
+  duration_ms: 124.167624
+  type: 'test'
+  ...
+# Subtest: a late new-job create reject preserves a replacement form
+ok 89 - a late new-job create reject preserves a replacement form
+  ---
+  duration_ms: 123.4124
+  type: 'test'
+  ...
+# Subtest: AC-6 transition table is exhaustive (valid and invalid) and matches the Rust table
+ok 90 - AC-6 transition table is exhaustive (valid and invalid) and matches the Rust table
+  ---
+  duration_ms: 2.585767
+  type: 'test'
+  ...
+# Subtest: AC-7 delete needs the exact job number; job numbers have the J-<year>-<seq> shape
+ok 91 - AC-7 delete needs the exact job number; job numbers have the J-<year>-<seq> shape
+  ---
+  duration_ms: 0.308454
+  type: 'test'
+  ...
+# Subtest: AC-3 totals are informational: labour hours and parts cost with amendments superseding originals
+ok 92 - AC-3 totals are informational: labour hours and parts cost with amendments superseding originals
+  ---
+  duration_ms: 0.421433
+  type: 'test'
+  ...
+# Subtest: AC-4 comparison: greater, lesser, equal within uncertainty, missing and incomparable metrics
+ok 93 - AC-4 comparison: greater, lesser, equal within uncertainty, missing and incomparable metrics
+  ---
+  duration_ms: 7.225612
+  type: 'test'
+  ...
+# Subtest: AC-4 combined uncertainty is root-sum-square and the verdict uses k = 2
+ok 94 - AC-4 combined uncertainty is root-sum-square and the verdict uses k = 2
+  ---
+  duration_ms: 0.27962
+  type: 'test'
+  ...
+# Subtest: AC-4 unknown uncertainty defaults to 5 % of the spec span and is marked assumed
+ok 95 - AC-4 unknown uncertainty defaults to 5 % of the spec span and is marked assumed
+  ---
+  duration_ms: 0.482435
+  type: 'test'
+  ...
+# Subtest: comparison pairs the latest valid value per phase and puts fail -> pass first
+ok 96 - comparison pairs the latest valid value per phase and puts fail -> pass first
+  ---
+  duration_ms: 0.30627
+  type: 'test'
+  ...
+# Subtest: test status headline: fail -> pass first, then pass -> fail
+ok 97 - test status headline: fail -> pass first, then pass -> fail
+  ---
+  duration_ms: 0.311338
+  type: 'test'
+  ...
+# Subtest: partial state: "Compare is incomplete, 3 of 8 metrics have no after value"
+ok 98 - partial state: "Compare is incomplete, 3 of 8 metrics have no after value"
+  ---
+  duration_ms: 0.596046
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes one after-only metric
+ok 99 - comparison completeness includes one after-only metric
+  ---
+  duration_ms: 0.448043
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes several after-only metrics
+ok 100 - comparison completeness includes several after-only metrics
+  ---
+  duration_ms: 0.205128
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes paired and after-only metrics
+ok 101 - comparison completeness includes paired and after-only metrics
+  ---
+  duration_ms: 0.221633
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes one before-only metric
+ok 102 - comparison completeness includes one before-only metric
+  ---
+  duration_ms: 0.099049
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes paired and before-only metrics
+ok 103 - comparison completeness includes paired and before-only metrics
+  ---
+  duration_ms: 0.172319
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes missing values in both phases
+ok 104 - comparison completeness includes missing values in both phases
+  ---
+  duration_ms: 0.21266
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes no observations
+ok 105 - comparison completeness includes no observations
+  ---
+  duration_ms: 0.076675
+  type: 'test'
+  ...
+# Subtest: comparison completeness includes all paired metrics
+ok 106 - comparison completeness includes all paired metrics
+  ---
+  duration_ms: 0.095874
+  type: 'test'
+  ...
+# Subtest: buildComparison reads the job_comparison payload with its method registry (mutual compat)
+ok 107 - buildComparison reads the job_comparison payload with its method registry (mutual compat)
+  ---
+  duration_ms: 0.569937
+  type: 'test'
+  ...
+# Subtest: direction hints come from the device profile pass criteria
+ok 108 - direction hints come from the device profile pass criteria
+  ---
+  duration_ms: 0.199049
+  type: 'test'
+  ...
+# Subtest: stepper: Intake > Before > Work > After > Sheet with done / blocked / current
+ok 109 - stepper: Intake > Before > Work > After > Sheet with done / blocked / current
+  ---
+  duration_ms: 0.670938
+  type: 'test'
+  ...
+# Subtest: privacy helpers: unit names never carry the customer, settings keep only the status filter
+ok 110 - privacy helpers: unit names never carry the customer, settings keep only the status filter
+  ---
+  duration_ms: 0.151137
+  type: 'test'
+  ...
+# Subtest: after-only observations remain on the final job sheet with an incomplete comparison and open After step
+ok 111 - after-only observations remain on the final job sheet with an incomplete comparison and open After step
+  ---
+  duration_ms: 10.852083
+  type: 'test'
+  ...
+# Subtest: AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default
+ok 112 - AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default
+  ---
+  duration_ms: 0.492941
+  type: 'test'
+  ...
+# Subtest: job sheet includes customer details only when "Include customer details" is ticked
+ok 113 - job sheet includes customer details only when "Include customer details" is ticked
+  ---
+  duration_ms: 0.378109
+  type: 'test'
+  ...
+# Subtest: every free-text value is HTML-escaped in the sheet
+ok 114 - every free-text value is HTML-escaped in the sheet
+  ---
+  duration_ms: 0.210266
+  type: 'test'
+  ...
+# Subtest: jobSheet printable kind composes through FS-03 with escaping, title and no customer in the file name
+ok 115 - jobSheet printable kind composes through FS-03 with escaping, title and no customer in the file name
+  ---
+  duration_ms: 0.502075
+  type: 'test'
+  ...
+# Subtest: bridge passes exactly the Rust argument names and turns errors into messages
+ok 116 - bridge passes exactly the Rust argument names and turns errors into messages
+  ---
+  duration_ms: 1.133324
+  type: 'test'
+  ...
+# Subtest: regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key
+ok 117 - regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key
+  ---
+  duration_ms: 0.462756
+  type: 'test'
+  ...
+# Subtest: regression: per-test pass bands from the profile apply to their own test only
+ok 118 - regression: per-test pass bands from the profile apply to their own test only
+  ---
+  duration_ms: 0.354813
+  type: 'test'
+  ...
+# Subtest: regression: job_create sends the local calendar year so the job number matches the opened date the user sees
+ok 119 - regression: job_create sends the local calendar year so the job number matches the opened date the user sees
+  ---
+  duration_ms: 0.15261
+  type: 'test'
+  ...
+# Subtest: regression: fractional part quantities show their real value on the job sheet
+ok 120 - regression: fractional part quantities show their real value on the job sheet
+  ---
+  duration_ms: 0.421103
+  type: 'test'
+  ...
+# Subtest: regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric
+ok 121 - regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric
+  ---
+  duration_ms: 0.334533
+  type: 'test'
+  ...
+# Subtest: regression: a test-less value is not paired when several tests measure the metric, and the row says why
+ok 122 - regression: a test-less value is not paired when several tests measure the metric, and the row says why
+  ---
+  duration_ms: 0.245339
+  type: 'test'
+  ...
+# Subtest: regression: a test with an abs<= or between band never borrows another test's direction
+ok 123 - regression: a test with an abs<= or between band never borrows another test's direction
+  ---
+  duration_ms: 0.308624
+  type: 'test'
+  ...
+1..123
+# tests 123
+# suites 0
+# pass 123
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6073.208288

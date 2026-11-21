@@ -1,0 +1,255 @@
+{
+  "schema": "deckchek.service-comparison-focused-selection.v1",
+  "source_commit": "36e968821fdcd61e2f43de22a09b811384eea8e0",
+  "source_tree": "a5fc965e2f4151705d862e05b89e1cb06b0acdb2",
+  "source_branch": "review/deckchek-service-comparison-functional-20261121",
+  "source_parents": [
+    "34d09f790bea68a6ce5555b60f97d20fd007dbb5"
+  ],
+  "expected_tracked_file_count": 2464,
+  "expected_all_top_level_test_count": 205,
+  "expected_source_map_sha256": "e16668214d8323f344c086b2eef5265a334d4a90851a78f7c40a8af4c22d5163",
+  "expected_node_version": "v24.22.3",
+  "expected_node_binary": {
+    "bytes": 126951512,
+    "sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+    "resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "execution_budget_seconds": 60,
+  "termination_signal_after_seconds": 55,
+  "source_paths": [
+    "tests/crosslinks.test.mjs",
+    "tests/service-intake-lifecycle.test.mjs",
+    "tests/service-panel-lifecycle.test.mjs",
+    "tests/service-pii-leak.test.mjs",
+    "tests/service-screen-lifecycle.test.mjs",
+    "tests/service.test.mjs"
+  ],
+  "expected_sources": {
+    "tests/crosslinks.test.mjs": {
+      "bytes": 12394,
+      "sha256": "089c225f1a4ad19606f56cc9942a216c316db4204f1bb902d1c1196419062253"
+    },
+    "tests/service-intake-lifecycle.test.mjs": {
+      "bytes": 9495,
+      "sha256": "05cc41dd09f9fdc9fa4b3339c4104ea073dc3649407e3b8b7639e0d81150feed"
+    },
+    "tests/service-panel-lifecycle.test.mjs": {
+      "bytes": 19516,
+      "sha256": "d746cccf0b7798f90da862ecd8587c1130a88dffa1422af4e05eb2663a0e02b0"
+    },
+    "tests/service-pii-leak.test.mjs": {
+      "bytes": 5717,
+      "sha256": "48ff40c8f864a3d1fc51a930c1bbd6d56ff5ddfd401a2eb0801b277ee3b33870"
+    },
+    "tests/service-screen-lifecycle.test.mjs": {
+      "bytes": 30274,
+      "sha256": "5f77dde018e951e303fae4dbafc6b110546ae01c975b15e2bd9609af74ac3ae6"
+    },
+    "tests/service.test.mjs": {
+      "bytes": 30086,
+      "sha256": "164d4e14dfdde5e3338904ea5f72190cb6464d09d81d627c49f21ab332a083cc"
+    }
+  },
+  "expected_test_file_count": 6,
+  "test_files": [
+    "tests/crosslinks.test.mjs",
+    "tests/service-intake-lifecycle.test.mjs",
+    "tests/service-panel-lifecycle.test.mjs",
+    "tests/service-pii-leak.test.mjs",
+    "tests/service-screen-lifecycle.test.mjs",
+    "tests/service.test.mjs"
+  ],
+  "expected_case_count": 123,
+  "expected_case_names_by_file": {
+    "tests/crosslinks.test.mjs": [
+      "related links follow the feature flags",
+      "equipment links depend on the product category and hand over the asset",
+      "pre-gig cross fixes: only for problems, only for features that are on, no duplicates",
+      "every settings target the UI can ask for is on the fixed list",
+      "active cartridge: preferred, else most recently used, else first",
+      "stylus card model: wear percent, status and the next alert",
+      "history rows map every feature run onto one shape",
+      "loadFeatureRuns isolates failures and survives a missing backend",
+      "merge and filter the feed by type, newest first",
+      "pre-gig PDF: words not colours, everything escaped",
+      "saved runs carry the real capture span (live) and an approximate one (file)"
+    ],
+    "tests/service-intake-lifecycle.test.mjs": [
+      "customer searches retain the latest result and ignore an older reply",
+      "typing a new customer query invalidates the old request before the debounce starts",
+      "late customer errors do not update feedback after new-customer-mode",
+      "late customer errors do not update feedback after replacement-form",
+      "deferred unit refresh preserves a chosen existing unit and unsaved fields",
+      "deferred unit refresh preserves a chosen new unit and unsaved fields",
+      "a refreshed list never substitutes the preset for a selected unit that disappeared",
+      "a current customer-search failure remains explicit and a later search can recover",
+      "the untouched unit preset remains selected after the initial refresh",
+      "an explicitly cleared unit choice is not reset to the preset",
+      "the preserved new-unit model reaches the actual create payload",
+      "a retired form cannot dispatch a new customer lookup or job creation"
+    ],
+    "tests/service-panel-lifecycle.test.mjs": [
+      "late customer resolve leaves the replacement panel and feedback alone",
+      "late customer reject leaves the replacement panel and feedback alone",
+      "current customer submission reports failure and can be retried",
+      "late job details resolve leaves the replacement panel and feedback alone",
+      "late job details reject leaves the replacement panel and feedback alone",
+      "current job details submission reports failure and can be retried",
+      "a cancelled customer editor cannot reload or toast over the replacement editor",
+      "late saved-run link resolve preserves the current panel and feedback",
+      "late saved-run link reject preserves the current panel and feedback",
+      "current saved-run linking still refreshes and reports the linked phase",
+      "late photo unlink resolve does not reload or announce in another panel",
+      "late photo unlink reject does not reload or announce in another panel",
+      "late photo attach resolve preserves the submitted write and suppresses obsolete feedback",
+      "late photo attach reject preserves the submitted write and suppresses obsolete feedback",
+      "photo success is not announced when a refresh is superseded by navigation",
+      "a submitted photo batch finishes all its attachments after leaving the panel",
+      "current photo attachment success retains its visible feedback and releases the button",
+      "current photo attachment failure retains its visible feedback and releases the button",
+      "HTML export captures the clicked sheet options before asynchronous preparation",
+      "late HTML export resolve completes the submitted save without feedback in another panel",
+      "late HTML export reject completes the submitted save without feedback in another panel",
+      "HTML export preparation abandons a retired panel before opening a save dialog",
+      "current HTML export failure retains a working retry and cancellation stays quiet",
+      "PDF export captures the clicked sheet options and still reports current success",
+      "late PDF export resolve preserves the backend result and current-screen feedback",
+      "late PDF export reject preserves the backend result and current-screen feedback",
+      "a PDF retry offered on a previous panel cannot start another export after navigation",
+      "current PDF failure can retry and callers without ownership callbacks retain feedback"
+    ],
+    "tests/service-pii-leak.test.mjs": [
+      "PII: a job with a new unit puts no customer data into the equipment that the workspace export carries",
+      "PII: the browser diagnostics bundle (settings + runs) carries no customer data, even unredacted",
+      "PII: the printed job sheet and its suggested file name omit the customer unless asked",
+      "PII: no Rust module other than service.rs reads the customer table, and no other JS module calls customer commands"
+    ],
+    "tests/service-screen-lifecycle.test.mjs": [
+      "a late delete resolve preserves a replacement form without obsolete feedback",
+      "a late delete reject preserves a replacement form without obsolete feedback",
+      "deletion cancellation performs no writes and restores focus to its current trigger",
+      "current deletion reports retained customer details separately and still returns to the job list",
+      "already confirmed customer cleanup finishes without interrupting a replacement form",
+      "a delete completed while Service is hidden does not revive the removed job on return",
+      "Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler",
+      "Ctrl+J opens the form and respects a subsequent navigation away from the service screen",
+      "Ctrl+J leaves the feature-disabled and open-dialog cases alone",
+      "a late job resolve after hide/show preserves the new job form and its input",
+      "a late job reject after hide/show preserves the new job form and its input",
+      "a late comparison resolve after hide/show preserves the new job form and its input",
+      "a late comparison reject after hide/show preserves the new job form and its input",
+      "current job loading still renders its comparison and current errors retain Retry",
+      "actual Service After panel announces missing baseline evidence and keeps the comparison step open",
+      "late mixed-phase completeness updates the real Service warning without replacing unsaved status notes",
+      "a late status resolve leaves a replacement new-job form and its feedback alone",
+      "a late work-log resolve cannot reload a job after a new form opens",
+      "a late comparison resolve preserves unsaved work on the current job",
+      "a late status reject leaves a replacement new-job form and its feedback alone",
+      "a late work-log reject cannot reload a job after a new form opens",
+      "a late comparison reject preserves unsaved work on the current job",
+      "current status and work-log writes still reload their job and release the status controls",
+      "a write pending on another job neither blocks the current status write nor releases its busy guard",
+      "hidden Service status resolve stays quiet and keeps its private job view consistent",
+      "hidden Service work-log resolve stays quiet while preserving the submitted change",
+      "hidden Service status reject stays quiet and keeps its private job view consistent",
+      "hidden Service work-log reject stays quiet while preserving the submitted change",
+      "a late comparison updates hidden Service evidence without announcing on another screen",
+      "Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step",
+      "late comparison refreshes the after evidence without replacing its options or status note",
+      "late comparison refreshes the sheet evidence without replacing its options or status note",
+      "a late new-job create resolve preserves a replacement form",
+      "a late new-job create reject preserves a replacement form"
+    ],
+    "tests/service.test.mjs": [
+      "AC-6 transition table is exhaustive (valid and invalid) and matches the Rust table",
+      "AC-7 delete needs the exact job number; job numbers have the J-<year>-<seq> shape",
+      "AC-3 totals are informational: labour hours and parts cost with amendments superseding originals",
+      "AC-4 comparison: greater, lesser, equal within uncertainty, missing and incomparable metrics",
+      "AC-4 combined uncertainty is root-sum-square and the verdict uses k = 2",
+      "AC-4 unknown uncertainty defaults to 5 % of the spec span and is marked assumed",
+      "comparison pairs the latest valid value per phase and puts fail -> pass first",
+      "test status headline: fail -> pass first, then pass -> fail",
+      "partial state: \"Compare is incomplete, 3 of 8 metrics have no after value\"",
+      "comparison completeness includes one after-only metric",
+      "comparison completeness includes several after-only metrics",
+      "comparison completeness includes paired and after-only metrics",
+      "comparison completeness includes one before-only metric",
+      "comparison completeness includes paired and before-only metrics",
+      "comparison completeness includes missing values in both phases",
+      "comparison completeness includes no observations",
+      "comparison completeness includes all paired metrics",
+      "buildComparison reads the job_comparison payload with its method registry (mutual compat)",
+      "direction hints come from the device profile pass criteria",
+      "stepper: Intake > Before > Work > After > Sheet with done / blocked / current",
+      "privacy helpers: unit names never carry the customer, settings keep only the status filter",
+      "after-only observations remain on the final job sheet with an incomplete comparison and open After step",
+      "AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default",
+      "job sheet includes customer details only when \"Include customer details\" is ticked",
+      "every free-text value is HTML-escaped in the sheet",
+      "jobSheet printable kind composes through FS-03 with escaping, title and no customer in the file name",
+      "bridge passes exactly the Rust argument names and turns errors into messages",
+      "regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key",
+      "regression: per-test pass bands from the profile apply to their own test only",
+      "regression: job_create sends the local calendar year so the job number matches the opened date the user sees",
+      "regression: fractional part quantities show their real value on the job sheet",
+      "regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric",
+      "regression: a test-less value is not paired when several tests measure the metric, and the row says why",
+      "regression: a test with an abs<= or between band never borrows another test's direction"
+    ]
+  },
+  "historical_timing_context": {
+    "source_commit": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+    "source_tree": "6e74b72253d94f10b03504ef8e0946d458da8e8f",
+    "tap_path": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-functional/docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+    "tap_bytes": 555767,
+    "tap_sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+    "matched_passed_original_names": 112,
+    "new_cases_without_historical_measurements": 11,
+    "case_durations_by_file": [
+      {
+        "path": "tests/crosslinks.test.mjs",
+        "matched_original_names": 11,
+        "new_names_without_historical_duration": 0,
+        "original_duration_sum_ms": "43.810253",
+        "source_sha256_equal_to_historical": true
+      },
+      {
+        "path": "tests/service-intake-lifecycle.test.mjs",
+        "matched_original_names": 12,
+        "new_names_without_historical_duration": 0,
+        "original_duration_sum_ms": "31.167533",
+        "source_sha256_equal_to_historical": true
+      },
+      {
+        "path": "tests/service-panel-lifecycle.test.mjs",
+        "matched_original_names": 28,
+        "new_names_without_historical_duration": 0,
+        "original_duration_sum_ms": "85.352739",
+        "source_sha256_equal_to_historical": true
+      },
+      {
+        "path": "tests/service-pii-leak.test.mjs",
+        "matched_original_names": 4,
+        "new_names_without_historical_duration": 0,
+        "original_duration_sum_ms": "38.243397",
+        "source_sha256_equal_to_historical": true
+      },
+      {
+        "path": "tests/service-screen-lifecycle.test.mjs",
+        "matched_original_names": 32,
+        "new_names_without_historical_duration": 2,
+        "original_duration_sum_ms": "942.574451",
+        "source_sha256_equal_to_historical": false
+      },
+      {
+        "path": "tests/service.test.mjs",
+        "matched_original_names": 25,
+        "new_names_without_historical_duration": 9,
+        "original_duration_sum_ms": "27.386100",
+        "source_sha256_equal_to_historical": false
+      }
+    ],
+    "scope": "Retained original case-duration evidence only; not a new measurement or a wall-time guarantee. Original full source gate remains failed."
+  }
+}

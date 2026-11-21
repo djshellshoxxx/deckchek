@@ -1,0 +1,13 @@
+[
+  "tests/backup-settings-screen.test.mjs",
+  "tests/backup-ui.test.mjs",
+  "tests/backup.test.mjs",
+  "tests/calibration-storage-screen.test.mjs",
+  "tests/data-workspace-lifecycle.test.mjs",
+  "tests/devices-screen-lifecycle.test.mjs",
+  "tests/features.test.mjs",
+  "tests/native-catalog-archive-ui.test.mjs",
+  "tests/service-screen-lifecycle.test.mjs",
+  "tests/stylus-benchmark-evidence.test.mjs",
+  "tests/support-isolation-ui.test.mjs"
+]

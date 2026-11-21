@@ -1,0 +1,8 @@
+[
+  "tests/crosslinks.test.mjs",
+  "tests/service-intake-lifecycle.test.mjs",
+  "tests/service-panel-lifecycle.test.mjs",
+  "tests/service-pii-leak.test.mjs",
+  "tests/service-screen-lifecycle.test.mjs",
+  "tests/service.test.mjs"
+]

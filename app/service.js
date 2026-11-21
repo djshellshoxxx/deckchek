@@ -264,14 +264,17 @@ export function testStatusChanges(tests = []) {
   return out.sort((x, y) => order(x) - order(y) || x.title.localeCompare(y.title));
 }
 
-/** "Compare is incomplete, 3 of 8 metrics have no after value" (n of m metrics with a before value). */
+/** Presence of both phases across every observed metric; comparability is a separate row verdict. */
 export function comparisonCompleteness(rows = []) {
-  const withBefore = rows.filter(r => r.status !== 'missingBefore');
-  const missing = withBefore.filter(r => r.status === 'missingAfter').length;
-  const total = withBefore.length;
+  const missingBefore = rows.filter(r => r.status === 'missingBefore').length;
+  const missingAfter = rows.filter(r => r.status === 'missingAfter').length;
+  const missing = missingBefore + missingAfter;
+  const total = rows.length;
   const state = !rows.length ? 'empty' : missing ? 'partial' : 'complete';
-  const message = state === 'partial' ? `Compare is incomplete, ${missing} of ${total} metric${total === 1 ? '' : 's'} ${missing === 1 ? 'has' : 'have'} no after value` : state === 'empty' ? 'No before or after values yet.' : `All ${total} metric${total === 1 ? '' : 's'} have before and after values.`;
-  return { state, missing, total, message };
+  const gaps = [[missingBefore, 'before'], [missingAfter, 'after']].filter(([count]) => count)
+    .map(([count, phase]) => `${count} of ${total} metric${total === 1 ? '' : 's'} ${count === 1 ? 'has' : 'have'} no ${phase} value`);
+  const message = state === 'partial' ? `Compare is incomplete, ${gaps.join('; ')}` : state === 'empty' ? 'No before or after values yet.' : `All ${total} metric${total === 1 ? '' : 's'} have before and after values.`;
+  return { state, missing, total, missingBefore, missingAfter, message };
 }
 
 /** Full comparison from the job_comparison payload: rows, test headline, completeness. */

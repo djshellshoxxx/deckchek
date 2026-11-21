@@ -1,0 +1,35 @@
+{
+  "schema": "deckchek.player-audio-export-held-publication.v1",
+  "verified_at_utc": "2026-11-21T11:50:39.839983+00:00",
+  "original_integration_commit": "754ccec53400fc0468d368110daaec2115aa69dc",
+  "local_publication_commit": "21d9a3d19e475d0cbfaeed5f2047df5bae04d951",
+  "published_commit": "f262a715d5cc9618285f4fe2d89b8dde2fc0fe9b",
+  "complete_tree": "6d7085cd07c24ffe1b23343f0ce4250dfe7d4daa",
+  "ordered_parents": [
+    "e7fca004fa43361018eea7683265bad07260c03d"
+  ],
+  "fetched_published_object": true,
+  "whole_tree_equality_verified": true,
+  "zero_file_differences_verified": true,
+  "published_parent_ancestry_verified": true,
+  "app_test_tool_native_mobile_ci_bytes_match_reviewed_source": true,
+  "reviewed_source": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "original_history_bundle_bytes": 533594,
+  "original_history_bundle_sha256": "d12d9700e853cb409cc9f6b548a65a2587e6d06b4ad5f58bc3d8735005a748f7",
+  "original_history_prerequisites": 19,
+  "all_bundle_prerequisites_available_from_parent": true,
+  "intended_branch": "checkpoint/deckchek-player-audio-export-held-20261121",
+  "branch_created": true,
+  "exact_ref_readback_verified": true,
+  "first_focused_outcome": {
+    "total": 111,
+    "pass": 111,
+    "fail": 0,
+    "skip": 0
+  },
+  "full_source_qualification": "HELD: preceding full gate retained case53 final relative gain -101 dB at -30 dBFS; no cause or repair",
+  "no_qualified_main_merge_release_or_deployment": true,
+  "exact_ref": "refs/heads/checkpoint/deckchek-player-audio-export-held-20261121",
+  "ref_readback_commit": "f262a715d5cc9618285f4fe2d89b8dde2fc0fe9b",
+  "ref_verified_at_utc": "2026-11-21T11:51:09.128128+00:00"
+}

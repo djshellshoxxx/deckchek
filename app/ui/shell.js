@@ -9,6 +9,7 @@ import { setInputDevices } from './pair-picker.js';
 import { createStereoMeter, clearAllClips, refreshMeterThemes } from './meters.js';
 import { announce, toast, cancelPendingAnnouncements } from './live.js';
 import { isEnabled, onFeatureChange } from '../features.js';
+import { restoreReloadRequired } from '../restore-session.js';
 
 const screens = new Map();   // id -> {def, section, api}
 let order = [];
@@ -69,6 +70,7 @@ export function registerScreens(defs) {
 }
 
 export function go(id, { focus = false } = {}) {
+  if (restoreReloadRequired()) return;
   let entry = screens.get(id);
   if (!entry || !featureOn(entry.def)) entry = screens.get(visibleIds()[0]);
   if (!entry) return;

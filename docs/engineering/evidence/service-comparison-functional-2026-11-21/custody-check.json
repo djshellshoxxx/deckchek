@@ -1,0 +1,58 @@
+{
+  "schema": "deckchek.service-comparison-functional-custody.v1",
+  "verification_mode": "Independent Python standard-library data inspection; no project execution or import",
+  "verified_at_utc": "2026-11-21T12:57:52.511384+00:00",
+  "source_commit": "36e968821fdcd61e2f43de22a09b811384eea8e0",
+  "source_tree": "a5fc965e2f4151705d862e05b89e1cb06b0acdb2",
+  "source_parents": [
+    "34d09f790bea68a6ce5555b60f97d20fd007dbb5"
+  ],
+  "source_worktree": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-functional",
+  "source_branch": "review/deckchek-service-comparison-functional-20261121",
+  "tracked_paths": 2464,
+  "distinct_blobs": 2229,
+  "summed_tracked_bytes": 81828656,
+  "top_level_test_files": 205,
+  "canonical_source_map_sha256": "e16668214d8323f344c086b2eef5265a334d4a90851a78f7c40a8af4c22d5163",
+  "full_source_before_after_and_frozen_git_equal": true,
+  "immutable_blob_sha1_and_working_bytes_modes_independently_verified": true,
+  "working_checkout_clean_before_packaging": true,
+  "all_source_and_test_inventories_equal": true,
+  "controls_equal_originals_and_authorized_hashes": true,
+  "runtime_binary_and_original_identity_streams_verified": true,
+  "original_result_exit_code": 0,
+  "original_recorder_exit_code": 0,
+  "project_elapsed_seconds": 6.1885116869998456,
+  "no_timeout_signals_or_recorder_postflight_error": true,
+  "original_tap_counts": {
+    "tests": 123,
+    "suites": 0,
+    "pass": 123,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "original_tap_plan": "1..123",
+  "ordered_case_names_numbers_outcomes_subtests_match_source_inventory": true,
+  "expected_case_counts_by_file": {
+    "tests/crosslinks.test.mjs": 11,
+    "tests/service-intake-lifecycle.test.mjs": 12,
+    "tests/service-panel-lifecycle.test.mjs": 28,
+    "tests/service-pii-leak.test.mjs": 4,
+    "tests/service-screen-lifecycle.test.mjs": 34,
+    "tests/service.test.mjs": 34
+  },
+  "original_artifact_count": 24,
+  "all_original_copies_byte_equal": true,
+  "authorized_launcher_argv": [
+    "python3",
+    "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-recorder.py",
+    "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-selection.json"
+  ],
+  "authorized_launcher_cwd": "/workspace/scratch/6f2247f2f463",
+  "authorized_bash_login": false,
+  "authorization": "Root explicitly authorized the exact first command after reading every control line and all three preliminary ACCEPTs; includes only two fixed 10-second Node identity calls and one fixed six-file serial 123-case project argv, TERM at 55s/KILL at 60s. No rerun or expanded execution.",
+  "original_artifacts_directory": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-raw",
+  "retained_focused_directory": "docs/engineering/evidence/service-comparison-functional-2026-11-21/focused"
+}

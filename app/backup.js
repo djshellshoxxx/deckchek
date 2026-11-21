@@ -104,13 +104,19 @@ export function describeBackup(inspect) {
   return { canRestore: true, title: m.kind === 'manual' ? 'Backup' : 'Automatic backup', lines, error: null };
 }
 
-/** Success message after `backup_restore` (FS-08 AC-4/AC-5). */
-export function describeRestoreResult(r) {
-  const parts = ['Restore complete.'];
+/** Native restore plus the optional webview application outcome (FS-08 AC-4/AC-5). */
+export function describeRestoreResult(r, localSettings = null) {
+  const complete = localSettings?.complete !== false;
+  const parts = [complete ? 'Restore complete.' : 'Database restored.'];
   if (Number.isInteger(r?.upgradedFrom)) parts.push(`Upgraded from schema v${r.upgradedFrom} to v${r.schemaVersion}.`);
   if (r?.safetyBackup) parts.push('Your previous data was saved as a safety backup first.');
   for (const w of r?.warnings || []) parts.push(w);
-  parts.push('DeckChek will reload now.');
+  if (localSettings?.settingsStatus === 'unavailable') parts.push('App settings could not be saved to browser storage.');
+  if (localSettings?.settingsStatus === 'invalid') parts.push('App settings in the backup could not be applied.');
+  if (localSettings?.calibrationStatus === 'unavailable') parts.push('Calibration profiles could not be saved to browser storage.');
+  if (localSettings?.calibrationStatus === 'invalid') parts.push('Calibration profiles in the backup could not be applied.');
+  if (localSettings?.skipped) parts.push(`${localSettings.skipped} calibration profile(s) could not be restored.`);
+  parts.push(complete ? 'DeckChek will reload now.' : 'Review these results before reloading.');
   return parts.join(' ');
 }
 

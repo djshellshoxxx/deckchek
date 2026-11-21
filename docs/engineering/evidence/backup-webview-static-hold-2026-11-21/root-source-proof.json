@@ -1,0 +1,55 @@
+{
+  "freeze": "d0b8992ce326e88bfe46d6135859744f83223527",
+  "tree": "8b14b4df9b84b2c6595e2d56c3a61f96448ab109",
+  "execution": "none; static HOLD",
+  "lanes": [
+    {
+      "lane": "code",
+      "head": "f0d1801ad8be6d4b8c91da0fd4f584dac282e812",
+      "tree": "63108509ce7ab649f9c74f0e441194d735c076a4",
+      "parent": "d0b8992ce326e88bfe46d6135859744f83223527",
+      "report": "docs/engineering/BACKUP_SETTINGS_WEBVIEW_CODE_AUDIT_2026-11-21.md",
+      "bytes": 11101,
+      "sha256": "0a4650f545d239d3717f4cdfc722b0a35ccfc06c526fee69c942feaf57fdcf45",
+      "source_paths": 2458,
+      "source_blobs": 2223,
+      "source_bytes": 81771329,
+      "source_identity_sha256": "77ac0fbd7cd5440de56b8280b8626bb4f68b308b0d7b02dc1623b279451ad758",
+      "tests": 205,
+      "clean": true,
+      "owned_only": true
+    },
+    {
+      "lane": "functional",
+      "head": "02a5c8992907d84269813dbdac9cccd3246b20e1",
+      "tree": "109cab1bbeb7a25d89e374d87d1bd7c2f6c3552b",
+      "parent": "d0b8992ce326e88bfe46d6135859744f83223527",
+      "report": "docs/engineering/BACKUP_SETTINGS_WEBVIEW_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "bytes": 14492,
+      "sha256": "c2232a728e6997830e803b8b03128f08a041d591f2b5aa64cd1ea7ecb7631106",
+      "source_paths": 2458,
+      "source_blobs": 2223,
+      "source_bytes": 81771329,
+      "source_identity_sha256": "77ac0fbd7cd5440de56b8280b8626bb4f68b308b0d7b02dc1623b279451ad758",
+      "tests": 205,
+      "clean": true,
+      "owned_only": true
+    },
+    {
+      "lane": "security",
+      "head": "68cb875dc4486925a572ab35a4d9b1849fdfcdf7",
+      "tree": "fc95328ec22d881a68e5e8c0bc472cf872e8eb5a",
+      "parent": "d0b8992ce326e88bfe46d6135859744f83223527",
+      "report": "docs/engineering/BACKUP_SETTINGS_WEBVIEW_SECURITY_AUDIT_2026-11-21.md",
+      "bytes": 10865,
+      "sha256": "ce75442d5e5c734f0e4eec3824a2c9209da845eaff1ccfc32ce4780608773136",
+      "source_paths": 2458,
+      "source_blobs": 2223,
+      "source_bytes": 81771329,
+      "source_identity_sha256": "77ac0fbd7cd5440de56b8280b8626bb4f68b308b0d7b02dc1623b279451ad758",
+      "tests": 205,
+      "clean": true,
+      "owned_only": true
+    }
+  ]
+}

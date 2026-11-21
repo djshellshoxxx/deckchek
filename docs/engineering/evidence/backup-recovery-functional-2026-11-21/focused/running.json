@@ -1,0 +1,191 @@
+{
+  "schema": "deckchek.backup-recovery-focused-gate.v1",
+  "source_commit": "f43b940f142ff54fdaf24c0d1feece4ca6dd957b",
+  "source_tree": "d62283dfcc7d08e90d94d63e29afce77db67f566",
+  "source_branch": "review/deckchek-backup-recovery-functional-20261121",
+  "source_parents": [
+    "b4e5b65e7c87d68b9c21e1fb552b33ced1fae866"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-functional",
+  "driver_original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-recorder.py",
+  "config_original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-selection.json",
+  "output_original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw",
+  "driver_sha256": "696c38012b4960bbbf007759ccc752098494eea1aab82c384576bc7784e38e03",
+  "config_sha256": "2bcfdba95031ce419316a95ca260cd299a788e6e9ec6f8a39a2fbbbcdff92421",
+  "python_version": "3.12.14",
+  "python_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "recorder_started_at_utc": "2026-11-21T13:21:00.574213+00:00",
+  "runtime_identity_calls": [
+    {
+      "label": "node-version",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.0066445289994589984,
+      "stdout_bytes": 9,
+      "stdout_sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "node-runtime",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.08521182000185945,
+      "stdout_bytes": 782,
+      "stdout_sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "project_command_started": false,
+  "exit_code": null,
+  "timed_out": false,
+  "termination_events": [],
+  "execution_budget_seconds": 120,
+  "termination_signal_after_seconds": 115,
+  "termination_grace_seconds": 5,
+  "scope": "One explicit eleven-file focused serial TAP selection, 193 source-derived cases. Original cumulative backup/recovery production modules and actual Data, Calibration, shell and Devices DOM/native-IPC seams; strict state and feature consumers, workspace, native-catalog archive, Service and support isolation, plus the unchanged synthetic stylus evidence consumer. No full suite, build/verifier, browser/native app launch, physical-audio collector, scanner/probe, extracted implementation, separate project command, rerun or additional instrumentation.",
+  "source_state_before": {
+    "branch": "review/deckchek-backup-recovery-functional-20261121",
+    "commit": "f43b940f142ff54fdaf24c0d1feece4ca6dd957b",
+    "tree": "d62283dfcc7d08e90d94d63e29afce77db67f566",
+    "parents": [
+      "b4e5b65e7c87d68b9c21e1fb552b33ced1fae866"
+    ],
+    "status": ""
+  },
+  "forbidden_environment_variable_names": [],
+  "full_source_map_sha256_before": "f74d42051dd3e2a2260ab9b132bfd2ca9a4016fcf50c2a33e46c7f466254b0ad",
+  "immutable_distinct_blob_count": 2253,
+  "summed_tracked_bytes": 84670899,
+  "source_working_bytes_modes_verified_before": true,
+  "tracked_file_count": 2499,
+  "all_top_level_test_file_count": 205,
+  "status_before": "",
+  "selected_source_identities_before": {
+    "tests/backup-settings-screen.test.mjs": {
+      "bytes": 19926,
+      "sha256": "52d347790d91c73e7e6e35efc459061c23e70e1aa7ee77c096763c3e8b13c2d2"
+    },
+    "tests/backup-ui.test.mjs": {
+      "bytes": 15837,
+      "sha256": "989e2667dfa928f73fe1ff5950935778d80b21cf0410ff44d747352831f0396a"
+    },
+    "tests/backup.test.mjs": {
+      "bytes": 10641,
+      "sha256": "9730ed91a99ec437637cfcd27ac6c2d2968011be49bb5353a63aed8bdaa7c61d"
+    },
+    "tests/calibration-storage-screen.test.mjs": {
+      "bytes": 4630,
+      "sha256": "effdcac98985d02d46a0a2bfca8dd8dc95c6527ec47d1a3747fbe71e0cfd14f6"
+    },
+    "tests/data-workspace-lifecycle.test.mjs": {
+      "bytes": 7982,
+      "sha256": "9e69a4308925165a683660963ffee01d8d93eb7f437e4c643fe0651bf54939d1"
+    },
+    "tests/devices-screen-lifecycle.test.mjs": {
+      "bytes": 16432,
+      "sha256": "5d0c97587016057d012df34256b4c74084c86e340c29b01718a0a3e35fe1f73f"
+    },
+    "tests/features.test.mjs": {
+      "bytes": 7747,
+      "sha256": "c77f5c36e4d2bbfb5c28c7b9f2ef850cf68fda35d563cccc0c97669e43c77b81"
+    },
+    "tests/native-catalog-archive-ui.test.mjs": {
+      "bytes": 32317,
+      "sha256": "d52b039c69c61dfe11b635a6441f4ff017dcecdba132d52383919db8bfa2b543"
+    },
+    "tests/service-screen-lifecycle.test.mjs": {
+      "bytes": 30274,
+      "sha256": "5f77dde018e951e303fae4dbafc6b110546ae01c975b15e2bd9609af74ac3ae6"
+    },
+    "tests/stylus-benchmark-evidence.test.mjs": {
+      "bytes": 35004,
+      "sha256": "e2e7f8d22b271fec5790cf619901eb8f59f602eb2e679a8995f2446ff6dbe36c"
+    },
+    "tests/support-isolation-ui.test.mjs": {
+      "bytes": 14061,
+      "sha256": "7650e5384b8a633fcd041662658ec1e8056fffd56f53016879e72224fc8b4127"
+    }
+  },
+  "test_file_count": 11,
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "optional_external_corpus_present": false,
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "node_executable_bytes": 126951512,
+  "node_executable_sha256_before": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "node_resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ]
+  },
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/backup-settings-screen.test.mjs",
+    "tests/backup-ui.test.mjs",
+    "tests/backup.test.mjs",
+    "tests/calibration-storage-screen.test.mjs",
+    "tests/data-workspace-lifecycle.test.mjs",
+    "tests/devices-screen-lifecycle.test.mjs",
+    "tests/features.test.mjs",
+    "tests/native-catalog-archive-ui.test.mjs",
+    "tests/service-screen-lifecycle.test.mjs",
+    "tests/stylus-benchmark-evidence.test.mjs",
+    "tests/support-isolation-ui.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T13:21:05.508056+00:00"
+}

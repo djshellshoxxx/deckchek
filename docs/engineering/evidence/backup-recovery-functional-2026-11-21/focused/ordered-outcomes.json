@@ -1,0 +1,967 @@
+[
+  {
+    "outcome": "ok",
+    "number": 1,
+    "name": "actual Data backup refuses an unavailable calibration snapshot before native dispatch"
+  },
+  {
+    "outcome": "ok",
+    "number": 2,
+    "name": "actual restore confirmation refuses an unavailable safety snapshot without dispatching the database restore"
+  },
+  {
+    "outcome": "ok",
+    "number": 3,
+    "name": "successful actual Data restore updates live settings and empty calibration before delayed reload"
+  },
+  {
+    "outcome": "ok",
+    "number": 4,
+    "name": "failed local UI application stays visible and Retry does not repeat the committed native restore"
+  },
+  {
+    "outcome": "ok",
+    "number": 5,
+    "name": "failed calibration application preserves successful UI and requires explicit reload"
+  },
+  {
+    "outcome": "ok",
+    "number": 6,
+    "name": "a committed partial restore keeps global recovery when Data is hidden and its restored feature is disabled"
+  },
+  {
+    "outcome": "ok",
+    "number": 7,
+    "name": "a committed partial restore keeps global recovery when Data is disposed and its restored feature is disabled"
+  },
+  {
+    "outcome": "ok",
+    "number": 8,
+    "name": "global local-settings retry survives hidden Data and the restored disabled backup flag"
+  },
+  {
+    "outcome": "ok",
+    "number": 9,
+    "name": "a partly accepted calibration map is visibly partial and does not auto-reload"
+  },
+  {
+    "outcome": "ok",
+    "number": 10,
+    "name": "database-only restore leaves absent local parts unchanged and retains normal completion"
+  },
+  {
+    "outcome": "ok",
+    "number": 11,
+    "name": "the actual restore confirmation distinguishes database failure and leaves the original session usable"
+  },
+  {
+    "outcome": "ok",
+    "number": 12,
+    "name": "the real cached Devices unit selector cannot overwrite restored preferences before reload"
+  },
+  {
+    "outcome": "ok",
+    "number": 13,
+    "name": "failed reload remains recoverable and a later manual reload owns the pending automatic attempt"
+  },
+  {
+    "outcome": "ok",
+    "number": 14,
+    "name": "capture_running gets a friendly message that says nothing changed"
+  },
+  {
+    "outcome": "ok",
+    "number": 15,
+    "name": "other errors pass the Rust message through; odd values fall back"
+  },
+  {
+    "outcome": "ok",
+    "number": 16,
+    "name": "replacement lines name what is replaced and the backup counts"
+  },
+  {
+    "outcome": "ok",
+    "number": 17,
+    "name": "sanitizeUiSettings accepts objects, strips prototype keys, rejects the rest"
+  },
+  {
+    "outcome": "ok",
+    "number": 18,
+    "name": "sanitizeCalibrationMap keeps valid profiles and counts the rest as skipped"
+  },
+  {
+    "outcome": "ok",
+    "number": 19,
+    "name": "importSettingsBlob round-trips with exportSettingsBlob and leaves absent parts alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 20,
+    "name": "backup snapshots detach nested device settings and bound feature changes"
+  },
+  {
+    "outcome": "ok",
+    "number": 21,
+    "name": "backup capture distinguishes observed empty calibration from unavailable storage"
+  },
+  {
+    "outcome": "ok",
+    "number": 22,
+    "name": "invalid calibration storage is rejected without replacing it with an empty snapshot"
+  },
+  {
+    "outcome": "ok",
+    "number": 23,
+    "name": "UI snapshots reject values JSON would silently lose and do not call accessors"
+  },
+  {
+    "outcome": "ok",
+    "number": 24,
+    "name": "UI and profile limits count UTF-8 bytes and accept the exact boundary"
+  },
+  {
+    "outcome": "ok",
+    "number": 25,
+    "name": "restore replaces the bound live object before any observer and later UI writes preserve it"
+  },
+  {
+    "outcome": "ok",
+    "number": 26,
+    "name": "empty calibration restore notifies once while absent and wholly invalid parts stay untouched"
+  },
+  {
+    "outcome": "ok",
+    "number": 27,
+    "name": "mixed calibration restore explicitly reports partial application"
+  },
+  {
+    "outcome": "ok",
+    "number": 28,
+    "name": "restore distinguishes each failed storage write from absence and keeps failed live UI unchanged"
+  },
+  {
+    "outcome": "ok",
+    "number": 29,
+    "name": "profile writes commit before notification and report an intentional empty registry after deletion"
+  },
+  {
+    "outcome": "ok",
+    "number": 30,
+    "name": "profile save and delete never overwrite unavailable or invalid storage and emit no success"
+  },
+  {
+    "outcome": "ok",
+    "number": 31,
+    "name": "suggested name is DeckChek-backup-YYYYMMDD-HHmm in local time"
+  },
+  {
+    "outcome": "ok",
+    "number": 32,
+    "name": "the shared manifest contract validates"
+  },
+  {
+    "outcome": "ok",
+    "number": 33,
+    "name": "manifest shape errors are reported"
+  },
+  {
+    "outcome": "ok",
+    "number": 34,
+    "name": "describeBackup previews valid, upgradeable and refused files"
+  },
+  {
+    "outcome": "ok",
+    "number": 35,
+    "name": "restore result message reports upgrades and the safety backup"
+  },
+  {
+    "outcome": "ok",
+    "number": 36,
+    "name": "progress percent is clamped and safe on bad payloads"
+  },
+  {
+    "outcome": "ok",
+    "number": 37,
+    "name": "formatBytes"
+  },
+  {
+    "outcome": "ok",
+    "number": 38,
+    "name": "workspace payload maps runs through toPersistRun and drops duplicates"
+  },
+  {
+    "outcome": "ok",
+    "number": 39,
+    "name": "retention plan keeps the newest N automatic backups and every manual one"
+  },
+  {
+    "outcome": "ok",
+    "number": 40,
+    "name": "schedule validation matches the Rust limits"
+  },
+  {
+    "outcome": "ok",
+    "number": 41,
+    "name": "native bridge passes exactly the Rust command and argument names"
+  },
+  {
+    "outcome": "ok",
+    "number": 42,
+    "name": "browser mode reports unsupported"
+  },
+  {
+    "outcome": "ok",
+    "number": 43,
+    "name": "actual calibration Save reports a storage failure and permits a later successful save"
+  },
+  {
+    "outcome": "ok",
+    "number": 44,
+    "name": "actual calibration Delete keeps the profile and reports failure until storage accepts the deletion"
+  },
+  {
+    "outcome": "ok",
+    "number": 45,
+    "name": "browser workspace success releases its lease and reports committed data"
+  },
+  {
+    "outcome": "ok",
+    "number": 46,
+    "name": "browser workspace import exposes busy controls and allows only one chooser"
+  },
+  {
+    "outcome": "ok",
+    "number": 47,
+    "name": "browser workspace mirroring retains ownership and blocks overlapping imports"
+  },
+  {
+    "outcome": "ok",
+    "number": 48,
+    "name": "mirror resolve after Data hide/show preserves submitted data without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 49,
+    "name": "mirror reject after Data hide/show preserves submitted data without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 50,
+    "name": "old Data file read resolve cannot commit or report after hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 51,
+    "name": "old Data file read reject cannot commit or report after hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 52,
+    "name": "browser workspace chooser retires on hide and ignores later events"
+  },
+  {
+    "outcome": "ok",
+    "number": 53,
+    "name": "browser workspace chooser retires on dispose and ignores later events"
+  },
+  {
+    "outcome": "ok",
+    "number": 54,
+    "name": "a current Devices show refreshes the library and displays its guide"
+  },
+  {
+    "outcome": "ok",
+    "number": 55,
+    "name": "leaving Devices while the library loads prevents a second refresh and late inspector updates"
+  },
+  {
+    "outcome": "ok",
+    "number": 56,
+    "name": "a Devices asset read cannot update the library or inspector after leaving"
+  },
+  {
+    "outcome": "ok",
+    "number": 57,
+    "name": "a Devices result read cannot replace a newer show or its current assignment form"
+  },
+  {
+    "outcome": "ok",
+    "number": 58,
+    "name": "overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last"
+  },
+  {
+    "outcome": "ok",
+    "number": 59,
+    "name": "a handoff survives a retired Devices show and is consumed once by the current show"
+  },
+  {
+    "outcome": "ok",
+    "number": 60,
+    "name": "a newer Devices handoff wins when shows overlap"
+  },
+  {
+    "outcome": "ok",
+    "number": 61,
+    "name": "a rejected retired assets read cannot clear the current Devices cache"
+  },
+  {
+    "outcome": "ok",
+    "number": 62,
+    "name": "a rejected retired results read cannot clear the current Devices cache"
+  },
+  {
+    "outcome": "ok",
+    "number": 63,
+    "name": "default refresh callers retain successful reads and empty-cache failure behavior"
+  },
+  {
+    "outcome": "ok",
+    "number": 64,
+    "name": "an older default assets response cannot replace a newer complete library snapshot"
+  },
+  {
+    "outcome": "ok",
+    "number": 65,
+    "name": "an older default assets failure cannot replace a newer complete library snapshot"
+  },
+  {
+    "outcome": "ok",
+    "number": 66,
+    "name": "an older default results response cannot replace a newer complete library snapshot"
+  },
+  {
+    "outcome": "ok",
+    "number": 67,
+    "name": "an older default results failure cannot replace a newer complete library snapshot"
+  },
+  {
+    "outcome": "ok",
+    "number": 68,
+    "name": "a retired newer view read does not discard a still-current default refresh"
+  },
+  {
+    "outcome": "ok",
+    "number": 69,
+    "name": "a catalog refresh response from an earlier Devices visit preserves the current assignment form"
+  },
+  {
+    "outcome": "ok",
+    "number": 70,
+    "name": "a catalog refresh failure from an earlier Devices visit preserves the current assignment form"
+  },
+  {
+    "outcome": "ok",
+    "number": 71,
+    "name": "a catalog refresh started before opening an assignment updates the cache without discarding that form"
+  },
+  {
+    "outcome": "ok",
+    "number": 72,
+    "name": "a catalog refresh updates an unchanged current Devices view"
+  },
+  {
+    "outcome": "ok",
+    "number": 73,
+    "name": "the latest overlapping catalog event redraws after an earlier refresh completes first"
+  },
+  {
+    "outcome": "ok",
+    "number": 74,
+    "name": "a removed Devices screen does not start a catalog refresh"
+  },
+  {
+    "outcome": "ok",
+    "number": 75,
+    "name": "a connected hidden Devices screen refreshes shared catalog data without changing the active view"
+  },
+  {
+    "outcome": "ok",
+    "number": 76,
+    "name": "registry lists every FS-00 \u00a74.14 flag with metadata"
+  },
+  {
+    "outcome": "ok",
+    "number": 77,
+    "name": "every features.* flag mentioned in docs/specs exists in FEATURES"
+  },
+  {
+    "outcome": "ok",
+    "number": 78,
+    "name": "defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off"
+  },
+  {
+    "outcome": "ok",
+    "number": 79,
+    "name": "setEnabled persists in deckchek.ui.v1.features and keeps other settings"
+  },
+  {
+    "outcome": "ok",
+    "number": 80,
+    "name": "corrupt or unavailable storage falls back to defaults"
+  },
+  {
+    "outcome": "ok",
+    "number": 81,
+    "name": "bound settings object is kept in sync so later settings writes do not clobber flags"
+  },
+  {
+    "outcome": "ok",
+    "number": 82,
+    "name": "change listeners fire and can be removed"
+  },
+  {
+    "outcome": "ok",
+    "number": 83,
+    "name": "resetFeatures drops every override and notifies listeners"
+  },
+  {
+    "outcome": "ok",
+    "number": 84,
+    "name": "fleet stays wired for manual opt-in and defaults off pending owner qualification"
+  },
+  {
+    "outcome": "ok",
+    "number": 85,
+    "name": "fleet honors explicit true and false overrides from storage and bound settings"
+  },
+  {
+    "outcome": "ok",
+    "number": 86,
+    "name": "fleet can switch on and off, persist opt-in, and notify listeners"
+  },
+  {
+    "outcome": "ok",
+    "number": 87,
+    "name": "M7 and M8 flags stay default off while wired adapters remain available"
+  },
+  {
+    "outcome": "ok",
+    "number": 88,
+    "name": "actual native Data screen retains full backup, restore and workspace entrypoints"
+  },
+  {
+    "outcome": "ok",
+    "number": 89,
+    "name": "actual native Data screen exposes selected setup export and explicit native catalog import"
+  },
+  {
+    "outcome": "ok",
+    "number": 90,
+    "name": "actual browser Data screen retains its browser catalog and history files"
+  },
+  {
+    "outcome": "ok",
+    "number": 91,
+    "name": "actual setup controls require explicit selection and export exact raw text without JSON number conversion"
+  },
+  {
+    "outcome": "ok",
+    "number": 92,
+    "name": "actual file controls preview without writes, escape filenames, explicitly import and retry exact saved data"
+  },
+  {
+    "outcome": "ok",
+    "number": 93,
+    "name": "preview separates matching dependencies and both local/source timestamp values from exact matches"
+  },
+  {
+    "outcome": "ok",
+    "number": 94,
+    "name": "a conflicting native preview disables import and refuses a synthetic disabled-button event"
+  },
+  {
+    "outcome": "ok",
+    "number": 95,
+    "name": "stale file reads and preview replies cannot replace a later selected file"
+  },
+  {
+    "outcome": "ok",
+    "number": 96,
+    "name": "repeated onShow preserves both pending file-read and preview owners"
+  },
+  {
+    "outcome": "ok",
+    "number": 97,
+    "name": "real hide and disposal retire pending byte reads without late rendering or import eligibility"
+  },
+  {
+    "outcome": "ok",
+    "number": 98,
+    "name": "a preview resumed after hide is revalidated against the destination and ignores its older result"
+  },
+  {
+    "outcome": "ok",
+    "number": 99,
+    "name": "dispatched import owns its copied text through duplicate presses, hide, replacement attempts and lost acknowledgement"
+  },
+  {
+    "outcome": "ok",
+    "number": 100,
+    "name": "a retired retry button cannot import a later or replaced file"
+  },
+  {
+    "outcome": "ok",
+    "number": 101,
+    "name": "a retained preview retry button cannot launch duplicate previews or replace a successful import"
+  },
+  {
+    "outcome": "ok",
+    "number": 102,
+    "name": "hidden import completion is shown on return and disposed completion cannot render"
+  },
+  {
+    "outcome": "ok",
+    "number": 103,
+    "name": "delayed exports remain bound to their selection and do not download after hide or disposal"
+  },
+  {
+    "outcome": "ok",
+    "number": 104,
+    "name": "selected-setup export cannot interrupt an unfinished file byte read"
+  },
+  {
+    "outcome": "ok",
+    "number": 105,
+    "name": "selected-setup export cannot interrupt a pending native preview"
+  },
+  {
+    "outcome": "ok",
+    "number": 106,
+    "name": "a preview paused by hide resumes when a retired export finishes after show"
+  },
+  {
+    "outcome": "ok",
+    "number": 107,
+    "name": "file reads enforce both declared and actual size, reject invalid UTF-8 and retain a legitimate replacement character"
+  },
+  {
+    "outcome": "ok",
+    "number": 108,
+    "name": "an import-time conflict replaces the preview and cannot be presented as successful or blindly retried"
+  },
+  {
+    "outcome": "ok",
+    "number": 109,
+    "name": "native import owns the Data busy state and stale backup, restore, workspace and schedule buttons cannot dispatch"
+  },
+  {
+    "outcome": "ok",
+    "number": 110,
+    "name": "an existing backup dialog owns Data and retires eligible native previews until it finishes"
+  },
+  {
+    "outcome": "ok",
+    "number": 111,
+    "name": "pending backup execution retains Data ownership through hide/show and releases after failure"
+  },
+  {
+    "outcome": "ok",
+    "number": 112,
+    "name": "old backup and restore file choosers cannot dispatch after a real hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 113,
+    "name": "an old workspace byte read cannot open confirmation or import after hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 114,
+    "name": "an old restore inspection cannot reopen its confirmation after hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 115,
+    "name": "restore confirmation and an already dispatched restore retain busy ownership after the dialog is retired"
+  },
+  {
+    "outcome": "ok",
+    "number": 116,
+    "name": "stale setup-list responses cannot restore a removed selection or overwrite a newer list"
+  },
+  {
+    "outcome": "ok",
+    "number": 117,
+    "name": "export failures produce no partial download and disposed setup lists never render"
+  },
+  {
+    "outcome": "ok",
+    "number": 118,
+    "name": "workspace chooser cancellation releases only its Data owner"
+  },
+  {
+    "outcome": "ok",
+    "number": 119,
+    "name": "workspace chooser cancellation releases only its Data owner before hide/show"
+  },
+  {
+    "outcome": "ok",
+    "number": 120,
+    "name": "hiding an undispatched workspace chooser retires it and stale events cannot release a later import owner"
+  },
+  {
+    "outcome": "ok",
+    "number": 121,
+    "name": "disposing an undispatched workspace chooser removes it and late selection cannot import or render"
+  },
+  {
+    "outcome": "ok",
+    "number": 122,
+    "name": "a dispatched workspace import keeps Data ownership through hide/show until success"
+  },
+  {
+    "outcome": "ok",
+    "number": 123,
+    "name": "a dispatched workspace import keeps Data ownership through hide/show until failure"
+  },
+  {
+    "outcome": "ok",
+    "number": 124,
+    "name": "a late delete resolve preserves a replacement form without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 125,
+    "name": "a late delete reject preserves a replacement form without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 126,
+    "name": "deletion cancellation performs no writes and restores focus to its current trigger"
+  },
+  {
+    "outcome": "ok",
+    "number": 127,
+    "name": "current deletion reports retained customer details separately and still returns to the job list"
+  },
+  {
+    "outcome": "ok",
+    "number": 128,
+    "name": "already confirmed customer cleanup finishes without interrupting a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 129,
+    "name": "a delete completed while Service is hidden does not revive the removed job on return"
+  },
+  {
+    "outcome": "ok",
+    "number": 130,
+    "name": "Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler"
+  },
+  {
+    "outcome": "ok",
+    "number": 131,
+    "name": "Ctrl+J opens the form and respects a subsequent navigation away from the service screen"
+  },
+  {
+    "outcome": "ok",
+    "number": 132,
+    "name": "Ctrl+J leaves the feature-disabled and open-dialog cases alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 133,
+    "name": "a late job resolve after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 134,
+    "name": "a late job reject after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 135,
+    "name": "a late comparison resolve after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 136,
+    "name": "a late comparison reject after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 137,
+    "name": "current job loading still renders its comparison and current errors retain Retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 138,
+    "name": "actual Service After panel announces missing baseline evidence and keeps the comparison step open"
+  },
+  {
+    "outcome": "ok",
+    "number": 139,
+    "name": "late mixed-phase completeness updates the real Service warning without replacing unsaved status notes"
+  },
+  {
+    "outcome": "ok",
+    "number": 140,
+    "name": "a late status resolve leaves a replacement new-job form and its feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 141,
+    "name": "a late work-log resolve cannot reload a job after a new form opens"
+  },
+  {
+    "outcome": "ok",
+    "number": 142,
+    "name": "a late comparison resolve preserves unsaved work on the current job"
+  },
+  {
+    "outcome": "ok",
+    "number": 143,
+    "name": "a late status reject leaves a replacement new-job form and its feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 144,
+    "name": "a late work-log reject cannot reload a job after a new form opens"
+  },
+  {
+    "outcome": "ok",
+    "number": 145,
+    "name": "a late comparison reject preserves unsaved work on the current job"
+  },
+  {
+    "outcome": "ok",
+    "number": 146,
+    "name": "current status and work-log writes still reload their job and release the status controls"
+  },
+  {
+    "outcome": "ok",
+    "number": 147,
+    "name": "a write pending on another job neither blocks the current status write nor releases its busy guard"
+  },
+  {
+    "outcome": "ok",
+    "number": 148,
+    "name": "hidden Service status resolve stays quiet and keeps its private job view consistent"
+  },
+  {
+    "outcome": "ok",
+    "number": 149,
+    "name": "hidden Service work-log resolve stays quiet while preserving the submitted change"
+  },
+  {
+    "outcome": "ok",
+    "number": 150,
+    "name": "hidden Service status reject stays quiet and keeps its private job view consistent"
+  },
+  {
+    "outcome": "ok",
+    "number": 151,
+    "name": "hidden Service work-log reject stays quiet while preserving the submitted change"
+  },
+  {
+    "outcome": "ok",
+    "number": 152,
+    "name": "a late comparison updates hidden Service evidence without announcing on another screen"
+  },
+  {
+    "outcome": "ok",
+    "number": 153,
+    "name": "Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step"
+  },
+  {
+    "outcome": "ok",
+    "number": 154,
+    "name": "late comparison refreshes the after evidence without replacing its options or status note"
+  },
+  {
+    "outcome": "ok",
+    "number": 155,
+    "name": "late comparison refreshes the sheet evidence without replacing its options or status note"
+  },
+  {
+    "outcome": "ok",
+    "number": 156,
+    "name": "a late new-job create resolve preserves a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 157,
+    "name": "a late new-job create reject preserves a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 158,
+    "name": "real analysis rejects a dominant 500 Hz track whose weak 1 kHz harmonic looked clean"
+  },
+  {
+    "outcome": "ok",
+    "number": 159,
+    "name": "strong second and third harmonics retain real adverse THD rather than invalidating the reference"
+  },
+  {
+    "outcome": "ok",
+    "number": 160,
+    "name": "coherent integer offsets produce the same usable measurements in History and benchmark evidence"
+  },
+  {
+    "outcome": "ok",
+    "number": 161,
+    "name": "piecewise and drifting references use their complete local windows and each channel frequency"
+  },
+  {
+    "outcome": "ok",
+    "number": 162,
+    "name": "power pooling preserves changing amplitude, harmonic ratio and phase instead of averaging percentages"
+  },
+  {
+    "outcome": "ok",
+    "number": 163,
+    "name": "unresolved families and unmeasurable fundamentals stay unavailable through structured History and save preflight"
+  },
+  {
+    "outcome": "ok",
+    "number": 164,
+    "name": "ordinary fixed-reference runs remain unchanged and cannot be silently promoted to measured-reference benchmarks"
+  },
+  {
+    "outcome": "ok",
+    "number": 165,
+    "name": "short correct prefixes and suffixes cannot overwrite the rest of the capture at either input rate"
+  },
+  {
+    "outcome": "ok",
+    "number": 166,
+    "name": "wrong prefix, suffix and opposing middle regions stay excluded even with a valid overall peak"
+  },
+  {
+    "outcome": "ok",
+    "number": 167,
+    "name": "near-boundary valid references stay eligible and every window retains its measured frequency"
+  },
+  {
+    "outcome": "ok",
+    "number": 168,
+    "name": "one bounded 192 kHz capture retains full coverage and the middle-region disagreement"
+  },
+  {
+    "outcome": "ok",
+    "number": 169,
+    "name": "existing speed-readiness criterion accepts nearby controls and excludes a mismatched observed family"
+  },
+  {
+    "outcome": "ok",
+    "number": 170,
+    "name": "zero and negative measured separation remain adverse observations, not an invented quality gate"
+  },
+  {
+    "outcome": "ok",
+    "number": 171,
+    "name": "THD requires observable H2 through H5 and retains evidence when the rate is insufficient"
+  },
+  {
+    "outcome": "ok",
+    "number": 172,
+    "name": "missing loss fields never persist as measured zero while observed zero and raw faults survive"
+  },
+  {
+    "outcome": "ok",
+    "number": 173,
+    "name": "native acquisition observations must exist and agree with the final device, rate and pair"
+  },
+  {
+    "outcome": "ok",
+    "number": 174,
+    "name": "the real native adapter retains fallback audio without promoting missing right/rate/pair fields to observations"
+  },
+  {
+    "outcome": "ok",
+    "number": 175,
+    "name": "uncalibrated captures are repeatable while anonymous, rejected and mismatched profiles stay unapplied"
+  },
+  {
+    "outcome": "ok",
+    "number": 176,
+    "name": "the real calibration resolver retains a known mismatch instead of claiming no profile"
+  },
+  {
+    "outcome": "ok",
+    "number": 177,
+    "name": "late asynchronous calibration lookup cannot persist or advance a cancelled capture"
+  },
+  {
+    "outcome": "ok",
+    "number": 178,
+    "name": "out-of-schema values remain exact in excluded evidence, with null trend values and no clamping"
+  },
+  {
+    "outcome": "ok",
+    "number": 179,
+    "name": "oversize UTF-8 evidence blocks the benchmark write without pruning the profile or changing its asset"
+  },
+  {
+    "outcome": "ok",
+    "number": 180,
+    "name": "calibrated optional timecode retains every observation at normal and overshooting capture durations"
+  },
+  {
+    "outcome": "ok",
+    "number": 181,
+    "name": "the measured-reference analysis version distinguishes old guided baselines without rewriting them"
+  },
+  {
+    "outcome": "ok",
+    "number": 182,
+    "name": "operator-confirmed legacy comparison keeps its basis and never fabricates historical observations"
+  },
+  {
+    "outcome": "ok",
+    "number": 183,
+    "name": "production controls save A, change support, save B, derive comparison, reload and report exact historical evidence"
+  },
+  {
+    "outcome": "ok",
+    "number": 184,
+    "name": "changed operator conditions preserve observations and produce an explicit non-comparable result"
+  },
+  {
+    "outcome": "ok",
+    "number": 185,
+    "name": "lost save response retries the same original observation while form changes and duplicate presses cannot alter it"
+  },
+  {
+    "outcome": "ok",
+    "number": 186,
+    "name": "late capture opens are cancelled after hide without dispatching a save"
+  },
+  {
+    "outcome": "ok",
+    "number": 187,
+    "name": "catalog and history failures are explicit and retryable rather than an authoritative empty history"
+  },
+  {
+    "outcome": "ok",
+    "number": 188,
+    "name": "strict calibration snapshot distinguishes absent, corrupt and mismatched actual-route profiles without writes"
+  },
+  {
+    "outcome": "ok",
+    "number": 189,
+    "name": "the actual Hum screen exposes the Support A/B panel and restores its history across tab lifecycle"
+  },
+  {
+    "outcome": "ok",
+    "number": 190,
+    "name": "reactivating the panel refreshes catalog snapshots while retaining completed observation A"
+  },
+  {
+    "outcome": "ok",
+    "number": 191,
+    "name": "retired history successes and errors cannot replace the latest venue or reactivate a hidden load"
+  },
+  {
+    "outcome": "ok",
+    "number": 192,
+    "name": "an already dispatched save keeps its original ownership through hide and a lost response"
+  },
+  {
+    "outcome": "ok",
+    "number": 193,
+    "name": "non-finite serialized calibration metadata stays rejected with its original source text"
+  }
+]

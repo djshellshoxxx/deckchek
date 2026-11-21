@@ -135,6 +135,24 @@ test('partial state: "Compare is incomplete, 3 of 8 metrics have no after value"
   assert.equal(comparisonCompleteness(compareBeforeAfter([V('a', 1)], [])).message, 'Compare is incomplete, 1 of 1 metric has no after value');
 });
 
+const presenceCases = [
+  { name: 'one after-only metric', before: [], after: ['a'], state: 'partial', total: 1, missingBefore: 1, missingAfter: 0, message: 'Compare is incomplete, 1 of 1 metric has no before value' },
+  { name: 'several after-only metrics', before: [], after: ['a', 'b', 'c'], state: 'partial', total: 3, missingBefore: 3, missingAfter: 0, message: 'Compare is incomplete, 3 of 3 metrics have no before value' },
+  { name: 'paired and after-only metrics', before: ['paired'], after: ['paired', 'extra'], state: 'partial', total: 2, missingBefore: 1, missingAfter: 0, message: 'Compare is incomplete, 1 of 2 metrics has no before value' },
+  { name: 'one before-only metric', before: ['a'], after: [], state: 'partial', total: 1, missingBefore: 0, missingAfter: 1, message: 'Compare is incomplete, 1 of 1 metric has no after value' },
+  { name: 'paired and before-only metrics', before: ['paired', 'extra'], after: ['paired'], state: 'partial', total: 2, missingBefore: 0, missingAfter: 1, message: 'Compare is incomplete, 1 of 2 metrics has no after value' },
+  { name: 'missing values in both phases', before: ['paired', 'before_only'], after: ['paired', 'after_only'], state: 'partial', total: 3, missingBefore: 1, missingAfter: 1, message: 'Compare is incomplete, 1 of 3 metrics has no before value; 1 of 3 metrics has no after value' },
+  { name: 'no observations', before: [], after: [], state: 'empty', total: 0, missingBefore: 0, missingAfter: 0, message: 'No before or after values yet.' },
+  { name: 'all paired metrics', before: ['a', 'b'], after: ['a', 'b'], state: 'complete', total: 2, missingBefore: 0, missingAfter: 0, message: 'All 2 metrics have before and after values.' },
+];
+for (const item of presenceCases) test(`comparison completeness includes ${item.name}`, () => {
+  const before = item.before.map(key => V(key, 1)), after = item.after.map(key => V(key, 2));
+  const original = JSON.stringify({ before, after }), rows = compareBeforeAfter(before, after);
+  const rowBytes = JSON.stringify(rows), { state, total, missingBefore, missingAfter, message } = item;
+  assert.deepEqual(comparisonCompleteness(rows), { state, total, missing: missingBefore + missingAfter, missingBefore, missingAfter, message });
+  assert.equal(JSON.stringify(rows), rowBytes); assert.equal(JSON.stringify({ before, after }), original);
+});
+
 test('buildComparison reads the job_comparison payload with its method registry (mutual compat)', () => {
   const data = {
     values: [{ ...V('k', 1, { methodVersion: 1 }), phase: 'before' }, { ...V('k', 5, { methodVersion: 2 }), phase: 'after' }],
@@ -195,6 +213,25 @@ const detail = (over = {}) => ({
   ...over.rest,
 });
 const cmp = buildComparison({ values: [{ ...V('balance_db', 1.8), phase: 'before', label: 'Balance <dB>' }, { ...V('balance_db', 0.2), phase: 'after', label: 'Balance <dB>' }], tests: [] }, { higherIsBetter: { balance_db: false } });
+
+test('after-only observations remain on the final job sheet with an incomplete comparison and open After step', async () => {
+  const job = detail({ rest: { results: [{ phase: 'after', sessionId: 'post-repair' }] } });
+  const data = { values: [{ ...V('after_only', 7, { label: 'Post-repair level' }), phase: 'after' }], tests: [] };
+  const original = JSON.stringify({ job, data }), comparison = buildComparison(data);
+  assert.equal(comparison.completeness.state, 'partial');
+  assert.deepEqual(comparison.rows.map(row => [row.before, row.after, row.status]), [[null, 7, 'missingBefore']]);
+  const step = stepperState(job, comparison).find(row => row.id === 'after');
+  assert.equal(step.state, 'todo'); assert.equal(step.reason, comparison.completeness.message);
+  assert.equal(jobSheetModel(job, comparison).final, true, 'job status remains independent of comparison completeness');
+  assert.equal(canTransition('testing', 'ready'), true, 'no new finalization gate is invented');
+  const html = renderJobSheetHtml(job, comparison);
+  assert.match(html, /Compare is incomplete, 1 of 1 metric has no before value/);
+  assert.match(html, /Post-repair level/); assert.match(html, /No before value/); assert.doesNotMatch(html, /All 0 metrics/);
+  const mod = await ensureJobSheetKind();
+  const printed = mod.composePrintable(JOB_SHEET_KIND, jobSheetPrintData(job, comparison), { css: '', now: new Date('2026-11-20T00:00:00Z') });
+  assert.match(printed.html, /Compare is incomplete, 1 of 1 metric has no before value/);
+  assert.equal(JSON.stringify({ job, data }), original);
+});
 
 test('AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default', () => {
   const html = renderJobSheetHtml(detail(), cmp, {});

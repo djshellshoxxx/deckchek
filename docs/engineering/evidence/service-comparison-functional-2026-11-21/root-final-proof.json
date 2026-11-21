@@ -1,0 +1,71 @@
+{
+  "freeze": "36e968821fdcd61e2f43de22a09b811384eea8e0",
+  "tree": "a5fc965e2f4151705d862e05b89e1cb06b0acdb2",
+  "parents": [
+    "34d09f790bea68a6ce5555b60f97d20fd007dbb5"
+  ],
+  "original_source_paths": 2464,
+  "original_source_blobs": 2229,
+  "original_source_bytes": 81828656,
+  "source_map_sha256": "e16668214d8323f344c086b2eef5265a334d4a90851a78f7c40a8af4c22d5163",
+  "all_three_final_reports_read": true,
+  "finals": [
+    {
+      "role": "code",
+      "commit": "943c2d9e69ce09363a1d66840b59a3953f761570",
+      "tree": "c2d3f6ab2e39f115b0f650f955111647c40382b6",
+      "parents": [
+        "36e968821fdcd61e2f43de22a09b811384eea8e0"
+      ],
+      "report": "docs/engineering/SERVICE_COMPARISON_CODE_AUDIT_2026-11-21.md",
+      "bytes": 12643,
+      "sha256": "7e0db9183704a06ed94b6e741e9e1e3e2768af7a24b2815d28edece01597f4e7",
+      "git_blob_oid": "2fc6767e84d038ec0b6453185fd0c67d8b0365c9",
+      "changed_paths": 1,
+      "clean": true,
+      "original_source_unchanged": true
+    },
+    {
+      "role": "functional",
+      "commit": "0910020ec21ee8d334b6f578f2ca6d821337ad41",
+      "tree": "e952d106849da5c19b13d5eb4e11b25a569daf33",
+      "parents": [
+        "36e968821fdcd61e2f43de22a09b811384eea8e0"
+      ],
+      "report": "docs/engineering/SERVICE_COMPARISON_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "bytes": 16910,
+      "sha256": "4cc4defe567da9ab9fd7023dacc51658df7b4803fa29e050c65416f95d745e33",
+      "git_blob_oid": "5d045235a2f91784b8e673c0f35e97947768b324",
+      "changed_paths": 27,
+      "clean": true,
+      "original_source_unchanged": true
+    },
+    {
+      "role": "security",
+      "commit": "9629e1b4abb43762cd53050facfd5818d56c0a8b",
+      "tree": "f833246e976ec4548c525443fb0359cfaa277ac5",
+      "parents": [
+        "36e968821fdcd61e2f43de22a09b811384eea8e0"
+      ],
+      "report": "docs/engineering/SERVICE_COMPARISON_SECURITY_AUDIT_2026-11-21.md",
+      "bytes": 13767,
+      "sha256": "7b6438c23be6b07b63421b55be569877f00b961ed644951fabb2b42087d6a105",
+      "git_blob_oid": "740d22f802bd37b2ba74a3aa14063b560517dea2",
+      "changed_paths": 1,
+      "clean": true,
+      "original_source_unchanged": true
+    }
+  ],
+  "manifest": {
+    "path": "docs/engineering/evidence/service-comparison-functional-2026-11-21/manifest.json",
+    "bytes": 11366,
+    "sha256": "47e9a9dd2f8504e07722c9b8d6be1d6dca42b8215f36f99c3389a9afc7c994e5"
+  },
+  "original_bindings": 24,
+  "original_bytes": 2751321,
+  "package_files": 26,
+  "package_bytes": 2765564,
+  "first_proof_sha256": "1d02e2381e86767caae298c46e5ebe4298e50cc612b3b310f80e8adf73ac3dd0",
+  "root_project_execution": false,
+  "disposition": "Scoped Service ACCEPT; inherited backup/native85/audio holds remain."
+}

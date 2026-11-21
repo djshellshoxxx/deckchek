@@ -1,0 +1,1176 @@
+TAP version 13
+# Subtest: actual Data backup refuses an unavailable calibration snapshot before native dispatch
+ok 1 - actual Data backup refuses an unavailable calibration snapshot before native dispatch
+  ---
+  duration_ms: 14.566297
+  type: 'test'
+  ...
+# Subtest: actual restore confirmation refuses an unavailable safety snapshot without dispatching the database restore
+ok 2 - actual restore confirmation refuses an unavailable safety snapshot without dispatching the database restore
+  ---
+  duration_ms: 7.684601
+  type: 'test'
+  ...
+# Subtest: successful actual Data restore updates live settings and empty calibration before delayed reload
+ok 3 - successful actual Data restore updates live settings and empty calibration before delayed reload
+  ---
+  duration_ms: 5.908083
+  type: 'test'
+  ...
+# Subtest: failed local UI application stays visible and Retry does not repeat the committed native restore
+ok 4 - failed local UI application stays visible and Retry does not repeat the committed native restore
+  ---
+  duration_ms: 5.183335
+  type: 'test'
+  ...
+# Subtest: failed calibration application preserves successful UI and requires explicit reload
+ok 5 - failed calibration application preserves successful UI and requires explicit reload
+  ---
+  duration_ms: 2.555268
+  type: 'test'
+  ...
+# Subtest: a committed partial restore keeps global recovery when Data is hidden and its restored feature is disabled
+ok 6 - a committed partial restore keeps global recovery when Data is hidden and its restored feature is disabled
+  ---
+  duration_ms: 5.474733
+  type: 'test'
+  ...
+# Subtest: a committed partial restore keeps global recovery when Data is disposed and its restored feature is disabled
+ok 7 - a committed partial restore keeps global recovery when Data is disposed and its restored feature is disabled
+  ---
+  duration_ms: 2.846485
+  type: 'test'
+  ...
+# Subtest: global local-settings retry survives hidden Data and the restored disabled backup flag
+ok 8 - global local-settings retry survives hidden Data and the restored disabled backup flag
+  ---
+  duration_ms: 9.00465
+  type: 'test'
+  ...
+# Subtest: a partly accepted calibration map is visibly partial and does not auto-reload
+ok 9 - a partly accepted calibration map is visibly partial and does not auto-reload
+  ---
+  duration_ms: 3.081758
+  type: 'test'
+  ...
+# Subtest: database-only restore leaves absent local parts unchanged and retains normal completion
+ok 10 - database-only restore leaves absent local parts unchanged and retains normal completion
+  ---
+  duration_ms: 3.311113
+  type: 'test'
+  ...
+# Subtest: the actual restore confirmation distinguishes database failure and leaves the original session usable
+ok 11 - the actual restore confirmation distinguishes database failure and leaves the original session usable
+  ---
+  duration_ms: 3.080106
+  type: 'test'
+  ...
+# Subtest: the real cached Devices unit selector cannot overwrite restored preferences before reload
+ok 12 - the real cached Devices unit selector cannot overwrite restored preferences before reload
+  ---
+  duration_ms: 38.613203
+  type: 'test'
+  ...
+# Subtest: failed reload remains recoverable and a later manual reload owns the pending automatic attempt
+ok 13 - failed reload remains recoverable and a later manual reload owns the pending automatic attempt
+  ---
+  duration_ms: 3.11593
+  type: 'test'
+  ...
+# Subtest: capture_running gets a friendly message that says nothing changed
+ok 14 - capture_running gets a friendly message that says nothing changed
+  ---
+  duration_ms: 1.728085
+  type: 'test'
+  ...
+# Subtest: other errors pass the Rust message through; odd values fall back
+ok 15 - other errors pass the Rust message through; odd values fall back
+  ---
+  duration_ms: 0.333641
+  type: 'test'
+  ...
+# Subtest: replacement lines name what is replaced and the backup counts
+ok 16 - replacement lines name what is replaced and the backup counts
+  ---
+  duration_ms: 0.309204
+  type: 'test'
+  ...
+# Subtest: sanitizeUiSettings accepts objects, strips prototype keys, rejects the rest
+ok 17 - sanitizeUiSettings accepts objects, strips prototype keys, rejects the rest
+  ---
+  duration_ms: 0.991829
+  type: 'test'
+  ...
+# Subtest: sanitizeCalibrationMap keeps valid profiles and counts the rest as skipped
+ok 18 - sanitizeCalibrationMap keeps valid profiles and counts the rest as skipped
+  ---
+  duration_ms: 0.550216
+  type: 'test'
+  ...
+# Subtest: importSettingsBlob round-trips with exportSettingsBlob and leaves absent parts alone
+ok 19 - importSettingsBlob round-trips with exportSettingsBlob and leaves absent parts alone
+  ---
+  duration_ms: 0.569005
+  type: 'test'
+  ...
+# Subtest: backup snapshots detach nested device settings and bound feature changes
+ok 20 - backup snapshots detach nested device settings and bound feature changes
+  ---
+  duration_ms: 0.498349
+  type: 'test'
+  ...
+# Subtest: backup capture distinguishes observed empty calibration from unavailable storage
+ok 21 - backup capture distinguishes observed empty calibration from unavailable storage
+  ---
+  duration_ms: 1.079882
+  type: 'test'
+  ...
+# Subtest: invalid calibration storage is rejected without replacing it with an empty snapshot
+ok 22 - invalid calibration storage is rejected without replacing it with an empty snapshot
+  ---
+  duration_ms: 0.613782
+  type: 'test'
+  ...
+# Subtest: UI snapshots reject values JSON would silently lose and do not call accessors
+ok 23 - UI snapshots reject values JSON would silently lose and do not call accessors
+  ---
+  duration_ms: 0.626931
+  type: 'test'
+  ...
+# Subtest: UI and profile limits count UTF-8 bytes and accept the exact boundary
+ok 24 - UI and profile limits count UTF-8 bytes and accept the exact boundary
+  ---
+  duration_ms: 7.144892
+  type: 'test'
+  ...
+# Subtest: restore replaces the bound live object before any observer and later UI writes preserve it
+ok 25 - restore replaces the bound live object before any observer and later UI writes preserve it
+  ---
+  duration_ms: 1.150438
+  type: 'test'
+  ...
+# Subtest: empty calibration restore notifies once while absent and wholly invalid parts stay untouched
+ok 26 - empty calibration restore notifies once while absent and wholly invalid parts stay untouched
+  ---
+  duration_ms: 0.338518
+  type: 'test'
+  ...
+# Subtest: mixed calibration restore explicitly reports partial application
+ok 27 - mixed calibration restore explicitly reports partial application
+  ---
+  duration_ms: 0.384257
+  type: 'test'
+  ...
+# Subtest: restore distinguishes each failed storage write from absence and keeps failed live UI unchanged
+ok 28 - restore distinguishes each failed storage write from absence and keeps failed live UI unchanged
+  ---
+  duration_ms: 0.420101
+  type: 'test'
+  ...
+# Subtest: profile writes commit before notification and report an intentional empty registry after deletion
+ok 29 - profile writes commit before notification and report an intentional empty registry after deletion
+  ---
+  duration_ms: 0.625169
+  type: 'test'
+  ...
+# Subtest: profile save and delete never overwrite unavailable or invalid storage and emit no success
+ok 30 - profile save and delete never overwrite unavailable or invalid storage and emit no success
+  ---
+  duration_ms: 0.7659
+  type: 'test'
+  ...
+# Subtest: suggested name is DeckChek-backup-YYYYMMDD-HHmm in local time
+ok 31 - suggested name is DeckChek-backup-YYYYMMDD-HHmm in local time
+  ---
+  duration_ms: 1.668947
+  type: 'test'
+  ...
+# Subtest: the shared manifest contract validates
+ok 32 - the shared manifest contract validates
+  ---
+  duration_ms: 1.322776
+  type: 'test'
+  ...
+# Subtest: manifest shape errors are reported
+ok 33 - manifest shape errors are reported
+  ---
+  duration_ms: 1.186041
+  type: 'test'
+  ...
+# Subtest: describeBackup previews valid, upgradeable and refused files
+ok 34 - describeBackup previews valid, upgradeable and refused files
+  ---
+  duration_ms: 0.777458
+  type: 'test'
+  ...
+# Subtest: restore result message reports upgrades and the safety backup
+ok 35 - restore result message reports upgrades and the safety backup
+  ---
+  duration_ms: 0.264508
+  type: 'test'
+  ...
+# Subtest: progress percent is clamped and safe on bad payloads
+ok 36 - progress percent is clamped and safe on bad payloads
+  ---
+  duration_ms: 0.197607
+  type: 'test'
+  ...
+# Subtest: formatBytes
+ok 37 - formatBytes
+  ---
+  duration_ms: 0.198509
+  type: 'test'
+  ...
+# Subtest: workspace payload maps runs through toPersistRun and drops duplicates
+ok 38 - workspace payload maps runs through toPersistRun and drops duplicates
+  ---
+  duration_ms: 0.899461
+  type: 'test'
+  ...
+# Subtest: retention plan keeps the newest N automatic backups and every manual one
+ok 39 - retention plan keeps the newest N automatic backups and every manual one
+  ---
+  duration_ms: 7.215828
+  type: 'test'
+  ...
+# Subtest: schedule validation matches the Rust limits
+ok 40 - schedule validation matches the Rust limits
+  ---
+  duration_ms: 0.638529
+  type: 'test'
+  ...
+# Subtest: native bridge passes exactly the Rust command and argument names
+ok 41 - native bridge passes exactly the Rust command and argument names
+  ---
+  duration_ms: 0.866431
+  type: 'test'
+  ...
+# Subtest: browser mode reports unsupported
+ok 42 - browser mode reports unsupported
+  ---
+  duration_ms: 0.388214
+  type: 'test'
+  ...
+# Subtest: actual calibration Save reports a storage failure and permits a later successful save
+ok 43 - actual calibration Save reports a storage failure and permits a later successful save
+  ---
+  duration_ms: 63.882495
+  type: 'test'
+  ...
+# Subtest: actual calibration Delete keeps the profile and reports failure until storage accepts the deletion
+ok 44 - actual calibration Delete keeps the profile and reports failure until storage accepts the deletion
+  ---
+  duration_ms: 11.424818
+  type: 'test'
+  ...
+# Subtest: browser workspace success releases its lease and reports committed data
+ok 45 - browser workspace success releases its lease and reports committed data
+  ---
+  duration_ms: 9.770023
+  type: 'test'
+  ...
+# Subtest: browser workspace import exposes busy controls and allows only one chooser
+ok 46 - browser workspace import exposes busy controls and allows only one chooser
+  ---
+  duration_ms: 3.613887
+  type: 'test'
+  ...
+# Subtest: browser workspace mirroring retains ownership and blocks overlapping imports
+ok 47 - browser workspace mirroring retains ownership and blocks overlapping imports
+  ---
+  duration_ms: 3.75479
+  type: 'test'
+  ...
+# Subtest: mirror resolve after Data hide/show preserves submitted data without obsolete feedback
+ok 48 - mirror resolve after Data hide/show preserves submitted data without obsolete feedback
+  ---
+  duration_ms: 2.268998
+  type: 'test'
+  ...
+# Subtest: mirror reject after Data hide/show preserves submitted data without obsolete feedback
+ok 49 - mirror reject after Data hide/show preserves submitted data without obsolete feedback
+  ---
+  duration_ms: 4.619348
+  type: 'test'
+  ...
+# Subtest: old Data file read resolve cannot commit or report after hide/show
+ok 50 - old Data file read resolve cannot commit or report after hide/show
+  ---
+  duration_ms: 2.835008
+  type: 'test'
+  ...
+# Subtest: old Data file read reject cannot commit or report after hide/show
+ok 51 - old Data file read reject cannot commit or report after hide/show
+  ---
+  duration_ms: 1.267543
+  type: 'test'
+  ...
+# Subtest: browser workspace chooser retires on hide and ignores later events
+ok 52 - browser workspace chooser retires on hide and ignores later events
+  ---
+  duration_ms: 1.52463
+  type: 'test'
+  ...
+# Subtest: browser workspace chooser retires on dispose and ignores later events
+ok 53 - browser workspace chooser retires on dispose and ignores later events
+  ---
+  duration_ms: 1.022796
+  type: 'test'
+  ...
+# Subtest: a current Devices show refreshes the library and displays its guide
+ok 54 - a current Devices show refreshes the library and displays its guide
+  ---
+  duration_ms: 15.243404
+  type: 'test'
+  ...
+# Subtest: leaving Devices while the library loads prevents a second refresh and late inspector updates
+ok 55 - leaving Devices while the library loads prevents a second refresh and late inspector updates
+  ---
+  duration_ms: 4.548932
+  type: 'test'
+  ...
+# Subtest: a Devices asset read cannot update the library or inspector after leaving
+ok 56 - a Devices asset read cannot update the library or inspector after leaving
+  ---
+  duration_ms: 9.754089
+  type: 'test'
+  ...
+# Subtest: a Devices result read cannot replace a newer show or its current assignment form
+ok 57 - a Devices result read cannot replace a newer show or its current assignment form
+  ---
+  duration_ms: 10.361412
+  type: 'test'
+  ...
+# Subtest: overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last
+ok 58 - overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last
+  ---
+  duration_ms: 3.138383
+  type: 'test'
+  ...
+# Subtest: a handoff survives a retired Devices show and is consumed once by the current show
+ok 59 - a handoff survives a retired Devices show and is consumed once by the current show
+  ---
+  duration_ms: 7.888247
+  type: 'test'
+  ...
+# Subtest: a newer Devices handoff wins when shows overlap
+ok 60 - a newer Devices handoff wins when shows overlap
+  ---
+  duration_ms: 6.186092
+  type: 'test'
+  ...
+# Subtest: a rejected retired assets read cannot clear the current Devices cache
+ok 61 - a rejected retired assets read cannot clear the current Devices cache
+  ---
+  duration_ms: 2.140505
+  type: 'test'
+  ...
+# Subtest: a rejected retired results read cannot clear the current Devices cache
+ok 62 - a rejected retired results read cannot clear the current Devices cache
+  ---
+  duration_ms: 4.788532
+  type: 'test'
+  ...
+# Subtest: default refresh callers retain successful reads and empty-cache failure behavior
+ok 63 - default refresh callers retain successful reads and empty-cache failure behavior
+  ---
+  duration_ms: 3.067117
+  type: 'test'
+  ...
+# Subtest: an older default assets response cannot replace a newer complete library snapshot
+ok 64 - an older default assets response cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 3.696842
+  type: 'test'
+  ...
+# Subtest: an older default assets failure cannot replace a newer complete library snapshot
+ok 65 - an older default assets failure cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 1.040332
+  type: 'test'
+  ...
+# Subtest: an older default results response cannot replace a newer complete library snapshot
+ok 66 - an older default results response cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 1.163377
+  type: 'test'
+  ...
+# Subtest: an older default results failure cannot replace a newer complete library snapshot
+ok 67 - an older default results failure cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 1.160152
+  type: 'test'
+  ...
+# Subtest: a retired newer view read does not discard a still-current default refresh
+ok 68 - a retired newer view read does not discard a still-current default refresh
+  ---
+  duration_ms: 1.223708
+  type: 'test'
+  ...
+# Subtest: a catalog refresh response from an earlier Devices visit preserves the current assignment form
+ok 69 - a catalog refresh response from an earlier Devices visit preserves the current assignment form
+  ---
+  duration_ms: 14.631746
+  type: 'test'
+  ...
+# Subtest: a catalog refresh failure from an earlier Devices visit preserves the current assignment form
+ok 70 - a catalog refresh failure from an earlier Devices visit preserves the current assignment form
+  ---
+  duration_ms: 3.864544
+  type: 'test'
+  ...
+# Subtest: a catalog refresh started before opening an assignment updates the cache without discarding that form
+ok 71 - a catalog refresh started before opening an assignment updates the cache without discarding that form
+  ---
+  duration_ms: 7.822548
+  type: 'test'
+  ...
+# Subtest: a catalog refresh updates an unchanged current Devices view
+ok 72 - a catalog refresh updates an unchanged current Devices view
+  ---
+  duration_ms: 2.005101
+  type: 'test'
+  ...
+# Subtest: the latest overlapping catalog event redraws after an earlier refresh completes first
+ok 73 - the latest overlapping catalog event redraws after an earlier refresh completes first
+  ---
+  duration_ms: 1.987665
+  type: 'test'
+  ...
+# Subtest: a removed Devices screen does not start a catalog refresh
+ok 74 - a removed Devices screen does not start a catalog refresh
+  ---
+  duration_ms: 0.99856
+  type: 'test'
+  ...
+# Subtest: a connected hidden Devices screen refreshes shared catalog data without changing the active view
+ok 75 - a connected hidden Devices screen refreshes shared catalog data without changing the active view
+  ---
+  duration_ms: 3.121518
+  type: 'test'
+  ...
+# Subtest: registry lists every FS-00 §4.14 flag with metadata
+ok 76 - registry lists every FS-00 §4.14 flag with metadata
+  ---
+  duration_ms: 1.736859
+  type: 'test'
+  ...
+# Subtest: every features.* flag mentioned in docs/specs exists in FEATURES
+ok 77 - every features.* flag mentioned in docs/specs exists in FEATURES
+  ---
+  duration_ms: 2.113515
+  type: 'test'
+  ...
+# Subtest: defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+ok 78 - defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+  ---
+  duration_ms: 0.276686
+  type: 'test'
+  ...
+# Subtest: setEnabled persists in deckchek.ui.v1.features and keeps other settings
+ok 79 - setEnabled persists in deckchek.ui.v1.features and keeps other settings
+  ---
+  duration_ms: 0.701053
+  type: 'test'
+  ...
+# Subtest: corrupt or unavailable storage falls back to defaults
+ok 80 - corrupt or unavailable storage falls back to defaults
+  ---
+  duration_ms: 0.336135
+  type: 'test'
+  ...
+# Subtest: bound settings object is kept in sync so later settings writes do not clobber flags
+ok 81 - bound settings object is kept in sync so later settings writes do not clobber flags
+  ---
+  duration_ms: 0.194873
+  type: 'test'
+  ...
+# Subtest: change listeners fire and can be removed
+ok 82 - change listeners fire and can be removed
+  ---
+  duration_ms: 0.175393
+  type: 'test'
+  ...
+# Subtest: resetFeatures drops every override and notifies listeners
+ok 83 - resetFeatures drops every override and notifies listeners
+  ---
+  duration_ms: 0.482635
+  type: 'test'
+  ...
+# Subtest: fleet stays wired for manual opt-in and defaults off pending owner qualification
+ok 84 - fleet stays wired for manual opt-in and defaults off pending owner qualification
+  ---
+  duration_ms: 0.188643
+  type: 'test'
+  ...
+# Subtest: fleet honors explicit true and false overrides from storage and bound settings
+ok 85 - fleet honors explicit true and false overrides from storage and bound settings
+  ---
+  duration_ms: 0.243996
+  type: 'test'
+  ...
+# Subtest: fleet can switch on and off, persist opt-in, and notify listeners
+ok 86 - fleet can switch on and off, persist opt-in, and notify listeners
+  ---
+  duration_ms: 0.403136
+  type: 'test'
+  ...
+# Subtest: M7 and M8 flags stay default off while wired adapters remain available
+ok 87 - M7 and M8 flags stay default off while wired adapters remain available
+  ---
+  duration_ms: 0.142394
+  type: 'test'
+  ...
+# Subtest: actual native Data screen retains full backup, restore and workspace entrypoints
+ok 88 - actual native Data screen retains full backup, restore and workspace entrypoints
+  ---
+  duration_ms: 7.602517
+  type: 'test'
+  ...
+# Subtest: actual native Data screen exposes selected setup export and explicit native catalog import
+ok 89 - actual native Data screen exposes selected setup export and explicit native catalog import
+  ---
+  duration_ms: 1.701946
+  type: 'test'
+  ...
+# Subtest: actual browser Data screen retains its browser catalog and history files
+ok 90 - actual browser Data screen retains its browser catalog and history files
+  ---
+  duration_ms: 2.565423
+  type: 'test'
+  ...
+# Subtest: actual setup controls require explicit selection and export exact raw text without JSON number conversion
+ok 91 - actual setup controls require explicit selection and export exact raw text without JSON number conversion
+  ---
+  duration_ms: 3.316381
+  type: 'test'
+  ...
+# Subtest: actual file controls preview without writes, escape filenames, explicitly import and retry exact saved data
+ok 92 - actual file controls preview without writes, escape filenames, explicitly import and retry exact saved data
+  ---
+  duration_ms: 4.144535
+  type: 'test'
+  ...
+# Subtest: preview separates matching dependencies and both local/source timestamp values from exact matches
+ok 93 - preview separates matching dependencies and both local/source timestamp values from exact matches
+  ---
+  duration_ms: 2.184401
+  type: 'test'
+  ...
+# Subtest: a conflicting native preview disables import and refuses a synthetic disabled-button event
+ok 94 - a conflicting native preview disables import and refuses a synthetic disabled-button event
+  ---
+  duration_ms: 1.332151
+  type: 'test'
+  ...
+# Subtest: stale file reads and preview replies cannot replace a later selected file
+ok 95 - stale file reads and preview replies cannot replace a later selected file
+  ---
+  duration_ms: 2.282809
+  type: 'test'
+  ...
+# Subtest: repeated onShow preserves both pending file-read and preview owners
+ok 96 - repeated onShow preserves both pending file-read and preview owners
+  ---
+  duration_ms: 2.641657
+  type: 'test'
+  ...
+# Subtest: real hide and disposal retire pending byte reads without late rendering or import eligibility
+ok 97 - real hide and disposal retire pending byte reads without late rendering or import eligibility
+  ---
+  duration_ms: 1.85123
+  type: 'test'
+  ...
+# Subtest: a preview resumed after hide is revalidated against the destination and ignores its older result
+ok 98 - a preview resumed after hide is revalidated against the destination and ignores its older result
+  ---
+  duration_ms: 1.180923
+  type: 'test'
+  ...
+# Subtest: dispatched import owns its copied text through duplicate presses, hide, replacement attempts and lost acknowledgement
+ok 99 - dispatched import owns its copied text through duplicate presses, hide, replacement attempts and lost acknowledgement
+  ---
+  duration_ms: 2.608348
+  type: 'test'
+  ...
+# Subtest: a retired retry button cannot import a later or replaced file
+ok 100 - a retired retry button cannot import a later or replaced file
+  ---
+  duration_ms: 1.365611
+  type: 'test'
+  ...
+# Subtest: a retained preview retry button cannot launch duplicate previews or replace a successful import
+ok 101 - a retained preview retry button cannot launch duplicate previews or replace a successful import
+  ---
+  duration_ms: 2.122518
+  type: 'test'
+  ...
+# Subtest: hidden import completion is shown on return and disposed completion cannot render
+ok 102 - hidden import completion is shown on return and disposed completion cannot render
+  ---
+  duration_ms: 2.209428
+  type: 'test'
+  ...
+# Subtest: delayed exports remain bound to their selection and do not download after hide or disposal
+ok 103 - delayed exports remain bound to their selection and do not download after hide or disposal
+  ---
+  duration_ms: 2.581617
+  type: 'test'
+  ...
+# Subtest: selected-setup export cannot interrupt an unfinished file byte read
+ok 104 - selected-setup export cannot interrupt an unfinished file byte read
+  ---
+  duration_ms: 1.266943
+  type: 'test'
+  ...
+# Subtest: selected-setup export cannot interrupt a pending native preview
+ok 105 - selected-setup export cannot interrupt a pending native preview
+  ---
+  duration_ms: 0.971148
+  type: 'test'
+  ...
+# Subtest: a preview paused by hide resumes when a retired export finishes after show
+ok 106 - a preview paused by hide resumes when a retired export finishes after show
+  ---
+  duration_ms: 3.025555
+  type: 'test'
+  ...
+# Subtest: file reads enforce both declared and actual size, reject invalid UTF-8 and retain a legitimate replacement character
+ok 107 - file reads enforce both declared and actual size, reject invalid UTF-8 and retain a legitimate replacement character
+  ---
+  duration_ms: 3.301919
+  type: 'test'
+  ...
+# Subtest: an import-time conflict replaces the preview and cannot be presented as successful or blindly retried
+ok 108 - an import-time conflict replaces the preview and cannot be presented as successful or blindly retried
+  ---
+  duration_ms: 5.06684
+  type: 'test'
+  ...
+# Subtest: native import owns the Data busy state and stale backup, restore, workspace and schedule buttons cannot dispatch
+ok 109 - native import owns the Data busy state and stale backup, restore, workspace and schedule buttons cannot dispatch
+  ---
+  duration_ms: 2.11697
+  type: 'test'
+  ...
+# Subtest: an existing backup dialog owns Data and retires eligible native previews until it finishes
+ok 110 - an existing backup dialog owns Data and retires eligible native previews until it finishes
+  ---
+  duration_ms: 1.672382
+  type: 'test'
+  ...
+# Subtest: pending backup execution retains Data ownership through hide/show and releases after failure
+ok 111 - pending backup execution retains Data ownership through hide/show and releases after failure
+  ---
+  duration_ms: 2.03698
+  type: 'test'
+  ...
+# Subtest: old backup and restore file choosers cannot dispatch after a real hide/show
+ok 112 - old backup and restore file choosers cannot dispatch after a real hide/show
+  ---
+  duration_ms: 3.682471
+  type: 'test'
+  ...
+# Subtest: an old workspace byte read cannot open confirmation or import after hide/show
+ok 113 - an old workspace byte read cannot open confirmation or import after hide/show
+  ---
+  duration_ms: 2.783731
+  type: 'test'
+  ...
+# Subtest: an old restore inspection cannot reopen its confirmation after hide/show
+ok 114 - an old restore inspection cannot reopen its confirmation after hide/show
+  ---
+  duration_ms: 1.332711
+  type: 'test'
+  ...
+# Subtest: restore confirmation and an already dispatched restore retain busy ownership after the dialog is retired
+ok 115 - restore confirmation and an already dispatched restore retain busy ownership after the dialog is retired
+  ---
+  duration_ms: 3.467127
+  type: 'test'
+  ...
+# Subtest: stale setup-list responses cannot restore a removed selection or overwrite a newer list
+ok 116 - stale setup-list responses cannot restore a removed selection or overwrite a newer list
+  ---
+  duration_ms: 1.53771
+  type: 'test'
+  ...
+# Subtest: export failures produce no partial download and disposed setup lists never render
+ok 117 - export failures produce no partial download and disposed setup lists never render
+  ---
+  duration_ms: 2.631061
+  type: 'test'
+  ...
+# Subtest: workspace chooser cancellation releases only its Data owner
+ok 118 - workspace chooser cancellation releases only its Data owner
+  ---
+  duration_ms: 2.964733
+  type: 'test'
+  ...
+# Subtest: workspace chooser cancellation releases only its Data owner before hide/show
+ok 119 - workspace chooser cancellation releases only its Data owner before hide/show
+  ---
+  duration_ms: 1.493914
+  type: 'test'
+  ...
+# Subtest: hiding an undispatched workspace chooser retires it and stale events cannot release a later import owner
+ok 120 - hiding an undispatched workspace chooser retires it and stale events cannot release a later import owner
+  ---
+  duration_ms: 2.322879
+  type: 'test'
+  ...
+# Subtest: disposing an undispatched workspace chooser removes it and late selection cannot import or render
+ok 121 - disposing an undispatched workspace chooser removes it and late selection cannot import or render
+  ---
+  duration_ms: 0.790778
+  type: 'test'
+  ...
+# Subtest: a dispatched workspace import keeps Data ownership through hide/show until success
+ok 122 - a dispatched workspace import keeps Data ownership through hide/show until success
+  ---
+  duration_ms: 3.612286
+  type: 'test'
+  ...
+# Subtest: a dispatched workspace import keeps Data ownership through hide/show until failure
+ok 123 - a dispatched workspace import keeps Data ownership through hide/show until failure
+  ---
+  duration_ms: 2.255367
+  type: 'test'
+  ...
+# Subtest: a late delete resolve preserves a replacement form without obsolete feedback
+ok 124 - a late delete resolve preserves a replacement form without obsolete feedback
+  ---
+  duration_ms: 26.743816
+  type: 'test'
+  ...
+# Subtest: a late delete reject preserves a replacement form without obsolete feedback
+ok 125 - a late delete reject preserves a replacement form without obsolete feedback
+  ---
+  duration_ms: 9.91396
+  type: 'test'
+  ...
+# Subtest: deletion cancellation performs no writes and restores focus to its current trigger
+ok 126 - deletion cancellation performs no writes and restores focus to its current trigger
+  ---
+  duration_ms: 10.0306
+  type: 'test'
+  ...
+# Subtest: current deletion reports retained customer details separately and still returns to the job list
+ok 127 - current deletion reports retained customer details separately and still returns to the job list
+  ---
+  duration_ms: 5.369234
+  type: 'test'
+  ...
+# Subtest: already confirmed customer cleanup finishes without interrupting a replacement form
+ok 128 - already confirmed customer cleanup finishes without interrupting a replacement form
+  ---
+  duration_ms: 5.003024
+  type: 'test'
+  ...
+# Subtest: a delete completed while Service is hidden does not revive the removed job on return
+ok 129 - a delete completed while Service is hidden does not revive the removed job on return
+  ---
+  duration_ms: 3.789522
+  type: 'test'
+  ...
+# Subtest: Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler
+ok 130 - Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler
+  ---
+  duration_ms: 1.033933
+  type: 'test'
+  ...
+# Subtest: Ctrl+J opens the form and respects a subsequent navigation away from the service screen
+ok 131 - Ctrl+J opens the form and respects a subsequent navigation away from the service screen
+  ---
+  duration_ms: 3.52871
+  type: 'test'
+  ...
+# Subtest: Ctrl+J leaves the feature-disabled and open-dialog cases alone
+ok 132 - Ctrl+J leaves the feature-disabled and open-dialog cases alone
+  ---
+  duration_ms: 1.343047
+  type: 'test'
+  ...
+# Subtest: a late job resolve after hide/show preserves the new job form and its input
+ok 133 - a late job resolve after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 2.230209
+  type: 'test'
+  ...
+# Subtest: a late job reject after hide/show preserves the new job form and its input
+ok 134 - a late job reject after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 2.401036
+  type: 'test'
+  ...
+# Subtest: a late comparison resolve after hide/show preserves the new job form and its input
+ok 135 - a late comparison resolve after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 2.90964
+  type: 'test'
+  ...
+# Subtest: a late comparison reject after hide/show preserves the new job form and its input
+ok 136 - a late comparison reject after hide/show preserves the new job form and its input
+  ---
+  duration_ms: 3.793377
+  type: 'test'
+  ...
+# Subtest: current job loading still renders its comparison and current errors retain Retry
+ok 137 - current job loading still renders its comparison and current errors retain Retry
+  ---
+  duration_ms: 7.655918
+  type: 'test'
+  ...
+# Subtest: actual Service After panel announces missing baseline evidence and keeps the comparison step open
+ok 138 - actual Service After panel announces missing baseline evidence and keeps the comparison step open
+  ---
+  duration_ms: 64.420021
+  type: 'test'
+  ...
+# Subtest: late mixed-phase completeness updates the real Service warning without replacing unsaved status notes
+ok 139 - late mixed-phase completeness updates the real Service warning without replacing unsaved status notes
+  ---
+  duration_ms: 12.380985
+  type: 'test'
+  ...
+# Subtest: a late status resolve leaves a replacement new-job form and its feedback alone
+ok 140 - a late status resolve leaves a replacement new-job form and its feedback alone
+  ---
+  duration_ms: 8.611002
+  type: 'test'
+  ...
+# Subtest: a late work-log resolve cannot reload a job after a new form opens
+ok 141 - a late work-log resolve cannot reload a job after a new form opens
+  ---
+  duration_ms: 131.506269
+  type: 'test'
+  ...
+# Subtest: a late comparison resolve preserves unsaved work on the current job
+ok 142 - a late comparison resolve preserves unsaved work on the current job
+  ---
+  duration_ms: 7.598098
+  type: 'test'
+  ...
+# Subtest: a late status reject leaves a replacement new-job form and its feedback alone
+ok 143 - a late status reject leaves a replacement new-job form and its feedback alone
+  ---
+  duration_ms: 2.538895
+  type: 'test'
+  ...
+# Subtest: a late work-log reject cannot reload a job after a new form opens
+ok 144 - a late work-log reject cannot reload a job after a new form opens
+  ---
+  duration_ms: 125.762143
+  type: 'test'
+  ...
+# Subtest: a late comparison reject preserves unsaved work on the current job
+ok 145 - a late comparison reject preserves unsaved work on the current job
+  ---
+  duration_ms: 1.923942
+  type: 'test'
+  ...
+# Subtest: current status and work-log writes still reload their job and release the status controls
+ok 146 - current status and work-log writes still reload their job and release the status controls
+  ---
+  duration_ms: 5.587528
+  type: 'test'
+  ...
+# Subtest: a write pending on another job neither blocks the current status write nor releases its busy guard
+ok 147 - a write pending on another job neither blocks the current status write nor releases its busy guard
+  ---
+  duration_ms: 3.569294
+  type: 'test'
+  ...
+# Subtest: hidden Service status resolve stays quiet and keeps its private job view consistent
+ok 148 - hidden Service status resolve stays quiet and keeps its private job view consistent
+  ---
+  duration_ms: 63.798492
+  type: 'test'
+  ...
+# Subtest: hidden Service work-log resolve stays quiet while preserving the submitted change
+ok 149 - hidden Service work-log resolve stays quiet while preserving the submitted change
+  ---
+  duration_ms: 64.19732
+  type: 'test'
+  ...
+# Subtest: hidden Service status reject stays quiet and keeps its private job view consistent
+ok 150 - hidden Service status reject stays quiet and keeps its private job view consistent
+  ---
+  duration_ms: 64.173475
+  type: 'test'
+  ...
+# Subtest: hidden Service work-log reject stays quiet while preserving the submitted change
+ok 151 - hidden Service work-log reject stays quiet while preserving the submitted change
+  ---
+  duration_ms: 63.163183
+  type: 'test'
+  ...
+# Subtest: a late comparison updates hidden Service evidence without announcing on another screen
+ok 152 - a late comparison updates hidden Service evidence without announcing on another screen
+  ---
+  duration_ms: 63.966847
+  type: 'test'
+  ...
+# Subtest: Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step
+ok 153 - Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step
+  ---
+  duration_ms: 2.394378
+  type: 'test'
+  ...
+# Subtest: late comparison refreshes the after evidence without replacing its options or status note
+ok 154 - late comparison refreshes the after evidence without replacing its options or status note
+  ---
+  duration_ms: 2.658866
+  type: 'test'
+  ...
+# Subtest: late comparison refreshes the sheet evidence without replacing its options or status note
+ok 155 - late comparison refreshes the sheet evidence without replacing its options or status note
+  ---
+  duration_ms: 2.846267
+  type: 'test'
+  ...
+# Subtest: a late new-job create resolve preserves a replacement form
+ok 156 - a late new-job create resolve preserves a replacement form
+  ---
+  duration_ms: 131.516016
+  type: 'test'
+  ...
+# Subtest: a late new-job create reject preserves a replacement form
+ok 157 - a late new-job create reject preserves a replacement form
+  ---
+  duration_ms: 124.978426
+  type: 'test'
+  ...
+# FS-12 coherent reference {"frequencyHz":999,"thdPercent":2.689294585659951e-7,"separationDb":39.99999999651698,"valid":true}
+# FS-12 coherent reference {"frequencyHz":1000,"thdPercent":8.111317464667163e-7,"separationDb":39.99999983205571,"valid":true}
+# FS-12 coherent reference {"frequencyHz":1001,"thdPercent":2.4126196506399023e-7,"separationDb":40.00000000532825,"valid":true}
+# FS-12 coherent reference {"frequencyHz":1002,"thdPercent":3.1431551147388027e-8,"separationDb":39.99999999828699,"valid":true}
+# FS-12 bounded high-rate observation {"sampleRate":192000,"durationSec":10,"channels":2,"windowsPerChannel":20,"analysisWithReadinessMs":2595,"recordMs":31,"totalMs":2625}
+# Subtest: real analysis rejects a dominant 500 Hz track whose weak 1 kHz harmonic looked clean
+ok 158 - real analysis rejects a dominant 500 Hz track whose weak 1 kHz harmonic looked clean
+  ---
+  duration_ms: 1708.119562
+  type: 'test'
+  ...
+# Subtest: strong second and third harmonics retain real adverse THD rather than invalidating the reference
+ok 159 - strong second and third harmonics retain real adverse THD rather than invalidating the reference
+  ---
+  duration_ms: 11744.220001
+  type: 'test'
+  ...
+# Subtest: coherent integer offsets produce the same usable measurements in History and benchmark evidence
+ok 160 - coherent integer offsets produce the same usable measurements in History and benchmark evidence
+  ---
+  duration_ms: 7979.683912
+  type: 'test'
+  ...
+# Subtest: piecewise and drifting references use their complete local windows and each channel frequency
+ok 161 - piecewise and drifting references use their complete local windows and each channel frequency
+  ---
+  duration_ms: 6713.583274
+  type: 'test'
+  ...
+# Subtest: power pooling preserves changing amplitude, harmonic ratio and phase instead of averaging percentages
+ok 162 - power pooling preserves changing amplitude, harmonic ratio and phase instead of averaging percentages
+  ---
+  duration_ms: 2145.284698
+  type: 'test'
+  ...
+# Subtest: unresolved families and unmeasurable fundamentals stay unavailable through structured History and save preflight
+ok 163 - unresolved families and unmeasurable fundamentals stay unavailable through structured History and save preflight
+  ---
+  duration_ms: 2202.39143
+  type: 'test'
+  ...
+# Subtest: ordinary fixed-reference runs remain unchanged and cannot be silently promoted to measured-reference benchmarks
+ok 164 - ordinary fixed-reference runs remain unchanged and cannot be silently promoted to measured-reference benchmarks
+  ---
+  duration_ms: 1072.093031
+  type: 'test'
+  ...
+# Subtest: short correct prefixes and suffixes cannot overwrite the rest of the capture at either input rate
+ok 165 - short correct prefixes and suffixes cannot overwrite the rest of the capture at either input rate
+  ---
+  duration_ms: 2245.295065
+  type: 'test'
+  ...
+# Subtest: wrong prefix, suffix and opposing middle regions stay excluded even with a valid overall peak
+ok 166 - wrong prefix, suffix and opposing middle regions stay excluded even with a valid overall peak
+  ---
+  duration_ms: 3045.014364
+  type: 'test'
+  ...
+# Subtest: near-boundary valid references stay eligible and every window retains its measured frequency
+ok 167 - near-boundary valid references stay eligible and every window retains its measured frequency
+  ---
+  duration_ms: 4692.453403
+  type: 'test'
+  ...
+# Subtest: one bounded 192 kHz capture retains full coverage and the middle-region disagreement
+ok 168 - one bounded 192 kHz capture retains full coverage and the middle-region disagreement
+  ---
+  duration_ms: 2747.434194
+  type: 'test'
+  ...
+# Subtest: existing speed-readiness criterion accepts nearby controls and excludes a mismatched observed family
+ok 169 - existing speed-readiness criterion accepts nearby controls and excludes a mismatched observed family
+  ---
+  duration_ms: 1397.371705
+  type: 'test'
+  ...
+# Subtest: zero and negative measured separation remain adverse observations, not an invented quality gate
+ok 170 - zero and negative measured separation remain adverse observations, not an invented quality gate
+  ---
+  duration_ms: 1407.765268
+  type: 'test'
+  ...
+# Subtest: THD requires observable H2 through H5 and retains evidence when the rate is insufficient
+ok 171 - THD requires observable H2 through H5 and retains evidence when the rate is insufficient
+  ---
+  duration_ms: 1350.894439
+  type: 'test'
+  ...
+# Subtest: missing loss fields never persist as measured zero while observed zero and raw faults survive
+ok 172 - missing loss fields never persist as measured zero while observed zero and raw faults survive
+  ---
+  duration_ms: 585.777494
+  type: 'test'
+  ...
+# Subtest: native acquisition observations must exist and agree with the final device, rate and pair
+ok 173 - native acquisition observations must exist and agree with the final device, rate and pair
+  ---
+  duration_ms: 2841.378695
+  type: 'test'
+  ...
+# Subtest: the real native adapter retains fallback audio without promoting missing right/rate/pair fields to observations
+ok 174 - the real native adapter retains fallback audio without promoting missing right/rate/pair fields to observations
+  ---
+  duration_ms: 5090.000927
+  type: 'test'
+  ...
+# Subtest: uncalibrated captures are repeatable while anonymous, rejected and mismatched profiles stay unapplied
+ok 175 - uncalibrated captures are repeatable while anonymous, rejected and mismatched profiles stay unapplied
+  ---
+  duration_ms: 4139.017089
+  type: 'test'
+  ...
+# Subtest: the real calibration resolver retains a known mismatch instead of claiming no profile
+ok 176 - the real calibration resolver retains a known mismatch instead of claiming no profile
+  ---
+  duration_ms: 704.003509
+  type: 'test'
+  ...
+# FS-12 complete bounded detail {"sampleRate":22050,"seconds":10,"windows":80,"bytes":57824}
+# FS-12 complete bounded detail {"sampleRate":48000,"seconds":10.1,"windows":84,"bytes":59050}
+# FS-12 complete bounded detail {"sampleRate":48000,"seconds":10.5,"windows":84,"bytes":58449}
+# Subtest: late asynchronous calibration lookup cannot persist or advance a cancelled capture
+ok 177 - late asynchronous calibration lookup cannot persist or advance a cancelled capture
+  ---
+  duration_ms: 20.817179
+  type: 'test'
+  ...
+# Subtest: out-of-schema values remain exact in excluded evidence, with null trend values and no clamping
+ok 178 - out-of-schema values remain exact in excluded evidence, with null trend values and no clamping
+  ---
+  duration_ms: 1459.420527
+  type: 'test'
+  ...
+# Subtest: oversize UTF-8 evidence blocks the benchmark write without pruning the profile or changing its asset
+ok 179 - oversize UTF-8 evidence blocks the benchmark write without pruning the profile or changing its asset
+  ---
+  duration_ms: 689.431567
+  type: 'test'
+  ...
+# Subtest: calibrated optional timecode retains every observation at normal and overshooting capture durations
+ok 180 - calibrated optional timecode retains every observation at normal and overshooting capture durations
+  ---
+  duration_ms: 7217.75151
+  type: 'test'
+  ...
+# Subtest: the measured-reference analysis version distinguishes old guided baselines without rewriting them
+ok 181 - the measured-reference analysis version distinguishes old guided baselines without rewriting them
+  ---
+  duration_ms: 788.626324
+  type: 'test'
+  ...
+# Subtest: operator-confirmed legacy comparison keeps its basis and never fabricates historical observations
+ok 182 - operator-confirmed legacy comparison keeps its basis and never fabricates historical observations
+  ---
+  duration_ms: 1506.769258
+  type: 'test'
+  ...
+# Subtest: production controls save A, change support, save B, derive comparison, reload and report exact historical evidence
+ok 183 - production controls save A, change support, save B, derive comparison, reload and report exact historical evidence
+  ---
+  duration_ms: 129.086448
+  type: 'test'
+  ...
+# Subtest: changed operator conditions preserve observations and produce an explicit non-comparable result
+ok 184 - changed operator conditions preserve observations and produce an explicit non-comparable result
+  ---
+  duration_ms: 84.250278
+  type: 'test'
+  ...
+# Subtest: lost save response retries the same original observation while form changes and duplicate presses cannot alter it
+ok 185 - lost save response retries the same original observation while form changes and duplicate presses cannot alter it
+  ---
+  duration_ms: 40.524005
+  type: 'test'
+  ...
+# Subtest: late capture opens are cancelled after hide without dispatching a save
+ok 186 - late capture opens are cancelled after hide without dispatching a save
+  ---
+  duration_ms: 2.508067
+  type: 'test'
+  ...
+# Subtest: catalog and history failures are explicit and retryable rather than an authoritative empty history
+ok 187 - catalog and history failures are explicit and retryable rather than an authoritative empty history
+  ---
+  duration_ms: 2.260254
+  type: 'test'
+  ...
+# Subtest: strict calibration snapshot distinguishes absent, corrupt and mismatched actual-route profiles without writes
+ok 188 - strict calibration snapshot distinguishes absent, corrupt and mismatched actual-route profiles without writes
+  ---
+  duration_ms: 0.670587
+  type: 'test'
+  ...
+# Subtest: the actual Hum screen exposes the Support A/B panel and restores its history across tab lifecycle
+ok 189 - the actual Hum screen exposes the Support A/B panel and restores its history across tab lifecycle
+  ---
+  duration_ms: 5.711297
+  type: 'test'
+  ...
+# Subtest: reactivating the panel refreshes catalog snapshots while retaining completed observation A
+ok 190 - reactivating the panel refreshes catalog snapshots while retaining completed observation A
+  ---
+  duration_ms: 42.150427
+  type: 'test'
+  ...
+# Subtest: retired history successes and errors cannot replace the latest venue or reactivate a hidden load
+ok 191 - retired history successes and errors cannot replace the latest venue or reactivate a hidden load
+  ---
+  duration_ms: 3.994218
+  type: 'test'
+  ...
+# Subtest: an already dispatched save keeps its original ownership through hide and a lost response
+ok 192 - an already dispatched save keeps its original ownership through hide and a lost response
+  ---
+  duration_ms: 72.825241
+  type: 'test'
+  ...
+# Subtest: non-finite serialized calibration metadata stays rejected with its original source text
+ok 193 - non-finite serialized calibration metadata stays rejected with its original source text
+  ---
+  duration_ms: 0.343576
+  type: 'test'
+  ...
+1..193
+# tests 193
+# suites 0
+# pass 193
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82737.714963

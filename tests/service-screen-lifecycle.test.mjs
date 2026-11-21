@@ -206,6 +206,47 @@ test('current job loading still renders its comparison and current errors retain
   assert.ok(error.querySelectorAll('button').some(button => button.textContent === 'Retry'));
 });
 
+test('actual Service After panel announces missing baseline evidence and keeps the comparison step open', async t => {
+  await new Promise(resolve => setTimeout(resolve, 60));
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const row = { ...detail(), job: { ...detail().job, status: 'testing' }, results: [{ phase: 'after', sessionId: 'post-repair' }] };
+  const data = { values: [{ phase: 'after', testId: 'level', metricKey: 'level_db', label: 'Post-repair level', value: 7, unit: 'dB', at: '2026-11-20T00:00:00Z', methodKey: 'level', methodVersion: 1 }], tests: [], methods: [] };
+  const original = JSON.stringify({ row, data });
+  const { section, calls } = mount({ get: async () => row, compare: async () => data });
+  navigateTo('service', { jobId: 'old', step: 'after' }); await settle(); t.mock.timers.tick(50);
+  const warning = section.querySelector('#svc-partial');
+  assert.match(warning.textContent, /Compare is incomplete, 1 of 1 metric has no before value/);
+  assert.match(warning.textContent, /Link existing pre-repair measurements/);
+  assert.doesNotMatch(warning.textContent, /Run the missing after tests/);
+  assert.equal(section.querySelector('#svc-step-after-state').textContent, 'To do');
+  assert.match(section.querySelector('#svc-compare-table').textContent, /Post-repair level/);
+  assert.match(section.querySelector('#svc-compare-table').textContent, /No before value/);
+  assert.match(document.getElementById('sr-polite').textContent, /1 of 1 metric has no before value/);
+  assert.doesNotMatch(section.textContent, /All 0 metrics/);
+  assert.equal(row.job.status, 'testing');
+  assert.equal(calls.filter(call => ['job_set_status', 'job_link_results'].includes(call.command)).length, 0);
+  assert.equal(JSON.stringify({ row, data }), original);
+});
+
+test('late mixed-phase completeness updates the real Service warning without replacing unsaved status notes', async () => {
+  const pending = deferred();
+  const row = { ...detail(), job: { ...detail().job, status: 'testing' }, results: [{ phase: 'before', sessionId: 'pre-repair' }, { phase: 'after', sessionId: 'post-repair' }] };
+  const { section, calls } = mount({ get: async () => row, compare: () => pending.promise });
+  navigateTo('service', { jobId: 'old', step: 'after' }); await settle();
+  const note = section.querySelector('#svc-status-note'); note.value = 'Keep this unsaved status note'; note.focus();
+  const value = (phase, metricKey) => ({ phase, testId: 'level', metricKey, label: metricKey, value: 7, unit: 'dB', at: '2026-11-20T00:00:00Z', methodKey: 'level', methodVersion: 1 });
+  pending.resolve({ values: [value('before', 'paired'), value('after', 'paired'), value('before', 'before_only'), value('after', 'after_only')], tests: [], methods: [] });
+  await settle();
+  assert.ok(section.querySelector('#svc-status-note') === note);
+  assert.equal(note.value, 'Keep this unsaved status note'); assert.ok(document.activeElement === note);
+  assert.equal(section.querySelector('#svc-step-after-state').textContent, 'To do');
+  const warning = section.querySelector('#svc-partial');
+  assert.match(warning.textContent, /1 of 3 metrics has no before value; 1 of 3 metrics has no after value/);
+  assert.match(warning.textContent, /Link existing pre-repair measurements/);
+  assert.match(warning.textContent, /Run the missing after tests too/);
+  assert.equal(calls.filter(call => ['job_set_status', 'job_link_results'].includes(call.command)).length, 0);
+});
+
 for (const outcome of ['resolve', 'reject']) {
   test(`a late status ${outcome} leaves a replacement new-job form and its feedback alone`, async () => {
     const pending = deferred();

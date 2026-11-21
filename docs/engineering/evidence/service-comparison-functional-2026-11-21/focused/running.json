@@ -1,0 +1,166 @@
+{
+  "schema": "deckchek.service-comparison-focused-gate.v1",
+  "source_commit": "36e968821fdcd61e2f43de22a09b811384eea8e0",
+  "source_tree": "a5fc965e2f4151705d862e05b89e1cb06b0acdb2",
+  "source_branch": "review/deckchek-service-comparison-functional-20261121",
+  "source_parents": [
+    "34d09f790bea68a6ce5555b60f97d20fd007dbb5"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-functional",
+  "driver_original_path": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-recorder.py",
+  "config_original_path": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-selection.json",
+  "output_original_path": "/workspace/scratch/6f2247f2f463/deckchek-service-comparison-round14-focused-raw",
+  "driver_sha256": "d47b9cac247932c7fa16007ad18a0a6600b282549930b83d3733d5103670c7e7",
+  "config_sha256": "4b01ea66c0ca2cd86e989ae670bc0a7474b0f4d9b3eb84e852c70d3691a96bc9",
+  "python_version": "3.12.14",
+  "python_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "recorder_started_at_utc": "2026-11-21T12:54:54.095770+00:00",
+  "runtime_identity_calls": [
+    {
+      "label": "node-version",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.00460033499985002,
+      "stdout_bytes": 9,
+      "stdout_sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "node-runtime",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.07240239600287168,
+      "stdout_bytes": 782,
+      "stdout_sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "project_command_started": false,
+  "exit_code": null,
+  "timed_out": false,
+  "termination_events": [],
+  "execution_budget_seconds": 60,
+  "termination_signal_after_seconds": 55,
+  "termination_grace_seconds": 5,
+  "scope": "One explicit six-file focused serial TAP selection, 123 source-derived cases. Original production modules and DOM fixtures with recorded native seams; crosslinks includes its original synthetic DSP consumer. No full suite, separate build/verifier, browser/native app launch, audio collector, separate project command or additional instrumentation.",
+  "source_state_before": {
+    "branch": "review/deckchek-service-comparison-functional-20261121",
+    "commit": "36e968821fdcd61e2f43de22a09b811384eea8e0",
+    "tree": "a5fc965e2f4151705d862e05b89e1cb06b0acdb2",
+    "parents": [
+      "34d09f790bea68a6ce5555b60f97d20fd007dbb5"
+    ],
+    "status": ""
+  },
+  "forbidden_environment_variable_names": [],
+  "full_source_map_sha256_before": "e16668214d8323f344c086b2eef5265a334d4a90851a78f7c40a8af4c22d5163",
+  "immutable_distinct_blob_count": 2229,
+  "summed_tracked_bytes": 81828656,
+  "source_working_bytes_modes_verified_before": true,
+  "tracked_file_count": 2464,
+  "all_top_level_test_file_count": 205,
+  "status_before": "",
+  "selected_source_identities_before": {
+    "tests/crosslinks.test.mjs": {
+      "bytes": 12394,
+      "sha256": "089c225f1a4ad19606f56cc9942a216c316db4204f1bb902d1c1196419062253"
+    },
+    "tests/service-intake-lifecycle.test.mjs": {
+      "bytes": 9495,
+      "sha256": "05cc41dd09f9fdc9fa4b3339c4104ea073dc3649407e3b8b7639e0d81150feed"
+    },
+    "tests/service-panel-lifecycle.test.mjs": {
+      "bytes": 19516,
+      "sha256": "d746cccf0b7798f90da862ecd8587c1130a88dffa1422af4e05eb2663a0e02b0"
+    },
+    "tests/service-pii-leak.test.mjs": {
+      "bytes": 5717,
+      "sha256": "48ff40c8f864a3d1fc51a930c1bbd6d56ff5ddfd401a2eb0801b277ee3b33870"
+    },
+    "tests/service-screen-lifecycle.test.mjs": {
+      "bytes": 30274,
+      "sha256": "5f77dde018e951e303fae4dbafc6b110546ae01c975b15e2bd9609af74ac3ae6"
+    },
+    "tests/service.test.mjs": {
+      "bytes": 30086,
+      "sha256": "164d4e14dfdde5e3338904ea5f72190cb6464d09d81d627c49f21ab332a083cc"
+    }
+  },
+  "test_file_count": 6,
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "optional_external_corpus_present": false,
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "node_executable_bytes": 126951512,
+  "node_executable_sha256_before": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "node_resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ]
+  },
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/crosslinks.test.mjs",
+    "tests/service-intake-lifecycle.test.mjs",
+    "tests/service-panel-lifecycle.test.mjs",
+    "tests/service-pii-leak.test.mjs",
+    "tests/service-screen-lifecycle.test.mjs",
+    "tests/service.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T12:54:59.231355+00:00"
+}

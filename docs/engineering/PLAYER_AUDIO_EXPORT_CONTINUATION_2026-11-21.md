@@ -104,3 +104,22 @@ bytes, qualified pitch, report/History integration and physical capture/referenc
 validation remain open. Qualified main stays separate. Fleet stays off with its
 fixed diagnostic source intact. Existing thresholds, permissions, archive limits,
 original failures and branches remain unchanged. No release or deployment.
+
+## Durable held checkpoint
+
+The consolidated Player checkpoint is published at
+[`f262a715d5cc9618285f4fe2d89b8dde2fc0fe9b`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-player-audio-export-held-20261121).
+Root fetched the object and independently verified the complete tree
+`6d7085cd07c24ffe1b23343f0ce4250dfe7d4daa` equals local publication source
+`21d9a3d19e475d0cbfaeed5f2047df5bae04d951`, with sole ordered parent
+`e7fca004fa43361018eea7683265bad07260c03d` and zero file differences. A fresh
+absence read preceded branch creation; the exact new reference was then read
+back and matched. The [publication proof](evidence/player-audio-export-integration-2026-11-21/checkpoint-publication.json)
+retains these checks.
+
+The original review-history bundle is 533,594 bytes, SHA-256
+`d12d9700e853cb409cc9f6b548a65a2587e6d06b4ad5f58bc3d8735005a748f7`,
+with tip `754ccec`. All 19 prerequisites were verified available from the
+published parent, and Git bundle verification passed. The published branch is
+fixed. This preserves the completed work and original failures; it is not a
+qualified main merge, release or deployment.

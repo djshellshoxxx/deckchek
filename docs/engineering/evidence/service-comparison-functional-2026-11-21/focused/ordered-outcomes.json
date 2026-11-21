@@ -1,0 +1,617 @@
+[
+  {
+    "outcome": "ok",
+    "number": 1,
+    "name": "related links follow the feature flags"
+  },
+  {
+    "outcome": "ok",
+    "number": 2,
+    "name": "equipment links depend on the product category and hand over the asset"
+  },
+  {
+    "outcome": "ok",
+    "number": 3,
+    "name": "pre-gig cross fixes: only for problems, only for features that are on, no duplicates"
+  },
+  {
+    "outcome": "ok",
+    "number": 4,
+    "name": "every settings target the UI can ask for is on the fixed list"
+  },
+  {
+    "outcome": "ok",
+    "number": 5,
+    "name": "active cartridge: preferred, else most recently used, else first"
+  },
+  {
+    "outcome": "ok",
+    "number": 6,
+    "name": "stylus card model: wear percent, status and the next alert"
+  },
+  {
+    "outcome": "ok",
+    "number": 7,
+    "name": "history rows map every feature run onto one shape"
+  },
+  {
+    "outcome": "ok",
+    "number": 8,
+    "name": "loadFeatureRuns isolates failures and survives a missing backend"
+  },
+  {
+    "outcome": "ok",
+    "number": 9,
+    "name": "merge and filter the feed by type, newest first"
+  },
+  {
+    "outcome": "ok",
+    "number": 10,
+    "name": "pre-gig PDF: words not colours, everything escaped"
+  },
+  {
+    "outcome": "ok",
+    "number": 11,
+    "name": "saved runs carry the real capture span (live) and an approximate one (file)"
+  },
+  {
+    "outcome": "ok",
+    "number": 12,
+    "name": "customer searches retain the latest result and ignore an older reply"
+  },
+  {
+    "outcome": "ok",
+    "number": 13,
+    "name": "typing a new customer query invalidates the old request before the debounce starts"
+  },
+  {
+    "outcome": "ok",
+    "number": 14,
+    "name": "late customer errors do not update feedback after new-customer-mode"
+  },
+  {
+    "outcome": "ok",
+    "number": 15,
+    "name": "late customer errors do not update feedback after replacement-form"
+  },
+  {
+    "outcome": "ok",
+    "number": 16,
+    "name": "deferred unit refresh preserves a chosen existing unit and unsaved fields"
+  },
+  {
+    "outcome": "ok",
+    "number": 17,
+    "name": "deferred unit refresh preserves a chosen new unit and unsaved fields"
+  },
+  {
+    "outcome": "ok",
+    "number": 18,
+    "name": "a refreshed list never substitutes the preset for a selected unit that disappeared"
+  },
+  {
+    "outcome": "ok",
+    "number": 19,
+    "name": "a current customer-search failure remains explicit and a later search can recover"
+  },
+  {
+    "outcome": "ok",
+    "number": 20,
+    "name": "the untouched unit preset remains selected after the initial refresh"
+  },
+  {
+    "outcome": "ok",
+    "number": 21,
+    "name": "an explicitly cleared unit choice is not reset to the preset"
+  },
+  {
+    "outcome": "ok",
+    "number": 22,
+    "name": "the preserved new-unit model reaches the actual create payload"
+  },
+  {
+    "outcome": "ok",
+    "number": 23,
+    "name": "a retired form cannot dispatch a new customer lookup or job creation"
+  },
+  {
+    "outcome": "ok",
+    "number": 24,
+    "name": "late customer resolve leaves the replacement panel and feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 25,
+    "name": "late customer reject leaves the replacement panel and feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 26,
+    "name": "current customer submission reports failure and can be retried"
+  },
+  {
+    "outcome": "ok",
+    "number": 27,
+    "name": "late job details resolve leaves the replacement panel and feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 28,
+    "name": "late job details reject leaves the replacement panel and feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 29,
+    "name": "current job details submission reports failure and can be retried"
+  },
+  {
+    "outcome": "ok",
+    "number": 30,
+    "name": "a cancelled customer editor cannot reload or toast over the replacement editor"
+  },
+  {
+    "outcome": "ok",
+    "number": 31,
+    "name": "late saved-run link resolve preserves the current panel and feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 32,
+    "name": "late saved-run link reject preserves the current panel and feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 33,
+    "name": "current saved-run linking still refreshes and reports the linked phase"
+  },
+  {
+    "outcome": "ok",
+    "number": 34,
+    "name": "late photo unlink resolve does not reload or announce in another panel"
+  },
+  {
+    "outcome": "ok",
+    "number": 35,
+    "name": "late photo unlink reject does not reload or announce in another panel"
+  },
+  {
+    "outcome": "ok",
+    "number": 36,
+    "name": "late photo attach resolve preserves the submitted write and suppresses obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 37,
+    "name": "late photo attach reject preserves the submitted write and suppresses obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 38,
+    "name": "photo success is not announced when a refresh is superseded by navigation"
+  },
+  {
+    "outcome": "ok",
+    "number": 39,
+    "name": "a submitted photo batch finishes all its attachments after leaving the panel"
+  },
+  {
+    "outcome": "ok",
+    "number": 40,
+    "name": "current photo attachment success retains its visible feedback and releases the button"
+  },
+  {
+    "outcome": "ok",
+    "number": 41,
+    "name": "current photo attachment failure retains its visible feedback and releases the button"
+  },
+  {
+    "outcome": "ok",
+    "number": 42,
+    "name": "HTML export captures the clicked sheet options before asynchronous preparation"
+  },
+  {
+    "outcome": "ok",
+    "number": 43,
+    "name": "late HTML export resolve completes the submitted save without feedback in another panel"
+  },
+  {
+    "outcome": "ok",
+    "number": 44,
+    "name": "late HTML export reject completes the submitted save without feedback in another panel"
+  },
+  {
+    "outcome": "ok",
+    "number": 45,
+    "name": "HTML export preparation abandons a retired panel before opening a save dialog"
+  },
+  {
+    "outcome": "ok",
+    "number": 46,
+    "name": "current HTML export failure retains a working retry and cancellation stays quiet"
+  },
+  {
+    "outcome": "ok",
+    "number": 47,
+    "name": "PDF export captures the clicked sheet options and still reports current success"
+  },
+  {
+    "outcome": "ok",
+    "number": 48,
+    "name": "late PDF export resolve preserves the backend result and current-screen feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 49,
+    "name": "late PDF export reject preserves the backend result and current-screen feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 50,
+    "name": "a PDF retry offered on a previous panel cannot start another export after navigation"
+  },
+  {
+    "outcome": "ok",
+    "number": 51,
+    "name": "current PDF failure can retry and callers without ownership callbacks retain feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 52,
+    "name": "PII: a job with a new unit puts no customer data into the equipment that the workspace export carries"
+  },
+  {
+    "outcome": "ok",
+    "number": 53,
+    "name": "PII: the browser diagnostics bundle (settings + runs) carries no customer data, even unredacted"
+  },
+  {
+    "outcome": "ok",
+    "number": 54,
+    "name": "PII: the printed job sheet and its suggested file name omit the customer unless asked"
+  },
+  {
+    "outcome": "ok",
+    "number": 55,
+    "name": "PII: no Rust module other than service.rs reads the customer table, and no other JS module calls customer commands"
+  },
+  {
+    "outcome": "ok",
+    "number": 56,
+    "name": "a late delete resolve preserves a replacement form without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 57,
+    "name": "a late delete reject preserves a replacement form without obsolete feedback"
+  },
+  {
+    "outcome": "ok",
+    "number": 58,
+    "name": "deletion cancellation performs no writes and restores focus to its current trigger"
+  },
+  {
+    "outcome": "ok",
+    "number": 59,
+    "name": "current deletion reports retained customer details separately and still returns to the job list"
+  },
+  {
+    "outcome": "ok",
+    "number": 60,
+    "name": "already confirmed customer cleanup finishes without interrupting a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 61,
+    "name": "a delete completed while Service is hidden does not revive the removed job on return"
+  },
+  {
+    "outcome": "ok",
+    "number": 62,
+    "name": "Ctrl+J reports a navigation failure visibly instead of rejecting outside the event handler"
+  },
+  {
+    "outcome": "ok",
+    "number": 63,
+    "name": "Ctrl+J opens the form and respects a subsequent navigation away from the service screen"
+  },
+  {
+    "outcome": "ok",
+    "number": 64,
+    "name": "Ctrl+J leaves the feature-disabled and open-dialog cases alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 65,
+    "name": "a late job resolve after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 66,
+    "name": "a late job reject after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 67,
+    "name": "a late comparison resolve after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 68,
+    "name": "a late comparison reject after hide/show preserves the new job form and its input"
+  },
+  {
+    "outcome": "ok",
+    "number": 69,
+    "name": "current job loading still renders its comparison and current errors retain Retry"
+  },
+  {
+    "outcome": "ok",
+    "number": 70,
+    "name": "actual Service After panel announces missing baseline evidence and keeps the comparison step open"
+  },
+  {
+    "outcome": "ok",
+    "number": 71,
+    "name": "late mixed-phase completeness updates the real Service warning without replacing unsaved status notes"
+  },
+  {
+    "outcome": "ok",
+    "number": 72,
+    "name": "a late status resolve leaves a replacement new-job form and its feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 73,
+    "name": "a late work-log resolve cannot reload a job after a new form opens"
+  },
+  {
+    "outcome": "ok",
+    "number": 74,
+    "name": "a late comparison resolve preserves unsaved work on the current job"
+  },
+  {
+    "outcome": "ok",
+    "number": 75,
+    "name": "a late status reject leaves a replacement new-job form and its feedback alone"
+  },
+  {
+    "outcome": "ok",
+    "number": 76,
+    "name": "a late work-log reject cannot reload a job after a new form opens"
+  },
+  {
+    "outcome": "ok",
+    "number": 77,
+    "name": "a late comparison reject preserves unsaved work on the current job"
+  },
+  {
+    "outcome": "ok",
+    "number": 78,
+    "name": "current status and work-log writes still reload their job and release the status controls"
+  },
+  {
+    "outcome": "ok",
+    "number": 79,
+    "name": "a write pending on another job neither blocks the current status write nor releases its busy guard"
+  },
+  {
+    "outcome": "ok",
+    "number": 80,
+    "name": "hidden Service status resolve stays quiet and keeps its private job view consistent"
+  },
+  {
+    "outcome": "ok",
+    "number": 81,
+    "name": "hidden Service work-log resolve stays quiet while preserving the submitted change"
+  },
+  {
+    "outcome": "ok",
+    "number": 82,
+    "name": "hidden Service status reject stays quiet and keeps its private job view consistent"
+  },
+  {
+    "outcome": "ok",
+    "number": 83,
+    "name": "hidden Service work-log reject stays quiet while preserving the submitted change"
+  },
+  {
+    "outcome": "ok",
+    "number": 84,
+    "name": "a late comparison updates hidden Service evidence without announcing on another screen"
+  },
+  {
+    "outcome": "ok",
+    "number": 85,
+    "name": "Retry comparison preserves edited fields, removes its error and makes the comparison available on the After step"
+  },
+  {
+    "outcome": "ok",
+    "number": 86,
+    "name": "late comparison refreshes the after evidence without replacing its options or status note"
+  },
+  {
+    "outcome": "ok",
+    "number": 87,
+    "name": "late comparison refreshes the sheet evidence without replacing its options or status note"
+  },
+  {
+    "outcome": "ok",
+    "number": 88,
+    "name": "a late new-job create resolve preserves a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 89,
+    "name": "a late new-job create reject preserves a replacement form"
+  },
+  {
+    "outcome": "ok",
+    "number": 90,
+    "name": "AC-6 transition table is exhaustive (valid and invalid) and matches the Rust table"
+  },
+  {
+    "outcome": "ok",
+    "number": 91,
+    "name": "AC-7 delete needs the exact job number; job numbers have the J-<year>-<seq> shape"
+  },
+  {
+    "outcome": "ok",
+    "number": 92,
+    "name": "AC-3 totals are informational: labour hours and parts cost with amendments superseding originals"
+  },
+  {
+    "outcome": "ok",
+    "number": 93,
+    "name": "AC-4 comparison: greater, lesser, equal within uncertainty, missing and incomparable metrics"
+  },
+  {
+    "outcome": "ok",
+    "number": 94,
+    "name": "AC-4 combined uncertainty is root-sum-square and the verdict uses k = 2"
+  },
+  {
+    "outcome": "ok",
+    "number": 95,
+    "name": "AC-4 unknown uncertainty defaults to 5 % of the spec span and is marked assumed"
+  },
+  {
+    "outcome": "ok",
+    "number": 96,
+    "name": "comparison pairs the latest valid value per phase and puts fail -> pass first"
+  },
+  {
+    "outcome": "ok",
+    "number": 97,
+    "name": "test status headline: fail -> pass first, then pass -> fail"
+  },
+  {
+    "outcome": "ok",
+    "number": 98,
+    "name": "partial state: \"Compare is incomplete, 3 of 8 metrics have no after value\""
+  },
+  {
+    "outcome": "ok",
+    "number": 99,
+    "name": "comparison completeness includes one after-only metric"
+  },
+  {
+    "outcome": "ok",
+    "number": 100,
+    "name": "comparison completeness includes several after-only metrics"
+  },
+  {
+    "outcome": "ok",
+    "number": 101,
+    "name": "comparison completeness includes paired and after-only metrics"
+  },
+  {
+    "outcome": "ok",
+    "number": 102,
+    "name": "comparison completeness includes one before-only metric"
+  },
+  {
+    "outcome": "ok",
+    "number": 103,
+    "name": "comparison completeness includes paired and before-only metrics"
+  },
+  {
+    "outcome": "ok",
+    "number": 104,
+    "name": "comparison completeness includes missing values in both phases"
+  },
+  {
+    "outcome": "ok",
+    "number": 105,
+    "name": "comparison completeness includes no observations"
+  },
+  {
+    "outcome": "ok",
+    "number": 106,
+    "name": "comparison completeness includes all paired metrics"
+  },
+  {
+    "outcome": "ok",
+    "number": 107,
+    "name": "buildComparison reads the job_comparison payload with its method registry (mutual compat)"
+  },
+  {
+    "outcome": "ok",
+    "number": 108,
+    "name": "direction hints come from the device profile pass criteria"
+  },
+  {
+    "outcome": "ok",
+    "number": 109,
+    "name": "stepper: Intake > Before > Work > After > Sheet with done / blocked / current"
+  },
+  {
+    "outcome": "ok",
+    "number": 110,
+    "name": "privacy helpers: unit names never carry the customer, settings keep only the status filter"
+  },
+  {
+    "outcome": "ok",
+    "number": 111,
+    "name": "after-only observations remain on the final job sheet with an incomplete comparison and open After step"
+  },
+  {
+    "outcome": "ok",
+    "number": 112,
+    "name": "AC-5 job sheet has fault, before/after table, work log, signature line and the disclaimer; no prices by default"
+  },
+  {
+    "outcome": "ok",
+    "number": 113,
+    "name": "job sheet includes customer details only when \"Include customer details\" is ticked"
+  },
+  {
+    "outcome": "ok",
+    "number": 114,
+    "name": "every free-text value is HTML-escaped in the sheet"
+  },
+  {
+    "outcome": "ok",
+    "number": 115,
+    "name": "jobSheet printable kind composes through FS-03 with escaping, title and no customer in the file name"
+  },
+  {
+    "outcome": "ok",
+    "number": 116,
+    "name": "bridge passes exactly the Rust argument names and turns errors into messages"
+  },
+  {
+    "outcome": "ok",
+    "number": 117,
+    "name": "regression: before/after pairs by (test id, metric key), never across two faders sharing a metric key"
+  },
+  {
+    "outcome": "ok",
+    "number": 118,
+    "name": "regression: per-test pass bands from the profile apply to their own test only"
+  },
+  {
+    "outcome": "ok",
+    "number": 119,
+    "name": "regression: job_create sends the local calendar year so the job number matches the opened date the user sees"
+  },
+  {
+    "outcome": "ok",
+    "number": 120,
+    "name": "regression: fractional part quantities show their real value on the job sheet"
+  },
+  {
+    "outcome": "ok",
+    "number": 121,
+    "name": "regression: a before value from a device test pairs with an after value from a test-less run when one test measures the metric"
+  },
+  {
+    "outcome": "ok",
+    "number": 122,
+    "name": "regression: a test-less value is not paired when several tests measure the metric, and the row says why"
+  },
+  {
+    "outcome": "ok",
+    "number": 123,
+    "name": "regression: a test with an abs<= or between band never borrows another test's direction"
+  }
+]

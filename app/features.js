@@ -2,7 +2,10 @@
 // exist. Overrides persist in the `features` object of the `deckchek.ui.v1`
 // settings record. A flag whose value equals its default is not stored, so a
 // default flipped in a later milestone reaches users who never touched it.
-// Pure module: no DOM access, storage is injectable for tests.
+// No DOM mutation; storage is injectable for tests. A completed restore pauses
+// ordinary flag writes until the current document reloads.
+
+import { restoreReloadRequired } from './restore-session.js';
 
 const SETTINGS_KEY = 'deckchek.ui.v1';
 
@@ -71,6 +74,7 @@ export function isEnabled(name) {
 export function setEnabled(name, on) {
   const meta = FEATURES[name];
   if (!meta) throw new Error(`Unknown feature flag: ${name}`);
+  if (restoreReloadRequired()) return false;
   const next = { ...overrides() };
   if (Boolean(on) === meta.default) delete next[name]; else next[name] = Boolean(on);
   if (bound) bound.features = next;
@@ -83,6 +87,7 @@ export function setEnabled(name, on) {
 
 /** Drop every override so each flag returns to its default. */
 export function resetFeatures() {
+  if (restoreReloadRequired()) return false;
   const names = Object.keys(overrides());
   if (bound) bound.features = {};
   try {

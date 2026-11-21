@@ -1,0 +1,187 @@
+{
+  "schema": "deckchek.backup-recovery-functional-evidence-manifest.v1",
+  "source_commit": "f43b940f142ff54fdaf24c0d1feece4ca6dd957b",
+  "source_tree": "d62283dfcc7d08e90d94d63e29afce77db67f566",
+  "source_parents": [
+    "b4e5b65e7c87d68b9c21e1fb552b33ced1fae866"
+  ],
+  "original_directory": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw",
+  "original_artifact_count": 24,
+  "original_summed_bytes": 2850501,
+  "artifacts": [
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/all-top-level-test-files-after.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/all-top-level-test-files-after.json",
+      "bytes": 7903,
+      "sha256": "3ae562c4932d83cb1754e72369cda5177cdbbcc3759f2ed14c837718e391b546",
+      "git_blob_oid": "d29ac309e5fc28f1f5fb62afce08ea49cb880899"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/all-top-level-test-files.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/all-top-level-test-files.json",
+      "bytes": 7903,
+      "sha256": "3ae562c4932d83cb1754e72369cda5177cdbbcc3759f2ed14c837718e391b546",
+      "git_blob_oid": "d29ac309e5fc28f1f5fb62afce08ea49cb880899"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/authorized-selection.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/authorized-selection.json",
+      "bytes": 27855,
+      "sha256": "2bcfdba95031ce419316a95ca260cd299a788e6e9ec6f8a39a2fbbbcdff92421",
+      "git_blob_oid": "e8ef46d5ee39626699ee65b3fc69133bf9ecd6f0"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/expected-case-names.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/expected-case-names.json",
+      "bytes": 17014,
+      "sha256": "40f88abcd9d4ae1f05cb24bec5705bbdd50f67996df70144895ec1c5939ef726",
+      "git_blob_oid": "a44360c90889abda85b308fe55aa55e04ed4f04d"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/full-source-after.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/full-source-after.json",
+      "bytes": 638492,
+      "sha256": "0454925c1de9884bc5bb627dc99f3c03dca98f76458e93d742046dbaade37638",
+      "git_blob_oid": "2b1679a4d1a396563cc34d4d074c14ac244281fc"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/full-source-before.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/full-source-before.json",
+      "bytes": 638492,
+      "sha256": "0454925c1de9884bc5bb627dc99f3c03dca98f76458e93d742046dbaade37638",
+      "git_blob_oid": "2b1679a4d1a396563cc34d4d074c14ac244281fc"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/node-runtime.stderr",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/node-runtime.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/node-runtime.stdout",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/node-runtime.stdout",
+      "bytes": 782,
+      "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "git_blob_oid": "cfa5df7499e4e4869bab5cbab94b9b9dc479949e"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/node-version.stderr",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/node-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/node-version.stdout",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/node-version.stdout",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "git_blob_oid": "22fbfc060a4e628c604aabc07ac2f2a5fdc51fb6"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/ordered-outcomes.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/ordered-outcomes.json",
+      "bytes": 28100,
+      "sha256": "e2595a3c6608ff0785f224b41fd935cbe4591929808af167ca068ef072d29234",
+      "git_blob_oid": "a5304900db672ca213bccf7a7434f5c6b9d1bdc4"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/result.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/result.json",
+      "bytes": 11652,
+      "sha256": "89fe06be75db8e0254041010f8f833b7dac3f2b70b81620b003db86547c7160f",
+      "git_blob_oid": "05860197e225384dfddec0a1e13cd706eaa1bf26"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/run-focused-node.py",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/run-focused-node.py",
+      "bytes": 23602,
+      "sha256": "696c38012b4960bbbf007759ccc752098494eea1aab82c384576bc7784e38e03",
+      "git_blob_oid": "31d7f6127ccb0d9f5fce7d80438c9c2667c32144"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/run.tap",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/run.tap",
+      "bytes": 46855,
+      "sha256": "3c9dda8710b814ba9f7d9686f868512d6d2f2acadeef534477167043e9d4b9fa",
+      "git_blob_oid": "1ee13838c32921d61f1f051c45d978cbaec80d99"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/running.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/running.json",
+      "bytes": 7854,
+      "sha256": "18851b930e9da4471d7fae6e2f72d16ce75e1aa400abe09dc7a2078af41dbb92",
+      "git_blob_oid": "f2054b67beac893180362b8f3646cdd0a203a090"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/source-tree-entries.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/source-tree-entries.json",
+      "bytes": 445479,
+      "sha256": "c62a72e43346022e45cf94dbb35e3841d22bac6ce1fc6c31036961b0cad94ab2",
+      "git_blob_oid": "f79fd71a3aaf0aefdc157190fda505af402856bc"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/stderr.log",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/test-files.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/test-files.json",
+      "bytes": 447,
+      "sha256": "5580d068c2cb3ee05a6451b92b4bbb228f96c65fb9133e9a2c9f879ca4a716c9",
+      "git_blob_oid": "9bf59ff57d0e9db7b8daacdaa6e17c8691c23826"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-after.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-after.json",
+      "bytes": 318030,
+      "sha256": "9da2fefba9bedda0ca05facfd7a737164b3ec6aa6679e00783a0e829709c0052",
+      "git_blob_oid": "ba64a9ef5727e75678f7d0ac671531e221f1f012"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-before.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-before.json",
+      "bytes": 318030,
+      "sha256": "9da2fefba9bedda0ca05facfd7a737164b3ec6aa6679e00783a0e829709c0052",
+      "git_blob_oid": "ba64a9ef5727e75678f7d0ac671531e221f1f012"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-inventory-after.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-inventory-after.json",
+      "bytes": 148098,
+      "sha256": "e0ac211dbad7ddf00b078c53395b3fb38436c65025c76eb364556c7b4be5dfca",
+      "git_blob_oid": "08984deed2302ef74c782a1433cb745478520fc7"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-inventory-before.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-inventory-before.json",
+      "bytes": 148098,
+      "sha256": "e0ac211dbad7ddf00b078c53395b3fb38436c65025c76eb364556c7b4be5dfca",
+      "git_blob_oid": "08984deed2302ef74c782a1433cb745478520fc7"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-top-level-test-files-after.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-top-level-test-files-after.json",
+      "bytes": 7903,
+      "sha256": "3ae562c4932d83cb1754e72369cda5177cdbbcc3759f2ed14c837718e391b546",
+      "git_blob_oid": "d29ac309e5fc28f1f5fb62afce08ea49cb880899"
+    },
+    {
+      "original_path": "/workspace/scratch/6f2247f2f463/deckchek-backup-recovery-round15-focused-raw/tracked-top-level-test-files.json",
+      "retained_path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/focused/tracked-top-level-test-files.json",
+      "bytes": 7903,
+      "sha256": "3ae562c4932d83cb1754e72369cda5177cdbbcc3759f2ed14c837718e391b546",
+      "git_blob_oid": "d29ac309e5fc28f1f5fb62afce08ea49cb880899"
+    }
+  ],
+  "independent_verification": {
+    "path": "docs/engineering/evidence/backup-recovery-functional-2026-11-21/custody-check.json",
+    "bytes": 3294,
+    "sha256": "2d82adb74dcc4a9ac5e968a6398dcf356eb54b09282bb9e184b3734ef0b46d84"
+  },
+  "limits": "Single focused JavaScript gate including unchanged synthetic stylus evidence tests; retains all original streams and every outcome. Native85, real WebView/native persistence, physical audio, original full-source audio HOLD, default-off Fleet and fixed publication heads remain outside this qualification. Historical R13 static HOLD reports remain immutable."
+}

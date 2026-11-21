@@ -1,0 +1,47 @@
+{
+  "freeze": "754ccec53400fc0468d368110daaec2115aa69dc",
+  "tree": "82d7317ddb3403841b03d2ea4d46e8f512c21ffe",
+  "original_paths": 2447,
+  "lanes": [
+    {
+      "role": "code",
+      "commit": "eb380bd949fe22a8989206f157013bcfa0a9a700",
+      "tree": "40de69d88abcad72919be93a84388887ab63033c",
+      "parent": "754ccec53400fc0468d368110daaec2115aa69dc",
+      "report": "docs/engineering/BACKUP_SETTINGS_CODE_DESIGN_AUDIT_2026-11-21.md",
+      "report_bytes": 33253,
+      "report_sha256": "8c537d5bf5d7c0aaea6193179486e89bf2b07105251274f50055ced6d6605e1e",
+      "report_git_blob": "583db733e396f2332d3151ccca493dbdf31f5d3d",
+      "original_paths_unchanged": true,
+      "all_working_bytes_modes_match": true,
+      "clean": true
+    },
+    {
+      "role": "functional",
+      "commit": "ed4b501779646474096f90e1e97da38ee7518d82",
+      "tree": "ad61394fb3ddfbab6db50912de81bb0f3b4e9467",
+      "parent": "754ccec53400fc0468d368110daaec2115aa69dc",
+      "report": "docs/engineering/BACKUP_SETTINGS_FUNCTIONAL_DESIGN_AUDIT_2026-11-21.md",
+      "report_bytes": 33144,
+      "report_sha256": "1027ed92f4b7ebc189297da625d380b5c5d1b860b82956554d465d2319b34263",
+      "report_git_blob": "e7234a7343db0e0b91c9cb0728d3223c3c7e2505",
+      "original_paths_unchanged": true,
+      "all_working_bytes_modes_match": true,
+      "clean": true
+    },
+    {
+      "role": "security",
+      "commit": "a137867817e3873a4669406cb413993e0737ce49",
+      "tree": "587f5f6ff49db127a4faa19700561846cd41a447",
+      "parent": "754ccec53400fc0468d368110daaec2115aa69dc",
+      "report": "docs/engineering/BACKUP_SETTINGS_SECURITY_DESIGN_AUDIT_2026-11-21.md",
+      "report_bytes": 28565,
+      "report_sha256": "9f165966be3b9e1cee09159cb7d8638738adb630c969ad10aac82415e9198a12",
+      "report_git_blob": "63a8079bc98e45d27e0e606c01a113c14ea9194a",
+      "original_paths_unchanged": true,
+      "all_working_bytes_modes_match": true,
+      "clean": true
+    }
+  ],
+  "project_execution": false
+}

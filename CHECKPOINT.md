@@ -18,7 +18,9 @@ All three round-eleven Player audio-export workers completed. Frozen
 zero failures or skips**, plus a successful first changed-smoke syntax check.
 All 2,392 source hashes, modes, inventories, HEAD/tree and ordered parents stayed
 unchanged. Both peers and root independently verified all 45 manifest entries,
-40 original copies, 45 original-path bindings and every ordered outcome. Read
+40 original copies, 45 original-path bindings and every ordered outcome. The
+held checkpoint is durable at [`f262a715`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-player-audio-export-held-20261121),
+with verified complete-tree, parent and exact-ref proof. Read
 [the completed Player handoff](docs/engineering/PLAYER_AUDIO_EXPORT_CONTINUATION_2026-11-21.md).
 
 The scoped addition provides an unchecked-by-default retention choice and an
@@ -51,14 +53,58 @@ Round seven retains its first 45/45 focused pass, official Mobile build and
 syntax check, with all 34 Mobile files unchanged. Historical passing observations
 do not replace failures or qualify later source.
 
-The fresh successor code, functional/bug-hunt and static defensive team reviews
-scheduled-backup settings completeness [#85](https://github.com/djshellshoxxx/deckchek/issues/85).
-The [review scope](docs/engineering/BACKUP_SETTINGS_REVIEW_SCOPE_2026-11-21.md)
-requires a concrete freshness/error contract before a production correction and
-fresh acceptance. This design/audit cycle authorizes no project execution.
-Root owns implementation, CI, publication and integration. All three final
-handoffs are required before another worker rotation.
-Later #76/#77/#78/#80/#81/#82/#84/#85 remain outside qualified PR #79.
+All three round-thirteen backup webview workers are FINAL. They held the
+original `d0b8992` candidate **without execution**: the partial outcome can become
+unreachable when restored flags disable Data, retained Devices preferences can
+overwrite restored assignments, and confirmation copy overstates failure/reload
+behavior. Root read and independently verified all three sole-report commits and
+all 2,458 original paths, then consolidated the reports. The
+[original implementation](docs/engineering/BACKUP_SETTINGS_WEBVIEW_IMPLEMENTATION_2026-11-21.md)
+and [static HOLD proof](docs/engineering/evidence/backup-webview-static-hold-2026-11-21/root-source-proof.json)
+remain preserved.
+
+All three round-fourteen Service workers supplied FINAL scoped ACCEPT. The one
+FIRST six-file gate at `36e9688` passed **123/123**, including all eleven new
+cases, with zero failures/skips, exit 0 and no timeout. Root read every report,
+verified their exact owned-only commits, all 2,464 original source paths and all
+24 original evidence copies, and consolidated the reports and proof at `be207e6`.
+Read the [completed Service handoff](docs/engineering/SERVICE_COMPARISON_CONTINUATION_2026-11-21.md).
+The correction counts missing before and after values, preserves measurements
+and carries truthful guidance through the actual screen, stepper and print path.
+[#86](https://github.com/djshellshoxxx/deckchek/issues/86) remains open pending
+qualified integration; this focused pass does not clear inherited holds.
+
+All three round-fifteen backup recovery workers supplied FINAL scoped ACCEPT.
+The single FIRST eleven-file gate at `f43b940` passed **193/193**, including all
+26 new backup cases, with zero failures/cancellations/skips/todos, exit 0 and no
+timeout. Root read every report and independently verified the owned-only
+commit chains, all 2,499 original source paths and all 24 original evidence
+copies. The functional report's one-phrase audio wording correction is a new
+child commit; its original FINAL and all evidence remain unchanged. Read the
+[completed recovery handoff](docs/engineering/BACKUP_RECOVERY_CONTINUATION_2026-11-21.md).
+
+The correction protects ordinary settings writers and navigation after a
+committed restore. Recovery remains reachable after Data is hidden or disposed
+and when restored feature flags disable backup. Local-only retry preserves the
+native result, reload attempts coalesce, and confirmation distinguishes the
+database commit from local settings application. Native failure leaves the
+current document usable. These are scoped JavaScript results; real WebView,
+native synchronization and the original full-source audio HOLD remain open.
+All three FINALs are consolidated locally with the completed Service work.
+Root owns implementation, CI, integration and publication. A fresh trio follows
+the next frozen candidate; no additional project command is authorized.
+
+Scheduled-backup settings [#85](https://github.com/djshellshoxxx/deckchek/issues/85)
+stays open: the native owner/cache, startup and exit protocol remains unfinished.
+Root is authoring browser Pre-gig persistence and save recovery for
+[#87](https://github.com/djshellshoxxx/deckchek/issues/87). The candidate and its
+new storage/controller/screen regressions require fresh review and their own
+FIRST gate; authored changes are not passing evidence. Population Compare
+[#88](https://github.com/djshellshoxxx/deckchek/issues/88) is queued for excessive
+synchronous work on large valid packs, based on static source analysis.
+The original full-source audio HOLD, fixed published heads and Fleet default-off
+remain. No credit-exhaustion result exists.
+Later #76/#77/#78/#80/#81/#82/#84/#85/#86/#87/#88 remain outside qualified PR #79.
 
 The sections below are preserved historical checkpoints, not current resume
 or execution-ownership instructions. Fleet stays off and its diagnostic head

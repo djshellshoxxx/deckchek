@@ -1,0 +1,89 @@
+{
+  "schema": "deckchek.backup-recovery.root-final-proof.v1",
+  "freeze": "f43b940f142ff54fdaf24c0d1feece4ca6dd957b",
+  "tree": "d62283dfcc7d08e90d94d63e29afce77db67f566",
+  "parents": [
+    "b4e5b65e7c87d68b9c21e1fb552b33ced1fae866"
+  ],
+  "source_paths": 2499,
+  "source_blobs": 2253,
+  "source_bytes": 84670899,
+  "source_map_sha256": "f74d42051dd3e2a2260ab9b132bfd2ca9a4016fcf50c2a33e46c7f466254b0ad",
+  "lanes": [
+    {
+      "commit": "cf80b0714cdacef25b67906a8c8249b4cf7ab40b",
+      "tree": "85ed92d972da04e8120df5f08ed92cd36aea23e4",
+      "parents": [
+        "f43b940f142ff54fdaf24c0d1feece4ca6dd957b"
+      ],
+      "clean": true,
+      "lane": "code",
+      "report": "docs/engineering/BACKUP_RECOVERY_CODE_AUDIT_2026-11-21.md",
+      "report_bytes": 17206,
+      "report_sha256": "975c1c22959f5f55ac9c177a686122f6c841d26c10344327da703b4a126e94e5",
+      "report_git_blob": "38f6d57b0a496a2e76be3e17a9187d54a93d25e8",
+      "added_paths": 1,
+      "original_source_entries_unchanged": true,
+      "original_working_bytes_modes_equal": true
+    },
+    {
+      "commit": "b84aa853dc2ac4f6ceac45dfd85eb90d94812ea9",
+      "tree": "721d3b3b4c4de2f3a12df87428772cf099e40ba2",
+      "parents": [
+        "75e8647fcb76e6ae233801e92bea21fd2a5f4b72"
+      ],
+      "clean": true,
+      "lane": "functional",
+      "report": "docs/engineering/BACKUP_RECOVERY_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "report_bytes": 23886,
+      "report_sha256": "8ec5be3700fc3f9770cab5fd4b19e104280357bc28a3d00a65ba5d11457147bd",
+      "report_git_blob": "85c259da9a42e1e7f8345b292ef915408dcf5e62",
+      "added_paths": 27,
+      "original_source_entries_unchanged": true,
+      "original_working_bytes_modes_equal": true
+    },
+    {
+      "commit": "2ab7496fbb08b57ec2710f622de333cc022df006",
+      "tree": "cfcadeb3112ff8a2a685eb095ed6329cd6b1225f",
+      "parents": [
+        "f43b940f142ff54fdaf24c0d1feece4ca6dd957b"
+      ],
+      "clean": true,
+      "lane": "security",
+      "report": "docs/engineering/BACKUP_RECOVERY_SECURITY_AUDIT_2026-11-21.md",
+      "report_bytes": 23890,
+      "report_sha256": "3f73ecc96c6659350d4752d5cba91fe3175a4d68e2866ff9f0a353f2faf47bac",
+      "report_git_blob": "be60ccfdf77595945cf44dc66192fc99457161c1",
+      "added_paths": 1,
+      "original_source_entries_unchanged": true,
+      "original_working_bytes_modes_equal": true
+    }
+  ],
+  "original_functional_final": {
+    "commit": "75e8647fcb76e6ae233801e92bea21fd2a5f4b72",
+    "tree": "3165378b101205dd85ccf76aedd938318d2bb63a",
+    "parents": [
+      "f43b940f142ff54fdaf24c0d1feece4ca6dd957b"
+    ],
+    "added_paths": 27,
+    "report_only_correction_preserves_all_other_2525_entries": true
+  },
+  "retained_originals": 24,
+  "original_summed_bytes": 2850501,
+  "package_files": 26,
+  "package_summed_bytes": 2865178,
+  "all_original_retained_bytes_modes_and_manifest_git_bindings_equal": true,
+  "manifest_sha256": "cda804217e24e2461e2247ff6e4e826b28bee422b2f2c1c41c09050cf691503f",
+  "custody_sha256": "2d82adb74dcc4a9ac5e968a6398dcf356eb54b09282bb9e184b3734ef0b46d84",
+  "first_root_proof_sha256": "83a0a089eb5abfa767f2866361542250845f343e7a166134a6159ab6a9723b99",
+  "first_counts": {
+    "tests": 193,
+    "suites": 0,
+    "pass": 193,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "root_project_execution": false
+}
