@@ -122,7 +122,9 @@ export function niceTicks(min, max, count = 5) {
   const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? 10 * mag;
   if (!Number.isFinite(step) || step <= 0) throw new Error('unrepresentable axis range');
   const lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step;
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) throw new Error('unrepresentable axis range');
+  // Rounded finite endpoints may still span Infinity (e.g. -1e308..1e308),
+  // which makes point-to-axis projection produce NaN SVG coordinates.
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || !Number.isFinite(hi - lo) || hi <= lo) throw new Error('unrepresentable axis range');
   const ticks = [];
   for (let v = lo, i = 0; v <= hi + step * 1e-9 && i < 1000; v = lo + (++i) * step) ticks.push(Number(v.toPrecision(12)));
   return { min: lo, max: hi, step, ticks };
