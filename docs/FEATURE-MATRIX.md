@@ -1,6 +1,34 @@
 # DeckChek Feature Matrix
 
-## Current acquisition and Fleet diagnostic continuation — 20 November 2026
+## Current device outcome and trend continuation — 20 November 2026
+
+The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
+records three completed initial workers followed by three completed fresh
+workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,
+tree `6de27897af9aea1f69084b1de6ef3c294247ac80`; durable exact-tree checkpoint
+is `0561724b5bf8fdda92699c79ab6d539feee0479b`.
+
+Prospective device outcomes now require usable latest evidence or an explicit
+OK finding before the no-criterion fallback records PASS. Missing evidence stays
+unknown/REVIEW; criteria, verdicts, adverse findings and historical records retain
+their behavior. Trends with identical fractional timestamps remain unavailable.
+Fresh serial Node 24.22.3 acceptance passed **2,284/0/1 optional skip**, **2,285
+total across 190 files**, with **1,804 tracked hashes unchanged**. Native and
+hosted qualification are separate.
+
+The [single hosted Fleet experiment](engineering/FLEET_GATE_HOSTED_RESULT_2026-11-20.md)
+completed with failure: the untouched baseline passed, but the instrumented
+suite measured **213.308243 ms / unchanged 200 ms**. The original #65 failure
+at 201.565999 ms remains unexplained. Complete artifacts and fresh independent
+byte checks are retained; no diagnostic rerun or causal claim is authorized.
+
+The next distinct worker set addresses diagnostics redaction issue #69; the
+next consolidated draft will include both accepted slices. Existing #65/#67/#68
+heads and branches stay fixed. Read live exact-source gates before ordinary
+merges. CDJ UI/storage/reporting and scientific/physical qualification remain
+open. Fleet stays off. Historical sections below preserve their original scope.
+
+## Historical acquisition and Fleet diagnostic preparation — 20 November 2026
 
 The [acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
 `157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree

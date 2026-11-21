@@ -1,6 +1,17 @@
 # DeckChek consolidation report
 
-## Current source41 — incident evidence, profile provenance and preview integrity
+## Current continuation — 20 November 2026
+
+Read the [current continuation handoff](DECKCHEK-CONTINUATION-HANDOFF.md) and
+[device outcome/trend report](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
+for completed six-worker acceptance, current source identities and remaining
+qualification. The [hosted Fleet result](engineering/FLEET_GATE_HOSTED_RESULT_2026-11-20.md)
+retains the failed diagnostic and unchanged 200 ms gate. The source41 material
+below is a historical snapshot, not the current branch or merge queue.
+
+<a id="current-source41-incident-evidence-profile-provenance-and-preview-integrity"></a>
+
+## Historical source41 — incident evidence, profile provenance and preview integrity
 
 **18 November 2026 (America/Los_Angeles).** Code `a0c116cbdbfa1bfb940a53d24332453dbe3e02a9`, tree `751ba0df2acde7e05a37d25927ef013543ffdace`. The [source41 report](DECKCHEK-CONTINUATION-41.md) records accepted learned-map profile identity, optional native incident latest-reading evidence, fifteen MIDI transport facts across fourteen profiles, and Push3's documented 16-in/16-out USB channels. Pack candidate checks passed 16/16, related 32/32 and unchanged independent 3/3; independent acceptance is **ACCEPT_FOR_INTEGRATION; all three findings resolved (review `7cf97921a5052faa32c669b154e5576682d50848ffe51c1596122876edb9f77f`)**.
 
