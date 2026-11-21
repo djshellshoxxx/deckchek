@@ -1,0 +1,34 @@
+{
+  "source": "9f3da9edbdeab30c3078aaac25c0cbc254ac22bb",
+  "tree": "b0303506f44ff937554b621f94ba3ab4944bac9e",
+  "node": "v22.23.4",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/phone-run.test.mjs",
+    "tests/mobile-export.test.mjs",
+    "tests/mobile-build.test.mjs",
+    "tests/phone-import-file-lifecycle.test.mjs",
+    "tests/phone-import-assets-lifecycle.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T03:06:02.344760+00:00",
+  "enclosing_seconds": 5.09134615,
+  "exit_code": 1,
+  "counts": {
+    "tests": 42,
+    "pass": 40,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "tap_duration_ms": 4902.726968,
+  "source_hashes_unchanged": true,
+  "tracked_files": 1574,
+  "clean_before": true,
+  "clean_after": true,
+  "log": "published63-focused.tap",
+  "log_sha256": "821d0ac08917ce7201444829e1479eb333679f6c9c674073512cb8875995692d",
+  "manifest": "published63-tracked-sha256.json",
+  "manifest_sha256": "527010bcb91887fedc92239f01d61958f1811d6558130bf033c13c1ca49ef516"
+}

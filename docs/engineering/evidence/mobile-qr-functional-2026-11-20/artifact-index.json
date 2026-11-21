@@ -1,0 +1,58 @@
+{
+  "scope": "Mobile QR functional author evidence; execution scopes overlap and must not be summed.",
+  "original_source": "9f3da9edbdeab30c3078aaac25c0cbc254ac22bb",
+  "corrected_source": "61a4c0d7190e79239287d3ef1710ee83267d1897",
+  "raw_logs_preserved_byte_for_byte": true,
+  "artifacts": [
+    {
+      "file": "published63-focused.tap",
+      "bytes": 12529,
+      "sha256": "821d0ac08917ce7201444829e1479eb333679f6c9c674073512cb8875995692d"
+    },
+    {
+      "file": "published63-focused.json",
+      "bytes": 1086,
+      "sha256": "3b811336f8a570cc8c5a4d6089bfeb6fbd5efc93461bfb1ffb7dc6589a45bb28"
+    },
+    {
+      "file": "published63-tracked-sha256.json",
+      "bytes": 175138,
+      "sha256": "527010bcb91887fedc92239f01d61958f1811d6558130bf033c13c1ca49ef516"
+    },
+    {
+      "file": "consumer-regression-original.tap",
+      "bytes": 3798,
+      "sha256": "55e2ee317179c12f8d6e9a83a5bc7791dafe001ac88ddbfd0240c371befacc36"
+    },
+    {
+      "file": "consumer-regression-original.json",
+      "bytes": 798,
+      "sha256": "e94e619dc58bb1447430cd6f3bd8a7f8ac3711c9762005c106a0d88f741e67d8"
+    },
+    {
+      "file": "author-syntax-generation.json",
+      "bytes": 1309,
+      "sha256": "b170895a770d04fc478e824a24eed6b0f1205d774791e74105013dfbd0444748"
+    },
+    {
+      "file": "corrected-focused.tap",
+      "bytes": 12145,
+      "sha256": "845b9067eed83c780149000b5df525611dd64106aa291620412b9d06f40c5ea9"
+    },
+    {
+      "file": "corrected-focused.json",
+      "bytes": 1593,
+      "sha256": "51093e2cbd477729865ebaa65049223f5b5f3f4465a5fd92fe947278f3de008f"
+    },
+    {
+      "file": "corrected-tracked-sha256.json",
+      "bytes": 175138,
+      "sha256": "6e51c89f26e33669bf13a68fd2287103e532f62f6b66153e2860d9595c742e1b"
+    },
+    {
+      "file": "consumer-regression-original.test.mjs.txt",
+      "bytes": 9756,
+      "sha256": "30bc5e0f43a091ae96b5d91bd280ea36ef1ce087f568f3a48d495c820a43f4a7"
+    }
+  ]
+}

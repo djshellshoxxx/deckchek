@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildExport, serializeExport, parsePhoneRun, validatePhoneRun, exportHash, hashView, toQrFrames, joinQrFrames, looksLikeFrames,
-  phoneRunToHistoryRun, describeDevice, MAX_BYTES, QR_SINGLE_MAX_BYTES, FRAME_PREFIX,
+  phoneRunToHistoryRun, describeDevice, MAX_BYTES, QR_SINGLE_MAX_BYTES, QR_FRAME_BYTES, QR_FRAME_MAX_BYTES, QR_MAX_FRAMES, FRAME_PREFIX,
 } from '../app/phone-run.js';
 import { qrSvg } from '../app/vendor/qr.js';
 
@@ -117,6 +117,134 @@ test('frame errors are specific: missing frame, mixed exports, damaged frame', (
   assert.match(joinQrFrames(damaged).error, /damaged/);
   assert.match(joinQrFrames('hello').error, /not a DeckChek Mobile QR frame/);
   assert.equal(joinQrFrames('').ok, false);
+});
+
+test('QR framing preserves significant spaces at both sides of a frame boundary', () => {
+  // First chunk ends in spaces and the next starts with spaces. Trimming either chunk corrupts the export.
+  const json = JSON.stringify({ memo: 'x'.repeat(1084) + ' '.repeat(40) + 'y'.repeat(1000) });
+  const frames = toQrFrames(json);
+  assert.equal(frames.length, 2);
+  assert.match(frames[0], / +$/);
+  assert.match(frames[1].split('/').slice(4).join('/'), /^ +/);
+  const joined = joinQrFrames([...frames].reverse().join('\n'));
+  assert.equal(joined.ok, true, joined.error);
+  assert.equal(joined.json, json);
+  // Optional whitespace before a pasted prefix and Windows CRLF must remain accepted.
+  assert.equal(joinQrFrames([' \t' + frames[0], frames[1]].join('\r\n')).json, json);
+});
+
+test('desktop import preserves a significant-space-ended frame pasted last', () => {
+  const empty = serializeExport(make({ notes: '' }));
+  const noteStart = empty.indexOf('"notes":"') + '"notes":"'.length;
+  const prefixBytes = new TextEncoder().encode(empty.slice(0, noteStart)).length;
+  const notes = 'x'.repeat(QR_FRAME_BYTES - prefixBytes - 2) + ' '.repeat(12) + 'y'.repeat(1300);
+  const json = serializeExport(make({ notes }));
+  const frames = toQrFrames(json);
+  assert.ok(frames.length > 1);
+  assert.match(frames[0], / {2}$/);
+  const reversed = [...frames].reverse();
+  assert.equal(joinQrFrames(reversed).json, json, 'the frame helper preserves the source payload');
+  for (const pasted of [reversed.join('\n'), ' \t' + reversed.join('\r\n')]) {
+    const parsed = parsePhoneRun(pasted);
+    assert.equal(parsed.ok, true, parsed.errors.join('; '));
+    assert.equal(parsed.hashOk, true);
+    assert.equal(parsed.run.notes, notes);
+  }
+});
+
+test('QR options are bounded before even a single plain-JSON result is returned', () => {
+  assert.equal(QR_FRAME_BYTES, 1100);
+  assert.equal(QR_FRAME_MAX_BYTES, 1977, 'the existing 2,000-byte QR policy reserves its maximum 23-byte header');
+  for (const frameBytes of [0, -1, 1.5, NaN, Infinity, 1e30, QR_FRAME_MAX_BYTES + 1, '1100', null]) {
+    assert.throws(() => toQrFrames('{}', { frameBytes }), RangeError);
+  }
+  assert.deepEqual(toQrFrames('{}', { frameBytes: 1 }), ['{}']);
+  const json = JSON.stringify({ memo: '測'.repeat(900) });
+  const frames = toQrFrames(json, { frameBytes: QR_FRAME_MAX_BYTES });
+  assert.equal(joinQrFrames(frames).json, json);
+  assert.ok(frames.every(frame => new TextEncoder().encode(frame).length <= QR_SINGLE_MAX_BYTES));
+  assert.doesNotThrow(() => qrSvg(frames[0]));
+});
+
+test('framing preserves code points and refuses counts that the v1 headers cannot represent', () => {
+  const json = JSON.stringify('x'.repeat(3 * QR_MAX_FRAMES - 2));
+  const frames = toQrFrames(json, { frameBytes: 3 });
+  assert.equal(frames.length, QR_MAX_FRAMES);
+  assert.equal(joinQrFrames([...frames].reverse()).json, json);
+  assert.throws(() => toQrFrames(JSON.stringify('x'.repeat(3 * QR_MAX_FRAMES - 1)), { frameBytes: 3 }), /more than 999/);
+  // Four-byte code points cannot fit a three-byte chunk. Packing whole three-byte characters
+  // into four-byte chunks also needs more frames than a byte-length quotient alone predicts.
+  assert.throws(() => toQrFrames(JSON.stringify('🎛'.repeat(600)), { frameBytes: 3 }), /character exceeds/);
+  assert.throws(() => toQrFrames(JSON.stringify('測'.repeat(1000)), { frameBytes: 4 }), /more than 999/);
+  const unicode = JSON.stringify('🎛'.repeat(600));
+  assert.equal(joinQrFrames(toQrFrames(unicode, { frameBytes: 4 })).json, unicode);
+});
+
+test('framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap', () => {
+  assert.equal(MAX_BYTES, 1_000_000);
+  // With the unchanged 1,100-byte chunks, this fixture uses 889 headers and fills the wire budget exactly.
+  const json = JSON.stringify('x'.repeat(977_881));
+  const frames = toQrFrames(json);
+  assert.equal(frames.length, 889);
+  const wire = frames.join('\r\n') + '\r\n';
+  assert.equal(new TextEncoder().encode(wire).length, MAX_BYTES);
+  assert.equal(joinQrFrames(wire).json, json);
+  assert.throws(() => toQrFrames(JSON.stringify('x'.repeat(977_882))), /QR transfer is larger than 1 MB/);
+  assert.throws(() => toQrFrames('x'.repeat(MAX_BYTES + 1)), /export is larger than 1 MB/);
+  assert.throws(() => toQrFrames('測'.repeat(Math.floor(MAX_BYTES / 3) + 1)), /export is larger than 1 MB/);
+});
+
+test('framed output must stay one frame per line while small plain JSON remains unchanged', () => {
+  const small = '{\n  "memo": "small"\n}';
+  assert.deepEqual(toQrFrames(small), [small]);
+  const large = JSON.stringify({ memo: 'x'.repeat(2500) }, null, 2);
+  assert.throws(() => toQrFrames(large), /compact JSON/);
+  assert.throws(() => toQrFrames(large.replaceAll('\n', '\r\n')), /compact JSON/);
+});
+
+test('direct frame joining keeps result-style type errors and the complete raw input budget', () => {
+  for (const input of [null, undefined, 7, {}, [null], ['text', 7]]) {
+    const result = joinQrFrames(input);
+    assert.equal(result.ok, false);
+    assert.equal(typeof result.error, 'string');
+    assert.ok(result.error.length > 0);
+  }
+  for (const input of [
+    'x'.repeat(MAX_BYTES + 1),
+    '測'.repeat(Math.floor(MAX_BYTES / 3) + 1),
+    ['x'.repeat(MAX_BYTES / 2), 'x'.repeat(MAX_BYTES / 2)],
+  ]) {
+    assert.match(joinQrFrames(input).error, /larger than 1 MB/);
+  }
+  const json = serializeExport(make({ measurements: many }));
+  const frames = toQrFrames(json);
+  assert.equal(joinQrFrames([...frames].reverse().concat(frames[0])).json, json);
+});
+
+test('a production export populated to its field limits remains inside the default QR budget', () => {
+  const exportObject = make({
+    app: '測'.repeat(64),
+    device: { userAgent: '測'.repeat(300), sampleRate: 384000,
+      micFlags: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } },
+    assetHint: { nickname: '測'.repeat(120), serial: '測'.repeat(80) },
+    notes: '測'.repeat(2000),
+    measurements: Array.from({ length: 200 }, (_, i) => meas({
+      metricId: 'm'.repeat(61) + String(i).padStart(3, '0'), label: '測'.repeat(120), unit: '測'.repeat(24),
+      origin: '測'.repeat(24), value: -0.12345678901234567, uncertainty: 0.12345678901234567,
+      qualityFlags: Array.from({ length: 8 }, (_, j) => '測'.repeat(39) + j),
+    })),
+  });
+  const json = serializeExport(exportObject);
+  assert.equal(parsePhoneRun(json).ok, true);
+  const frames = toQrFrames(json);
+  assert.ok(frames.length > 1 && frames.length <= QR_MAX_FRAMES);
+  assert.ok(frames.every(frame => new TextEncoder().encode(frame).length <= QR_SINGLE_MAX_BYTES));
+  const wire = frames.join('\r\n') + '\r\n';
+  assert.ok(new TextEncoder().encode(wire).length < MAX_BYTES);
+  const parsed = parsePhoneRun(wire);
+  assert.equal(parsed.ok, true, parsed.errors.join('; '));
+  assert.equal(parsed.hashOk, true);
+  assert.deepEqual(parsed.run.measurements.map(m => m.value), exportObject.measurements.map(m => m.value));
 });
 
 test('history run: origin phone, tagged measurements, asset link, device label, no calibration', () => {

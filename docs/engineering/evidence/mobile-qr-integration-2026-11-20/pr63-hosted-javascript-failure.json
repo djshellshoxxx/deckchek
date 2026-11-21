@@ -1,0 +1,32 @@
+{
+  "source_pr": 63,
+  "source_head": "9f3da9edbdeab30c3078aaac25c0cbc254ac22bb",
+  "workflow_run": 44858411064,
+  "workflow_url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44858411064",
+  "job": 136705908509,
+  "job_url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44858411064/job/136705908509",
+  "conclusion": "failure",
+  "counts": {
+    "tests": 2235,
+    "passed": 2232,
+    "failed": 2,
+    "skipped": 1,
+    "cancelled": 0,
+    "todo": 0
+  },
+  "duration_ms": 111446.024225,
+  "failed_test_files": [
+    "tests/mobile-build.test.mjs"
+  ],
+  "missing_generated_paths": [
+    "mobile/vendor/phone-run.js",
+    "mobile/vendor/VERSION",
+    "mobile/sw.js"
+  ],
+  "excerpt_description": "Contiguous decoded job log from the test summary through process exit1, including both complete failure diagnostics. This is an excerpt, not the full job log.",
+  "runtime_log_lines": [
+    "2026-11-21T03:07:54.8008093Z node: v22.23.4",
+    "2026-11-21T03:07:54.8008936Z npm: 10.9.9"
+  ],
+  "scope": "Original PR63 source; not qualification of the corrective successor."
+}

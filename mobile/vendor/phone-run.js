@@ -25,6 +25,9 @@ export const MAX_NOTES = 2000;
 export const QR_SINGLE_MAX_BYTES = 2000;
 export const QR_FRAME_BYTES = 1100;
 export const FRAME_PREFIX = 'DCKM1';
+export const QR_MAX_FRAMES = 999;
+// Keep the whole framed QR within the existing 2,000-byte QR policy, including its largest header.
+export const QR_FRAME_MAX_BYTES = QR_SINGLE_MAX_BYTES - `${FRAME_PREFIX}/${QR_MAX_FRAMES}/${QR_MAX_FRAMES}/ffffffff/`.length;
 
 const LIMITS = { app: 64, userAgent: 300, nickname: 120, serial: 80, metricId: 64, label: 120, unit: 24, origin: 24, flag: 40 };
 const METRIC_ID = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/;
@@ -94,19 +97,38 @@ export const serializeExport = exportObject => JSON.stringify(exportObject);
 
 // ---------------------------------------------------------------------------- QR frames
 
-/** Split `json` into QR payloads: one plain-JSON string when it fits, else numbered `DCKM1/i/n/id/chunk` frames. */
+/**
+ * Split compact JSON into QR payloads: one plain-JSON string when it fits, else numbered frames.
+ * Framed output fits the existing 1 MB import budget, including CRLF separators and one final CRLF.
+ */
 export function toQrFrames(json, { frameBytes = QR_FRAME_BYTES } = {}) {
   if (typeof json !== 'string') throw new TypeError('toQrFrames: json must be a string');
-  if (utf8Length(json) <= QR_SINGLE_MAX_BYTES) return [json];
-  const id = sha256HexSync(json).slice(0, 8);
+  if (!Number.isSafeInteger(frameBytes) || frameBytes < 1 || frameBytes > QR_FRAME_MAX_BYTES) {
+    throw new RangeError(`frameBytes must be a safe integer from 1 to ${QR_FRAME_MAX_BYTES}.`);
+  }
+  if (json.length > MAX_BYTES) throw new RangeError('The export is larger than 1 MB.');
+  const bytes = utf8Length(json);
+  if (bytes > MAX_BYTES) throw new RangeError('The export is larger than 1 MB.');
+  if (bytes <= QR_SINGLE_MAX_BYTES) return [json];
+  if (/[\r\n]/.test(json)) throw new RangeError('Multi-frame QR needs compact JSON. Save the export file instead.');
+  const tooMany = () => new RangeError(`The export needs more than ${QR_MAX_FRAMES} QR frames. Save the export file instead.`);
+  if (bytes > frameBytes * QR_MAX_FRAMES) throw tooMany();
   const chunks = [];
   let cur = '', size = 0;
   for (const ch of json) { // by code point, so a character is never split
     const b = utf8Length(ch);
-    if (size + b > frameBytes) { chunks.push(cur); cur = ''; size = 0; }
+    if (b > frameBytes) throw new RangeError('A character exceeds the requested QR chunk size.');
+    if (size + b > frameBytes) {
+      chunks.push(cur);
+      if (chunks.length >= QR_MAX_FRAMES) throw tooMany();
+      cur = ''; size = 0;
+    }
     cur += ch; size += b;
   }
   if (cur) chunks.push(cur);
+  const overhead = chunks.reduce((sum, _, i) => sum + `${FRAME_PREFIX}/${i + 1}/${chunks.length}/ffffffff/`.length + 2, 0);
+  if (bytes + overhead > MAX_BYTES) throw new RangeError('The QR transfer is larger than 1 MB. Save the export file instead.');
+  const id = sha256HexSync(json).slice(0, 8);
   return chunks.map((c, i) => `${FRAME_PREFIX}/${i + 1}/${chunks.length}/${id}/${c}`);
 }
 
@@ -120,7 +142,29 @@ export const looksLikeFrames = text => typeof text === 'string' && text.trimStar
  * Returns {ok, json?, error?, missing?}.
  */
 export function joinQrFrames(input) {
-  const lines = (Array.isArray(input) ? input : String(input ?? '').split(/\r?\n/)).map(s => s.trim()).filter(Boolean);
+  const bad = error => ({ ok: false, error });
+  const tooLarge = () => bad('The QR text is larger than 1 MB, so DeckChek will not read it.');
+  let rawLines;
+  if (typeof input === 'string') {
+    if (input.length > MAX_BYTES || utf8Length(input) > MAX_BYTES) return tooLarge();
+    rawLines = input.split(/\r?\n/);
+  } else if (Array.isArray(input)) {
+    // Array input has the same budget as those lines pasted with Windows CRLF separators.
+    const count = input.length;
+    let bytes = Math.max(0, count - 1) * 2;
+    if (bytes > MAX_BYTES) return tooLarge();
+    rawLines = [];
+    for (let i = 0; i < count; i++) {
+      const line = input[i];
+      if (typeof line !== 'string') return bad('QR frames must be text, one frame per line.');
+      if (line.length > MAX_BYTES - bytes) return tooLarge();
+      bytes += utf8Length(line);
+      if (bytes > MAX_BYTES) return tooLarge();
+      rawLines.push(line);
+    }
+  } else return bad('Paste QR text or provide an array of frame strings.');
+  // QR chunk bytes are significant: trim only whitespace before the frame prefix, not spaces inside the chunk.
+  const lines = rawLines.map(s => s.replace(/\r$/, '').trimStart()).filter(Boolean);
   if (!lines.length) return { ok: false, error: 'No QR text to read.' };
   const parts = new Map();
   let total = null, id = null;
@@ -138,6 +182,7 @@ export function joinQrFrames(input) {
   for (let i = 1; i <= total; i++) if (!parts.has(i)) missing.push(i);
   if (missing.length) return { ok: false, error: `Missing frame${missing.length > 1 ? 's' : ''} ${missing.join(', ')} of ${total}.`, missing };
   const json = Array.from({ length: total }, (_, k) => parts.get(k + 1)).join('');
+  if (json.length > MAX_BYTES || utf8Length(json) > MAX_BYTES) return tooLarge();
   if (sha256HexSync(json).slice(0, 8) !== id) return { ok: false, error: 'The frames do not add up to the export they claim to be (a frame is damaged).' };
   return { ok: true, json };
 }
@@ -227,13 +272,13 @@ export function parsePhoneRun(text) {
   const bad = message => ({ ok: false, run: null, errors: [message], warnings: [], hashOk: null });
   if (typeof text !== 'string') return bad('Nothing to read.');
   if (text.length > MAX_BYTES || utf8Length(text) > MAX_BYTES) return bad('The export is larger than 1 MB, so DeckChek will not read it.');
-  let t = text.replace(/^\uFEFF/, '').trim();
-  if (!t) return bad('Paste the export text or choose a .deckchek-mobile.json file.');
+  let t = text.replace(/^\uFEFF/, '');
+  if (!t.trim()) return bad('Paste the export text or choose a .deckchek-mobile.json file.');
   if (looksLikeFrames(t)) {
     const joined = joinQrFrames(t);
     if (!joined.ok) return bad(joined.error);
     t = joined.json;
-  }
+  } else t = t.trim();
   let data;
   try { data = JSON.parse(t); } catch { return bad('The text is not valid JSON. Copy the whole export, from the first { to the last }.'); }
   return validatePhoneRun(data);

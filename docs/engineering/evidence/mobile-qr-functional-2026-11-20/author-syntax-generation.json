@@ -1,0 +1,31 @@
+{
+  "recorded_at_utc": "2026-11-21T03:18:04.607837+00:00",
+  "steps": [
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "app/phone-run.js"
+      ],
+      "exit_code": 0,
+      "output": "(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "--check",
+        "tests/phone-run.test.mjs"
+      ],
+      "exit_code": 0,
+      "output": "(node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "command": [
+        "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+        "tools/build-mobile.mjs"
+      ],
+      "exit_code": 0,
+      "output": "(node:22) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\nupdated: vendor/phone-run.js, vendor/VERSION, sw.js\n"
+    }
+  ]
+}

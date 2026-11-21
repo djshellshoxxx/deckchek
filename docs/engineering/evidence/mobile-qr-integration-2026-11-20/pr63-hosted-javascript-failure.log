@@ -1,0 +1,63 @@
+2026-11-21T03:09:46.3324494Z ℹ tests 2235
+2026-11-21T03:09:46.3324710Z ℹ suites 0
+2026-11-21T03:09:46.3324920Z ℹ pass 2232
+2026-11-21T03:09:46.3325280Z ℹ fail 2
+2026-11-21T03:09:46.3325490Z ℹ cancelled 0
+2026-11-21T03:09:46.3325705Z ℹ skipped 1
+2026-11-21T03:09:46.3325905Z ℹ todo 0
+2026-11-21T03:09:46.3326169Z ℹ duration_ms 111446.024225
+2026-11-21T03:09:46.3326344Z 
+2026-11-21T03:09:46.3326462Z ✖ failing tests:
+2026-11-21T03:09:46.3326585Z 
+2026-11-21T03:09:46.3326775Z test at tests/mobile-build.test.mjs:27:1
+2026-11-21T03:09:46.3327471Z ✖ vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check) (6.15149ms)
+2026-11-21T03:09:46.3328143Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+2026-11-21T03:09:46.3328561Z   + actual - expected
+2026-11-21T03:09:46.3328783Z   
+2026-11-21T03:09:46.3328963Z   + [
+2026-11-21T03:09:46.3329173Z   +   'vendor/phone-run.js',
+2026-11-21T03:09:46.3329594Z   +   'vendor/VERSION',
+2026-11-21T03:09:46.3329816Z   +   'sw.js'
+2026-11-21T03:09:46.3330003Z   + ]
+2026-11-21T03:09:46.3330191Z   - []
+2026-11-21T03:09:46.3330376Z   
+2026-11-21T03:09:46.3330869Z       at TestContext.<anonymous> (file:///home/runner/work/deckchek/deckchek/tests/mobile-build.test.mjs:28:10)
+2026-11-21T03:09:46.3331465Z       at Test.runInAsyncScope (node:async_hooks:214:14)
+2026-11-21T03:09:46.3331862Z       at Test.run (node:internal/test_runner/test:1047:25)
+2026-11-21T03:09:46.3332252Z       at Test.start (node:internal/test_runner/test:944:17)
+2026-11-21T03:09:46.3332794Z       at startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17) {
+2026-11-21T03:09:46.3333247Z     generatedMessage: true,
+2026-11-21T03:09:46.3333492Z     code: 'ERR_ASSERTION',
+2026-11-21T03:09:46.3333828Z     actual: [ 'vendor/phone-run.js', 'vendor/VERSION', 'sw.js' ],
+2026-11-21T03:09:46.3334178Z     expected: [],
+2026-11-21T03:09:46.3334436Z     operator: 'deepStrictEqual',
+2026-11-21T03:09:46.3334703Z     diff: 'simple'
+2026-11-21T03:09:46.3334904Z   }
+2026-11-21T03:09:46.3335147Z 
+2026-11-21T03:09:46.3335318Z test at tests/mobile-build.test.mjs:33:1
+2026-11-21T03:09:46.3336087Z ✖ --check notices a drifted vendor copy and a stale precache stamp; writing repairs them (109.190143ms)
+2026-11-21T03:09:46.3336717Z   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+2026-11-21T03:09:46.3337118Z   + actual - expected
+2026-11-21T03:09:46.3337331Z   
+2026-11-21T03:09:46.3337504Z   + [
+2026-11-21T03:09:46.3337706Z   +   'vendor/phone-run.js',
+2026-11-21T03:09:46.3337953Z   +   'vendor/VERSION',
+2026-11-21T03:09:46.3338167Z   +   'sw.js'
+2026-11-21T03:09:46.3338364Z   + ]
+2026-11-21T03:09:46.3338544Z   - []
+2026-11-21T03:09:46.3338721Z   
+2026-11-21T03:09:46.3339203Z       at TestContext.<anonymous> (file:///home/runner/work/deckchek/deckchek/tests/mobile-build.test.mjs:38:12)
+2026-11-21T03:09:46.3339775Z       at Test.runInAsyncScope (node:async_hooks:214:14)
+2026-11-21T03:09:46.3340164Z       at Test.run (node:internal/test_runner/test:1047:25)
+2026-11-21T03:09:46.3340641Z       at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+2026-11-21T03:09:46.3341198Z       at Test.postRun (node:internal/test_runner/test:1173:19)
+2026-11-21T03:09:46.3341602Z       at Test.run (node:internal/test_runner/test:1101:12)
+2026-11-21T03:09:46.3342353Z       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3) {
+2026-11-21T03:09:46.3342802Z     generatedMessage: true,
+2026-11-21T03:09:46.3343064Z     code: 'ERR_ASSERTION',
+2026-11-21T03:09:46.3343413Z     actual: [ 'vendor/phone-run.js', 'vendor/VERSION', 'sw.js' ],
+2026-11-21T03:09:46.3343751Z     expected: [],
+2026-11-21T03:09:46.3344001Z     operator: 'deepStrictEqual',
+2026-11-21T03:09:46.3344263Z     diff: 'simple'
+2026-11-21T03:09:46.3344467Z   }
+2026-11-21T03:09:46.3579868Z ##[error]Process completed with exit code 1.

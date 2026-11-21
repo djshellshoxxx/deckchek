@@ -1,0 +1,318 @@
+(node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:20) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check)
+ok 1 - vendored engines are byte-identical copies of app/ and the sw stamp is current (build --check)
+  ---
+  duration_ms: 9.9366
+  type: 'test'
+  ...
+# Subtest: --check notices a drifted vendor copy and a stale precache stamp; writing repairs them
+ok 2 - --check notices a drifted vendor copy and a stale precache stamp; writing repairs them
+  ---
+  duration_ms: 44.865837
+  type: 'test'
+  ...
+# Subtest: service worker precaches every file of the app and nothing else (AC-2)
+ok 3 - service worker precaches every file of the app and nothing else (AC-2)
+  ---
+  duration_ms: 0.871957
+  type: 'test'
+  ...
+# Subtest: manifest is installable: name, scope, standalone, 192 and 512 PNG icons that exist and have those sizes
+ok 4 - manifest is installable: name, scope, standalone, 192 and 512 PNG icons that exist and have those sizes
+  ---
+  duration_ms: 0.353304
+  type: 'test'
+  ...
+# Subtest: page contract: strict CSP, no inline script or style, no remote assets, no unsafe sinks
+ok 5 - page contract: strict CSP, no inline script or style, no remote assets, no unsafe sinks
+  ---
+  duration_ms: 2.858698
+  type: 'test'
+  ...
+# Subtest: every relative import in mobile/ resolves to a shipped file, and the engines come from vendor/
+ok 6 - every relative import in mobile/ resolves to a shipped file, and the engines come from vendor/
+  ---
+  duration_ms: 2.532526
+  type: 'test'
+  ...
+# Subtest: the Pages workflow can only be started by hand and never deploys by default (hosting is undecided)
+ok 7 - the Pages workflow can only be started by hand and never deploys by default (hosting is undecided)
+  ---
+  duration_ms: 0.514106
+  type: 'test'
+  ...
+# Subtest: five screens, a photosensitivity confirmation before the strobe, and a persistent SPL banner
+ok 8 - five screens, a photosensitivity confirmation before the strobe, and a persistent SPL banner
+  ---
+  duration_ms: 0.305782
+  type: 'test'
+  ...
+# (node:21) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: the phone and the desktop run the same format code
+ok 9 - the phone and the desktop run the same format code
+  ---
+  duration_ms: 0.940852
+  type: 'test'
+  ...
+# Subtest: export round-trip from a real speed measurement: desktop parse, matching hash, same numbers (AC-5, AC-6)
+ok 10 - export round-trip from a real speed measurement: desktop parse, matching hash, same numbers (AC-5, AC-6)
+  ---
+  duration_ms: 1143.679016
+  type: 'test'
+  ...
+# Subtest: export hash tamper is detected by the desktop parser
+ok 11 - export hash tamper is detected by the desktop parser
+  ---
+  duration_ms: 568.894745
+  type: 'test'
+  ...
+# Subtest: user agent can be redacted and never reaches the export
+ok 12 - user agent can be redacted and never reaches the export
+  ---
+  duration_ms: 575.031865
+  type: 'test'
+  ...
+# Subtest: QR: a normal result is one QR; a large one is several, and each renders as a data-URI image
+ok 13 - QR: a normal result is one QR; a large one is several, and each renders as a data-URI image
+  ---
+  duration_ms: 1395.998389
+  type: 'test'
+  ...
+# Subtest: file name carries the kind, a compact UTC stamp and the .deckchek-mobile.json extension
+ok 14 - file name carries the kind, a compact UTC stamp and the .deckchek-mobile.json extension
+  ---
+  duration_ms: 688.999356
+  type: 'test'
+  ...
+# Subtest: an export that holds a value the format refuses throws instead of writing a bad file
+ok 15 - an export that holds a value the format refuses throws instead of writing a bad file
+  ---
+  duration_ms: 553.152964
+  type: 'test'
+  ...
+# (node:22) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# Subtest: an older phone asset refresh resolve preserves the newer list and selected control
+ok 16 - an older phone asset refresh resolve preserves the newer list and selected control
+  ---
+  duration_ms: 15.808226
+  type: 'test'
+  ...
+# Subtest: an older phone asset refresh reject preserves the newer list and selected control
+ok 17 - an older phone asset refresh reject preserves the newer list and selected control
+  ---
+  duration_ms: 2.607669
+  type: 'test'
+  ...
+# Subtest: hidden phone asset refresh resolve stays retired and return loads a fresh list
+ok 18 - hidden phone asset refresh resolve stays retired and return loads a fresh list
+  ---
+  duration_ms: 2.281927
+  type: 'test'
+  ...
+# Subtest: hidden phone asset refresh reject stays retired and return loads a fresh list
+ok 19 - hidden phone asset refresh reject stays retired and return loads a fresh list
+  ---
+  duration_ms: 4.438365
+  type: 'test'
+  ...
+# (node:28) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:28) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# Subtest: phone reads one Unicode file snapshot and shows its valid hash
+ok 20 - phone reads one Unicode file snapshot and shows its valid hash
+  ---
+  duration_ms: 20.2763
+  type: 'test'
+  ...
+# Subtest: phone read failure is caught and preserves the existing preview
+ok 21 - phone read failure is caught and preserves the existing preview
+  ---
+  duration_ms: 5.199244
+  type: 'test'
+  ...
+# Subtest: phone cancellation preserves the current result
+ok 22 - phone cancellation preserves the current result
+  ---
+  duration_ms: 7.652911
+  type: 'test'
+  ...
+# Subtest: phone keeps its decimal one-million-byte limit before reading
+ok 23 - phone keeps its decimal one-million-byte limit before reading
+  ---
+  duration_ms: 1.167013
+  type: 'test'
+  ...
+# Subtest: pending phone file resolve cannot overwrite later clear
+ok 24 - pending phone file resolve cannot overwrite later clear
+  ---
+  duration_ms: 2.473426
+  type: 'test'
+  ...
+# Subtest: pending phone file reject cannot overwrite later clear
+ok 25 - pending phone file reject cannot overwrite later clear
+  ---
+  duration_ms: 1.620508
+  type: 'test'
+  ...
+# Subtest: pending phone file resolve cannot overwrite later type
+ok 26 - pending phone file resolve cannot overwrite later type
+  ---
+  duration_ms: 4.177971
+  type: 'test'
+  ...
+# Subtest: pending phone file reject cannot overwrite later type
+ok 27 - pending phone file reject cannot overwrite later type
+  ---
+  duration_ms: 5.237983
+  type: 'test'
+  ...
+# Subtest: pending phone file resolve cannot overwrite later read
+ok 28 - pending phone file resolve cannot overwrite later read
+  ---
+  duration_ms: 6.227087
+  type: 'test'
+  ...
+# Subtest: pending phone file reject cannot overwrite later read
+ok 29 - pending phone file reject cannot overwrite later read
+  ---
+  duration_ms: 4.263941
+  type: 'test'
+  ...
+# Subtest: pending phone file resolve cannot overwrite later hide
+ok 30 - pending phone file resolve cannot overwrite later hide
+  ---
+  duration_ms: 1.532966
+  type: 'test'
+  ...
+# Subtest: pending phone file reject cannot overwrite later hide
+ok 31 - pending phone file reject cannot overwrite later hide
+  ---
+  duration_ms: 1.224399
+  type: 'test'
+  ...
+# Subtest: a newer phone selection owns the result when the earlier read finishes last
+ok 32 - a newer phone selection owns the result when the earlier read finishes last
+  ---
+  duration_ms: 2.501068
+  type: 'test'
+  ...
+# (node:34) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: export round-trip: parse returns the same measurements and a matching hash
+ok 33 - export round-trip: parse returns the same measurements and a matching hash
+  ---
+  duration_ms: 7.523285
+  type: 'test'
+  ...
+# Subtest: hash is stable under key order and fractional numbers are hashed as decimal strings
+ok 34 - hash is stable under key order and fractional numbers are hashed as decimal strings
+  ---
+  duration_ms: 2.197169
+  type: 'test'
+  ...
+# Subtest: tampering changes the hash: a warning, not a block
+ok 35 - tampering changes the hash: a warning, not a block
+  ---
+  duration_ms: 3.398194
+  type: 'test'
+  ...
+# Subtest: validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+ok 36 - validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+  ---
+  duration_ms: 4.658407
+  type: 'test'
+  ...
+# Subtest: parse drops unknown fields and never returns the input objects
+ok 37 - parse drops unknown fields and never returns the input objects
+  ---
+  duration_ms: 0.881111
+  type: 'test'
+  ...
+# Subtest: small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+ok 38 - small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+  ---
+  duration_ms: 214.666207
+  type: 'test'
+  ...
+# Subtest: frame errors are specific: missing frame, mixed exports, damaged frame
+ok 39 - frame errors are specific: missing frame, mixed exports, damaged frame
+  ---
+  duration_ms: 6.479318
+  type: 'test'
+  ...
+# Subtest: QR framing preserves significant spaces at both sides of a frame boundary
+ok 40 - QR framing preserves significant spaces at both sides of a frame boundary
+  ---
+  duration_ms: 2.466957
+  type: 'test'
+  ...
+# Subtest: desktop import preserves a significant-space-ended frame pasted last
+ok 41 - desktop import preserves a significant-space-ended frame pasted last
+  ---
+  duration_ms: 3.64713
+  type: 'test'
+  ...
+# Subtest: QR options are bounded before even a single plain-JSON result is returned
+ok 42 - QR options are bounded before even a single plain-JSON result is returned
+  ---
+  duration_ms: 34.164621
+  type: 'test'
+  ...
+# Subtest: framing preserves code points and refuses counts that the v1 headers cannot represent
+ok 43 - framing preserves code points and refuses counts that the v1 headers cannot represent
+  ---
+  duration_ms: 3.447218
+  type: 'test'
+  ...
+# Subtest: framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap
+ok 44 - framed wire accounting includes CRLF and a final line ending without raising the 1 MB cap
+  ---
+  duration_ms: 1394.828511
+  type: 'test'
+  ...
+# Subtest: framed output must stay one frame per line while small plain JSON remains unchanged
+ok 45 - framed output must stay one frame per line while small plain JSON remains unchanged
+  ---
+  duration_ms: 8.608675
+  type: 'test'
+  ...
+# Subtest: direct frame joining keeps result-style type errors and the complete raw input budget
+ok 46 - direct frame joining keeps result-style type errors and the complete raw input budget
+  ---
+  duration_ms: 13.581046
+  type: 'test'
+  ...
+# Subtest: a production export populated to its field limits remains inside the default QR budget
+ok 47 - a production export populated to its field limits remains inside the default QR budget
+  ---
+  duration_ms: 178.943462
+  type: 'test'
+  ...
+# Subtest: history run: origin phone, tagged measurements, asset link, device label, no calibration
+ok 48 - history run: origin phone, tagged measurements, asset link, device label, no calibration
+  ---
+  duration_ms: 1.459935
+  type: 'test'
+  ...
+# Subtest: buildExport applies limits and drops unknown fields
+ok 49 - buildExport applies limits and drops unknown fields
+  ---
+  duration_ms: 0.383579
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 49
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5068.461243

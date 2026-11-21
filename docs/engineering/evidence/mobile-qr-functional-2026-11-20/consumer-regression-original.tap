@@ -1,0 +1,101 @@
+(node:7) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: export round-trip: parse returns the same measurements and a matching hash
+ok 1 - export round-trip: parse returns the same measurements and a matching hash
+  ---
+  duration_ms: 5.302921
+  type: 'test'
+  ...
+# Subtest: hash is stable under key order and fractional numbers are hashed as decimal strings
+ok 2 - hash is stable under key order and fractional numbers are hashed as decimal strings
+  ---
+  duration_ms: 1.619055
+  type: 'test'
+  ...
+# Subtest: tampering changes the hash: a warning, not a block
+ok 3 - tampering changes the hash: a warning, not a block
+  ---
+  duration_ms: 2.618155
+  type: 'test'
+  ...
+# Subtest: validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+ok 4 - validator rejects unknown versions, wrong format, NaN/Infinity and oversize input
+  ---
+  duration_ms: 3.234276
+  type: 'test'
+  ...
+# Subtest: parse drops unknown fields and never returns the input objects
+ok 5 - parse drops unknown fields and never returns the input objects
+  ---
+  duration_ms: 0.668309
+  type: 'test'
+  ...
+# Subtest: small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+ok 6 - small exports are one plain-JSON QR; large ones split into frames that reassemble in any order
+  ---
+  duration_ms: 198.094153
+  type: 'test'
+  ...
+# Subtest: frame errors are specific: missing frame, mixed exports, damaged frame
+ok 7 - frame errors are specific: missing frame, mixed exports, damaged frame
+  ---
+  duration_ms: 9.196754
+  type: 'test'
+  ...
+# Subtest: QR framing preserves significant spaces at both sides of a frame boundary
+ok 8 - QR framing preserves significant spaces at both sides of a frame boundary
+  ---
+  duration_ms: 3.758348
+  type: 'test'
+  ...
+# Subtest: desktop import preserves a significant-space-ended frame pasted last
+not ok 9 - desktop import preserves a significant-space-ended frame pasted last
+  ---
+  duration_ms: 2.233905
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-qr-functional/tests/phone-run.test.mjs:136:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The frames do not add up to the export they claim to be (a frame is damaged).
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-qr-functional/tests/phone-run.test.mjs:149:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: history run: origin phone, tagged measurements, asset link, device label, no calibration
+ok 10 - history run: origin phone, tagged measurements, asset link, device label, no calibration
+  ---
+  duration_ms: 7.368081
+  type: 'test'
+  ...
+# Subtest: buildExport applies limits and drops unknown fields
+ok 11 - buildExport applies limits and drops unknown fields
+  ---
+  duration_ms: 0.633848
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 349.682222
