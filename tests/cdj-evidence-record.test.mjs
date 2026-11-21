@@ -93,3 +93,27 @@ test('schema, malformed timestamps, oversized arrays/strings and hostile JSON ar
   assert.equal(Object.prototype.polluted, undefined);
   assert.equal(decoded.qualification.eligibleForReport, false);
 });
+
+test('inherited fields and exotic objects cannot spoof record provenance', () => {
+  const inheritedFlags = Object.create({ toneStable: true });
+  assert.throws(() => createCdjEvidenceRecord({ quality: { flags: inheritedFlags } }), TypeError);
+  const inheritedCapture = Object.create({ sampleRateHz: 48000 });
+  assert.throws(() => createCdjEvidenceRecord({ capture: inheritedCapture }), TypeError);
+  assert.throws(() => createCdjEvidenceRecord({ asset: new Date() }), TypeError);
+  const record = createCdjEvidenceRecord({ quality: { flags: {} }, capture: {} });
+  assert.equal(record.quality.flags.toneStable, null);
+  assert.equal(record.capture.sampleRateHz, null);
+  assert.equal(record.qualification.eligibleForReport, false);
+  const plain = Object.create(null);
+  plain.model = 'Model X';
+  assert.equal(createCdjEvidenceRecord({ asset: plain }).asset.model, 'Model X');
+});
+
+test('capture sample-rate must be a safe integer before JSON transport', () => {
+  for (const bad of [Number.MAX_SAFE_INTEGER + 1, 1e30]) {
+    assert.equal(Number.isInteger(bad), true);
+    assert.throws(() => createCdjEvidenceRecord({ capture: { sampleRateHz: bad } }), RangeError);
+  }
+  const record = createCdjEvidenceRecord({ capture: { sampleRateHz: 48000 } });
+  assert.equal(deserializeCdjEvidenceRecord(serializeCdjEvidenceRecord(record)).capture.sampleRateHz, 48000);
+});
