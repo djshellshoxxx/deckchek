@@ -31,6 +31,7 @@ export const FEATURES = Object.freeze({
   liveMonitor: flag('FS-31', 'M8', false, 'Live timecode monitor', 'Live timecode doctor beside DJ software.'),
   mapperStudio: flag('FS-32', 'M8', false, 'MIDI mapper studio', 'Create and check MIDI mappings.'),
   gearLedger: flag('FS-33', 'M8', false, 'Gear ledger', 'Static gear ledger export: a shareable page of your gear with privacy controls.'),
+  playerCapture: flag('SPEC-10 / CDJ-04', 'Proposed', false, 'Player capture preview', 'Short input captures from a CDJ or media player, with provisional capture details. Pitch measurement and saved reports remain unavailable.'),
 });
 
 let storageOverride; // undefined -> globalThis.localStorage

@@ -1,31 +1,37 @@
 # DeckChek spec status (work list)
 
-## Current CDJ acquisition continuation — 20 November 2026
+## Current acquisition and Fleet diagnostic continuation — 20 November 2026
 
-The [current continuation](docs/engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
-explicit native observations, scoped cancellation and immutable provisional
-metadata. Three initial workers completed before three fresh independent
-code/functional/defensive reviewers accepted combined source
-`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
-`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
-`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
+The [acquisition continuation](docs/engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
+`157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree
+`f7e32678dd89880a7dce642424100e77c5e22374`. All six workers completed; fresh
+Node 22.23.4 verification passed 56/56 with 1,643 tracked hashes unchanged.
+The single-pair owned-capture API retains native observations, scoped cleanup
+and immutable provisional metadata. Production player UI, retained raw/reference
+bytes, persistence/reporting and scientific/physical qualification remain open.
 
-Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
-unchanged. Only the new acquisition controller and its test file change runtime
-source. Production player UI wiring, retained reference/raw bytes,
-SQLite/history/HTML integration, scientific characterization and physical
-qualification remain unfinished. Evidence stays unverified and report-ineligible.
+The [Fleet diagnostic continuation](docs/engineering/FLEET_GATE_CONTINUATION_2026-11-20.md) records three completed initial
+workers followed by three completed fresh reviewers. They accepted combined
+source `f1172b87902aa05c93c452619c7ed1e359f939e6`, tree
+`41031b09d19dfd1ca90dd95173872aaeb280e3f6`; durable equivalent is
+`1625bb4dc6906777b7891e9158a2ef651e40be89`. Fresh generation/parser/evidence checks
+passed 60/60 against the actual failed merge, with 1,706 tooling and 1,626 input
+hashes unchanged. These are tooling checks, not native performance results.
+The exact reviewed proposal is ready for one bounded hosted diagnostic; keep
+its activated branch fixed and preserve every result, including failures.
 
-Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
-while its hosted gates qualify; its independent full suite passed 2,251 / zero
-failures / one optional skip. Standard hosted checks passed, but nightly ASan
-failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
-unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
-preserved. This distinct acquisition successor needs its own hosted checks.
+QR #65 stays fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`. Its ASan Fleet
+gate failed at 201.565999 ms against 200 ms; cause remains unestablished. Later
+#67 ASan passed 767/0/8 ignored using the same compiler, but other applicable
+#67 gates remained pending at the dated readback. No threshold, production
+Fleet behavior or default was changed. Only source-specific applicable checks,
+current-base tree proof and an expected-head guard can qualify a merge.
+
 Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
-#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
-already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
-Read current refs/reports; dated snapshots below preserve history.
+#54/#58/#59. Superseded inputs and original branches remain preserved. Fleet
+stays default-off; existing profile assignment is implemented. Issue #66 is
+next for a distinct worker set after diagnostic activation. Read live refs and
+the linked reports; historical snapshots below retain their original meaning.
 
 ## Historical CDJ calculation checkpoint — 20 November 2026
 

@@ -1,0 +1,290 @@
+{
+  "runId": 44867671512,
+  "jobId": 136734885941,
+  "runUrl": "https://github.com/djshellshoxxx/deckchek/actions/runs/44867671512",
+  "conclusion": "failure",
+  "diagnosticOnly": true,
+  "sourceCommit": "5702a450d9a7faa3efb80c5b67de69386ae07540",
+  "sourceTree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+  "toolingCommit": "69fc06eb471dfb00de544bbe233c0f5dc95402e8",
+  "toolingTree": "09b6da880e5a19ea18cdea03e9511d760658bce4",
+  "compilerCommit": "c7d5ba59d8e11ee2e2204b173458eec4cb41c973",
+  "archiveByteVerification": true,
+  "acceptedSourceProofByteEquality": true,
+  "stages": {
+    "baseline": {
+      "exitCode": 0,
+      "testCounts": {
+        "passed": 767,
+        "failed": 0,
+        "ignored": 8,
+        "measured": 0,
+        "filtered": 0
+      },
+      "evidenceComplete": true,
+      "elapsedSeconds": 425.4594394869998,
+      "suiteElapsedSeconds": 251.28,
+      "binaries": [
+        {
+          "path": "src-tauri/target/x86_64-unknown-linux-gnu/debug/build/deckchek/42a6898e012323ba/out/deckchek_lib-42a6898e012323ba",
+          "sha256": "41f72ab5e567dee5e2c9f0a1d185e24e1ed5cf7dbdfa25b712d8ad3150622461"
+        }
+      ],
+      "logSha256": "f62a0abdf3e837aa9b8e0278f02eeb59386f87e9520d941b69a322b7034c4511",
+      "trackedStatus": ""
+    },
+    "instrumented": {
+      "exitCode": 101,
+      "testCounts": {
+        "passed": 766,
+        "failed": 1,
+        "ignored": 9,
+        "measured": 0,
+        "filtered": 0
+      },
+      "evidenceComplete": true,
+      "elapsedSeconds": 277.3786858620001,
+      "suiteElapsedSeconds": 248.64,
+      "binaries": [
+        {
+          "path": "src-tauri/target/x86_64-unknown-linux-gnu/debug/build/deckchek/42a6898e012323ba/out/deckchek_lib-42a6898e012323ba",
+          "sha256": "557e3456c4b54281f9c6848e6b71dd7a92c6f748ee16418a933683f87b215295"
+        }
+      ],
+      "logSha256": "3f018e19abddcbce1ee7acf113b8256d459024eff022ed961f0043155a4eedfe",
+      "trackedStatus": " M src-tauri/src/fleet.rs\n"
+    },
+    "phases": {
+      "exitCode": 0,
+      "testCounts": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 775
+      },
+      "evidenceComplete": true,
+      "elapsedSeconds": 2.3367818790002275,
+      "suiteElapsedSeconds": 1.78,
+      "binaries": [
+        {
+          "path": "src-tauri/target/x86_64-unknown-linux-gnu/debug/build/deckchek/42a6898e012323ba/out/deckchek_lib-42a6898e012323ba",
+          "sha256": "557e3456c4b54281f9c6848e6b71dd7a92c6f748ee16418a933683f87b215295"
+        }
+      ],
+      "logSha256": "5d948c22f66856c1da89e9f477b678ded115527a88c4d85d969076b3f01b7139",
+      "trackedStatus": " M src-tauri/src/fleet.rs\n"
+    }
+  },
+  "fullSuiteGate": {
+    "budgetMs": 200,
+    "schedulerAfter": [
+      1491178216,
+      17676477,
+      16224
+    ],
+    "schedulerBefore": [
+      1278891712,
+      17222916,
+      16171
+    ],
+    "schedulerDelta": {
+      "cpuCounterAdvanced": true,
+      "cpuRuntimeNs": 212286504,
+      "runqueueWaitNs": 453561,
+      "timeslices": 53
+    },
+    "scope": "full-suite test; only wallNs is the existing assertion interval; scheduler snapshots surround it",
+    "wallNs": 213308243
+  },
+  "phasePairs": [
+    {
+      "pair": 0,
+      "baselineFirst": true,
+      "allRowsEqual": true,
+      "rows": 2000,
+      "originalWholeCallMs": 109.641418,
+      "instrumentedWholeCallMs": 108.017522,
+      "phasesMs": {
+        "completionQueryAndMap": 22.556555,
+        "usageQueryAndMap": 12.919606,
+        "reminderQueryAndJson": 47.005094,
+        "enrichment": 24.757256
+      }
+    },
+    {
+      "pair": 1,
+      "baselineFirst": false,
+      "allRowsEqual": true,
+      "rows": 2000,
+      "originalWholeCallMs": 107.2548,
+      "instrumentedWholeCallMs": 108.846146,
+      "phasesMs": {
+        "completionQueryAndMap": 22.306598,
+        "usageQueryAndMap": 13.071089,
+        "reminderQueryAndJson": 47.460543,
+        "enrichment": 25.181496
+      }
+    },
+    {
+      "pair": 2,
+      "baselineFirst": true,
+      "allRowsEqual": true,
+      "rows": 2000,
+      "originalWholeCallMs": 108.502616,
+      "instrumentedWholeCallMs": 109.860887,
+      "phasesMs": {
+        "completionQueryAndMap": 22.608742,
+        "usageQueryAndMap": 13.320543,
+        "reminderQueryAndJson": 47.619399,
+        "enrichment": 25.462339
+      }
+    },
+    {
+      "pair": 3,
+      "baselineFirst": false,
+      "allRowsEqual": true,
+      "rows": 2000,
+      "originalWholeCallMs": 109.203061,
+      "instrumentedWholeCallMs": 110.020564,
+      "phasesMs": {
+        "completionQueryAndMap": 22.749835,
+        "usageQueryAndMap": 13.270259,
+        "reminderQueryAndJson": 47.924277,
+        "enrichment": 25.206742
+      }
+    }
+  ],
+  "sqlContext": {
+    "availableParallelism": 4,
+    "compileOptions": [
+      "ATOMIC_INTRINSICS=1",
+      "COMPILER=gcc-11.4.0",
+      "DEFAULT_AUTOVACUUM",
+      "DEFAULT_CACHE_SIZE=-2000",
+      "DEFAULT_FILE_FORMAT=4",
+      "DEFAULT_FOREIGN_KEYS",
+      "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+      "DEFAULT_MMAP_SIZE=0",
+      "DEFAULT_PAGE_SIZE=4096",
+      "DEFAULT_PCACHE_INITSZ=20",
+      "DEFAULT_RECURSIVE_TRIGGERS",
+      "DEFAULT_SECTOR_SIZE=4096",
+      "DEFAULT_SYNCHRONOUS=2",
+      "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "DEFAULT_WAL_SYNCHRONOUS=2",
+      "DEFAULT_WORKER_THREADS=0",
+      "DIRECT_OVERFLOW_READ",
+      "ENABLE_API_ARMOR",
+      "ENABLE_COLUMN_METADATA",
+      "ENABLE_DBSTAT_VTAB",
+      "ENABLE_FTS3",
+      "ENABLE_FTS3_PARENTHESIS",
+      "ENABLE_FTS5",
+      "ENABLE_LOAD_EXTENSION",
+      "ENABLE_RTREE",
+      "ENABLE_STAT4",
+      "HAVE_ISNAN",
+      "MALLOC_SOFT_LIMIT=1024",
+      "MAX_ATTACHED=10",
+      "MAX_COLUMN=2000",
+      "MAX_COMPOUND_SELECT=500",
+      "MAX_DEFAULT_PAGE_SIZE=8192",
+      "MAX_EXPR_DEPTH=1000",
+      "MAX_FUNCTION_ARG=1000",
+      "MAX_LENGTH=1000000000",
+      "MAX_LIKE_PATTERN_LENGTH=50000",
+      "MAX_MMAP_SIZE=0x7fff0000",
+      "MAX_PAGE_COUNT=0xfffffffe",
+      "MAX_PAGE_SIZE=65536",
+      "MAX_SCHEMA=10000000",
+      "MAX_SQL_LENGTH=1000000000",
+      "MAX_TRIGGER_DEPTH=1000",
+      "MAX_VARIABLE_NUMBER=32766",
+      "MAX_VDBE_OP=250000000",
+      "MAX_WORKER_THREADS=8",
+      "MUTEX_PTHREADS",
+      "SOUNDEX",
+      "SYSTEM_MALLOC",
+      "TEMP_STORE=1",
+      "THREADSAFE=1",
+      "USE_URI"
+    ],
+    "fixture": {
+      "confirmedUsageRows": 3000,
+      "events": 10000,
+      "fleetAssets": 1000,
+      "reminders": 2000,
+      "seedAssets": 2
+    },
+    "migrations": 25,
+    "queryPlans": [
+      {
+        "asset": null,
+        "query": "reminders",
+        "steps": [
+          "SCAN maintenance_reminder",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      {
+        "asset": null,
+        "query": "latestCompletions",
+        "steps": [
+          "CO-ROUTINE (subquery-1)",
+          "CO-ROUTINE (subquery-3)",
+          "SCAN maintenance_event",
+          "USE TEMP B-TREE FOR ORDER BY",
+          "SCAN (subquery-3)",
+          "SCAN (subquery-1)"
+        ]
+      },
+      {
+        "asset": null,
+        "query": "confirmedUsage",
+        "steps": [
+          "SCAN asset_usage"
+        ]
+      },
+      {
+        "asset": "fleet-5",
+        "query": "reminders",
+        "steps": [
+          "SCAN maintenance_reminder",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      {
+        "asset": "fleet-5",
+        "query": "latestCompletions",
+        "steps": [
+          "CO-ROUTINE (subquery-1)",
+          "CO-ROUTINE (subquery-3)",
+          "SCAN maintenance_event",
+          "USE TEMP B-TREE FOR ORDER BY",
+          "SCAN (subquery-3)",
+          "SCAN (subquery-1)"
+        ]
+      },
+      {
+        "asset": "fleet-5",
+        "query": "confirmedUsage",
+        "steps": [
+          "SCAN asset_usage"
+        ]
+      }
+    ],
+    "sqliteVersion": "3.54.1"
+  },
+  "limits": [
+    "The original PR65 failure remains failed and its cause remains unestablished.",
+    "This single bounded experiment is not source-specific PR qualification and must not be retriggered until green.",
+    "The untouched and instrumented full suites execute different binary hashes.",
+    "Scheduler snapshots surround the wall interval and are not exactly coincident timers.",
+    "The four phase pairs share a fixture that is warm after writes; order alternates but the sample is small.",
+    "Four phase timers exclude recorder work and returned-value cleanup; whole-call timers include cleanup.",
+    "The measured copy has probe overhead. There are no allocation measurements or causal attribution.",
+    "Binary hashes are retained, but native executable bytes are not part of the uploaded artifact.",
+    "No production Fleet change or threshold change is introduced by these records."
+  ]
+}

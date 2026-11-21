@@ -1,0 +1,741 @@
+{
+  "stage": "phases",
+  "argv": [
+    "cargo",
+    "+nightly-2026-11-21",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "src-tauri/Cargo.toml",
+    "-j",
+    "4",
+    "--lib",
+    "--target",
+    "x86_64-unknown-linux-gnu",
+    "fleet::fleet_gate_diagnostic::bounded_phase_measurements",
+    "--",
+    "--ignored",
+    "--exact",
+    "--nocapture"
+  ],
+  "cwd": "/home/runner/work/deckchek/deckchek/source",
+  "elapsedSeconds": 2.3367818790002275,
+  "exitCode": 0,
+  "testsReached": true,
+  "testCounts": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 775
+  },
+  "evidenceComplete": true,
+  "gateRecords": [],
+  "phaseRecords": [
+    {
+      "allRowsEqual": true,
+      "baselineFirst": true,
+      "baselineWholeCall": {
+        "schedulerAfter": [
+          884850156,
+          102238,
+          8
+        ],
+        "schedulerBefore": [
+          775854708,
+          102238,
+          8
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 108995448,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 109641418
+      },
+      "instrumentedWholeCall": {
+        "schedulerAfter": [
+          992852459,
+          102238,
+          8
+        ],
+        "schedulerBefore": [
+          884850156,
+          102238,
+          8
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 108002303,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 108017522
+      },
+      "limits": "whole calls include return cleanup; four phases exclude it and recorder work; scheduler intervals surround wall intervals; no allocation measurement; repeated fixture is warm; not hosted qualification",
+      "pair": 0,
+      "pairContainsFirstReminderCallOnFreshFixture": true,
+      "phases": [
+        {
+          "measurement": {
+            "schedulerAfter": [
+              907850416,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              884850156,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 23000260,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 22556555
+          },
+          "name": "completionQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              920850596,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              907850416,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 13000180,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 12919606
+          },
+          "name": "usageQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              967849901,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              920850596,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 46999305,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 47005094
+          },
+          "name": "reminderQueryAndJson"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              992852459,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              967849901,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 25002558,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 24757256
+          },
+          "name": "enrichment"
+        }
+      ],
+      "rows": 2000
+    },
+    {
+      "allRowsEqual": true,
+      "baselineFirst": false,
+      "baselineWholeCall": {
+        "schedulerAfter": [
+          1238843008,
+          111646,
+          9
+        ],
+        "schedulerBefore": [
+          1131844108,
+          111646,
+          9
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 106998900,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 107254800
+      },
+      "instrumentedWholeCall": {
+        "schedulerAfter": [
+          1130842678,
+          111646,
+          9
+        ],
+        "schedulerBefore": [
+          1022850023,
+          102238,
+          8
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 107992655,
+          "runqueueWaitNs": 9408,
+          "timeslices": 1
+        },
+        "wallNs": 108846146
+      },
+      "limits": "whole calls include return cleanup; four phases exclude it and recorder work; scheduler intervals surround wall intervals; no allocation measurement; repeated fixture is warm; not hosted qualification",
+      "pair": 1,
+      "pairContainsFirstReminderCallOnFreshFixture": false,
+      "phases": [
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1044851699,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              1022850023,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 22001676,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 22306598
+          },
+          "name": "completionQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1057851940,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              1044851699,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 13000241,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 13071089
+          },
+          "name": "usageQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1105851011,
+              102238,
+              8
+            ],
+            "schedulerBefore": [
+              1057851940,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 47999071,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 47460543
+          },
+          "name": "reminderQueryAndJson"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1130842678,
+              111646,
+              9
+            ],
+            "schedulerBefore": [
+              1105851011,
+              102238,
+              8
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 24991667,
+              "runqueueWaitNs": 9408,
+              "timeslices": 1
+            },
+            "wallNs": 25181496
+          },
+          "name": "enrichment"
+        }
+      ],
+      "rows": 2000
+    },
+    {
+      "allRowsEqual": true,
+      "baselineFirst": true,
+      "baselineWholeCall": {
+        "schedulerAfter": [
+          1375820649,
+          134407,
+          11
+        ],
+        "schedulerBefore": [
+          1267818125,
+          134407,
+          11
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 108002524,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 108502616
+      },
+      "instrumentedWholeCall": {
+        "schedulerAfter": [
+          1485825240,
+          134407,
+          11
+        ],
+        "schedulerBefore": [
+          1376821637,
+          134407,
+          11
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 109003603,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 109860887
+      },
+      "limits": "whole calls include return cleanup; four phases exclude it and recorder work; scheduler intervals surround wall intervals; no allocation measurement; repeated fixture is warm; not hosted qualification",
+      "pair": 2,
+      "pairContainsFirstReminderCallOnFreshFixture": false,
+      "phases": [
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1398821650,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1376821637,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 22000013,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 22608742
+          },
+          "name": "completionQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1412820725,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1398821650,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 13999075,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 13320543
+          },
+          "name": "usageQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1459819369,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1412820725,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 46998644,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 47619399
+          },
+          "name": "reminderQueryAndJson"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1485825240,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1460821791,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 25003449,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 25462339
+          },
+          "name": "enrichment"
+        }
+      ],
+      "rows": 2000
+    },
+    {
+      "allRowsEqual": true,
+      "baselineFirst": false,
+      "baselineWholeCall": {
+        "schedulerAfter": [
+          1736821144,
+          134407,
+          11
+        ],
+        "schedulerBefore": [
+          1627822641,
+          134407,
+          11
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 108998503,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 109203061
+      },
+      "instrumentedWholeCall": {
+        "schedulerAfter": [
+          1627822641,
+          134407,
+          11
+        ],
+        "schedulerBefore": [
+          1517819151,
+          134407,
+          11
+        ],
+        "schedulerDelta": {
+          "cpuCounterAdvanced": true,
+          "cpuRuntimeNs": 110003490,
+          "runqueueWaitNs": 0,
+          "timeslices": 0
+        },
+        "wallNs": 110020564
+      },
+      "limits": "whole calls include return cleanup; four phases exclude it and recorder work; scheduler intervals surround wall intervals; no allocation measurement; repeated fixture is warm; not hosted qualification",
+      "pair": 3,
+      "pairContainsFirstReminderCallOnFreshFixture": false,
+      "phases": [
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1539821087,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1517819151,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 22001936,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 22749835
+          },
+          "name": "completionQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1553822647,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1539821087,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 14001560,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 13270259
+          },
+          "name": "usageQueryAndMap"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1601821739,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1553822647,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 47999092,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 47924277
+          },
+          "name": "reminderQueryAndJson"
+        },
+        {
+          "measurement": {
+            "schedulerAfter": [
+              1626820349,
+              134407,
+              11
+            ],
+            "schedulerBefore": [
+              1601821739,
+              134407,
+              11
+            ],
+            "schedulerDelta": {
+              "cpuCounterAdvanced": true,
+              "cpuRuntimeNs": 24998610,
+              "runqueueWaitNs": 0,
+              "timeslices": 0
+            },
+            "wallNs": 25206742
+          },
+          "name": "enrichment"
+        }
+      ],
+      "rows": 2000
+    }
+  ],
+  "sqlRecords": [
+    {
+      "availableParallelism": 4,
+      "compileOptions": [
+        "ATOMIC_INTRINSICS=1",
+        "COMPILER=gcc-11.4.0",
+        "DEFAULT_AUTOVACUUM",
+        "DEFAULT_CACHE_SIZE=-2000",
+        "DEFAULT_FILE_FORMAT=4",
+        "DEFAULT_FOREIGN_KEYS",
+        "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+        "DEFAULT_MMAP_SIZE=0",
+        "DEFAULT_PAGE_SIZE=4096",
+        "DEFAULT_PCACHE_INITSZ=20",
+        "DEFAULT_RECURSIVE_TRIGGERS",
+        "DEFAULT_SECTOR_SIZE=4096",
+        "DEFAULT_SYNCHRONOUS=2",
+        "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+        "DEFAULT_WAL_SYNCHRONOUS=2",
+        "DEFAULT_WORKER_THREADS=0",
+        "DIRECT_OVERFLOW_READ",
+        "ENABLE_API_ARMOR",
+        "ENABLE_COLUMN_METADATA",
+        "ENABLE_DBSTAT_VTAB",
+        "ENABLE_FTS3",
+        "ENABLE_FTS3_PARENTHESIS",
+        "ENABLE_FTS5",
+        "ENABLE_LOAD_EXTENSION",
+        "ENABLE_RTREE",
+        "ENABLE_STAT4",
+        "HAVE_ISNAN",
+        "MALLOC_SOFT_LIMIT=1024",
+        "MAX_ATTACHED=10",
+        "MAX_COLUMN=2000",
+        "MAX_COMPOUND_SELECT=500",
+        "MAX_DEFAULT_PAGE_SIZE=8192",
+        "MAX_EXPR_DEPTH=1000",
+        "MAX_FUNCTION_ARG=1000",
+        "MAX_LENGTH=1000000000",
+        "MAX_LIKE_PATTERN_LENGTH=50000",
+        "MAX_MMAP_SIZE=0x7fff0000",
+        "MAX_PAGE_COUNT=0xfffffffe",
+        "MAX_PAGE_SIZE=65536",
+        "MAX_SCHEMA=10000000",
+        "MAX_SQL_LENGTH=1000000000",
+        "MAX_TRIGGER_DEPTH=1000",
+        "MAX_VARIABLE_NUMBER=32766",
+        "MAX_VDBE_OP=250000000",
+        "MAX_WORKER_THREADS=8",
+        "MUTEX_PTHREADS",
+        "SOUNDEX",
+        "SYSTEM_MALLOC",
+        "TEMP_STORE=1",
+        "THREADSAFE=1",
+        "USE_URI"
+      ],
+      "fixture": {
+        "confirmedUsageRows": 3000,
+        "events": 10000,
+        "fleetAssets": 1000,
+        "reminders": 2000,
+        "seedAssets": 2
+      },
+      "migrations": 25,
+      "queryPlans": [
+        {
+          "asset": null,
+          "query": "reminders",
+          "steps": [
+            "SCAN maintenance_reminder",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "asset": null,
+          "query": "latestCompletions",
+          "steps": [
+            "CO-ROUTINE (subquery-1)",
+            "CO-ROUTINE (subquery-3)",
+            "SCAN maintenance_event",
+            "USE TEMP B-TREE FOR ORDER BY",
+            "SCAN (subquery-3)",
+            "SCAN (subquery-1)"
+          ]
+        },
+        {
+          "asset": null,
+          "query": "confirmedUsage",
+          "steps": [
+            "SCAN asset_usage"
+          ]
+        },
+        {
+          "asset": "fleet-5",
+          "query": "reminders",
+          "steps": [
+            "SCAN maintenance_reminder",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "asset": "fleet-5",
+          "query": "latestCompletions",
+          "steps": [
+            "CO-ROUTINE (subquery-1)",
+            "CO-ROUTINE (subquery-3)",
+            "SCAN maintenance_event",
+            "USE TEMP B-TREE FOR ORDER BY",
+            "SCAN (subquery-3)",
+            "SCAN (subquery-1)"
+          ]
+        },
+        {
+          "asset": "fleet-5",
+          "query": "confirmedUsage",
+          "steps": [
+            "SCAN asset_usage"
+          ]
+        }
+      ],
+      "sqliteVersion": "3.54.1"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "src-tauri/target/x86_64-unknown-linux-gnu/debug/build/deckchek/42a6898e012323ba/out/deckchek_lib-42a6898e012323ba",
+      "sha256": "557e3456c4b54281f9c6848e6b71dd7a92c6f748ee16418a933683f87b215295"
+    }
+  ],
+  "logSha256": "5d948c22f66856c1da89e9f477b678ded115527a88c4d85d969076b3f01b7139",
+  "fleetSha256": "0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf",
+  "manifestSha256": "b0a75a2161ff3186dbb45b7f5cc2d542c1bb67f7b795ba79eb508728f450b76d",
+  "lockSha256": "2e959fe81ccb6492f89b3cd10647a81d094506b0f72806c097ef523259d55a74",
+  "migrationSha256": {
+    "0001_initial.sql": "5a3a65437e7eca9d89df34980ea3b6829b502747d4d5f8713b7ce10d48087944",
+    "0002_device_library.sql": "0cfaa51daf4b317d26c3e47f5a4d2dec5ce21512cbe057d727aa2cf28e9249cc",
+    "0003_app_state.sql": "537674fcd42b51366ff197acbb9e54cd313a0356964b7a40685c771343d2814e",
+    "0004_test_media.sql": "0cbca93961f8a897fa8e32e79a7f05e1a19ab0160235a3f14d5ed7cd284e3da1",
+    "0005_backup_log.sql": "6b5847d9656bb8132a8959d409d3b81c8836d7ab5957b57ddfeb28bbd7b07284",
+    "0006_asset_usage.sql": "727d793a80d789cc069b6dc8effdffd2c4faf991768b86050b901bab613a5620",
+    "0007_latency_tuner.sql": "6c94c225ff75c5c487fc2bab2c3ebbf28b07f5fbde7ebcd828147bdcad85ca04",
+    "0008_pregig.sql": "c04decb59f997bfe26778fd222508bcc3ad6aa54a7b621dc4ad53c5d6aa19b3f",
+    "0009_stylus_wear.sql": "a16cab2b86462b48dd1c550131fcdf10f6add75f5b4c852dd46e783fe033c1a5",
+    "0010_wear_map.sql": "2f8f7ee0d184e551aaec30c5bebc2c5ea159536fb462c84a858757124a718bd1",
+    "0011_scratch_stress.sql": "567a0b082b1c597876bd2f6149571c368b9856a99ffebea6a7921813b0f8f1e1",
+    "0012_hum_feedback.sql": "997d70a05139d5cbb8ab7a48296c0dc430c23114f07ad22abc7c60e262a753c7",
+    "0013_photo_store.sql": "ed74f33654ef089e1ee909b35b9e1e6cb93fa4046c63ce735ab576254f315962",
+    "0014_certificate.sql": "d5e8a9ffbd2dae71bd856826452a507484cab8e3d5902c13874865e9c35d5520",
+    "0015_unit_population.sql": "3141cc357ba4df9a833057c21a21d72ac5156aedd37d365c32019c393b1b9441",
+    "0016_service_worksheets.sql": "8946f7bf68aef65eee18fc6638d25aecd2ec6c3e5f25f01d4752efa7eaa6fa08",
+    "0017_fleet_dashboard.sql": "3a7beaafeff5668d6e836dc214cac4d94fe1e44b1c20bcc524f746341d8c3099",
+    "0018_session_origin.sql": "f5136ce8c10fe8399fe27d8e5f78d26d0644a8f63d632d50d141a1e9e349e7b4",
+    "0019_monitor_log.sql": "e53800baf62ce3879637e060c3da56fb56adab0be1bec4a80db52dc9aaa5bc19",
+    "0020_mapper_models.sql": "b123d037f41a51e7c8f565139a610246d240ecb711b3d095a992ff7624d31ada",
+    "0021_gear_ledger.sql": "3dd3cec50505ff2451b52f2db1aa448d07691615b6646ccfc9e7b779f01358f3",
+    "0022_unit_population_ext.sql": "0145d9f1ce7bf8033824fd01650b5d2d41ebe6b4f020a027166cdc677f00605c",
+    "0023_venue_incidents.sql": "91c4c1cbe5e8bac2abb8827aa75e974dc7ce2ec65634eb7b21d23d205840db2c",
+    "0024_support_isolation.sql": "c81b71ea697ba51d6e1ffd8bfe8de742edfa235b32a49e1aa3116df54a0c41de",
+    "0025_incident_metric_evidence.sql": "48bfbc0e675dcd4ed64c90df08004c203be08095505ce0009f015498f4af7025"
+  },
+  "trackedStatus": " M src-tauri/src/fleet.rs\n"
+}

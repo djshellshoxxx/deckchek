@@ -1,0 +1,1691 @@
+   Compiling deckchek v0.1.0 (/home/runner/work/deckchek/deckchek/source/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.30s
+     Running unittests src/lib.rs (src-tauri/target/x86_64-unknown-linux-gnu/debug/build/deckchek/42a6898e012323ba/out/deckchek_lib-42a6898e012323ba)
+
+running 776 tests
+test app_state::tests::entry_serializes_camel_case ... ok
+test app_state::tests::key_rules_at_the_boundaries ... ok
+test app_state::tests::corrupt_stored_json_is_reported_not_hidden ... ok
+test aud_08_tests::regression_aud_08_config_windows_are_built_with_the_guard ... ok
+test app_state::tests::round_trip_overwrite_and_delete ... ok
+test aud_08_tests::regression_aud_08_new_window_requests_go_through_the_link_policy_or_are_dropped ... ok
+test audio::tests::device_pairs_are_named_for_even_odd_and_empty_channel_counts ... ok
+test audio::tests::duration_is_validated_before_any_device_work ... ok
+test audio::tests::eight_channel_capture_splits_any_pairs_in_request_order ... ok
+test audio::tests::malformed_selections_are_rejected_with_clear_errors ... ok
+test audio::tests::mono_capture_is_duplicated_to_stereo_analysis_channels ... ok
+test audio::tests::odd_channel_capture_duplicates_the_last_mono_channel_and_drops_partial_frames ... ok
+test audio::tests::out_of_range_pairs_name_the_device_and_its_pairs ... ok
+test audio::tests::payload_keeps_the_first_pair_in_left_right_and_lists_all_pairs ... ok
+test audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands ... ok
+test audio::tests::regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread ... ok
+test audio::tests::regression_aud_06_bounded_buffer_counts_selected_pairs_and_respects_budget ... ok
+test audio::tests::regression_aud_06_bounded_tracks_reserve_fallibly_and_keep_only_selected_pairs ... ok
+test audio::tests::required_channels_prefer_full_pairs ... ok
+test audio::tests::selections_accept_numbers_labels_and_pair_objects ... ok
+test audio::tests::signed_and_unsigned_pcm_are_normalized ... ok
+test audio::tests::stereo_capture_deinterleaves_first_two_channels ... ok
+test audio_out::tests::abs_cap_constant_is_at_or_below_minus_12_dbfs ... ok
+test audio_out::tests::buffer_is_resampled_and_ends_or_loops ... ok
+test audio_out::tests::channel_layouts ... ok
+test audio_out::tests::chirp_sweeps_up_and_repeats ... ok
+test audio_out::tests::contract_examples_round_trip_through_the_real_types ... ok
+test audio_out::tests::db_to_amp_values ... ok
+test audio_out::tests::device_error_is_reaped_by_the_watchdog ... ok
+test audio_out::tests::device_fault_silences_the_renderer ... ok
+test audio_out::tests::device_plays_quiet_tone_and_stops ... ignored, needs a real audio output device; GitHub Windows/Linux runners have none. Run with --ignored on a PC with speakers turned down.
+test audio_out::tests::device_unknown_name_is_reported ... ignored, needs a real audio output device; GitHub Windows/Linux runners have none.
+test audio_out::tests::effective_cap_never_exceeds_abs_max ... ok
+test audio_out::tests::engine_play_stop_is_idempotent_and_records_reason ... ok
+test audio::tests::capture_wait_completes_cancels_and_times_out ... ok
+test audio_out::tests::engine_stop_fades_to_silence_before_closing ... ok
+test app_state::tests::value_size_cap_at_the_boundary ... ok
+test audio::tests::device_loss_is_reported_promptly_with_the_stream_errors ... ok
+test audio_out::tests::full_scale_input_is_limited_to_the_per_call_cap ... ok
+test audio_out::tests::engines_in_one_group_never_play_at_once ... ok
+test audio_out::tests::hard_cap_clamps_and_zeroes_non_finite ... ok
+test audio_out::tests::group_silence_and_kill_cover_every_member_engine ... ok
+test audio_out::tests::invalid_requests_and_open_failures_leave_no_voice ... ok
+test audio_out::tests::inactivity_mutes_continuous_voices_after_60_s ... ok
+test audio_out::tests::kill_switch_silences_within_one_poll_interval ... ok
+test audio_out::tests::level_clamps_to_cap_and_rejects_nan ... ok
+test audio_out::tests::engine_set_level_is_clamped_to_the_call_cap ... ok
+test audio_out::tests::one_shot_buffer_end_marks_finished_and_silent ... ok
+test audio_out::tests::new_play_replaces_the_previous_voice_after_closing_it ... ok
+test audio_out::tests::panic_guard_latches_the_global_kill_switch ... ok
+test audio_out::tests::panic_in_render_is_caught_and_silences ... ok
+test audio_out::tests::kill_all_silences_and_refuses_new_playback ... ok
+test audio_out::tests::ramps_are_never_shorter_than_10_ms ... ok
+test audio_out::tests::set_level_ramps_linearly_over_the_ramp_time ... ok
+test audio_out::tests::sine_has_unit_peak_and_the_requested_frequency ... ok
+test audio_out::tests::exit_falls_back_to_the_kill_switch_when_the_engine_is_busy ... ok
+test audio_out::tests::start_ramps_up_over_at_least_10_ms_even_if_0_requested ... ok
+test audio_out::tests::stop_all_does_not_wait_for_a_hanging_open_and_wins_over_it ... ok
+test audio_out::tests::stalled_device_is_hard_muted_and_closed_within_the_stop_wait ... ok
+test audio_out::tests::validation_rejects_bad_requests ... ok
+test audio_out::tests::stop_reaches_exact_silence_within_50_ms_for_any_block_size ... ok
+test audio_out::tests::window_close_and_exit_stop_output ... ok
+test audit_repro::bug01_resaving_a_run_keeps_its_repeat_scan_alignment ... ok
+test audit_repro::bug01_resaving_a_run_keeps_usage_links ... ok
+test audit_repro::bug11_since_filter_keeps_later_entries_with_milliseconds ... ok
+test audio_out::tests::pink_band_is_a_third_octave_band_at_nominal_rms ... ok
+test audit_repro::bug12_large_utf16_log_still_yields_spans ... ok
+test backup::tests::archives_with_traversal_or_absolute_entries_are_refused_and_nothing_is_written ... ok
+test audio_out::tests::property_no_sample_ever_exceeds_the_caps ... ok
+test backup::tests::backup_is_transactionally_consistent_during_concurrent_writes ... ok
+test backup::tests::backup_log_round_trip_and_listing_of_backups_saved_elsewhere ... ok
+test backup::tests::backup_without_settings_lists_only_db_and_midi_maps ... ok
+test backup::tests::backup_writes_verified_archive_with_manifest_first ... ok
+test backup::tests::destination_rules ... ok
+test backup::tests::entry_names_are_checked ... ok
+test backup::tests::entry_stream_preserves_exact_bytes_and_hash ... ok
+test backup::tests::entry_stream_preserves_read_errors_even_after_declared_bytes ... ok
+test backup::tests::entry_stream_refuses_overrun_before_writing_it ... ok
+test backup::tests::entry_stream_refuses_short_reads ... ok
+test backup::tests::errors_serialize_with_code_and_message ... ok
+test backup::tests::exit_backup_is_claimed_once_and_only_for_exit_events ... ok
+test backup::tests::backup_keeps_snapshot_photo_bytes_until_concurrent_unlink_finishes ... ok
+test backup::tests::free_space_check_is_clear_and_skipped_when_unknown ... ok
+test backup::tests::backup_skips_missing_or_damaged_photo_files_and_still_succeeds ... ok
+test backup::tests::inspect_refuses_damaged_or_foreign_files ... ok
+test backup::tests::entry_and_total_size_caps_and_ratio_floor ... ok
+test backup::tests::manifest_contract_round_trips_with_the_js_example ... ok
+test backup::tests::orphaned_evidence_is_refused_before_backup_or_restore ... ok
+test backup::tests::photos_are_archived_verified_and_restored_into_the_photos_folder ... ok
+test backup::tests::lying_header_zip_bomb_is_refused ... ok
+test backup::tests::regression_aud_02_logged_paths_that_are_not_plain_local_backups_are_not_listed ... ok
+test backup::tests::regression_aud_02_unc_device_and_relative_logged_paths_are_never_probed ... ok
+test backup::tests::failed_restores_leave_the_live_database_byte_identical ... ok
+test backup::tests::regression_aud_02_restore_drops_the_backup_log_of_the_restored_database ... ok
+test backup::tests::regression_aud_04_fresh_and_upgraded_release_databases_pass_the_schema_check ... ok
+test backup::tests::regression_aud_09_workspace_import_caps_equipment_fields ... ok
+test backup::tests::regression_restore_checks_schema_before_evaluating_constraints_or_migrating ... ok
+test backup::tests::regression_aud_05_restored_photos_must_be_referenced_valid_jpegs ... ok
+test backup::tests::highly_compressible_databases_round_trip ... ok
+test backup::tests::regression_restore_refuses_backup_with_triggers_or_views ... ok
+test backup::tests::regression_schema_shape_reads_names_that_are_not_utf8 ... ok
+test backup::tests::regression_schema_sql_size_is_bounded_before_tokenization_and_collection ... ok
+test backup::tests::regression_schema_sql_tokens_ignore_layout_but_preserve_meaning ... ok
+test backup::tests::regression_restore_refuses_text_that_is_not_utf8 ... ok
+test backup::tests::restore_needs_confirmation_and_works_without_a_live_database ... ok
+test backup::tests::restore_is_refused_while_a_capture_runs ... ok
+test backup::tests::regression_aud_04_restore_refuses_schema_objects_deckchek_never_creates ... ok
+test backup::tests::regression_schema_constraints_and_foreign_key_actions_are_checked ... ok
+test backup::tests::restore_settings_with_unexpected_shapes_are_dropped_with_a_warning ... ok
+test backup::tests::restore_waits_for_open_connections_through_the_gate ... ok
+test backup::tests::retention_keeps_the_newest_n_automatic_backups_and_never_manual_ones ... ok
+test backup::tests::schedule_due_rules_at_their_boundaries ... ok
+test backup::tests::schedule_settings_round_trip_through_app_state ... ok
+test backup::tests::snapshot_photos_allow_legacy_absence_but_report_schema_errors ... ok
+test backup::tests::startup_recovery_finishes_or_undoes_an_interrupted_restore ... ok
+test backup::tests::restoring_a_good_backup_repairs_a_same_length_corrupt_photo ... ok
+test backup::tests::time_formatting_matches_known_dates ... ok
+test backup::tests::restore_upgrades_the_v004_fixture_and_takes_a_safety_backup ... ok
+test canonical::tests::error_path_points_at_the_offending_value ... ok
+test canonical::tests::large_unsigned_and_negative_integers ... ok
+test canonical::tests::nan_and_infinities_are_rejected ... ok
+test canonical::tests::non_canonical_texts_are_detected ... ok
+test canonical::tests::raw_integer_boundaries_are_rejected_without_panics_or_hashes ... ok
+test backup::tests::workspace_import_skips_duplicates_and_bad_rows ... ok
+test canonical::tests::regression_serde_raw_value_key_is_an_ordinary_key ... ok
+test canonical::tests::rejection_vectors_fail_at_parse_or_canonicalisation ... ok
+test canonical::tests::sha256_known_answers ... ok
+test canonical::tests::shared_vectors_match_javascript_byte_for_byte ... ok
+test canonical::tests::regression_fs20_long_key_over_many_items_canonicalises_in_linear_time ... ok
+test capture::tests::accumulator_splits_eight_interleaved_channels_into_selected_pairs ... ok
+test capture::tests::backup_sees_any_lease_holder_as_running ... ok
+test capture::tests::block_encoding_round_trips_with_flags ... ok
+test capture::tests::block_queue_drops_oldest_queued_beyond_five_blocks_of_lag ... ok
+test capture::tests::block_queue_sends_within_the_window ... ok
+test capture::tests::block_size_is_clamped_and_rounded ... ok
+test capture::tests::bounded_capture_holds_the_lease_and_is_preemptible ... ok
+test capture::tests::clipping_is_counted_at_threshold_for_both_polarities ... ok
+test capture::tests::closed_webview_ends_the_stream_and_releases_the_lease ... ok
+test capture::tests::contract_block_bytes_match_the_encoder ... ok
+test capture::tests::contract_capture_shapes_match_rust_types ... ok
+test capture::tests::contract_input_pairs_and_multi_pair_block_match_rust ... ok
+test capture::tests::default_selection_on_a_multichannel_input_keeps_channels_one_and_two ... ok
+test capture::tests::default_stream_blocks_stay_version_one ... ok
+test capture::tests::device_loss_ends_the_stream_and_auto_releases_the_lease ... ok
+test capture::tests::device_loss_summary_is_returned_by_stop ... ok
+test capture::tests::drain_is_bounded_and_sets_truncated ... ok
+test capture::tests::error_messages_are_capped_but_count_is_total ... ok
+test capture::tests::errors_serialize_busy_as_object_and_others_as_plain_strings ... ok
+test capture::tests::exactly_full_is_not_truncated ... ok
+test capture::tests::failed_open_releases_the_lease_and_keeps_plain_error_text ... ok
+test capture::tests::holder_ids_are_validated ... ok
+test capture::tests::lease_is_exclusive_and_reports_holder_and_since ... ok
+test capture::tests::level_window_computes_peak_rms_clip_and_resets ... ok
+test capture::tests::live_accumulator_grows_on_demand_and_survives_allocation_failure ... ok
+test capture::tests::live_capture_holds_the_lease_and_releases_it_on_stop ... ok
+test capture::tests::live_capture_records_several_pairs_from_an_eight_channel_input ... ok
+test capture::tests::live_info_reports_the_budgeted_maximum ... ok
+test capture::tests::live_stop_only_stops_the_named_lease ... ok
+test capture::tests::managed_external_preemption_waits_for_owner_cleanup ... ok
+test capture::tests::max_seconds_is_clamped ... ok
+test capture::tests::mono_is_duplicated_and_extra_channels_ignored ... ok
+test capture::tests::multi_pair_block_encoding_round_trips_and_single_pair_matches_version_one ... ok
+test capture::tests::out_of_range_pairs_fail_clearly_and_release_the_lease ... ok
+test capture::tests::partial_trailing_frame_is_dropped ... ok
+test capture::tests::preempt_never_frees_the_input_while_a_bounded_capture_still_runs ... ok
+test capture::tests::preempt_releases_an_external_lease ... ok
+test capture::tests::preempt_stops_a_live_session_and_frees_the_input ... ok
+test capture::tests::preempt_stops_a_stream_with_a_final_block ... ok
+test capture::tests::preempt_waits_for_a_live_session_that_is_still_opening ... ok
+test capture::tests::push_frames_drops_whole_frames_and_counts_samples ... ok
+test capture::tests::quality_accounting_aggregates_counters ... ok
+test capture::tests::quality_serializes_camel_case ... ok
+test capture::tests::restore_reservation_excludes_every_capture_kind_and_releases_on_drop ... ok
+test capture::tests::simultaneous_capture_and_restore_have_exactly_one_owner ... ok
+test capture::tests::a_hung_open_times_out_without_holding_the_capture_locks ... ok
+test capture::tests::stream_carries_every_selected_pair_per_block_including_an_odd_mono_pair ... ok
+test capture::tests::stalled_webview_drops_blocks_and_counts_them ... ok
+test capture::tests::stream_goes_through_a_tauri_channel_as_raw_bytes ... ok
+test capture::tests::stream_delivers_contiguous_blocks_and_flushes_a_final_partial_block ... ok
+test capture::tests::stream_throughput_48k_stereo_20min ... ignored, 20-minute real-time throughput spike; run explicitly with --ignored
+test capture::tests::stream_stop_and_reap_only_touch_the_named_stream ... ok
+test catalog::tests::crud_round_trip_per_entity ... ok
+test catalog::tests::invalid_support_descriptions_do_not_mutate_storage ... ok
+test catalog::tests::old_entity_timestamps_keep_their_existing_shape_and_creation_time ... ok
+test catalog::tests::regression_asset_soft_delete_clears_deck_position ... ok
+test catalog::tests::regression_product_delete_removes_its_reminder_templates ... ok
+test catalog::tests::regression_text_that_is_not_utf8_lists_without_panicking ... ok
+test backup::tests::tampered_photo_entries_are_refused_and_unknown_photo_names_are_ignored ... ok
+test catalog::tests::rejects_unknown_entity_and_bad_input ... ok
+test catalog::tests::seed_loads_once ... ok
+test catalog::tests::seed_skipped_when_catalog_has_data ... ok
+test catalog::tests::setup_support_assignment_is_validated_without_rewriting_legacy_bindings ... ok
+test backup::tests::restore_reserves_capture_activity_through_the_swap_and_cleans_up_errors ... ok
+test catalog::tests::support_correction_bound_setup_venue_changes_preserve_original_context ... ok
+test catalog::tests::support_correction_component_snapshots_follow_asset_ownership ... ok
+test catalog::tests::support_descriptions_round_trip_without_fabricated_timestamps ... ok
+test catalog::tests::support_metadata_edit_preserves_legacy_structure_bytes_and_position ... ok
+test catalog_archive::tests::diagnostic_arrays_are_bounded_while_every_conflict_still_blocks_the_import ... ok
+test catalog_archive::tests::duplicate_ids_missing_roots_and_unreachable_rows_are_refused_without_writes ... ok
+test catalog_archive::tests::every_declared_foreign_key_requires_its_incoming_parent_even_if_destination_has_it ... ok
+test catalog_archive::tests::existing_setups_require_their_complete_owned_component_set ... ok
+test catalog_archive::tests::exact_byte_row_and_depth_limits_refuse_oversized_files_without_partial_output ... ok
+test catalog_archive::tests::export_and_setup_selection_are_read_only_and_reject_missing_duplicate_or_empty_roots ... ok
+test catalog_archive::tests::fixed_contract_covers_every_current_column_and_preserves_independent_sql_values ... ok
+test catalog_archive::tests::invalid_scalars_canonical_envelope_and_types_are_refused_with_bounded_diagnostics ... ok
+test catalog_archive::tests::independently_seeded_installations_reuse_only_dependency_timestamps_and_retry_without_writes ... ok
+test catalog_archive::tests::literal_text_large_integers_and_legitimate_replacement_characters_survive_native_round_trip ... ok
+test catalog_archive::tests::manufacturer_name_collisions_use_actual_sqlite_nocase_and_never_rebind_ids ... ok
+test catalog_archive::tests::invalid_utf8_blobs_nonfinite_or_incompatible_sql_values_refuse_export_and_target_comparison ... ok
+test catalog_archive::tests::nullable_or_contradictory_location_context_is_preserved_and_disclosed_without_new_policy ... ok
+test catalog_archive::tests::new_snapshot_and_support_associations_refuse_mismatch_but_exact_legacy_aggregates_are_no_write ... ok
+test catalog_archive::tests::stale_preview_is_revalidated_and_a_late_insert_failure_rolls_back_every_table ... ok
+test capture::tests::stream_throughput_48k_stereo_30s ... ok
+test catalog_archive::tests::schema_drift_and_preexisting_foreign_key_damage_are_refused_before_archive_writes ... ok
+test certificate::tests::ac3_extract_json_handles_json_html_pdf_and_rejects_bad_paths ... ok
+test certificate::tests::ac2_sign_verify_roundtrip_with_install_key_then_store_list_get ... ok
+test certificate::tests::ac5_expired_is_valid_with_expired_flag ... ok
+test certificate::tests::ac7_qr_text_is_prefix_plus_hash_and_nothing_personal ... ok
+test certificate::tests::adversarial_inputs_never_verify_and_never_panic ... ok
+test certificate::tests::certificate_table_enforces_verdict_check_and_foreign_keys ... ok
+test certificate::tests::ac4_one_byte_edits_never_verify_and_value_edits_name_content_hash_mismatch ... ok
+test certificate::tests::decimal_and_timestamp_validators ... ok
+test certificate::tests::errors_serialise_as_code_and_message_without_paths ... ok
+test certificate::tests::contract_examples_round_trip ... ok
+test certificate::tests::extract_applies_json_depth_size_duplicate_and_syntax_limits_to_both_file_routes ... ok
+test certificate::tests::extract_rejects_malformed_envelopes_consistently_in_json_and_html ... ok
+test certificate::tests::extract_rejects_unrelated_json_without_echoing_its_fields_or_values ... ok
+test certificate::tests::extract_preserves_crypto_failures_unsigned_drafts_and_expiry_for_normal_verification ... ok
+test certificate::tests::migration_0014_tables_exist_and_reapply_is_a_noop ... ok
+test certificate::tests::non_canonical_but_equal_json_still_verifies ... ok
+test certificate::tests::oversized_file_is_rejected_from_metadata_before_reading ... ok
+test certificate::tests::re_signed_malformed_payload_is_unverifiable_not_valid ... ok
+test certificate::tests::regression_fs20_certificate_commands_run_off_the_main_thread ... ok
+test certificate::tests::migration_upgrades_every_release_fixture_and_stores_a_certificate ... ok
+test certificate::tests::regression_fs20_issued_by_this_install_only_for_a_valid_signature_by_the_local_key ... ok
+test certificate::tests::regression_fs20_non_canonical_base64_signature_or_key_never_verifies ... ok
+test certificate::tests::shared_fixture_is_the_deterministic_signed_sample_and_verifies ... ok
+test certificate::tests::sign_rejects_invalid_payloads ... ok
+test certificate::tests::size_and_depth_caps_reject_before_parsing ... ok
+test certificate::tests::small_order_public_key_is_rejected ... ok
+test certificate::tests::store_input_rejects_unknown_fields ... ok
+test certificate::tests::store_rejects_tampered_foreign_or_mismatched_files ... ok
+test certificate::tests::wrong_key_with_consistent_fingerprint_is_modified ... ok
+test db::tests::capture_session_contract_round_trips ... ok
+test certificate::tests::regression_fs20_hostile_payload_is_rejected_by_cheap_bounds_before_canonicalising ... ok
+test db::tests::capture_sessions_filter_by_since_and_asset_and_setup ... ok
+test db::tests::capture_timing_is_validated ... ok
+test db::tests::diagnostic_run_persists_measurement_and_finding ... ok
+test db::tests::failing_migration_sql_rolls_back_and_stops_later_migrations ... ok
+test db::tests::fresh_database_gets_every_migration_and_rerun_is_a_no_op ... ok
+test db::tests::generated_migrations_match_the_migrations_directory ... ok
+test db::tests::hypothesis_support_and_contradiction_persist ... ok
+test db::tests::legacy_payload_without_new_fields_deserializes ... ok
+test db::tests::every_release_fixture_upgrades_without_losing_rows ... ok
+test db::tests::legacy_run_keeps_started_equal_to_ended_and_config_unchanged ... ok
+test db::tests::list_and_get_run ... ok
+test db::tests::migration_names_must_be_four_digits_and_lower_snake ... ok
+test db::tests::migration_plan_rejects_duplicates_and_sorts ... ok
+test db::tests::migration_applies_to_memory_database ... ok
+test db::tests::new_ids_are_unique_and_uuid_shaped ... ok
+test db::tests::migrations_apply_in_order_and_are_idempotent ... ok
+test db::tests::open_connections_hold_the_gate_read_guard ... ok
+test db::tests::photo_store_migration_enforces_its_constraints ... ok
+test db::tests::open_database_upgrades_a_v004_file_without_reseeding ... ok
+test db::tests::regression_aud_03_off_main_runs_bodies_off_the_caller_thread_one_at_a_time ... ok
+test db::tests::regression_aud_03_no_db_command_runs_on_the_main_thread ... ok
+test db::tests::regression_aud_04_open_database_turns_trusted_schema_off ... ok
+test db::tests::run_records_real_capture_start_end_and_duration ... ok
+test db::tests::scan_alignment_persists ... ok
+test db::tests::transaction_statements_are_detected_at_statement_level_only ... ok
+test db::tests::session_origin_defaults_to_desktop_and_phone_runs_keep_their_device ... ok
+test db::tests::v004_fixture_is_the_shipped_schema_with_rows_in_every_table ... ok
+test db::tests::upgrades_a_version_1_database_without_losing_data ... ok
+test db::tests::version_row_commits_atomically_with_the_migration_sql ... ok
+test db::tests::v007_fixture_carries_schema_through_0013_with_rows_in_every_table ... ok
+test device_profile_assignment::tests::assignment_preserves_asset_identity_metadata_and_history ... ok
+test device_profile_assignment::tests::previous_product_is_required_even_when_null ... ok
+test device_profile_assignment::tests::invalid_ids_and_sql_constraint_errors_preserve_the_unit ... ok
+test device_profile_assignment::tests::retries_do_not_rewrite_the_asset ... ok
+test device_profile_assignment::tests::unassigned_asset_can_be_explicitly_assigned ... ok
+test devices::tests::category_and_provenance_mapping ... ok
+test device_profile_assignment::tests::stale_or_unavailable_inputs_make_no_writes ... ok
+test devices::tests::learned_midi_map_round_trip ... ok
+test devices::tests::prune_keeps_assets_referenced_by_any_feature_table ... ok
+test devices::tests::result_stores_and_returns_media_reference ... ok
+test devices::tests::results_round_trip_and_validate ... ok
+test devices::tests::sync_is_idempotent_and_reuses_seed_manufacturer ... ok
+test devices::tests::sync_prunes_profiles_that_no_longer_ship ... ok
+test devices::tests::sync_rejects_profiles_without_identity ... ok
+test diagnostics::tests::bundle_db_connection_holds_the_restore_gate ... ok
+test devices::tests::sync_without_create_assets_adds_no_assets ... ok
+test diagnostics::tests::bundle_without_database_or_logs_still_builds_with_notes ... ok
+test diagnostics::tests::client_errors_write_error_js_lines_rate_limited ... ok
+test diagnostics::tests::debug_crash_flag_is_honoured_in_debug_builds_or_with_the_env_var_only ... ok
+test diagnostics::tests::bundle_has_exactly_the_documented_parts_valid_hashes_and_no_secrets ... ok
+test diagnostics::tests::debug_crash_panic_is_logged_and_leaves_a_marker_so_the_next_start_shows_the_crash_prompt ... ok
+test diagnostics::tests::log_line_format_and_injection_safety ... ok
+test diagnostics::tests::fuzz_no_seeded_secret_survives_and_output_is_idempotent ... ok
+test diagnostics::tests::marker_is_written_at_start_detected_when_stale_and_removed_on_clean_exit ... ok
+test diagnostics::tests::only_run_event_exit_counts_as_a_clean_exit ... ok
+test diagnostics::tests::panic_on_any_thread_is_logged_and_marker_records_it ... ok
+test diagnostics::tests::rate_limiter_allows_20_per_minute_and_reports_drops ... ok
+test diagnostics::tests::redact_off_keeps_content_and_run_count_defaults_to_latest ... ok
+test diagnostics::tests::redact_value_replaces_values_of_serial_fields_and_keeps_json_valid ... ok
+test diagnostics::tests::rotation_boundary_exactly_at_the_limit_does_not_rotate ... ok
+test diagnostics::tests::rotation_keeps_five_files_and_deletes_the_oldest ... ok
+test diagnostics::tests::shared_redaction_vectors_match_the_js_implementation ... ok
+test diagnostics::tests::write_zip_refuses_unexpected_entry_names ... ok
+test dj_sessions::tests::civil_days_known_dates ... ok
+test dj_sessions::tests::explicit_zone_ignores_mtime ... ok
+test dj_sessions::tests::files_are_read_and_non_logs_never_leak_content ... ok
+test dj_sessions::tests::gap_splits_spans_and_short_ones_drop ... ok
+test dj_sessions::tests::implausible_offset_skips_naive_stamps_but_keeps_explicit ... ok
+test dj_sessions::tests::naive_local_time_is_calibrated_from_modified_time ... ok
+test dj_sessions::tests::parses_timestamp_shapes ... ok
+test fleet::fleet_gate_diagnostic::bounded_phase_measurements ... ignored, explicit bounded Fleet profiling experiment
+test catalog_archive::tests::all_non_timestamp_dependency_values_and_all_leaf_values_remain_strict_conflicts ... ok
+test fleet::tests::backfilled_pre_maintenance_usage_does_not_advance_an_hours_reminder ... ok
+test fleet::tests::completing_maintenance_links_the_right_unit_and_snapshots_historical_hours ... ok
+test fleet::tests::every_command_input_id_is_validated_before_it_reaches_sql ... ok
+test fleet::tests::generic_sessions_supply_test_dates_without_inventing_device_results ... ok
+test fleet::tests::impossible_calendar_dates_are_rejected_without_recording_events ... ok
+test fleet::tests::location_delete_moves_assets_atomically_and_rejects_its_own_subtree ... ok
+test fleet::tests::location_mutations_use_foreign_keys_and_parameterized_names ... ok
+test fleet::tests::maintenance_history_filters_utc_dates_and_event_types_before_limiting ... ok
+test fleet::tests::maintenance_list_without_an_asset_spans_the_fleet_newest_first ... ok
+test fleet::tests::migration_0017_upgrades_a_database_that_already_has_0018_and_is_a_no_op_on_rerun ... ok
+test fleet::tests::moves_are_logged_with_location_names_and_failing_tests_carry_profile_titles ... ok
+test fleet::tests::occupied_locations_and_referenced_setups_cannot_be_deleted ... ok
+test fleet::tests::placement_validates_references_and_records_the_move_atomically ... ok
+test fleet::tests::product_reminder_templates_apply_idempotently_and_reject_wrong_products ... ok
+test fleet::tests::regression_future_dated_completion_is_rejected ... ok
+test fleet::tests::regression_location_delete_error_names_setup_or_support_configuration ... ok
+test fleet::tests::regression_moving_to_the_current_position_logs_no_event ... ok
+test fleet::tests::regression_profile_pruning_keeps_fleet_reminders ... ok
+test fleet::tests::regression_reminder_delete_is_registered_and_async ... ok
+test fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget ... FAILED
+test fleet::tests::regression_reminder_templates_can_be_deleted_so_the_product_can_be ... ok
+test diagnostics::tests::logs_are_capped_to_2_mib_total_keeping_the_newest_lines ... ok
+test fleet::tests::regression_soft_deleted_asset_does_not_block_location_delete ... ok
+test fleet::tests::reminder_ownership_and_intervals_are_checked_before_writes ... ok
+test fleet::tests::a_fleet_of_two_thousand_assets_produces_its_overview_within_budget ... ok
+test fleet::tests::reminder_read_keeps_empty_and_unknown_usage_distinct ... ok
+test fleet::tests::reminder_read_preserves_optional_fields_and_query_order ... ok
+test fleet::tests::snapshot_keeps_untested_units_and_selects_latest_result_for_each_test ... ok
+test fleet::tests::snooze_persists_and_rejects_bad_targets_and_times ... ok
+test fleet::tests::usage_spanning_maintenance_returns_unknown_instead_of_assumed_runtime ... ok
+test fleet::tests::reminder_read_rejects_invalid_stored_column_types ... ok
+test fuzz_api::smoke::backup_inspect ... ok
+test fuzz_api::smoke::canonical ... ok
+test fuzz_api::smoke::dj_logs ... ok
+test fuzz_api::smoke::jpeg ... ok
+test fuzz_api::smoke::certificate ... ok
+test fuzz_api::smoke::links ... ok
+test fuzz_api::smoke::system_check ... ok
+test fuzz_api::smoke::userfiles ... ok
+test fuzz_api::smoke::workspace_import ... ok
+test fuzz_api::smoke::write_seed_corpus ... ignored
+test humrun::tests::boundary_lengths_are_accepted ... ok
+test humrun::tests::contract_examples_round_trip_through_the_real_types ... ok
+test humrun::tests::corrupt_json_columns_read_back_as_empty_arrays ... ok
+test humrun::tests::delete_removes_steps_and_is_idempotent ... ok
+test humrun::tests::deleting_a_venue_or_session_keeps_the_run_unlinked ... ok
+test humrun::tests::feedback_run_stores_onset_and_output_level ... ok
+test humrun::tests::kind_check_constraint_rejects_unknown_kinds ... ok
+test humrun::tests::list_filters_orders_newest_first_and_limits ... ok
+test humrun::tests::migration_creates_tables_and_is_rerunnable ... ok
+test humrun::tests::output_level_above_the_absolute_cap_is_refused ... ok
+test humrun::tests::save_round_trips_run_and_steps_in_order ... ok
+test humrun::tests::skipped_steps_drop_measurements ... ok
+test humrun::tests::unknown_links_are_reported_and_nothing_is_written ... ok
+test humrun::tests::validation_rejects_bad_input_with_codes ... ok
+test incident_metric_evidence::tests::actual_database_backup_restore_preserves_pair_and_old_incident_with_schema_25 ... ok
+test incident_metric_evidence::tests::actual_restore_rollback_and_capture_reservation_preserve_the_live_pair ... ok
+test incident_metric_evidence::tests::atomic_pair_round_trip_preserves_exact_values_and_original_submission ... ok
+test incident_metric_evidence::tests::bounded_summary_reads_include_exact_parent_and_explicit_absence_without_full_configuration ... ok
+test incident_metric_evidence::tests::changed_pair_and_existing_manual_incident_cannot_acquire_new_evidence ... ok
+test incident_metric_evidence::tests::concurrent_exact_writers_commit_one_pair_and_conflicting_evidence_cannot_replace_it ... ok
+test incident_metric_evidence::tests::corrupted_companion_json_is_not_read_as_absence_and_remains_untouched ... ok
+test incident_metric_evidence::tests::corrupted_or_restored_parent_and_one_sided_pairs_are_explicit_errors_without_writes ... ok
+test incident_metric_evidence::tests::invalid_context_second_insert_and_commit_failure_each_roll_back_the_entire_pair ... ok
+test incident_metric_evidence::tests::lost_acknowledgement_retry_is_exact_no_write_and_survives_catalog_and_log_pruning ... ok
+test incident_metric_evidence::tests::migration_25_is_additive_idempotent_and_keeps_v1_incidents_and_catalog_schema_compatible ... ok
+test incident_metric_evidence::tests::strict_wire_validation_rejects_extra_missing_nonfinite_unbounded_and_inconsistent_values ... ok
+test incident_metric_evidence::tests::unavailable_fields_and_negative_finite_numbers_round_trip_without_sanitizing_saved_inputs ... ok
+test latency::tests::a_held_lease_gives_capture_busy_and_preemption_ends_the_run ... ok
+test latency::tests::a_honoured_request_runs_exactly_and_releases_everything ... ok
+test latency::tests::a_stall_counts_as_a_gap_xrun_unless_below_the_idle_floor ... ok
+test latency::tests::active_scheme_parses_in_english_and_german ... ok
+test latency::tests::alignment_is_the_median_offset_in_input_frames ... ok
+test latency::tests::b_floor_clamps_small_requests_and_honours_large_ones ... ok
+test latency::tests::b_granularity_rounds_to_what_actually_ran ... ok
+test latency::tests::battery_status_codes_map_to_on_battery ... ok
+test latency::tests::buffer_range_maps_cpal_ranges ... ok
+test latency::tests::c_default_request_is_one_host_chosen_row ... ok
+test latency::tests::c_ignored_request_reports_the_host_period ... ok
+test latency::tests::c_rejected_fixed_falls_back_to_the_host_period ... ok
+test latency::tests::cancelled_stress_input_open_does_not_start_output_or_load ... ok
+test latency::tests::classify_direction_covers_every_spike_outcome ... ok
+test latency::tests::clipping_in_the_loop_stops_the_output_and_discards_the_capture ... ok
+test latency::tests::closing_the_window_silences_a_running_round_trip ... ok
+test latency::tests::combined_mode_takes_the_less_trustworthy_open_direction ... ok
+test latency::tests::contract_examples_round_trip_through_the_real_types ... ok
+test latency::tests::d_input_unavailable_still_stresses_the_output_and_says_so ... ok
+test latency::tests::d_nothing_opens_ends_at_once_without_load ... ok
+test latency::tests::d_output_unavailable_or_silent_input ... ok
+test latency::tests::esc_aborts_within_a_second_and_stops_the_load ... ok
+test latency::tests::gap_xruns_count_only_gaps_strictly_above_the_threshold_after_warmup ... ok
+test latency::tests::invalid_requests_are_refused_before_touching_devices ... ok
+test latency::tests::jitter_stats_report_p99_and_ignore_non_finite ... ok
+test latency::tests::load_guard_joins_every_thread_within_a_second ... ok
+test latency::tests::load_threads_follow_the_percentage_and_keep_one_core_free ... ok
+test latency::tests::managed_owner_releases_only_after_input_close_acknowledgment ... ok
+test latency::tests::median_frames_is_the_actual_period_even_with_irregular_packets ... ok
+test latency::tests::migration_creates_tables_and_is_rerunnable ... ok
+test latency::tests::only_one_run_at_a_time ... ok
+test latency::tests::percentile_is_nearest_rank ... ok
+test latency::tests::powercfg_settings_parse_by_guid_or_alias_in_any_locale ... ok
+test latency::tests::powershell_facts_parse_with_dot_and_comma_decimals ... ok
+test latency::tests::preempt_during_input_open_keeps_ownership_and_never_starts_output ... ok
+test latency::tests::preempt_during_output_open_mutes_the_late_driver_callback ... ok
+test latency::tests::progress_is_reported_during_a_stress_step ... ok
+test latency::tests::recommendations_keep_the_latest_per_software ... ok
+test latency::tests::round_trip_equals_both_periods_plus_the_analog_loop ... ok
+test latency::tests::round_trip_never_plays_above_the_absolute_cap ... ok
+test latency::tests::round_trip_pair_outside_the_device_is_refused_and_releases_the_lease ... ok
+test latency::tests::round_trip_with_rejected_fixed_measures_at_the_host_period ... ok
+test latency::tests::round_trip_with_unequal_periods_is_within_one_period ... ok
+test latency::tests::round_trip_without_duplex_reports_which_side_is_missing ... ok
+test latency::tests::run_validation_rejects_bad_input_and_writes_nothing ... ok
+test latency::tests::runs_round_trip_list_filter_and_delete ... ok
+test latency::tests::scan_is_unsupported_off_windows ... ok
+test latency::tests::scope_is_always_named_after_the_host ... ok
+test latency::tests::the_tuner_leaves_a_tone_alone_when_busy_and_replaces_it_when_it_runs ... ok
+test latency::tests::xrun_threshold_is_one_and_a_half_periods_unless_the_idle_floor_is_higher ... ok
+test ledger::tests::ac7_revision_counts_up_by_one_and_round_trips ... ok
+test catalog_archive::tests::strict_json_refuses_unknown_duplicate_and_missing_fields_at_every_fixed_layer ... ok
+test ledger::tests::contract_examples_for_folder_write_next_revision_and_service_job_units ... ok
+test ledger::tests::contract_examples_round_trip ... ok
+test ledger::tests::ac7_stale_or_skipped_revision_is_rejected_without_writing ... ok
+test ledger::tests::export_input_is_validated ... ok
+test ledger::tests::ledger_folder_layout_writes_with_ledger_extensions ... ok
+test ledger::tests::ledger_folder_refuses_an_existing_symlink ... ok
+test ledger::tests::ledger_folder_rejects_traversal_absolute_drive_backslash_reserved_and_other_types ... ok
+test ledger::tests::migration_creates_table_column_index_and_rerun_is_a_no_op ... ok
+test ledger::tests::public_notes_round_trip_and_validation ... ok
+test ledger::tests::every_release_fixture_upgrades_keeps_rows_and_then_records_exports ... ok
+test ledger::tests::regression_fs33_customer_bench_units_are_listed_for_exclusion ... ok
+test ledger::tests::regression_fs33_failed_rename_keeps_the_old_index_and_every_file_it_points_to ... ok
+test ledger::tests::regression_fs33_failed_write_leaves_the_previous_export_untouched ... ok
+test ledger::tests::regression_fs33_backup_restore_does_not_rewind_the_revision_counter ... ok
+test ledger::tests::regression_fs33_folder_with_the_same_or_a_later_revision_is_refused_and_raises_the_floor ... ok
+test ledger::tests::regression_fs33_prune_never_follows_or_removes_symlinks ... ok
+test ledger::tests::regression_fs33_reexport_removes_stale_certificates_and_photos_and_nothing_else ... ok
+test ledger::tests::regression_fs33_stale_staging_cleanup_never_follows_a_symlink ... ok
+test ledger::tests::regression_fs33_stale_staging_folder_from_a_crash_is_removed_on_the_next_export ... ok
+test ledger::tests::regression_fs33_owned_unit_with_a_self_service_job_is_flagged_and_stays_an_asset ... ok
+test links::tests::bundled_allowlist_parses_with_required_domains ... ok
+test links::tests::classify_matrix ... ok
+test links::tests::classify_normalises_case_and_trailing_dot ... ok
+test links::tests::classify_punycode_lookalike ... ok
+test links::tests::navigation_guard_policy ... ok
+test links::tests::open_external_url_routes_settings_uris_by_platform ... ok
+test links::tests::open_requires_confirm_and_never_opens_blocked ... ok
+test links::tests::open_result_serialises_camel_case ... ok
+test links::tests::opener_failure_reports_error ... ok
+test links::tests::other_schemes_and_settings_pages_never_reach_the_opener ... ok
+test links::tests::paths_are_limited_to_written_files_and_app_roots ... ok
+test links::tests::regression_aud_01_open_path_refuses_non_viewer_types ... ok
+test links::tests::settings_uri_reports_unsupported_off_windows_and_errors_cleanly ... ok
+test links::tests::settings_uris_are_an_exact_fixed_list ... ok
+test links::tests::symlink_out_of_root_is_refused ... ok
+test links::tests::unknown_allowlist_version_is_empty ... ok
+test links::tests::userinfo_url_is_confirm_even_when_host_is_allowlisted ... ok
+test ledger::tests::table_constraints_hold_for_direct_inserts ... ok
+test mapper::tests::constraints_and_foreign_keys_hold ... ok
+test mapper::tests::contract_examples_round_trip_through_the_real_types ... ok
+test mapper::tests::corrupt_model_json_reads_back_as_null ... ok
+test mapper::tests::migration_creates_the_table_and_rerun_is_a_no_op ... ok
+test mapper::tests::regression_save_refuses_to_overwrite_a_newer_model_version ... ok
+test mapper::tests::row_ids_are_checked ... ok
+test mapper::tests::every_release_fixture_upgrades_and_then_stores_mappings ... ok
+test mapper::tests::save_get_update_list_delete_round_trip ... ok
+test mapper::tests::unknown_links_and_unknown_ids_are_not_found ... ok
+test media::tests::ac7_update_leaves_custom_media_owned_flags_and_results_untouched ... ok
+test mapper::tests::validation_rejects_bad_input_and_writes_nothing ... ok
+test media::tests::custom_crud_rules ... ok
+test media::tests::custom_media_with_results_is_retired_not_deleted ... ok
+test media::tests::dvs_media_side_durations_populate_for_linked_timecode_media ... ok
+test media::tests::every_shipped_profile_passes_rust_validation ... ok
+test media::tests::migration_creates_tables_and_result_columns ... ok
+test media::tests::removed_builtins_retire_and_come_back_and_empty_sync_retires_nothing ... ok
+test media::tests::size_and_track_caps ... ok
+test media::tests::sync_inserts_updates_and_is_idempotent ... ok
+test media::tests::sync_rejects_invalid_and_custom_collisions_atomically ... ok
+test media::tests::timecode_media_before_device_sync_has_no_product_then_links_later ... ok
+test midi::tests::accepted_event_delivery_preserves_existing_drop_count ... ok
+test midi::tests::batch_collects_burst_and_respects_max ... ok
+test midi::tests::batch_idle_and_disconnect ... ok
+test midi::tests::bounded_push_drops_and_counts ... ok
+test midi::tests::captured_legacy_intent_survives_alias_forget_and_spares_explicit_ids ... ok
+test midi::tests::captured_name_alias_and_id_share_cancellation_without_closing_a_namesake ... ok
+test midi::tests::close_all_invalidates_pending_requests_and_permits_new_generations ... ok
+test midi::tests::duplicate_port_names_are_rejected_in_either_order ... ok
+test midi::tests::failed_event_delivery_counts_every_message_as_dropped ... ok
+test midi::tests::failed_name_reads_remain_unselectable ... ok
+test midi::tests::failed_output_retains_ownership_until_reset ... ok
+test midi::tests::input_close_invalidates_pending_requests_only_for_its_port ... ok
+test midi::tests::logical_id_never_falls_back_to_a_replacement_name_or_an_enumeration_index ... ok
+test midi::tests::logical_id_selects_duplicate_names_independently_of_enumeration_order ... ok
+test midi::tests::logical_ids_reject_empty_colliding_and_unreadable_metadata ... ok
+test midi::tests::missing_port_preserves_exact_name_matching_and_not_found_errors ... ok
+test midi::tests::regression_aud_03_midi_device_commands_run_off_the_main_thread ... ok
+test midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands ... ok
+test midi::tests::stale_names_lists_connections_whose_port_vanished ... ok
+test midi::tests::successful_empty_names_require_the_same_uniqueness_as_other_names ... ok
+test midi::tests::unavailable_output_does_not_block_another_port_or_retry_before_binding ... ok
+test midi::tests::uncaptured_duplicate_name_close_cannot_choose_an_arbitrary_id ... ok
+test midi::tests::unique_port_name_selects_the_requested_port_among_unrelated_duplicates ... ok
+test midi::tests::unresolved_legacy_close_is_checked_again_after_id_resolution ... ok
+test media::tests::upgrade_from_v004_fixture_adds_media_tables_and_keeps_rows ... ok
+test migration_m7_tests::fleet_reminder_constraints_reject_invalid_intervals_and_states ... ok
+test migration_m7_tests::fresh_m7_schema_is_idempotent_and_relationally_valid ... ok
+test migration_m7_tests::m7_upgrade_preserves_existing_rows_and_already_applied_fs30 ... ok
+test migration_m7_tests::reference_hash_uniqueness_and_pack_cascade_are_enforced ... ok
+test migration_m7_tests::service_results_require_exactly_one_existing_reference_and_no_duplicates ... ok
+test monitor::tests::asset_link_is_checked_and_nulled_on_asset_delete ... ok
+test monitor::tests::contract_examples_round_trip ... ok
+test monitor::tests::list_is_newest_first_and_limited ... ok
+test monitor::tests::migration_0019_fresh_database_and_rerun_is_a_noop ... ok
+test monitor::tests::migration_0019_upgrades_every_release_fixture_and_keeps_rows ... ok
+test monitor::tests::regression_device_name_with_control_chars_or_overlong_is_cleaned_not_rejected ... ok
+test monitor::tests::regression_minute_rows_are_never_overwritten ... ok
+test monitor::tests::events_are_capped_per_session_and_per_call ... ok
+test monitor::tests::regression_open_session_cannot_be_deleted ... ok
+test monitor::tests::regression_second_instance_does_not_close_running_session ... ok
+test monitor::tests::retention_setting_is_read_from_app_state ... ok
+test monitor::tests::retention_prunes_old_sessions_closes_crashed_ones_and_caps_the_count ... ok
+test monitor::tests::session_round_trip_with_events_minutes_and_summary ... ok
+test pack::tests::adversarial_envelopes_return_typed_errors ... ok
+test pack::tests::adversarial_rows_reject_the_whole_pack_with_row_reasons ... ok
+test pack::tests::current_month_is_a_valid_month ... ok
+test pack::tests::duplicate_observations_inside_one_pack_are_rejected ... ok
+test pack::tests::export_refuses_pii_fields_and_never_writes_seeded_values ... ok
+test pack::tests::export_rejects_bad_selections_with_typed_errors ... ok
+test monitor::tests::validation_rejects_bad_arguments_before_sql ... ok
+test pack::tests::export_whitelists_rounds_and_round_trips_through_import ... ok
+test pack::tests::import_is_idempotent_and_preview_counts_rows ... ok
+test pack::tests::metric_whitelist_loads_and_is_sane ... ok
+test pack::tests::invalid_pack_leaves_the_database_untouched ... ok
+test pack::tests::mutated_packs_never_panic ... ok
+test pack::tests::nesting_and_size_limits_hold_before_any_row_work ... ok
+test pack::tests::non_json_truncation_and_garbage_never_panic ... ok
+test pack::tests::population_migrations_apply_fresh_rerun_and_upgrade_every_fixture ... ok
+test pack::tests::population_query_is_deterministic_and_counts_contributors ... ok
+test pack::tests::population_tables_enforce_their_constraints ... ok
+test pack::tests::read_pack_file_checks_size_path_and_extension_before_reading ... ok
+test pack::tests::regression_aud_03_pack_db_commands_run_off_the_main_thread ... ok
+test pack::tests::regression_pack_wrapped_in_serde_raw_value_key_is_not_a_pack ... ok
+test fuzz_api::smoke::backup_restore has been running for over 60 seconds
+test fuzz_api::smoke::pack has been running for over 60 seconds
+test pack::tests::near_cap_pack_imports_quickly ... ok
+test pack::tests::regression_population_query_returns_the_method_registry_for_ac7_compat ... ok
+test pack::tests::regression_round_sig3_ties_match_the_js_preview ... ok
+test pack::tests::regression_population_query_one_contributor_cannot_crowd_out_honest_contributors ... ok
+test pack::tests::regression_unit_values_never_drop_whole_units_at_the_row_cap ... ok
+test pack::tests::regression_unit_values_old_units_survive_many_newer_measurements ... ok
+test pack::tests::rounding_to_three_significant_figures_is_idempotent ... ok
+test pack::tests::same_pack_id_with_different_content_is_a_typed_conflict ... ok
+test pack::tests::shared_observations_survive_removal_of_one_pack ... ok
+test pack::tests::unit_values_attribute_only_unambiguous_passing_measurements ... ok
+test pack::tests::valid_pack_parses_and_digest_is_stable_for_the_same_input ... ok
+test pdf::pdf_text::tests::dump_pdf_text_from_env ... ignored, reads a PDF named by DECKCHEK_PDF_TEXT
+test pdf::pdf_text::tests::extracts_text_per_page_in_tree_order ... ok
+test pdf::pdf_text::tests::inflate_dynamic_block_with_back_references ... ok
+test pdf::pdf_text::tests::inflate_stored_and_fixed_blocks ... ok
+test pdf::pdf_text::tests::literal_string_escapes ... ok
+test pdf::tests::contract_pdf_render_round_trips ... ok
+test pdf::tests::error_serialises_with_code_and_unsupported_flag ... ok
+test pdf::tests::fixture_is_static_paged_report ... ok
+test pdf::tests::host_mode_switches_only_for_window_failures ... ok
+test pdf::tests::html_validation ... ok
+test pdf::tests::navigation_is_locked_to_app_origin ... ok
+test pdf::tests::non_windows_reports_unsupported_after_validation ... ok
+test pdf::tests::options_default_and_parse ... ok
+test pdf::tests::page_counter_ignores_pages_tree ... ok
+test pdf::tests::paper_sizes_in_inches ... ok
+test pdf::tests::pdf_bytes_check ... ok
+test pdf::tests::report_fixture_is_static_paged_layout ... ok
+test pdf::tests::request_refuses_bad_paths ... ok
+test pdf::tests::scale_range_enforced ... ok
+test pdf::tests::temp_path_is_hidden_sibling_with_pdf_ext ... ok
+test photo::tests::attach_stores_by_hash_and_links_to_the_owner ... ok
+test photo::tests::contract_examples_round_trip ... ok
+test photo::tests::exif_and_other_metadata_segments_are_rejected ... ok
+test photo::tests::file_is_deleted_only_when_the_last_link_goes ... ok
+test photo::tests::file_names_only_come_from_valid_hashes ... ok
+test photo::tests::identical_bytes_are_deduplicated_across_owners_and_idempotent_per_owner ... ok
+test photo::tests::magic_structure_size_and_dimension_checks ... ok
+test fuzz_api::smoke::backup_restore ... ok
+test photo::tests::owner_and_text_validation ... ok
+test photo::tests::primary_is_exclusive_and_sort_increases ... ok
+test photo::tests::read_detects_missing_and_damaged_files ... ok
+test photo::tests::regression_a_failed_file_removal_after_commit_is_harmless ... ok
+test photo::tests::regression_unlink_keeps_the_file_when_the_commit_fails ... ok
+test photo::tests::regression_unlink_owner_leaves_files_until_the_owner_transaction_commits ... ok
+test photo::tests::rows_survive_deleting_a_photo_row_via_cascade ... ok
+test photo::tests::unlink_owner_removes_links_and_orphans_but_keeps_shared_photos ... ok
+test pregig::tests::migration_creates_tables_and_is_rerunnable ... ok
+test pregig::tests::contract_examples_round_trip ... ok
+test pregig::tests::preset_validation_boundaries ... ok
+test pregig::tests::processes_wrapper_keeps_exe_names_only ... ok
+test pregig::tests::preset_crud_and_builtin_protection ... ok
+test pregig::tests::references_are_checked_and_cleaned_up ... ok
+test pregig::tests::run_save_list_get_round_trip ... ok
+test pregig::tests::run_validation_boundaries ... ok
+test processes::tests::csv_parser_edge_cases ... ok
+test processes::tests::empty_and_garbage_input ... ok
+test processes::tests::english_fixture_finds_serato_and_ignores_helpers ... ok
+test processes::tests::instance_names ... ok
+test processes::tests::localized_german_fixture_parses_the_same_way ... ok
+test processes::tests::multiple_instances_each_get_an_entry ... ok
+test processes::tests::no_cpu_samples_is_unavailable_not_an_empty_list ... ok
+test processes::tests::non_windows_reports_unsupported ... ok
+test processes::tests::odd_names_commas_quotes_unicode_and_junk ... ok
+test processes::tests::serialises_to_the_contract ... ok
+test processes::tests::top_cpu_aggregates_normalises_sorts_and_cuts ... ok
+test pregig::tests::table_constraints_hold_below_the_api ... ok
+test scratch::tests::contract_examples_round_trip ... ok
+test pack::tests::regression_unit_values_sql_limit_never_drops_a_whole_old_unit ... ok
+test scratch::tests::list_filters_by_entity_for_comparisons ... ok
+test scratch::tests::migration_creates_tables_and_is_rerunnable ... ok
+test scratch::tests::references_are_checked_and_cleaned_up ... ok
+test scratch::tests::save_get_list_delete_round_trip ... ok
+test selftest::tests::parses_only_a_json_report_path ... ok
+test scratch::tests::table_constraints_hold_below_the_api ... ok
+test scratch::tests::validation_boundaries ... ok
+test service::tests::ac1_create_job_in_intake_with_human_number_and_crud_round_trip ... ok
+test service::tests::ac2_results_link_with_phase_and_comparison_reads_both_sources ... ok
+test service::tests::ac3_work_log_parts_labour_notes_and_amendments ... ok
+test service::tests::ac6_status_changes_are_validated_logged_and_guarded_against_double_clicks ... ok
+test service::tests::ac7_cancelled_job_is_kept_read_only_and_delete_needs_the_job_number ... ok
+test service::tests::ac8_photos_by_content_hash_capped_at_ten_and_metadata_rejected ... ok
+test service::tests::customer_pii_never_reaches_the_diagnostics_bundle ... ok
+test service::tests::deleting_a_customer_with_jobs_is_blocked_and_errors_never_echo_pii ... ok
+test service::tests::job_numbers_restart_at_year_rollover_and_widen_past_9999 ... ok
+test service::tests::regression_job_delete_removes_photo_files_only_after_commit ... ok
+test service::tests::regression_job_number_year_is_the_local_year_the_user_sees ... ok
+test service::tests::sheet_paths_reject_traversal_unc_and_reserved_names ... ok
+test service::tests::transition_table_is_exhaustive ... ok
+test service::tests::unique_job_number_under_rapid_creation_from_several_connections ... ok
+test service::tests::migration_0016_fresh_rerun_and_fixture_upgrades ... ok
+test signing::tests::concurrent_first_use_creates_one_key ... ok
+test signing::tests::corrupt_key_is_reported_not_replaced_and_new_identity_retires_the_old_one ... ok
+test signing::tests::first_use_creates_key_registers_it_and_reuses_it ... ok
+test signing::tests::identity_and_errors_never_expose_private_key_material ... ok
+test signing::tests::key_file_is_user_only_on_unix ... ok
+test signing::tests::oversized_key_file_is_rejected_before_reading ... ok
+test signing::tests::sign_and_verify_roundtrip_and_one_bit_tamper ... ok
+test stress_tests::stress_concurrent_readers_during_backup ... ignored
+test stress_tests::stress_persist_list_backup_restore_large_history ... ignored
+test stress_tests::stress_workspace_import_at_the_cap ... ignored
+test signing::tests::wrong_key_and_small_order_key_are_rejected ... ok
+test stylus::tests::benchmark_round_trip_ordered_by_hours ... ok
+test stylus::tests::benchmark_validation_boundaries ... ok
+test stylus::tests::contract_examples_round_trip ... ok
+test stylus::tests::migration_creates_tables_and_asset_column_and_is_recorded_once ... ok
+test stylus::tests::rated_life_override_bounds ... ok
+test stylus::tests::replacement_event_sets_baseline_and_keeps_history ... ok
+test stylus::tests::session_deleted_nulls_benchmark_link ... ok
+test stylus::tests::snooze_is_recorded_per_kind_and_validated ... ok
+test stylus::tests::upgrade_from_pre_stylus_database_keeps_rows ... ok
+test support_isolation::tests::actual_late_uniqueness_violation_rolls_back_new_evidence_and_trigger_side_effects ... ok
+test support_isolation::tests::complete_migrations_add_only_the_two_history_tables_and_preserve_catalog_entities ... ok
+test support_isolation::tests::conflicting_submissions_and_cross_table_ids_do_not_replace_originals ... ok
+test service::tests::create_validates_every_input ... ok
+test support_isolation::tests::exact_zero_cannot_be_relabelled_as_tiny_positive_power_and_small_real_power_is_preserved ... ok
+test support_isolation::tests::fixture_round_trip_derives_delta_and_retains_all_original_metadata ... ok
+test support_isolation::tests::exact_retries_precede_catalog_reads_and_keep_original_context_after_moves_and_deletion ... ok
+test support_isolation::tests::logarithmic_difference_remains_finite_when_a_power_ratio_would_overflow ... ok
+test support_isolation::tests::independent_connections_serialize_conflicting_ids_and_exact_retries ... ok
+test support_isolation::tests::missing_catalog_context_remains_completed_evidence_with_an_explicit_issue ... ok
+test support_isolation::tests::missing_comparison_sources_are_restricted_and_detected_if_storage_was_corrupted ... ok
+test support_isolation::tests::corrupt_rows_columns_and_derived_results_are_errors_without_history_repair ... ok
+test support_isolation::tests::native_reads_keep_unicode_scalar_order_totals_and_all_original_rows ... ok
+test support_isolation::tests::original_legacy_keys_whitespace_and_json_text_survive_without_pruning ... ok
+test support_isolation::tests::raw_quality_scalar_types_and_malformed_pairs_profiles_are_retained_as_ordered_issues ... ok
+test support_isolation::tests::new_records_capture_same_id_physical_catalog_changes_without_replacing_snapshots ... ok
+test support_isolation::tests::retained_history_raw_whitespace_larger_than_evidence_limit_is_preserved ... ok
+test support_isolation::tests::pa_route_quality_calibration_and_setup_changes_block_delta_without_mutating_evidence ... ok
+test support_isolation::tests::setup_projection_sorts_components_but_keeps_original_array_order ... ok
+test support_isolation::tests::strict_method_geometry_finite_types_and_unknown_fields_reject_before_any_write ... ok
+test support_isolation::tests::timestamps_identifiers_filters_and_ordered_pair_references_are_strict ... ok
+test system_check::tests::app_info_from_props_and_message ... ok
+test system_check::tests::decode_utf16_bom ... ok
+test system_check::tests::dj_log_scan_end_to_end ... ok
+test system_check::tests::driver_serializes_camel_case ... ok
+test system_check::tests::drivers_parse_filter_and_single_object ... ok
+test system_check::tests::event_categories ... ok
+test system_check::tests::events_parse_filter_sort_cap ... ok
+test system_check::tests::file_classification_and_selection ... ok
+test system_check::tests::iso_and_clamp ... ok
+test system_check::tests::line_classification ... ok
+test system_check::tests::non_windows_is_unsupported ... ok
+test system_check::tests::regression_aud_13_no_windows_tool_is_spawned_by_bare_name ... ok
+test system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches ... ok
+test system_check::tests::regression_aud_13_windows_tools_resolve_to_absolute_system32_paths ... ok
+test system_check::tests::regression_glob_match_many_stars_is_fast ... ok
+test system_check::tests::runner_captures_and_times_out ... ok
+test system_check::tests::scripts_have_no_double_quotes_and_days_is_numeric ... ok
+test system_check::tests::templates_and_globs ... ok
+test system_check::tests::vendor_matching_is_word_based ... ok
+test system_check::tests::wer_parsing ... ok
+test tray::tests::close_hides_to_tray_only_while_monitoring_with_a_tray ... ok
+test tray::tests::icons_differ_in_shape_not_only_colour ... ok
+test tray::tests::state_parsing_is_strict ... ok
+test tray::tests::tooltips_name_the_state_and_carry_no_device_details ... ok
+test usage::tests::add_list_confirm_delete_round_trip ... ok
+test usage::tests::contract_examples_round_trip ... ok
+test usage::tests::legacy_rows_order_and_filter_chronologically ... ok
+test usage::tests::list_since_is_inclusive_and_ordered ... ok
+test usage::tests::migration_creates_table_and_is_rerunnable ... ok
+test usage::tests::normalize_pads_and_truncates_fraction ... ok
+test usage::tests::session_link_survives_nothing_but_nulls_on_session_delete ... ok
+test usage::tests::table_check_constraints_hold_below_the_api ... ok
+test usage::tests::timestamp_validator ... ok
+test usage::tests::validation_boundaries ... ok
+test userfiles::tests::accepts_plain_save_path_case_insensitive_ext ... ok
+test userfiles::tests::error_serializes_with_code ... ok
+test userfiles::tests::regression_aud_01_commands_reject_caller_supplied_executable_exts ... ok
+test userfiles::tests::regression_aud_01_js_is_folder_only_and_packs_are_writable ... ok
+test userfiles::tests::regression_aud_01_symlinked_folder_into_autostart_is_refused ... ok
+test userfiles::tests::regression_aud_01_writable_allowlist_excludes_executables_and_covers_callers ... ok
+test userfiles::tests::regression_aud_01_writes_never_land_in_autostart_locations ... ok
+test userfiles::tests::rejects_directory_and_wrong_ext ... ok
+test userfiles::tests::rejects_relative_empty_nul ... ok
+test userfiles::tests::rejects_reserved_names_trailing_dots_spaces ... ok
+test userfiles::tests::rejects_symlink_target_and_folder_entries ... ok
+test userfiles::tests::rejects_traversal_and_missing_parent ... ok
+test userfiles::tests::sanitizes_stems ... ok
+test userfiles::tests::write_folder_rejects_bad_entries_without_writing ... ok
+test userfiles::tests::write_folder_round_trip ... ok
+test userfiles::tests::write_text_round_trip_and_records ... ok
+test venue_incidents::tests::concurrent_same_id_submissions_commit_one_immutable_event ... ok
+test venue_incidents::tests::exact_retry_survives_catalog_rename_move_and_deletion ... ok
+test venue_incidents::tests::invalid_context_and_failed_writes_leave_no_partial_row ... ok
+test venue_incidents::tests::list_limits_filter_and_stable_order_disclose_retained_older_rows ... ok
+test venue_incidents::tests::malformed_stored_context_is_reported_without_rewriting_the_record ... ok
+test venue_incidents::tests::migration_and_all_operator_types_round_trip_without_changing_context ... ok
+test venue_incidents::tests::original_list_response_and_limits_remain_unchanged_beside_pages ... ok
+test venue_incidents::tests::page_cursor_tie_break_uses_sqlite_binary_order_for_non_bmp_ids_and_prefixes ... ok
+test venue_incidents::tests::page_requests_reject_unknown_fields_wrong_types_and_invalid_cursor_values ... ok
+test support_isolation::tests::retained_history_small_page_keeps_totals_full_sources_and_exact_retries ... ok
+test venue_incidents::tests::paged_corruption_errors_keep_saved_bytes_and_do_not_change_old_first_page_behavior ... ok
+test venue_incidents::tests::pages_apply_context_and_time_boundaries_without_changing_total_or_recorded_context ... ok
+test venue_incidents::tests::strict_version_and_operator_only_contract_reject_extra_fields_and_invalid_dates ... ok
+test wearmap::tests::contract_examples_round_trip ... ok
+test wearmap::tests::list_filters_by_side_newest_first ... ok
+test venue_incidents::tests::pages_traverse_305_actual_records_with_scalar_ties_and_a_newer_append ... ok
+test wearmap::tests::migration_creates_tables_and_is_rerunnable ... ok
+test wearmap::tests::null_metrics_and_bins_out_of_order_round_trip ... ok
+test wearmap::tests::record_contract_examples_round_trip ... ok
+test wearmap::tests::record_copies_create_update_list_and_take_scans ... ok
+test wearmap::tests::record_validation_and_ownership ... ok
+test wearmap::tests::references_are_checked_and_cleaned_up ... ok
+test wearmap::tests::save_get_list_delete_round_trip_with_600_bins ... ok
+test wearmap::tests::table_constraints_hold_below_the_api ... ok
+test wizard::tests::apply_gear_retires_only_untouched_library_assets_of_unticked_products ... ok
+test wearmap::tests::validation_boundaries ... ok
+test wizard::tests::apply_gear_with_unknown_id_changes_nothing ... ok
+test wizard::tests::create_assets_is_idempotent_and_rejects_unknown_ids ... ok
+test wizard::tests::create_assets_revives_a_soft_deleted_unit_instead_of_duplicating ... ok
+test wizard::tests::state_round_trips_through_app_state ... ok
+test wizard::tests::state_serializes_camel_case ... ok
+test wizard::tests::state_save_validates_and_get_tolerates_bad_rows ... ok
+test wizard::tests::user_data_detection_for_upgrade_installs ... ok
+test support_isolation::tests::retained_history_global_corruption_keeps_validation_phase_and_refusal_order ... ok
+test fuzz_api::smoke::pack ... ok
+
+successes:
+
+---- aud_08_tests::regression_aud_08_new_window_requests_go_through_the_link_policy_or_are_dropped stdout ----
+[links] new-window request denied in-app host=github.com opened=true reason=None
+[links] new-window request denied in-app host=www.pioneerdj.com opened=true reason=None
+[links] new-window request denied in-app host=example.org opened=false reason=Some("needs_confirm")
+[links] new-window request denied in-app host=github.com opened=false reason=Some("needs_confirm")
+[links] new-window request denied in-app host=github.com opened=false reason=Some("needs_confirm")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+[links] new-window request denied in-app host= opened=false reason=Some("blocked_scheme")
+
+---- audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands stdout ----
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1124:9:
+list_native_audio_inputs is still a sync command on the main thread
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1131:32:
+list_native_audio_inputs must be `pub async fn`
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1133:9:
+list_native_audio_inputs must enumerate via spawn_blocking
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1124:9:
+list_native_audio_inputs is still a sync command on the main thread
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1131:32:
+list_native_audio_inputs must be `pub async fn`
+
+thread 'audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands' (12567) panicked at src/audio.rs:1133:9:
+list_native_audio_inputs must enumerate via spawn_blocking
+
+---- audio_out::tests::panic_guard_latches_the_global_kill_switch stdout ----
+
+thread '<unnamed>' (12616) panicked at src/audio_out.rs:2690:34:
+simulated crash elsewhere in the app
+
+---- audio_out::tests::panic_in_render_is_caught_and_silences stdout ----
+
+thread 'audio_out::tests::panic_in_render_is_caught_and_silences' (12614) panicked at src/audio_out.rs:1919:17:
+generator bug
+
+---- capture::tests::stream_throughput_48k_stereo_30s stdout ----
+stream spike 30s: blocks=31 frames=1442400 droppedBlocks=0 overrunSamples=0 streamErrors=0 seqGaps=0 mismatches=0
+
+---- db::tests::regression_aud_03_off_main_runs_bodies_off_the_caller_thread_one_at_a_time stdout ----
+
+thread 'tokio-rt-worker' (12917) panicked at src/db.rs:2243:51:
+AUD-03 test panic
+
+---- diagnostics::tests::debug_crash_panic_is_logged_and_leaves_a_marker_so_the_next_start_shows_the_crash_prompt stdout ----
+
+thread 'main-ish' (12950) panicked at src/diagnostics.rs:1398:5:
+controlled test crash requested with --debug-crash
+
+---- diagnostics::tests::panic_on_any_thread_is_logged_and_marker_records_it stdout ----
+
+thread 'worker-xyz' (12958) panicked at src/diagnostics.rs:1840:17:
+kaboom
+second line
+
+---- midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands stdout ----
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1205:13:
+midi_list_ports is still a sync command on the main thread
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1212:36:
+midi_list_ports must be `pub async fn`
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1214:13:
+midi_list_ports must run its body via spawn_blocking
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1205:13:
+midi_open_input is still a sync command on the main thread
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1212:36:
+midi_open_input must be `pub async fn`
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1214:13:
+midi_open_input must run its body via spawn_blocking
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1205:13:
+midi_list_ports is still a sync command on the main thread
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1212:36:
+midi_list_ports must be `pub async fn`
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1214:13:
+midi_list_ports must run its body via spawn_blocking
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1205:13:
+midi_open_input is still a sync command on the main thread
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1212:36:
+midi_open_input must be `pub async fn`
+
+thread 'midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands' (13289) panicked at src/midi.rs:1214:13:
+midi_open_input must run its body via spawn_blocking
+
+---- photo::tests::regression_a_failed_file_removal_after_commit_is_harmless stdout ----
+photo store: could not delete an unreferenced photo file: Is a directory (os error 21)
+
+---- service::tests::regression_job_delete_removes_photo_files_only_after_commit stdout ----
+photo store: could not delete an unreferenced photo file: Is a directory (os error 21)
+
+---- system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches stdout ----
+
+thread 'system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches' (13488) panicked at src/system_check.rs:1649:13:
+fixture.rs: bare program name in `Command::new("cmd.exe").output();`
+
+thread 'system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches' (13488) panicked at src/system_check.rs:1644:9:
+fixture.rs: expected at least one launch to check
+
+thread 'system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches' (13488) panicked at src/system_check.rs:1649:13:
+fixture.rs: bare program name in `Command::new("cmd.exe").output();`
+
+thread 'system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches' (13488) panicked at src/system_check.rs:1644:9:
+fixture.rs: expected at least one launch to check
+
+
+successes:
+    app_state::tests::corrupt_stored_json_is_reported_not_hidden
+    app_state::tests::entry_serializes_camel_case
+    app_state::tests::key_rules_at_the_boundaries
+    app_state::tests::round_trip_overwrite_and_delete
+    app_state::tests::value_size_cap_at_the_boundary
+    aud_08_tests::regression_aud_08_config_windows_are_built_with_the_guard
+    aud_08_tests::regression_aud_08_new_window_requests_go_through_the_link_policy_or_are_dropped
+    audio::tests::capture_wait_completes_cancels_and_times_out
+    audio::tests::device_loss_is_reported_promptly_with_the_stream_errors
+    audio::tests::device_pairs_are_named_for_even_odd_and_empty_channel_counts
+    audio::tests::duration_is_validated_before_any_device_work
+    audio::tests::eight_channel_capture_splits_any_pairs_in_request_order
+    audio::tests::malformed_selections_are_rejected_with_clear_errors
+    audio::tests::mono_capture_is_duplicated_to_stereo_analysis_channels
+    audio::tests::odd_channel_capture_duplicates_the_last_mono_channel_and_drops_partial_frames
+    audio::tests::out_of_range_pairs_name_the_device_and_its_pairs
+    audio::tests::payload_keeps_the_first_pair_in_left_right_and_lists_all_pairs
+    audio::tests::regression_aud_03_audio_source_guard_accepts_crlf_and_rejects_unsafe_commands
+    audio::tests::regression_aud_03_list_native_audio_inputs_runs_off_the_main_thread
+    audio::tests::regression_aud_06_bounded_buffer_counts_selected_pairs_and_respects_budget
+    audio::tests::regression_aud_06_bounded_tracks_reserve_fallibly_and_keep_only_selected_pairs
+    audio::tests::required_channels_prefer_full_pairs
+    audio::tests::selections_accept_numbers_labels_and_pair_objects
+    audio::tests::signed_and_unsigned_pcm_are_normalized
+    audio::tests::stereo_capture_deinterleaves_first_two_channels
+    audio_out::tests::abs_cap_constant_is_at_or_below_minus_12_dbfs
+    audio_out::tests::buffer_is_resampled_and_ends_or_loops
+    audio_out::tests::channel_layouts
+    audio_out::tests::chirp_sweeps_up_and_repeats
+    audio_out::tests::contract_examples_round_trip_through_the_real_types
+    audio_out::tests::db_to_amp_values
+    audio_out::tests::device_error_is_reaped_by_the_watchdog
+    audio_out::tests::device_fault_silences_the_renderer
+    audio_out::tests::effective_cap_never_exceeds_abs_max
+    audio_out::tests::engine_play_stop_is_idempotent_and_records_reason
+    audio_out::tests::engine_set_level_is_clamped_to_the_call_cap
+    audio_out::tests::engine_stop_fades_to_silence_before_closing
+    audio_out::tests::engines_in_one_group_never_play_at_once
+    audio_out::tests::exit_falls_back_to_the_kill_switch_when_the_engine_is_busy
+    audio_out::tests::full_scale_input_is_limited_to_the_per_call_cap
+    audio_out::tests::group_silence_and_kill_cover_every_member_engine
+    audio_out::tests::hard_cap_clamps_and_zeroes_non_finite
+    audio_out::tests::inactivity_mutes_continuous_voices_after_60_s
+    audio_out::tests::invalid_requests_and_open_failures_leave_no_voice
+    audio_out::tests::kill_all_silences_and_refuses_new_playback
+    audio_out::tests::kill_switch_silences_within_one_poll_interval
+    audio_out::tests::level_clamps_to_cap_and_rejects_nan
+    audio_out::tests::new_play_replaces_the_previous_voice_after_closing_it
+    audio_out::tests::one_shot_buffer_end_marks_finished_and_silent
+    audio_out::tests::panic_guard_latches_the_global_kill_switch
+    audio_out::tests::panic_in_render_is_caught_and_silences
+    audio_out::tests::pink_band_is_a_third_octave_band_at_nominal_rms
+    audio_out::tests::property_no_sample_ever_exceeds_the_caps
+    audio_out::tests::ramps_are_never_shorter_than_10_ms
+    audio_out::tests::set_level_ramps_linearly_over_the_ramp_time
+    audio_out::tests::sine_has_unit_peak_and_the_requested_frequency
+    audio_out::tests::stalled_device_is_hard_muted_and_closed_within_the_stop_wait
+    audio_out::tests::start_ramps_up_over_at_least_10_ms_even_if_0_requested
+    audio_out::tests::stop_all_does_not_wait_for_a_hanging_open_and_wins_over_it
+    audio_out::tests::stop_reaches_exact_silence_within_50_ms_for_any_block_size
+    audio_out::tests::validation_rejects_bad_requests
+    audio_out::tests::window_close_and_exit_stop_output
+    audit_repro::bug01_resaving_a_run_keeps_its_repeat_scan_alignment
+    audit_repro::bug01_resaving_a_run_keeps_usage_links
+    audit_repro::bug11_since_filter_keeps_later_entries_with_milliseconds
+    audit_repro::bug12_large_utf16_log_still_yields_spans
+    backup::tests::archives_with_traversal_or_absolute_entries_are_refused_and_nothing_is_written
+    backup::tests::backup_is_transactionally_consistent_during_concurrent_writes
+    backup::tests::backup_keeps_snapshot_photo_bytes_until_concurrent_unlink_finishes
+    backup::tests::backup_log_round_trip_and_listing_of_backups_saved_elsewhere
+    backup::tests::backup_skips_missing_or_damaged_photo_files_and_still_succeeds
+    backup::tests::backup_without_settings_lists_only_db_and_midi_maps
+    backup::tests::backup_writes_verified_archive_with_manifest_first
+    backup::tests::destination_rules
+    backup::tests::entry_and_total_size_caps_and_ratio_floor
+    backup::tests::entry_names_are_checked
+    backup::tests::entry_stream_preserves_exact_bytes_and_hash
+    backup::tests::entry_stream_preserves_read_errors_even_after_declared_bytes
+    backup::tests::entry_stream_refuses_overrun_before_writing_it
+    backup::tests::entry_stream_refuses_short_reads
+    backup::tests::errors_serialize_with_code_and_message
+    backup::tests::exit_backup_is_claimed_once_and_only_for_exit_events
+    backup::tests::failed_restores_leave_the_live_database_byte_identical
+    backup::tests::free_space_check_is_clear_and_skipped_when_unknown
+    backup::tests::highly_compressible_databases_round_trip
+    backup::tests::inspect_refuses_damaged_or_foreign_files
+    backup::tests::lying_header_zip_bomb_is_refused
+    backup::tests::manifest_contract_round_trips_with_the_js_example
+    backup::tests::orphaned_evidence_is_refused_before_backup_or_restore
+    backup::tests::photos_are_archived_verified_and_restored_into_the_photos_folder
+    backup::tests::regression_aud_02_logged_paths_that_are_not_plain_local_backups_are_not_listed
+    backup::tests::regression_aud_02_restore_drops_the_backup_log_of_the_restored_database
+    backup::tests::regression_aud_02_unc_device_and_relative_logged_paths_are_never_probed
+    backup::tests::regression_aud_04_fresh_and_upgraded_release_databases_pass_the_schema_check
+    backup::tests::regression_aud_04_restore_refuses_schema_objects_deckchek_never_creates
+    backup::tests::regression_aud_05_restored_photos_must_be_referenced_valid_jpegs
+    backup::tests::regression_aud_09_workspace_import_caps_equipment_fields
+    backup::tests::regression_restore_checks_schema_before_evaluating_constraints_or_migrating
+    backup::tests::regression_restore_refuses_backup_with_triggers_or_views
+    backup::tests::regression_restore_refuses_text_that_is_not_utf8
+    backup::tests::regression_schema_constraints_and_foreign_key_actions_are_checked
+    backup::tests::regression_schema_shape_reads_names_that_are_not_utf8
+    backup::tests::regression_schema_sql_size_is_bounded_before_tokenization_and_collection
+    backup::tests::regression_schema_sql_tokens_ignore_layout_but_preserve_meaning
+    backup::tests::restore_is_refused_while_a_capture_runs
+    backup::tests::restore_needs_confirmation_and_works_without_a_live_database
+    backup::tests::restore_reserves_capture_activity_through_the_swap_and_cleans_up_errors
+    backup::tests::restore_settings_with_unexpected_shapes_are_dropped_with_a_warning
+    backup::tests::restore_upgrades_the_v004_fixture_and_takes_a_safety_backup
+    backup::tests::restore_waits_for_open_connections_through_the_gate
+    backup::tests::restoring_a_good_backup_repairs_a_same_length_corrupt_photo
+    backup::tests::retention_keeps_the_newest_n_automatic_backups_and_never_manual_ones
+    backup::tests::schedule_due_rules_at_their_boundaries
+    backup::tests::schedule_settings_round_trip_through_app_state
+    backup::tests::snapshot_photos_allow_legacy_absence_but_report_schema_errors
+    backup::tests::startup_recovery_finishes_or_undoes_an_interrupted_restore
+    backup::tests::tampered_photo_entries_are_refused_and_unknown_photo_names_are_ignored
+    backup::tests::time_formatting_matches_known_dates
+    backup::tests::workspace_import_skips_duplicates_and_bad_rows
+    canonical::tests::error_path_points_at_the_offending_value
+    canonical::tests::large_unsigned_and_negative_integers
+    canonical::tests::nan_and_infinities_are_rejected
+    canonical::tests::non_canonical_texts_are_detected
+    canonical::tests::raw_integer_boundaries_are_rejected_without_panics_or_hashes
+    canonical::tests::regression_fs20_long_key_over_many_items_canonicalises_in_linear_time
+    canonical::tests::regression_serde_raw_value_key_is_an_ordinary_key
+    canonical::tests::rejection_vectors_fail_at_parse_or_canonicalisation
+    canonical::tests::sha256_known_answers
+    canonical::tests::shared_vectors_match_javascript_byte_for_byte
+    capture::tests::a_hung_open_times_out_without_holding_the_capture_locks
+    capture::tests::accumulator_splits_eight_interleaved_channels_into_selected_pairs
+    capture::tests::backup_sees_any_lease_holder_as_running
+    capture::tests::block_encoding_round_trips_with_flags
+    capture::tests::block_queue_drops_oldest_queued_beyond_five_blocks_of_lag
+    capture::tests::block_queue_sends_within_the_window
+    capture::tests::block_size_is_clamped_and_rounded
+    capture::tests::bounded_capture_holds_the_lease_and_is_preemptible
+    capture::tests::clipping_is_counted_at_threshold_for_both_polarities
+    capture::tests::closed_webview_ends_the_stream_and_releases_the_lease
+    capture::tests::contract_block_bytes_match_the_encoder
+    capture::tests::contract_capture_shapes_match_rust_types
+    capture::tests::contract_input_pairs_and_multi_pair_block_match_rust
+    capture::tests::default_selection_on_a_multichannel_input_keeps_channels_one_and_two
+    capture::tests::default_stream_blocks_stay_version_one
+    capture::tests::device_loss_ends_the_stream_and_auto_releases_the_lease
+    capture::tests::device_loss_summary_is_returned_by_stop
+    capture::tests::drain_is_bounded_and_sets_truncated
+    capture::tests::error_messages_are_capped_but_count_is_total
+    capture::tests::errors_serialize_busy_as_object_and_others_as_plain_strings
+    capture::tests::exactly_full_is_not_truncated
+    capture::tests::failed_open_releases_the_lease_and_keeps_plain_error_text
+    capture::tests::holder_ids_are_validated
+    capture::tests::lease_is_exclusive_and_reports_holder_and_since
+    capture::tests::level_window_computes_peak_rms_clip_and_resets
+    capture::tests::live_accumulator_grows_on_demand_and_survives_allocation_failure
+    capture::tests::live_capture_holds_the_lease_and_releases_it_on_stop
+    capture::tests::live_capture_records_several_pairs_from_an_eight_channel_input
+    capture::tests::live_info_reports_the_budgeted_maximum
+    capture::tests::live_stop_only_stops_the_named_lease
+    capture::tests::managed_external_preemption_waits_for_owner_cleanup
+    capture::tests::max_seconds_is_clamped
+    capture::tests::mono_is_duplicated_and_extra_channels_ignored
+    capture::tests::multi_pair_block_encoding_round_trips_and_single_pair_matches_version_one
+    capture::tests::out_of_range_pairs_fail_clearly_and_release_the_lease
+    capture::tests::partial_trailing_frame_is_dropped
+    capture::tests::preempt_never_frees_the_input_while_a_bounded_capture_still_runs
+    capture::tests::preempt_releases_an_external_lease
+    capture::tests::preempt_stops_a_live_session_and_frees_the_input
+    capture::tests::preempt_stops_a_stream_with_a_final_block
+    capture::tests::preempt_waits_for_a_live_session_that_is_still_opening
+    capture::tests::push_frames_drops_whole_frames_and_counts_samples
+    capture::tests::quality_accounting_aggregates_counters
+    capture::tests::quality_serializes_camel_case
+    capture::tests::restore_reservation_excludes_every_capture_kind_and_releases_on_drop
+    capture::tests::simultaneous_capture_and_restore_have_exactly_one_owner
+    capture::tests::stalled_webview_drops_blocks_and_counts_them
+    capture::tests::stream_carries_every_selected_pair_per_block_including_an_odd_mono_pair
+    capture::tests::stream_delivers_contiguous_blocks_and_flushes_a_final_partial_block
+    capture::tests::stream_goes_through_a_tauri_channel_as_raw_bytes
+    capture::tests::stream_stop_and_reap_only_touch_the_named_stream
+    capture::tests::stream_throughput_48k_stereo_30s
+    catalog::tests::crud_round_trip_per_entity
+    catalog::tests::invalid_support_descriptions_do_not_mutate_storage
+    catalog::tests::old_entity_timestamps_keep_their_existing_shape_and_creation_time
+    catalog::tests::regression_asset_soft_delete_clears_deck_position
+    catalog::tests::regression_product_delete_removes_its_reminder_templates
+    catalog::tests::regression_text_that_is_not_utf8_lists_without_panicking
+    catalog::tests::rejects_unknown_entity_and_bad_input
+    catalog::tests::seed_loads_once
+    catalog::tests::seed_skipped_when_catalog_has_data
+    catalog::tests::setup_support_assignment_is_validated_without_rewriting_legacy_bindings
+    catalog::tests::support_correction_bound_setup_venue_changes_preserve_original_context
+    catalog::tests::support_correction_component_snapshots_follow_asset_ownership
+    catalog::tests::support_descriptions_round_trip_without_fabricated_timestamps
+    catalog::tests::support_metadata_edit_preserves_legacy_structure_bytes_and_position
+    catalog_archive::tests::all_non_timestamp_dependency_values_and_all_leaf_values_remain_strict_conflicts
+    catalog_archive::tests::diagnostic_arrays_are_bounded_while_every_conflict_still_blocks_the_import
+    catalog_archive::tests::duplicate_ids_missing_roots_and_unreachable_rows_are_refused_without_writes
+    catalog_archive::tests::every_declared_foreign_key_requires_its_incoming_parent_even_if_destination_has_it
+    catalog_archive::tests::exact_byte_row_and_depth_limits_refuse_oversized_files_without_partial_output
+    catalog_archive::tests::existing_setups_require_their_complete_owned_component_set
+    catalog_archive::tests::export_and_setup_selection_are_read_only_and_reject_missing_duplicate_or_empty_roots
+    catalog_archive::tests::fixed_contract_covers_every_current_column_and_preserves_independent_sql_values
+    catalog_archive::tests::independently_seeded_installations_reuse_only_dependency_timestamps_and_retry_without_writes
+    catalog_archive::tests::invalid_scalars_canonical_envelope_and_types_are_refused_with_bounded_diagnostics
+    catalog_archive::tests::invalid_utf8_blobs_nonfinite_or_incompatible_sql_values_refuse_export_and_target_comparison
+    catalog_archive::tests::literal_text_large_integers_and_legitimate_replacement_characters_survive_native_round_trip
+    catalog_archive::tests::manufacturer_name_collisions_use_actual_sqlite_nocase_and_never_rebind_ids
+    catalog_archive::tests::new_snapshot_and_support_associations_refuse_mismatch_but_exact_legacy_aggregates_are_no_write
+    catalog_archive::tests::nullable_or_contradictory_location_context_is_preserved_and_disclosed_without_new_policy
+    catalog_archive::tests::schema_drift_and_preexisting_foreign_key_damage_are_refused_before_archive_writes
+    catalog_archive::tests::stale_preview_is_revalidated_and_a_late_insert_failure_rolls_back_every_table
+    catalog_archive::tests::strict_json_refuses_unknown_duplicate_and_missing_fields_at_every_fixed_layer
+    certificate::tests::ac2_sign_verify_roundtrip_with_install_key_then_store_list_get
+    certificate::tests::ac3_extract_json_handles_json_html_pdf_and_rejects_bad_paths
+    certificate::tests::ac4_one_byte_edits_never_verify_and_value_edits_name_content_hash_mismatch
+    certificate::tests::ac5_expired_is_valid_with_expired_flag
+    certificate::tests::ac7_qr_text_is_prefix_plus_hash_and_nothing_personal
+    certificate::tests::adversarial_inputs_never_verify_and_never_panic
+    certificate::tests::certificate_table_enforces_verdict_check_and_foreign_keys
+    certificate::tests::contract_examples_round_trip
+    certificate::tests::decimal_and_timestamp_validators
+    certificate::tests::errors_serialise_as_code_and_message_without_paths
+    certificate::tests::extract_applies_json_depth_size_duplicate_and_syntax_limits_to_both_file_routes
+    certificate::tests::extract_preserves_crypto_failures_unsigned_drafts_and_expiry_for_normal_verification
+    certificate::tests::extract_rejects_malformed_envelopes_consistently_in_json_and_html
+    certificate::tests::extract_rejects_unrelated_json_without_echoing_its_fields_or_values
+    certificate::tests::migration_0014_tables_exist_and_reapply_is_a_noop
+    certificate::tests::migration_upgrades_every_release_fixture_and_stores_a_certificate
+    certificate::tests::non_canonical_but_equal_json_still_verifies
+    certificate::tests::oversized_file_is_rejected_from_metadata_before_reading
+    certificate::tests::re_signed_malformed_payload_is_unverifiable_not_valid
+    certificate::tests::regression_fs20_certificate_commands_run_off_the_main_thread
+    certificate::tests::regression_fs20_hostile_payload_is_rejected_by_cheap_bounds_before_canonicalising
+    certificate::tests::regression_fs20_issued_by_this_install_only_for_a_valid_signature_by_the_local_key
+    certificate::tests::regression_fs20_non_canonical_base64_signature_or_key_never_verifies
+    certificate::tests::shared_fixture_is_the_deterministic_signed_sample_and_verifies
+    certificate::tests::sign_rejects_invalid_payloads
+    certificate::tests::size_and_depth_caps_reject_before_parsing
+    certificate::tests::small_order_public_key_is_rejected
+    certificate::tests::store_input_rejects_unknown_fields
+    certificate::tests::store_rejects_tampered_foreign_or_mismatched_files
+    certificate::tests::wrong_key_with_consistent_fingerprint_is_modified
+    db::tests::capture_session_contract_round_trips
+    db::tests::capture_sessions_filter_by_since_and_asset_and_setup
+    db::tests::capture_timing_is_validated
+    db::tests::diagnostic_run_persists_measurement_and_finding
+    db::tests::every_release_fixture_upgrades_without_losing_rows
+    db::tests::failing_migration_sql_rolls_back_and_stops_later_migrations
+    db::tests::fresh_database_gets_every_migration_and_rerun_is_a_no_op
+    db::tests::generated_migrations_match_the_migrations_directory
+    db::tests::hypothesis_support_and_contradiction_persist
+    db::tests::legacy_payload_without_new_fields_deserializes
+    db::tests::legacy_run_keeps_started_equal_to_ended_and_config_unchanged
+    db::tests::list_and_get_run
+    db::tests::migration_applies_to_memory_database
+    db::tests::migration_names_must_be_four_digits_and_lower_snake
+    db::tests::migration_plan_rejects_duplicates_and_sorts
+    db::tests::migrations_apply_in_order_and_are_idempotent
+    db::tests::new_ids_are_unique_and_uuid_shaped
+    db::tests::open_connections_hold_the_gate_read_guard
+    db::tests::open_database_upgrades_a_v004_file_without_reseeding
+    db::tests::photo_store_migration_enforces_its_constraints
+    db::tests::regression_aud_03_no_db_command_runs_on_the_main_thread
+    db::tests::regression_aud_03_off_main_runs_bodies_off_the_caller_thread_one_at_a_time
+    db::tests::regression_aud_04_open_database_turns_trusted_schema_off
+    db::tests::run_records_real_capture_start_end_and_duration
+    db::tests::scan_alignment_persists
+    db::tests::session_origin_defaults_to_desktop_and_phone_runs_keep_their_device
+    db::tests::transaction_statements_are_detected_at_statement_level_only
+    db::tests::upgrades_a_version_1_database_without_losing_data
+    db::tests::v004_fixture_is_the_shipped_schema_with_rows_in_every_table
+    db::tests::v007_fixture_carries_schema_through_0013_with_rows_in_every_table
+    db::tests::version_row_commits_atomically_with_the_migration_sql
+    device_profile_assignment::tests::assignment_preserves_asset_identity_metadata_and_history
+    device_profile_assignment::tests::invalid_ids_and_sql_constraint_errors_preserve_the_unit
+    device_profile_assignment::tests::previous_product_is_required_even_when_null
+    device_profile_assignment::tests::retries_do_not_rewrite_the_asset
+    device_profile_assignment::tests::stale_or_unavailable_inputs_make_no_writes
+    device_profile_assignment::tests::unassigned_asset_can_be_explicitly_assigned
+    devices::tests::category_and_provenance_mapping
+    devices::tests::learned_midi_map_round_trip
+    devices::tests::prune_keeps_assets_referenced_by_any_feature_table
+    devices::tests::result_stores_and_returns_media_reference
+    devices::tests::results_round_trip_and_validate
+    devices::tests::sync_is_idempotent_and_reuses_seed_manufacturer
+    devices::tests::sync_prunes_profiles_that_no_longer_ship
+    devices::tests::sync_rejects_profiles_without_identity
+    devices::tests::sync_without_create_assets_adds_no_assets
+    diagnostics::tests::bundle_db_connection_holds_the_restore_gate
+    diagnostics::tests::bundle_has_exactly_the_documented_parts_valid_hashes_and_no_secrets
+    diagnostics::tests::bundle_without_database_or_logs_still_builds_with_notes
+    diagnostics::tests::client_errors_write_error_js_lines_rate_limited
+    diagnostics::tests::debug_crash_flag_is_honoured_in_debug_builds_or_with_the_env_var_only
+    diagnostics::tests::debug_crash_panic_is_logged_and_leaves_a_marker_so_the_next_start_shows_the_crash_prompt
+    diagnostics::tests::fuzz_no_seeded_secret_survives_and_output_is_idempotent
+    diagnostics::tests::log_line_format_and_injection_safety
+    diagnostics::tests::logs_are_capped_to_2_mib_total_keeping_the_newest_lines
+    diagnostics::tests::marker_is_written_at_start_detected_when_stale_and_removed_on_clean_exit
+    diagnostics::tests::only_run_event_exit_counts_as_a_clean_exit
+    diagnostics::tests::panic_on_any_thread_is_logged_and_marker_records_it
+    diagnostics::tests::rate_limiter_allows_20_per_minute_and_reports_drops
+    diagnostics::tests::redact_off_keeps_content_and_run_count_defaults_to_latest
+    diagnostics::tests::redact_value_replaces_values_of_serial_fields_and_keeps_json_valid
+    diagnostics::tests::rotation_boundary_exactly_at_the_limit_does_not_rotate
+    diagnostics::tests::rotation_keeps_five_files_and_deletes_the_oldest
+    diagnostics::tests::shared_redaction_vectors_match_the_js_implementation
+    diagnostics::tests::write_zip_refuses_unexpected_entry_names
+    dj_sessions::tests::civil_days_known_dates
+    dj_sessions::tests::explicit_zone_ignores_mtime
+    dj_sessions::tests::files_are_read_and_non_logs_never_leak_content
+    dj_sessions::tests::gap_splits_spans_and_short_ones_drop
+    dj_sessions::tests::implausible_offset_skips_naive_stamps_but_keeps_explicit
+    dj_sessions::tests::naive_local_time_is_calibrated_from_modified_time
+    dj_sessions::tests::parses_timestamp_shapes
+    fleet::tests::a_fleet_of_two_thousand_assets_produces_its_overview_within_budget
+    fleet::tests::backfilled_pre_maintenance_usage_does_not_advance_an_hours_reminder
+    fleet::tests::completing_maintenance_links_the_right_unit_and_snapshots_historical_hours
+    fleet::tests::every_command_input_id_is_validated_before_it_reaches_sql
+    fleet::tests::generic_sessions_supply_test_dates_without_inventing_device_results
+    fleet::tests::impossible_calendar_dates_are_rejected_without_recording_events
+    fleet::tests::location_delete_moves_assets_atomically_and_rejects_its_own_subtree
+    fleet::tests::location_mutations_use_foreign_keys_and_parameterized_names
+    fleet::tests::maintenance_history_filters_utc_dates_and_event_types_before_limiting
+    fleet::tests::maintenance_list_without_an_asset_spans_the_fleet_newest_first
+    fleet::tests::migration_0017_upgrades_a_database_that_already_has_0018_and_is_a_no_op_on_rerun
+    fleet::tests::moves_are_logged_with_location_names_and_failing_tests_carry_profile_titles
+    fleet::tests::occupied_locations_and_referenced_setups_cannot_be_deleted
+    fleet::tests::placement_validates_references_and_records_the_move_atomically
+    fleet::tests::product_reminder_templates_apply_idempotently_and_reject_wrong_products
+    fleet::tests::regression_future_dated_completion_is_rejected
+    fleet::tests::regression_location_delete_error_names_setup_or_support_configuration
+    fleet::tests::regression_moving_to_the_current_position_logs_no_event
+    fleet::tests::regression_profile_pruning_keeps_fleet_reminders
+    fleet::tests::regression_reminder_delete_is_registered_and_async
+    fleet::tests::regression_reminder_templates_can_be_deleted_so_the_product_can_be
+    fleet::tests::regression_soft_deleted_asset_does_not_block_location_delete
+    fleet::tests::reminder_ownership_and_intervals_are_checked_before_writes
+    fleet::tests::reminder_read_keeps_empty_and_unknown_usage_distinct
+    fleet::tests::reminder_read_preserves_optional_fields_and_query_order
+    fleet::tests::reminder_read_rejects_invalid_stored_column_types
+    fleet::tests::snapshot_keeps_untested_units_and_selects_latest_result_for_each_test
+    fleet::tests::snooze_persists_and_rejects_bad_targets_and_times
+    fleet::tests::usage_spanning_maintenance_returns_unknown_instead_of_assumed_runtime
+    fuzz_api::smoke::backup_inspect
+    fuzz_api::smoke::backup_restore
+    fuzz_api::smoke::canonical
+    fuzz_api::smoke::certificate
+    fuzz_api::smoke::dj_logs
+    fuzz_api::smoke::jpeg
+    fuzz_api::smoke::links
+    fuzz_api::smoke::pack
+    fuzz_api::smoke::system_check
+    fuzz_api::smoke::userfiles
+    fuzz_api::smoke::workspace_import
+    humrun::tests::boundary_lengths_are_accepted
+    humrun::tests::contract_examples_round_trip_through_the_real_types
+    humrun::tests::corrupt_json_columns_read_back_as_empty_arrays
+    humrun::tests::delete_removes_steps_and_is_idempotent
+    humrun::tests::deleting_a_venue_or_session_keeps_the_run_unlinked
+    humrun::tests::feedback_run_stores_onset_and_output_level
+    humrun::tests::kind_check_constraint_rejects_unknown_kinds
+    humrun::tests::list_filters_orders_newest_first_and_limits
+    humrun::tests::migration_creates_tables_and_is_rerunnable
+    humrun::tests::output_level_above_the_absolute_cap_is_refused
+    humrun::tests::save_round_trips_run_and_steps_in_order
+    humrun::tests::skipped_steps_drop_measurements
+    humrun::tests::unknown_links_are_reported_and_nothing_is_written
+    humrun::tests::validation_rejects_bad_input_with_codes
+    incident_metric_evidence::tests::actual_database_backup_restore_preserves_pair_and_old_incident_with_schema_25
+    incident_metric_evidence::tests::actual_restore_rollback_and_capture_reservation_preserve_the_live_pair
+    incident_metric_evidence::tests::atomic_pair_round_trip_preserves_exact_values_and_original_submission
+    incident_metric_evidence::tests::bounded_summary_reads_include_exact_parent_and_explicit_absence_without_full_configuration
+    incident_metric_evidence::tests::changed_pair_and_existing_manual_incident_cannot_acquire_new_evidence
+    incident_metric_evidence::tests::concurrent_exact_writers_commit_one_pair_and_conflicting_evidence_cannot_replace_it
+    incident_metric_evidence::tests::corrupted_companion_json_is_not_read_as_absence_and_remains_untouched
+    incident_metric_evidence::tests::corrupted_or_restored_parent_and_one_sided_pairs_are_explicit_errors_without_writes
+    incident_metric_evidence::tests::invalid_context_second_insert_and_commit_failure_each_roll_back_the_entire_pair
+    incident_metric_evidence::tests::lost_acknowledgement_retry_is_exact_no_write_and_survives_catalog_and_log_pruning
+    incident_metric_evidence::tests::migration_25_is_additive_idempotent_and_keeps_v1_incidents_and_catalog_schema_compatible
+    incident_metric_evidence::tests::strict_wire_validation_rejects_extra_missing_nonfinite_unbounded_and_inconsistent_values
+    incident_metric_evidence::tests::unavailable_fields_and_negative_finite_numbers_round_trip_without_sanitizing_saved_inputs
+    latency::tests::a_held_lease_gives_capture_busy_and_preemption_ends_the_run
+    latency::tests::a_honoured_request_runs_exactly_and_releases_everything
+    latency::tests::a_stall_counts_as_a_gap_xrun_unless_below_the_idle_floor
+    latency::tests::active_scheme_parses_in_english_and_german
+    latency::tests::alignment_is_the_median_offset_in_input_frames
+    latency::tests::b_floor_clamps_small_requests_and_honours_large_ones
+    latency::tests::b_granularity_rounds_to_what_actually_ran
+    latency::tests::battery_status_codes_map_to_on_battery
+    latency::tests::buffer_range_maps_cpal_ranges
+    latency::tests::c_default_request_is_one_host_chosen_row
+    latency::tests::c_ignored_request_reports_the_host_period
+    latency::tests::c_rejected_fixed_falls_back_to_the_host_period
+    latency::tests::cancelled_stress_input_open_does_not_start_output_or_load
+    latency::tests::classify_direction_covers_every_spike_outcome
+    latency::tests::clipping_in_the_loop_stops_the_output_and_discards_the_capture
+    latency::tests::closing_the_window_silences_a_running_round_trip
+    latency::tests::combined_mode_takes_the_less_trustworthy_open_direction
+    latency::tests::contract_examples_round_trip_through_the_real_types
+    latency::tests::d_input_unavailable_still_stresses_the_output_and_says_so
+    latency::tests::d_nothing_opens_ends_at_once_without_load
+    latency::tests::d_output_unavailable_or_silent_input
+    latency::tests::esc_aborts_within_a_second_and_stops_the_load
+    latency::tests::gap_xruns_count_only_gaps_strictly_above_the_threshold_after_warmup
+    latency::tests::invalid_requests_are_refused_before_touching_devices
+    latency::tests::jitter_stats_report_p99_and_ignore_non_finite
+    latency::tests::load_guard_joins_every_thread_within_a_second
+    latency::tests::load_threads_follow_the_percentage_and_keep_one_core_free
+    latency::tests::managed_owner_releases_only_after_input_close_acknowledgment
+    latency::tests::median_frames_is_the_actual_period_even_with_irregular_packets
+    latency::tests::migration_creates_tables_and_is_rerunnable
+    latency::tests::only_one_run_at_a_time
+    latency::tests::percentile_is_nearest_rank
+    latency::tests::powercfg_settings_parse_by_guid_or_alias_in_any_locale
+    latency::tests::powershell_facts_parse_with_dot_and_comma_decimals
+    latency::tests::preempt_during_input_open_keeps_ownership_and_never_starts_output
+    latency::tests::preempt_during_output_open_mutes_the_late_driver_callback
+    latency::tests::progress_is_reported_during_a_stress_step
+    latency::tests::recommendations_keep_the_latest_per_software
+    latency::tests::round_trip_equals_both_periods_plus_the_analog_loop
+    latency::tests::round_trip_never_plays_above_the_absolute_cap
+    latency::tests::round_trip_pair_outside_the_device_is_refused_and_releases_the_lease
+    latency::tests::round_trip_with_rejected_fixed_measures_at_the_host_period
+    latency::tests::round_trip_with_unequal_periods_is_within_one_period
+    latency::tests::round_trip_without_duplex_reports_which_side_is_missing
+    latency::tests::run_validation_rejects_bad_input_and_writes_nothing
+    latency::tests::runs_round_trip_list_filter_and_delete
+    latency::tests::scan_is_unsupported_off_windows
+    latency::tests::scope_is_always_named_after_the_host
+    latency::tests::the_tuner_leaves_a_tone_alone_when_busy_and_replaces_it_when_it_runs
+    latency::tests::xrun_threshold_is_one_and_a_half_periods_unless_the_idle_floor_is_higher
+    ledger::tests::ac7_revision_counts_up_by_one_and_round_trips
+    ledger::tests::ac7_stale_or_skipped_revision_is_rejected_without_writing
+    ledger::tests::contract_examples_for_folder_write_next_revision_and_service_job_units
+    ledger::tests::contract_examples_round_trip
+    ledger::tests::every_release_fixture_upgrades_keeps_rows_and_then_records_exports
+    ledger::tests::export_input_is_validated
+    ledger::tests::ledger_folder_layout_writes_with_ledger_extensions
+    ledger::tests::ledger_folder_refuses_an_existing_symlink
+    ledger::tests::ledger_folder_rejects_traversal_absolute_drive_backslash_reserved_and_other_types
+    ledger::tests::migration_creates_table_column_index_and_rerun_is_a_no_op
+    ledger::tests::public_notes_round_trip_and_validation
+    ledger::tests::regression_fs33_backup_restore_does_not_rewind_the_revision_counter
+    ledger::tests::regression_fs33_customer_bench_units_are_listed_for_exclusion
+    ledger::tests::regression_fs33_failed_rename_keeps_the_old_index_and_every_file_it_points_to
+    ledger::tests::regression_fs33_failed_write_leaves_the_previous_export_untouched
+    ledger::tests::regression_fs33_folder_with_the_same_or_a_later_revision_is_refused_and_raises_the_floor
+    ledger::tests::regression_fs33_owned_unit_with_a_self_service_job_is_flagged_and_stays_an_asset
+    ledger::tests::regression_fs33_prune_never_follows_or_removes_symlinks
+    ledger::tests::regression_fs33_reexport_removes_stale_certificates_and_photos_and_nothing_else
+    ledger::tests::regression_fs33_stale_staging_cleanup_never_follows_a_symlink
+    ledger::tests::regression_fs33_stale_staging_folder_from_a_crash_is_removed_on_the_next_export
+    ledger::tests::table_constraints_hold_for_direct_inserts
+    links::tests::bundled_allowlist_parses_with_required_domains
+    links::tests::classify_matrix
+    links::tests::classify_normalises_case_and_trailing_dot
+    links::tests::classify_punycode_lookalike
+    links::tests::navigation_guard_policy
+    links::tests::open_external_url_routes_settings_uris_by_platform
+    links::tests::open_requires_confirm_and_never_opens_blocked
+    links::tests::open_result_serialises_camel_case
+    links::tests::opener_failure_reports_error
+    links::tests::other_schemes_and_settings_pages_never_reach_the_opener
+    links::tests::paths_are_limited_to_written_files_and_app_roots
+    links::tests::regression_aud_01_open_path_refuses_non_viewer_types
+    links::tests::settings_uri_reports_unsupported_off_windows_and_errors_cleanly
+    links::tests::settings_uris_are_an_exact_fixed_list
+    links::tests::symlink_out_of_root_is_refused
+    links::tests::unknown_allowlist_version_is_empty
+    links::tests::userinfo_url_is_confirm_even_when_host_is_allowlisted
+    mapper::tests::constraints_and_foreign_keys_hold
+    mapper::tests::contract_examples_round_trip_through_the_real_types
+    mapper::tests::corrupt_model_json_reads_back_as_null
+    mapper::tests::every_release_fixture_upgrades_and_then_stores_mappings
+    mapper::tests::migration_creates_the_table_and_rerun_is_a_no_op
+    mapper::tests::regression_save_refuses_to_overwrite_a_newer_model_version
+    mapper::tests::row_ids_are_checked
+    mapper::tests::save_get_update_list_delete_round_trip
+    mapper::tests::unknown_links_and_unknown_ids_are_not_found
+    mapper::tests::validation_rejects_bad_input_and_writes_nothing
+    media::tests::ac7_update_leaves_custom_media_owned_flags_and_results_untouched
+    media::tests::custom_crud_rules
+    media::tests::custom_media_with_results_is_retired_not_deleted
+    media::tests::dvs_media_side_durations_populate_for_linked_timecode_media
+    media::tests::every_shipped_profile_passes_rust_validation
+    media::tests::migration_creates_tables_and_result_columns
+    media::tests::removed_builtins_retire_and_come_back_and_empty_sync_retires_nothing
+    media::tests::size_and_track_caps
+    media::tests::sync_inserts_updates_and_is_idempotent
+    media::tests::sync_rejects_invalid_and_custom_collisions_atomically
+    media::tests::timecode_media_before_device_sync_has_no_product_then_links_later
+    media::tests::upgrade_from_v004_fixture_adds_media_tables_and_keeps_rows
+    midi::tests::accepted_event_delivery_preserves_existing_drop_count
+    midi::tests::batch_collects_burst_and_respects_max
+    midi::tests::batch_idle_and_disconnect
+    midi::tests::bounded_push_drops_and_counts
+    midi::tests::captured_legacy_intent_survives_alias_forget_and_spares_explicit_ids
+    midi::tests::captured_name_alias_and_id_share_cancellation_without_closing_a_namesake
+    midi::tests::close_all_invalidates_pending_requests_and_permits_new_generations
+    midi::tests::duplicate_port_names_are_rejected_in_either_order
+    midi::tests::failed_event_delivery_counts_every_message_as_dropped
+    midi::tests::failed_name_reads_remain_unselectable
+    midi::tests::failed_output_retains_ownership_until_reset
+    midi::tests::input_close_invalidates_pending_requests_only_for_its_port
+    midi::tests::logical_id_never_falls_back_to_a_replacement_name_or_an_enumeration_index
+    midi::tests::logical_id_selects_duplicate_names_independently_of_enumeration_order
+    midi::tests::logical_ids_reject_empty_colliding_and_unreadable_metadata
+    midi::tests::missing_port_preserves_exact_name_matching_and_not_found_errors
+    midi::tests::regression_aud_03_midi_device_commands_run_off_the_main_thread
+    midi::tests::regression_aud_03_midi_source_guard_accepts_crlf_and_rejects_unsafe_commands
+    midi::tests::stale_names_lists_connections_whose_port_vanished
+    midi::tests::successful_empty_names_require_the_same_uniqueness_as_other_names
+    midi::tests::unavailable_output_does_not_block_another_port_or_retry_before_binding
+    midi::tests::uncaptured_duplicate_name_close_cannot_choose_an_arbitrary_id
+    midi::tests::unique_port_name_selects_the_requested_port_among_unrelated_duplicates
+    midi::tests::unresolved_legacy_close_is_checked_again_after_id_resolution
+    migration_m7_tests::fleet_reminder_constraints_reject_invalid_intervals_and_states
+    migration_m7_tests::fresh_m7_schema_is_idempotent_and_relationally_valid
+    migration_m7_tests::m7_upgrade_preserves_existing_rows_and_already_applied_fs30
+    migration_m7_tests::reference_hash_uniqueness_and_pack_cascade_are_enforced
+    migration_m7_tests::service_results_require_exactly_one_existing_reference_and_no_duplicates
+    monitor::tests::asset_link_is_checked_and_nulled_on_asset_delete
+    monitor::tests::contract_examples_round_trip
+    monitor::tests::events_are_capped_per_session_and_per_call
+    monitor::tests::list_is_newest_first_and_limited
+    monitor::tests::migration_0019_fresh_database_and_rerun_is_a_noop
+    monitor::tests::migration_0019_upgrades_every_release_fixture_and_keeps_rows
+    monitor::tests::regression_device_name_with_control_chars_or_overlong_is_cleaned_not_rejected
+    monitor::tests::regression_minute_rows_are_never_overwritten
+    monitor::tests::regression_open_session_cannot_be_deleted
+    monitor::tests::regression_second_instance_does_not_close_running_session
+    monitor::tests::retention_prunes_old_sessions_closes_crashed_ones_and_caps_the_count
+    monitor::tests::retention_setting_is_read_from_app_state
+    monitor::tests::session_round_trip_with_events_minutes_and_summary
+    monitor::tests::validation_rejects_bad_arguments_before_sql
+    pack::tests::adversarial_envelopes_return_typed_errors
+    pack::tests::adversarial_rows_reject_the_whole_pack_with_row_reasons
+    pack::tests::current_month_is_a_valid_month
+    pack::tests::duplicate_observations_inside_one_pack_are_rejected
+    pack::tests::export_refuses_pii_fields_and_never_writes_seeded_values
+    pack::tests::export_rejects_bad_selections_with_typed_errors
+    pack::tests::export_whitelists_rounds_and_round_trips_through_import
+    pack::tests::import_is_idempotent_and_preview_counts_rows
+    pack::tests::invalid_pack_leaves_the_database_untouched
+    pack::tests::metric_whitelist_loads_and_is_sane
+    pack::tests::mutated_packs_never_panic
+    pack::tests::near_cap_pack_imports_quickly
+    pack::tests::nesting_and_size_limits_hold_before_any_row_work
+    pack::tests::non_json_truncation_and_garbage_never_panic
+    pack::tests::population_migrations_apply_fresh_rerun_and_upgrade_every_fixture
+    pack::tests::population_query_is_deterministic_and_counts_contributors
+    pack::tests::population_tables_enforce_their_constraints
+    pack::tests::read_pack_file_checks_size_path_and_extension_before_reading
+    pack::tests::regression_aud_03_pack_db_commands_run_off_the_main_thread
+    pack::tests::regression_pack_wrapped_in_serde_raw_value_key_is_not_a_pack
+    pack::tests::regression_population_query_one_contributor_cannot_crowd_out_honest_contributors
+    pack::tests::regression_population_query_returns_the_method_registry_for_ac7_compat
+    pack::tests::regression_round_sig3_ties_match_the_js_preview
+    pack::tests::regression_unit_values_never_drop_whole_units_at_the_row_cap
+    pack::tests::regression_unit_values_old_units_survive_many_newer_measurements
+    pack::tests::regression_unit_values_sql_limit_never_drops_a_whole_old_unit
+    pack::tests::rounding_to_three_significant_figures_is_idempotent
+    pack::tests::same_pack_id_with_different_content_is_a_typed_conflict
+    pack::tests::shared_observations_survive_removal_of_one_pack
+    pack::tests::unit_values_attribute_only_unambiguous_passing_measurements
+    pack::tests::valid_pack_parses_and_digest_is_stable_for_the_same_input
+    pdf::pdf_text::tests::extracts_text_per_page_in_tree_order
+    pdf::pdf_text::tests::inflate_dynamic_block_with_back_references
+    pdf::pdf_text::tests::inflate_stored_and_fixed_blocks
+    pdf::pdf_text::tests::literal_string_escapes
+    pdf::tests::contract_pdf_render_round_trips
+    pdf::tests::error_serialises_with_code_and_unsupported_flag
+    pdf::tests::fixture_is_static_paged_report
+    pdf::tests::host_mode_switches_only_for_window_failures
+    pdf::tests::html_validation
+    pdf::tests::navigation_is_locked_to_app_origin
+    pdf::tests::non_windows_reports_unsupported_after_validation
+    pdf::tests::options_default_and_parse
+    pdf::tests::page_counter_ignores_pages_tree
+    pdf::tests::paper_sizes_in_inches
+    pdf::tests::pdf_bytes_check
+    pdf::tests::report_fixture_is_static_paged_layout
+    pdf::tests::request_refuses_bad_paths
+    pdf::tests::scale_range_enforced
+    pdf::tests::temp_path_is_hidden_sibling_with_pdf_ext
+    photo::tests::attach_stores_by_hash_and_links_to_the_owner
+    photo::tests::contract_examples_round_trip
+    photo::tests::exif_and_other_metadata_segments_are_rejected
+    photo::tests::file_is_deleted_only_when_the_last_link_goes
+    photo::tests::file_names_only_come_from_valid_hashes
+    photo::tests::identical_bytes_are_deduplicated_across_owners_and_idempotent_per_owner
+    photo::tests::magic_structure_size_and_dimension_checks
+    photo::tests::owner_and_text_validation
+    photo::tests::primary_is_exclusive_and_sort_increases
+    photo::tests::read_detects_missing_and_damaged_files
+    photo::tests::regression_a_failed_file_removal_after_commit_is_harmless
+    photo::tests::regression_unlink_keeps_the_file_when_the_commit_fails
+    photo::tests::regression_unlink_owner_leaves_files_until_the_owner_transaction_commits
+    photo::tests::rows_survive_deleting_a_photo_row_via_cascade
+    photo::tests::unlink_owner_removes_links_and_orphans_but_keeps_shared_photos
+    pregig::tests::contract_examples_round_trip
+    pregig::tests::migration_creates_tables_and_is_rerunnable
+    pregig::tests::preset_crud_and_builtin_protection
+    pregig::tests::preset_validation_boundaries
+    pregig::tests::processes_wrapper_keeps_exe_names_only
+    pregig::tests::references_are_checked_and_cleaned_up
+    pregig::tests::run_save_list_get_round_trip
+    pregig::tests::run_validation_boundaries
+    pregig::tests::table_constraints_hold_below_the_api
+    processes::tests::csv_parser_edge_cases
+    processes::tests::empty_and_garbage_input
+    processes::tests::english_fixture_finds_serato_and_ignores_helpers
+    processes::tests::instance_names
+    processes::tests::localized_german_fixture_parses_the_same_way
+    processes::tests::multiple_instances_each_get_an_entry
+    processes::tests::no_cpu_samples_is_unavailable_not_an_empty_list
+    processes::tests::non_windows_reports_unsupported
+    processes::tests::odd_names_commas_quotes_unicode_and_junk
+    processes::tests::serialises_to_the_contract
+    processes::tests::top_cpu_aggregates_normalises_sorts_and_cuts
+    scratch::tests::contract_examples_round_trip
+    scratch::tests::list_filters_by_entity_for_comparisons
+    scratch::tests::migration_creates_tables_and_is_rerunnable
+    scratch::tests::references_are_checked_and_cleaned_up
+    scratch::tests::save_get_list_delete_round_trip
+    scratch::tests::table_constraints_hold_below_the_api
+    scratch::tests::validation_boundaries
+    selftest::tests::parses_only_a_json_report_path
+    service::tests::ac1_create_job_in_intake_with_human_number_and_crud_round_trip
+    service::tests::ac2_results_link_with_phase_and_comparison_reads_both_sources
+    service::tests::ac3_work_log_parts_labour_notes_and_amendments
+    service::tests::ac6_status_changes_are_validated_logged_and_guarded_against_double_clicks
+    service::tests::ac7_cancelled_job_is_kept_read_only_and_delete_needs_the_job_number
+    service::tests::ac8_photos_by_content_hash_capped_at_ten_and_metadata_rejected
+    service::tests::create_validates_every_input
+    service::tests::customer_pii_never_reaches_the_diagnostics_bundle
+    service::tests::deleting_a_customer_with_jobs_is_blocked_and_errors_never_echo_pii
+    service::tests::job_numbers_restart_at_year_rollover_and_widen_past_9999
+    service::tests::migration_0016_fresh_rerun_and_fixture_upgrades
+    service::tests::regression_job_delete_removes_photo_files_only_after_commit
+    service::tests::regression_job_number_year_is_the_local_year_the_user_sees
+    service::tests::sheet_paths_reject_traversal_unc_and_reserved_names
+    service::tests::transition_table_is_exhaustive
+    service::tests::unique_job_number_under_rapid_creation_from_several_connections
+    signing::tests::concurrent_first_use_creates_one_key
+    signing::tests::corrupt_key_is_reported_not_replaced_and_new_identity_retires_the_old_one
+    signing::tests::first_use_creates_key_registers_it_and_reuses_it
+    signing::tests::identity_and_errors_never_expose_private_key_material
+    signing::tests::key_file_is_user_only_on_unix
+    signing::tests::oversized_key_file_is_rejected_before_reading
+    signing::tests::sign_and_verify_roundtrip_and_one_bit_tamper
+    signing::tests::wrong_key_and_small_order_key_are_rejected
+    stylus::tests::benchmark_round_trip_ordered_by_hours
+    stylus::tests::benchmark_validation_boundaries
+    stylus::tests::contract_examples_round_trip
+    stylus::tests::migration_creates_tables_and_asset_column_and_is_recorded_once
+    stylus::tests::rated_life_override_bounds
+    stylus::tests::replacement_event_sets_baseline_and_keeps_history
+    stylus::tests::session_deleted_nulls_benchmark_link
+    stylus::tests::snooze_is_recorded_per_kind_and_validated
+    stylus::tests::upgrade_from_pre_stylus_database_keeps_rows
+    support_isolation::tests::actual_late_uniqueness_violation_rolls_back_new_evidence_and_trigger_side_effects
+    support_isolation::tests::complete_migrations_add_only_the_two_history_tables_and_preserve_catalog_entities
+    support_isolation::tests::conflicting_submissions_and_cross_table_ids_do_not_replace_originals
+    support_isolation::tests::corrupt_rows_columns_and_derived_results_are_errors_without_history_repair
+    support_isolation::tests::exact_retries_precede_catalog_reads_and_keep_original_context_after_moves_and_deletion
+    support_isolation::tests::exact_zero_cannot_be_relabelled_as_tiny_positive_power_and_small_real_power_is_preserved
+    support_isolation::tests::fixture_round_trip_derives_delta_and_retains_all_original_metadata
+    support_isolation::tests::independent_connections_serialize_conflicting_ids_and_exact_retries
+    support_isolation::tests::logarithmic_difference_remains_finite_when_a_power_ratio_would_overflow
+    support_isolation::tests::missing_catalog_context_remains_completed_evidence_with_an_explicit_issue
+    support_isolation::tests::missing_comparison_sources_are_restricted_and_detected_if_storage_was_corrupted
+    support_isolation::tests::native_reads_keep_unicode_scalar_order_totals_and_all_original_rows
+    support_isolation::tests::new_records_capture_same_id_physical_catalog_changes_without_replacing_snapshots
+    support_isolation::tests::original_legacy_keys_whitespace_and_json_text_survive_without_pruning
+    support_isolation::tests::pa_route_quality_calibration_and_setup_changes_block_delta_without_mutating_evidence
+    support_isolation::tests::raw_quality_scalar_types_and_malformed_pairs_profiles_are_retained_as_ordered_issues
+    support_isolation::tests::retained_history_global_corruption_keeps_validation_phase_and_refusal_order
+    support_isolation::tests::retained_history_raw_whitespace_larger_than_evidence_limit_is_preserved
+    support_isolation::tests::retained_history_small_page_keeps_totals_full_sources_and_exact_retries
+    support_isolation::tests::setup_projection_sorts_components_but_keeps_original_array_order
+    support_isolation::tests::strict_method_geometry_finite_types_and_unknown_fields_reject_before_any_write
+    support_isolation::tests::timestamps_identifiers_filters_and_ordered_pair_references_are_strict
+    system_check::tests::app_info_from_props_and_message
+    system_check::tests::decode_utf16_bom
+    system_check::tests::dj_log_scan_end_to_end
+    system_check::tests::driver_serializes_camel_case
+    system_check::tests::drivers_parse_filter_and_single_object
+    system_check::tests::event_categories
+    system_check::tests::events_parse_filter_sort_cap
+    system_check::tests::file_classification_and_selection
+    system_check::tests::iso_and_clamp
+    system_check::tests::line_classification
+    system_check::tests::non_windows_is_unsupported
+    system_check::tests::regression_aud_13_no_windows_tool_is_spawned_by_bare_name
+    system_check::tests::regression_aud_13_source_guard_accepts_crlf_and_rejects_bare_launches
+    system_check::tests::regression_aud_13_windows_tools_resolve_to_absolute_system32_paths
+    system_check::tests::regression_glob_match_many_stars_is_fast
+    system_check::tests::runner_captures_and_times_out
+    system_check::tests::scripts_have_no_double_quotes_and_days_is_numeric
+    system_check::tests::templates_and_globs
+    system_check::tests::vendor_matching_is_word_based
+    system_check::tests::wer_parsing
+    tray::tests::close_hides_to_tray_only_while_monitoring_with_a_tray
+    tray::tests::icons_differ_in_shape_not_only_colour
+    tray::tests::state_parsing_is_strict
+    tray::tests::tooltips_name_the_state_and_carry_no_device_details
+    usage::tests::add_list_confirm_delete_round_trip
+    usage::tests::contract_examples_round_trip
+    usage::tests::legacy_rows_order_and_filter_chronologically
+    usage::tests::list_since_is_inclusive_and_ordered
+    usage::tests::migration_creates_table_and_is_rerunnable
+    usage::tests::normalize_pads_and_truncates_fraction
+    usage::tests::session_link_survives_nothing_but_nulls_on_session_delete
+    usage::tests::table_check_constraints_hold_below_the_api
+    usage::tests::timestamp_validator
+    usage::tests::validation_boundaries
+    userfiles::tests::accepts_plain_save_path_case_insensitive_ext
+    userfiles::tests::error_serializes_with_code
+    userfiles::tests::regression_aud_01_commands_reject_caller_supplied_executable_exts
+    userfiles::tests::regression_aud_01_js_is_folder_only_and_packs_are_writable
+    userfiles::tests::regression_aud_01_symlinked_folder_into_autostart_is_refused
+    userfiles::tests::regression_aud_01_writable_allowlist_excludes_executables_and_covers_callers
+    userfiles::tests::regression_aud_01_writes_never_land_in_autostart_locations
+    userfiles::tests::rejects_directory_and_wrong_ext
+    userfiles::tests::rejects_relative_empty_nul
+    userfiles::tests::rejects_reserved_names_trailing_dots_spaces
+    userfiles::tests::rejects_symlink_target_and_folder_entries
+    userfiles::tests::rejects_traversal_and_missing_parent
+    userfiles::tests::sanitizes_stems
+    userfiles::tests::write_folder_rejects_bad_entries_without_writing
+    userfiles::tests::write_folder_round_trip
+    userfiles::tests::write_text_round_trip_and_records
+    venue_incidents::tests::concurrent_same_id_submissions_commit_one_immutable_event
+    venue_incidents::tests::exact_retry_survives_catalog_rename_move_and_deletion
+    venue_incidents::tests::invalid_context_and_failed_writes_leave_no_partial_row
+    venue_incidents::tests::list_limits_filter_and_stable_order_disclose_retained_older_rows
+    venue_incidents::tests::malformed_stored_context_is_reported_without_rewriting_the_record
+    venue_incidents::tests::migration_and_all_operator_types_round_trip_without_changing_context
+    venue_incidents::tests::original_list_response_and_limits_remain_unchanged_beside_pages
+    venue_incidents::tests::page_cursor_tie_break_uses_sqlite_binary_order_for_non_bmp_ids_and_prefixes
+    venue_incidents::tests::page_requests_reject_unknown_fields_wrong_types_and_invalid_cursor_values
+    venue_incidents::tests::paged_corruption_errors_keep_saved_bytes_and_do_not_change_old_first_page_behavior
+    venue_incidents::tests::pages_apply_context_and_time_boundaries_without_changing_total_or_recorded_context
+    venue_incidents::tests::pages_traverse_305_actual_records_with_scalar_ties_and_a_newer_append
+    venue_incidents::tests::strict_version_and_operator_only_contract_reject_extra_fields_and_invalid_dates
+    wearmap::tests::contract_examples_round_trip
+    wearmap::tests::list_filters_by_side_newest_first
+    wearmap::tests::migration_creates_tables_and_is_rerunnable
+    wearmap::tests::null_metrics_and_bins_out_of_order_round_trip
+    wearmap::tests::record_contract_examples_round_trip
+    wearmap::tests::record_copies_create_update_list_and_take_scans
+    wearmap::tests::record_validation_and_ownership
+    wearmap::tests::references_are_checked_and_cleaned_up
+    wearmap::tests::save_get_list_delete_round_trip_with_600_bins
+    wearmap::tests::table_constraints_hold_below_the_api
+    wearmap::tests::validation_boundaries
+    wizard::tests::apply_gear_retires_only_untouched_library_assets_of_unticked_products
+    wizard::tests::apply_gear_with_unknown_id_changes_nothing
+    wizard::tests::create_assets_is_idempotent_and_rejects_unknown_ids
+    wizard::tests::create_assets_revives_a_soft_deleted_unit_instead_of_duplicating
+    wizard::tests::state_round_trips_through_app_state
+    wizard::tests::state_save_validates_and_get_tolerates_bad_rows
+    wizard::tests::state_serializes_camel_case
+    wizard::tests::user_data_detection_for_upgrade_installs
+
+failures:
+
+---- fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget stdout ----
+FLEET_GATE_CONTEXT {"budgetMs":200,"schedulerAfter":[1491178216,17676477,16224],"schedulerBefore":[1278891712,17222916,16171],"schedulerDelta":{"cpuCounterAdvanced":true,"cpuRuntimeNs":212286504,"runqueueWaitNs":453561,"timeslices":53},"scope":"full-suite test; only wallNs is the existing assertion interval; scheduler snapshots surround it","wallNs":213308243}
+
+thread 'fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget' (12993) panicked at src/fleet.rs:1849:9:
+reminders for 1k assets took 213.308243ms
+
+
+failures:
+    fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget
+
+test result: FAILED. 766 passed; 1 failed; 9 ignored; 0 measured; 0 filtered out; finished in 248.64s
+
+error: test failed, to rerun pass `--lib`

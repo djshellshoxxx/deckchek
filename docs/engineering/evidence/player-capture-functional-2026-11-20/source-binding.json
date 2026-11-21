@@ -1,0 +1,50 @@
+{
+  "assigned_source": "3d0667bbefae56701edf1e543b2a06876e8ac054",
+  "assigned_tree": "3ccdec9c3c7dce2827009ae5206603248122b63e",
+  "prior_failed_source": "6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6",
+  "all_non_doc_paths_equal_to_prior_failed_source_at_diagnosis": true,
+  "diagnostic_changes": [
+    "The copied audio-quality test imports the unchanged production module using an absolute file URL.",
+    "Exactly one numerical-context console.log precedes the original cubic THD assertion; all original assertions and test bodies otherwise remain."
+  ],
+  "audio_production_or_assertion_patch": false,
+  "audio_cause": "not established; original failed full suite remains unresolved",
+  "usage_source": "b8dfc126c2480f303df105abd3759fedae49a192",
+  "usage_tree": "a0660644f2e7d996817f0c76a004be95b37d3317",
+  "usage_base": "099c99c055322ef668be23e6ae50a2968614cc6d",
+  "usage_changed_paths": [
+    "app/usage-hours.js",
+    "tests/usage-hours.test.mjs"
+  ],
+  "root_ui_source": "aabcd886667ed4116fecb725c532eabcc7d485d6",
+  "root_ui_tree": "ed86cf0d14508d4c9e42c84bf0c79e7f01e523fe",
+  "node_ui_source": "d785e706a354512e4cd9c8855c868f600de07a78",
+  "node_ui_tree": "4ebca0206138fefa528a8da1db89edbc02076afd",
+  "ui_smoke_attempt_source": "09f6e5db3b24f190642f07a2649fcf64036f0518",
+  "ui_smoke_attempt_tree": "9402f8f8dd921e23fda08c218fa86d830fc43ac2",
+  "final_test_source": "2cb1aec7b1bdd4169b08aed57689eb7e937173c3",
+  "final_test_tree": "816bf89effa0b238d1620beec7aaf8c6ec51d27a",
+  "final_production_equal_to_root_ui_freeze": true,
+  "final_tests_equal_to_executed_node_source": true,
+  "final_smoke_change": "Dependent native mocks combined into one initialization script after static review; browser launch was not retried.",
+  "final_smoke_node_syntax_check": {
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--check",
+      "tools/smoke/player-capture.mjs"
+    ],
+    "exit_code": 0,
+    "meaning": "Parsing only; no smoke body or browser page execution."
+  },
+  "browser_environment": {
+    "playwright_package": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright",
+    "playwright_version": "1.62.1",
+    "chromium_executable": "/usr/bin/chromium",
+    "chromium_version": "Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)",
+    "version_wrapper_stderr": "/usr/bin/chromium: 9: [: 5225713664: unexpected operator",
+    "launch_result": "Failed before page/module body: process_singleton_posix.cc:297 socket() failed: Operation not permitted (1).",
+    "retry_count": 0,
+    "screenshots": 0,
+    "downloads_or_new_browser_installation": false
+  }
+}

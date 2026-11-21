@@ -1,0 +1,43 @@
+{
+  "source_commit": "7743813078381bbff713bf4609d5bb403188f269",
+  "source_tree": "0f695d9f92adca65edf9a7652770051b63dbd0af",
+  "node_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "python_version": "3.12.14",
+  "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/browser-bundle.test.mjs",
+    "tests/diagnostics-bundle.test.mjs"
+  ],
+  "test_file_count": 2,
+  "serial": true,
+  "tracked_file_count": 1817,
+  "status_before": "",
+  "started_at_utc": "2026-11-21T05:44:03.815392+00:00",
+  "timeout_seconds": 120,
+  "log_outside_checkout": true,
+  "completed_at_utc": "2026-11-21T05:44:04.129996+00:00",
+  "elapsed_seconds": 0.3145086609997634,
+  "exit_code": 0,
+  "timed_out": false,
+  "tap_counts": {
+    "tests": 60,
+    "suites": 0,
+    "pass": 60,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "tap_duration_ms": 255.040369,
+  "tap_sha256": "0e65dd9c3872a08549404bb005d5d44633d0905792fc0b760008e57168d13d96",
+  "tap_bytes": 11311,
+  "tracked_hash_maps_equal": true,
+  "head_after": "7743813078381bbff713bf4609d5bb403188f269",
+  "tree_after": "0f695d9f92adca65edf9a7652770051b63dbd0af",
+  "status_after": ""
+}

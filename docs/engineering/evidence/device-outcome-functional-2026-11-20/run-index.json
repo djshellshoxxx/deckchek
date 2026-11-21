@@ -1,0 +1,51 @@
+[
+  {
+    "label": "initial-fixture",
+    "source": "7c3e151d11aa9eb9298331b8f6cc93084672b466",
+    "tree": "f1b1d38e244d2051024af7e314043fab22bdbc70",
+    "exit_code": 1,
+    "sha256": "d3ed639ec7d5ed6ef98a99609be5a168314ee0f07754da16fc10bce18efec664"
+  },
+  {
+    "label": "baseline",
+    "source": "9035fd46b861e020acb28c6f09fc998b028d117e",
+    "tree": "b621708485d72d0f379b858990610f1deccec130",
+    "exit_code": 1,
+    "sha256": "7151c862290e9db5c763d0d7f202cdcad09dd046cfb1ec7145306c61cf05f47e"
+  },
+  {
+    "label": "candidate-regressions",
+    "source": "d2931c3390917faae31a634b2de663afa8ac50c8",
+    "tree": "90578126e72f4e8351c0f0fecae84679093356e6",
+    "exit_code": 1,
+    "sha256": "f78ba8ea4f2e6f37711bfdd5e689c49b9866c95ddcc93cddf64ad95be810f47e"
+  },
+  {
+    "label": "final-regressions",
+    "source": "8fbaa3e2ea95ec3ed4a47bdf30dfd04b0bb09aab",
+    "tree": "a9b9b0734d2da1670bec798e7b5071deaf494e19",
+    "exit_code": 0,
+    "sha256": "d3a4ed0a673bc18f26a9b6da4ea3a166431a41ac2938be92d45e85d0b3a3786d"
+  },
+  {
+    "label": "final-related",
+    "source": "8fbaa3e2ea95ec3ed4a47bdf30dfd04b0bb09aab",
+    "tree": "a9b9b0734d2da1670bec798e7b5071deaf494e19",
+    "exit_code": 0,
+    "sha256": "a7e0fab43e56c805c6b5dd820e55504d5971944529066bfd45c8f923ea1d71b0"
+  },
+  {
+    "label": "schema-baseline",
+    "source": "74f19b85e462b3602b12814a44226b6b9002b6d3",
+    "tree": "fb39930b3ddd2e0c4aadf80142773bff121917b8",
+    "exit_code": 1,
+    "sha256": "fdb562da7e9a7ca51af6b570248a6518f5f9e34d826314c541612aebee4f34df"
+  },
+  {
+    "label": "schema-final-regressions",
+    "source": "9de3f95cf0e79851dc01a27066c515c6691ef811",
+    "tree": "e3acafa37270ca4b182116153c3d16ac77b3d115",
+    "exit_code": 0,
+    "sha256": "1b6dac5849d4d2694220d25f1790abb463eb850564c5e899a4f265ac863235b2"
+  }
+]

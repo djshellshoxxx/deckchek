@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/device-outcome-evidence.test.mjs",
+    "tests/device-outcome-screen.test.mjs",
+    "tests/diagnostics-trend-degenerate.test.mjs"
+  ],
+  "completed_at_utc": "2026-11-21T05:06:08.276102+00:00",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-device-outcome-functional",
+  "elapsed_seconds": 0.4735714560001725,
+  "exit_code": 0,
+  "node": "v24.22.3",
+  "source": "9de3f95cf0e79851dc01a27066c515c6691ef811",
+  "started_at_utc": "2026-11-21T05:06:07.749226+00:00",
+  "tap_sha256": "1b6dac5849d4d2694220d25f1790abb463eb850564c5e899a4f265ac863235b2",
+  "tracked_count": 1749,
+  "tracked_unchanged": true,
+  "tree": "e3acafa37270ca4b182116153c3d16ac77b3d115",
+  "worktree_status_after": ""
+}

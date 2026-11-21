@@ -1,0 +1,116 @@
+[
+  {
+    "actual": {
+      "complete": true,
+      "counts": {
+        "failed": 1,
+        "filtered": 0,
+        "ignored": 8,
+        "measured": 0,
+        "passed": 766
+      }
+    },
+    "case": "retained failed baseline reaches complete suite",
+    "expectedComplete": true,
+    "stage": "baseline"
+  },
+  {
+    "actual": {
+      "complete": true,
+      "counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 9,
+        "measured": 0,
+        "passed": 767
+      }
+    },
+    "case": "instrumented full suite with marker",
+    "expectedComplete": true,
+    "stage": "instrumented"
+  },
+  {
+    "actual": {
+      "complete": false,
+      "counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 9,
+        "measured": 0,
+        "passed": 767
+      }
+    },
+    "case": "instrumented missing marker",
+    "expectedComplete": false,
+    "stage": "instrumented"
+  },
+  {
+    "actual": {
+      "complete": false,
+      "counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 9,
+        "measured": 0,
+        "passed": 767
+      }
+    },
+    "case": "instrumented duplicate marker",
+    "expectedComplete": false,
+    "stage": "instrumented"
+  },
+  {
+    "actual": {
+      "complete": true,
+      "counts": {
+        "failed": 0,
+        "filtered": 775,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 1
+      }
+    },
+    "case": "complete four-pair phase records",
+    "expectedComplete": true,
+    "stage": "phases"
+  },
+  {
+    "actual": {
+      "complete": false,
+      "counts": {
+        "failed": 0,
+        "filtered": 776,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 0
+      }
+    },
+    "case": "zero-match phase selection",
+    "expectedComplete": false,
+    "stage": "phases"
+  },
+  {
+    "actual": {
+      "complete": false,
+      "counts": {
+        "failed": 0,
+        "filtered": 775,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 1
+      }
+    },
+    "case": "missing phase pair",
+    "expectedComplete": false,
+    "stage": "phases"
+  },
+  {
+    "actual": {
+      "complete": false,
+      "counts": null
+    },
+    "case": "duplicate result summaries",
+    "expectedComplete": false,
+    "stage": "baseline"
+  }
+]

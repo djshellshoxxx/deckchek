@@ -1,0 +1,18 @@
+{
+  "head": "36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371",
+  "tree": "7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a",
+  "localHead": "6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6",
+  "parents": [
+    "6cd827b0204bc450b8fc6236a179c7383dd52911",
+    "099c99c055322ef668be23e6ae50a2968614cc6d"
+  ],
+  "branch": "checkpoint/deckchek-redaction-source-20261120",
+  "verified": true,
+  "verification": "Fetched remote commit; complete tree equals local source; parent list and current-main/PR68 ancestry verified.",
+  "sourceAssembly": {
+    "codepoints": 797250,
+    "utf16Length": 797258,
+    "note": "Initial assembly check compared Python codepoint length with JavaScript UTF16 length and stopped before any remote write. Corrected to compare codepoints; source unchanged. Blob/tree identity checks remain required."
+  },
+  "qualification": "Initial source-focused JavaScript 60/60. Fresh full suite in progress with one observed existing audio-quality failure; no all-green claim. Native and platform qualification pending."
+}

@@ -1,0 +1,21 @@
+{
+  "recorded_at_utc": "2026-11-21T05:24:09Z",
+  "local_combined_source": "ce66a40ac9b306ff65a994d5adf00d1a696ba47b",
+  "local_combined_tree": "6de27897af9aea1f69084b1de6ef3c294247ac80",
+  "durable_equivalent": "0561724b5bf8fdda92699c79ab6d539feee0479b",
+  "durable_tree": "6de27897af9aea1f69084b1de6ef3c294247ac80",
+  "branch": "checkpoint/deckchek-device-outcome-source-20261120",
+  "remote_parents": [
+    "6ec1674806a05ca4e44d090b485e37ba35fdb590",
+    "d36517ff5bb9134288f7a8aedbc62066da874099"
+  ],
+  "complete_tree_fetched_and_compared": true,
+  "remote_ref_readback_matched": true,
+  "preserves_input_pr_heads": [
+    "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+    "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+    "d36517ff5bb9134288f7a8aedbc62066da874099"
+  ],
+  "fresh_review_source_remains_local_combined_source": true,
+  "qualification": "Source preservation checkpoint. Fresh functional acceptance is running; no hosted qualification or merge is asserted."
+}

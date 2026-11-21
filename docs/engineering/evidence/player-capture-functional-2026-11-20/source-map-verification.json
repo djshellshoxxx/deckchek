@@ -1,0 +1,47 @@
+{
+  "verified_at_utc": "2026-11-21T06:23:39.032290+00:00",
+  "method": "Static Git tree/blob hashing and retained JSON/log comparison; no project execution.",
+  "distinct_git_blobs_hashed": 1786,
+  "runs": {
+    "audio-context": {
+      "source_commit": "3d0667bbefae56701edf1e543b2a06876e8ac054",
+      "source_tree": "3ccdec9c3c7dce2827009ae5206603248122b63e",
+      "tracked_entries": 1853,
+      "before_after_equal": true,
+      "all_entries_match_immutable_git_blobs": true,
+      "log_hash_and_length_match": true
+    },
+    "audio-prefix-context": {
+      "source_commit": "3d0667bbefae56701edf1e543b2a06876e8ac054",
+      "source_tree": "3ccdec9c3c7dce2827009ae5206603248122b63e",
+      "tracked_entries": 1853,
+      "before_after_equal": true,
+      "all_entries_match_immutable_git_blobs": true,
+      "log_hash_and_length_match": true
+    },
+    "usage-node": {
+      "source_commit": "b8dfc126c2480f303df105abd3759fedae49a192",
+      "source_tree": "a0660644f2e7d996817f0c76a004be95b37d3317",
+      "tracked_entries": 1655,
+      "before_after_equal": true,
+      "all_entries_match_immutable_git_blobs": true,
+      "log_hash_and_length_match": true
+    },
+    "player-focused-initial": {
+      "source_commit": "d785e706a354512e4cd9c8855c868f600de07a78",
+      "source_tree": "4ebca0206138fefa528a8da1db89edbc02076afd",
+      "tracked_entries": 1856,
+      "before_after_equal": true,
+      "all_entries_match_immutable_git_blobs": true,
+      "log_hash_and_length_match": true
+    },
+    "player-smoke": {
+      "source_commit": "09f6e5db3b24f190642f07a2649fcf64036f0518",
+      "source_tree": "9402f8f8dd921e23fda08c218fa86d830fc43ac2",
+      "tracked_entries": 1857,
+      "before_after_equal": true,
+      "all_entries_match_immutable_git_blobs": true,
+      "log_hash_and_length_match": true
+    }
+  }
+}

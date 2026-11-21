@@ -1,0 +1,862 @@
+TAP version 13
+# Subtest: RMS and dBFS are correct for a sine
+ok 1 - RMS and dBFS are correct for a sine
+  ---
+  duration_ms: 13.733827
+  type: 'test'
+  ...
+# Subtest: peak and clipping count detect overload
+ok 2 - peak and clipping count detect overload
+  ---
+  duration_ms: 0.25292
+  type: 'test'
+  ...
+# Subtest: correlation distinguishes polarity
+ok 3 - correlation distinguishes polarity
+  ---
+  duration_ms: 2.920691
+  type: 'test'
+  ...
+# Subtest: channel balance reports right channel lower by about 6 dB
+ok 4 - channel balance reports right channel lower by about 6 dB
+  ---
+  duration_ms: 1.913477
+  type: 'test'
+  ...
+# Subtest: tone estimator resolves reference tone
+ok 5 - tone estimator resolves reference tone
+  ---
+  duration_ms: 132.969763
+  type: 'test'
+  ...
+# Subtest: speed mapping converts tone error to RPM and pitch percent
+ok 6 - speed mapping converts tone error to RPM and pitch percent
+  ---
+  duration_ms: 141.211848
+  type: 'test'
+  ...
+# Subtest: hum metrics identify 60 Hz dominated input
+ok 7 - hum metrics identify 60 Hz dominated input
+  ---
+  duration_ms: 2.375732
+  type: 'test'
+  ...
+# Subtest: scope metrics show balanced quadrature as healthy ellipse
+ok 8 - scope metrics show balanced quadrature as healthy ellipse
+  ---
+  duration_ms: 1.288768
+  type: 'test'
+  ...
+# Subtest: transient detector finds spaced impulses
+ok 9 - transient detector finds spaced impulses
+  ---
+  duration_ms: 9.358219
+  type: 'test'
+  ...
+# Subtest: recurrence metrics detect half-second repeating scratch pattern
+ok 10 - recurrence metrics detect half-second repeating scratch pattern
+  ---
+  duration_ms: 0.444238
+  type: 'test'
+  ...
+# Subtest: condition score penalizes severe recurring events
+ok 11 - condition score penalizes severe recurring events
+  ---
+  duration_ms: 0.183987
+  type: 'test'
+  ...
+# Subtest: quick diagnostic emits evidence and hypotheses without overclaiming
+ok 12 - quick diagnostic emits evidence and hypotheses without overclaiming
+  ---
+  duration_ms: 72.202031
+  type: 'test'
+  ...
+# Subtest: normalizeMeasurement preserves evidence metadata
+ok 13 - normalizeMeasurement preserves evidence metadata
+  ---
+  duration_ms: 0.152069
+  type: 'test'
+  ...
+# Subtest: run comparison only compares common metrics and returns deltas
+ok 14 - run comparison only compares common metrics and returns deltas
+  ---
+  duration_ms: 0.177467
+  type: 'test'
+  ...
+# Subtest: HTML report escapes user content
+ok 15 - HTML report escapes user content
+  ---
+  duration_ms: 0.600493
+  type: 'test'
+  ...
+# Subtest: frequency trace tracks a slowly changing reference tone
+ok 16 - frequency trace tracks a slowly changing reference tone
+  ---
+  duration_ms: 61.01372
+  type: 'test'
+  ...
+# Subtest: speed stability reports drift and modulation
+ok 17 - speed stability reports drift and modulation
+  ---
+  duration_ms: 0.317367
+  type: 'test'
+  ...
+# Subtest: dropout metrics identify silent sections
+ok 18 - dropout metrics identify silent sections
+  ---
+  duration_ms: 1.717162
+  type: 'test'
+  ...
+# Subtest: synthetic sine generator has requested duration and amplitude
+ok 19 - synthetic sine generator has requested duration and amplitude
+  ---
+  duration_ms: 1.349809
+  type: 'test'
+  ...
+# Subtest: 16-bit WAV encoder writes RIFF/WAVE header
+ok 20 - 16-bit WAV encoder writes RIFF/WAVE header
+  ---
+  duration_ms: 0.471909
+  type: 'test'
+  ...
+# Subtest: pitch map reports slope, nonlinearity and hysteresis
+ok 21 - pitch map reports slope, nonlinearity and hysteresis
+  ---
+  duration_ms: 0.442255
+  type: 'test'
+  ...
+# Subtest: transition metrics identify startup and brake threshold crossings
+ok 22 - transition metrics identify startup and brake threshold crossings
+  ---
+  duration_ms: 0.183046
+  type: 'test'
+  ...
+# Subtest: channel separation converts signal/leak ratio to dB
+ok 23 - channel separation converts signal/leak ratio to dB
+  ---
+  duration_ms: 0.077917
+  type: 'test'
+  ...
+# Subtest: THD estimate remains low for clean sine and rises with harmonic
+ok 24 - THD estimate remains low for clean sine and rises with harmonic
+  ---
+  duration_ms: 12.688277
+  type: 'test'
+  ...
+# Subtest: DVS integrity timeline flags a muted interval
+ok 25 - DVS integrity timeline flags a muted interval
+  ---
+  duration_ms: 4.026684
+  type: 'test'
+  ...
+# Subtest: normalized event map keeps positions within side bounds
+ok 26 - normalized event map keeps positions within side bounds
+  ---
+  duration_ms: 0.722476
+  type: 'test'
+  ...
+# Subtest: reasoning engine preserves alternatives and isolation tests
+ok 27 - reasoning engine preserves alternatives and isolation tests
+  ---
+  duration_ms: 0.17299
+  type: 'test'
+  ...
+# Subtest: normalized level trace follows a start and stop envelope
+ok 28 - normalized level trace follows a start and stop envelope
+  ---
+  duration_ms: 4.179123
+  type: 'test'
+  ...
+# Subtest: CSV export quotes commas quotes and line breaks
+ok 29 - CSV export quotes commas quotes and line breaks
+  ---
+  duration_ms: 0.277458
+  type: 'test'
+  ...
+# Subtest: workspace JSON round trip keeps version and arrays
+ok 30 - workspace JSON round trip keeps version and arrays
+  ---
+  duration_ms: 0.221683
+  type: 'test'
+  ...
+# Subtest: workspace import rejects invalid shape
+ok 31 - workspace import rejects invalid shape
+  ---
+  duration_ms: 0.197537
+  type: 'test'
+  ...
+# Subtest: signal sanity metrics detect DC offset crest factor and missing channel
+ok 32 - signal sanity metrics detect DC offset crest factor and missing channel
+  ---
+  duration_ms: 59.805834
+  type: 'test'
+  ...
+# Subtest: signal sanity flags highly correlated dual mono
+ok 33 - signal sanity flags highly correlated dual mono
+  ---
+  duration_ms: 59.539444
+  type: 'test'
+  ...
+# Subtest: quick diagnostic blocks healthy interpretation when a stereo channel is missing
+ok 34 - quick diagnostic blocks healthy interpretation when a stereo channel is missing
+  ---
+  duration_ms: 60.731256
+  type: 'test'
+  ...
+# Subtest: repeatability metrics calculate mean spread and sample count
+ok 35 - repeatability metrics calculate mean spread and sample count
+  ---
+  duration_ms: 0.249936
+  type: 'test'
+  ...
+# Subtest: trend metrics calculate linear drift per minute
+ok 36 - trend metrics calculate linear drift per minute
+  ---
+  duration_ms: 0.286401
+  type: 'test'
+  ...
+# Subtest: tone amplitude isolates requested frequency
+ok 37 - tone amplitude isolates requested frequency
+  ---
+  duration_ms: 0.61893
+  type: 'test'
+  ...
+# Subtest: expanded pitch map metrics report mapping error and monotonicity
+ok 38 - expanded pitch map metrics report mapping error and monotonicity
+  ---
+  duration_ms: 0.247753
+  type: 'test'
+  ...
+# Subtest: trace modulation finds known revolution synchronous component
+ok 39 - trace modulation finds known revolution synchronous component
+  ---
+  duration_ms: 0.235124
+  type: 'test'
+  ...
+# Subtest: ellipse metrics recover axis imbalance for quadrature signal
+ok 40 - ellipse metrics recover axis imbalance for quadrature signal
+  ---
+  duration_ms: 1.621298
+  type: 'test'
+  ...
+# Subtest: DVS integrity score penalizes missing windows and clipping
+ok 41 - DVS integrity score penalizes missing windows and clipping
+  ---
+  duration_ms: 0.1932
+  type: 'test'
+  ...
+# Subtest: subsonic peak locates a warp-rate sine
+ok 42 - subsonic peak locates a warp-rate sine
+  ---
+  duration_ms: 3.250637
+  type: 'test'
+  ...
+# Subtest: event map comparison separates persistent and new candidates
+ok 43 - event map comparison separates persistent and new candidates
+  ---
+  duration_ms: 0.195163
+  type: 'test'
+  ...
+# Subtest: application speed branch does not reference DVS-only integrity state
+ok 44 - application speed branch does not reference DVS-only integrity state
+  ---
+  duration_ms: 0.376777
+  type: 'test'
+  ...
+# Subtest: compareVersions
+ok 45 - compareVersions
+  ---
+  duration_ms: 1.146213
+  type: 'test'
+  ...
+# Subtest: driver healthy but outdated, ASIO registered
+ok 46 - driver healthy but outdated, ASIO registered
+  ---
+  duration_ms: 1.000074
+  type: 'test'
+  ...
+# Subtest: driver not found
+ok 47 - driver not found
+  ---
+  duration_ms: 0.251649
+  type: 'test'
+  ...
+# Subtest: unsigned and problem code
+ok 48 - unsigned and problem code
+  ---
+  duration_ms: 0.24577
+  type: 'test'
+  ...
+# Subtest: class-compliant needs no driver; non-windows scan
+ok 49 - class-compliant needs no driver; non-windows scan
+  ---
+  duration_ms: 0.170386
+  type: 'test'
+  ...
+# Subtest: software check
+ok 50 - software check
+  ---
+  duration_ms: 0.331288
+  type: 'test'
+  ...
+# Subtest: evaluatePass ops
+ok 51 - evaluatePass ops
+  ---
+  duration_ms: 0.362415
+  type: 'test'
+  ...
+# Subtest: numeric pass criteria require finite numeric evidence and bounds
+ok 52 - numeric pass criteria require finite numeric evidence and bounds
+  ---
+  duration_ms: 0.463036
+  type: 'test'
+  ...
+# Subtest: the latest unavailable measurement cannot fall back to an earlier passing value
+ok 53 - the latest unavailable measurement cannot fall back to an earlier passing value
+  ---
+  duration_ms: 0.25974
+  type: 'test'
+  ...
+# Subtest: categorical equality keeps exact string evidence without numeric coercion
+ok 54 - categorical equality keeps exact string evidence without numeric coercion
+  ---
+  duration_ms: 0.238208
+  type: 'test'
+  ...
+# Subtest: index.json matches the profile files (run tools/build-device-index.mjs)
+ok 55 - index.json matches the profile files (run tools/build-device-index.mjs)
+  ---
+  duration_ms: 1.169979
+  type: 'test'
+  ...
+# Subtest: every profile validates and every image exists
+ok 56 - every profile validates and every image exists
+  ---
+  duration_ms: 2.745286
+  type: 'test'
+  ...
+# Subtest: validateProfile reports structural errors
+ok 57 - validateProfile reports structural errors
+  ---
+  duration_ms: 0.249855
+  type: 'test'
+  ...
+# Subtest: loadProfiles fetches the index and reports bad files without throwing
+ok 58 - loadProfiles fetches the index and reports bad files without throwing
+  ---
+  duration_ms: 0.641995
+  type: 'test'
+  ...
+# Subtest: every test in every profile dispatches to a runner
+ok 59 - every test in every profile dispatches to a runner
+  ---
+  duration_ms: 1.504672
+  type: 'test'
+  ...
+# Subtest: dispatchFor maps methods onto workflow modes and engines
+ok 60 - dispatchFor maps methods onto workflow modes and engines
+  ---
+  duration_ms: 0.391459
+  type: 'test'
+  ...
+# Subtest: workflowPrefill maps params onto setup fields and keeps the rest as notes
+ok 61 - workflowPrefill maps params onto setup fields and keeps the rest as notes
+  ---
+  duration_ms: 0.389236
+  type: 'test'
+  ...
+# Subtest: evaluateOutcome: pass criteria, verdicts and findings
+ok 62 - evaluateOutcome: pass criteria, verdicts and findings
+  ---
+  duration_ms: 0.515885
+  type: 'test'
+  ...
+# Subtest: evaluateChecklist: problem fails, all N/A skips, unanswered blocks
+ok 63 - evaluateChecklist: problem fails, all N/A skips, unanswered blocks
+  ---
+  duration_ms: 1.238022
+  type: 'test'
+  ...
+# Subtest: groupTestsByCategory, specSummary and progressFor
+ok 64 - groupTestsByCategory, specSummary and progressFor
+  ---
+  duration_ms: 1.405183
+  type: 'test'
+  ...
+# Subtest: device latest results compare actual instants and preserve adverse evidence on timestamp ties
+ok 65 - device latest results compare actual instants and preserve adverse evidence on timestamp ties
+  ---
+  duration_ms: 0.517267
+  type: 'test'
+  ...
+# Subtest: malformed result timestamps remain reviewable without hiding known failure or changing stored evidence
+ok 66 - malformed result timestamps remain reviewable without hiding known failure or changing stored evidence
+  ---
+  duration_ms: 0.92423
+  type: 'test'
+  ...
+# Subtest: device result chronology is independent of input order when unresolved evidence accompanies newer valid results
+ok 67 - device result chronology is independent of input order when unresolved evidence accompanies newer valid results
+  ---
+  duration_ms: 1.665944
+  type: 'test'
+  ...
+# Subtest: MIDI map helpers: learn, merge, port matching, findings
+ok 68 - MIDI map helpers: learn, merge, port matching, findings
+  ---
+  duration_ms: 0.813834
+  type: 'test'
+  ...
+# Subtest: device report lists every test, statuses and the unverified-spec disclaimer
+ok 69 - device report lists every test, statuses and the unverified-spec disclaimer
+  ---
+  duration_ms: 11.869403
+  type: 'test'
+  ...
+# Subtest: catalog-store fallback: profile sync is idempotent and creates one asset per device
+ok 70 - catalog-store fallback: profile sync is idempotent and creates one asset per device
+  ---
+  duration_ms: 31.015606
+  type: 'test'
+  ...
+# Subtest: catalog-store fallback: profile sync prunes retired profiles and their auto assets
+ok 71 - catalog-store fallback: profile sync prunes retired profiles and their auto assets
+  ---
+  duration_ms: 3.430467
+  type: 'test'
+  ...
+# Subtest: catalog-store fallback: device results and learned maps round trip
+ok 72 - catalog-store fallback: device results and learned maps round trip
+  ---
+  duration_ms: 2.511606
+  type: 'test'
+  ...
+# Subtest: catalog-store native bridge calls the device commands
+ok 73 - catalog-store native bridge calls the device commands
+  ---
+  duration_ms: 0.246942
+  type: 'test'
+  ...
+# Subtest: regression: validateProfile reports values that cannot become strings instead of throwing (JS fuzz, FUZZ-06)
+ok 74 - regression: validateProfile reports values that cannot become strings instead of throwing (JS fuzz, FUZZ-06)
+  ---
+  duration_ms: 0.450437
+  type: 'test'
+  ...
+# Subtest: a current Devices show refreshes the library and displays its guide
+ok 75 - a current Devices show refreshes the library and displays its guide
+  ---
+  duration_ms: 10.586886
+  type: 'test'
+  ...
+# Subtest: leaving Devices while the library loads prevents a second refresh and late inspector updates
+ok 76 - leaving Devices while the library loads prevents a second refresh and late inspector updates
+  ---
+  duration_ms: 2.323293
+  type: 'test'
+  ...
+# Subtest: a Devices asset read cannot update the library or inspector after leaving
+ok 77 - a Devices asset read cannot update the library or inspector after leaving
+  ---
+  duration_ms: 12.208183
+  type: 'test'
+  ...
+# Subtest: a Devices result read cannot replace a newer show or its current assignment form
+ok 78 - a Devices result read cannot replace a newer show or its current assignment form
+  ---
+  duration_ms: 10.913646
+  type: 'test'
+  ...
+# Subtest: overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last
+ok 79 - overlapping Devices shows keep the newest asset snapshot and view when the older read finishes last
+  ---
+  duration_ms: 7.685805
+  type: 'test'
+  ...
+# Subtest: a handoff survives a retired Devices show and is consumed once by the current show
+ok 80 - a handoff survives a retired Devices show and is consumed once by the current show
+  ---
+  duration_ms: 9.502646
+  type: 'test'
+  ...
+# Subtest: a newer Devices handoff wins when shows overlap
+ok 81 - a newer Devices handoff wins when shows overlap
+  ---
+  duration_ms: 51.341973
+  type: 'test'
+  ...
+# Subtest: a rejected retired assets read cannot clear the current Devices cache
+ok 82 - a rejected retired assets read cannot clear the current Devices cache
+  ---
+  duration_ms: 5.00947
+  type: 'test'
+  ...
+# Subtest: a rejected retired results read cannot clear the current Devices cache
+ok 83 - a rejected retired results read cannot clear the current Devices cache
+  ---
+  duration_ms: 34.335347
+  type: 'test'
+  ...
+# Subtest: default refresh callers retain successful reads and empty-cache failure behavior
+ok 84 - default refresh callers retain successful reads and empty-cache failure behavior
+  ---
+  duration_ms: 1.258271
+  type: 'test'
+  ...
+# Subtest: an older default assets response cannot replace a newer complete library snapshot
+ok 85 - an older default assets response cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 1.154646
+  type: 'test'
+  ...
+# Subtest: an older default assets failure cannot replace a newer complete library snapshot
+ok 86 - an older default assets failure cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 0.868746
+  type: 'test'
+  ...
+# Subtest: an older default results response cannot replace a newer complete library snapshot
+ok 87 - an older default results response cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 0.859662
+  type: 'test'
+  ...
+# Subtest: an older default results failure cannot replace a newer complete library snapshot
+ok 88 - an older default results failure cannot replace a newer complete library snapshot
+  ---
+  duration_ms: 0.841075
+  type: 'test'
+  ...
+# Subtest: a retired newer view read does not discard a still-current default refresh
+ok 89 - a retired newer view read does not discard a still-current default refresh
+  ---
+  duration_ms: 1.178933
+  type: 'test'
+  ...
+# Subtest: a catalog refresh response from an earlier Devices visit preserves the current assignment form
+ok 90 - a catalog refresh response from an earlier Devices visit preserves the current assignment form
+  ---
+  duration_ms: 6.105458
+  type: 'test'
+  ...
+# Subtest: a catalog refresh failure from an earlier Devices visit preserves the current assignment form
+ok 91 - a catalog refresh failure from an earlier Devices visit preserves the current assignment form
+  ---
+  duration_ms: 5.711447
+  type: 'test'
+  ...
+# Subtest: a catalog refresh started before opening an assignment updates the cache without discarding that form
+ok 92 - a catalog refresh started before opening an assignment updates the cache without discarding that form
+  ---
+  duration_ms: 2.656824
+  type: 'test'
+  ...
+# Subtest: a catalog refresh updates an unchanged current Devices view
+ok 93 - a catalog refresh updates an unchanged current Devices view
+  ---
+  duration_ms: 1.839315
+  type: 'test'
+  ...
+# Subtest: the latest overlapping catalog event redraws after an earlier refresh completes first
+ok 94 - the latest overlapping catalog event redraws after an earlier refresh completes first
+  ---
+  duration_ms: 3.052378
+  type: 'test'
+  ...
+# Subtest: a removed Devices screen does not start a catalog refresh
+ok 95 - a removed Devices screen does not start a catalog refresh
+  ---
+  duration_ms: 0.937309
+  type: 'test'
+  ...
+# Subtest: a connected hidden Devices screen refreshes shared catalog data without changing the active view
+ok 96 - a connected hidden Devices screen refreshes shared catalog data without changing the active view
+  ---
+  duration_ms: 2.348511
+  type: 'test'
+  ...
+# Subtest: stylus-life.json: every hours figure cites a source or is marked unverified; unknown has no hours
+ok 97 - stylus-life.json: every hours figure cites a source or is marked unverified; unknown has no hours
+  ---
+  duration_ms: 1.534216
+  type: 'test'
+  ...
+# Subtest: rated life: asset value > catalogue > 500 fallback; Shure M44-7 is unknown so falls back
+ok 98 - rated life: asset value > catalogue > 500 fallback; Shure M44-7 is unknown so falls back
+  ---
+  duration_ms: 0.527243
+  type: 'test'
+  ...
+# Subtest: AC-1: manual 2.5 h raises total by 2.5
+ok 99 - AC-1: manual 2.5 h raises total by 2.5
+  ---
+  duration_ms: 0.564629
+  type: 'test'
+  ...
+# Subtest: AC-3: overlapping sources are not double counted; priority manual > djlog > deckchek
+ok 100 - AC-3: overlapping sources are not double counted; priority manual > djlog > deckchek
+  ---
+  duration_ms: 0.353011
+  type: 'test'
+  ...
+# Subtest: AC-7: replacement resets the baseline but keeps history
+ok 101 - AC-7: replacement resets the baseline but keeps history
+  ---
+  duration_ms: 0.343737
+  type: 'test'
+  ...
+# Subtest: AC-2: 40 min DVS session proposes 0.67 h as unconfirmed deckchek
+ok 102 - AC-2: 40 min DVS session proposes 0.67 h as unconfirmed deckchek
+  ---
+  duration_ms: 0.385529
+  type: 'test'
+  ...
+# Subtest: AC-3: log spans become djlog proposals without a session id; known starts are skipped
+ok 103 - AC-3: log spans become djlog proposals without a session id; known starts are skipped
+  ---
+  duration_ms: 0.687844
+  type: 'test'
+  ...
+# Subtest: AC-5: lifeStatus thresholds at 79.9 / 80 / 100 %
+ok 104 - AC-5: lifeStatus thresholds at 79.9 / 80 / 100 %
+  ---
+  duration_ms: 0.273231
+  type: 'test'
+  ...
+# Subtest: projection: trailing 30-day rate; zero usage gives no date; due gives now
+ok 105 - projection: trailing 30-day rate; zero usage gives no date; due gives now
+  ---
+  duration_ms: 0.460072
+  type: 'test'
+  ...
+# Subtest: AC-4: regression recovers exact slope; CI and p behave; fewer than 3 points says so
+ok 106 - AC-4: regression recovers exact slope; CI and p behave; fewer than 3 points says so
+  ---
+  duration_ms: 5.748421
+  type: 'test'
+  ...
+# Subtest: regression against a known textbook dataset (slope, SE, CI, p)
+ok 107 - regression against a known textbook dataset (slope, SE, CI, p)
+  ---
+  duration_ms: 0.822507
+  type: 'test'
+  ...
+# Subtest: regression: noisy slope has a CI that contains the truth (seeded)
+ok 108 - regression: noisy slope has a CI that contains the truth (seeded)
+  ---
+  duration_ms: 0.277808
+  type: 'test'
+  ...
+# Subtest: boundaries: degradation limits are strict (at limit is fine, just beyond crosses)
+ok 109 - boundaries: degradation limits are strict (at limit is fine, just beyond crosses)
+  ---
+  duration_ms: 0.148333
+  type: 'test'
+  ...
+# Subtest: AC-6: single noisy benchmark never alerts; two consecutive crossings do
+ok 110 - AC-6: single noisy benchmark never alerts; two consecutive crossings do
+  ---
+  duration_ms: 2.328821
+  type: 'test'
+  ...
+# Subtest: verdict: baseline is the median of the first two valid benchmarks; invalid are excluded
+ok 111 - verdict: baseline is the median of the first two valid benchmarks; invalid are excluded
+  ---
+  duration_ms: 1.0045
+  type: 'test'
+  ...
+# Subtest: verdict: each metric has its own direction; snake_case rows accepted
+ok 112 - verdict: each metric has its own direction; snake_case rows accepted
+  ---
+  duration_ms: 0.761735
+  type: 'test'
+  ...
+# Subtest: verdict: dropouts on a previously clean side alert after two consecutive
+ok 113 - verdict: dropouts on a previously clean side alert after two consecutive
+  ---
+  duration_ms: 1.126543
+  type: 'test'
+  ...
+# Subtest: verdict: significant worsening slope plus a crossed latest point alerts; flat noise does not
+ok 114 - verdict: significant worsening slope plus a crossed latest point alerts; flat noise does not
+  ---
+  duration_ms: 0.918501
+  type: 'test'
+  ...
+# Subtest: verdict: big improvement flags a suspected stylus replacement
+ok 115 - verdict: big improvement flags a suspected stylus replacement
+  ---
+  duration_ms: 0.652611
+  type: 'test'
+  ...
+# Subtest: projectThresholdDate: line meets limit at the fitted hours, at the usage rate
+ok 116 - projectThresholdDate: line meets limit at the fitted hours, at the usage rate
+  ---
+  duration_ms: 0.529766
+  type: 'test'
+  ...
+# Subtest: AC-8: snooze lasts 30 days and is per kind
+ok 117 - AC-8: snooze lasts 30 days and is per kind
+  ---
+  duration_ms: 0.282024
+  type: 'test'
+  ...
+# Subtest: AC-5/6: alerts combine life and benchmark regardless of hours
+ok 118 - AC-5/6: alerts combine life and benchmark regardless of hours
+  ---
+  duration_ms: 0.294863
+  type: 'test'
+  ...
+# Subtest: bridge: exact command names and arguments; browser mode rejects
+ok 119 - bridge: exact command names and arguments; browser mode rejects
+  ---
+  duration_ms: 0.600613
+  type: 'test'
+  ...
+# Subtest: DEGRADATION defaults match FS-12 §6
+ok 120 - DEGRADATION defaults match FS-12 §6
+  ---
+  duration_ms: 0.077957
+  type: 'test'
+  ...
+# Subtest: bridge: no backend gives supported:false payloads
+ok 121 - bridge: no backend gives supported:false payloads
+  ---
+  duration_ms: 1.97581
+  type: 'test'
+  ...
+# Subtest: bridge: wraps the three commands
+ok 122 - bridge: wraps the three commands
+  ---
+  duration_ms: 0.281253
+  type: 'test'
+  ...
+# Subtest: unsupported scans yield a single info finding
+ok 123 - unsupported scans yield a single info finding
+  ---
+  duration_ms: 0.422094
+  type: 'test'
+  ...
+# Subtest: every required problem code has a meaning and action
+ok 124 - every required problem code has a meaning and action
+  ---
+  duration_ms: 0.277077
+  type: 'test'
+  ...
+# Subtest: driver problem code 43 is an error with USB advice; 45 is info
+ok 125 - driver problem code 43 is an error with USB advice; 45 is info
+  ---
+  duration_ms: 0.819833
+  type: 'test'
+  ...
+# Subtest: every known code produces a finding
+ok 126 - every known code produces a finding
+  ---
+  duration_ms: 0.688395
+  type: 'test'
+  ...
+# Subtest: unsigned driver is a warning
+ok 127 - unsigned driver is a warning
+  ---
+  duration_ms: 0.226871
+  type: 'test'
+  ...
+# Subtest: ASIO: missing DLL, bad signature, generic and multiple
+ok 128 - ASIO: missing DLL, bad signature, generic and multiple
+  ---
+  duration_ms: 1.22349
+  type: 'test'
+  ...
+# Subtest: generic Microsoft USB audio driver for vendor hardware is info
+ok 129 - generic Microsoft USB audio driver for vendor hardware is info
+  ---
+  duration_ms: 0.53935
+  type: 'test'
+  ...
+# Subtest: very old drivers (>3 years) are info
+ok 130 - very old drivers (>3 years) are info
+  ---
+  duration_ms: 0.381223
+  type: 'test'
+  ...
+# Subtest: healthy drivers produce an ok finding
+ok 131 - healthy drivers produce an ok finding
+  ---
+  duration_ms: 0.148153
+  type: 'test'
+  ...
+# Subtest: Application Error 1000: exception meanings and module heuristics
+ok 132 - Application Error 1000: exception meanings and module heuristics
+  ---
+  duration_ms: 1.7631
+  type: 'test'
+  ...
+# Subtest: repeated events are grouped with count and first/last time
+ok 133 - repeated events are grouped with count and first/last time
+  ---
+  duration_ms: 0.415023
+  type: 'test'
+  ...
+# Subtest: hang 1002 and WER 1001
+ok 134 - hang 1002 and WER 1001
+  ---
+  duration_ms: 0.454814
+  type: 'test'
+  ...
+# Subtest: audio service failures (SCM 7000..7034)
+ok 135 - audio service failures (SCM 7000..7034)
+  ---
+  duration_ms: 0.419501
+  type: 'test'
+  ...
+# Subtest: Kernel-PnP, USB hub/xHCI and portcls/usbaudio events
+ok 136 - Kernel-PnP, USB hub/xHCI and portcls/usbaudio events
+  ---
+  duration_ms: 0.526321
+  type: 'test'
+  ...
+# Subtest: no events gives ok with period
+ok 137 - no events gives ok with period
+  ---
+  duration_ms: 0.222965
+  type: 'test'
+  ...
+# Subtest: DJ crash dump/report: "X crashed on <date>" with module and exception
+ok 138 - DJ crash dump/report: "X crashed on <date>" with module and exception
+  ---
+  duration_ms: 0.72486
+  type: 'test'
+  ...
+# Subtest: DJ log lines: errors, crashes and dropouts
+ok 139 - DJ log lines: errors, crashes and dropouts
+  ---
+  duration_ms: 1.116247
+  type: 'test'
+  ...
+# Subtest: installed app with no issues is ok; uninstalled apps omitted
+ok 140 - installed app with no issues is ok; uninstalled apps omitted
+  ---
+  duration_ms: 0.14618
+  type: 'test'
+  ...
+# Subtest: findings sorted error > warning > info > ok and summarized
+ok 141 - findings sorted error > warning > info > ok and summarized
+  ---
+  duration_ms: 0.328163
+  type: 'test'
+  ...
+# Subtest: scan errors surface as an info finding; report HTML escapes content
+ok 142 - scan errors surface as an info finding; report HTML escapes content
+  ---
+  duration_ms: 0.354874
+  type: 'test'
+  ...
+1..142
+# tests 142
+# suites 0
+# pass 142
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1582.767549

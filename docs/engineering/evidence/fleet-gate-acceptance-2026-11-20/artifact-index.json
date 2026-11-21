@@ -1,0 +1,134 @@
+{
+  "baseline-tracked-after.json": {
+    "bytes": 182891,
+    "sha256": "4b3bf1e45f627326965b865aad50b80f1720f10bdbb5ff03b79e043511f53835"
+  },
+  "baseline-tracked-before.json": {
+    "bytes": 182891,
+    "sha256": "4b3bf1e45f627326965b865aad50b80f1720f10bdbb5ff03b79e043511f53835"
+  },
+  "finalizer-cases.json": {
+    "bytes": 1882,
+    "sha256": "3487d53dc4ac5af5eafa5f752601d62e19475b797855ad7afe2678954457eda2"
+  },
+  "generate-exact-failed-merge.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "generate-exact-failed-merge.stdout": {
+    "bytes": 241,
+    "sha256": "f3bbea5b97fdd9e64fa6b098a43853d4f577fee49e0d858761977ddbfc491e35"
+  },
+  "generated/fleet.rs": {
+    "bytes": 103318,
+    "sha256": "0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf"
+  },
+  "generated/source-proof.json": {
+    "bytes": 3995,
+    "sha256": "1940de1d300956e5fa24fe85d8ef71893063354a4d08ee2146a6ffa79f44738b"
+  },
+  "log-classifier-cases.json": {
+    "bytes": 2247,
+    "sha256": "85c98a97c9a39f2db9369801ec0cd4bf395e06af0155b117e5f9b6867b4d021b"
+  },
+  "preserve-existing-output.stderr": {
+    "bytes": 68,
+    "sha256": "fff25f89ebac613d35e49587c79a69591cdb34b99178c5a9351d770cfc99ce44"
+  },
+  "preserve-existing-output.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "reject-wrong-tree.stderr": {
+    "bytes": 66,
+    "sha256": "07254de4f358ddc23876db9f0f2372b16a1988fd707bb7c589a7c62402b666ec"
+  },
+  "reject-wrong-tree.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rust-ast-only.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rust-parser-version.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rust-parser-version.stdout": {
+    "bytes": 214,
+    "sha256": "3d384a53871bdbb0b53e2441f38544437780d879e05b4d56ca2db811ded1e78c"
+  },
+  "shell-2.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-2.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-3.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-3.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-4.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-4.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-5.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-5.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-6.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-6.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-7.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-7.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-9.stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "shell-9.stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "tooling-tracked-after.json": {
+    "bytes": 194964,
+    "sha256": "57eb18ee2088ed4034f35b455a02a8ce4ba3cea89f70f8e0894c1de6e4985574"
+  },
+  "tooling-tracked-before.json": {
+    "bytes": 194964,
+    "sha256": "57eb18ee2088ed4034f35b455a02a8ce4ba3cea89f70f8e0894c1de6e4985574"
+  },
+  "validation-driver.py": {
+    "bytes": 17312,
+    "sha256": "ebb42ab98400d6749a3b618f01e627dd42326bc0ec8ecc9447e5cd88f4d70498"
+  },
+  "validation.json": {
+    "bytes": 10637,
+    "sha256": "46b5bf93354f280b7b51e817c54664afaef090c0cd58d2ecf59e15e0e6c62cb5"
+  }
+}

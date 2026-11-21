@@ -1,0 +1,472 @@
+TAP version 13
+# Subtest: acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+ok 1 - acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+  ---
+  duration_ms: 7.295547
+  type: 'test'
+  ...
+# Subtest: metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+ok 2 - metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+  ---
+  duration_ms: 4.786191
+  type: 'test'
+  ...
+# Subtest: complete native observations remain unverified even when continuity counters are observed
+ok 3 - complete native observations remain unverified even when continuity counters are observed
+  ---
+  duration_ms: 0.977911
+  type: 'test'
+  ...
+# Subtest: compatibility defaults and absent nativeFields never become observed capture provenance
+ok 4 - compatibility defaults and absent nativeFields never become observed capture provenance
+  ---
+  duration_ms: 1.173065
+  type: 'test'
+  ...
+# Subtest: pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+ok 5 - pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+  ---
+  duration_ms: 4.17082
+  type: 'test'
+  ...
+# Subtest: capture fault counters and bounded diagnostic text remain visible without a player verdict
+ok 6 - capture fault counters and bounded diagnostic text remain visible without a player verdict
+  ---
+  duration_ms: 0.654945
+  type: 'test'
+  ...
+# Subtest: incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+ok 7 - incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+  ---
+  duration_ms: 2.004035
+  type: 'test'
+  ...
+# Subtest: invalid requests, providers and identities are rejected before capture starts
+ok 8 - invalid requests, providers and identities are rejected before capture starts
+  ---
+  duration_ms: 4.604267
+  type: 'test'
+  ...
+# Subtest: pre-aborted acquisition opens nothing
+ok 9 - pre-aborted acquisition opens nothing
+  ---
+  duration_ms: 0.291659
+  type: 'test'
+  ...
+# Subtest: cancellation releases a capture whose start resolves late, without returning a record
+ok 10 - cancellation releases a capture whose start resolves late, without returning a record
+  ---
+  duration_ms: 2.705601
+  type: 'test'
+  ...
+# Subtest: cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+ok 11 - cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+  ---
+  duration_ms: 1.140957
+  type: 'test'
+  ...
+# Subtest: busy or failed starts leave another capture owner untouched
+ok 12 - busy or failed starts leave another capture owner untouched
+  ---
+  duration_ms: 0.64451
+  type: 'test'
+  ...
+# Subtest: wait, phase, clock and reduced-capacity failures release only the owned capture
+ok 13 - wait, phase, clock and reduced-capacity failures release only the owned capture
+  ---
+  duration_ms: 0.852382
+  type: 'test'
+  ...
+# Subtest: a pending stop cannot return a completed record after cancellation or preemption
+ok 14 - a pending stop cannot return a completed record after cancellation or preemption
+  ---
+  duration_ms: 1.758485
+  type: 'test'
+  ...
+# Subtest: normal stop status is not unexpected loss; preempted returned audio is discarded
+ok 15 - normal stop status is not unexpected loss; preempted returned audio is discarded
+  ---
+  duration_ms: 0.475575
+  type: 'test'
+  ...
+# Subtest: default duration timer is cleared on cancellation and abort listeners are detached
+ok 16 - default duration timer is cleared on cancellation and abort listeners are detached
+  ---
+  duration_ms: 0.915737
+  type: 'test'
+  ...
+# Subtest: completed metadata survives a backwards host clock without claiming negative sample duration
+ok 17 - completed metadata survives a backwards host clock without claiming negative sample duration
+  ---
+  duration_ms: 0.293011
+  type: 'test'
+  ...
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 18 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.497242
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 19 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 1.411904
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 20 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.409641
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 21 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.317367
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 22 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 0.609187
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 23 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 1.142589
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 24 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.82383
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 25 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.242986
+  type: 'test'
+  ...
+# Subtest: reference lists reject missing slots before JSON transport
+ok 26 - reference lists reject missing slots before JSON transport
+  ---
+  duration_ms: 1.4488
+  type: 'test'
+  ...
+# Subtest: unknown uncertainty magnitude has an explicit reason with a named method
+ok 27 - unknown uncertainty magnitude has an explicit reason with a named method
+  ---
+  duration_ms: 0.670258
+  type: 'test'
+  ...
+# Subtest: registry lists every FS-00 §4.14 flag with metadata
+ok 28 - registry lists every FS-00 §4.14 flag with metadata
+  ---
+  duration_ms: 1.583232
+  type: 'test'
+  ...
+# Subtest: every features.* flag mentioned in docs/specs exists in FEATURES
+ok 29 - every features.* flag mentioned in docs/specs exists in FEATURES
+  ---
+  duration_ms: 2.371338
+  type: 'test'
+  ...
+# Subtest: defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+ok 30 - defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+  ---
+  duration_ms: 0.268164
+  type: 'test'
+  ...
+# Subtest: setEnabled persists in deckchek.ui.v1.features and keeps other settings
+ok 31 - setEnabled persists in deckchek.ui.v1.features and keeps other settings
+  ---
+  duration_ms: 0.554744
+  type: 'test'
+  ...
+# Subtest: corrupt or unavailable storage falls back to defaults
+ok 32 - corrupt or unavailable storage falls back to defaults
+  ---
+  duration_ms: 0.354424
+  type: 'test'
+  ...
+# Subtest: bound settings object is kept in sync so later settings writes do not clobber flags
+ok 33 - bound settings object is kept in sync so later settings writes do not clobber flags
+  ---
+  duration_ms: 0.170647
+  type: 'test'
+  ...
+# Subtest: change listeners fire and can be removed
+ok 34 - change listeners fire and can be removed
+  ---
+  duration_ms: 0.171769
+  type: 'test'
+  ...
+# Subtest: resetFeatures drops every override and notifies listeners
+ok 35 - resetFeatures drops every override and notifies listeners
+  ---
+  duration_ms: 0.424018
+  type: 'test'
+  ...
+# Subtest: fleet stays wired for manual opt-in and defaults off pending owner qualification
+ok 36 - fleet stays wired for manual opt-in and defaults off pending owner qualification
+  ---
+  duration_ms: 0.195093
+  type: 'test'
+  ...
+# Subtest: fleet honors explicit true and false overrides from storage and bound settings
+ok 37 - fleet honors explicit true and false overrides from storage and bound settings
+  ---
+  duration_ms: 0.220452
+  type: 'test'
+  ...
+# Subtest: fleet can switch on and off, persist opt-in, and notify listeners
+ok 38 - fleet can switch on and off, persist opt-in, and notify listeners
+  ---
+  duration_ms: 0.319151
+  type: 'test'
+  ...
+# Subtest: M7 and M8 flags stay default off while wired adapters remain available
+ok 39 - M7 and M8 flags stay default off while wired adapters remain available
+  ---
+  duration_ms: 0.173361
+  type: 'test'
+  ...
+# Subtest: browser preview keeps capture unavailable even if the disabled handler is invoked
+ok 40 - browser preview keeps capture unavailable even if the disabled handler is invoked
+  ---
+  duration_ms: 14.630532
+  type: 'test'
+  ...
+# Subtest: invalid duration is refused before acquisition, while the configured duration reaches the real controller
+ok 41 - invalid duration is refused before acquisition, while the configured duration reaches the real controller
+  ---
+  duration_ms: 7.987579
+  type: 'test'
+  ...
+# Subtest: real screen captures operator assertions and exports only provisional metadata with actual observations
+ok 42 - real screen captures operator assertions and exports only provisional metadata with actual observations
+  ---
+  duration_ms: 8.956755
+  type: 'test'
+  ...
+# Subtest: compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+ok 43 - compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+  ---
+  duration_ms: 6.669264
+  type: 'test'
+  ...
+# Subtest: capture faults stay visible in metadata and never grant a qualified measurement
+ok 44 - capture faults stay visible in metadata and never grant a qualified measurement
+  ---
+  duration_ms: 2.101381
+  type: 'test'
+  ...
+# Subtest: request snapshots keep original input, pair and operator values when controls change during capture
+ok 45 - request snapshots keep original input, pair and operator values when controls change during capture
+  ---
+  duration_ms: 3.023199
+  type: 'test'
+  ...
+# Subtest: cancel during recording releases its session and makes export unavailable
+ok 46 - cancel during recording releases its session and makes export unavailable
+  ---
+  duration_ms: 2.633292
+  type: 'test'
+  ...
+# Subtest: route hide cancels a late-starting capture and the late session is released without result
+ok 47 - route hide cancels a late-starting capture and the late session is released without result
+  ---
+  duration_ms: 6.229492
+  type: 'test'
+  ...
+# Subtest: disabling the feature through the real shell aborts recording and hides the screen
+ok 48 - disabling the feature through the real shell aborts recording and hides the screen
+  ---
+  duration_ms: 2.994345
+  type: 'test'
+  ...
+# Subtest: hide and show cannot publish or export a result delivered after its view was invalidated
+ok 49 - hide and show cannot publish or export a result delivered after its view was invalidated
+  ---
+  duration_ms: 2.806583
+  type: 'test'
+  ...
+# Subtest: preemption exits the real acquisition without publishing a result
+ok 50 - preemption exits the real acquisition without publishing a result
+  ---
+  duration_ms: 1.506436
+  type: 'test'
+  ...
+# Subtest: input loss exits the real acquisition without publishing a result
+ok 51 - input loss exits the real acquisition without publishing a result
+  ---
+  duration_ms: 2.834404
+  type: 'test'
+  ...
+# Subtest: input-open failure displays a local error and does not preempt another capture
+ok 52 - input-open failure displays a local error and does not preempt another capture
+  ---
+  duration_ms: 1.139635
+  type: 'test'
+  ...
+# Subtest: clear discards finished metadata and a disposed screen cannot capture or export
+ok 53 - clear discards finished metadata and a disposed screen cannot capture or export
+  ---
+  duration_ms: 2.450497
+  type: 'test'
+  ...
+# Subtest: dispose during recording cancels and releases the owned input
+ok 54 - dispose during recording cancels and releases the owned input
+  ---
+  duration_ms: 1.407497
+  type: 'test'
+  ...
+# Subtest: production native detection and shared pair picker feed the selected input pair into acquisition
+ok 55 - production native detection and shared pair picker feed the selected input pair into acquisition
+  ---
+  duration_ms: 3.319033
+  type: 'test'
+  ...
+# Subtest: priority order is manual > djlog > deckchek > import
+ok 56 - priority order is manual > djlog > deckchek > import
+  ---
+  duration_ms: 1.397312
+  type: 'test'
+  ...
+# Subtest: disjoint entries pass through sorted by start
+ok 57 - disjoint entries pass through sorted by start
+  ---
+  duration_ms: 1.824565
+  type: 'test'
+  ...
+# Subtest: higher priority removes overlapping lower-priority time
+ok 58 - higher priority removes overlapping lower-priority time
+  ---
+  duration_ms: 0.500212
+  type: 'test'
+  ...
+# Subtest: partial overlap trims the lower-priority span only
+ok 59 - partial overlap trims the lower-priority span only
+  ---
+  duration_ms: 0.242535
+  type: 'test'
+  ...
+# Subtest: full containment of a lower-priority entry removes it
+ok 60 - full containment of a lower-priority entry removes it
+  ---
+  duration_ms: 0.205269
+  type: 'test'
+  ...
+# Subtest: same-source overlaps are unioned, never double counted
+ok 61 - same-source overlaps are unioned, never double counted
+  ---
+  duration_ms: 0.195293
+  type: 'test'
+  ...
+# Subtest: adjacent segments of the same entry are coalesced
+ok 62 - adjacent segments of the same entry are coalesced
+  ---
+  duration_ms: 0.154713
+  type: 'test'
+  ...
+# Subtest: three-way priority chain
+ok 63 - three-way priority chain
+  ---
+  duration_ms: 0.289596
+  type: 'test'
+  ...
+# Subtest: input order does not matter
+ok 64 - input order does not matter
+  ---
+  duration_ms: 4.607832
+  type: 'test'
+  ...
+# Subtest: the ledger is not mutated and invalid entries are ignored
+ok 65 - the ledger is not mutated and invalid entries are ignored
+  ---
+  duration_ms: 0.621865
+  type: 'test'
+  ...
+# Subtest: unconfirmed proposals are excluded unless asked for; snake_case rows work
+ok 66 - unconfirmed proposals are excluded unless asked for; snake_case rows work
+  ---
+  duration_ms: 0.449626
+  type: 'test'
+  ...
+# Subtest: since clips an entry that straddles the boundary; until too
+ok 67 - since clips an entry that straddles the boundary; until too
+  ---
+  duration_ms: 0.355896
+  type: 'test'
+  ...
+# Subtest: since is applied after priority resolution (a baseline never resurrects trimmed time)
+ok 68 - since is applied after priority resolution (a baseline never resurrects trimmed time)
+  ---
+  duration_ms: 0.248994
+  type: 'test'
+  ...
+# Subtest: kind filter
+ok 69 - kind filter
+  ---
+  duration_ms: 0.269355
+  type: 'test'
+  ...
+# Subtest: minute-level precision has no float drift over many entries
+ok 70 - minute-level precision has no float drift over many entries
+  ---
+  duration_ms: 6.504476
+  type: 'test'
+  ...
+# Subtest: proposeFromSessions: durations, cap, ids, ordering
+ok 71 - proposeFromSessions: durations, cap, ids, ordering
+  ---
+  duration_ms: 0.954686
+  type: 'test'
+  ...
+# Subtest: proposeFromSessions: asset filter, snake_case, source, dedupe against existing
+ok 72 - proposeFromSessions: asset filter, snake_case, source, dedupe against existing
+  ---
+  duration_ms: 0.274463
+  type: 'test'
+  ...
+# Subtest: one proposal per session, including numeric-zero IDs and invalid earlier copies
+ok 73 - one proposal per session, including numeric-zero IDs and invalid earlier copies
+  ---
+  duration_ms: 0.236957
+  type: 'test'
+  ...
+# Subtest: source whitelist excludes inherited Object property names in all three paths
+ok 74 - source whitelist excludes inherited Object property names in all three paths
+  ---
+  duration_ms: 1.05045
+  type: 'test'
+  ...
+# Subtest: bridge passes exactly the Rust command and argument names
+ok 75 - bridge passes exactly the Rust command and argument names
+  ---
+  duration_ms: 0.474824
+  type: 'test'
+  ...
+# Subtest: bridge without Tauri reports unsupported instead of pretending
+ok 76 - bridge without Tauri reports unsupported instead of pretending
+  ---
+  duration_ms: 0.194923
+  type: 'test'
+  ...
+# Subtest: contract example matches the bridge
+ok 77 - contract example matches the bridge
+  ---
+  duration_ms: 0.455065
+  type: 'test'
+  ...
+1..77
+# tests 77
+# suites 0
+# pass 77
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 658.973654

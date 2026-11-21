@@ -1,31 +1,125 @@
 # DeckChek implementation status
 
-## Current CDJ acquisition continuation — 20 November 2026
+## Current player capture and usage consolidation — 20 November 2026
 
-The [current continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
-explicit native observations, scoped cancellation and immutable provisional
-metadata. Three initial workers completed before three fresh independent
-code/functional/defensive reviewers accepted combined source
-`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
-`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
-`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
+All three initial workers and three fresh successors completed the
+[Player capture and usage handoff](engineering/PLAYER_CAPTURE_CONTINUATION_2026-11-20.md).
+The actual app has a default-off one-pair, 1–30 second capture preview with owned
+cancellation and provisional metadata export. Usage #70 adds same-batch valid
+proposal deduplication and own-property source membership; native validation is
+unchanged. Source `f081881d4979e4385f255163660258784e27a264`, tree
+`39d4351da05fc1fc65f555874824555d96df5cd3`, is preserved by durable equivalent
+`6295c3eb5b470b34f2a1010b040b1694780e0ee9`.
 
-Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
-unchanged. Only the new acquisition controller and its test file change runtime
-source. Production player UI wiring, retained reference/raw bytes,
-SQLite/history/HTML integration, scientific characterization and physical
-qualification remain unfinished. Evidence stays unverified and report-ineligible.
+Fresh complete serial Node24.22.3 verification passed **2,331 / 0 failures /
+1 optional skip**, **2,332 total across 191 files**, with **1,892 tracked hashes
+unchanged**. Static reviews found no remaining bounded blocker. Local Chromium
+failed before a page; this successor requires its own hosted rendered UI and
+native/platform gates. Original audio failure #72 remains unexplained; the
+33-test diagnostic selection did not establish matching predecessor order.
+Issue #69 and AC-6 remain open and unchanged.
 
-Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
-while its hosted gates qualify; its independent full suite passed 2,251 / zero
-failures / one optional skip. Standard hosted checks passed, but nightly ASan
-failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
-unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
-preserved. This distinct acquisition successor needs its own hosted checks.
+Accepted #66/#68 and bounded #69 changes are included from fixed #71. Publish
+this successor before superseding #71, retaining branches. #66/#70 close only
+through a qualified implementing merge. Main is last verified at
+`099c99c055322ef668be23e6ae50a2968614cc6d`. The next distinct trio reviews optional
+reference-file hashing and PDF #73 on an isolated successor. Retention, pitch
+integration, reports and scientific/physical gates remain open; Fleet stays off.
+
+## Historical redaction and corrected outcome consolidation — 20 November 2026
+
+The [current redaction handoff](engineering/REDACTION_CONTINUATION_2026-11-20.md)
+combines accepted device-outcome #66 and fractional-timestamp #68 corrections
+with bounded JS/Rust diagnostics redaction #69. Reviewed local source
+`6f414a4b45aeea1dd31ca82f5c02d06b78b04ca6`, tree
+`7dfe29d1e9378bbdfd98bbeff49aceed366c1c3a`, is preserved by exact-tree durable
+checkpoint `36dc5dd58bbb4bfc2f93d76dab2b7b9c4729b371`.
+
+Initial focused verification passed 60/60. Fresh full Node 24.22.3 verification
+recorded **2,314 total / 2,312 pass / 1 fail / 1 optional skip**, with all 1,831
+tracked hashes unchanged. The existing cubic audio-quality assertion failed;
+its one unchanged-source narrow rerun passed 15/15. The first failure remains
+unexplained. The consolidated draft must retain this hold and obtain its own
+hosted/native gates. Source-specific redaction cases all passed; complete
+Spec 02 AC-6 acceptance is not established and **issue #69 stays open**.
+
+Main remains the qualified QR/acquisition merge `099c99c055322ef668be23e6ae50a2968614cc6d`.
+Publish the corrected consolidated draft before superseding #68, retaining its
+branch/ancestry; #66 remains open until an implementing qualified merge. The
+fixed Fleet diagnostic and original timing failures remain preserved, without
+rerun or threshold changes. Fleet stays off. Next work covers the audio failure,
+independent acceptance of prepared usage-ledger #70, and bounded CDJ UI wiring.
+Player persistence/reporting and scientific/physical qualification remain open.
+
+## Historical device outcome and trend continuation — 20 November 2026
+
+The [qualified acquisition/QR merge](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md)
+is now on main at `099c99c055322ef668be23e6ae50a2968614cc6d`, with the exact
+tested tree `f7e32678dd89880a7dce642424100e77c5e22374`. All applicable standard,
+nightly, six-build and five-smoke gates passed for #67 before the guarded merge.
+GitHub also reports included #65 merged and issue #64 closed. Original branch
+heads and #65's failed timing result remain retained. A separate initial worker
+set now owns diagnostics redaction #69; #66/#68 corrections are accepted on
+the successor below and still await that consolidated source's hosted gates.
+
+The [current handoff](engineering/DEVICE_OUTCOME_CONTINUATION_2026-11-20.md)
+records three completed initial workers followed by three completed fresh
+workers. They accepted combined source `ce66a40ac9b306ff65a994d5adf00d1a696ba47b`,
+tree `6de27897af9aea1f69084b1de6ef3c294247ac80`; durable exact-tree checkpoint
+is `0561724b5bf8fdda92699c79ab6d539feee0479b`.
+
+Prospective device outcomes now require usable latest evidence or an explicit
+OK finding before the no-criterion fallback records PASS. Missing evidence stays
+unknown/REVIEW; criteria, verdicts, adverse findings and historical records retain
+their behavior. Trends with identical fractional timestamps remain unavailable.
+Fresh serial Node 24.22.3 acceptance passed **2,284/0/1 optional skip**, **2,285
+total across 190 files**, with **1,804 tracked hashes unchanged**. Native and
+hosted qualification are separate.
+
+The [single hosted Fleet experiment](engineering/FLEET_GATE_HOSTED_RESULT_2026-11-20.md)
+completed with failure: the untouched baseline passed, but the instrumented
+suite measured **213.308243 ms / unchanged 200 ms**. The original #65 failure
+at 201.565999 ms remains unexplained. Complete artifacts and fresh independent
+byte checks are retained; no diagnostic rerun or causal claim is authorized.
+
+The next distinct worker set addresses diagnostics redaction issue #69; the
+next consolidated draft will include both accepted slices. Existing #65/#67/#68
+heads and branches stay fixed. Read live exact-source gates before ordinary
+merges. CDJ UI/storage/reporting and scientific/physical qualification remain
+open. Fleet stays off. Historical sections below preserve their original scope.
+
+## Historical acquisition and Fleet diagnostic preparation — 20 November 2026
+
+The [acquisition continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) is published as draft #67, fixed at
+`157b0dbe1849d42e835cc365ba7292eb633c04d9`, tree
+`f7e32678dd89880a7dce642424100e77c5e22374`. All six workers completed; fresh
+Node 22.23.4 verification passed 56/56 with 1,643 tracked hashes unchanged.
+The single-pair owned-capture API retains native observations, scoped cleanup
+and immutable provisional metadata. Production player UI, retained raw/reference
+bytes, persistence/reporting and scientific/physical qualification remain open.
+
+The [Fleet diagnostic continuation](engineering/FLEET_GATE_CONTINUATION_2026-11-20.md) records three completed initial
+workers followed by three completed fresh reviewers. They accepted combined
+source `f1172b87902aa05c93c452619c7ed1e359f939e6`, tree
+`41031b09d19dfd1ca90dd95173872aaeb280e3f6`; durable equivalent is
+`1625bb4dc6906777b7891e9158a2ef651e40be89`. Fresh generation/parser/evidence checks
+passed 60/60 against the actual failed merge, with 1,706 tooling and 1,626 input
+hashes unchanged. These are tooling checks, not native performance results.
+The exact reviewed proposal is ready for one bounded hosted diagnostic; keep
+its activated branch fixed and preserve every result, including failures.
+
+QR #65 stays fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`. Its ASan Fleet
+gate failed at 201.565999 ms against 200 ms; cause remains unestablished. Later
+#67 ASan passed 767/0/8 ignored using the same compiler, but other applicable
+#67 gates remained pending at the dated readback. No threshold, production
+Fleet behavior or default was changed. Only source-specific applicable checks,
+current-base tree proof and an expected-head guard can qualify a merge.
+
 Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
-#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
-already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
-Read current refs/reports; dated snapshots below preserve history.
+#54/#58/#59. Superseded inputs and original branches remain preserved. Fleet
+stays default-off; existing profile assignment is implemented. Issue #66 is
+next for a distinct worker set after diagnostic activation. Read live refs and
+the linked reports; historical snapshots below retain their original meaning.
 
 ## Historical source41 — incident evidence, profile provenance and preview integrity
 
@@ -331,6 +425,6 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 
 The repository now contains an offline-analysis and live-capture beta with a full desktop GUI shell, catalog persistence, and deterministic diagnostic workflows. It is useful for file analysis and native audio-interface capture with evidence-first findings. It is not yet a complete implementation of every feature in SPEC-00 through SPEC-19.
 
-Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition candidates need their own applicable hosted gates; see the [current acquisition handoff](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md). Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
+Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition source completed its own applicable gates and merged through #67 at `099c99c`; the [qualified merge record](engineering/ACQUISITION_QUALIFIED_MERGE_2026-11-20.md) preserves exact trees, job states, original branches and the earlier #65 failure. Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
 
 - Final fixes (GAP-02, 08, 13, 15, 18): an input-pair picker sits wherever a capture is set up (Quick Check and the DVS/Speed/Cartridge flows, timecode runner, calibration, wear map, scratch, latency measure, hum, feedback), default 1-2 and remembered per input; `latency_play_and_capture` takes `pairs`. The scratch test uses the shared Stop-and-continue flow and ends cleanly if another feature takes the input. `--debug-crash` (debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) raises a controlled panic at the end of setup so the crash prompt can be tested (H-02). `runtime_status` was removed. The wizard listen test uses the remembered pair but has no picker of its own.

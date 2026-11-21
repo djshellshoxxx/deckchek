@@ -1,0 +1,8 @@
+{
+  "tip": "20178f86d672586c752a23e21427d3fa4a68562d",
+  "bytes": 415875,
+  "sha256": "29e9c33576309d1c64c1391bd4785c7677a48a61435e2f725f00d893409c4d2c",
+  "header": "# v2 git bundle\n-099c99c055322ef668be23e6ae50a2968614cc6d Merge owned CDJ acquisition and QR consolidation (#67)\n-6cd827b0204bc450b8fc6236a179c7383dd52911 Complete six-worker device outcome and trend acceptance\n-0a5d485eb29b43f249a8764992931cbc15d84e9b Consolidate corrected outcomes and bounded diagnostics redaction; retain exact review evidence [no release] [no deploy]\n-b8dfc126c2480f303df105abd3759fedae49a192 Cover duplicate usage session proposals and inherited source names\n20178f86d672586c752a23e21427d3fa4a68562d HEAD",
+  "verified": true,
+  "scope": "Original local source and all six worker commits through final acceptance integration. Publication may use equivalent tree commits; this preserves original local object identities."
+}

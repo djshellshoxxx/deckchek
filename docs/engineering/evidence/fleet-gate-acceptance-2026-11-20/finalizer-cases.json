@@ -1,0 +1,99 @@
+[
+  {
+    "actualExit": 0,
+    "case": "complete diagnostic records",
+    "expectedExit": 0,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": []
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "failed baseline cannot be masked",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "baseline: exit 101"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "incomplete phase evidence",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "phases: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "unexpected baseline source state",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "baseline: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "changed lock identity",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "instrumented: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "missing binary evidence",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "baseline: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "wrong overlay identity",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "phases: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "changed migration evidence",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "phases: exit 0"
+      ]
+    }
+  },
+  {
+    "actualExit": 1,
+    "case": "missing stage record",
+    "expectedExit": 1,
+    "record": {
+      "diagnosticOnly": true,
+      "failedOrIncomplete": [
+        "phases: no completed record"
+      ]
+    }
+  }
+]

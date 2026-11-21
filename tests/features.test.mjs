@@ -11,11 +11,18 @@ const fresh = () => { const storage = memStorage(); configureFeatures({ storage 
 
 test('registry lists every FS-00 §4.14 flag with metadata', () => {
   const expected = ['setupWizard', 'diagnosticsBundle', 'pdfExport', 'testMedia', 'backup', 'pregig', 'latencyTuner', 'stylusWear', 'wearMap', 'scratchTest', 'humHunter', 'feedbackStep', 'certificates', 'population', 'packs', 'service', 'fleet', 'phoneImport', 'liveMonitor', 'mapperStudio', 'gearLedger'];
-  assert.deepEqual(featureNames().sort(), [...expected].sort());
+  assert.deepEqual(featureNames().sort(), [...expected, 'playerCapture'].sort());
   for (const [name, meta] of Object.entries(FEATURES)) {
     assert.equal(typeof meta.default, 'boolean', name);
-    assert.match(meta.milestone, /^M[5-9]$/, name);
-    assert.match(meta.spec, /^FS-\d\d$/, name);
+    if (name === 'playerCapture') {
+      assert.equal(meta.milestone, 'Proposed');
+      assert.equal(meta.spec, 'SPEC-10 / CDJ-04');
+      assert.equal(meta.default, false);
+      assert.equal(meta.wired, true);
+    } else {
+      assert.match(meta.milestone, /^M[5-9]$/, name);
+      assert.match(meta.spec, /^FS-\d\d$/, name);
+    }
     assert.ok(meta.label && meta.description, name);
   }
 });
@@ -33,7 +40,7 @@ test('every features.* flag mentioned in docs/specs exists in FEATURES', () => {
 test('defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off', () => {
   fresh();
   for (const n of ['setupWizard', 'pdfExport', 'backup', 'testMedia', 'diagnosticsBundle']) assert.equal(isEnabled(n), true, n);
-  for (const n of ['pregig', 'liveMonitor', 'packs', 'service', 'fleet', 'gearLedger']) assert.equal(isEnabled(n), false, n);
+  for (const n of ['pregig', 'liveMonitor', 'packs', 'service', 'fleet', 'gearLedger', 'playerCapture']) assert.equal(isEnabled(n), false, n);
   assert.equal(isEnabled('doesNotExist'), false);
 });
 

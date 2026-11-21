@@ -1,0 +1,22 @@
+{
+  "source": "7c3e151d11aa9eb9298331b8f6cc93084672b466",
+  "tree": "f1b1d38e244d2051024af7e314043fab22bdbc70",
+  "node": "v24.22.3",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/device-outcome-evidence.test.mjs",
+    "tests/device-outcome-screen.test.mjs",
+    "tests/diagnostics-trend-degenerate.test.mjs"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-device-outcome-functional",
+  "started_at_utc": "2026-11-21T04:57:47.685949+00:00",
+  "elapsed_seconds": 0.46891583299998274,
+  "exit_code": 1,
+  "tracked_count": 1749,
+  "tracked_unchanged": true,
+  "worktree_status_after": "",
+  "tap_sha256": "d3ed639ec7d5ed6ef98a99609be5a168314ee0f07754da16fc10bce18efec664"
+}

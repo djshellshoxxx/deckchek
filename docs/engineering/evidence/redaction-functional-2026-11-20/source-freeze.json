@@ -1,0 +1,30 @@
+{
+  "base": "6cd827b0204bc450b8fc6236a179c7383dd52911",
+  "base_tree": "629a834548412d6eb369466325342c3778839e49",
+  "source": "7743813078381bbff713bf4609d5bb403188f269",
+  "source_tree": "0f695d9f92adca65edf9a7652770051b63dbd0af",
+  "changed_paths": [
+    "app/diagnostics-bundle.js",
+    "src-tauri/src/diagnostics.rs",
+    "tests/diagnostics-bundle.test.mjs",
+    "tests/fixtures/redaction-vectors.json"
+  ],
+  "changed_sha256": {
+    "app/diagnostics-bundle.js": "9235d3b7d2d3fcc8cf3a5900ebb5652bfb1bf864f3f9d2180754aaf600bb23cc",
+    "src-tauri/src/diagnostics.rs": "9bde6b142ff634398243d933456349d323962d52d89c4c7c756afe13aa60aace",
+    "tests/diagnostics-bundle.test.mjs": "ca84709cdbb0d86e9433e91285a18beb007d5695ffdbaaf9b71d58c84384cbe1",
+    "tests/fixtures/redaction-vectors.json": "b69226de078aa89daff6b30e4d89bcddce4ad4fd087ee85ef2d490f8e2a8b121"
+  },
+  "original_vectors_preserved": 19,
+  "added_vectors": 28,
+  "total_vectors": 47,
+  "original_vector_values_unchanged": true,
+  "native_execution": false,
+  "native_format_check": false,
+  "compiler_paths_discovered": {
+    "rustc": null,
+    "cargo": null,
+    "rustfmt": null
+  },
+  "limits": "Wrapper-only ASCII-space hardening; bare/raw structured values and unsupported forms remain conservative. No baseline privacy reproduction or native execution."
+}

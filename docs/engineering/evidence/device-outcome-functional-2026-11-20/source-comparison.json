@@ -1,0 +1,35 @@
+{
+  "assigned_base": "9fc11d6e15cc97141c14b309c61a38393fcbafd8",
+  "schema_baseline_source": "74f19b85e462b3602b12814a44226b6b9002b6d3",
+  "candidate_source": "9de3f95cf0e79851dc01a27066c515c6691ef811",
+  "related_test_source": "8fbaa3e2ea95ec3ed4a47bdf30dfd04b0bb09aab",
+  "schema_baseline_vs_assigned_base_app_diff": "",
+  "candidate_vs_related_source_app_and_related_test_diff": "",
+  "baseline_to_candidate_changed_paths": [
+    "app/devices/dispatch.js",
+    "app/diagnostics.js"
+  ],
+  "identical_regression_test_blobs": {
+    "tests/device-outcome-evidence.test.mjs": {
+      "proof": "0b65feb93e9246149a71673b97d32541e49c3264",
+      "candidate": "0b65feb93e9246149a71673b97d32541e49c3264"
+    },
+    "tests/device-outcome-screen.test.mjs": {
+      "proof": "54cbd56804c91cf8b729a57e1c0f7e8d14754d88",
+      "candidate": "54cbd56804c91cf8b729a57e1c0f7e8d14754d88"
+    },
+    "tests/diagnostics-trend-degenerate.test.mjs": {
+      "proof": "a1cd80f3132aa04b43c0a325ec48e472c9687488",
+      "candidate": "a1cd80f3132aa04b43c0a325ec48e472c9687488"
+    }
+  },
+  "related_files": [
+    "tests/device-library.test.mjs",
+    "tests/device-checks.test.mjs",
+    "tests/system-check.test.mjs",
+    "tests/devices-screen-lifecycle.test.mjs",
+    "tests/core.test.mjs",
+    "tests/stylus-wear.test.mjs"
+  ],
+  "note": "Empty diff strings mean no changes. Comparison uses committed Git objects, not mutable worktree files."
+}

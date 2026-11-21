@@ -250,6 +250,70 @@ fn eq_ci_ascii(text: &[char], i: usize, word: &str) -> bool {
     i + w.len() <= text.len() && (0..w.len()).all(|k| text[i + k].to_ascii_lowercase() == w[k])
 }
 
+// Controls and explicit BOM align this new-only boundary with JavaScript's whitespace set.
+fn ends_delimited_segment(c: char) -> bool {
+    ends_segment(c) || c.is_control() || c == '\u{feff}'
+}
+
+// For widening, treat an adjacent, closed, non-nested wrapper as a path boundary. Bare strings
+// (including redact_value's strings before JSON serialization) retain the token rule.
+// Allow ASCII spaces and known placeholder atoms, since literals/emails run first.
+fn delimited_profile_end(text: &[char], start: usize, p: usize, token_end: usize) -> usize {
+    if text.get(token_end) != Some(&' ') && starts_with_placeholder(text, token_end).is_none() {
+        return token_end;
+    }
+    let close = match start.checked_sub(1).and_then(|i| text.get(i)) {
+        Some('"') => '"',
+        Some('\'') => '\'',
+        Some('(') => ')',
+        Some('[') => ']',
+        Some('{') => '}',
+        _ => return token_end,
+    };
+    let mut k = p;
+    let mut has_space = false;
+    while k < text.len() {
+        if let Some(n) = starts_with_placeholder(text, k) {
+            k += n;
+            continue;
+        }
+        if text[k] == ' ' {
+            if k == p {
+                return token_end;
+            }
+            has_space = true;
+        } else if ends_delimited_segment(text[k]) {
+            break;
+        }
+        k += 1;
+    }
+    if !has_space
+        || k == p
+        || text[k - 1] == ' '
+        || k == text.len()
+        || (text[k] != close && !is_sep(text[k]))
+    {
+        return token_end;
+    }
+    // Verify the close even after a child-path separator. Another delimiter/control
+    // stops this lookahead, so malformed wrappers cannot rescan an entire suffix.
+    let mut q = k;
+    while q < text.len() {
+        if text[q] == close {
+            return k;
+        }
+        if let Some(n) = starts_with_placeholder(text, q) {
+            q += n;
+            continue;
+        }
+        if ends_delimited_segment(text[q]) && text[q] != ' ' && !is_sep(text[q]) {
+            return token_end;
+        }
+        q += 1;
+    }
+    token_end
+}
+
 fn redact_paths(text: &[char]) -> Vec<char> {
     let mut out: Vec<char> = Vec::with_capacity(text.len());
     let mut i = 0;
@@ -297,6 +361,7 @@ fn redact_paths(text: &[char]) -> Vec<char> {
             while k < text.len() && !ends_segment(text[k]) {
                 k += 1;
             }
+            k = delimited_profile_end(text, i, p, k);
             if k > p {
                 out.extend_from_slice(&text[i..p]);
                 out.extend("<user>".chars());
@@ -1709,6 +1774,29 @@ mod tests {
         assert_eq!(
             out,
             json!({"a": ["C:\\Users\\<user>\\x", {"serial_number": "<serial>", "serialNo": "<serial>", "n": 4, "ok": true}], "<user>": null})
+        );
+    }
+
+    #[test]
+    fn redact_value_does_not_infer_wrappers_from_later_json_serialization() {
+        let value = json!({
+            "path": "C:\\Users\\Casey Moss\\Logs",
+            "note": "C:\\Users\\Casey logged in /ready"
+        });
+        let expected = json!({
+            "path": "C:\\Users\\<user> Moss\\Logs",
+            "note": "C:\\Users\\<user> logged in /ready"
+        });
+        let empty = RedactCtx::new();
+        assert_eq!(redact_value(&value, &empty), expected);
+        assert_eq!(redact_value(&expected, &empty), expected);
+        let exact = RedactCtx::from_parts(None, Some("C:\\Users\\Casey Moss"), None, &[]);
+        assert_eq!(
+            redact_value(&value, &exact),
+            json!({
+                "path": "<profile>\\Logs",
+                "note": "C:\\Users\\<user> logged in /ready"
+            })
         );
     }
 

@@ -1,0 +1,35 @@
+{
+  "pull_request": 71,
+  "run_id": 44874227899,
+  "job_id": 136755262606,
+  "attempt": 1,
+  "published_head": "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+  "tested_merge": "cef7ef6961816ef796ced5450d781c5d37b923ba",
+  "base": "099c99c055322ef668be23e6ae50a2968614cc6d",
+  "node_version": "v22.23.5",
+  "full_suite": {
+    "tests": 2314,
+    "pass": 2313,
+    "fail": 0,
+    "skip": 1,
+    "duration_ms": 155926.985426
+  },
+  "cubic_assertion": "passed in this hosted run",
+  "conclusion": "success",
+  "complete_log_gzip": {
+    "file": "pr71-javascript-complete.log.gz",
+    "bytes": 97311,
+    "sha256": "3d53b6e5c685de556ae245892a99f1e433c01450875136352e51068bedeeb5ba"
+  },
+  "decoded_log": {
+    "bytes": 314422,
+    "sha256": "04f55f19a22b4e64f5c7c3a4351ef1188d3e865e59c399a9940d46cd2864c53d"
+  },
+  "scope": "Hosted exact-PR71 merge result, not a Node24.22.3 cause diagnosis, a repair of the retained local failure, or qualification of the later player UI.",
+  "tested_merge_tree": "3ccdec9c3c7dce2827009ae5206603248122b63e",
+  "tested_merge_ordered_parents": [
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "0a5d485eb29b43f249a8764992931cbc15d84e9b"
+  ],
+  "tested_merge_fetched_and_tree_equal_to_published": true
+}

@@ -1,0 +1,60 @@
+{
+  "recordedAtUtc": "2026-11-21 05:37:47 UTC",
+  "guard": {
+    "main": "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+    "base": "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+    "head": "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+    "mergeCommit": "cc8e18c8b28f1aaef40e9b8b1e1e51853730216f",
+    "mergeableState": "clean"
+  },
+  "mergeResult": {
+    "sha": "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "merged": true,
+    "message": "Pull Request successfully merged"
+  },
+  "verified": {
+    "merge": "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "tree": "f7e32678dd89880a7dce642424100e77c5e22374",
+    "parents": [
+      "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+      "157b0dbe1849d42e835cc365ba7292eb633c04d9"
+    ],
+    "pr65Included": true,
+    "matchesTestedTree": true
+  },
+  "mainReadback": "099c99c055322ef668be23e6ae50a2968614cc6d",
+  "pr67": {
+    "state": "closed",
+    "merged": true,
+    "head": "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+    "mergeCommit": "099c99c055322ef668be23e6ae50a2968614cc6d"
+  },
+  "pr65": {
+    "state": "closed",
+    "merged": true,
+    "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+    "reportedMergeCommit": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+    "rootDidNotIssueSeparateMergeOrClose": true
+  },
+  "issue64": {
+    "state": "closed",
+    "rootDidNotIssueSeparateClose": true
+  },
+  "preservedBranchRefReadback": [
+    {
+      "branch": "integration/deckchek-mobile-qr-continuation-20261120",
+      "head": "562609b4acc8bc24704cc864ef27c0b11c56bc00"
+    },
+    {
+      "branch": "integration/deckchek-cdj04-acquisition-20261120",
+      "head": "157b0dbe1849d42e835cc365ba7292eb633c04d9"
+    },
+    {
+      "branch": "diagnostic/fleet-gate-context-20261121",
+      "head": "69fc06eb471dfb00de544bbe233c0f5dc95402e8"
+    }
+  ],
+  "originalBranchesRetained": true,
+  "originalPr65FailureRetained": true,
+  "noRelease": true
+}

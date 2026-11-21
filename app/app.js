@@ -55,6 +55,7 @@ import { monitorScreenDefs } from './ui/screens/monitor.js';
 import { mapperScreenDefs } from './ui/screens/mapper.js';
 // [FS-33] screens imports
 import { ledgerScreenDefs } from './ui/screens/ledger.js';
+import { playerCaptureScreenDefs } from './ui/screens/player-capture.js';
 
 bindSettings(settings); // keeps feature-flag changes from being overwritten by the settings store (FS-00 §4.14)
 
@@ -102,6 +103,7 @@ const SCREENS = [
   ...mapperScreenDefs(),
   // [FS-33] screens
   ...ledgerScreenDefs(),
+  ...playerCaptureScreenDefs(),
 ];
 
 async function initNativePersistence() {

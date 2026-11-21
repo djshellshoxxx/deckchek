@@ -1,0 +1,266 @@
+{
+  "sourceCommit": "9796f80b7b9ec7dfbff26b47a9935ce4b44441e5",
+  "sourceTree": "73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "yamlVersion": "6.0.3",
+  "toolchain": "rustc 1.102.0-nightly (6905905bb 2026-11-19)\nbinary: rustc\ncommit-hash: 6905905bb7727fd0f9223f5fdc9ad4e62236d5a2\ncommit-date: 2026-11-19\nhost: x86_64-unknown-linux-gnu\nrelease: 1.102.0-nightly\nLLVM version: 23.1.6",
+  "commands": [
+    {
+      "name": "native-identity",
+      "argv": [
+        "git",
+        "diff",
+        "--exit-code",
+        "5702a450d9a7faa3efb80c5b67de69386ae07540",
+        "HEAD",
+        "--",
+        "src-tauri",
+        "database/migrations",
+        "vendor",
+        ".github/workflows",
+        "tests/contracts",
+        "tests/fixtures",
+        "app/population-metrics.json"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.004634129989426583,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-2",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.0020294449932407588,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-3",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.004252603001077659,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-4",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.003764165987377055,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-5",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.00169203600671608,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-6",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.0014595450047636405,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-7",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.0014717340091010556,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "shell-syntax-9",
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.0022802640014560893,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "generation",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional",
+        "--expected-commit",
+        "9796f80b7b9ec7dfbff26b47a9935ce4b44441e5",
+        "--expected-tree",
+        "73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4",
+        "/tmp/deckchek-fleet-gate-functional-20261121-jbp7ngy2/generated"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.0757205419940874,
+      "stdoutSha256": "64ae70282c77305a1a370127e4245af5bd4fbd0cbcd5471aafe9bec6af35e406",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "preserve-existing-output",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional",
+        "--expected-commit",
+        "9796f80b7b9ec7dfbff26b47a9935ce4b44441e5",
+        "--expected-tree",
+        "73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4",
+        "/tmp/deckchek-fleet-gate-functional-20261121-jbp7ngy2/generated"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 0.051372080997680314,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "fff25f89ebac613d35e49587c79a69591cdb34b99178c5a9351d770cfc99ce44"
+    },
+    {
+      "name": "reject-wrong-source",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional",
+        "--expected-commit",
+        "0000000000000000000000000000000000000000",
+        "--expected-tree",
+        "73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4",
+        "/tmp/deckchek-fleet-gate-functional-20261121-jbp7ngy2/wrong-identity"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 0.056815412011928856,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "07254de4f358ddc23876db9f0f2372b16a1988fd707bb7c589a7c62402b666ec"
+    },
+    {
+      "name": "rustc-version",
+      "argv": [
+        "/workspace/scratch/6f2247f2f463/rust-measurement-toolchain/rustup/toolchains/nightly-2026-11-20-x86_64-unknown-linux-gnu/bin/rustc",
+        "--version",
+        "--verbose"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.15440930701151956,
+      "stdoutSha256": "3d384a53871bdbb0b53e2441f38544437780d879e05b4d56ca2db811ded1e78c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "rust-parse-only",
+      "argv": [
+        "/workspace/scratch/6f2247f2f463/rust-measurement-toolchain/rustup/toolchains/nightly-2026-11-20-x86_64-unknown-linux-gnu/bin/rustc",
+        "-Zunpretty=ast-tree",
+        "--edition=2021",
+        "--crate-type=lib",
+        "/tmp/deckchek-fleet-gate-functional-20261121-jbp7ngy2/generated/fleet.rs"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.7159200089954538,
+      "stdout": "discarded AST tree",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "filesystem",
+      "argv": [
+        "df",
+        "-h",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-functional",
+        "/tmp"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.001911026003654115,
+      "stdoutSha256": "7c7749b4cfd98a70136cd30ab3a29cb79c1f08dae239782e3adcb79b5473b21a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native-sdk-presence",
+      "argv": [
+        "pkg-config",
+        "--modversion",
+        "gtk+-3.0",
+        "webkit2gtk-4.1",
+        "alsa",
+        "ayatana-appindicator3-0.1"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 0.005196940008318052,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "7ccf6f2b20b90f012c088887200b2401e8ada671127eb34df162d91975d8cd1d"
+    }
+  ],
+  "checks": {
+    "nativeInputsMatchFailedMerge": true,
+    "generatorPythonSyntax": true,
+    "workflowYamlSyntax": true,
+    "workflowEmbeddedPythonBlocks": [
+      {
+        "step": "Verify identity and record measurement conditions",
+        "sha256": "fa9959c272136c71244976d227b84a188020748648b24aca5115461478224d43"
+      },
+      {
+        "step": "Verify identity and record measurement conditions",
+        "sha256": "8011c5a382739a04abdfb15c6b24c43e105953a26f2c87c9fce2c85645512574"
+      },
+      {
+        "step": "Retain any failed or incomplete invocation as a failed job",
+        "sha256": "53fbce9ea9e517d331354ffcd262ad33357bf2857eff6c43aa7ffba3af325d9b"
+      }
+    ],
+    "workflowShellSyntaxSteps": [
+      "Install the failed run's compiler and native prerequisites",
+      "Verify identity and record measurement conditions",
+      "Preserve one untouched full-suite ASan baseline",
+      "Generate the reviewed transient overlay and feature record",
+      "Record context in the full suite with default test parallelism",
+      "Record four exact-source phase pairs and bundled SQLite plans",
+      "Retain any failed or incomplete invocation as a failed job"
+    ],
+    "stepTimeoutMinutes": 69,
+    "workflowJobTimeoutMinutes": 75,
+    "exactOriginalFileAfterRemovingOnlyOutsideTimerProbes": true,
+    "exactMeasuredFunctionAfterRemovingOnlyProbes": true,
+    "exactDiagnosticFixture": true,
+    "sourceProofHashes": true,
+    "migrationHashesMatched": 25,
+    "outputPreservedOnRepeat": true,
+    "wrongExpectedSourceRejectedBeforeOutput": true,
+    "rustSyntaxOnly": true,
+    "trackedFiles": 1654,
+    "changedTrackedFiles": [],
+    "gitStatusAfter": ""
+  },
+  "artifacts": {
+    "generatorSha256": "3faac5ab1c48b38363a6305d5f382dba23c8d51586a313a887e9ed9343e257c2",
+    "proposalSha256": "c5c9aa39aee40eacd9fb5058237d5ff316e22120bb5b12535afa270e8e6dccef",
+    "overlaySha256": "0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf",
+    "sourceProofSha256": "e4437f508b5dbb6d16f05c8bccfeef1efa2e3bb1d40d31ff93d0abafe40ca287"
+  },
+  "runtimeMeasurements": null,
+  "nativeCompilationAttempted": false,
+  "scope": "Frozen tooling generation, identity and parser validation only; no native test, Cargo build, SQLite query-plan execution or hosted result."
+}
