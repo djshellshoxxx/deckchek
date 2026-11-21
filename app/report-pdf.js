@@ -115,9 +115,14 @@ export function niceTicks(min, max, count = 5) {
   if (min > max) [min, max] = [max, min];
   if (min === max) { const d = Math.abs(min) * 0.1 || 1; min -= d; max += d; }
   const raw = (max - min) / Math.max(1, count);
+  // Finite points can still overflow or underflow when calculating the axis scale.
+  // Reject an unrepresentable axis instead of writing NaN/Infinity SVG coordinates.
+  if (!Number.isFinite(raw) || raw <= 0) throw new Error('unrepresentable axis range');
   const mag = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? 10 * mag;
+  if (!Number.isFinite(step) || step <= 0) throw new Error('unrepresentable axis range');
   const lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) throw new Error('unrepresentable axis range');
   const ticks = [];
   for (let v = lo, i = 0; v <= hi + step * 1e-9 && i < 1000; v = lo + (++i) * step) ticks.push(Number(v.toPrecision(12)));
   return { min: lo, max: hi, step, ticks };
