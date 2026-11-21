@@ -9,13 +9,21 @@ independent source reviews and focused tests. The
 records owned capture lifecycle, native observations distinct from defaults,
 immutable metadata and separately ephemeral audio. A successor now wires that
 API into the app's Player capture screen behind the default-off
-`features.playerCapture` opt-in. This capture-only preview is undergoing its own
-source and runtime acceptance; it is not a released or qualified diagnostic.
+`features.playerCapture` opt-in. This capture-only preview completed initial and
+fresh source/JavaScript acceptance and is published in draft #74 for its own
+hosted UI/native/platform gates; it is not a released or qualified diagnostic.
 It records one input pair for 1–30 seconds, separates requested/operator fields
 from native observations, cancels on leaving the screen, and offers a local
 metadata-only JSON export. Leaving clears captured result metadata; operator
 form values may remain for another capture, and no secure-memory-erasure claim
 is made. No waveform samples are saved by this UI.
+
+An isolated successor now adds optional local reference-file hashing, up to
+32 MiB, with a selected-file metadata descriptor in JSON. Its initial reviews
+and focused tests completed; fresh combined acceptance is next. The hash
+identifies the selected file's bytes only. Audio content and what the player
+actually played remain unverified. The selection is cleared on leaving, with
+no stored reference bytes or automatic upload. This is separate from draft #74.
 
 Retained reference/raw bytes, pitch-measurement integration, persistence/report
 wiring, scientific characterization and physical validation remain unfinished.

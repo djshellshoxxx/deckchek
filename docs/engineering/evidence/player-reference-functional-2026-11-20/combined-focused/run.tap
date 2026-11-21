@@ -1,0 +1,802 @@
+TAP version 13
+# Subtest: acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+ok 1 - acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+  ---
+  duration_ms: 7.969664
+  type: 'test'
+  ...
+# Subtest: metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+ok 2 - metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+  ---
+  duration_ms: 10.34136
+  type: 'test'
+  ...
+# Subtest: complete native observations remain unverified even when continuity counters are observed
+ok 3 - complete native observations remain unverified even when continuity counters are observed
+  ---
+  duration_ms: 1.175718
+  type: 'test'
+  ...
+# Subtest: compatibility defaults and absent nativeFields never become observed capture provenance
+ok 4 - compatibility defaults and absent nativeFields never become observed capture provenance
+  ---
+  duration_ms: 3.397288
+  type: 'test'
+  ...
+# Subtest: pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+ok 5 - pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+  ---
+  duration_ms: 2.293619
+  type: 'test'
+  ...
+# Subtest: capture fault counters and bounded diagnostic text remain visible without a player verdict
+ok 6 - capture fault counters and bounded diagnostic text remain visible without a player verdict
+  ---
+  duration_ms: 0.493662
+  type: 'test'
+  ...
+# Subtest: incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+ok 7 - incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+  ---
+  duration_ms: 1.075717
+  type: 'test'
+  ...
+# Subtest: invalid requests, providers and identities are rejected before capture starts
+ok 8 - invalid requests, providers and identities are rejected before capture starts
+  ---
+  duration_ms: 1.790302
+  type: 'test'
+  ...
+# Subtest: pre-aborted acquisition opens nothing
+ok 9 - pre-aborted acquisition opens nothing
+  ---
+  duration_ms: 0.535856
+  type: 'test'
+  ...
+# Subtest: cancellation releases a capture whose start resolves late, without returning a record
+ok 10 - cancellation releases a capture whose start resolves late, without returning a record
+  ---
+  duration_ms: 4.326225
+  type: 'test'
+  ...
+# Subtest: cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+ok 11 - cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+  ---
+  duration_ms: 2.07485
+  type: 'test'
+  ...
+# Subtest: busy or failed starts leave another capture owner untouched
+ok 12 - busy or failed starts leave another capture owner untouched
+  ---
+  duration_ms: 0.992082
+  type: 'test'
+  ...
+# Subtest: wait, phase, clock and reduced-capacity failures release only the owned capture
+ok 13 - wait, phase, clock and reduced-capacity failures release only the owned capture
+  ---
+  duration_ms: 1.86169
+  type: 'test'
+  ...
+# Subtest: a pending stop cannot return a completed record after cancellation or preemption
+ok 14 - a pending stop cannot return a completed record after cancellation or preemption
+  ---
+  duration_ms: 3.881346
+  type: 'test'
+  ...
+# Subtest: normal stop status is not unexpected loss; preempted returned audio is discarded
+ok 15 - normal stop status is not unexpected loss; preempted returned audio is discarded
+  ---
+  duration_ms: 0.50504
+  type: 'test'
+  ...
+# Subtest: default duration timer is cleared on cancellation and abort listeners are detached
+ok 16 - default duration timer is cleared on cancellation and abort listeners are detached
+  ---
+  duration_ms: 1.017891
+  type: 'test'
+  ...
+# Subtest: completed metadata survives a backwards host clock without claiming negative sample duration
+ok 17 - completed metadata survives a backwards host clock without claiming negative sample duration
+  ---
+  duration_ms: 0.446301
+  type: 'test'
+  ...
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 18 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.274266
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 19 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 1.307686
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 20 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.065673
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 21 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.736287
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 22 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 0.763858
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 23 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 1.780167
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 24 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.42518
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 25 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.369816
+  type: 'test'
+  ...
+# Subtest: reference lists reject missing slots before JSON transport
+ok 26 - reference lists reject missing slots before JSON transport
+  ---
+  duration_ms: 1.297602
+  type: 'test'
+  ...
+# Subtest: unknown uncertainty magnitude has an explicit reason with a named method
+ok 27 - unknown uncertainty magnitude has an explicit reason with a named method
+  ---
+  duration_ms: 0.75088
+  type: 'test'
+  ...
+# Subtest: registry lists every FS-00 §4.14 flag with metadata
+ok 28 - registry lists every FS-00 §4.14 flag with metadata
+  ---
+  duration_ms: 1.538263
+  type: 'test'
+  ...
+# Subtest: every features.* flag mentioned in docs/specs exists in FEATURES
+ok 29 - every features.* flag mentioned in docs/specs exists in FEATURES
+  ---
+  duration_ms: 2.175611
+  type: 'test'
+  ...
+# Subtest: defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+ok 30 - defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off
+  ---
+  duration_ms: 0.269585
+  type: 'test'
+  ...
+# Subtest: setEnabled persists in deckchek.ui.v1.features and keeps other settings
+ok 31 - setEnabled persists in deckchek.ui.v1.features and keeps other settings
+  ---
+  duration_ms: 0.520713
+  type: 'test'
+  ...
+# Subtest: corrupt or unavailable storage falls back to defaults
+ok 32 - corrupt or unavailable storage falls back to defaults
+  ---
+  duration_ms: 0.314943
+  type: 'test'
+  ...
+# Subtest: bound settings object is kept in sync so later settings writes do not clobber flags
+ok 33 - bound settings object is kept in sync so later settings writes do not clobber flags
+  ---
+  duration_ms: 0.160331
+  type: 'test'
+  ...
+# Subtest: change listeners fire and can be removed
+ok 34 - change listeners fire and can be removed
+  ---
+  duration_ms: 0.16636
+  type: 'test'
+  ...
+# Subtest: resetFeatures drops every override and notifies listeners
+ok 35 - resetFeatures drops every override and notifies listeners
+  ---
+  duration_ms: 0.402746
+  type: 'test'
+  ...
+# Subtest: fleet stays wired for manual opt-in and defaults off pending owner qualification
+ok 36 - fleet stays wired for manual opt-in and defaults off pending owner qualification
+  ---
+  duration_ms: 0.184347
+  type: 'test'
+  ...
+# Subtest: fleet honors explicit true and false overrides from storage and bound settings
+ok 37 - fleet honors explicit true and false overrides from storage and bound settings
+  ---
+  duration_ms: 0.235534
+  type: 'test'
+  ...
+# Subtest: fleet can switch on and off, persist opt-in, and notify listeners
+ok 38 - fleet can switch on and off, persist opt-in, and notify listeners
+  ---
+  duration_ms: 0.357337
+  type: 'test'
+  ...
+# Subtest: M7 and M8 flags stay default off while wired adapters remain available
+ok 39 - M7 and M8 flags stay default off while wired adapters remain available
+  ---
+  duration_ms: 0.137327
+  type: 'test'
+  ...
+# Subtest: job-sheet PDF redacts the structured serial when the shared PDF setting is enabled
+ok 40 - job-sheet PDF redacts the structured serial when the shared PDF setting is enabled
+  ---
+  duration_ms: 4.069129
+  type: 'test'
+  ...
+# Subtest: job-sheet PDF keeps explicit customer and cost choices independent of serial redaction
+ok 41 - job-sheet PDF keeps explicit customer and cost choices independent of serial redaction
+  ---
+  duration_ms: 0.537939
+  type: 'test'
+  ...
+# Subtest: default and explicitly unredacted PDF and direct HTML retain the existing serial
+ok 42 - default and explicitly unredacted PDF and direct HTML retain the existing serial
+  ---
+  duration_ms: 0.81138
+  type: 'test'
+  ...
+# Subtest: redaction does not invent a serial for absent assets or empty serial fields
+ok 43 - redaction does not invent a serial for absent assets or empty serial fields
+  ---
+  duration_ms: 0.778331
+  type: 'test'
+  ...
+# Subtest: venue report reloads immutable support A/B observations separately from current support and escapes context
+ok 44 - venue report reloads immutable support A/B observations separately from current support and escapes context
+  ---
+  duration_ms: 27.380802
+  type: 'test'
+  ...
+# Subtest: support observation read failures abort report preparation instead of presenting an empty comparison history
+ok 45 - support observation read failures abort report preparation instead of presenting an empty comparison history
+  ---
+  duration_ms: 0.596326
+  type: 'test'
+  ...
+# Subtest: every M6 kind is registered with a valid file name
+ok 46 - every M6 kind is registered with a valid file name
+  ---
+  duration_ms: 0.11335
+  type: 'test'
+  ...
+# Subtest: latency report prints the round trip, buffer rows and recommendations
+ok 47 - latency report prints the round trip, buffer rows and recommendations
+  ---
+  duration_ms: 1.748149
+  type: 'test'
+  ...
+# Subtest: stylus report has life, alerts, benchmark table and trend charts
+ok 48 - stylus report has life, alerts, benchmark table and trend charts
+  ---
+  duration_ms: 1.74898
+  type: 'test'
+  ...
+# Subtest: wear map report prints verdict, worst stretches and an SNR chart
+ok 49 - wear map report prints verdict, worst stretches and an SNR chart
+  ---
+  duration_ms: 0.960334
+  type: 'test'
+  ...
+# Subtest: scratch report prints score, components, patterns and events; unscored runs say so
+ok 50 - scratch report prints score, components, patterns and events; unscored runs say so
+  ---
+  duration_ms: 1.301507
+  type: 'test'
+  ...
+# Subtest: hum report and venue report (FS-15 AC-7) list the isolation steps per venue
+ok 51 - hum report and venue report (FS-15 AC-7) list the isolation steps per venue
+  ---
+  duration_ms: 1.563401
+  type: 'test'
+  ...
+# Subtest: venue reports distinguish unavailable incident history from loaded-empty and escape operator reports with limits
+ok 52 - venue reports distinguish unavailable incident history from loaded-empty and escape operator reports with limits
+  ---
+  duration_ms: 0.859142
+  type: 'test'
+  ...
+# Subtest: venue report collection propagates incident storage failure and includes the selected venue history
+ok 53 - venue report collection propagates incident storage failure and includes the selected venue history
+  ---
+  duration_ms: 0.622226
+  type: 'test'
+  ...
+# Subtest: venue reports identify CURRENT support descriptions, escape text and disclose missing support records
+ok 54 - venue reports identify CURRENT support descriptions, escape text and disclose missing support records
+  ---
+  duration_ms: 0.767374
+  type: 'test'
+  ...
+# Subtest: venue report collection loads supports and propagates their read failure
+ok 55 - venue report collection loads supports and propagates their read failure
+  ---
+  duration_ms: 0.330006
+  type: 'test'
+  ...
+# Subtest: venue measured history rejects failed details instead of reporting an empty saved history
+ok 56 - venue measured history rejects failed details instead of reporting an empty saved history
+  ---
+  duration_ms: 0.363937
+  type: 'test'
+  ...
+# Subtest: venue measured history rejects missing details instead of reporting an empty saved history
+ok 57 - venue measured history rejects missing details instead of reporting an empty saved history
+  ---
+  duration_ms: 0.247302
+  type: 'test'
+  ...
+# Subtest: venue measured history explicitly discloses its 50-run bound without deleting older records
+ok 58 - venue measured history explicitly discloses its 50-run bound without deleting older records
+  ---
+  duration_ms: 9.15086
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: malformed JSON aborts venue report preparation
+ok 59 - actual browser hum store: malformed JSON aborts venue report preparation
+  ---
+  duration_ms: 0.781695
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: non-array data aborts venue report preparation
+ok 60 - actual browser hum store: non-array data aborts venue report preparation
+  ---
+  duration_ms: 0.237817
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: literal null aborts venue report preparation
+ok 61 - actual browser hum store: literal null aborts venue report preparation
+  ---
+  duration_ms: 0.357999
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: unavailable storage aborts venue report preparation
+ok 62 - actual browser hum store: unavailable storage aborts venue report preparation
+  ---
+  duration_ms: 0.19322
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: throwing read aborts venue report preparation
+ok 63 - actual browser hum store: throwing read aborts venue report preparation
+  ---
+  duration_ms: 0.503126
+  type: 'test'
+  ...
+# Subtest: actual browser hum store: a missing key is empty, while a failed detail reread is an error
+ok 64 - actual browser hum store: a missing key is empty, while a failed detail reread is an error
+  ---
+  duration_ms: 0.696057
+  type: 'test'
+  ...
+# Subtest: browser preview keeps capture unavailable even if the disabled handler is invoked
+ok 65 - browser preview keeps capture unavailable even if the disabled handler is invoked
+  ---
+  duration_ms: 11.228604
+  type: 'test'
+  ...
+# Subtest: invalid duration is refused before acquisition, while the configured duration reaches the real controller
+ok 66 - invalid duration is refused before acquisition, while the configured duration reaches the real controller
+  ---
+  duration_ms: 6.469187
+  type: 'test'
+  ...
+# Subtest: real screen captures operator assertions and exports only provisional metadata with actual observations
+ok 67 - real screen captures operator assertions and exports only provisional metadata with actual observations
+  ---
+  duration_ms: 4.574298
+  type: 'test'
+  ...
+# Subtest: compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+ok 68 - compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+  ---
+  duration_ms: 2.562894
+  type: 'test'
+  ...
+# Subtest: capture faults stay visible in metadata and never grant a qualified measurement
+ok 69 - capture faults stay visible in metadata and never grant a qualified measurement
+  ---
+  duration_ms: 2.248821
+  type: 'test'
+  ...
+# Subtest: request snapshots keep original input, pair and operator values when controls change during capture
+ok 70 - request snapshots keep original input, pair and operator values when controls change during capture
+  ---
+  duration_ms: 4.443692
+  type: 'test'
+  ...
+# Subtest: cancel during recording releases its session and makes export unavailable
+ok 71 - cancel during recording releases its session and makes export unavailable
+  ---
+  duration_ms: 2.109903
+  type: 'test'
+  ...
+# Subtest: route hide cancels a late-starting capture and the late session is released without result
+ok 72 - route hide cancels a late-starting capture and the late session is released without result
+  ---
+  duration_ms: 3.822889
+  type: 'test'
+  ...
+# Subtest: disabling the feature through the real shell aborts recording and hides the screen
+ok 73 - disabling the feature through the real shell aborts recording and hides the screen
+  ---
+  duration_ms: 2.981924
+  type: 'test'
+  ...
+# Subtest: hide and show cannot publish or export a result delivered after its view was invalidated
+ok 74 - hide and show cannot publish or export a result delivered after its view was invalidated
+  ---
+  duration_ms: 1.575619
+  type: 'test'
+  ...
+# Subtest: preemption exits the real acquisition without publishing a result
+ok 75 - preemption exits the real acquisition without publishing a result
+  ---
+  duration_ms: 1.185332
+  type: 'test'
+  ...
+# Subtest: input loss exits the real acquisition without publishing a result
+ok 76 - input loss exits the real acquisition without publishing a result
+  ---
+  duration_ms: 1.404522
+  type: 'test'
+  ...
+# Subtest: input-open failure displays a local error and does not preempt another capture
+ok 77 - input-open failure displays a local error and does not preempt another capture
+  ---
+  duration_ms: 1.121957
+  type: 'test'
+  ...
+# Subtest: clear discards finished metadata and a disposed screen cannot capture or export
+ok 78 - clear discards finished metadata and a disposed screen cannot capture or export
+  ---
+  duration_ms: 2.937267
+  type: 'test'
+  ...
+# Subtest: dispose during recording cancels and releases the owned input
+ok 79 - dispose during recording cancels and releases the owned input
+  ---
+  duration_ms: 1.0708
+  type: 'test'
+  ...
+# Subtest: production native detection and shared pair picker feed the selected input pair into acquisition
+ok 80 - production native detection and shared pair picker feed the selected input pair into acquisition
+  ---
+  duration_ms: 2.918088
+  type: 'test'
+  ...
+# Subtest: browser preview uses the default file inspector while native capture remains unavailable
+ok 81 - browser preview uses the default file inspector while native capture remains unavailable
+  ---
+  duration_ms: 19.806012
+  type: 'test'
+  ...
+# Subtest: selected-file metadata snapshots into capture with a filename fallback
+ok 82 - selected-file metadata snapshots into capture with a filename fallback
+  ---
+  duration_ms: 2.755363
+  type: 'test'
+  ...
+# Subtest: selected-file metadata snapshots into capture with the entered label
+ok 83 - selected-file metadata snapshots into capture with the entered label
+  ---
+  duration_ms: 1.632024
+  type: 'test'
+  ...
+# Subtest: pending reference read blocks capture and additional picker deliveries until the first read settles
+ok 84 - pending reference read blocks capture and additional picker deliveries until the first read settles
+  ---
+  duration_ms: 7.886699
+  type: 'test'
+  ...
+# Subtest: clear rejects a late reference descriptor and cannot export it
+ok 85 - clear rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 2.664376
+  type: 'test'
+  ...
+# Subtest: escape rejects a late reference descriptor and cannot export it
+ok 86 - escape rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.101947
+  type: 'test'
+  ...
+# Subtest: hide/show rejects a late reference descriptor and cannot export it
+ok 87 - hide/show rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.340867
+  type: 'test'
+  ...
+# Subtest: shell navigation rejects a late reference descriptor and cannot export it
+ok 88 - shell navigation rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.922771
+  type: 'test'
+  ...
+# Subtest: feature disable rejects a late reference descriptor and cannot export it
+ok 89 - feature disable rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 4.758105
+  type: 'test'
+  ...
+# Subtest: dispose rejects a late reference descriptor and cannot export it
+ok 90 - dispose rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.073815
+  type: 'test'
+  ...
+# Subtest: inactive picker deliveries clear their input without reading a File
+ok 91 - inactive picker deliveries clear their input without reading a File
+  ---
+  duration_ms: 1.077881
+  type: 'test'
+  ...
+# Subtest: capture uses its selected reference snapshot and refuses picker or clear handlers while busy
+ok 92 - capture uses its selected reference snapshot and refuses picker or clear handlers while busy
+  ---
+  duration_ms: 2.351676
+  type: 'test'
+  ...
+# Subtest: new or cleared selection discards prior capture details, and failed reads leave no old reference
+ok 93 - new or cleared selection discards prior capture details, and failed reads leave no old reference
+  ---
+  duration_ms: 9.067384
+  type: 'test'
+  ...
+# Subtest: leaving after a completed reference selection clears it before another capture
+ok 94 - leaving after a completed reference selection clears it before another capture
+  ---
+  duration_ms: 1.705385
+  type: 'test'
+  ...
+# Subtest: a real selected File produces the exact known SHA-256 and only immutable metadata
+ok 95 - a real selected File produces the exact known SHA-256 and only immutable metadata
+  ---
+  duration_ms: 5.337556
+  type: 'test'
+  ...
+# Subtest: byte content determines identity while filename and MIME do not validate audio or playback
+ok 96 - byte content determines identity while filename and MIME do not validate audio or playback
+  ---
+  duration_ms: 2.299618
+  type: 'test'
+  ...
+# Subtest: invalid size and filename metadata is refused before any byte read
+ok 97 - invalid size and filename metadata is refused before any byte read
+  ---
+  duration_ms: 0.743718
+  type: 'test'
+  ...
+# Subtest: the exact 32 MiB bound is accepted and identified without retaining file bytes
+ok 98 - the exact 32 MiB bound is accepted and identified without retaining file bytes
+  ---
+  duration_ms: 303.112501
+  type: 'test'
+  ...
+# Subtest: actual read length and ArrayBuffer shape must match the selected file metadata
+ok 99 - actual read length and ArrayBuffer shape must match the selected file metadata
+  ---
+  duration_ms: 0.517988
+  type: 'test'
+  ...
+# Subtest: read failures remain failures and no descriptor is manufactured
+ok 100 - read failures remain failures and no descriptor is manufactured
+  ---
+  duration_ms: 0.17308
+  type: 'test'
+  ...
+# Subtest: already cancelled selection performs no file read
+ok 101 - already cancelled selection performs no file read
+  ---
+  duration_ms: 0.270968
+  type: 'test'
+  ...
+# Subtest: cancellation during a pending read suppresses its eventual descriptor without claiming to abort the read
+ok 102 - cancellation during a pending read suppresses its eventual descriptor without claiming to abort the read
+  ---
+  duration_ms: 0.275854
+  type: 'test'
+  ...
+# Subtest: cancellation while the digest is pending suppresses the completed hash
+ok 103 - cancellation while the digest is pending suppresses the completed hash
+  ---
+  duration_ms: 0.742747
+  type: 'test'
+  ...
+# Subtest: file name and byte length are snapshotted before the asynchronous read
+ok 104 - file name and byte length are snapshotted before the asynchronous read
+  ---
+  duration_ms: 4.632516
+  type: 'test'
+  ...
+# Subtest: suggestPdfName: pattern, kinds, local timestamp
+ok 105 - suggestPdfName: pattern, kinds, local timestamp
+  ---
+  duration_ms: 1.435499
+  type: 'test'
+  ...
+# Subtest: deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+ok 106 - deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+  ---
+  duration_ms: 0.301724
+  type: 'test'
+  ...
+# Subtest: cssString: quotes, backslashes and markup cannot break out of the <style> block
+ok 107 - cssString: quotes, backslashes and markup cannot break out of the <style> block
+  ---
+  duration_ms: 0.337267
+  type: 'test'
+  ...
+# Subtest: formatStamp is local YYYY-MM-DD HH:mm
+ok 108 - formatStamp is local YYYY-MM-DD HH:mm
+  ---
+  duration_ms: 0.21319
+  type: 'test'
+  ...
+# Subtest: defaultPaper: Letter for US-style regions, A4 elsewhere
+ok 109 - defaultPaper: Letter for US-style regions, A4 elsewhere
+  ---
+  duration_ms: 2.496734
+  type: 'test'
+  ...
+# Subtest: normalizePdfOptions / readPdfSettings
+ok 110 - normalizePdfOptions / readPdfSettings
+  ---
+  duration_ms: 0.96405
+  type: 'test'
+  ...
+# Subtest: niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+ok 111 - niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+  ---
+  duration_ms: 0.793814
+  type: 'test'
+  ...
+# Subtest: finite but unrepresentable chart axes fail closed with a visible PDF warning
+ok 112 - finite but unrepresentable chart axes fail closed with a visible PDF warning
+  ---
+  duration_ms: 4.652616
+  type: 'test'
+  ...
+# Subtest: decimate keeps endpoints and caps the count
+ok 113 - decimate keeps endpoints and caps the count
+  ---
+  duration_ms: 0.770719
+  type: 'test'
+  ...
+# Subtest: renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+ok 114 - renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+  ---
+  duration_ms: 0.607414
+  type: 'test'
+  ...
+# Subtest: severity icons differ by shape and keep the text label (AC-5)
+ok 115 - severity icons differ by shape and keep the text label (AC-5)
+  ---
+  duration_ms: 0.31238
+  type: 'test'
+  ...
+# Subtest: extractReportParts: styles from head, body only, scripts dropped
+ok 116 - extractReportParts: styles from head, body only, scripts dropped
+  ---
+  duration_ms: 0.413632
+  type: 'test'
+  ...
+# Subtest: buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+ok 117 - buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+  ---
+  duration_ms: 1.220325
+  type: 'test'
+  ...
+# Subtest: print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+ok 118 - print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+  ---
+  duration_ms: 1.521398
+  type: 'test'
+  ...
+# Subtest: partial: a failing chart becomes a placeholder and a warning
+ok 119 - partial: a failing chart becomes a placeholder and a warning
+  ---
+  duration_ms: 1.226724
+  type: 'test'
+  ...
+# Subtest: run: raw measurement table only when asked; row caps
+ok 120 - run: raw measurement table only when asked; row caps
+  ---
+  duration_ms: 3.39834
+  type: 'test'
+  ...
+# Subtest: device: serial redaction option, title and file name
+ok 121 - device: serial redaction option, title and file name
+  ---
+  duration_ms: 2.344155
+  type: 'test'
+  ...
+# Subtest: systemHealth: every finding has icon + severity text + evidence (AC-5)
+ok 122 - systemHealth: every finding has icon + severity text + evidence (AC-5)
+  ---
+  duration_ms: 1.554187
+  type: 'test'
+  ...
+# Subtest: registerPrintableKind: later features add kinds without editing report-pdf.js
+ok 123 - registerPrintableKind: later features add kinds without editing report-pdf.js
+  ---
+  duration_ms: 0.556607
+  type: 'test'
+  ...
+# Subtest: exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+ok 124 - exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+  ---
+  duration_ms: 1.203119
+  type: 'test'
+  ...
+# Subtest: exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+ok 125 - exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+  ---
+  duration_ms: 0.993594
+  type: 'test'
+  ...
+# Subtest: exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+ok 126 - exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+  ---
+  duration_ms: 1.286465
+  type: 'test'
+  ...
+# Subtest: exportPdf: backend errors fall back to the print dialog and report the error
+ok 127 - exportPdf: backend errors fall back to the print dialog and report the error
+  ---
+  duration_ms: 1.1968
+  type: 'test'
+  ...
+# Subtest: exportPdf: timeout rejects with a retryable error (AC-7)
+ok 128 - exportPdf: timeout rejects with a retryable error (AC-7)
+  ---
+  duration_ms: 52.698411
+  type: 'test'
+  ...
+# Subtest: exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+ok 129 - exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+  ---
+  duration_ms: 9.787628
+  type: 'test'
+  ...
+# Subtest: normalizePdfError handles strings and objects
+ok 130 - normalizePdfError handles strings and objects
+  ---
+  duration_ms: 1.067105
+  type: 'test'
+  ...
+# Subtest: loadPrintCss fetches once and tolerates failure
+ok 131 - loadPrintCss fetches once and tolerates failure
+  ---
+  duration_ms: 1.29055
+  type: 'test'
+  ...
+# Subtest: report fixture for the Windows PrintToPdf test is up to date
+ok 132 - report fixture for the Windows PrintToPdf test is up to date
+  ---
+  duration_ms: 1.76245
+  type: 'test'
+  ...
+1..132
+# tests 132
+# suites 0
+# pass 132
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1364.496612

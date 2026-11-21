@@ -1,0 +1,178 @@
+TAP version 13
+# Subtest: suggestPdfName: pattern, kinds, local timestamp
+ok 1 - suggestPdfName: pattern, kinds, local timestamp
+  ---
+  duration_ms: 2.30057
+  type: 'test'
+  ...
+# Subtest: deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+ok 2 - deviceSlug: unicode, invalid Windows chars, reserved names, 40-char cap
+  ---
+  duration_ms: 0.556898
+  type: 'test'
+  ...
+# Subtest: cssString: quotes, backslashes and markup cannot break out of the <style> block
+ok 3 - cssString: quotes, backslashes and markup cannot break out of the <style> block
+  ---
+  duration_ms: 0.47878
+  type: 'test'
+  ...
+# Subtest: formatStamp is local YYYY-MM-DD HH:mm
+ok 4 - formatStamp is local YYYY-MM-DD HH:mm
+  ---
+  duration_ms: 0.323496
+  type: 'test'
+  ...
+# Subtest: defaultPaper: Letter for US-style regions, A4 elsewhere
+ok 5 - defaultPaper: Letter for US-style regions, A4 elsewhere
+  ---
+  duration_ms: 6.567445
+  type: 'test'
+  ...
+# Subtest: normalizePdfOptions / readPdfSettings
+ok 6 - normalizePdfOptions / readPdfSettings
+  ---
+  duration_ms: 0.974976
+  type: 'test'
+  ...
+# Subtest: niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+ok 7 - niceTicks: covers the range with 1/2/2.5/5 x 10^n steps
+  ---
+  duration_ms: 0.720513
+  type: 'test'
+  ...
+# Subtest: finite but unrepresentable chart axes fail closed with a visible PDF warning
+ok 8 - finite but unrepresentable chart axes fail closed with a visible PDF warning
+  ---
+  duration_ms: 6.303509
+  type: 'test'
+  ...
+# Subtest: decimate keeps endpoints and caps the count
+ok 9 - decimate keeps endpoints and caps the count
+  ---
+  duration_ms: 1.1039
+  type: 'test'
+  ...
+# Subtest: renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+ok 10 - renderChartSvg: vector SVG, selectable text, escaped labels, strokes >= 0.75 pt on A4
+  ---
+  duration_ms: 1.068407
+  type: 'test'
+  ...
+# Subtest: severity icons differ by shape and keep the text label (AC-5)
+ok 11 - severity icons differ by shape and keep the text label (AC-5)
+  ---
+  duration_ms: 0.356386
+  type: 'test'
+  ...
+# Subtest: extractReportParts: styles from head, body only, scripts dropped
+ok 12 - extractReportParts: styles from head, body only, scripts dropped
+  ---
+  duration_ms: 0.620212
+  type: 'test'
+  ...
+# Subtest: buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+ok 13 - buildPrintableReport(run): @page header/footer, counter, no script, escaped user strings, SVG charts
+  ---
+  duration_ms: 1.88184
+  type: 'test'
+  ...
+# Subtest: print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+ok 14 - print CSS: theme-independent light palette, rows unsplit, thead repeats (AC-2, AC-4)
+  ---
+  duration_ms: 5.865319
+  type: 'test'
+  ...
+# Subtest: partial: a failing chart becomes a placeholder and a warning
+ok 15 - partial: a failing chart becomes a placeholder and a warning
+  ---
+  duration_ms: 2.592558
+  type: 'test'
+  ...
+# Subtest: run: raw measurement table only when asked; row caps
+ok 16 - run: raw measurement table only when asked; row caps
+  ---
+  duration_ms: 8.714924
+  type: 'test'
+  ...
+# Subtest: device: serial redaction option, title and file name
+ok 17 - device: serial redaction option, title and file name
+  ---
+  duration_ms: 3.187303
+  type: 'test'
+  ...
+# Subtest: systemHealth: every finding has icon + severity text + evidence (AC-5)
+ok 18 - systemHealth: every finding has icon + severity text + evidence (AC-5)
+  ---
+  duration_ms: 2.196173
+  type: 'test'
+  ...
+# Subtest: registerPrintableKind: later features add kinds without editing report-pdf.js
+ok 19 - registerPrintableKind: later features add kinds without editing report-pdf.js
+  ---
+  duration_ms: 0.83087
+  type: 'test'
+  ...
+# Subtest: exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+ok 20 - exportPdf: WebView2 path when pdf_render succeeds (AC-1), exact contract arguments
+  ---
+  duration_ms: 2.213518
+  type: 'test'
+  ...
+# Subtest: exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+ok 21 - exportPdf: browser mode / non-Windows go straight to the print fallback (AC-6)
+  ---
+  duration_ms: 2.509293
+  type: 'test'
+  ...
+# Subtest: exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+ok 22 - exportPdf: pdf_render "unsupported" falls back and is remembered for the session
+  ---
+  duration_ms: 2.526519
+  type: 'test'
+  ...
+# Subtest: exportPdf: backend errors fall back to the print dialog and report the error
+ok 23 - exportPdf: backend errors fall back to the print dialog and report the error
+  ---
+  duration_ms: 2.552638
+  type: 'test'
+  ...
+# Subtest: exportPdf: timeout rejects with a retryable error (AC-7)
+ok 24 - exportPdf: timeout rejects with a retryable error (AC-7)
+  ---
+  duration_ms: 42.221347
+  type: 'test'
+  ...
+# Subtest: exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+ok 25 - exportPdf: path errors are not retried or printed; cancel is quiet; one export at a time
+  ---
+  duration_ms: 2.384295
+  type: 'test'
+  ...
+# Subtest: normalizePdfError handles strings and objects
+ok 26 - normalizePdfError handles strings and objects
+  ---
+  duration_ms: 0.535805
+  type: 'test'
+  ...
+# Subtest: loadPrintCss fetches once and tolerates failure
+ok 27 - loadPrintCss fetches once and tolerates failure
+  ---
+  duration_ms: 0.393051
+  type: 'test'
+  ...
+# Subtest: report fixture for the Windows PrintToPdf test is up to date
+ok 28 - report fixture for the Windows PrintToPdf test is up to date
+  ---
+  duration_ms: 0.559231
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 28
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 215.083374
