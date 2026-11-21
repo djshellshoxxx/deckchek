@@ -1,0 +1,8 @@
+{
+  "tip": "c67bd2a5d2bbe37ce0e97e0e8db4962a14c706ce",
+  "bytes": 307655,
+  "sha256": "aa8ce41bbb2716c2b126bd128bfa025f0c18414f387953c9cfb5fe274207f7f5",
+  "header": "# v2 git bundle\n-099c99c055322ef668be23e6ae50a2968614cc6d Merge owned CDJ acquisition and QR consolidation (#67)\n-6cd827b0204bc450b8fc6236a179c7383dd52911 Complete six-worker device outcome and trend acceptance\n-0a5d485eb29b43f249a8764992931cbc15d84e9b Consolidate corrected outcomes and bounded diagnostics redaction; retain exact review evidence [no release] [no deploy]\n-b8dfc126c2480f303df105abd3759fedae49a192 Cover duplicate usage session proposals and inherited source names\n-5cc916eefbeb3e174edf9bdbcd6c731d6776e56d test(pdf): cover finite-axis overflow and underflow warnings\n-78403038c530a981b732d5ac0210539edf37fc77 Consolidate player capture preview and usage correction with six completed reviews [no release] [no deploy]\nc67bd2a5d2bbe37ce0e97e0e8db4962a14c706ce HEAD",
+  "gitBundleVerified": true,
+  "scope": "Preserves original local reference/PDF source and all six review histories through failed fresh acceptance."
+}

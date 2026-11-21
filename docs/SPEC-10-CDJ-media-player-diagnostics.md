@@ -19,8 +19,9 @@ form values may remain for another capture, and no secure-memory-erasure claim
 is made. No waveform samples are saved by this UI.
 
 An isolated successor now adds optional local reference-file hashing, up to
-32 MiB, with a selected-file metadata descriptor in JSON. Its initial reviews
-and focused tests completed; fresh combined acceptance is next. The hash
+32 MiB, with a selected-file metadata descriptor in JSON. All six reference/PDF reviews
+completed, but the full-suite gate is held for recurring existing audio
+assertion failures; focused passes do not qualify the combined successor. The hash
 identifies the selected file's bytes only. Audio content and what the player
 actually played remain unverified. The selection is cleared on leaving, with
 no stored reference bytes or automatic upload. This is separate from draft #74.

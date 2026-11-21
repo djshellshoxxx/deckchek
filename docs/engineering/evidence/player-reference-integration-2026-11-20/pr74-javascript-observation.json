@@ -1,0 +1,28 @@
+{
+  "pullRequest": 74,
+  "workflowRun": 44877877101,
+  "job": 136766494542,
+  "head": "78403038c530a981b732d5ac0210539edf37fc77",
+  "testedMerge": "62457f033c4b5d1bff3586959703f87e9e42835e",
+  "testedTree": "5986c675b123203ecaf46f352d99a25b539c9f9f",
+  "orderedParents": [
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "78403038c530a981b732d5ac0210539edf37fc77"
+  ],
+  "mergeFetchedWholeTreeAndParentsVerified": true,
+  "runtime": "Node v22.23.5",
+  "counts": {
+    "tests": 2332,
+    "pass": 2331,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "durationMs": 113786.994878,
+  "decodedBytes": 316651,
+  "decodedSha256": "772fefd2afe2be66f27b2ac7bfedb804669b49bec12097eb18aba6b9986c4199",
+  "gzipBytes": 97426,
+  "gzipSha256": "12d6c9ab509a756c900ac63d3a71e01306f0c3326adb8229d904a6e7a21e1692",
+  "scope": "Actual standard hosted JavaScript job on PR74. Different source/runtime from current reference/PDF Node24 full run; does not explain or repair its two audio failures, establish browser/native results, or qualify a release."
+}

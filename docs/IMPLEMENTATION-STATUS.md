@@ -1,6 +1,32 @@
 # DeckChek implementation status
 
-## Current player capture and usage consolidation — 20 November 2026
+## Current reference/PDF continuation — full qualification held
+
+All three initial workers and three fresh successors completed the
+[reference-file/PDF review cycle](engineering/PLAYER_REFERENCE_CONTINUATION_2026-11-20.md).
+Optional selected-file SHA-256 metadata and corrected PDF rounded-axis fallback
+passed their 132 focused cases; static code/defensive reviews accepted the
+bounded source. The first complete serial Node24.22.3 run nevertheless recorded
+**2,357 total / 2,354 pass / 2 fail / 1 optional skip**, across192files, with all
+1,943tracked hashes unchanged. The existing cubic THD assertion repeated #72;
+an audio-runner retry saved once but its measurement verdict failed. No cause,
+ownership defect or common cause is established. **Combined qualification is
+held for a separate audio-diagnosis trio.** No narrow rerun replaced that result.
+
+Fresh source `ded34d2dccfcf0ae51c78fa1492a57c161d32a1d`, tree
+`9030b4d9eeb307f27c0d794dccf4a37895c2a602`, has verified durable equivalent
+`b8bf6ea10791b05a2188d176ae8b996528a10f08`. All original failures, complete TAP,
+source maps and six reports are retained. #73's original candidate stays fixed.
+Draft #74 remains fixed at `78403038c530a981b732d5ac0210539edf37fc77` for its own
+hosted gates; #71 is superseded/closed unmerged with original branch retained.
+Main is last verified at `099c99c055322ef668be23e6ae50a2968614cc6d`.
+
+Browser/print smokes have syntax evidence only. No local Chromium retry/native
+claim follows. #69/#72 and unchanged AC-6 stay open. Reference/raw retention,
+pitch integration, persistence/reports and physical/scientific gates remain;
+Fleet stays off, its diagnostic remains fixed, and thresholds are unchanged.
+
+## Historical player capture and usage consolidation — 20 November 2026
 
 All three initial workers and three fresh successors completed the
 [Player capture and usage handoff](engineering/PLAYER_CAPTURE_CONTINUATION_2026-11-20.md).
