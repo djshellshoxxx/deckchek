@@ -8,9 +8,13 @@ export const CDJ_QUALITY_FLAGS = Object.freeze([
 ]);
 
 const ownObject = (value, label) => {
-  if (value == null) return {};
+  if (value == null) return Object.create(null);
   if (typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`${label} must be an object`);
-  return value;
+  // Only JSON-like records are valid. Snapshot *own* fields so inherited
+  // metadata cannot become asserted provenance (including polluted prototypes).
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) throw new TypeError(`${label} must be a plain object`);
+  return Object.assign(Object.create(null), value);
 };
 const text = (value, label, max = 240) => {
   if (value == null || value === '') return null;
@@ -22,8 +26,8 @@ const text = (value, label, max = 240) => {
 };
 const number = (value, label, { min = -Infinity, max = Infinity, integer = false } = {}) => {
   if (value == null) return null;
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
-    throw new RangeError(`${label} must be a finite${integer ? ' integer' : ''} number in range`);
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isSafeInteger(value))) {
+    throw new RangeError(`${label} must be a finite${integer ? ' safe integer' : ''} number in range`);
   }
   return value;
 };
