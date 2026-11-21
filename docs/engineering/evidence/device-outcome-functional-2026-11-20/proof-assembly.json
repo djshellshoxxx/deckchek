@@ -1,0 +1,10 @@
+{
+  "parent": "9035fd46b861e020acb28c6f09fc998b028d117e",
+  "current_candidate": "9de3f95cf0e79851dc01a27066c515c6691ef811",
+  "replacement_test": "tests/device-outcome-screen.test.mjs",
+  "replacement_blob": "54cbd56804c91cf8b729a57e1c0f7e8d14754d88",
+  "proof_source": "74f19b85e462b3602b12814a44226b6b9002b6d3",
+  "proof_tree": "fb39930b3ddd2e0c4aadf80142773bff121917b8",
+  "proof_path": "/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof",
+  "description": "The proof tree differs from the test-only parent solely by the final screen test file. Its application source is unchanged from assigned base 9fc11d6e15cc97141c14b309c61a38393fcbafd8. The proof worktree is frozen before execution."
+}

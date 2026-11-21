@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/device-library.test.mjs",
+    "tests/device-checks.test.mjs",
+    "tests/system-check.test.mjs",
+    "tests/devices-screen-lifecycle.test.mjs",
+    "tests/core.test.mjs",
+    "tests/stylus-wear.test.mjs"
+  ],
+  "completed_at_utc": "2026-11-21T05:03:06.149710+00:00",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-device-outcome-functional",
+  "elapsed_seconds": 1.649701794000066,
+  "exit_code": 0,
+  "node": "v24.22.3",
+  "source": "8fbaa3e2ea95ec3ed4a47bdf30dfd04b0bb09aab",
+  "started_at_utc": "2026-11-21T05:03:04.426872+00:00",
+  "tap_sha256": "a7e0fab43e56c805c6b5dd820e55504d5971944529066bfd45c8f923ea1d71b0",
+  "tracked_count": 1749,
+  "tracked_unchanged": true,
+  "tree": "a9b9b0734d2da1670bec798e7b5071deaf494e19",
+  "worktree_status_after": ""
+}

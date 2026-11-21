@@ -1,0 +1,92 @@
+{
+  "run_id": 44867671512,
+  "artifact_id": 14692768918,
+  "zip_sha256": "420867c55efa1b7ecf182da724d9d99893af23debb0c0d886aaa062523797de9",
+  "files": [
+    {
+      "path": "artifact/Cargo.lock",
+      "bytes": 135289,
+      "sha256": "2e959fe81ccb6492f89b3cd10647a81d094506b0f72806c097ef523259d55a74"
+    },
+    {
+      "path": "artifact/Cargo.toml",
+      "bytes": 1286,
+      "sha256": "b0a75a2161ff3186dbb45b7f5cc2d542c1bb67f7b795ba79eb508728f450b76d"
+    },
+    {
+      "path": "artifact/baseline.json",
+      "bytes": 3662,
+      "sha256": "7c0fd1997cb88d8131080a38dc98b6390197fac566b2ece8f00cef4ed8884198"
+    },
+    {
+      "path": "artifact/baseline.log",
+      "bytes": 84730,
+      "sha256": "f62a0abdf3e837aa9b8e0278f02eeb59386f87e9520d941b69a322b7034c4511"
+    },
+    {
+      "path": "artifact/context.json",
+      "bytes": 2274,
+      "sha256": "6ffc6786b07d5b4d81f293c7832277cd8b7c27943711e0517be97265373d99ae"
+    },
+    {
+      "path": "artifact/instrumented.json",
+      "bytes": 4245,
+      "sha256": "0141128d5d0af2c5486d21812ae6ac95a0331b79f8db62124d589107742841da"
+    },
+    {
+      "path": "artifact/instrumented.log",
+      "bytes": 125350,
+      "sha256": "3f018e19abddcbce1ee7acf113b8256d459024eff022ed961f0043155a4eedfe"
+    },
+    {
+      "path": "artifact/native-features.txt",
+      "bytes": 279334,
+      "sha256": "9521858f4ce763188ec206f28ca97c2ecc0113eb73a1944e48c48379e1577527"
+    },
+    {
+      "path": "artifact/overlay/fleet.rs",
+      "bytes": 103318,
+      "sha256": "0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf"
+    },
+    {
+      "path": "artifact/overlay/source-proof.json",
+      "bytes": 3995,
+      "sha256": "1940de1d300956e5fa24fe85d8ef71893063354a4d08ee2146a6ffa79f44738b"
+    },
+    {
+      "path": "artifact/phases.json",
+      "bytes": 20940,
+      "sha256": "d47f9bcbf6cdf62a92568d5224f2e37ec3f6c9e1f228da0c952ba1684f7effb2"
+    },
+    {
+      "path": "artifact/phases.log",
+      "bytes": 9719,
+      "sha256": "5d948c22f66856c1da89e9f477b678ded115527a88c4d85d969076b3f01b7139"
+    },
+    {
+      "path": "artifact/run.py",
+      "bytes": 3981,
+      "sha256": "3767bf0252936780b0898dde7d3b28bf87b9c9294cb36844913d1f792f7539b6"
+    },
+    {
+      "path": "complete-job.log",
+      "bytes": 486777,
+      "sha256": "5aef76d0196409c98a1b54b5d889aad3d4c42c241e5f9d7742525342c54cf7cf"
+    },
+    {
+      "path": "fleet-gate-context-44867671512.zip",
+      "bytes": 144758,
+      "sha256": "420867c55efa1b7ecf182da724d9d99893af23debb0c0d886aaa062523797de9"
+    },
+    {
+      "path": "result-summary.json",
+      "bytes": 8750,
+      "sha256": "edd034a885efcd2dde88e60448ff1a1b4db724713093d4efadb93b6e697576ab"
+    },
+    {
+      "path": "verify-artifacts.py",
+      "bytes": 7865,
+      "sha256": "dead2af5fba18d6a06f32061667a692dd9ae4d030015dadf48120a7622138a3e"
+    }
+  ]
+}

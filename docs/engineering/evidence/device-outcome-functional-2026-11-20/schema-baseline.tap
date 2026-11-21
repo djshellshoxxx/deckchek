@@ -1,0 +1,192 @@
+TAP version 13
+# Subtest: an outcome without a criterion, verdict or usable observation remains unknown
+not ok 1 - an outcome without a criterion, verdict or usable observation remains unknown
+  ---
+  duration_ms: 1.960498
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-evidence.test.mjs:5:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'pass' !== 'unknown'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'unknown'
+  actual: 'pass'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-evidence.test.mjs:14:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: finite observations, including zero and negative values, retain their finding-based result
+ok 2 - finite observations, including zero and negative values, retain their finding-based result
+  ---
+  duration_ms: 0.290196
+  type: 'test'
+  ...
+# Subtest: an explicit OK finding remains affirmative evidence without numeric readings
+ok 3 - an explicit OK finding remains affirmative evidence without numeric readings
+  ---
+  duration_ms: 0.214973
+  type: 'test'
+  ...
+# Subtest: the latest observation of a metric controls whether that metric supplies evidence
+not ok 4 - the latest observation of a metric controls whether that metric supplies evidence
+  ---
+  duration_ms: 0.326882
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-evidence.test.mjs:34:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'pass' !== 'unknown'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'unknown'
+  actual: 'pass'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-evidence.test.mjs:36:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: errors and review findings retain precedence over positive evidence
+ok 5 - errors and review findings retain precedence over positive evidence
+  ---
+  duration_ms: 0.253561
+  type: 'test'
+  ...
+# Subtest: explicit engine verdicts still own no-criterion results
+ok 6 - explicit engine verdicts still own no-criterion results
+  ---
+  duration_ms: 1.202668
+  type: 'test'
+  ...
+# Subtest: a profile criterion still owns the result and its latest-observation rule
+ok 7 - a profile criterion still owns the result and its latest-observation rule
+  ---
+  duration_ms: 0.305009
+  type: 'test'
+  ...
+# Subtest: a supported scan without a driver definition saves UNKNOWN through the actual Devices screen
+not ok 8 - a supported scan without a driver definition saves UNKNOWN through the actual Devices screen
+  ---
+  duration_ms: 35.282149
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-screen.test.mjs:71:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    persisted browser-catalog status
+    
+    'pass' !== 'unknown'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'unknown'
+  actual: 'pass'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/device-outcome-screen.test.mjs:78:10)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: an explicit class-compliant OK finding still saves PASS through the actual Devices screen
+ok 9 - an explicit class-compliant OK finding still saves PASS through the actual Devices screen
+  ---
+  duration_ms: 7.821628
+  type: 'test'
+  ...
+# Subtest: the default bridge and screen do not save an unavailable null native scan
+ok 10 - the default bridge and screen do not save an unavailable null native scan
+  ---
+  duration_ms: 4.384872
+  type: 'test'
+  ...
+# Subtest: the default bridge and screen do not save an unavailable undefined native scan
+ok 11 - the default bridge and screen do not save an unavailable undefined native scan
+  ---
+  duration_ms: 4.750892
+  type: 'test'
+  ...
+# Subtest: the default bridge and screen do not save an unavailable unsupported native scan
+ok 12 - the default bridge and screen do not save an unavailable unsupported native scan
+  ---
+  duration_ms: 5.445155
+  type: 'test'
+  ...
+# Subtest: trend regression does not describe a repeated-time baseline as a perfect fit
+ok 13 - trend regression does not describe a repeated-time baseline as a perfect fit
+  ---
+  duration_ms: 0.992452
+  type: 'test'
+  ...
+# Subtest: identical fractional time 1000.1 has no identifiable fit
+not ok 14 - identical fractional time 1000.1 has no identifiable fit
+  ---
+  duration_ms: 0.674314
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/diagnostics-trend-degenerate.test.mjs:19:3'
+  failureType: 'testCodeFailure'
+  error: 'slopePerMin must be unknown without a time span'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/diagnostics-trend-degenerate.test.mjs:25:16)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: identical fractional time 123456.7 has no identifiable fit
+not ok 15 - identical fractional time 123456.7 has no identifiable fit
+  ---
+  duration_ms: 0.133631
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/diagnostics-trend-degenerate.test.mjs:19:3'
+  failureType: 'testCodeFailure'
+  error: 'slopePerMin must be unknown without a time span'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-device-outcome-baseline-proof/tests/diagnostics-trend-degenerate.test.mjs:25:16)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+    Test.run (node:internal/test_runner/test:1467:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: valid time span retains constant and linear trend behavior
+ok 16 - valid time span retains constant and linear trend behavior
+  ---
+  duration_ms: 0.839221
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 11
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 361.889898

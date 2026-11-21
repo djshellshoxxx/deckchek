@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "5702a450d9a7faa3efb80c5b67de69386ae07540",
+  "sourceTree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+  "toolingCommit": "69fc06eb471dfb00de544bbe233c0f5dc95402e8",
+  "toolingTree": "09b6da880e5a19ea18cdea03e9511d760658bce4",
+  "rustc": "rustc 1.102.0-nightly (c7d5ba59d 2026-11-20)\nbinary: rustc\ncommit-hash: c7d5ba59d8e11ee2e2204b173458eec4cb41c973\ncommit-date: 2026-11-20\nhost: x86_64-unknown-linux-gnu\nrelease: 1.102.0-nightly\nLLVM version: 23.1.6",
+  "cargo": "cargo 1.102.0-nightly (f93c676e3 2026-11-15)",
+  "cc": "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0\nCopyright (C) 2021 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "kernelRelease": "6.8.0-1070-azure",
+  "machine": "x86_64",
+  "cpuCount": 4,
+  "cpuAffinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "cpuMax": null,
+  "schedSchedstats": "0\n",
+  "osRelease": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+  "environment": {
+    "RUSTFLAGS": "-Zsanitizer=address",
+    "RUSTDOCFLAGS": "-Zsanitizer=address",
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "CARGO_INCREMENTAL": "0",
+    "ImageOS": "ubuntu22",
+    "ImageVersion": "20261116.365.1",
+    "GITHUB_SHA": "69fc06eb471dfb00de544bbe233c0f5dc95402e8",
+    "GITHUB_WORKFLOW_REF": "djshellshoxxx/deckchek/.github/workflows/fleet-gate-context.yml@refs/heads/diagnostic/fleet-gate-context-20261121",
+    "GITHUB_WORKFLOW_SHA": "69fc06eb471dfb00de544bbe233c0f5dc95402e8"
+  },
+  "nativeSdkVersions": "3.24.33\n2.50.4\n1.2.6.1\n0.5.90",
+  "generatorSha256": "3faac5ab1c48b38363a6305d5f382dba23c8d51586a313a887e9ed9343e257c2",
+  "limits": "one untouched baseline; separate instrumented full suite; separate bounded isolated phases; original PR65 failure remains failed; no causal or qualification claim from a diagnostic pass"
+}

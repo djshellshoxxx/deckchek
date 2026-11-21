@@ -78,7 +78,8 @@ const SEV_RANK = { error: 3, critical: 3, fail: 3, warning: 2, warn: 2, review: 
 
 /**
  * Result status for a completed test. With a pass criterion: evaluatePass. Without one the engine's own
- * verdict decides (verdictStatus 'pass'|'fail'|...), else findings: any error → fail, warnings → unknown, none → pass.
+ * verdict decides (verdictStatus 'pass'|'fail'|...), else findings: any error → fail, warnings → unknown.
+ * A finding-based pass needs a finite latest measurement or an explicit OK finding; no evidence → unknown.
  */
 export function evaluateOutcome(test, { measurements = [], findings = [], verdictStatus = null } = {}) {
   if (test?.pass) {
@@ -91,6 +92,11 @@ export function evaluateOutcome(test, { measurements = [], findings = [], verdic
   const worst = Math.max(-1, ...findings.map(f => SEV_RANK[f.severity] ?? 0));
   if (worst >= 3) return { status: 'fail', detail: 'No pass threshold in the profile; at least one finding is an error.', criterion: 'findings' };
   if (worst >= 1) return { status: 'unknown', detail: 'No pass threshold in the profile; findings need review.', criterion: 'findings' };
+  const latest = new Map();
+  for (const m of measurements) if (typeof m?.metricId === 'string' && m.metricId.trim()) latest.set(m.metricId, m.value);
+  if (!findings.some(f => f.severity === 'ok') && ![...latest.values()].some(Number.isFinite)) {
+    return { status: 'unknown', detail: 'No pass threshold in the profile; no usable observation or OK finding was recorded.', criterion: 'evidence' };
+  }
   return { status: 'pass', detail: 'No pass threshold in the profile; no problems were found.', criterion: 'findings' };
 }
 

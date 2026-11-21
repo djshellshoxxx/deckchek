@@ -1,0 +1,42 @@
+[package]
+name = "deckchek"
+version = "0.1.0"
+description = "DJ hardware diagnostic workstation"
+authors = ["Circuit Drift Labs"]
+edition = "2021"
+
+[lib]
+name = "deckchek_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+rusqlite = { version = "0.41", features = ["backup", "bundled"] }
+cpal = "0.16"
+rtrb = "0.3"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+midir = "0.10"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+sha2 = "0.10"
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
+base64 = "0.22"
+ed25519-dalek = "2"
+getrandom = "0.3"
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+
+[features]
+# Exposes `deckchek_lib::fuzz_api` for the cargo-fuzz targets in `fuzz/`. Never enabled in release builds.
+fuzzing = []
+
+# RUSTSEC-2024-0429: exact upstream fix on the normalized 0.18.5 registry source.
+# Provenance and removal criteria: ../vendor/glib-0.18.5.README.md
+[patch.crates-io]
+glib = { path = "../vendor/glib-0.18.5" }
