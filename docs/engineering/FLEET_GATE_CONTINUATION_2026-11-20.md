@@ -36,6 +36,16 @@ successful #58/#59 ASan runs used `6905905bb` from the preceding day, each with
 context are preserved in [this comparison record](evidence/fleet-gate-diagnostic-2026-11-20/historical-success-context.json).
 The compiler difference is a comparison variable. It does not establish cause.
 
+Later, [PR #67's ASan job](https://github.com/djshellshoxxx/deckchek/actions/runs/44865459717/job/136728004015)
+passed 767 / zero failed / eight ignored with the same `c7d5ba59d` compiler as
+the failed #65 run. Its actual merge `cc8e18c8b28f1aaef40e9b8b1e1e51853730216f`
+was fetched and verified to have the complete published #67 tree. Relevant
+native/fixture inputs and nightly workflow remain unchanged. The
+[complete log and record](evidence/fleet-gate-diagnostic-2026-11-20/pr67-asan-success.json)
+retain that source-specific observation. It neither erases the preceding
+failure nor establishes its cause; remaining #67 gates were still pending at
+the 04:35 UTC readback.
+
 The entire native source, migrations, vendored code and nightly workflow are
 unchanged across these sources. The code audit found bulk queries followed by
 in-memory enrichment, with no new per-reminder SQL. Source review alone cannot
@@ -46,8 +56,8 @@ identify which cost or execution condition explains the timing failure.
 Author tooling source `9796f80b7b9ec7dfbff26b47a9935ce4b44441e5`, tree
 `73cba12d57c6c5ba256cdcd45b9bad9a9822a8f4`, adds a generator and an inert workflow
 proposal. [The proposal](proposals/fleet-gate-diagnostic.yml) is outside the
-active Actions workflow directory. It must receive fresh independent acceptance
-before an exact-byte copy is activated on its named diagnostic branch.
+active Actions workflow directory. Its fresh independent acceptance is complete. An exact-byte copy may now be
+activated once on its named diagnostic branch.
 
 The experiment uses separate immutable tooling and source checkouts, the exact
 failed merge, a verified compiler, the complete native manifest/feature graph,
@@ -73,17 +83,46 @@ the job limit; provider cancellation or runner loss can still prevent delivery.
 
 ## Reviews and local validation
 
-All three initial workers completed before the fresh set begins. The code and
-defensive reviews accepted the frozen tooling for independent review. The
-author completed generation, exact source-restoration and parser checks with
-all 1,654 tracked hashes unchanged. No native build, benchmark or project test
-is implied by these local tooling checks. Fresh acceptance remains pending.
+All three initial workers finished before three different fresh reviewers began.
+All six are complete, and the fresh set accepted the exact diagnostic for its
+bounded activation. No native build, benchmark or project test is implied by
+local tooling validation.
 
-| Initial role | Report |
-| --- | --- |
-| Code and specification | [Source audit](FLEET_GATE_CODE_AUDIT_2026-11-20.md) |
-| Functional author | [Investigation and tooling evidence](FLEET_GATE_FUNCTIONAL_AUDIT_2026-11-20.md) |
-| Defensive source review | [Security audit](FLEET_GATE_SECURITY_AUDIT_2026-11-20.md) |
+| Role | Initial | Fresh independent acceptance |
+| --- | --- | --- |
+| Code and specification | [Audit](FLEET_GATE_CODE_AUDIT_2026-11-20.md) | [Acceptance](FLEET_GATE_CODE_ACCEPTANCE_2026-11-20.md) |
+| Functional | [Author investigation](FLEET_GATE_FUNCTIONAL_AUDIT_2026-11-20.md) | [Acceptance](FLEET_GATE_FUNCTIONAL_ACCEPTANCE_2026-11-20.md) |
+| Defensive source | [Audit](FLEET_GATE_SECURITY_AUDIT_2026-11-20.md) | [Acceptance](FLEET_GATE_SECURITY_ACCEPTANCE_2026-11-20.md) |
+
+The independently reviewed combined source is
+`f1172b87902aa05c93c452619c7ed1e359f939e6`, tree
+`41031b09d19dfd1ca90dd95173872aaeb280e3f6`. Durable equivalent
+`1625bb4dc6906777b7891e9158a2ef651e40be89` was fetched and verified to have the
+same whole tree and retain published #67 ancestry. Final review/status records
+are a documentation/evidence overlay; generator and proposal bytes remain fixed.
+
+Fresh verification passed **60 tooling checks** in **1.419739933 seconds**,
+with all **1,706 tooling** and **1,626 failed-merge input** hashes unchanged and
+both checkouts clean. Unlike the initial generation on native-identical tooling
+source, fresh generation used the actual failed merge `5702a450` directly.
+[Exact commands, classifier/finalizer cases, outputs and manifests](evidence/fleet-gate-acceptance-2026-11-20/validation.json)
+are preserved. Eight ordinary classifier cases and nine finalizer cases are
+included in the 60, not additional totals.
+
+The emitted overlay SHA-256 remains
+`0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf`;
+the fresh merge-bound proof is
+`1940de1d300956e5fa24fe85d8ef71893063354a4d08ee2146a6ffa79f44738b`.
+Full original-file/function/fixture restoration and all 25 migrations match.
+YAML, seven shell bodies, three embedded Python blocks and emitted Rust AST
+parsed. The older cached Rust compiler performed parsing only. Hosted semantic
+compilation and all native observations remain separate.
+
+The single-experiment limit is an operating constraint: the YAML permits later
+pushes or dispatches. Freeze the activated branch after its one guarded push;
+place subsequent records and implementation on separate successors. Wrapper
+step success is not a Cargo pass; the final job propagates failed/incomplete
+baseline and diagnostic stages.
 
 Closed draft findings concerned incomplete/zero-match evidence, unexpected
 source changes, a timeout signal race and insufficient artifact-upload margin.

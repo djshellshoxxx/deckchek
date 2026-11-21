@@ -1,0 +1,267 @@
+{
+  "allTrackedHashesUnchanged": true,
+  "baselineCommit": "5702a450d9a7faa3efb80c5b67de69386ae07540",
+  "baselineTree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+  "checkCount": 60,
+  "checks": [
+    "tooling exact commit",
+    "tooling exact tree",
+    "tooling starts clean",
+    "baseline exact commit",
+    "baseline exact tree",
+    "baseline starts clean",
+    "generator exact initial freeze",
+    "proposal exact initial freeze",
+    "generator Python AST",
+    "inert proposal authority and trigger",
+    "aggregate timeout leaves finalization margin",
+    "shell syntax 2",
+    "shell syntax 3",
+    "shell syntax 4",
+    "shell syntax 5",
+    "shell syntax 6",
+    "shell syntax 7",
+    "shell syntax 9",
+    "expected embedded bodies parsed",
+    "generation succeeded",
+    "overlay equals independently reviewed bytes",
+    "fresh proof names actual failed merge",
+    "original file differs by two outside-timer insertions only",
+    "exactly five phase probe lines",
+    "phase copy restores original function",
+    "exact regression fixture",
+    "proof originalFleetSha256",
+    "proof overlaySha256",
+    "proof generatorSha256",
+    "proof originalFunctionSha256",
+    "proof originalRegressionSha256",
+    "proof fixtureSha256",
+    "proof manifestSha256",
+    "proof lockSha256",
+    "all25 migrations and native trees",
+    "gate and trial bounds unchanged",
+    "existing output preserved",
+    "wrong tree rejected before output",
+    "emitted Rust AST parses",
+    "retained failed baseline reaches complete suite",
+    "instrumented full suite with marker",
+    "instrumented missing marker",
+    "instrumented duplicate marker",
+    "complete four-pair phase records",
+    "zero-match phase selection",
+    "missing phase pair",
+    "duplicate result summaries",
+    "complete diagnostic records",
+    "failed baseline cannot be masked",
+    "incomplete phase evidence",
+    "unexpected baseline source state",
+    "changed lock identity",
+    "missing binary evidence",
+    "wrong overlay identity",
+    "changed migration evidence",
+    "missing stage record",
+    "tooling all tracked hashes unchanged",
+    "tooling ends clean",
+    "baseline all tracked hashes unchanged",
+    "baseline ends clean"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.0025863120099529624,
+      "exitCode": 0,
+      "name": "shell-2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.0035788469976978377,
+      "exitCode": 0,
+      "name": "shell-3",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.0020483540138229728,
+      "exitCode": 0,
+      "name": "shell-4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.002240144007373601,
+      "exitCode": 0,
+      "name": "shell-5",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.0020647189958253875,
+      "exitCode": 0,
+      "name": "shell-6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.0021804330026498064,
+      "exitCode": 0,
+      "name": "shell-7",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "bash",
+        "-n"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.002803565002977848,
+      "exitCode": 0,
+      "name": "shell-9",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-baseline-source",
+        "--expected-commit",
+        "5702a450d9a7faa3efb80c5b67de69386ae07540",
+        "--expected-tree",
+        "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+        "/tmp/deckchek-fleet-fresh-functional-0sneyacw/generated"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.061476870003389195,
+      "exitCode": 0,
+      "name": "generate-exact-failed-merge",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "f3bbea5b97fdd9e64fa6b098a43853d4f577fee49e0d858761977ddbfc491e35"
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-baseline-source",
+        "--expected-commit",
+        "5702a450d9a7faa3efb80c5b67de69386ae07540",
+        "--expected-tree",
+        "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+        "/tmp/deckchek-fleet-fresh-functional-0sneyacw/generated"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.037046048004413024,
+      "exitCode": 1,
+      "name": "preserve-existing-output",
+      "stderrSha256": "fff25f89ebac613d35e49587c79a69591cdb34b99178c5a9351d770cfc99ce44",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional/tools/fleet-gate-diagnostic.py",
+        "--source",
+        "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-baseline-source",
+        "--expected-commit",
+        "5702a450d9a7faa3efb80c5b67de69386ae07540",
+        "--expected-tree",
+        "0000000000000000000000000000000000000000",
+        "/tmp/deckchek-fleet-fresh-functional-0sneyacw/wrong-tree"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.04175159700389486,
+      "exitCode": 1,
+      "name": "reject-wrong-tree",
+      "stderrSha256": "07254de4f358ddc23876db9f0f2372b16a1988fd707bb7c589a7c62402b666ec",
+      "stdoutScope": "complete",
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/workspace/scratch/6f2247f2f463/rust-measurement-toolchain/rustup/toolchains/nightly-2026-11-20-x86_64-unknown-linux-gnu/bin/rustc",
+        "--version",
+        "--verbose"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.1260946940019494,
+      "exitCode": 0,
+      "name": "rust-parser-version",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "complete",
+      "stdoutSha256": "3d384a53871bdbb0b53e2441f38544437780d879e05b4d56ca2db811ded1e78c"
+    },
+    {
+      "argv": [
+        "/workspace/scratch/6f2247f2f463/rust-measurement-toolchain/rustup/toolchains/nightly-2026-11-20-x86_64-unknown-linux-gnu/bin/rustc",
+        "-Zunpretty=ast-tree",
+        "--edition=2021",
+        "--crate-type=lib",
+        "/tmp/deckchek-fleet-fresh-functional-0sneyacw/generated/fleet.rs"
+      ],
+      "cwd": "/workspace/scratch/6f2247f2f463/deckchek-fleet-gate-fresh-functional",
+      "elapsedSeconds": 0.647271241992712,
+      "exitCode": 0,
+      "name": "rust-ast-only",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutScope": "discarded AST only",
+      "stdoutSha256": null
+    }
+  ],
+  "elapsedSeconds": 1.4197399330005283,
+  "nativeCompilationAttempted": false,
+  "overlaySha256": "0ee2fcc60232cf25f554986ae43bc9a13dcd7ff2bbeafb92253e6ca9282e9dcf",
+  "performanceMeasurements": null,
+  "projectTestsExecuted": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "rustParser": "rustc 1.102.0-nightly (6905905bb 2026-11-19)\nbinary: rustc\ncommit-hash: 6905905bb7727fd0f9223f5fdc9ad4e62236d5a2\ncommit-date: 2026-11-19\nhost: x86_64-unknown-linux-gnu\nrelease: 1.102.0-nightly\nLLVM version: 23.1.6",
+  "scope": "Fresh actual-failed-merge generation, parser and ordinary evidence-logic checks only; no native execution or qualification.",
+  "sourceProofSha256": "1940de1d300956e5fa24fe85d8ef71893063354a4d08ee2146a6ffa79f44738b",
+  "toolingCommit": "f1172b87902aa05c93c452619c7ed1e359f939e6",
+  "toolingTree": "41031b09d19dfd1ca90dd95173872aaeb280e3f6",
+  "trackedFiles": {
+    "baseline": 1626,
+    "tooling": 1706
+  },
+  "yamlVersion": "6.0.3"
+}

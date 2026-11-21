@@ -1,0 +1,28 @@
+{
+  "recorded_at_utc": "2026-11-21T04:37:22Z",
+  "pull_request": 67,
+  "run_id": 44865459717,
+  "job_id": 136728004015,
+  "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44865459717/job/136728004015",
+  "result": "success",
+  "source_head": "157b0dbe1849d42e835cc365ba7292eb633c04d9",
+  "executed_merge": "cc8e18c8b28f1aaef40e9b8b1e1e51853730216f",
+  "tree": "f7e32678dd89880a7dce642424100e77c5e22374",
+  "whole_tree_fetched_and_equal_to_pr_head": true,
+  "rustc": "1.102.0-nightly (c7d5ba59d 2026-11-20)",
+  "passed": 767,
+  "failed": 0,
+  "ignored": 8,
+  "suite_seconds": 155.12,
+  "unchanged_budget_ms": 200,
+  "log_scope": "complete_decoded_job_log",
+  "log_bytes": 193689,
+  "log_sha256": "318ff7af7b25bf70a4e3b77e61214b638496b3b7ccaf1b0c417a5dfcc4da870b",
+  "log_git_blob": "eced082b40e0967526c36e87a7d062fc6b08e179",
+  "limits": [
+    "This source-specific pass does not erase the preceding PR65 timing failure.",
+    "Same compiler as failed PR65; cause remains unestablished.",
+    "Remaining PR67 applicable hosted gates are not asserted complete.",
+    "No diagnostic retry or production Fleet change produced this result."
+  ]
+}
