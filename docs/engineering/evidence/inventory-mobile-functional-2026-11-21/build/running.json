@@ -1,0 +1,65 @@
+{
+  "schema": "deckchek.inventory-mobile-build.v1",
+  "source_commit": "67fd2d664b8a4847fe2066c47f64682eef796c3b",
+  "source_tree": "5c469cca519d4139dc47196ab6bf015c5247caf6",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-inventory-mobile-functional",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "tools/build-mobile.mjs"
+  ],
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "python_version": "3.12.14",
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "started_at_utc": "2026-11-21T09:12:00.269494+00:00",
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "termination_grace_seconds": 5,
+  "tracked_file_count": 2177,
+  "status_before": "",
+  "driver_sha256": "0a5e3806f25760e38162b9fea33d2003b15286c4b17c61d0db51747dc9cd8c93",
+  "config_sha256": "3e2963b0767208f1e80013270d60da6248f0d6a331279832498fb0376d627ea2",
+  "allowed_changes": [
+    "mobile/sw.js"
+  ],
+  "scope": "One normal official Mobile build; no tests, browser/native launch or numerical diagnostic execution."
+}

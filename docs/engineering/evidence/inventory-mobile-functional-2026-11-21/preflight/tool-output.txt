@@ -1,0 +1,6 @@
+{"verified_config_and_driver": true, "test_files": 198, "source": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62", "tree": "b650eeac53af1395d6d0792f3639f02cf317490f", "budget": 600}
+Traceback (most recent call last):
+  File "/workspace/scratch/6f2247f2f463/deckchek-inventory-mobile-round6-gate.py", line 51, in <module>
+    assert all(re.fullmatch(r'tests/[a-z0-9-]+\.test\.mjs', name) and name in names and (ROOT / name).is_file() for name in test_files)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

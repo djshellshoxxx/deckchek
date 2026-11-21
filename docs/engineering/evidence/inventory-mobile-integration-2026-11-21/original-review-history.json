@@ -1,0 +1,32 @@
+{
+  "schema": "deckchek.original-review-history.v1",
+  "bundle": "original-review-history.bundle",
+  "bytes": 1984479,
+  "sha256": "4f8d05a51ce527daf1ae9fd6b5d5323efb7dd4d2d323d20f8d23ba14f0109347",
+  "tip": "4c68a6b42aa6c7f042e3f2eea9258fd23f55c3e5",
+  "tree": "b8fa5099e450420a0d773dac533639b1454a3b3e",
+  "excluded_base": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "frozen_tested_source": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "review_commits": [
+    "b86a7f63636b1b4529106fdea785087d34428237",
+    "0d4220c9d40b8e24bf557e010542a6ec735bf234",
+    "6cc17201ebfd0fd34c7385db0d25b523c3bc6d7f"
+  ],
+  "scope": "Original source/review ancestry and first-outcome integration. Fixed PR79 base excluded as prerequisite. Later issue80/81 sources remain separate.",
+  "prerequisites": [
+    "6cd827b0204bc450b8fc6236a179c7383dd52911",
+    "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+    "b8dfc126c2480f303df105abd3759fedae49a192",
+    "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d",
+    "f76908766d53992e20382b9cbe73a668a28a6d1a",
+    "b5d0cfd850120946160ef93b7cf2372bb981172e",
+    "5f256bdd3630738292c36c1b343a4161d5078a48",
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "78403038c530a981b732d5ac0210539edf37fc77",
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "17080df79ba94554b81c006d6372c8b59dca795a",
+    "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+    "2022c97d8fb1f941de13e151be9627bbdfcc278e"
+  ],
+  "all_prerequisites_are_ancestors_of_excluded_base": true
+}

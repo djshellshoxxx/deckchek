@@ -1,0 +1,22 @@
+{
+  "schema": "deckchek.inventory-mobile-smoke-syntax.v1",
+  "source_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "source_tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+  "source_path": "tools/smoke/mobile-pwa.mjs",
+  "source_bytes": 13796,
+  "source_sha256_before": "d128208810f21f31ff508fc70c54bec620736cce6f21a7ccba3390e3ccf6d07c",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--check",
+    "tools/smoke/mobile-pwa.mjs"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-inventory-mobile-functional",
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "driver_sha256": "dd4a469ac88a5c0ef480035000e50da3568b2779972d8ee8b7ac4f47d35f3e12",
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "termination_grace_seconds": 5,
+  "started_at_utc": "2026-11-21T09:23:51.737560+00:00",
+  "status_before": ""
+}

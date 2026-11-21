@@ -51,7 +51,8 @@ export function normalizeRun(raw, summary) {
 }
 
 export function createHistoryScreen(section) {
-  const state = { runs: [], features: [], featureErrors: [], type: 'all', filter: '', selected: null, selectedFeature: null, compare: new Set(), view: 'detail' };
+  const state = { runs: [], runError: null, features: [], featureErrors: [], type: 'all', filter: '', selected: null, selectedFeature: null, compare: new Set(), view: 'detail' };
+  let loadGeneration = 0;
   section.innerHTML = `
     <header class="screen-head"><div class="screen-title"><span class="screen-icon">${icon('history', { size: 24 })}</span><div><h1 tabindex="-1">History</h1>
       <p class="lede">Every saved run with its measurements and hypotheses. Re-export reports or compare two runs side by side.</p></div></div>
@@ -62,6 +63,7 @@ export function createHistoryScreen(section) {
         <div class="toolbar"><search class="search"><label for="hist-search" class="sr-only">Filter runs</label>${icon('search', { size: 18 })}<input id="hist-search" type="search" placeholder="Filter by test, device or finding…" autocomplete="off"></search>
           <label class="sr-only" for="hist-type">Run type</label><select id="hist-type" class="hist-type" aria-label="Run type"></select></div>
         <div class="compare-bar" id="compare-bar" aria-live="polite"></div>
+        <div id="hist-load-warning" class="empty empty-sm" role="status" hidden></div>
         <div id="hist-rows"></div>
       </section>
       <section class="hist-detail" id="hist-detail" aria-live="polite" aria-label="Run detail"></section>
@@ -69,9 +71,19 @@ export function createHistoryScreen(section) {
   const $ = s => section.querySelector(s);
 
   async function load() {
-    try { state.runs = await store.listRuns(200); }
-    catch (error) { state.runs = []; toast(`Could not load history: ${error?.message || error}`, { type: 'error', action: { label: 'Retry', run: load } }); }
-    await loadFeatures();
+    const generation = ++loadGeneration;
+    let runs = [], runError = null;
+    try {
+      runs = await store.listRuns(200);
+      if (!Array.isArray(runs)) throw new Error('Saved diagnostic history returned an invalid list.');
+    } catch (error) { runs = []; runError = String(error?.message ?? error); }
+    const res = await loadFeatures();
+    if (generation !== loadGeneration) return;
+    state.runs = runs; state.runError = runError;
+    state.features = res.rows.filter(r => isEnabled(r.feature));
+    state.featureErrors = res.errors.filter(e => isEnabled(RUN_TYPES.find(t => t.id === e.type)?.feature));
+    if (runError !== null) toast(`Could not load history: ${runError || 'Saved history is unavailable.'}`, { type: 'error', action: { label: 'Retry', run: load } });
+    if (state.featureErrors.length) toast(`Some runs could not be listed: ${state.featureErrors.map(e => typeLabel(e.type)).join(', ')}.`, { type: 'warn' });
     renderTypes();
     renderList();
     const focus = active.historyFocus; active.historyFocus = null;
@@ -79,13 +91,13 @@ export function createHistoryScreen(section) {
     else if (!state.selected) renderDetailEmpty();
   }
 
-  /** Hum, latency, scratch, wear-map and pre-gig runs (desktop app only). Types whose feature flag is off stay hidden. */
+  /** Request only enabled desktop feature lists. Flags are checked again before publishing the result. */
   async function loadFeatures() {
-    const res = isNative() ? await loadFeatureRuns(window.__TAURI__.core.invoke, { limit: 100 }) : { rows: [], errors: [] };
-    state.features = res.rows.filter(r => isEnabled(r.feature));
-    state.featureErrors = res.errors.filter(e => isEnabled(RUN_TYPES.find(t => t.id === e.type)?.feature));
-    if (state.featureErrors.length) toast(`Some runs could not be listed: ${state.featureErrors.map(e => typeLabel(e.type)).join(', ')}.`, { type: 'warn' });
+    const only = RUN_TYPES.filter(t => t.feature && isEnabled(t.feature)).map(t => t.id);
+    return isNative() ? loadFeatureRuns(window.__TAURI__.core.invoke, { limit: 100, only }) : { rows: [], errors: [] };
   }
+
+  const incomplete = () => state.runError !== null || state.featureErrors.length > 0;
 
   function renderTypes() {
     const counts = typeCounts(state.runs, state.features);
@@ -93,7 +105,7 @@ export function createHistoryScreen(section) {
     const visible = RUN_TYPES.filter(t => t.id === 'diagnostic' || isEnabled(t.feature));
     if (state.type !== 'all' && !visible.some(t => t.id === state.type)) state.type = 'all';
     const total = visible.reduce((n, t) => n + counts[t.id], 0);
-    sel.replaceChildren(h('option', { value: 'all', text: `All runs (${total})` }), ...visible.map(t => h('option', { value: t.id, text: `${t.label} (${counts[t.id]})` })));
+    sel.replaceChildren(h('option', { value: 'all', text: `All ${incomplete() ? 'loaded ' : ''}runs (${total})` }), ...visible.map(t => h('option', { value: t.id, text: `${t.label} (${counts[t.id]}${incomplete() ? ' loaded' : ''})` })));
     sel.value = state.type;
     sel.hidden = visible.length < 2;
   }
@@ -117,6 +129,16 @@ export function createHistoryScreen(section) {
   }
 
   function renderList() {
+    const warning = $('#hist-load-warning');
+    warning.hidden = !incomplete();
+    warning.replaceChildren();
+    if (incomplete()) warning.append(
+      h('p', {}, h('strong', { text: 'History is incomplete. ' }), 'Counts include only the runs that loaded.'),
+      h('ul', {}, state.runError !== null ? h('li', { text: 'Diagnostics could not be loaded.' }) : null,
+        ...state.featureErrors.map(error => h('li', { text: error.invalidRows
+          ? `${typeLabel(error.type)}: ${error.invalidRows} invalid record${error.invalidRows === 1 ? '' : 's'} could not be listed.`
+          : `${typeLabel(error.type)} could not be loaded.` }))),
+      h('button', { type: 'button', class: 'btn btn-secondary', text: 'Retry', onclick: event => { event.currentTarget.disabled = true; load(); } }));
     const q = state.filter.trim().toLowerCase();
     const everything = mergeFeed(state.runs, state.features, 'all');
     const rows = mergeFeed(state.runs, state.features, state.type).filter(row => {
@@ -125,15 +147,20 @@ export function createHistoryScreen(section) {
       const r = state.runs.find(x => x.id === row.id), l = localRun(row.id);
       return `${r.test} ${r.sessionType} ${l?.device || ''} ${(l?.findings || []).map(f => f.title).join(' ')}`.toLowerCase().includes(q);
     });
-    $('#hist-count').textContent = `${rows.length} of ${everything.length}`;
+    $('#hist-count').textContent = `${rows.length} of ${everything.length}${incomplete() ? ' loaded' : ''}`;
     renderCompareBar();
     const host = $('#hist-rows');
     if (!everything.length) {
+      if (incomplete()) {
+        host.replaceChildren(h('div', { class: 'empty' }, h('h2', { text: 'Saved history could not be fully loaded' }),
+          h('p', { text: 'Retry the unavailable sources to check for saved runs.' })));
+        return;
+      }
       host.innerHTML = `<div class="empty">${icon('history', { size: 48 })}<h2>No saved runs yet</h2><p>Run Quick Check or any workflow — every analysis is saved here automatically.</p><button type="button" class="btn btn-primary" data-go>${icon('quick', { size: 18 })}<span>Run Quick Check</span></button></div>`;
       host.querySelector('[data-go]').addEventListener('click', () => go('quick'));
       return;
     }
-    if (!rows.length) { host.innerHTML = `<div class="empty empty-sm">${icon('search', { size: 32 })}<p>${q ? `No runs match “${esc(state.filter)}”.` : `No ${esc(state.type === 'all' ? '' : typeLabel(state.type).toLowerCase())} runs yet.`}</p></div>`; return; }
+    if (!rows.length) { host.innerHTML = `<div class="empty empty-sm">${icon('search', { size: 32 })}<p>${incomplete() ? 'No loaded runs match this filter.' : q ? `No runs match “${esc(state.filter)}”.` : `No ${esc(state.type === 'all' ? '' : typeLabel(state.type).toLowerCase())} runs yet.`}</p></div>`; return; }
     const list = h('ul', { class: 'run-list', role: 'list' });
     rows.forEach(item => {
       if (item.type !== 'diagnostic') {

@@ -1,0 +1,23 @@
+{
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "execution_budget_seconds": 120,
+  "test_files": [
+    "tests/crosslinks.test.mjs",
+    "tests/features.test.mjs",
+    "tests/history-feed-boundary.test.mjs",
+    "tests/history-load-screen.test.mjs",
+    "tests/ledger-api-durability.test.mjs",
+    "tests/ledger-enumeration-boundary.test.mjs",
+    "tests/ledger-leak.test.mjs",
+    "tests/ledger-load-screen.test.mjs",
+    "tests/ledger-note-persistence-screen.test.mjs",
+    "tests/ledger-note-write-queue.test.mjs",
+    "tests/ledger-preset-boundary.test.mjs",
+    "tests/ledger-review-bridge.test.mjs",
+    "tests/ledger-review.test.mjs",
+    "tests/ledger-ui.test.mjs",
+    "tests/ledger-verified-facts.test.mjs",
+    "tests/ledger.test.mjs"
+  ]
+}

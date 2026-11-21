@@ -52,6 +52,15 @@ export default async function run({ browser, tmp, check, SHOTS }) {
     const cached = await page.evaluate(async () => (await caches.keys()).filter(k => k.startsWith('deckchek-mobile-')).length);
     check('mobile: one precache exists', cached === 1);
     check('mobile: empty Speed state tells what to do', /Play a 1 kHz test tone/.test(await page.locator('#speed-status').innerText()));
+    for (const hash of ['#not-a-screen', '#/SPEED']) {
+      await page.click('.tabs a[data-screen="strobe"]');
+      await page.waitForSelector('#strobe-table');
+      await page.evaluate(value => { location.hash = value; }, hash);
+      await page.waitForSelector('#speed-start');
+      check(`mobile: unsupported route ${hash} opens Speed`,
+        await page.title() === 'Speed - DeckChek Mobile'
+        && await page.locator('.tabs a[data-screen="speed"]').getAttribute('aria-current') === 'page');
+    }
     await page.screenshot({ path: `${SHOTS}/mobile-speed-empty-dark.png` });
 
     // ----- Speed (AC-1)

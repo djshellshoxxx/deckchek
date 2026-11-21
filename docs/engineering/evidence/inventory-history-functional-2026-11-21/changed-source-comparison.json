@@ -1,0 +1,74 @@
+{
+  "schema": "deckchek.inventory-history-changed-source.v1",
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "comparison_base": "19247c08633ce93d62d3f1e78acf3a4848754c51",
+  "files": [
+    {
+      "path": "app/history-feed.js",
+      "source_bytes": 9756,
+      "source_sha256": "81e3dfe74a9d21d7ac8a703b811cead95ab01268e53db1d1c491a3182bb03229",
+      "baseline_sha256": "e05496344948be37784a8103182a6e84cf2f5cc4eb14f2519b8f6b638c2cdf37"
+    },
+    {
+      "path": "app/ledger/api.js",
+      "source_bytes": 13245,
+      "source_sha256": "7ebd689f4efd7902de6324b29de6d0741fd11d620c412fc54c3e40911f64cb47",
+      "baseline_sha256": "2235337d2788b502e0d3b23caac7bb9535202721b2b570de93b42783343e4910"
+    },
+    {
+      "path": "app/ui/screens/history.js",
+      "source_bytes": 21885,
+      "source_sha256": "082b7f9d42c886b0889ccecbd1a2e91970f5114438ebfe09c42d897c18ac6889",
+      "baseline_sha256": "7076b6101598d35881bb5f3fbb688aa0d17366f767f0f5633268c44e4c155f84"
+    },
+    {
+      "path": "app/ui/screens/ledger.js",
+      "source_bytes": 40885,
+      "source_sha256": "f6df5ef5dbea80b54911da89ec6c6ba28c5745838514edc57629e2e56b2137e3",
+      "baseline_sha256": "3c7b43eef55b24c86b3cf34bd577348d5385c053b8c11a25541f3d0a5fa6004c"
+    },
+    {
+      "path": "docs/engineering/INVENTORY_HISTORY_IMPLEMENTATION_2026-11-21.md",
+      "source_bytes": 3761,
+      "source_sha256": "58bb661a773df967cfb7f45d50e471935454673d81c413462504e31c3136323d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "tests/crosslinks.test.mjs",
+      "source_bytes": 12394,
+      "source_sha256": "089c225f1a4ad19606f56cc9942a216c316db4204f1bb902d1c1196419062253",
+      "baseline_sha256": "2804fc16a02b2700f9ca59c92eecc17791ef2bff31e9270270c237d3a9c909d6"
+    },
+    {
+      "path": "tests/history-feed-boundary.test.mjs",
+      "source_bytes": 2406,
+      "source_sha256": "6a0ffc3f81df8b8e2a776499f0285c12b0e852f753d150c4bf90cefc51cc59ca",
+      "baseline_sha256": null
+    },
+    {
+      "path": "tests/history-load-screen.test.mjs",
+      "source_bytes": 5443,
+      "source_sha256": "f4de864ad9dbd2bb9da3676ba1631eb3d7b7c1c1349cb05e4537eb9a19d1ff3d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "tests/ledger-enumeration-boundary.test.mjs",
+      "source_bytes": 5294,
+      "source_sha256": "5572bee4793d060b5d22f71d49b2efee16bb5c736b30c882ce432af746c205b3",
+      "baseline_sha256": null
+    },
+    {
+      "path": "tests/ledger-load-screen.test.mjs",
+      "source_bytes": 7299,
+      "source_sha256": "17fd332116875343e9d8f43dc1567e2735cf1334f54e4379e6462fd1024a47be",
+      "baseline_sha256": null
+    },
+    {
+      "path": "tools/smoke/inventory-history.mjs",
+      "source_bytes": 6017,
+      "source_sha256": "f67f48ba8716d99a36534770ad5203bbd4f32435365f6662abfdbe89bb6fc41e",
+      "baseline_sha256": null
+    }
+  ]
+}

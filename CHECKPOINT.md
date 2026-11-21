@@ -2,17 +2,30 @@
 
 ## Current source and ownership
 
-Use the [current continuation handoff](docs/DECKCHEK-CONTINUATION-HANDOFF.md).
-PR #74 is qualified and merged as `77c26f44710c6dfb1c986fb79266c233e2ae688c`;
-all applicable gates and complete-tree/parent proof are retained. All three fresh
-reference/PDF/UI/preset reviewers completed; the first complete source gate passed
-2,359 total / 2,358 pass / 0 fail / 1 optional Mixxx skip at `fb81960`, with 2,125
-unchanged tracked hashes. Read the [completed handoff](docs/engineering/SUCCESSOR_CONTINUATION_2026-11-21.md).
-The fixed published successor still needs its own hosted UI/platform gates.
-Earlier numerical failures remain unresolved. Root has separately frozen later
-History/Ledger fixes at `bdaf685` for the fresh round-five trio; its one functional
-worker owns the authorized focused execution. Root owns source and publication.
-All three workers finish before another rotation.
+Use the [current handoff](docs/DECKCHEK-CONTINUATION-HANDOFF.md).
+
+PR #74 is qualified and merged at `77c26f44710c6dfb1c986fb79266c233e2ae688c`.
+Fixed draft [#79](https://github.com/djshellshoxxx/deckchek/pull/79), head
+`f76908766d53992e20382b9cbe73a668a28a6d1a`, has separate first local/hosted passes:
+2,359 JavaScript cases, 1,411 UI checks, six builds and five platform smokes.
+Final nightly cargo-fuzz remains pending. Never move that published head.
+
+All round-six workers completed. Later source `09c9afc` is **HELD** after its first
+complete 2,391-case run: 2,388 pass, two audio failures, one optional skip;
+all 2,177 source hashes unchanged. Retry verdict and final relative gain failed;
+the preceding playback-level assertions passed. No cause or repair is established,
+and #72 stays open. Complete first evidence and original recorder preflight are
+retained without a test rerun. Read the
+[held checkpoint](docs/engineering/INVENTORY_MOBILE_CONTINUATION_2026-11-21.md) and
+[fixed-source hosted evidence](docs/engineering/FEATURE_SUCCESSOR_HOSTED_EVIDENCE_2026-11-21.md).
+
+Fresh round-seven code/functional/static-defensive workers review #80 Mobile
+exports at separate `d3aa9ca`: official build and first focused run passed (45/45);
+syntax and final evidence review remain in progress. Current editor values own
+exports even after denied preference writes. This does not clear the full hold.
+Root owns #81 narrow Quick Check body layout and all CI/publication/merges. Only
+the functional lane runs reviewed bounded first tests. All three workers finish
+before another fresh trio. Later #76/#77/#78/#80/#81 are outside fixed #79.
 
 The sections below are preserved historical checkpoints, not current resume
 or execution-ownership instructions. Fleet stays off and its diagnostic head

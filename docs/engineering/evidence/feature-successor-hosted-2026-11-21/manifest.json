@@ -1,0 +1,80 @@
+{
+  "schema": "deckchek.retained-artifacts.v1",
+  "files": [
+    {
+      "path": "javascript-junit.xml",
+      "bytes": 310876,
+      "sha256": "37ac3c08588006c18b5f45f7090ec16fd2b57059e7d743f271f791c629245058"
+    },
+    {
+      "path": "javascript-tests.log",
+      "bytes": 320074,
+      "sha256": "002839f0c8afc19c6a6dc8f242cc6cb94b59996b2ccf67e3a7d62707a1088103"
+    },
+    {
+      "path": "pdf-axis-fallback.pdf",
+      "bytes": 39637,
+      "sha256": "10057b1de15c8a313fcf9105c24b01c2b9ea5fb237dc2b6eefe4b64bb57a5638"
+    },
+    {
+      "path": "pdf-axis-fallback.png",
+      "bytes": 72140,
+      "sha256": "cdadac12abdd1916b4adff67a68d103e07e195957ca1e63523d9de596cb9bf9f"
+    },
+    {
+      "path": "player-preview-desktop.png",
+      "bytes": 206109,
+      "sha256": "3283beeb13e72e652b7d13fd8c9778e33a12acb37506f46b3a9897370fe1bddc"
+    },
+    {
+      "path": "player-preview-mobile.png",
+      "bytes": 83208,
+      "sha256": "e4ecd09f987e4a3d5c592f97641b6507db5769a2387f5d77ab8342282499703b"
+    },
+    {
+      "path": "player-result-desktop.png",
+      "bytes": 211759,
+      "sha256": "e34f6a53afdd158b57e21c56699aa56e4743752902def0884bbd02aff5337ccc"
+    },
+    {
+      "path": "player-result-mobile.png",
+      "bytes": 66851,
+      "sha256": "076fb73af780c40c0a46e2d18a48c79c1a788c408f9d26d2e0099ddbc452f1f4"
+    },
+    {
+      "path": "provenance.json",
+      "bytes": 1750,
+      "sha256": "14f16b3d38416a75ecf4ed825e5502262ebd3bd6f9de06c1c9d4136b3969d9f3"
+    },
+    {
+      "path": "selected-artifacts.json",
+      "bytes": 1537,
+      "sha256": "621b3a5b90833d8fa2f70d0e88b7df8aee0020366dca8f04005e6301fe0bae01"
+    },
+    {
+      "path": "shell-toolbar-browser-1440.png",
+      "bytes": 174833,
+      "sha256": "12ed68185f2a048bc60fd637b51bbb0dabe20675d3819d39edcbb77be58d113d"
+    },
+    {
+      "path": "shell-toolbar-browser-420.png",
+      "bytes": 73749,
+      "sha256": "480fb79c4c85bc49bd96e6d2df18ec8d890ef282749239a7018512b0bad90392"
+    },
+    {
+      "path": "shell-toolbar-native-model-1440.png",
+      "bytes": 173572,
+      "sha256": "550b572c82050f81b2e0660479b0bd36827663b260537eb1877e60c01c66b9e9"
+    },
+    {
+      "path": "shell-toolbar-native-model-420.png",
+      "bytes": 74810,
+      "sha256": "17dec381b00c9bf139056f57b9b26bec774fc4f28293ebeb4caabb4d17547589"
+    },
+    {
+      "path": "ui-smoke.log",
+      "bytes": 728689,
+      "sha256": "96681c5189acbe14b70b9509d85110c448ac21203ab9b6a8dfbb899cc13e5096"
+    }
+  ]
+}

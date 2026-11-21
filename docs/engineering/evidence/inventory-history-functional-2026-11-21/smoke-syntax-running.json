@@ -1,0 +1,22 @@
+{
+  "schema": "deckchek.inventory-history-smoke-syntax.v1",
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "source_path": "tools/smoke/inventory-history.mjs",
+  "source_bytes": 6017,
+  "source_sha256_before": "f67f48ba8716d99a36534770ad5203bbd4f32435365f6662abfdbe89bb6fc41e",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--check",
+    "tools/smoke/inventory-history.mjs"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-inventory-functional",
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "driver_sha256": "2e498ebb217bed7955656018b21a58616f3ad005275410fb6d4f835e6aa8f01f",
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "termination_grace_seconds": 5,
+  "started_at_utc": "2026-11-21T09:00:08.361098+00:00",
+  "status_before": ""
+}

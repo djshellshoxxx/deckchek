@@ -17,7 +17,7 @@ import { createKeyedWriteQueue } from '../../ledger/write-queue.js';
 
 const STEPS = [['select', 'Select gear'], ['privacy', 'Privacy'], ['preview', 'Preview'], ['export', 'Export']];
 const SERIAL_LABEL = { hidden: 'Hidden', masked: 'Masked (last 4)', full: 'Full' };
-const friendly = e => (typeof e === 'string' ? e : e?.message || 'Something went wrong.');
+const friendly = e => (typeof e === 'string' ? e : e?.message) || 'Something went wrong.';
 
 /** Pure: the step-1 label and status words for one gear row (status is words, never colour alone). */
 export function gearRowText(row) {
@@ -100,6 +100,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   const native = isNative() && api.native;
   const st = { step: 'select', loading: true, loadError: null, gear: null, selected: new Set(), rules: makeRules('public'), result: null, resultKey: null,
     theme: 'light', busy: false, history: [], done: null, exportError: null, mode: 'folder', progress: '', nextRevision: null };
+  let loadGeneration = 0;
   section.innerHTML = '';
   const title = h('h1', { tabindex: '-1', text: 'Gear ledger' });
   section.append(
@@ -123,6 +124,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
 
   function setStep(step, { focus = true } = {}) {
+    if (st.loading || st.loadError) return;
     commitEdits(); // its synchronous part takes the typed owner name and notes before render() removes the fields
     st.step = step;
     if (step !== 'export') { st.done = null; st.exportError = null; }
@@ -328,7 +330,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
     if (inStep) q('#ledger-body h2')?.focus();
   }
   async function ensureBuilt() {
-    if (st.busy) return null;
+    if (st.busy || st.loading || st.loadError) return null;
     if (fresh()) return st.result;
     st.busy = true; st.buildError = null; renderKeepFocus();
     try {
@@ -433,7 +435,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
 
   async function doExport() {
-    if (st.busy) return;
+    if (st.busy || st.loading || st.loadError) return;
     st.busy = true; st.done = null; st.exportError = null;
     render();
     status('Exporting the ledger…');
@@ -465,21 +467,30 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
 
   async function load() {
-    st.loading = true; st.loadError = null; render();
+    const generation = ++loadGeneration;
+    st.loading = true; st.loadError = null;
+    st.result = null; st.resultKey = null; st.done = null; st.buildError = null; st.exportError = null;
+    render();
     let flaggedNote = '', noteError = null;
     try {
       // A reload must read after this screen's submitted notes settle, otherwise their
       // callbacks can update a retired gear row while the replacement still shows old notes.
       noteError = await commitEdits();
+      if (generation !== loadGeneration) return;
       const [gear, history, next] = await Promise.all([api.listGear(), api.listExports(5).catch(() => []), api.nextRevision().catch(() => null)]);
+      if (generation !== loadGeneration) return;
       st.gear = gear; st.history = history; st.nextRevision = next;
+      const restoreLast = !st.selected.size;
+      const listed = new Set(gear.rows.map(row => row.asset.id));
+      for (const id of st.selected) if (!listed.has(id)) st.selected.delete(id);
       const last = history[0];
-      if (last && !st.selected.size) {
+      if (last && restoreLast) {
         // Units used in service jobs start unticked even when the last export had them (see initialSelection).
         for (const id of initialSelection(gear.rows, last.selection?.items).ids) st.selected.add(id);
         st.rules = normalizeRules(last.privacy);
       }
-    } catch (e) { st.loadError = friendly(e); }
+    } catch (e) { if (generation === loadGeneration) st.loadError = friendly(e); }
+    if (generation !== loadGeneration) return;
     st.loading = false;
     applyHandoff();
     // Never silently: say how many units used in service jobs are listed unticked (each row also shows the note).
@@ -491,7 +502,7 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
   }
   let handoff = null;
   function applyHandoff() {
-    if (!handoff || !st.gear) return;
+    if (!handoff || !st.gear || st.loading || st.loadError) return;
     if (handoff.assetId && st.gear.rows.some(r => r.asset.id === handoff.assetId)) { st.selected.add(handoff.assetId); st.result = null; }
     handoff = null;
   }
@@ -505,12 +516,12 @@ export function createLedgerScreen(section, { api = createLedgerApi(), reencode 
       if (!loaded || (st.step === 'select' && !st.busy)) { loaded = true; load(); } else { applyHandoff(); render(); }
     },
     onExport: () => {
-      if (!st.gear?.rows.length || st.busy) return;
+      if (!st.gear?.rows.length || st.busy || st.loading || st.loadError) return;
       if (!st.selected.size) { setStep('select'); status('Pick at least one unit to export.'); return; }
       if (st.step === 'export' && fresh()) doExport(); else setStep('export');
     },
     onEscape: () => {
-      if (st.busy || st.step === 'select') return false;
+      if (st.busy || st.loading || st.loadError || st.step === 'select') return false;
       setStep('select');
       status('Ledger export cancelled.');
       announce('Ledger export cancelled');

@@ -1,0 +1,104 @@
+{
+  "schema": "deckchek.inventory-mobile-source-comparison.v1",
+  "source_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "baseline_commit": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "changed_code_paths": [
+    {
+      "path": "app/history-feed.js",
+      "source_sha256": "81e3dfe74a9d21d7ac8a703b811cead95ab01268e53db1d1c491a3182bb03229"
+    },
+    {
+      "path": "app/ledger/api.js",
+      "source_sha256": "7ebd689f4efd7902de6324b29de6d0741fd11d620c412fc54c3e40911f64cb47"
+    },
+    {
+      "path": "app/ui/screens/history.js",
+      "source_sha256": "924f96cf0e860ac1e5653e67c0a8c1a9f70c44e492f4b8f44a4e576d81401ea0"
+    },
+    {
+      "path": "app/ui/screens/ledger.js",
+      "source_sha256": "98dadfbd6a3aad59dbbf53d4ab5034bd365d885ba859c892882532c17dbb9f65"
+    },
+    {
+      "path": "mobile/app.js",
+      "source_sha256": "998e9e1dd50d4a2083852b5b481d59b662212e6a865367793fcbeb2dd6b3c0ba"
+    },
+    {
+      "path": "mobile/lib/routes.js",
+      "source_sha256": "12b4dbd5ef1d71978286a132d05bb9aa6729d9b658737214a651bb84414bc979"
+    },
+    {
+      "path": "mobile/sw.js",
+      "source_sha256": "ede63eb2bd8f63332017bf87c70d454a3b4812903d2385de8c242c982545041c"
+    },
+    {
+      "path": "tests/crosslinks.test.mjs",
+      "source_sha256": "089c225f1a4ad19606f56cc9942a216c316db4204f1bb902d1c1196419062253"
+    },
+    {
+      "path": "tests/history-feed-boundary.test.mjs",
+      "source_sha256": "6a0ffc3f81df8b8e2a776499f0285c12b0e852f753d150c4bf90cefc51cc59ca"
+    },
+    {
+      "path": "tests/history-load-screen.test.mjs",
+      "source_sha256": "08ce2ec6969dd4274a65942f2b1a8d87d2b07981ff00b750f3ffe4b1dd736c55"
+    },
+    {
+      "path": "tests/ledger-enumeration-boundary.test.mjs",
+      "source_sha256": "5572bee4793d060b5d22f71d49b2efee16bb5c736b30c882ce432af746c205b3"
+    },
+    {
+      "path": "tests/ledger-load-screen.test.mjs",
+      "source_sha256": "8d63e46727c356d0ae78e7a8f25a7e8ecb9f1a834d00bad45ca007819709df05"
+    },
+    {
+      "path": "tests/mobile-router.test.mjs",
+      "source_sha256": "5cbeeab8c550b8b8fdc95b8f4b3cbb17a21be67072159e78ffaa20b47fca58f2"
+    },
+    {
+      "path": "tools/smoke/inventory-history.mjs",
+      "source_sha256": "f67f48ba8716d99a36534770ad5203bbd4f32435365f6662abfdbe89bb6fc41e"
+    },
+    {
+      "path": "tools/smoke/mobile-pwa.mjs",
+      "source_sha256": "d128208810f21f31ff508fc70c54bec620736cce6f21a7ccba3390e3ccf6d07c"
+    }
+  ],
+  "unchanged_audio_paths": {
+    "app/audio-quality.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "4f4ed3df91d6b923f4fe7edaede0fbe2b4b3c300c0fc97d07dbfe7d510225db6"
+    },
+    "app/calibration.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "ebab986c71064ee6aadcecc2659a97f0b403310daf027749c41702ce03df5d72"
+    },
+    "app/devices/audio-session.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "bc6f0b0c5b401b8549462c65bfcccaa88358cd941871e82c5c8b48dbc652c2bb"
+    },
+    "app/audio-out.js": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "8c345c74af5410fa607f8319d1b786a914818681ef0d330e13add6634e21e5ac"
+    },
+    "tests/audio-quality.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "a7e4c1cd56e4543aed83cd9b3a7746c55f84bece6b09894f742a7ef7c5014a78"
+    },
+    "tests/audio-runner-lifecycle.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "fc243f8b4bd2eb312a6275664d7ddd737b2ce44d7524cf0423e49b10a0949c2d"
+    },
+    "tests/audio-session.test.mjs": {
+      "f76908766d53992e20382b9cbe73a668a28a6d1a": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3",
+      "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3",
+      "09c9afc7cfb2857f354feccb65e46a54ca8cfe62": "82af376221ba610602e3df0cf6349a478fe2bde46125ef4a14697481ae354ca3"
+    }
+  }
+}

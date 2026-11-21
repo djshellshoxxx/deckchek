@@ -1,0 +1,113 @@
+{
+  "schema": "deckchek.inventory-history-original-retention.v1",
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "retained_files": [
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/authorized-selection.json",
+      "copy": "authorized-selection.json",
+      "bytes": 831,
+      "sha256": "7fd9f1ee2acee79635804c9a0b760fa8fa41fbfea31e2549d0b060b1542ba5c0",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/result.json",
+      "copy": "result.json",
+      "bytes": 3485,
+      "sha256": "650e915502900a3b44bfdabbd041fc05537a248d5fd47001748b0f19b3e1e467",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/run.tap",
+      "copy": "run.tap",
+      "bytes": 30894,
+      "sha256": "fbbe75bc702bd34678a6590051982b79c1a8a72ca8b4625b1f7d2bbfe104d0fd",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/running.json",
+      "copy": "running.json",
+      "bytes": 2774,
+      "sha256": "d14a8e9e99cbd51a5da700e5d32ae1155ce4576d4ae1cb0a0c0320c108520531",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/smoke-syntax-result.json",
+      "copy": "smoke-syntax-result.json",
+      "bytes": 1583,
+      "sha256": "c73706b93e83dd2094ba683c107042b99d87fff45548badfa16753cf27ca3cf6",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/smoke-syntax-running.json",
+      "copy": "smoke-syntax-running.json",
+      "bytes": 917,
+      "sha256": "0dfebfb65a073555b50c142782066ae9be81927df2c28dc59b3189b2a223aebf",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/smoke-syntax.stderr",
+      "copy": "smoke-syntax.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/smoke-syntax.stdout",
+      "copy": "smoke-syntax.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/stderr.log",
+      "copy": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/test-files.json",
+      "copy": "test-files.json",
+      "bytes": 618,
+      "sha256": "11779969b5b53bcc1e3dfa51d74a5196a03313240499773d12956ad30cfdbd5d",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/tracked-after-syntax.json",
+      "copy": "tracked-after-syntax.json",
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/tracked-after.json",
+      "copy": "tracked-after.json",
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-raw/tracked-before.json",
+      "copy": "tracked-before.json",
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-recorder.py",
+      "copy": "run-focused-node.py",
+      "bytes": 5611,
+      "sha256": "4c87d974296a5e46dd2851e7b32b263b6cc6bcc21ab311297a149121d0207800",
+      "byte_equal": true
+    },
+    {
+      "source": "/workspace/scratch/6f2247f2f463/deckchek-inventory-round5-syntax.py",
+      "copy": "run-smoke-syntax.py",
+      "bytes": 3356,
+      "sha256": "2e498ebb217bed7955656018b21a58616f3ad005275410fb6d4f835e6aa8f01f",
+      "byte_equal": true
+    }
+  ],
+  "all_byte_equal": true
+}

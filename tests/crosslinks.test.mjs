@@ -111,7 +111,11 @@ test('loadFeatureRuns isolates failures and survives a missing backend', async (
   };
   const res = await loadFeatureRuns(invoke, { limit: 7 });
   assert.deepEqual(res.rows.map(r => r.id), ['latency:l', 'hum:h']);
-  assert.deepEqual(res.errors, [{ type: 'scratch', message: 'SCRATCH_DB' }]);
+  assert.deepEqual(res.errors.slice().sort((a, b) => a.type.localeCompare(b.type)), [
+    { type: 'latency', message: '1 invalid history record could not be listed.', invalidRows: 1 },
+    { type: 'pregig', message: 'History returned an invalid list.' },
+    { type: 'scratch', message: 'SCRATCH_DB' },
+  ]);
   assert.deepEqual(calls.map(c => c[0]).sort(), ['hum_run_list', 'latency_run_list', 'monitor_session_list', 'pregig_list_runs', 'scratch_list', 'wearmap_list']);
   assert.deepEqual(calls.find(c => c[0] === 'wearmap_list')[1], { limit: 7 });
   assert.deepEqual(calls.find(c => c[0] === 'hum_run_list')[1], { filter: { limit: 7 } });

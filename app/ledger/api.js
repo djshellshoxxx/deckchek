@@ -21,6 +21,10 @@ const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? null;
 // the Ledger API can report an unavailable browser persistence store.
 const defaultBrowserStorage = () => { try { return globalThis.localStorage; } catch { return null; } };
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const requireList = (value, label) => {
+  if (!Array.isArray(value)) throw new Error(`${label} returned an invalid list. Reload your gear before exporting.`);
+  return value;
+};
 // The UI smoke mock (and test doubles) answer commands they do not know with "unknown command <name>". Only that answer
 // selects the older code path; every other error (a real database or file error) is passed on.
 const isUnknownCommand = e => /^unknown command\b/.test(String(e?.message ?? e));
@@ -64,7 +68,7 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = defaultBrow
   const local = { data: readLocal(storage) };
 
   async function publicNotes() {
-    if (native) return Object.fromEntries((await invoke('ledger_public_notes')).map(n => [n.assetId, n.publicNotes]));
+    if (native) return Object.fromEntries(requireList(await invoke('ledger_public_notes'), 'Public notes').map(n => [n.assetId, n.publicNotes]));
     return { ...readLocal(storage).notes };
   }
 
@@ -75,30 +79,31 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = defaultBrow
    */
   async function serviceJobUnitIds() {
     if (!native) return new Set();
-    try { return new Set(await invoke('ledger_customer_units')); } catch (e) { if (isUnknownCommand(e)) return new Set(); throw e; }
+    try { return new Set(requireList(await invoke('ledger_customer_units'), 'Service job units')); } catch (e) { if (isUnknownCommand(e)) return new Set(); throw e; }
   }
 
-  const maintenanceFor = assetId => invoke('maintenance_list', { assetId, from: null, to: null, eventType: null });
+  const maintenanceFor = async assetId => requireList(await invoke('maintenance_list', { assetId, from: null, to: null, eventType: null }), 'Service history');
 
   /**
    * Step 1 list: every asset that is not deleted, with its product, photo/certificate/service counts and
    * `usedInServiceJobs` (the wizard shows those unticked with a note, and the user decides).
    */
   async function listGear() {
-    const [assets, products, manufacturers, notes, jobUnits] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes().catch(() => ({})), serviceJobUnitIds()]);
-    const service = native ? await maintenanceFor(null).catch(() => []) : [];
+    const [assets, products, manufacturers, notes, jobUnits] = await Promise.all([cat.list('asset'), cat.list('product'), cat.list('manufacturer'), publicNotes(), serviceJobUnitIds()]);
+    requireList(assets, 'Equipment'); requireList(products, 'Products'); requireList(manufacturers, 'Manufacturers');
+    const service = native ? await maintenanceFor(null) : [];
     // The fleet-wide list stops at the newest 1000 events: count per unit when it is full.
     const truncated = service.length >= MAINTENANCE_LIST_CAP;
-    const certs = native ? await invoke('certificate_list', { assetId: null }).catch(() => []) : [];
+    const certs = native ? requireList(await invoke('certificate_list', { assetId: null }), 'Certificates') : [];
     const rows = [];
     for (const a of assets.filter(x => !x.isDeleted)) {
       const product = products.find(p => p.id === a.productId);
       const maker = product && manufacturers.find(m => m.id === product.manufacturerId);
-      const photoList = await pho.list('asset', a.id).catch(() => []);
+      const photoList = requireList(await pho.list('asset', a.id), 'Photos');
       rows.push({
         asset: { ...a, publicNotes: Object.hasOwn(notes, a.id) ? notes[a.id] ?? null : null }, manufacturer: maker?.name || '', model: product?.model || '', category: product?.category || '',
         photos: photoList.length, certificates: certs.filter(c => c.assetId === a.id && c.verdict !== 'draft').length,
-        service: truncated ? (await maintenanceFor(a.id).catch(() => [])).length : service.filter(e => e.assetId === a.id).length,
+        service: truncated ? (await maintenanceFor(a.id)).length : service.filter(e => e.assetId === a.id).length,
         usedInServiceJobs: jobUnits.has(a.id),
       });
     }
@@ -119,14 +124,20 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = defaultBrow
         try { for (const e of await maintenanceFor(a.id)) if (e?.assetId === a.id) pushService(e); }
         catch { state.problems.push({ assetId: a.id, what: 'service', reason: 'service history unreadable' }); }
       }
-      const list = await pho.list('asset', a.id).catch(() => []);
+      // An unknown inventory cannot safely become an empty export (folder writes prune old files).
+      // Known individual read failures below keep the existing attributed partial-result behavior.
+      const list = requireList(await pho.list('asset', a.id), 'Photos');
       state.photos[a.id] = [];
       for (const p of list) {
         try { state.photos[a.id].push({ photoId: p.photoId, sha256: p.sha256, altText: p.altText, caption: p.caption, bytes: base64ToBytes(await pho.read(p.photoId)) }); }
         catch { state.problems.push({ assetId: a.id, what: 'photo', reason: 'photo unreadable' }); }
       }
       for (const c of gear.certs.filter(x => x.assetId === a.id && x.verdict !== 'draft')) {
-        try { const rec = await invoke('certificate_get', { id: c.id }); if (rec?.fileJson) (state.certificates[a.id] ??= []).push({ id: c.id, fileJson: rec.fileJson }); }
+        try {
+          const rec = await invoke('certificate_get', { id: c.id });
+          if (typeof rec?.fileJson !== 'string' || !rec.fileJson.length) throw new Error('Certificate data is unavailable.');
+          (state.certificates[a.id] ??= []).push({ id: c.id, fileJson: rec.fileJson });
+        }
         catch { state.problems.push({ assetId: a.id, what: 'certificate', reason: 'certificate unreadable' }); }
       }
     }

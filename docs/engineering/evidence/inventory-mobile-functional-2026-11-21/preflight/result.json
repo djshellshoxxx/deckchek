@@ -1,0 +1,20 @@
+{
+  "schema": "deckchek.inventory-mobile-recorder-preflight.v1",
+  "record_created_at_utc": "2026-11-21T09:16:09.081128+00:00",
+  "source_commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "source_tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+  "original_driver_sha256": "054d3588475db9a68b4e5030ff5c8db232373e0c4763e51527bfac1a446126fd",
+  "corrected_driver_sha256": "1589eddd88d1c99c209edf96d92855293880326b6ca15c0eae810768c9409775",
+  "config_sha256": "f9c7e643311908610e9cf1a62afb4b9796247dd895675e80da8ab13db7395c1d",
+  "exit_code": 1,
+  "tool_chunk_id": "c45d30",
+  "stage": "Python filename guard before output creation, runtime queries and project process launch",
+  "node_or_project_process_started": false,
+  "raw_directory_exists": false,
+  "rejected_files": [
+    "tests/monitor.property.test.mjs",
+    "tests/scratch.property.test.mjs"
+  ],
+  "tool_output_capture": "Verbatim combined output copied from the first exec tool response; no re-execution",
+  "source_status_after": ""
+}

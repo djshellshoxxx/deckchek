@@ -91,7 +91,8 @@ const SOURCES = [
 
 /**
  * Loads every feature list through `invoke`. Each source fails on its own: a missing command or database error
- * leaves that type empty and is reported in `errors`, never rejecting the whole load. Without `invoke`
+ * leaves that type empty and is reported in `errors`, never rejecting the whole load. Invalid lists and rejected
+ * rows are also reported per source; valid rows from a partial list remain visible. Without `invoke`
  * (browser preview) there is nothing to load.
  * @returns {Promise<{rows: object[], errors: {type: string, message: string}[]}>}
  */
@@ -101,7 +102,19 @@ export async function loadFeatureRuns(invoke, { limit = 100, only = null } = {})
   const lists = await Promise.all(SOURCES.filter(s => !only || only.includes(s.type)).map(async s => {
     try {
       const rows = await invoke(s.cmd, s.args(limit));
-      return (Array.isArray(rows) ? rows : []).map(s.map).filter(Boolean);
+      if (!Array.isArray(rows)) {
+        errors.push({ type: s.type, message: 'History returned an invalid list.' });
+        return [];
+      }
+      const mapped = [];
+      let invalidRows = 0;
+      for (const source of rows) {
+        let item = null;
+        try { item = s.map(source); } catch { /* Count an unreadable row without discarding valid neighbours. */ }
+        if (item) mapped.push(item); else invalidRows++;
+      }
+      if (invalidRows) errors.push({ type: s.type, message: `${invalidRows} invalid history record${invalidRows === 1 ? '' : 's'} could not be listed.`, invalidRows });
+      return mapped;
     } catch (error) {
       errors.push({ type: s.type, message: String(error?.message ?? error) });
       return [];

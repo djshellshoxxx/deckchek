@@ -1,0 +1,567 @@
+{
+  "schema": "deckchek.inventory-history-observed-summary.v1",
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "focused_node_gate": {
+    "test_files": 16,
+    "counts": {
+      "tests": 130,
+      "suites": 0,
+      "pass": 130,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "exit_code": 0,
+    "timed_out": false,
+    "execution_elapsed_seconds": 13.1300348019995,
+    "tap_bytes": 30894,
+    "tap_sha256": "fbbe75bc702bd34678a6590051982b79c1a8a72ca8b4625b1f7d2bbfe104d0fd",
+    "stderr_bytes": 0,
+    "tracked_file_count": 2147,
+    "tracked_maps_equal_through_syntax": true
+  },
+  "smoke_syntax": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--check",
+      "tools/smoke/inventory-history.mjs"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "execution_elapsed_seconds": 0.06388362700090511,
+    "source_sha256": "f67f48ba8716d99a36534770ad5203bbd4f32435365f6662abfdbe89bb6fc41e",
+    "stdout_bytes": 0,
+    "stderr_bytes": 0
+  },
+  "observed_cases": [
+    {
+      "number": 1,
+      "title": "related links follow the feature flags"
+    },
+    {
+      "number": 2,
+      "title": "equipment links depend on the product category and hand over the asset"
+    },
+    {
+      "number": 3,
+      "title": "pre-gig cross fixes: only for problems, only for features that are on, no duplicates"
+    },
+    {
+      "number": 4,
+      "title": "every settings target the UI can ask for is on the fixed list"
+    },
+    {
+      "number": 5,
+      "title": "active cartridge: preferred, else most recently used, else first"
+    },
+    {
+      "number": 6,
+      "title": "stylus card model: wear percent, status and the next alert"
+    },
+    {
+      "number": 7,
+      "title": "history rows map every feature run onto one shape"
+    },
+    {
+      "number": 8,
+      "title": "loadFeatureRuns isolates failures and survives a missing backend"
+    },
+    {
+      "number": 9,
+      "title": "merge and filter the feed by type, newest first"
+    },
+    {
+      "number": 10,
+      "title": "pre-gig PDF: words not colours, everything escaped"
+    },
+    {
+      "number": 11,
+      "title": "saved runs carry the real capture span (live) and an approximate one (file)"
+    },
+    {
+      "number": 12,
+      "title": "registry lists every FS-00 \u00a74.14 flag with metadata"
+    },
+    {
+      "number": 13,
+      "title": "every features.* flag mentioned in docs/specs exists in FEATURES"
+    },
+    {
+      "number": 14,
+      "title": "defaults follow the plan: wizard, pdf, backup, test media, diagnostics on; new features off"
+    },
+    {
+      "number": 15,
+      "title": "setEnabled persists in deckchek.ui.v1.features and keeps other settings"
+    },
+    {
+      "number": 16,
+      "title": "corrupt or unavailable storage falls back to defaults"
+    },
+    {
+      "number": 17,
+      "title": "bound settings object is kept in sync so later settings writes do not clobber flags"
+    },
+    {
+      "number": 18,
+      "title": "change listeners fire and can be removed"
+    },
+    {
+      "number": 19,
+      "title": "resetFeatures drops every override and notifies listeners"
+    },
+    {
+      "number": 20,
+      "title": "fleet stays wired for manual opt-in and defaults off pending owner qualification"
+    },
+    {
+      "number": 21,
+      "title": "fleet honors explicit true and false overrides from storage and bound settings"
+    },
+    {
+      "number": 22,
+      "title": "fleet can switch on and off, persist opt-in, and notify listeners"
+    },
+    {
+      "number": 23,
+      "title": "M7 and M8 flags stay default off while wired adapters remain available"
+    },
+    {
+      "number": 24,
+      "title": "confirmed empty feature lists are valid while malformed lists are attributed"
+    },
+    {
+      "number": 25,
+      "title": "mixed lists retain every valid row once and report only bounded omission counts"
+    },
+    {
+      "number": 26,
+      "title": "a rejected source does not hide another source and disabled sources are not requested"
+    },
+    {
+      "number": 27,
+      "title": "History keeps a persistent incomplete state until a retry confirms an empty feature list"
+    },
+    {
+      "number": 28,
+      "title": "History preserves valid neighbouring rows and labels filtered partial counts as loaded"
+    },
+    {
+      "number": 29,
+      "title": "History does not request disabled feature lists"
+    },
+    {
+      "number": 30,
+      "title": "History ignores an older failed load after the latest load succeeds"
+    },
+    {
+      "number": 31,
+      "title": "History checks feature visibility again before publishing a pending result"
+    },
+    {
+      "number": 32,
+      "title": "History distinguishes a failed diagnostic list from confirmed empty history"
+    },
+    {
+      "number": 33,
+      "title": "browser public-note write rejects a full or blocked store instead of claiming persistence"
+    },
+    {
+      "number": 34,
+      "title": "browser export history does not advance revision when storage refuses the record"
+    },
+    {
+      "number": 35,
+      "title": "missing browser storage rejects both public-note and export-history writes"
+    },
+    {
+      "number": 36,
+      "title": "native persistence continues through Rust even when browser storage is unavailable"
+    },
+    {
+      "number": 37,
+      "title": "a throwing localStorage getter cannot prevent the Ledger API from reporting a failed write"
+    },
+    {
+      "number": 38,
+      "title": "an unreadable existing browser Ledger cannot be silently overwritten"
+    },
+    {
+      "number": 39,
+      "title": "malformed or structurally invalid browser Ledger data blocks mutations"
+    },
+    {
+      "number": 40,
+      "title": "browser notes belong only to explicitly saved asset IDs, including ordinary object-property names"
+    },
+    {
+      "number": 41,
+      "title": "Ledger confirmed empty inventories remain valid and keep exact zero counts"
+    },
+    {
+      "number": 42,
+      "title": "Ledger refuses unavailable or malformed ledger_public_notes instead of reporting empty inventory"
+    },
+    {
+      "number": 43,
+      "title": "Ledger refuses unavailable or malformed ledger_customer_units instead of reporting empty inventory"
+    },
+    {
+      "number": 44,
+      "title": "Ledger refuses unavailable or malformed maintenance_list instead of reporting empty inventory"
+    },
+    {
+      "number": 45,
+      "title": "Ledger refuses unavailable or malformed certificate_list instead of reporting empty inventory"
+    },
+    {
+      "number": 46,
+      "title": "Ledger refuses malformed catalog containers and unavailable photo enumeration"
+    },
+    {
+      "number": 47,
+      "title": "Ledger refuses an unavailable per-unit count after the global maintenance list reaches its cap"
+    },
+    {
+      "number": 48,
+      "title": "Ledger blocks building when a photo inventory becomes unavailable after selection"
+    },
+    {
+      "number": 49,
+      "title": "Ledger retains attributed partial problems for known item read failures and missing certificate contents"
+    },
+    {
+      "number": 50,
+      "title": "leak-grep: Public and Insurance defaults leak no seeded private value in folder or single-file mode"
+    },
+    {
+      "number": 51,
+      "title": "leak-grep: single-file mode decodes embedded photos too (no EXIF/GPS/comment bytes inside data URIs)"
+    },
+    {
+      "number": 52,
+      "title": "leak-grep: even with every field ticked, paths, user names, EXIF/GPS, venue and price never leak"
+    },
+    {
+      "number": 53,
+      "title": "leak-grep: free-text service descriptions carry customer names, so they are excluded unless ticked"
+    },
+    {
+      "number": 54,
+      "title": "leak-grep: each private field appears only when its own toggle (or per-item override) is on"
+    },
+    {
+      "number": 55,
+      "title": "leak-grep: certificates (which hold the full serial and tester name) appear only when ticked"
+    },
+    {
+      "number": 56,
+      "title": "leak-grep: no internal ids, local paths or owner name unless typed"
+    },
+    {
+      "number": 57,
+      "title": "Ledger initial load failure remains visible, blocks export, and recovers through Try again"
+    },
+    {
+      "number": 58,
+      "title": "Ledger cannot use a cached preview while a reload is pending or after it fails"
+    },
+    {
+      "number": 59,
+      "title": "Ledger rebuilds after a successful reload even if selection, privacy and notes are unchanged"
+    },
+    {
+      "number": 60,
+      "title": "Ledger ignores an older failure after the newest inventory load succeeds"
+    },
+    {
+      "number": 61,
+      "title": "Ledger removes vanished units from the selection after a successful inventory reload"
+    },
+    {
+      "number": 62,
+      "title": "Ledger ignores an older success after the newest inventory load fails"
+    },
+    {
+      "number": 63,
+      "title": "Ledger final build stops before writing if photo enumeration fails after the preview"
+    },
+    {
+      "number": 64,
+      "title": "Ledger screen serializes same-unit note writes while other units remain independent"
+    },
+    {
+      "number": 65,
+      "title": "an earlier same-text acknowledgement cannot discard a later failed Ledger draft"
+    },
+    {
+      "number": 66,
+      "title": "a later queued Ledger save can recover after the earlier save fails"
+    },
+    {
+      "number": 67,
+      "title": "reopening the Ledger selection while a note is saving retains its acknowledged value"
+    },
+    {
+      "number": 68,
+      "title": "browser storage rejection keeps the actual Ledger draft and blocks preview until retry succeeds"
+    },
+    {
+      "number": 69,
+      "title": "an unreadable stored Ledger remains unchanged after an actual-screen note save"
+    },
+    {
+      "number": 70,
+      "title": "a failed note does not block a Ledger reload or erase its recoverable draft"
+    },
+    {
+      "number": 71,
+      "title": "a browser history failure after file saving is visible and does not record a false Ledger revision"
+    },
+    {
+      "number": 72,
+      "title": "same asset note writes execute in submission order even when first is slow"
+    },
+    {
+      "number": 73,
+      "title": "one asset does not block independent asset note writes"
+    },
+    {
+      "number": 74,
+      "title": "a failed write does not suppress its error or cancel a later write for the same asset"
+    },
+    {
+      "number": 75,
+      "title": "retiring an earlier completion never drops a queued third write"
+    },
+    {
+      "number": 76,
+      "title": "preset names accept declared strings and use complete Public defaults for other values"
+    },
+    {
+      "number": 77,
+      "title": "restored invalid preset rules stay editable and explicit Custom overrides keep their meaning"
+    },
+    {
+      "number": 78,
+      "title": "regression: a customer bench unit from a service job stays listed, flagged usedInServiceJobs (never dropped silently)"
+    },
+    {
+      "number": 79,
+      "title": "regression: an owned unit with a self-service job is still the owner's gear in the list (flagged, not removed)"
+    },
+    {
+      "number": 80,
+      "title": "regression: service history is loaded per selected unit, not cut by the fleet-wide 1000-row list"
+    },
+    {
+      "number": 81,
+      "title": "regression: the next revision comes from Rust (which keeps a floor that survives a backup restore)"
+    },
+    {
+      "number": 82,
+      "title": "regression: folder export goes through ledger_write_folder, which prunes stale ledger files and writes atomically"
+    },
+    {
+      "number": 83,
+      "title": "regression: per-item overrides beyond 500 stale empty entries still apply at build time"
+    },
+    {
+      "number": 84,
+      "title": "regression: scrubText removes quoted and bracketed POSIX and home paths"
+    },
+    {
+      "number": 85,
+      "title": "regression: scrubText keeps web URLs intact and only removes file:// URLs or URLs with a user path"
+    },
+    {
+      "number": 86,
+      "title": "regression: a certificate with photos is left out (with a reason) when Photos is off for that item"
+    },
+    {
+      "number": 87,
+      "title": "regression: the summary counts certificate photos and names their file names and the device labels"
+    },
+    {
+      "number": 88,
+      "title": "regression: the single-file 5 MB cap counts certificate JSON and never points to a missing certificate file"
+    },
+    {
+      "number": 89,
+      "title": "regression: stylus replacements are labelled \"Stylus replaced\", not \"Other maintenance\""
+    },
+    {
+      "number": 90,
+      "title": "regression: smb, sftp, afp, ftps and other non-http(s) scheme URLs with a user folder lose the user path"
+    },
+    {
+      "number": 91,
+      "title": "regression: scrubText leaves ordinary text with slashes alone (no false paths)"
+    },
+    {
+      "number": 92,
+      "title": "regression: scrubText removes paths that start with a known root after any punctuation"
+    },
+    {
+      "number": 93,
+      "title": "regression: scrubText keeps http(s) and ftp(s) URLs intact unless they hold a user path"
+    },
+    {
+      "number": 94,
+      "title": "step 1 rows: title, model and status in words (never colour alone)"
+    },
+    {
+      "number": 95,
+      "title": "regression: units used in service jobs carry a visible note and start unselected (history, Select all), the user can still tick them"
+    },
+    {
+      "number": 96,
+      "title": "regression: the post-export note says stale files from earlier exports were removed (and only claims it when Rust pruned)"
+    },
+    {
+      "number": 97,
+      "title": "contract: ledger_write_folder, ledger_next_revision and ledger_customer_units match tests/contracts/ledger.json"
+    },
+    {
+      "number": 98,
+      "title": "AC-6 publish help: numbered GitHub Pages steps naming the exact folder, no credentials, retract note"
+    },
+    {
+      "number": 99,
+      "title": "AC-6 GitHub Pages guide: public site, correct publishing root, and stale-file cleanup"
+    },
+    {
+      "number": 100,
+      "title": "AC-7 browser mode: revisions count up by one, a stale revision is refused, history survives reload"
+    },
+    {
+      "number": 101,
+      "title": "desktop bridge sends exactly the contract field names (camelCase) and the ledger extension list"
+    },
+    {
+      "number": 102,
+      "title": "inline Verify reports certificate facts from the checked payload, not editable ledger summaries"
+    },
+    {
+      "number": 103,
+      "title": "inline verification keeps unavailable and invalid signatures explicit beside hash-checked facts"
+    },
+    {
+      "number": 104,
+      "title": "mismatched and unsigned pasted content never acquires checked certificate facts"
+    },
+    {
+      "number": 105,
+      "title": "pasted listing status follows the checked certificate content"
+    },
+    {
+      "number": 106,
+      "title": "checked facts are bounded strings and malicious markup is written only as text"
+    },
+    {
+      "number": 107,
+      "title": "async certificate verification snapshots the checked payload and integrity primitives"
+    },
+    {
+      "number": 108,
+      "title": "an older pasted verification cannot replace a newer certificate result"
+    },
+    {
+      "number": 109,
+      "title": "an older pasted verification cannot replace a newer invalid JSON result"
+    },
+    {
+      "number": 110,
+      "title": "an older pasted verification cannot replace a newer empty result"
+    },
+    {
+      "number": 111,
+      "title": "canonical JSON is deterministic and the page copy matches the FS-00 vectors byte for byte"
+    },
+    {
+      "number": 112,
+      "title": "SHA-256 vectors: empty string, \"abc\", 1 MB, in the shared module and the inlined page copy"
+    },
+    {
+      "number": 113,
+      "title": "ledgerSha256 covers the canonical items and ledger.json is stable, sorted and diffable (AC-7)"
+    },
+    {
+      "number": 114,
+      "title": "AC-2 privacy presets: snapshot of what each preset includes"
+    },
+    {
+      "number": 115,
+      "title": "AC-2 serial masking keeps the last 4 characters, never the whole of a short serial"
+    },
+    {
+      "number": 116,
+      "title": "per-item overrides beat the global toggles; untrusted rules are normalised to known keys"
+    },
+    {
+      "number": 117,
+      "title": "applyPrivacy is a whitelist: unknown record fields never pass through"
+    },
+    {
+      "number": 118,
+      "title": "scrubText removes paths (with the user names in them) and control characters"
+    },
+    {
+      "number": 119,
+      "title": "AC-5 photos: metadata segments (EXIF/GPS, ICC, comments, JFIF) are stripped and the result is a valid JPEG"
+    },
+    {
+      "number": 120,
+      "title": "AC-5 photos: oversize stored photos are re-encoded through the injected encoder or skipped as partial"
+    },
+    {
+      "number": 121,
+      "title": "HTML escapes every user string (<script>, quotes) and the data block cannot close its script tag"
+    },
+    {
+      "number": 122,
+      "title": "AC-3 the page is self-contained: CSP blocks network, no external URLs, inline CSS and script, semantic structure"
+    },
+    {
+      "number": 123,
+      "title": "AC-1 folder export file list: ledger/index.html, ledger.json, assets/*.jpg, certificate files; extensions allowed"
+    },
+    {
+      "number": 124,
+      "title": "single-file mode embeds photos as data URIs and refuses more than 5 MB of photos"
+    },
+    {
+      "number": 125,
+      "title": "empty selection, excluded items and unknown ids are errors, not empty ledgers"
+    },
+    {
+      "number": 126,
+      "title": "ledger.json v1 schema: required keys and value types"
+    },
+    {
+      "number": 127,
+      "title": "AC-4 certificates are embedded unchanged (never re-signed) and stay verifiable"
+    },
+    {
+      "number": 128,
+      "title": "AC-4 page script: good certificate matches, tampered one shows mismatch, drafts and junk are invalid"
+    },
+    {
+      "number": 129,
+      "title": "tampered or unsigned stored certificates are left out of the ledger with a reason"
+    },
+    {
+      "number": 130,
+      "title": "privacy summary lists every field with counts, photos, certificates and warnings"
+    }
+  ],
+  "limits": [
+    "Focused 16-file Node selection, not the complete top-level or platform gate.",
+    "DOM fixtures exercise real screen handlers with modeled inputs; no rendered browser or physical/native qualification.",
+    "The smoke module was parsed once and not executed.",
+    "The preceding 2359-test full gate belongs to fb81960, not this later source.",
+    "Earlier numerical failures and issue #72 remain unresolved; no numerical test or diagnostic was rerun."
+  ]
+}

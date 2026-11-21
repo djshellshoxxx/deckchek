@@ -1,0 +1,85 @@
+{
+  "schema": "deckchek.inventory-history-functional-manifest.v1",
+  "created_at_utc": "2026-11-21T09:02:24.561201+00:00",
+  "source_commit": "bdaf685b1ebc3889bf73474e5dc8c8e7f2d35df0",
+  "source_tree": "c897840779dcf999ccfde6815cf8cf82062fed59",
+  "file_count": 19,
+  "files": {
+    "authorized-selection.json": {
+      "bytes": 831,
+      "sha256": "7fd9f1ee2acee79635804c9a0b760fa8fa41fbfea31e2549d0b060b1542ba5c0"
+    },
+    "changed-source-comparison.json": {
+      "bytes": 2914,
+      "sha256": "b65fcd025af6893fd2bb5d19aaafdaa7fc4041fb3288c40f6db4901372fb4bb7"
+    },
+    "observed-summary.json": {
+      "bytes": 18973,
+      "sha256": "802934dd240c47b979cb7255382a76677f2fe41c4f2708e9e7f9b0c0cc0265ef"
+    },
+    "result.json": {
+      "bytes": 3485,
+      "sha256": "650e915502900a3b44bfdabbd041fc05537a248d5fd47001748b0f19b3e1e467"
+    },
+    "retention-proof.json": {
+      "bytes": 4391,
+      "sha256": "6ca6cdcccf668a24d1d2c53c76e9b3c00231e01d12a503005430676702782e40"
+    },
+    "run-focused-node.py": {
+      "bytes": 5611,
+      "sha256": "4c87d974296a5e46dd2851e7b32b263b6cc6bcc21ab311297a149121d0207800"
+    },
+    "run-smoke-syntax.py": {
+      "bytes": 3356,
+      "sha256": "2e498ebb217bed7955656018b21a58616f3ad005275410fb6d4f835e6aa8f01f"
+    },
+    "run.tap": {
+      "bytes": 30894,
+      "sha256": "fbbe75bc702bd34678a6590051982b79c1a8a72ca8b4625b1f7d2bbfe104d0fd"
+    },
+    "running.json": {
+      "bytes": 2774,
+      "sha256": "d14a8e9e99cbd51a5da700e5d32ae1155ce4576d4ae1cb0a0c0320c108520531"
+    },
+    "smoke-syntax-result.json": {
+      "bytes": 1583,
+      "sha256": "c73706b93e83dd2094ba683c107042b99d87fff45548badfa16753cf27ca3cf6"
+    },
+    "smoke-syntax-running.json": {
+      "bytes": 917,
+      "sha256": "0dfebfb65a073555b50c142782066ae9be81927df2c28dc59b3189b2a223aebf"
+    },
+    "smoke-syntax.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "smoke-syntax.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-files.json": {
+      "bytes": 618,
+      "sha256": "11779969b5b53bcc1e3dfa51d74a5196a03313240499773d12956ad30cfdbd5d"
+    },
+    "tracked-after-syntax.json": {
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1"
+    },
+    "tracked-after.json": {
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1"
+    },
+    "tracked-before.json": {
+      "bytes": 262962,
+      "sha256": "694adcf9932ab6a1409bca3a16dedec5e348671fbf1fcae9571945c13b85b0b1"
+    },
+    "verify-evidence.py": {
+      "bytes": 5003,
+      "sha256": "82972ec38fe776ab3f0cd017e3bd873a62a4a12600643151f401e8921135c79a"
+    }
+  }
+}

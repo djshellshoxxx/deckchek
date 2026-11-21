@@ -1,21 +1,10 @@
 // DeckChek Mobile shell: hash router for the five screens, service-worker registration and the update prompt.
 import { announce } from './lib/ui.js';
-
-const SCREENS = {
-  speed: { title: 'Speed', load: () => import('./screens/speed.js') },
-  strobe: { title: 'Strobe', load: () => import('./screens/strobe.js') },
-  vibration: { title: 'Vibration', load: () => import('./screens/vibration.js') },
-  spl: { title: 'Sound level', load: () => import('./screens/spl.js') },
-  results: { title: 'Results', load: () => import('./screens/results.js') },
-};
+import { SCREENS, parseHash } from './lib/routes.js';
+export { parseHash };
 
 let cleanup = null;
 let token = 0;
-
-export function parseHash(hash) {
-  const [name, id] = String(hash || '').replace(/^#\/?/, '').split('/');
-  return { name: name in SCREENS ? name : 'speed', id: id || null };
-}
 
 async function render() {
   const route = parseHash(location.hash);

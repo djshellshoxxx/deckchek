@@ -1,0 +1,8 @@
+{
+  "source_commit": "67fd2d664b8a4847fe2066c47f64682eef796c3b",
+  "source_tree": "5c469cca519d4139dc47196ab6bf015c5247caf6",
+  "execution_budget_seconds": 30,
+  "allowed_changes": [
+    "mobile/sw.js"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "deckchek.inventory-mobile-generated-build-commit.v1",
+  "commit": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+  "parent": "67fd2d664b8a4847fe2066c47f64682eef796c3b",
+  "changed_paths": [
+    "mobile/sw.js"
+  ],
+  "mobile_sw_sha256": "ede63eb2bd8f63332017bf87c70d454a3b4812903d2385de8c242c982545041c",
+  "status_after_commit": ""
+}

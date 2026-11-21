@@ -1,0 +1,34 @@
+{
+  "verified_at_utc": "2026-11-21T09:33:17.859526+00:00",
+  "source": "09c9afc7cfb2857f354feccb65e46a54ca8cfe62",
+  "tree": "b650eeac53af1395d6d0792f3639f02cf317490f",
+  "immutable_source_files": 2177,
+  "source_maps_verified": 4,
+  "build_prep_maps_verified": 1,
+  "only_build_change": [
+    "mobile/sw.js"
+  ],
+  "selection_files": 198,
+  "ordered_outcomes": 2391,
+  "failures": [
+    {
+      "number": 37,
+      "title": "bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once"
+    },
+    {
+      "number": 53,
+      "title": "session clamps the level to the -12 dBFS cap and honours a lower level"
+    }
+  ],
+  "counts": {
+    "tests": 2391,
+    "suites": 0,
+    "pass": 2388,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 1,
+    "todo": 0
+  },
+  "tap_bytes": 556814,
+  "tap_sha256": "bf5b091c0a20826a64cac1842d0d5b057a5dc91a46c5a68ebcca1b9e60f50eaa"
+}

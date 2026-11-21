@@ -1,0 +1,48 @@
+{
+  "schema": "deckchek.feature-successor-hosted-evidence.v1",
+  "pull_request": 79,
+  "head": "f76908766d53992e20382b9cbe73a668a28a6d1a",
+  "tree": "32ca272be2daeee6c4c1f47ccd5bd0ed0ac9909e",
+  "base": "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+  "tested_merge": "7c5bf0632cd7f32e63b6f9fd275fd5fc4e46febc",
+  "workflow_run_id": 44887748227,
+  "ui_job_id": 136796633767,
+  "javascript_job_id": 136796633689,
+  "ui_checks": {
+    "total": 1411,
+    "pass": 1411,
+    "player": 25,
+    "toolbar": 16,
+    "pdf_new": 3
+  },
+  "javascript": {
+    "node": "22.23.5",
+    "total": 2359,
+    "pass": 2358,
+    "fail": 0,
+    "skip": 1,
+    "skip_reason": "optional Mixxx CLI"
+  },
+  "artifacts": [
+    {
+      "id": 14700846690,
+      "name": "ui-smoke-screenshots",
+      "bytes": 34466860,
+      "sha256": "290405d800eb8064ad461a21f5db3844936826407d428af840f3b164744d8d3c"
+    },
+    {
+      "id": 14700557551,
+      "name": "junit-javascript",
+      "bytes": 77563,
+      "sha256": "0254f089c8da089f52be78e700f702791af9bbbcdc739a3f3961daa61e759414"
+    }
+  ],
+  "limitations": [
+    "Actual Chromium browser plus modeled native adapter; no physical/native hardware qualification.",
+    "Selected original screenshots/PDF and full decoded job logs retained. Full screenshot archive remains a separately hashed hosted artifact.",
+    "Toolbar geometry establishes header scope only; Quick Check main-pane horizontal overflow observed separately and recorded as issue #81.",
+    "Remaining nightly/platform gates pending; this evidence alone does not authorize merge.",
+    "Later History/Mobile source 09c9afc is separate and has a held first local complete gate. No numerical repair claim."
+  ],
+  "recorded_at_utc": "2026-11-21T09:34:37.433212+00:00"
+}
