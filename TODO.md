@@ -1,6 +1,27 @@
 # DeckChek build queue
 
-## Current continuation — 20 November 2026
+## Current Ledger consolidation — 20 November 2026
+
+Main is `e49ea1bbafb5005fdf1dfcf60d885b82d0191471` after PR #46 merged.
+The [current Ledger continuation](docs/engineering/LEDGER_CONSOLIDATION_2026-11-20.md) consolidates #47 and the #49–#56
+publishing/persistence stack above #54's combined #48/current-main source.
+Three initial workers found and corrected note acknowledgement ownership,
+reload ordering, saved-note key handling, recovery copy and current guide docs.
+Three fresh successors completed independent code, functional and defensive
+acceptance at source `e04d6332185063b62c75f0e2cabdc1654a719079`, tree
+`88b3f2c43967ae3695d9974a8b69b7be5b6bd6c2`.
+
+The combined Node 22.23.4 suite passed **2,222 / zero failures / one optional
+skip** across 184 files; all 1,550 tracked hashes stayed unchanged. Static checks,
+434 module syntax checks and both performance proxy tests passed. The author's
+80/80 and independent 28/28 focused scopes overlap this total. Durable source
+`68d49cc0cb26ab8444d54cdaab50fabdf81bd46a` has the exact tested tree and retains
+all original #47–#56 heads as ancestors. Current publication/hosted gates are in
+the report; earlier source results do not qualify new bytes. Preserve branch ancestry,
+original failures, owner/hardware gates, Fleet default-off and existing limits.
+The dated sections below preserve history and do not describe the current queue.
+
+## Historical first continuation — 20 November 2026
 
 PRs #34, #38 and #45 are merged. Verified main at this checkpoint is
 `f46abbea458ba2bb8c2f6d438eba4f5b0a58c948`, including ZIP corrections accepted
@@ -158,7 +179,7 @@ See [docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) for the detai
 - [ ] Owner hardware runs H-20 to H-23 and H-31 to H-33; flip default-off flags only after they pass.
 - [ ] FS-31: WASAPI-shared capture beside DJ software (H-31 steps 1-6); negative-SNR residual (noise louder than the carrier reads as cueing).
 - [ ] FS-32: confirm the VirtualDJ file format against a real install (H-32 step 7).
-- [ ] FS-33: verify the GitHub Pages guide wording (H-33).
+- [ ] FS-33: complete the real GitHub Pages publishing/privacy walkthrough (H-33); guide wording was checked against current GitHub documentation on 20 November 2026.
 - [x] FS-21: bounded exported-pack privacy/source review accepted for the frozen four-file correction; all three ownership/copy findings resolved. Persistent 16/16, related 32/32 and unchanged independent 3/3 are recorded in the [source41 report](docs/DECKCHEK-CONTINUATION-41.md#pack-preview-ownership-and-privacy-copy).
 - [ ] FS-21: exact-source hosted export/import and owner H-21 qualification remain separate from the accepted source/probe review.
 - [ ] FS-23: real-database walkthrough and H-23 hardware qualification before enabling Fleet by default.

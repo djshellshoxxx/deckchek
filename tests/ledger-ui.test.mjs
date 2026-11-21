@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 const mem = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), raw: m }; };
 globalThis.localStorage = mem();
-const { gearRowText, publishSteps, PUBLISH_COPY, RETRACT_NOTE, SERVICE_JOB_NOTE, initialSelection, selectAllIds, heldNote, exportNote, LEFTOVER_NOTE } = await import('../app/ui/screens/ledger.js');
+const { gearRowText, publishSteps, PUBLISH_COPY, PUBLISH_COPY_SINGLE, RETRACT_NOTE, SERVICE_JOB_NOTE, initialSelection, selectAllIds, heldNote, exportNote, LEFTOVER_NOTE } = await import('../app/ui/screens/ledger.js');
 const { createLedgerApi, LOCAL_KEY } = await import('../app/ledger/api.js');
 const { LEDGER_EXTS } = await import('../app/ledger/build.js');
 const CONTRACT = JSON.parse(readFileSync(new URL('./contracts/ledger.json', import.meta.url), 'utf8'));
@@ -71,8 +71,37 @@ test('AC-6 publish help: numbered GitHub Pages steps naming the exact folder, no
   assert.match(steps[2], /Settings > Pages/);
   assert.match(steps[2], /Deploy from a branch/);
   assert.ok(!steps.join(' ').match(/password|token|sign in|log in/i), 'the guide never asks for credentials');
-  assert.equal(PUBLISH_COPY, 'Create a repository, upload the exported folder (or push it), then Settings > Pages > Deploy from branch. DeckChek never uploads for you. Check the privacy summary below before making it public.');
+  assert.equal(PUBLISH_COPY, 'Create a repository, upload the contents of the exported folder at the repository root (or push them), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.');
+  assert.equal(PUBLISH_COPY_SINGLE, 'Create a repository, upload the exported HTML file as index.html at the repository root (or push it), then Settings > Pages > Deploy from a branch and select / (root). DeckChek never uploads for you. Check the privacy summary below before making it public.');
+  assert.match(PUBLISH_COPY, /contents of the exported folder at the repository root/);
+  assert.match(PUBLISH_COPY_SINGLE, /index\.html at the repository root/);
+  for (const summary of [PUBLISH_COPY, PUBLISH_COPY_SINGLE]) {
+    assert.match(summary, /Deploy from a branch and select \/ \(root\)/);
+    assert.match(summary, /DeckChek never uploads for you/);
+  }
   assert.match(RETRACT_NOTE, /does not remove copies you already published/);
+});
+
+test('AC-6 GitHub Pages guide: public site, correct publishing root, and stale-file cleanup', () => {
+  const folder = publishSteps('ledger', 'folder');
+  const single = publishSteps('deckchek-gear-ledger.html', 'single');
+  for (const steps of [folder, single]) {
+    assert.equal(steps.length, 4);
+    assert.match(steps[0], /GitHub Free requires a public repository/);
+    assert.match(steps[0], /private repository does not, by itself, make its Pages site private/);
+    assert.match(steps[2], /Deploy from a branch/);
+    assert.match(steps[2], /\/ \(root\)/);
+    assert.match(steps[3], /Check the published page and repository/);
+    assert.match(steps[3], /Deleted files remain accessible in Git commit history/);
+    assert.ok(!steps.join(' ').match(/password|token|sign in|log in/i));
+  }
+  assert.match(folder[1], /contents of the exported "ledger" folder/);
+  assert.match(folder[1], /remove obsolete photos and certificate JSON files/);
+  assert.match(folder[1], /uploading new files does not delete old GitHub files/);
+  assert.match(single[1], /Rename the exported file "deckchek-gear-ledger\.html" to index\.html/);
+  assert.match(single[1], /repository root/);
+  assert.match(single[1], /replaces an older folder export/);
+  assert.match(single[1], /replacing index\.html does not delete them/);
 });
 
 test('AC-7 browser mode: revisions count up by one, a stale revision is refused, history survives reload', async () => {

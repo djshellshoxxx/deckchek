@@ -17,23 +17,47 @@ const MAX_LOCAL_EXPORTS = 50;
 /** maintenance_list returns at most this many rows (src-tauri/src/fleet.rs maintenance_filtered). */
 const MAINTENANCE_LIST_CAP = 1000;
 const nativeInvoke = () => globalThis.window?.__TAURI__?.core?.invoke ?? null;
+// Some privacy modes expose localStorage as a throwing getter. Do not fail before
+// the Ledger API can report an unavailable browser persistence store.
+const defaultBrowserStorage = () => { try { return globalThis.localStorage; } catch { return null; } };
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // The UI smoke mock (and test doubles) answer commands they do not know with "unknown command <name>". Only that answer
 // selects the older code path; every other error (a real database or file error) is passed on.
 const isUnknownCommand = e => /^unknown command\b/.test(String(e?.message ?? e));
 const tauri = () => globalThis.window?.__TAURI__ ?? null;
 
-function readLocal(storage) {
+function readLocal(storage, { forWrite = false } = {}) {
   try {
-    const v = JSON.parse(storage?.getItem(LOCAL_KEY) || '{}');
+    // Distinguish an absent key from a present but empty/corrupt value.
+    // An empty string must not be treated as a new empty Ledger on writes.
+    const raw = storage?.getItem(LOCAL_KEY);
+    const v = JSON.parse(raw == null ? '{}' : raw);
+    // Reads retain their historical empty fallback. Mutations must not turn
+    // an unreadable or malformed existing ledger into an empty replacement.
+    if (forWrite && (!isObj(v)
+      || (v.exports !== undefined && (!Array.isArray(v.exports) || !v.exports.every(isObj)))
+      || (v.notes !== undefined && !isObj(v.notes)))) {
+      throw new Error('Gear Ledger browser data has an invalid shape');
+    }
     return { exports: Array.isArray(v?.exports) ? v.exports.filter(isObj) : [], notes: isObj(v?.notes) ? v.notes : {} };
-  } catch { return { exports: [], notes: {} }; }
+  } catch (cause) {
+    if (forWrite) throw new Error('Browser Gear Ledger data is unreadable; changes were not saved. Keep your edits or exported file, and preserve the stored Ledger data for recovery before retrying.', { cause });
+    return { exports: [], notes: {} };
+  }
 }
 function writeLocal(storage, data) {
-  try { storage?.setItem(LOCAL_KEY, JSON.stringify(data)); } catch { /* storage full or blocked: history stays in memory */ }
+  // A missing, full, or blocked browser store must never be reported as a successful
+  // public-note or export-history save. The caller keeps its draft/error state.
+  if (typeof storage?.setItem !== 'function') {
+    throw new Error('Browser storage is unavailable; Gear Ledger changes were not saved. Keep your edits or exported file, allow browser storage, and retry.');
+  }
+  try { storage.setItem(LOCAL_KEY, JSON.stringify(data)); }
+  catch (cause) {
+    throw new Error('Browser storage could not save Gear Ledger changes. Keep your edits or exported file, check storage space and browser permissions, then retry.', { cause });
+  }
 }
 
-export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.localStorage, catalog, photos, now = () => new Date().toISOString() } = {}) {
+export function createLedgerApi({ invoke = nativeInvoke(), storage = defaultBrowserStorage(), catalog, photos, now = () => new Date().toISOString() } = {}) {
   const cat = catalog ?? createCatalogStore({ invoke, storage });
   const pho = photos ?? createPhotoStore({ invoke });
   const native = Boolean(invoke);
@@ -72,7 +96,7 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
       const maker = product && manufacturers.find(m => m.id === product.manufacturerId);
       const photoList = await pho.list('asset', a.id).catch(() => []);
       rows.push({
-        asset: { ...a, publicNotes: notes[a.id] ?? null }, manufacturer: maker?.name || '', model: product?.model || '', category: product?.category || '',
+        asset: { ...a, publicNotes: Object.hasOwn(notes, a.id) ? notes[a.id] ?? null : null }, manufacturer: maker?.name || '', model: product?.model || '', category: product?.category || '',
         photos: photoList.length, certificates: certs.filter(c => c.assetId === a.id && c.verdict !== 'draft').length,
         service: truncated ? (await maintenanceFor(a.id).catch(() => [])).length : service.filter(e => e.assetId === a.id).length,
         usedInServiceJobs: jobUnits.has(a.id),
@@ -112,9 +136,11 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
 
   async function setPublicNote(assetId, text) {
     if (native) return invoke('ledger_public_note_set', { assetId, text: text ?? null });
-    const data = readLocal(storage);
+    const data = readLocal(storage, { forWrite: true });
     const t = typeof text === 'string' ? text.trim().slice(0, 2000) : '';
-    if (t) data.notes[assetId] = t; else delete data.notes[assetId];
+    // Saved asset ids are data keys, even when they share a name with an Object member.
+    if (t) Object.defineProperty(data.notes, assetId, { value: t, enumerable: true, configurable: true, writable: true });
+    else delete data.notes[assetId];
     writeLocal(storage, data);
     return { assetId, publicNotes: t || null };
   }
@@ -126,7 +152,7 @@ export function createLedgerApi({ invoke = nativeInvoke(), storage = globalThis.
 
   async function recordExport(record) {
     if (native) return invoke('ledger_export_record', { record });
-    const data = readLocal(storage);
+    const data = readLocal(storage, { forWrite: true });
     const next = Math.max(0, ...data.exports.map(e => Number(e.revision) || 0)) + 1;
     if (record.revision !== next) throw Object.assign(new Error(`LEDGER_REVISION: the next revision is ${next}, not ${record.revision}`), { code: 'revision' });
     const row = { id: `l-${Date.now().toString(36)}`, revision: next, createdAt: now(), selection: record.selection, privacy: record.privacy, ledgerSha256: record.ledgerSha256 };
