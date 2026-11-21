@@ -1,28 +1,31 @@
 # DeckChek spec status (work list)
 
-## Current Mobile QR consolidation — 20 November 2026
+## Current CDJ acquisition continuation — 20 November 2026
 
-The [current continuation](docs/engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) preserves the CDJ evidence candidate from #62,
-corrects #63's actual QR import path and implements #64's bounded framing API.
-Three initial workers completed, then three fresh code/functional/defensive
-workers accepted frozen source `7ae15e17d0c8247efde1ba26c59df4e13f4e321c`, tree
-`2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4`. Durable equivalent source is
-`912ecefd88a34233998f327f76fa18452716d02a`, with both original PR heads retained.
+The [current continuation](docs/engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
+explicit native observations, scoped cancellation and immutable provisional
+metadata. Three initial workers completed before three fresh independent
+code/functional/defensive reviewers accepted combined source
+`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
+`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
+`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
 
-Independent full serial Node 22.23.4 verification passed **2,251 / zero failures /
-one expected optional skip** across 186 files. All 1,616 tracked hashes stayed
-unchanged. Generated mobile assets match the shared source. Framing preserves
-significant whitespace, Unicode and the existing transfer/QR limits. The final
-published successor requires its own applicable hosted gates; input branches
-and original failures remain preserved.
+Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
+unchanged. Only the new acquisition controller and its test file change runtime
+source. Production player UI wiring, retained reference/raw bytes,
+SQLite/history/HTML integration, scientific characterization and physical
+qualification remain unfinished. Evidence stays unverified and report-ineligible.
 
-PRs #54/#58/#59 are merged; last verified main at this checkpoint is
-`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. CDJ evidence remains unverified and
-ineligible for reports: capture ownership, retained reference bytes, scientific
-metadata, SQLite/history/HTML integration and physical qualification remain
-unfinished. Native/browser device-profile assignment already exists. Fleet
-stays off by default. Use the current report and live refs for the next action;
-dated snapshots below preserve history and do not describe the current queue.
+Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
+while its hosted gates qualify; its independent full suite passed 2,251 / zero
+failures / one optional skip. Standard hosted checks passed, but nightly ASan
+failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
+unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
+preserved. This distinct acquisition successor needs its own hosted checks.
+Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
+#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
+already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
+Read current refs/reports; dated snapshots below preserve history.
 
 ## Historical CDJ calculation checkpoint — 20 November 2026
 
@@ -221,7 +224,7 @@ These describe the long-term product. Items that need physical hardware or vendo
 | SPEC-02 vendor DVS decoders (Serato/Traktor/rekordbox) | MISSING (generic decoder only) | Legal/licence feasibility; out of scope for this run |
 | SPEC-03 skip/locked-groove/warp/non-fill classifiers | PARTIAL | Needs a labelled false-positive corpus |
 | SPEC-05 venue hierarchy, feedback, support isolation and incidents | PARTIAL: incidents/pagination, saved supports, passive LF A/B, separate archives and native latest-reading evidence implemented | Explicit native/browser device-profile assignment is implemented; broader incident windows/shock/DVS/onset outcomes and physical qualification remain open |
-| SPEC-10 CDJ transport/media/digital-output | PARTIAL: isolated pitch calculation and provisional evidence/JSON contract independently reviewed; complete player workflow remains unimplemented | No capture/database/report or physical qualification; not a release commitment |
+| SPEC-10 CDJ transport/media/digital-output | PARTIAL: isolated pitch/evidence modules and a single-pair capture-owning API independently reviewed; production player workflow remains unwired | UI, retained reference/raw bytes, database/report integration and scientific/physical qualification remain open; not a release commitment |
 | SPEC-17 code signing and auto-update | MISSING | Signing certificates (owner) |
 | Controller HID diagnostics | MISSING | Not specified as a job |
 

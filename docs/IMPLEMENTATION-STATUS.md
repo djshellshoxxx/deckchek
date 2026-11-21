@@ -1,28 +1,31 @@
 # DeckChek implementation status
 
-## Current Mobile QR consolidation — 20 November 2026
+## Current CDJ acquisition continuation — 20 November 2026
 
-The [current continuation](engineering/MOBILE_QR_CONTINUATION_2026-11-20.md) preserves the CDJ evidence candidate from #62,
-corrects #63's actual QR import path and implements #64's bounded framing API.
-Three initial workers completed, then three fresh code/functional/defensive
-workers accepted frozen source `7ae15e17d0c8247efde1ba26c59df4e13f4e321c`, tree
-`2f2a99a1370f1863649aa2bd0552ddc92f6ad1e4`. Durable equivalent source is
-`912ecefd88a34233998f327f76fa18452716d02a`, with both original PR heads retained.
+The [current continuation](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md) adds a single-pair capture-owning API with
+explicit native observations, scoped cancellation and immutable provisional
+metadata. Three initial workers completed before three fresh independent
+code/functional/defensive reviewers accepted combined source
+`55f7ea2c8759c985bbbd463f374ca2c78d99a669`, tree
+`54a86922bfd8cca87c076b755edd0b3432034aee`. Durable equivalent source is
+`63fa54d1d2c01e4a862f25b6b4583196665d9e93`.
 
-Independent full serial Node 22.23.4 verification passed **2,251 / zero failures /
-one expected optional skip** across 186 files. All 1,616 tracked hashes stayed
-unchanged. Generated mobile assets match the shared source. Framing preserves
-significant whitespace, Unicode and the existing transfer/QR limits. The final
-published successor requires its own applicable hosted gates; input branches
-and original failures remain preserved.
+Fresh Node 22.23.4 verification passed **56/56**, with all 1,643 tracked hashes
+unchanged. Only the new acquisition controller and its test file change runtime
+source. Production player UI wiring, retained reference/raw bytes,
+SQLite/history/HTML integration, scientific characterization and physical
+qualification remain unfinished. Evidence stays unverified and report-ineligible.
 
-PRs #54/#58/#59 are merged; last verified main at this checkpoint is
-`cfb1137d3d01ddd4a9fd0677113314dc7deb76ee`. CDJ evidence remains unverified and
-ineligible for reports: capture ownership, retained reference bytes, scientific
-metadata, SQLite/history/HTML integration and physical qualification remain
-unfinished. Native/browser device-profile assignment already exists. Fleet
-stays off by default. Use the current report and live refs for the next action;
-dated snapshots below preserve history and do not describe the current queue.
+Published QR #65 remains fixed at `562609b4acc8bc24704cc864ef27c0b11c56bc00`
+while its hosted gates qualify; its independent full suite passed 2,251 / zero
+failures / one optional skip. Standard hosted checks passed, but nightly ASan
+failed the unchanged Fleet gate at 201.565999 ms against 200 ms. The cause is
+unestablished; a separate fresh worker set owns diagnosis. #62/#63 are closed as superseded, with branches
+preserved. This distinct acquisition successor needs its own hosted checks.
+Main last verified here is `cfb1137d3d01ddd4a9fd0677113314dc7deb76ee` after
+#54/#58/#59 merged. Fleet stays default-off; existing profile assignment is
+already implemented. Issue #66 remains queued after the active Fleet merge-blocker diagnosis.
+Read current refs/reports; dated snapshots below preserve history.
 
 ## Historical source41 — incident evidence, profile provenance and preview integrity
 
@@ -319,7 +322,7 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 - Controller HID diagnostics; MIDI runners work in learn mode but no profile ships a published MIDI map yet, so coverage/LED tests need a learned map first.
 - Device-profile pass thresholds and most specs are unverified research (marked in the UI and reports); identity of the DDJ-S8 and Technics MK4 units must be confirmed on the hardware.
 - Timecode, MIDI and driver runners are smoke-tested with synthetic signals and mocked bridges only; not yet run against the physical gear.
-- Complete CDJ capture, provenance, persistence/reporting, transport/media/digital-output and scientific validation. The isolated calculation and provisional evidence/JSON contract are independently reviewed; this does not complete a production player workflow.
+- Complete the CDJ production player workflow: UI wiring, retained reference/raw bytes, persistence/reporting, transport/media/digital-output and scientific validation. The isolated calculation, provisional evidence/JSON contract and single-pair capture-owning API have independent acceptance; they do not complete the production workflow.
 - Model-specific service workflows and Technician/Engineering worksheets beyond the generic FS-22 job sheet.
 - Installer/update validation and release signing.
 - The platform workflow includes macOS arm64/x64 and Linux x64/x86 package builds, with packaged self-tests for macOS and Linux x64. Linux x86 has no packaged runtime smoke; final integration platform builds/self-tests and real audio-hardware qualification remain pending.
@@ -328,6 +331,6 @@ Supersedes the "Cloud continuation: M7 data and statistics foundations" and "FS-
 
 The repository now contains an offline-analysis and live-capture beta with a full desktop GUI shell, catalog persistence, and deterministic diagnostic workflows. It is useful for file analysis and native audio-interface capture with evidence-first findings. It is not yet a complete implementation of every feature in SPEC-00 through SPEC-19.
 
-Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The new evidence continuation needs its own hosted gates. Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
+Hardware-dependent measurements still require known-reference validation. Ledger #58 and calculation #59 each completed all applicable standard/nightly jobs, six builds and five packaged self-tests before their exact-tree merges; the [current continuation](engineering/CDJ04_EVIDENCE_CONTINUATION_2026-11-20.md) records that source-specific evidence. Earlier source39/source40 results remain [historical evidence](DECKCHEK-CONTINUATION-41.md#completed-preceding-hosted-checks). The QR and acquisition candidates need their own applicable hosted gates; see the [current acquisition handoff](engineering/CDJ04_ACQUISITION_CONTINUATION_2026-11-20.md). Linux x86 runtime qualification, installer/signing and actual hardware remain open; the configured [platform workflow](../.github/workflows/cross-platform-release-validation.yml) does not make every build a runtime smoke.
 
 - Final fixes (GAP-02, 08, 13, 15, 18): an input-pair picker sits wherever a capture is set up (Quick Check and the DVS/Speed/Cartridge flows, timecode runner, calibration, wear map, scratch, latency measure, hum, feedback), default 1-2 and remembered per input; `latency_play_and_capture` takes `pairs`. The scratch test uses the shared Stop-and-continue flow and ends cleanly if another feature takes the input. `--debug-crash` (debug builds, or `DECKCHEK_ALLOW_DEBUG_CRASH=1`) raises a controlled panic at the end of setup so the crash prompt can be tested (H-02). `runtime_status` was removed. The wizard listen test uses the remembered pair but has no picker of its own.

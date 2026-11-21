@@ -1,0 +1,49 @@
+{
+  "source": "55f7ea2c8759c985bbbd463f374ca2c78d99a669",
+  "tree": "54a86922bfd8cca87c076b755edd0b3432034aee",
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-cdj-acquisition-acceptance-functional",
+  "node_executable": "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+  "node_version": "v22.23.4",
+  "path_prefix": "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/cdj-acquisition.test.mjs",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/cdj-pitch-display.test.mjs",
+    "tests/capture-ownership.test.mjs",
+    "tests/capture-pairs.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T03:55:54.780881+00:00",
+  "ended_at_utc": "2026-11-21T03:55:55.297569+00:00",
+  "exit_code": 0,
+  "counts": {
+    "tests": 56,
+    "suites": 0,
+    "pass": 56,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "tap_duration_ms": 464.570067,
+  "enclosing_seconds": 0.5166669330064906,
+  "tracked_file_count": 1643,
+  "tracked_hashes_unchanged": true,
+  "status_before": "",
+  "status_after": "",
+  "source_after": "55f7ea2c8759c985bbbd463f374ca2c78d99a669",
+  "tree_after": "54a86922bfd8cca87c076b755edd0b3432034aee",
+  "tap_sha256": "f4551b41a24ccf9aef4b91396415c5ded04eb4a0a3b718b09020fc5f865ee588",
+  "tap_bytes": 13815,
+  "source_hashes": {
+    "app/player/acquisition.js": "49e67475808248d9f920c9a69ea090786669c1faf54b6f4cf0ccea36a5961fe8",
+    "tests/cdj-acquisition.test.mjs": "9f221f9fd5c94658cb27cac3568f95ca7d36c50d51c34cd01a7c437e89b8ebd2",
+    "app/player/evidence-record.js": "52e7e28403610375ba3db26f2b7e94db3a334fb0b916205489442b754e9a4207",
+    "app/player/pitch-display.js": "040a0703f8d68cecedae43616b977378f11baf5f6ac8e18be487e1bd85262988",
+    "app/capture.js": "9204f3df759d883052941838364814865f58d5178d525d29e81ebde02df5473b",
+    "app/ui/audio-io.js": "0c9b78c970da7ff38386651c1778cd485b8edbcdfbfeedb6cbbeacb77f1569f6"
+  }
+}

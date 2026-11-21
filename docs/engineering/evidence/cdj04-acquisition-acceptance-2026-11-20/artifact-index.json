@@ -1,0 +1,31 @@
+{
+  "source": "55f7ea2c8759c985bbbd463f374ca2c78d99a669",
+  "tree": "54a86922bfd8cca87c076b755edd0b3432034aee",
+  "artifacts": [
+    {
+      "path": "focused.tap",
+      "bytes": 13815,
+      "sha256": "f4551b41a24ccf9aef4b91396415c5ded04eb4a0a3b718b09020fc5f865ee588"
+    },
+    {
+      "path": "focused.json",
+      "bytes": 2104,
+      "sha256": "774faa0ae0fc10b6ccbc6bde8ac52deb195ee514138542094143ee442561c771"
+    },
+    {
+      "path": "syntax.json",
+      "bytes": 1014,
+      "sha256": "ec982f56b2e0d91c9ec3fcb015d82aad375b096ce88eaa1527c5a9bfd7f7ee47"
+    },
+    {
+      "path": "tracked-before.json",
+      "bytes": 185404,
+      "sha256": "f1d2212dfb9ebcbbbe0057ca67f0ab99ad3240fa17a522b72b67d7beff69a645"
+    },
+    {
+      "path": "tracked-after.json",
+      "bytes": 185404,
+      "sha256": "f1d2212dfb9ebcbbbe0057ca67f0ab99ad3240fa17a522b72b67d7beff69a645"
+    }
+  ]
+}

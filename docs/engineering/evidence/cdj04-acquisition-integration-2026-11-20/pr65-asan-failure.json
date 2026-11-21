@@ -1,0 +1,41 @@
+{
+  "recorded_at_utc": "2026-11-21T04:06:23.739827+00:00",
+  "source_head": "562609b4acc8bc24704cc864ef27c0b11c56bc00",
+  "source_tree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+  "pull_request": 65,
+  "run_id": 44862296853,
+  "job_id": 136718158369,
+  "url": "https://github.com/djshellshoxxx/deckchek/actions/runs/44862296853/job/136718158369",
+  "job": "rust-asan",
+  "result": "failure",
+  "failed_test": "fleet::tests::regression_reminder_overview_has_no_per_reminder_scans_and_meets_budget",
+  "source_location": "src/fleet.rs:1845:9",
+  "elapsed_ms": 201.565999,
+  "unchanged_budget_ms": 200,
+  "passed": 766,
+  "failed": 1,
+  "ignored": 8,
+  "exit_code": 101,
+  "cause": "not_established",
+  "log_scope": "complete_decoded_job_log",
+  "log_bytes": 193794,
+  "log_sha256": "e3e01b87903722839f0308c353537d7b3619736f423425263154dc0f5237820d",
+  "log_git_blob": "e36208aa6bbc298052a132f662f9bf386d8f2cc7",
+  "limits": [
+    "This timing assertion blocks the PR65 merge.",
+    "No threshold relaxation or blind rerun is justified by this record.",
+    "Earlier source47 failure and source58/59 passes do not establish the cause.",
+    "Native source is unchanged by the QR and acquisition implementation slices.",
+    "Fresh Fleet code/functional/defensive workers own diagnosis on separate branches."
+  ],
+  "executed_merge_commit": "5702a450d9a7faa3efb80c5b67de69386ae07540",
+  "executed_merge_tree": "a2e4f571ac3a9c7d976db911a5fed3f910c3ea26",
+  "executed_merge_parents": [
+    "cfb1137d3d01ddd4a9fd0677113314dc7deb76ee",
+    "562609b4acc8bc24704cc864ef27c0b11c56bc00"
+  ],
+  "merge_identity_verification": "Full fetched Git object; whole tree equals published source; parents match main and PR65 head.",
+  "rustc": "1.102.0-nightly (c7d5ba59d 2026-11-20)",
+  "earlier_passes_rustc": "1.102.0-nightly (6905905bb 2026-11-19)",
+  "compiler_comparison_limit": "Compiler version differs in PR58/59 success logs; this is not a causal finding."
+}
