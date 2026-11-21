@@ -1,0 +1,60 @@
+{
+  "schema": "deckchek.player-audio-export-focused-selection.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_branch": "review/deckchek-player-audio-export-functional-20261121",
+  "expected_tracked_file_count": 2392,
+  "expected_all_top_level_test_count": 203,
+  "expected_node_version": "v24.22.3",
+  "execution_budget_seconds": 120,
+  "termination_signal_after_seconds": 115,
+  "source_paths": [
+    "tests/canonical.test.mjs",
+    "tests/cdj-acquisition.test.mjs",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/player-audio-export.test.mjs",
+    "tests/player-capture-screen.test.mjs",
+    "tests/player-reference-file.test.mjs",
+    "tests/zip-writer.test.mjs"
+  ],
+  "expected_sources": {
+    "tests/canonical.test.mjs": {
+      "bytes": 6065,
+      "sha256": "4c1b20a5eb44db5271ea46d5ba99de5e510ed40a66c4a9e438373399f21a876b"
+    },
+    "tests/cdj-acquisition.test.mjs": {
+      "bytes": 19004,
+      "sha256": "9f221f9fd5c94658cb27cac3568f95ca7d36c50d51c34cd01a7c437e89b8ebd2"
+    },
+    "tests/cdj-evidence-record.test.mjs": {
+      "bytes": 9363,
+      "sha256": "34021a157c944f98abe8a706d1afdbf47fad0c2541e4b654b7133d29279638ab"
+    },
+    "tests/player-audio-export.test.mjs": {
+      "bytes": 12255,
+      "sha256": "8f30e6199625f4d37e2e015b7a72df13a654e27c7f101d5fdfb370ef53648744"
+    },
+    "tests/player-capture-screen.test.mjs": {
+      "bytes": 33635,
+      "sha256": "c45637a4c459ba1b1f89331ce364a4f7831d9d644c684307c06a7b6950946259"
+    },
+    "tests/player-reference-file.test.mjs": {
+      "bytes": 6303,
+      "sha256": "81d6a75ba658886ea28be37309dac05779b11304a213e3811e95244a9ca7960e"
+    },
+    "tests/zip-writer.test.mjs": {
+      "bytes": 13317,
+      "sha256": "1f4c2d8185c99be4105accc31b405bc6a43a03f1f8ebdbd3b06335a3f5e0814a"
+    }
+  },
+  "expected_test_file_count": 7,
+  "test_files": [
+    "tests/canonical.test.mjs",
+    "tests/cdj-acquisition.test.mjs",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/player-audio-export.test.mjs",
+    "tests/player-capture-screen.test.mjs",
+    "tests/player-reference-file.test.mjs",
+    "tests/zip-writer.test.mjs"
+  ]
+}

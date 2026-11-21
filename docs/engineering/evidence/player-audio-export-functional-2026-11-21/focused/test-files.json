@@ -1,0 +1,9 @@
+[
+  "tests/canonical.test.mjs",
+  "tests/cdj-acquisition.test.mjs",
+  "tests/cdj-evidence-record.test.mjs",
+  "tests/player-audio-export.test.mjs",
+  "tests/player-capture-screen.test.mjs",
+  "tests/player-reference-file.test.mjs",
+  "tests/zip-writer.test.mjs"
+]

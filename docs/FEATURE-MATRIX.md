@@ -15,49 +15,52 @@ one optional skip; actual UI smoke passed 1,411 checks. Read the
 [qualified merge proof](engineering/FEATURE_SUCCESSOR_MERGE_2026-11-21.md).
 #73/#75 closed through that merge; #72 stays open.
 
-All three round-ten link-consent #84 workers completed, and their final reports
-and original evidence are consolidated. Frozen `f1e0ca1` remains **HELD** after
-its first complete 202-file JavaScript gate: 2,420 total / 2,418 pass / one final
-relative-gain failure / one optional skip, exit 1 without timeout. All 2,345
-source hashes, inventory, HEAD/tree and clean state were unchanged. Case 53
-retains -101 dB at -30 dBFS after earlier playback-level assertions passed.
-No numerical cause or repair is inferred; original earlier failures remain.
+All three round-eleven Player audio-export workers completed. Frozen
+`445a66e` retains its FIRST seven-file focused result: **111 tests / 111 pass /
+zero failures or skips**, plus a successful first changed-smoke syntax check.
+All 2,392 source hashes, modes, inventories, HEAD/tree and ordered parents stayed
+unchanged. Both peers and root independently verified all 45 manifest entries,
+40 original copies, 45 original-path bindings and every ordered outcome. Read
+[the completed Player handoff](engineering/PLAYER_AUDIO_EXPORT_CONTINUATION_2026-11-21.md).
 
-All 14 new consent/dialog cases passed. Remembered consent now applies only to
-ordinary HTTPS links without userinfo or a nondefault port; exceptional URLs
-require a fresh decision. Native policy and permissions stay unchanged. Both
-peers and root independently verified all originals, immutable source maps and
-2,420 ordered outcomes. The separate first smoke syntax check passed; actual
-new browser/native smoke behavior remains unexecuted. Read the
-[completed link handoff](engineering/LINK_CONSENT_CONTINUATION_2026-11-21.md).
-This scoped acceptance does not qualify a merge or close #84.
+The scoped addition provides an unchecked-by-default retention choice and an
+explicit local ZIP download of normalized Float32 PCM with capture provenance
+and reference identity. The metadata-only default and Ctrl+E remain unchanged.
+PCM is bounded at 18 MiB inside the existing 20 MiB ZIP cap; reference-file bytes
+are excluded. Stale results are discarded, and an optional preparation failure
+keeps metadata export available. The 19 new feature cases passed. Browser/native
+download behavior, qualified pitch, retained reference bytes and report/History
+integration remain open. This focused acceptance does not qualify the whole tree.
 
-All three round-nine Mapper #82 workers completed. Its first focused gate at
-`6b8a2b2` retained 96 total / 95 pass / zero fail / one optional skip with all
-2,315 source hashes unchanged. All 96 ordered names/statuses also match the
-round-ten full run. Failed or malformed collections cannot be overwritten;
-drafts survive errors and Retry can restore the saved list. The completed
-[Mapper handoff](engineering/MAPPER_STORAGE_CONTINUATION_2026-11-21.md)
-is durable at [`cbd959b`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121),
-with verified complete-tree, parent and exact-ref proof.
+**Complete-source qualification remains HELD.** Round ten's first complete
+202-file gate at `f1e0ca1` retained 2,420 total / 2,418 pass / one failure / one
+optional skip, exit 1 without timeout, with all 2,345 hashes unchanged. Case 53
+failed the final relative-gain assertion at -101 dB for -30 dBFS after earlier
+playback-level assertions passed. No cause or repair is established. All 14 new
+link-consent cases and the separate syntax check passed. The completed
+[link handoff](engineering/LINK_CONSENT_CONTINUATION_2026-11-21.md) is durable
+at [`e7fca004`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-link-consent-held-20261121),
+with verified complete-tree, parent and exact-ref proof. #84 remains open pending
+qualified integration.
 
-The completed round-eight Quick Check/Mobile handoff is durable at
-[`1889bfc`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121).
-Its first `e5614ff` full outcome remains 2,395 total / 2,393 pass / one failure /
-one optional skip, with all 2,280 hashes unchanged. The retained final gain is
--101 dB at -30 dBFS; no cause or repair is established. Read its
-[held handoff](engineering/QUICK_LAYOUT_CONTINUATION_2026-11-21.md).
-Round seven's Mobile work retains its first 45/45 focused pass, official build
-and syntax check. All 34 Mobile files remain unchanged; persistence after denied
-writes and new Quick Check browser rendering remain unqualified.
+Earlier completed checkpoints remain preserved: Mapper #82 at
+[`cbd959b`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121)
+retains its first 96 total / 95 pass / one optional skip, and all those ordered
+outcomes also match the round-ten full gate. Quick Check/Mobile at
+[`1889bfc`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121)
+retains its first 2,395 total / 2,393 pass / one gain failure / one optional skip.
+Round seven retains its first 45/45 focused pass, official Mobile build and
+syntax check, with all 34 Mobile files unchanged. Historical passing observations
+do not replace failures or qualify later source.
 
-The next isolated authored candidate is Player captured-audio export `fb2a34a`:
-explicit retention, a bounded local normalized-PCM ZIP, preserved provenance and
-reference identity, with the metadata-only default and scientific limits intact.
-It remains unexecuted. The fresh code/functional/static-defensive trio starts
-only after this completed link handoff. Only its functional lane may execute
-root-reviewed bounded first commands. Root owns CI, publication and merges.
-Later #76/#77/#78/#80/#81/#82/#84 remain outside qualified PR #79.
+The fresh successor code, functional/bug-hunt and static defensive team reviews
+scheduled-backup settings completeness [#85](https://github.com/djshellshoxxx/deckchek/issues/85).
+The [review scope](engineering/BACKUP_SETTINGS_REVIEW_SCOPE_2026-11-21.md)
+requires a concrete freshness/error contract before a production correction and
+fresh acceptance. This design/audit cycle authorizes no project execution.
+Root owns implementation, CI, publication and integration. All three final
+handoffs are required before another worker rotation.
+Later #76/#77/#78/#80/#81/#82/#84/#85 remain outside qualified PR #79.
 
 ## Current implementation snapshot
 
@@ -73,7 +76,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Diagnostics bundle and crash prompt (FS-02) | Implemented | Local zip, redaction, crash marker on exit; nothing uploaded. |
 | Open external links (FS-07) | Implemented | Allowlist plus confirm dialog; desktop command is authoritative. |
 | Test media library (FS-06) | Implemented | On by default (no flag in the spec; `testMedia` defaults on and Experimental features can switch it off). Picker prefill, result and History record of the medium used. Choosing a timecode medium sets the decoder format explicitly: the DVS form has a Timecode format field (Auto-detect is only the fallback), and the scratch test and control-vinyl forms take a medium to set their format. The M6 forms for pre-gig, stylus and latency do not take a medium. |
-| Backup and restore (FS-08) | Implemented software; final source41 qualification separate | Existing native backup/safety/schedule/free-space behavior and separate browser/native catalog/history formats remain. Native schema 25 backup retains incident evidence. Source40 primary native/browser checks completed at their own tree; catalog browser checks use deterministic IPC fixtures. Actual restore/dialog/platform qualification remains scoped. |
+| Backup and restore (FS-08) | Implemented software; scheduled settings completeness #85 under review | Existing native backup/safety/schedule/free-space behavior and separate browser/native catalog/history formats remain. Native schema 25 backup retains incident evidence. Source40 primary native/browser checks completed at their own tree; catalog browser checks use deterministic IPC fixtures. Actual restore/dialog/platform qualification remains scoped. Automatic backups currently rely on a potentially absent/stale webview-settings cache; [#85](https://github.com/djshellshoxxx/deckchek/issues/85) remains open. |
 | Stylus wear tracker (FS-12) | Implemented, flag `stylusWear`, hardware-unvalidated | Hours ledger (manual, DeckChek capture sessions and DJ-log proposals), life gauge, benchmark entry, trend charts with regression, degradation alerts, snooze, replacement reset, PDF report. Benchmarks can be entered, filled from saved runs, or acquired through the guided stereo/isolated-channel/optional-timecode workflow. Evidence and lifecycle corrections, including the version-3 Hann measurement basis, have passed independent review; browser/platform and physical repeatability acceptance remain pending. |
 | Booth feedback and hum hunter (FS-15) | Implemented bounded software; flags and physical gates retained | Existing hum/feedback, seven manual incident categories, immutable context, pagination, saved supports and passive LF A/B remain. Native incidents can optionally attach one selected already-running monitor generation’s latest reading frozen at press, with an atomic immutable pair and bounded report/history detail. Default OFF; no new capture, PCM or post-press window. Broader windows/shock/DVS/onset outcomes and H-15 remain open. [Contract](incident-metric-evidence.md). |
 | Saved support descriptions (FS-15 prerequisite) | Implemented; current descriptions remain distinct from captured A/B context | Equipment saves descriptive fields and setup assignments while preserving legacy structure and hidden context. Asset replacement clears its former settings link; bound venue changes reject. Reports label current support context and propagate failed/missing measured-history reads. Browser workspace JSON excludes supports/setups; the separate catalog file transfers them with unresolved native-only references disclosed. No isolation-performance or hardware claim. |
@@ -111,7 +114,7 @@ The table below is intentionally conservative. “Implemented” means code exis
 | Native continuous capture | Implemented in software; hardware qualification pending | Continuous stereo capture uses an SPSC ring buffer (`rtrb`) and capture-quality counters in `src-tauri/src/capture.rs`. Supported real-device and driver combinations remain unqualified. |
 | Hardware calibration/uncertainty | Implemented in software; reference qualification pending | Interface loopback calibration and uncertainty propagation are implemented. Gain, channel matching, noise, distortion, latency, clock and coarse frequency-response estimates require known-reference validation before calibrated accuracy claims. |
 | Venue/CDJ/controller/Technician advanced workflows | Not implemented | Shared measurement primitives can be reused, but category-specific workflows remain. |
-| CDJ-04 Player capture preview | Partial production workflow; default-off UI merged through #74 | Single-pair, 1–30 second lease-scoped capture with native-observation metadata, owned cancellation and local metadata-only export. Records remain provisional, unverified, unmeasured and report-ineligible; raw/reference retention, pitch integration, persistence/reporting and scientific/physical qualification remain open. [Qualified merge](engineering/PLAYER_CAPTURE_MERGE_2026-11-21.md). |
+| CDJ-04 Player capture preview | Partial production workflow; default-off capture merged through #74; later audio export scoped acceptance, full-source HOLD | Single-pair, 1–30 second lease-scoped capture retains native observations and provisional metadata. The consolidated opt-in local archive adds bounded normalized PCM, fixed entry hashes and capture/reference identity; its first 111/111 focused gate passed. Metadata-only remains the default. Reference-file retention, qualified pitch, report/History integration and physical validation remain open. [Current handoff](engineering/PLAYER_AUDIO_EXPORT_CONTINUATION_2026-11-21.md). |
 | Optional reference-file identity | Implemented software; qualified merge #79 | Exact bounded file-byte SHA-256 plus filename/length metadata, stale-operation guards and late-picker cleanup. Bytes are not retained, decoded, uploaded or proven to be playing. [Qualified merge and source-specific evidence](engineering/FEATURE_SUCCESSOR_MERGE_2026-11-21.md); original failed observations remain preserved. |
 
 See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) for the detailed reconciliation.

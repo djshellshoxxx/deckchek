@@ -1,0 +1,10 @@
+fatal: path 'app/audio-session.js' does not exist in '33e077f3bf45dad96ba1c6de341a0d9fe8efa594'
+Traceback (most recent call last):
+  File "<stdin>", line 96, in <module>
+  File "<stdin>", line 20, in git
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', 'rev-parse', '33e077f3bf45dad96ba1c6de341a0d9fe8efa594:app/audio-session.js']' returned non-zero exit status 128.

@@ -1,0 +1,170 @@
+{
+  "schema": "deckchek.player-audio-export-focused-gate.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_branch": "review/deckchek-player-audio-export-functional-20261121",
+  "source_parents": [
+    "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+    "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-functional",
+  "driver_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-recorder.py",
+  "config_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-selection.json",
+  "output_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw",
+  "driver_sha256": "d41731c5be8fae1455cc2b57a741b3706f727c04001a9d3d7a91b5f64bbd3250",
+  "config_sha256": "fe9908bef44f52677cca878beb5e0b9b652ec07913ca4b815546e0c986ca33db",
+  "python_version": "3.12.14",
+  "python_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "recorder_started_at_utc": "2026-11-21T11:28:41.267548+00:00",
+  "runtime_identity_calls": [
+    {
+      "label": "node-version",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.006384325999533758,
+      "stdout_bytes": 9,
+      "stdout_sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "node-runtime",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.09198538800046663,
+      "stdout_bytes": 782,
+      "stdout_sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "project_command_started": false,
+  "exit_code": null,
+  "timed_out": false,
+  "termination_events": [],
+  "execution_budget_seconds": 120,
+  "termination_signal_after_seconds": 115,
+  "termination_grace_seconds": 5,
+  "scope": "One explicit seven-file focused serial TAP selection only. Includes the selected existing zip-writer test's Python -I zipfile compatibility subprocess. No full suite, separate build/verifier, browser/native app launch, audio collector or additional instrumentation.",
+  "source_state_before": {
+    "branch": "review/deckchek-player-audio-export-functional-20261121",
+    "commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+    "tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+    "parents": [
+      "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+      "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+    ],
+    "status": ""
+  },
+  "forbidden_environment_variable_names": [],
+  "worktree_git_blob_mismatch_paths_before": [],
+  "tracked_file_count": 2392,
+  "all_top_level_test_file_count": 203,
+  "status_before": "",
+  "selected_source_identities_before": {
+    "tests/canonical.test.mjs": {
+      "bytes": 6065,
+      "sha256": "4c1b20a5eb44db5271ea46d5ba99de5e510ed40a66c4a9e438373399f21a876b"
+    },
+    "tests/cdj-acquisition.test.mjs": {
+      "bytes": 19004,
+      "sha256": "9f221f9fd5c94658cb27cac3568f95ca7d36c50d51c34cd01a7c437e89b8ebd2"
+    },
+    "tests/cdj-evidence-record.test.mjs": {
+      "bytes": 9363,
+      "sha256": "34021a157c944f98abe8a706d1afdbf47fad0c2541e4b654b7133d29279638ab"
+    },
+    "tests/player-audio-export.test.mjs": {
+      "bytes": 12255,
+      "sha256": "8f30e6199625f4d37e2e015b7a72df13a654e27c7f101d5fdfb370ef53648744"
+    },
+    "tests/player-capture-screen.test.mjs": {
+      "bytes": 33635,
+      "sha256": "c45637a4c459ba1b1f89331ce364a4f7831d9d644c684307c06a7b6950946259"
+    },
+    "tests/player-reference-file.test.mjs": {
+      "bytes": 6303,
+      "sha256": "81d6a75ba658886ea28be37309dac05779b11304a213e3811e95244a9ca7960e"
+    },
+    "tests/zip-writer.test.mjs": {
+      "bytes": 13317,
+      "sha256": "1f4c2d8185c99be4105accc31b405bc6a43a03f1f8ebdbd3b06335a3f5e0814a"
+    }
+  },
+  "test_file_count": 7,
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "optional_external_corpus_present": false,
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "node_executable_bytes": 126951512,
+  "node_executable_sha256_before": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "node_resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ]
+  },
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "--test-reporter=tap",
+    "tests/canonical.test.mjs",
+    "tests/cdj-acquisition.test.mjs",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/player-audio-export.test.mjs",
+    "tests/player-capture-screen.test.mjs",
+    "tests/player-reference-file.test.mjs",
+    "tests/zip-writer.test.mjs"
+  ],
+  "started_at_utc": "2026-11-21T11:28:42.013229+00:00"
+}

@@ -1,0 +1,383 @@
+{
+  "schema": "deckchek.player-audio-export-functional-retention-proof.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "original_directories": {
+    "syntax": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw",
+    "focused": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw"
+  },
+  "original_copy_count": 40,
+  "original_path_binding_count": 45,
+  "all_original_files_retained_byte_for_byte": true,
+  "raw_directory_inventory_complete": true,
+  "first_streams_only": true,
+  "rerun_count": 0,
+  "bindings": [
+    {
+      "retained_path": "focused/all-top-level-test-files-after.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/all-top-level-test-files-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/all-top-level-test-files.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/all-top-level-test-files.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/authorized-selection.json",
+      "bytes": 2197,
+      "sha256": "fe9908bef44f52677cca878beb5e0b9b652ec07913ca4b815546e0c986ca33db",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/authorized-selection.json",
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-selection.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/node-runtime.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/node-runtime.stderr"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/node-runtime.stdout",
+      "bytes": 782,
+      "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/node-runtime.stdout"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/node-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/node-version.stderr"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/node-version.stdout",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/node-version.stdout"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/result.json",
+      "bytes": 9563,
+      "sha256": "f529736bf10e80c5cfb0c6b6c6dbaf4a466f2fab1b8a71220c8c5b4dede07417",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/result.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/run-focused-node.py",
+      "bytes": 18343,
+      "sha256": "d41731c5be8fae1455cc2b57a741b3706f727c04001a9d3d7a91b5f64bbd3250",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/run-focused-node.py",
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-recorder.py"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/run.tap",
+      "bytes": 25096,
+      "sha256": "9cbf80ee04a33ee38f1a2a454ba0831436b6d31c316e1e9b871e0b574cdb03fe",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/run.tap"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/running.json",
+      "bytes": 6670,
+      "sha256": "93db2b81e0527de7aa5dd70ae19d1fc87184e6457633ede7c8a6a62c6105d8dc",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/running.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/source-tree-entries.json",
+      "bytes": 422730,
+      "sha256": "7c21eb430b6b308a44aae42a30393980be613f36300228bb1168617072912de3",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/source-tree-entries.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/stderr.log"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/test-files.json",
+      "bytes": 264,
+      "sha256": "1d72963debf2dc0f3ba28e7387e666cc1b363e485825f2438f587ac052cd507b",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/test-files.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-after.json",
+      "bytes": 300738,
+      "sha256": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-before.json",
+      "bytes": 300738,
+      "sha256": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-before.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-inventory-after.json",
+      "bytes": 138082,
+      "sha256": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-inventory-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-inventory-before.json",
+      "bytes": 138082,
+      "sha256": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-inventory-before.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-top-level-test-files-after.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-top-level-test-files-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "focused/tracked-top-level-test-files.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-focused-raw/tracked-top-level-test-files.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/all-top-level-test-files-after.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/all-top-level-test-files-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/all-top-level-test-files.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/all-top-level-test-files.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/authorized-syntax.json",
+      "bytes": 709,
+      "sha256": "cdc68a8f9d40c6f0fe08cd64054f572282b381d42ed071f726b580461cacdccb",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/authorized-syntax.json",
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-selection.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/checked-player-capture.mjs",
+      "bytes": 20997,
+      "sha256": "d04df702031d9180d8c6040b1e4c6a475b2d6ea76d77cab9f6258b82fe1d3369",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/checked-player-capture.mjs",
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-functional/tools/smoke/player-capture.mjs"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/node-runtime.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/node-runtime.stderr"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/node-runtime.stdout",
+      "bytes": 782,
+      "sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/node-runtime.stdout"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/node-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/node-version.stderr"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/node-version.stdout",
+      "bytes": 9,
+      "sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/node-version.stdout"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/result.json",
+      "bytes": 7047,
+      "sha256": "c325f87575a7dca64699bf85ddaa6a3b664fb1e83eef866358dac344841542e5",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/result.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/running.json",
+      "bytes": 5313,
+      "sha256": "e754b473bb4894fe5401158cd3979941711914b91f8c052e879b890895333601",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/running.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/source-tree-entries.json",
+      "bytes": 422730,
+      "sha256": "7c21eb430b6b308a44aae42a30393980be613f36300228bb1168617072912de3",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/source-tree-entries.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/syntax-recorder.py",
+      "bytes": 17261,
+      "sha256": "96594744e8fb76cf6c40a19b899a805f855dba0809c5db8441aee0f724be498d",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/syntax-recorder.py",
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-recorder.py"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/syntax.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/syntax.stderr"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/syntax.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/syntax.stdout"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-after.json",
+      "bytes": 300738,
+      "sha256": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-before.json",
+      "bytes": 300738,
+      "sha256": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-before.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-inventory-after.json",
+      "bytes": 138082,
+      "sha256": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-inventory-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-inventory-before.json",
+      "bytes": 138082,
+      "sha256": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-inventory-before.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-top-level-test-files-after.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-top-level-test-files-after.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    },
+    {
+      "retained_path": "syntax/tracked-top-level-test-files.json",
+      "bytes": 7813,
+      "sha256": "7d703136fd514200aa4f12bf2576110f92bbb773e0f02a1140e6765396d293fa",
+      "original_paths": [
+        "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw/tracked-top-level-test-files.json"
+      ],
+      "all_bound_original_bytes_equal": true
+    }
+  ],
+  "method": "Byte/length/SHA-256 comparison of complete copied originals. Original directories and reviewed external controls are not modified."
+}

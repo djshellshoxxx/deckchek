@@ -14,3 +14,4 @@
 .pc-reasons li + li { margin-top: 6px; }
 .pc-reference { grid-column: 1 / -1; }
 .pc-reference-status { overflow-wrap: anywhere; }
+#pc-keep-audio { width: 24px; height: 24px; }

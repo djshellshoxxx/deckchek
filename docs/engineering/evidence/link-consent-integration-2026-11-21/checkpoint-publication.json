@@ -1,0 +1,22 @@
+{
+  "schema": "deckchek.link-consent-held-checkpoint-publication.v1",
+  "verified_at_utc": "2026-11-21T11:23:52.204569+00:00",
+  "local_publication_source": "d4ea3c2fc7e3308e92326ccf2cd19319e2669d9c",
+  "published_commit": "e7fca004fa43361018eea7683265bad07260c03d",
+  "complete_tree": "430388115ef3787293f48a9ecdcb57de83620543",
+  "ordered_parents": [
+    "cbd959b882da65c8036bad37faba02840a9418f1"
+  ],
+  "fetched_published_commit": true,
+  "complete_tree_equal": true,
+  "file_difference_count": 0,
+  "prior_checkpoints_and_qualified_main_are_ancestors": true,
+  "branch": "checkpoint/deckchek-link-consent-held-20261121",
+  "ref_readback_verified": true,
+  "complete_source_qualification": "HELD; first full gate 2420 total / 2418 pass / one fail / one optional skip",
+  "no_project_execution_by_root": true,
+  "exact_ref": "refs/heads/checkpoint/deckchek-link-consent-held-20261121",
+  "ref_readback_sha": "e7fca004fa43361018eea7683265bad07260c03d",
+  "ref_verified_at_utc": "2026-11-21T11:24:32.074055+00:00",
+  "no_qualified_main_merge_release_or_deployment": true
+}

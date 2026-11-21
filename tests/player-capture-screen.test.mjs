@@ -66,7 +66,7 @@ function captureFixture({ payload = {}, quality = {}, startGate = null, waitGate
   return { audio, result, calls, session, startCapture, acquire };
 }
 
-function mount(t, { fixture = captureFixture(), native = true, acquire = fixture.acquire, pairs = [3], shell = false, inspectReference } = {}) {
+function mount(t, { fixture = captureFixture(), native = true, acquire = fixture.acquire, pairs = [3], shell = false, inspectReference, prepareAudioExport } = {}) {
   const document = installDom(t), previousDevice = settings.deviceName;
   settings.deviceName = 'Requested input';
   const saved = [], pairEvents = [];
@@ -79,8 +79,8 @@ function mount(t, { fixture = captureFixture(), native = true, acquire = fixture
   const section = document.createElement('section'); section.id = 'screen-pc-test';
   document.getElementById('main').append(section);
   const api = createPlayerCaptureScreen(section, { acquire, startCapture: fixture.startCapture,
-    native: () => native, pairPicker, selectPairs: () => pairs, inspectReference,
-    save: (filename, contents, type) => saved.push({ filename, contents, type, value: JSON.parse(contents) }) });
+    native: () => native, pairPicker, selectPairs: () => pairs, inspectReference, prepareAudioExport,
+    save: (filename, contents, type) => saved.push({ filename, contents, type, value: type === 'application/json' ? JSON.parse(contents) : null }) });
   if (shell) {
     configureFeatures({ storage: globalThis.localStorage });
     setEnabled('playerCapture', true);
@@ -501,4 +501,122 @@ test('leaving after a completed reference selection clears it before another cap
   assert.equal(f.saved[0].value.selectedReference, null);
   assert.equal(f.saved[0].value.record.source.referenceHashSha256, null);
   assert.equal(f.byId('pc-reference-file').value, '');
+});
+
+async function captureReady(f) {
+  const until = Date.now() + 2000;
+  while (f.byId('pc-start').disabled && Date.now() < until) await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(f.byId('pc-start').disabled, false, 'capture and optional local archive preparation settled');
+  await settle();
+}
+
+test('audio retention is off by default and metadata-only capture never reads the audio property', async t => {
+  const fixture = captureFixture(); let prepared = 0, reads = 0;
+  const f = mount(t, { fixture,
+    acquire: async options => {
+      const captured = await fixture.acquire(options);
+      return { acquisition: captured.acquisition, record: captured.record,
+        get audio() { reads++; throw new Error('Metadata-only capture must not read samples.'); } };
+    }, prepareAudioExport: async () => { prepared++; throw new Error('Not requested'); } });
+  assert.equal(Boolean(f.byId('pc-keep-audio').checked), false);
+  await f.click('pc-start'); await f.click('pc-export-audio'); await f.click('pc-export');
+  assert.equal(reads, 0); assert.equal(prepared, 0);
+  assert.equal(f.byId('pc-export-audio').disabled, true);
+  assert.equal(f.saved.length, 1); assert.equal(f.saved[0].type, 'application/json');
+  assert.match(f.byId('pc-result').textContent, /Not retained/);
+});
+
+test('opted-in real acquisition prepares a local ZIP while Ctrl+E remains metadata-only', async t => {
+  const f = mount(t);
+  await f.choose(referenceFile()); await referenceReady(f);
+  f.byId('pc-keep-audio').checked = true;
+  await f.click('pc-start'); await captureReady(f);
+  assert.equal(f.byId('pc-export-audio').disabled, false);
+  assert.match(f.byId('pc-status').textContent, /ready in memory.*not been saved/);
+  await f.click('pc-export-audio');
+  assert.equal(f.saved.length, 1);
+  assert.equal(f.saved[0].type, 'application/zip');
+  assert.match(f.saved[0].filename, /^deckchek-player-audio-.*\.zip$/);
+  assert.ok(f.saved[0].contents instanceof Uint8Array);
+  assert.deepEqual([...f.saved[0].contents.subarray(0, 4)], [0x50, 0x4b, 3, 4]);
+  assert.match(f.byId('pc-status').textContent, /download requested/);
+  f.api.onExport();
+  assert.equal(f.saved[1].type, 'application/json');
+  assert.deepEqual(Object.keys(f.saved[1].value).sort(), ['acquisition', 'record', 'selectedReference']);
+  assert.equal(f.saved[1].value.selectedReference.sha256, ABC);
+  assert.deepEqual(f.saved[1].value.acquisition.rawEvidenceRefs, []);
+  assert.equal(f.saved[1].value.record.qualification.eligibleForReport, false);
+  assert.equal(globalThis.localStorage.getItem('deckchek.workspace.v1'), null);
+});
+
+test('each audio download receives independent bytes and Clear relinquishes the retained archive', async t => {
+  const f = mount(t); f.byId('pc-keep-audio').checked = true;
+  await f.click('pc-start'); await captureReady(f); await f.click('pc-export-audio');
+  const original = f.saved[0].contents.slice(); f.saved[0].contents.fill(0);
+  await f.click('pc-export-audio');
+  assert.deepEqual(f.saved[1].contents, original);
+  await f.click('pc-clear'); await f.click('pc-export-audio'); f.api.onExport();
+  assert.equal(f.saved.length, 2);
+  assert.equal(f.byId('pc-export-audio').disabled, true);
+  assert.equal(f.byId('pc-result').hidden, true);
+});
+
+for (const [name, end] of [['Cancel', f => f.byId('pc-cancel').dispatch('click')],
+  ['hide and return', f => { f.api.onHide(); f.api.onShow(); }], ['dispose', f => f.api.dispose()]]) {
+  test(`${name} suppresses an archive that finishes after its capture was invalidated`, async t => {
+    const gate = deferred(); let options, calls = 0;
+    const f = mount(t, { prepareAudioExport: async (_captured, supplied) => {
+      calls++; options = supplied; await gate.promise;
+      return { fileName: 'fixture.zip', bytes: new Uint8Array([80, 75]) };
+    } });
+    f.byId('pc-keep-audio').checked = true;
+    await f.click('pc-start');
+    assert.equal(calls, 1); assert.equal(f.byId('pc-start').disabled, true);
+    assert.equal(f.calls.stop, 1, 'the native input already closed before archive preparation');
+    end(f); assert.equal(options.signal.aborted, true);
+    gate.resolve(); await settle(); await f.click('pc-export-audio'); f.api.onExport();
+    assert.deepEqual(f.saved, []);
+    assert.equal(f.byId('pc-result').hidden, true);
+    assert.equal(f.calls.start.length, 1);
+  });
+}
+
+test('an audio preparation failure leaves valid capture metadata exportable', async t => {
+  const f = mount(t, { prepareAudioExport: async () => { throw new RangeError('Audio export is limited to 18 MiB of samples. Choose a shorter capture.'); } });
+  f.byId('pc-keep-audio').checked = true;
+  await f.click('pc-start'); await captureReady(f);
+  assert.equal(f.byId('pc-export-audio').disabled, true);
+  assert.equal(f.byId('pc-export').disabled, false);
+  assert.match(f.byId('pc-result').textContent, /18 MiB.*shorter capture/);
+  await f.click('pc-export');
+  assert.equal(f.saved[0].value.acquisition.observed.nominalSampleRateHz, 44100);
+  assert.equal(f.saved[0].value.record.qualification.eligibleForReport, false);
+});
+
+for (const initial of [false, true]) {
+  test(`the retention choice is snapshotted before capture (initially ${initial})`, async t => {
+    const waitGate = deferred(); let calls = 0;
+    const f = mount(t, { fixture: captureFixture({ waitGate }), prepareAudioExport: async () => {
+      calls++; return { fileName: 'fixture.zip', bytes: new Uint8Array([80, 75]) };
+    } });
+    f.byId('pc-keep-audio').checked = initial; await f.click('pc-start');
+    f.byId('pc-keep-audio').checked = !initial;
+    waitGate.resolve(); await settle();
+    assert.equal(calls, initial ? 1 : 0);
+    assert.equal(f.byId('pc-export-audio').disabled, !initial);
+  });
+}
+
+test('a new metadata-only capture and leaving the view cannot export a preceding archive', async t => {
+  const f = mount(t); f.byId('pc-keep-audio').checked = true;
+  await f.click('pc-start'); await captureReady(f);
+  assert.equal(f.byId('pc-export-audio').disabled, false);
+  f.byId('pc-keep-audio').checked = false;
+  await f.click('pc-start'); await captureReady(f); await f.click('pc-export-audio');
+  assert.deepEqual(f.saved, []); assert.equal(f.byId('pc-export-audio').disabled, true);
+  f.byId('pc-keep-audio').checked = true;
+  await f.click('pc-start'); await captureReady(f);
+  assert.equal(f.byId('pc-export-audio').disabled, false);
+  f.api.onHide(); f.api.onShow(); await f.click('pc-export-audio'); f.api.onExport();
+  assert.deepEqual(f.saved, []); assert.equal(f.byId('pc-export-audio').disabled, true);
 });

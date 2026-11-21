@@ -1,0 +1,20 @@
+{
+  "schema": "deckchek.player-audio-export-syntax-selection.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_branch": "review/deckchek-player-audio-export-functional-20261121",
+  "expected_tracked_file_count": 2392,
+  "expected_all_top_level_test_count": 203,
+  "expected_node_version": "v24.22.3",
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "source_paths": [
+    "tools/smoke/player-capture.mjs"
+  ],
+  "expected_sources": {
+    "tools/smoke/player-capture.mjs": {
+      "bytes": 20997,
+      "sha256": "d04df702031d9180d8c6040b1e4c6a475b2d6ea76d77cab9f6258b82fe1d3369"
+    }
+  }
+}

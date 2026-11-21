@@ -3,6 +3,7 @@
 // No hardware, native binary, scientific calibration or release qualification.
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { watchConsole, tauriMock, setViewport, a11yAudit } from './core.mjs';
 
 const REFERENCE_SHA256 = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
@@ -55,6 +56,29 @@ async function closeExperimental(page) {
   await page.waitForSelector('dialog.experimental-dialog', { state: 'detached' });
 }
 
+// Independent stored-ZIP reader for the real browser download. No application
+// exporter/ZIP reader is imported to validate the delivered payload.
+function readAudioArchive(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), files = new Map();
+  const end = bytes.length - 22;
+  if (end < 0 || view.getUint32(end, true) !== 0x06054b50) throw new Error('Audio download is not a complete ZIP.');
+  const count = view.getUint16(end + 10, true);
+  if (count !== 4) throw new Error('Audio download has unexpected entries.');
+  let offset = view.getUint32(end + 16, true);
+  for (let i = 0; i < count; i++) {
+    if (view.getUint32(offset, true) !== 0x02014b50 || view.getUint16(offset + 10, true) !== 0) throw new Error('Unexpected audio ZIP record.');
+    const nameLength = view.getUint16(offset + 28, true), size = view.getUint32(offset + 24, true);
+    const local = view.getUint32(offset + 42, true), name = bytes.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
+    if (files.has(name) || view.getUint32(local, true) !== 0x04034b50 || view.getUint32(local + 22, true) !== size) throw new Error('Inconsistent audio ZIP entry.');
+    const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true);
+    if (start + size > offset) throw new Error('Audio ZIP payload exceeds its local entry.');
+    files.set(name, bytes.subarray(start, start + size));
+    offset += 46 + nameLength + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
+  }
+  if (offset !== end) throw new Error('Audio ZIP directory does not end at its footer.');
+  return files;
+}
+
 export default async function run({ browser, base, check, SHOTS }) {
   const errors = [];
   const screenshot = (page, name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false });
@@ -81,9 +105,11 @@ export default async function run({ browser, base, check, SHOTS }) {
     check('player: browser capture/export stay disabled with a desktop requirement',
       await page.locator('#pc-start').isDisabled() && await page.locator('#pc-export').isDisabled() &&
       /desktop app/.test(await page.locator('#screen-player-capture').innerText()));
-    check('player: preview states the unmeasured and unsaved boundaries',
+    check('player: preview states the unmeasured and optional local-audio boundaries',
       /Pitch accuracy is not measured/.test(await page.locator('#screen-player-capture').innerText()) &&
-      /Audio is not saved or exported/.test(await page.locator('#screen-player-capture').innerText()));
+      /Off by default/.test(await page.locator('#pc-audio-export-help').innerText()) &&
+      /Reference-file audio is not included/.test(await page.locator('#pc-audio-export-help').innerText()) &&
+      !await page.locator('#pc-keep-audio').isChecked() && await page.locator('#pc-export-audio').isDisabled());
     await selectReference(page);
     check('player: browser File selection identifies exact bytes without enabling native capture',
       (await page.locator('#pc-reference-status').textContent()).includes(REFERENCE_SHA256) &&
@@ -145,6 +171,8 @@ export default async function run({ browser, base, check, SHOTS }) {
       JSON.stringify(Object.keys(exported).sort()) === '["acquisition","record","selectedReference"]' &&
       exported.acquisition.retention === 'ephemeral_audio_only' && exported.acquisition.rawEvidenceRefs.length === 0 &&
       exported.record.capture.rawEvidenceRefs.length === 0 && !Object.hasOwn(exported, 'audio'));
+    check('player: the default completed capture retains no downloadable audio',
+      !await page.locator('#pc-keep-audio').isChecked() && await page.locator('#pc-export-audio').isDisabled());
     check('player: exported file identity matches the selected bytes and is still unverified playback',
       exported.selectedReference.fileName === 'Reference tone.wav' && exported.selectedReference.byteLength === 3 &&
       exported.selectedReference.sha256 === REFERENCE_SHA256 && exported.selectedReference.digestAlgorithm === 'SHA-256' &&
@@ -203,6 +231,46 @@ export default async function run({ browser, base, check, SHOTS }) {
       await page.evaluate(() => !window.__playerCaptureSmoke.running && document.getElementById('screen-player-capture').hidden));
     check('player: this opt-in flow leaves Fleet disabled',
       await page.locator('.rail-item[data-screen="fleet"]').count() === 0);
+
+    const enableAudio = await experimental(page); await enableAudio.check(); await closeExperimental(page);
+    await page.click('.rail-item[data-screen="player-capture"]');
+    await page.fill('#pc-duration', '1'); await page.check('#pc-keep-audio');
+    await selectReference(page);
+    await page.click('#pc-start');
+    await page.waitForFunction(() => !document.getElementById('pc-export-audio').disabled);
+    check('player: explicit retention prepares an archive without claiming it was saved',
+      /ready in memory.*not been saved/.test(await page.locator('#pc-status').innerText()));
+    const pendingAudio = page.waitForEvent('download'); await page.click('#pc-export-audio');
+    const downloadedAudio = await pendingAudio, archiveBytes = fs.readFileSync(await downloadedAudio.path());
+    const files = readAudioArchive(archiveBytes), manifest = JSON.parse(files.get('manifest.json').toString('utf8'));
+    const audioDetails = JSON.parse(files.get('capture.json').toString('utf8')), pcm = files.get('audio/primary.f32le');
+    check('player: the actual audio download contains only the documented four local entries',
+      /^deckchek-player-audio-[a-f\d-]{36}\.zip$/.test(downloadedAudio.suggestedFilename()) &&
+      JSON.stringify([...files.keys()]) === '["manifest.json","capture.json","audio/primary.f32le","README.txt"]' &&
+      archiveBytes.length < 20 * 1024 * 1024 && manifest.schemaVersion === 'deckchek.player-audio-export.v1');
+    check('player: independent SHA-256 checks match every archived evidence payload',
+      manifest.files.length === 3 && manifest.files.every(file => files.get(file.path)?.length === file.byteLength &&
+        createHash('sha256').update(files.get(file.path)).digest('hex') === file.sha256));
+    let exactSamples = pcm.length === 4410 * 8;
+    for (let offset = 0; offset < pcm.length && exactSamples; offset += 4) exactSamples = pcm.readFloatLE(offset) === Math.fround(0.1);
+    check('player: the downloaded PCM preserves returned normalized samples and nominal format',
+      exactSamples && manifest.audio.encoding === 'float32_le_interleaved' && manifest.audio.frames === 4410 &&
+      manifest.audio.nominalSampleRateHz === 44100 && manifest.audio.measuredSampleRateHz === null &&
+      manifest.audio.sourceHardwareFormat === null && manifest.audio.sampleBasis === 'normalized_capture_adapter_values');
+    check('player: the archive binds capture identity and reference metadata without qualification or reference bytes',
+      manifest.runId === audioDetails.acquisition.runId && manifest.captureId === audioDetails.acquisition.captureId &&
+      manifest.qualification.eligibleForReport === false && manifest.qualification.pitchMeasured === false &&
+      audioDetails.record.qualification.status === 'unverified' && audioDetails.record.qualification.measurement === null &&
+      audioDetails.selectedReference.sha256 === REFERENCE_SHA256 && audioDetails.selectedReference.bytesRetained === false &&
+      manifest.referenceBytesIncluded === false &&
+      JSON.stringify(audioDetails.acquisition.rawEvidenceRefs) === '["audio/primary.f32le"]' &&
+      JSON.stringify(audioDetails.record.capture.rawEvidenceRefs) === '["audio/primary.f32le"]');
+    check('player: audio export still creates no diagnostic History run',
+      await page.evaluate(() => window.__playerCaptureSmoke.diagnosticWrites === 0));
+    await page.click('#pc-clear');
+    check('player: Clear discards both optional audio and metadata exports',
+      await page.locator('#pc-result').isHidden() && await page.locator('#pc-export-audio').isDisabled() &&
+      await page.locator('#pc-export').isDisabled());
   } finally { await desktop.close(); }
   return errors.flat();
 }

@@ -1,0 +1,276 @@
+{
+  "schema": "deckchek.player-audio-export-functional-source-proof.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_branch": "review/deckchek-player-audio-export-functional-20261121",
+  "source_parents": [
+    "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+    "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+  ],
+  "source_worktree": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-functional",
+  "tracked_file_count": 2392,
+  "distinct_blob_count": 2182,
+  "source_bytes": 76818229,
+  "all_four_maps_match_immutable_git_blobs": true,
+  "all_four_inventories_match_immutable_git_paths": true,
+  "all_eight_actual_and_tracked_test_inventories_match_immutable_git": true,
+  "all_current_source_hashes_match_immutable_git_blobs": true,
+  "all_actual_and_tracked_top_level_tests_match": true,
+  "all_selected_tests_are_tracked_top_level_tests": true,
+  "top_level_test_file_count": 203,
+  "selected_test_file_count": 7,
+  "source_object_map_sha256": "ad5ab09ad980b1bf0c4cf2926f36b34f78e5c2bf3101159d7b5d16bfffa86b25",
+  "source_map_sha256": {
+    "syntax": {
+      "before": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "after": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7"
+    },
+    "focused": {
+      "before": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7",
+      "after": "efe723cd5709c8d28c3619941a08b97612176f22503e416abd5569e36e6e9ef7"
+    }
+  },
+  "source_inventory_sha256": {
+    "syntax": {
+      "before": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "after": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d"
+    },
+    "focused": {
+      "before": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d",
+      "after": "03201fd65c3331ac52e9fb2b675798c14f7ede62992e736def0f0062dc52ef7d"
+    }
+  },
+  "runtime": {
+    "expected_node_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_version": "v24.22.3",
+    "node_executable_bytes": 126951512,
+    "node_executable_sha256": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+    "all_raw_identity_streams_match_recorded_identities": true,
+    "both_raw_runtime_stdout_streams_identical": true,
+    "runtime": {
+      "versions": {
+        "node": "24.22.3",
+        "acorn": "8.18.0",
+        "ada": "4.0.0",
+        "amaro": "1.1.11",
+        "ares": "1.34.9",
+        "brotli": "1.2.1",
+        "cldr": "48.0",
+        "icu": "78.3",
+        "llhttp": "9.4.4",
+        "merve": "1.2.2",
+        "modules": "137",
+        "napi": "10",
+        "nbytes": "0.1.4",
+        "ncrypto": "0.0.1",
+        "nghttp2": "1.70.0",
+        "nghttp3": "",
+        "ngtcp2": "",
+        "openssl": "3.5.9",
+        "simdjson": "4.6.11",
+        "simdutf": "6.4.0",
+        "sqlite": "3.54.1",
+        "tz": "2026e",
+        "undici": "7.30.2",
+        "unicode": "17.0",
+        "uv": "1.52.1",
+        "uvwasi": "0.0.23",
+        "v8": "13.6.233.17-node.63",
+        "zlib": "1.3.2.1-motley-285e94b",
+        "zstd": "1.5.7"
+      },
+      "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "platform": "linux",
+      "arch": "x64",
+      "execArgv": [
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ]
+    },
+    "all_four_external_controls_match_recorded_before_after_identities": true
+  },
+  "source_comparisons": {
+    "authored_source_commit": "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+    "completed_link_integration": "33e077f3bf45dad96ba1c6de341a0d9fe8efa594",
+    "changed_paths": [
+      "app/player/audio-export.js",
+      "app/styles/player-capture.css",
+      "app/ui/screens/player-capture.js",
+      "docs/engineering/PLAYER_AUDIO_EXPORT_IMPLEMENTATION_2026-11-21.md",
+      "tests/player-audio-export.test.mjs",
+      "tests/player-capture-screen.test.mjs",
+      "tools/smoke/player-capture.mjs"
+    ],
+    "all_seven_authored_paths_equal_frozen_source": true,
+    "authored_path_comparisons": {
+      "app/player/audio-export.js": true,
+      "app/styles/player-capture.css": true,
+      "app/ui/screens/player-capture.js": true,
+      "docs/engineering/PLAYER_AUDIO_EXPORT_IMPLEMENTATION_2026-11-21.md": true,
+      "tests/player-audio-export.test.mjs": true,
+      "tests/player-capture-screen.test.mjs": true,
+      "tools/smoke/player-capture.mjs": true
+    },
+    "unchanged_shared_threshold_and_native_boundaries": {
+      "app/player/acquisition.js": {
+        "source_git_blob_oid": "d7437d9cda25f892565bfce468c6aade59d86da0",
+        "completed_link_git_blob_oid": "d7437d9cda25f892565bfce468c6aade59d86da0",
+        "equal": true
+      },
+      "app/player/evidence-record.js": {
+        "source_git_blob_oid": "50cefb649167902200c2a6b91565016420ab7b82",
+        "completed_link_git_blob_oid": "50cefb649167902200c2a6b91565016420ab7b82",
+        "equal": true
+      },
+      "app/player/reference-file.js": {
+        "source_git_blob_oid": "d857bf699300ea2eed2338b0f817ca42ad2c798e",
+        "completed_link_git_blob_oid": "d857bf699300ea2eed2338b0f817ca42ad2c798e",
+        "equal": true
+      },
+      "app/sha256.js": {
+        "source_git_blob_oid": "07e1a18c027c341e3c5ffb7ece7805cdc4936437",
+        "completed_link_git_blob_oid": "07e1a18c027c341e3c5ffb7ece7805cdc4936437",
+        "equal": true
+      },
+      "app/zip-writer.js": {
+        "source_git_blob_oid": "e83bb9b80ee855c867ad943e324e230be6ca3250",
+        "completed_link_git_blob_oid": "e83bb9b80ee855c867ad943e324e230be6ca3250",
+        "equal": true
+      },
+      "app/ui/audio-io.js": {
+        "source_git_blob_oid": "76e01a0111ad8ea3bccba054a074d293ad426d10",
+        "completed_link_git_blob_oid": "76e01a0111ad8ea3bccba054a074d293ad426d10",
+        "equal": true
+      },
+      "app/capture.js": {
+        "source_git_blob_oid": "7d5ebfbe0ff9608ccbfc6a4ab2a0d3a46c160253",
+        "completed_link_git_blob_oid": "7d5ebfbe0ff9608ccbfc6a4ab2a0d3a46c160253",
+        "equal": true
+      },
+      "app/features.js": {
+        "source_git_blob_oid": "1b609fe407b5412bafde15be34afbc89c1a7cee0",
+        "completed_link_git_blob_oid": "1b609fe407b5412bafde15be34afbc89c1a7cee0",
+        "equal": true
+      },
+      "app/audio-out.js": {
+        "source_git_blob_oid": "801d041d9db11e303580a7ef884fa24dc4462eae",
+        "completed_link_git_blob_oid": "801d041d9db11e303580a7ef884fa24dc4462eae",
+        "equal": true
+      },
+      "app/devices/audio-session.js": {
+        "source_git_blob_oid": "d929a7d7a49355dc78d3c23a94f813208f7494dd",
+        "completed_link_git_blob_oid": "d929a7d7a49355dc78d3c23a94f813208f7494dd",
+        "equal": true
+      },
+      "app/audio-quality.js": {
+        "source_git_blob_oid": "da0ef6e0ddad37d339947d31bcc9b3d1d427e615",
+        "completed_link_git_blob_oid": "da0ef6e0ddad37d339947d31bcc9b3d1d427e615",
+        "equal": true
+      },
+      "tests/audio-session.test.mjs": {
+        "source_git_blob_oid": "3c6f7dbb669e1c339c8356e7fd996418d20b6dfe",
+        "completed_link_git_blob_oid": "3c6f7dbb669e1c339c8356e7fd996418d20b6dfe",
+        "equal": true
+      },
+      "src-tauri/src/capture.rs": {
+        "source_git_blob_oid": "93ce74a6ead6bdacd3e498bfd431d39bc71955d2",
+        "completed_link_git_blob_oid": "93ce74a6ead6bdacd3e498bfd431d39bc71955d2",
+        "equal": true
+      },
+      "src-tauri/src/audio_out.rs": {
+        "source_git_blob_oid": "e174903d0f0e7dbdb0d0bf1fe1d8871451ad6bb0",
+        "completed_link_git_blob_oid": "e174903d0f0e7dbdb0d0bf1fe1d8871451ad6bb0",
+        "equal": true
+      },
+      "src-tauri/capabilities/default.json": {
+        "source_git_blob_oid": "b3d0171e5f3e22652fa58d56b12cc17b1b8fdd3f",
+        "completed_link_git_blob_oid": "b3d0171e5f3e22652fa58d56b12cc17b1b8fdd3f",
+        "equal": true
+      },
+      "src-tauri/tauri.conf.json": {
+        "source_git_blob_oid": "8a38b89048aa29f0bc62a7ceaf2f629715097b9c",
+        "completed_link_git_blob_oid": "8a38b89048aa29f0bc62a7ceaf2f629715097b9c",
+        "equal": true
+      }
+    },
+    "preceding_complete_gate_source": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+    "all_changed_paths_since_preceding_complete_gate": [
+      "CHECKPOINT.md",
+      "app/player/audio-export.js",
+      "app/styles/player-capture.css",
+      "app/ui/screens/player-capture.js",
+      "docs/DECKCHEK-CONTINUATION-HANDOFF.md",
+      "docs/FEATURE-MATRIX.md",
+      "docs/IMPLEMENTATION-STATUS.md",
+      "docs/engineering/LINK_CONSENT_CODE_AUDIT_2026-11-21.md",
+      "docs/engineering/LINK_CONSENT_CONTINUATION_2026-11-21.md",
+      "docs/engineering/LINK_CONSENT_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "docs/engineering/LINK_CONSENT_IMPLEMENTATION_2026-11-21.md",
+      "docs/engineering/LINK_CONSENT_SECURITY_AUDIT_2026-11-21.md",
+      "docs/engineering/MAPPER_STORAGE_CONTINUATION_2026-11-21.md",
+      "docs/engineering/PLAYER_AUDIO_EXPORT_IMPLEMENTATION_2026-11-21.md",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/all-top-level-test-files.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/authorized-selection.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-runtime.stderr",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-runtime.stdout",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-version.stderr",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/node-version.stdout",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/result.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run-full-node.py",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/run.tap",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/running.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/stderr.log",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/test-files.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-after.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-before.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-inventory-after.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/full/tracked-inventory-before.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/manifest.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/observed-summary.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/source-git-object-map.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/source-proof.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/all-top-level-test-files.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/authorized-syntax.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/checked-links.mjs",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-runtime.stderr",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-runtime.stdout",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-version.stderr",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/node-version.stdout",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/result.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/running.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax-recorder.py",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax.stderr",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/syntax.stdout",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-after.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-before.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-inventory-after.json",
+      "docs/engineering/evidence/link-consent-functional-2026-11-21/syntax/tracked-inventory-before.json",
+      "docs/engineering/evidence/link-consent-integration-2026-11-21/root-source-proof.json",
+      "docs/engineering/evidence/mapper-storage-integration-2026-11-21/checkpoint-publication.json",
+      "docs/engineering/evidence/mapper-storage-integration-2026-11-21/original-review-history.bundle",
+      "docs/engineering/evidence/mapper-storage-integration-2026-11-21/original-review-history.json",
+      "tests/player-audio-export.test.mjs",
+      "tests/player-capture-screen.test.mjs",
+      "tools/smoke/player-capture.mjs"
+    ],
+    "changed_non_documentation_paths_since_preceding_complete_gate": [
+      "app/player/audio-export.js",
+      "app/styles/player-capture.css",
+      "app/ui/screens/player-capture.js",
+      "tests/player-audio-export.test.mjs",
+      "tests/player-capture-screen.test.mjs",
+      "tools/smoke/player-capture.mjs"
+    ]
+  },
+  "data_processing_error": {
+    "retained_path": "data-processing-error.txt",
+    "tool_session_id": 11628,
+    "tool_chunk_id": "fa678a",
+    "exit_code": 1,
+    "phase": "data-only unchanged-path Git provenance query, before any package write",
+    "incorrect_path": "app/audio-session.js",
+    "correct_tracked_path": "app/devices/audio-session.js",
+    "resolution": "Static rg file inventory identified the tracked path. The subsequent data-only package construction uses that path. No application, test, recorder or diagnostic invocation was repeated."
+  },
+  "method": "Every immutable Git blob read with git cat-file --batch; independent Git blob ID and SHA-256 checks; comparison of four original complete maps, four inventories, eight test arrays and current tracked source. Data processing only; no project code or project verifier executed."
+}

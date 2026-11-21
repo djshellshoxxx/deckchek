@@ -13,49 +13,52 @@ one optional skip; actual UI smoke passed 1,411 checks. Read the
 [qualified merge proof](docs/engineering/FEATURE_SUCCESSOR_MERGE_2026-11-21.md).
 #73/#75 closed through that merge; #72 stays open.
 
-All three round-ten link-consent #84 workers completed, and their final reports
-and original evidence are consolidated. Frozen `f1e0ca1` remains **HELD** after
-its first complete 202-file JavaScript gate: 2,420 total / 2,418 pass / one final
-relative-gain failure / one optional skip, exit 1 without timeout. All 2,345
-source hashes, inventory, HEAD/tree and clean state were unchanged. Case 53
-retains -101 dB at -30 dBFS after earlier playback-level assertions passed.
-No numerical cause or repair is inferred; original earlier failures remain.
+All three round-eleven Player audio-export workers completed. Frozen
+`445a66e` retains its FIRST seven-file focused result: **111 tests / 111 pass /
+zero failures or skips**, plus a successful first changed-smoke syntax check.
+All 2,392 source hashes, modes, inventories, HEAD/tree and ordered parents stayed
+unchanged. Both peers and root independently verified all 45 manifest entries,
+40 original copies, 45 original-path bindings and every ordered outcome. Read
+[the completed Player handoff](docs/engineering/PLAYER_AUDIO_EXPORT_CONTINUATION_2026-11-21.md).
 
-All 14 new consent/dialog cases passed. Remembered consent now applies only to
-ordinary HTTPS links without userinfo or a nondefault port; exceptional URLs
-require a fresh decision. Native policy and permissions stay unchanged. Both
-peers and root independently verified all originals, immutable source maps and
-2,420 ordered outcomes. The separate first smoke syntax check passed; actual
-new browser/native smoke behavior remains unexecuted. Read the
-[completed link handoff](docs/engineering/LINK_CONSENT_CONTINUATION_2026-11-21.md).
-This scoped acceptance does not qualify a merge or close #84.
+The scoped addition provides an unchecked-by-default retention choice and an
+explicit local ZIP download of normalized Float32 PCM with capture provenance
+and reference identity. The metadata-only default and Ctrl+E remain unchanged.
+PCM is bounded at 18 MiB inside the existing 20 MiB ZIP cap; reference-file bytes
+are excluded. Stale results are discarded, and an optional preparation failure
+keeps metadata export available. The 19 new feature cases passed. Browser/native
+download behavior, qualified pitch, retained reference bytes and report/History
+integration remain open. This focused acceptance does not qualify the whole tree.
 
-All three round-nine Mapper #82 workers completed. Its first focused gate at
-`6b8a2b2` retained 96 total / 95 pass / zero fail / one optional skip with all
-2,315 source hashes unchanged. All 96 ordered names/statuses also match the
-round-ten full run. Failed or malformed collections cannot be overwritten;
-drafts survive errors and Retry can restore the saved list. The completed
-[Mapper handoff](docs/engineering/MAPPER_STORAGE_CONTINUATION_2026-11-21.md)
-is durable at [`cbd959b`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121),
-with verified complete-tree, parent and exact-ref proof.
+**Complete-source qualification remains HELD.** Round ten's first complete
+202-file gate at `f1e0ca1` retained 2,420 total / 2,418 pass / one failure / one
+optional skip, exit 1 without timeout, with all 2,345 hashes unchanged. Case 53
+failed the final relative-gain assertion at -101 dB for -30 dBFS after earlier
+playback-level assertions passed. No cause or repair is established. All 14 new
+link-consent cases and the separate syntax check passed. The completed
+[link handoff](docs/engineering/LINK_CONSENT_CONTINUATION_2026-11-21.md) is durable
+at [`e7fca004`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-link-consent-held-20261121),
+with verified complete-tree, parent and exact-ref proof. #84 remains open pending
+qualified integration.
 
-The completed round-eight Quick Check/Mobile handoff is durable at
-[`1889bfc`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121).
-Its first `e5614ff` full outcome remains 2,395 total / 2,393 pass / one failure /
-one optional skip, with all 2,280 hashes unchanged. The retained final gain is
--101 dB at -30 dBFS; no cause or repair is established. Read its
-[held handoff](docs/engineering/QUICK_LAYOUT_CONTINUATION_2026-11-21.md).
-Round seven's Mobile work retains its first 45/45 focused pass, official build
-and syntax check. All 34 Mobile files remain unchanged; persistence after denied
-writes and new Quick Check browser rendering remain unqualified.
+Earlier completed checkpoints remain preserved: Mapper #82 at
+[`cbd959b`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-mapper-storage-held-20261121)
+retains its first 96 total / 95 pass / one optional skip, and all those ordered
+outcomes also match the round-ten full gate. Quick Check/Mobile at
+[`1889bfc`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-quick-layout-held-20261121)
+retains its first 2,395 total / 2,393 pass / one gain failure / one optional skip.
+Round seven retains its first 45/45 focused pass, official Mobile build and
+syntax check, with all 34 Mobile files unchanged. Historical passing observations
+do not replace failures or qualify later source.
 
-The next isolated authored candidate is Player captured-audio export `fb2a34a`:
-explicit retention, a bounded local normalized-PCM ZIP, preserved provenance and
-reference identity, with the metadata-only default and scientific limits intact.
-It remains unexecuted. The fresh code/functional/static-defensive trio starts
-only after this completed link handoff. Only its functional lane may execute
-root-reviewed bounded first commands. Root owns CI, publication and merges.
-Later #76/#77/#78/#80/#81/#82/#84 remain outside qualified PR #79.
+The fresh successor code, functional/bug-hunt and static defensive team reviews
+scheduled-backup settings completeness [#85](https://github.com/djshellshoxxx/deckchek/issues/85).
+The [review scope](docs/engineering/BACKUP_SETTINGS_REVIEW_SCOPE_2026-11-21.md)
+requires a concrete freshness/error contract before a production correction and
+fresh acceptance. This design/audit cycle authorizes no project execution.
+Root owns implementation, CI, publication and integration. All three final
+handoffs are required before another worker rotation.
+Later #76/#77/#78/#80/#81/#82/#84/#85 remain outside qualified PR #79.
 
 The sections below are preserved historical checkpoints, not current resume
 or execution-ownership instructions. Fleet stays off and its diagnostic head

@@ -73,3 +73,14 @@ local normalized-PCM archive and capture/reference metadata without qualifying
 pitch or report eligibility. It remains unexecuted until a fresh trio accepts
 its frozen combined source and root authorizes the sole functional worker's
 bounded first commands. Root retains all integration, publication and CI work.
+
+The completed HELD checkpoint is durable at
+[`e7fca004fa43361018eea7683265bad07260c03d`](https://github.com/djshellshoxxx/deckchek/tree/checkpoint/deckchek-link-consent-held-20261121).
+Root fetched the published commit and verified complete tree
+`430388115ef3787293f48a9ecdcb57de83620543`, sole ordered parent
+`cbd959b882da65c8036bad37faba02840a9418f1`, zero file differences from local
+`d4ea3c2`, and the exact new branch reference. Its original-review bundle preserves
+`33e077f` and all original worker histories; all 18 prerequisites are available
+from the publication parent. See the
+[publication proof](evidence/link-consent-integration-2026-11-21/checkpoint-publication.json).
+Publication preserves the held result and does not qualify a merge.

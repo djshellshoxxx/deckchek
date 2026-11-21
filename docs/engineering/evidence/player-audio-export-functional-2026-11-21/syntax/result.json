@@ -1,0 +1,176 @@
+{
+  "schema": "deckchek.player-audio-export-syntax-gate.v1",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_branch": "review/deckchek-player-audio-export-functional-20261121",
+  "source_parents": [
+    "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+    "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+  ],
+  "cwd": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-functional",
+  "driver_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-recorder.py",
+  "config_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-selection.json",
+  "output_original_path": "/workspace/scratch/6f2247f2f463/deckchek-player-audio-export-round11-syntax-raw",
+  "driver_sha256": "96594744e8fb76cf6c40a19b899a805f855dba0809c5db8441aee0f724be498d",
+  "config_sha256": "cdc68a8f9d40c6f0fe08cd64054f572282b381d42ed071f726b580461cacdccb",
+  "python_version": "3.12.14",
+  "python_executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  "recorder_started_at_utc": "2026-11-21T11:28:14.230922+00:00",
+  "runtime_identity_calls": [
+    {
+      "label": "node-version",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--version"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.004559419001452625,
+      "stdout_bytes": 9,
+      "stdout_sha256": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "node-runtime",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "-p",
+        "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+      ],
+      "timeout_seconds": 10,
+      "exit_code": 0,
+      "timed_out": false,
+      "elapsed_seconds": 0.0602220219989249,
+      "stdout_bytes": 782,
+      "stdout_sha256": "292ce6437aa16270ee5bdc058956ada71eb309cd3bdad80675b1277cee648604",
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "project_command_started": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "termination_events": [],
+  "execution_budget_seconds": 30,
+  "termination_signal_after_seconds": 25,
+  "termination_grace_seconds": 5,
+  "scope": "One syntax parse only of tools/smoke/player-capture.mjs; no module evaluation, browser/native app launch, full suite, build or diagnostic collector.",
+  "source_state_before": {
+    "branch": "review/deckchek-player-audio-export-functional-20261121",
+    "commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+    "tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+    "parents": [
+      "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+      "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+    ],
+    "status": ""
+  },
+  "forbidden_environment_variable_names": [],
+  "worktree_git_blob_mismatch_paths_before": [],
+  "tracked_file_count": 2392,
+  "all_top_level_test_file_count": 203,
+  "status_before": "",
+  "selected_source_identities_before": {
+    "tools/smoke/player-capture.mjs": {
+      "bytes": 20997,
+      "sha256": "d04df702031d9180d8c6040b1e4c6a475b2d6ea76d77cab9f6258b82fe1d3369"
+    }
+  },
+  "node_options": null,
+  "diagnostic_variables_present": [],
+  "optional_external_corpus_present": false,
+  "environment_changes": {
+    "PATH_prefix": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin"
+  },
+  "node_executable_bytes": 126951512,
+  "node_executable_sha256_before": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "node_resolved_path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "node_version": "v24.22.3",
+  "runtime": {
+    "versions": {
+      "node": "24.22.3",
+      "acorn": "8.18.0",
+      "ada": "4.0.0",
+      "amaro": "1.1.11",
+      "ares": "1.34.9",
+      "brotli": "1.2.1",
+      "cldr": "48.0",
+      "icu": "78.3",
+      "llhttp": "9.4.4",
+      "merve": "1.2.2",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.4",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.70.0",
+      "nghttp3": "",
+      "ngtcp2": "",
+      "openssl": "3.5.9",
+      "simdjson": "4.6.11",
+      "simdutf": "6.4.0",
+      "sqlite": "3.54.1",
+      "tz": "2026e",
+      "undici": "7.30.2",
+      "unicode": "17.0",
+      "uv": "1.52.1",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.17-node.63",
+      "zlib": "1.3.2.1-motley-285e94b",
+      "zstd": "1.5.7"
+    },
+    "execPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "platform": "linux",
+    "arch": "x64",
+    "execArgv": [
+      "-p",
+      "JSON.stringify({versions:process.versions,execPath:process.execPath,platform:process.platform,arch:process.arch,execArgv:process.execArgv})"
+    ]
+  },
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--check",
+    "tools/smoke/player-capture.mjs"
+  ],
+  "started_at_utc": "2026-11-21T11:28:14.761149+00:00",
+  "project_pid": 32,
+  "execution_elapsed_seconds": 0.06412778599769808,
+  "completed_at_utc": "2026-11-21T11:28:14.825578+00:00",
+  "source_state_after": {
+    "branch": "review/deckchek-player-audio-export-functional-20261121",
+    "commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+    "tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+    "parents": [
+      "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+      "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+    ],
+    "status": ""
+  },
+  "head_after": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "tree_after": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "status_after": "",
+  "tracked_hash_maps_equal": true,
+  "tracked_file_inventory_equal": true,
+  "actual_test_inventory_equal": true,
+  "tracked_test_inventory_equal": true,
+  "actual_and_tracked_test_inventories_equal_after": true,
+  "changed_tracked_paths": [],
+  "selected_source_identities_after": {
+    "tools/smoke/player-capture.mjs": {
+      "bytes": 20997,
+      "sha256": "d04df702031d9180d8c6040b1e4c6a475b2d6ea76d77cab9f6258b82fe1d3369"
+    }
+  },
+  "driver_sha256_after": "96594744e8fb76cf6c40a19b899a805f855dba0809c5db8441aee0f724be498d",
+  "config_sha256_after": "cdc68a8f9d40c6f0fe08cd64054f572282b381d42ed071f726b580461cacdccb",
+  "node_executable_sha256_after": "acbe4b8d9153b841ed0697cbfc4f93e767386620edb745ab9358306c0a6f31aa",
+  "stdout_file": "syntax.stdout",
+  "stdout_bytes": 0,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_file": "syntax.stderr",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "recorder_completed_at_utc": "2026-11-21T11:28:15.347122+00:00",
+  "recorder_success": true
+}

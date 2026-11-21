@@ -1,0 +1,117 @@
+{
+  "schema": "deckchek.player-audio-export-root-source-proof.v1",
+  "verified_at_utc": "2026-11-21T11:37:25.511287+00:00",
+  "source_commit": "445a66ef402cb88aa5a089adc3b717046728ba48",
+  "source_tree": "280f18dc58d5786882792ddff8906dc4230d25bd",
+  "source_parents": [
+    "fb2a34a74a9e7b0ff4ba205269c8ee517f059cef",
+    "33e077f3bf45dad96ba1c6de341a0d9fe8efa594"
+  ],
+  "tracked_file_count": 2392,
+  "distinct_blob_count": 2182,
+  "source_bytes": 76818229,
+  "top_level_test_count": 203,
+  "manifest_sha256": "d96a61e1d6c96a71b8e6e007884e205e1ab44370554e8e537c4ddefe35eef7b7",
+  "manifest_entries_verified": 45,
+  "original_copies_verified": 40,
+  "original_path_bindings_verified": 45,
+  "all_package_original_bytes_and_raw_inventories_verified": true,
+  "all_immutable_git_blobs_independently_hashed": true,
+  "all_four_source_maps_and_inventories_match_git": true,
+  "all_eight_test_inventories_match_git": true,
+  "all_root_and_functional_frozen_source_bytes_and_modes_match_git": true,
+  "all_selected_source_pins_runtime_control_and_stream_hashes_match": true,
+  "syntax_completed_before_focused_started": true,
+  "syntax_result_sha256": "c325f87575a7dca64699bf85ddaa6a3b664fb1e83eef866358dac344841542e5",
+  "focused_result_sha256": "f529736bf10e80c5cfb0c6b6c6dbaf4a466f2fab1b8a71220c8c5b4dede07417",
+  "syntax_elapsed_seconds": 0.06412778599769808,
+  "focused_elapsed_seconds": 3.273620218002179,
+  "first_tap_sha256": "9cbf80ee04a33ee38f1a2a454ba0831436b6d31c316e1e9b871e0b574cdb03fe",
+  "first_tap_bytes": 25096,
+  "ordered_outcomes_independently_matched": 111,
+  "all_outcome_names_match_static_source_titles_and_expansions": true,
+  "tap_counts": {
+    "tests": 111,
+    "suites": 0,
+    "pass": 111,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "historical_full_failure_retained_and_independently_verified": {
+    "source_commit": "f1e0ca1fdcaf6c8276f5a92e883b84fc001bf425",
+    "immutable_summary_path": "docs/engineering/evidence/link-consent-functional-2026-11-21/observed-summary.json",
+    "immutable_summary_sha256": "bc586b779195a47d2552ebe45a3ffc0c2f09b7f677237191d4cf3149dd125347",
+    "exit_code": 1,
+    "tap_bytes": 555767,
+    "tap_sha256": "e08afec065f474c3981872e198abf85991c515fe127cdcb0a12a35e69926a953",
+    "tap_counts": {
+      "tests": 2420,
+      "suites": 0,
+      "pass": 2418,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 1,
+      "todo": 0
+    },
+    "failures": [
+      {
+        "index": 53,
+        "name": "session clamps the level to the -12 dBFS cap and honours a lower level",
+        "tap_line": 315,
+        "original_block": "not ok 53 - session clamps the level to the -12 dBFS cap and honours a lower level\n  ---\n  duration_ms: 467.855325\n  type: 'test'\n  location: '/workspace/scratch/6f2247f2f463/deckchek-link-consent-functional/tests/audio-session.test.mjs:89:1'\n  failureType: 'testCodeFailure'\n  error: 'gain is relative to the played level: measured -101 dB at -30 dBFS'\n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: true\n  actual: false\n  operator: '=='\n  stack: |-\n    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-link-consent-functional/tests/audio-session.test.mjs:95:10)\n    async Test.run (node:internal/test_runner/test:1409:7)\n    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)\n  ..."
+      }
+    ],
+    "disposition": "HELD: prior full gate case 53 failed the final relative-gain assertion after cap/lower-level playback assertions passed. No cause, repair, reproduction or project rerun is established here."
+  },
+  "source_proof_sha256": "90e5589e252a2d334c135ebd5863ecc2aa424fa5ef7f908055b96378764830fc",
+  "source_object_map_sha256": "ad5ab09ad980b1bf0c4cf2926f36b34f78e5c2bf3101159d7b5d16bfffa86b25",
+  "observed_summary_sha256": "3b85a96911defd6361267232781c2a0cd09a05ea3cd2038b9263ef4423b2acb9",
+  "method": "Independent root Python byte/JSON/TAP and immutable Git object checks only. No project code, test, syntax, module or packaged verifier executed. All three FINALs received and owned immutable report/evidence commits verified.",
+  "all_three_final_handoffs_received": true,
+  "worker_commit_verification": [
+    {
+      "role": "code",
+      "commit": "ee01e2c3657e8affe2146d1ff6b742e30dcccb13",
+      "tree": "7293c98b8ce788ac03bb984b9255c90281db106f",
+      "parent": "445a66ef402cb88aa5a089adc3b717046728ba48",
+      "branch": "review/deckchek-player-audio-export-code-20261121",
+      "owned_path_count": 1,
+      "report_path": "docs/engineering/PLAYER_AUDIO_EXPORT_CODE_AUDIT_2026-11-21.md",
+      "report_bytes": 25856,
+      "report_sha256": "5edf84f86e976cf5f624ee822440758797fe9e356f53c32d3ef38ed93e9a90f6",
+      "clean": true,
+      "all_committed_owned_bytes_verified": true,
+      "production_test_tool_native_mobile_ci_diff_empty": true
+    },
+    {
+      "role": "functional",
+      "commit": "c95f235630c45ac824005ba6096fcf272ec54065",
+      "tree": "8d247f74f35fa7fe9fa6c0a9b76384a16b5bdbc4",
+      "parent": "445a66ef402cb88aa5a089adc3b717046728ba48",
+      "branch": "review/deckchek-player-audio-export-functional-20261121",
+      "owned_path_count": 47,
+      "report_path": "docs/engineering/PLAYER_AUDIO_EXPORT_FUNCTIONAL_AUDIT_2026-11-21.md",
+      "report_bytes": 14840,
+      "report_sha256": "01442d30a7b04885e16037c682e700cbc5a4262b095e4c08fd5a3ca49bf76724",
+      "clean": true,
+      "all_committed_owned_bytes_verified": true,
+      "production_test_tool_native_mobile_ci_diff_empty": true
+    },
+    {
+      "role": "security",
+      "commit": "3c7fe90edcd8a5a8d700fdef231523d09c2ef28c",
+      "tree": "d90277f08b9a56e6a4072826211febd7c1a341b4",
+      "parent": "445a66ef402cb88aa5a089adc3b717046728ba48",
+      "branch": "review/deckchek-player-audio-export-security-20261121",
+      "owned_path_count": 1,
+      "report_path": "docs/engineering/PLAYER_AUDIO_EXPORT_SECURITY_AUDIT_2026-11-21.md",
+      "report_bytes": 27273,
+      "report_sha256": "f7eff0a1f3eadf8201cb1b9f0d45164dca71690fecc50c021842923a498a11ce",
+      "clean": true,
+      "all_committed_owned_bytes_verified": true,
+      "production_test_tool_native_mobile_ci_diff_empty": true
+    }
+  ]
+}

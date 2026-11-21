@@ -1,0 +1,36 @@
+{
+  "schema": "deckchek.player-audio-export-original-review-history.v1",
+  "bundle_file": "original-review-history.bundle",
+  "bytes": 533594,
+  "sha256": "d12d9700e853cb409cc9f6b548a65a2587e6d06b4ad5f58bc3d8735005a748f7",
+  "original_source_commit": "754ccec53400fc0468d368110daaec2115aa69dc",
+  "original_source_tree": "82d7317ddb3403841b03d2ea4d46e8f512c21ffe",
+  "published_parent": "e7fca004fa43361018eea7683265bad07260c03d",
+  "prerequisites": [
+    "6cd827b0204bc450b8fc6236a179c7383dd52911",
+    "0a5d485eb29b43f249a8764992931cbc15d84e9b",
+    "b8dfc126c2480f303df105abd3759fedae49a192",
+    "5cc916eefbeb3e174edf9bdbcd6c731d6776e56d",
+    "e7fca004fa43361018eea7683265bad07260c03d",
+    "cbd959b882da65c8036bad37faba02840a9418f1",
+    "1889bfc7c4b7db6d1d720fd554d674595e81f098",
+    "7456aeeacb283bbf23965b67b84ffe7ee46a06d8",
+    "e36ddc41806b0f6639474f207e3b339e063a6e25",
+    "8664c590709dce34445bf23008e61053b592d608",
+    "f76908766d53992e20382b9cbe73a668a28a6d1a",
+    "b5d0cfd850120946160ef93b7cf2372bb981172e",
+    "5f256bdd3630738292c36c1b343a4161d5078a48",
+    "77c26f44710c6dfb1c986fb79266c233e2ae688c",
+    "78403038c530a981b732d5ac0210539edf37fc77",
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "17080df79ba94554b81c006d6372c8b59dca795a",
+    "aded4981b623a0dab7e04e65fa0ca8ab06528e69",
+    "2022c97d8fb1f941de13e151be9627bbdfcc278e"
+  ],
+  "all_prerequisites_are_ancestors_of_published_parent": true,
+  "tips": [
+    "754ccec53400fc0468d368110daaec2115aa69dc HEAD"
+  ],
+  "bundle_verify_succeeded": true,
+  "preservation": "Original implementation, all three completed review commits, complete FIRST evidence and earlier failed observations remain in this Git bundle. The separate publication commit must reproduce this complete working tree. No qualification merge, release or deployment is implied."
+}

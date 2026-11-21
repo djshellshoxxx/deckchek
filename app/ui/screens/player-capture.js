@@ -8,6 +8,7 @@ import { startLiveSession } from '../audio-io.js';
 import { createPairPicker, currentPairs } from '../pair-picker.js';
 import { runCdjAcquisition, CDJ_MAX_CAPTURE_SECONDS } from '../../player/acquisition.js';
 import { inspectPlayerReferenceFile } from '../../player/reference-file.js';
+import { preparePlayerAudioExport } from '../../player/audio-export.js';
 
 const REASONS = Object.freeze({
   buffer_overruns_reported: 'The input reported dropped samples.',
@@ -35,7 +36,7 @@ const processing = value => ({ unknown: 'Unknown', enabled: 'On', disabled: 'Off
 export function createPlayerCaptureScreen(section, {
   acquire = runCdjAcquisition, startCapture = startLiveSession, native = isNative,
   save = download, pairPicker = createPairPicker, selectPairs = currentPairs,
-  inspectReference = inspectPlayerReferenceFile,
+  inspectReference = inspectPlayerReferenceFile, prepareAudioExport = preparePlayerAudioExport,
 } = {}) {
   let current = null, last = null, visible = true, disposed = false;
   let referenceTask = null, selectedReference = null;
@@ -58,6 +59,7 @@ export function createPlayerCaptureScreen(section, {
   const cancel = h('button', { id: 'pc-cancel', type: 'button', class: 'btn btn-secondary', text: 'Cancel capture', onclick: () => abort() });
   const clear = h('button', { id: 'pc-clear', type: 'button', class: 'btn btn-ghost', text: 'Clear details', onclick: () => { if (!disposed && visible && !current && last) { discard(); setStatus('Capture details cleared.'); } } });
   const exportButton = h('button', { id: 'pc-export', type: 'button', class: 'btn btn-secondary', text: 'Export capture details', onclick: () => exportDetails() });
+  const exportAudioButton = h('button', { id: 'pc-export-audio', type: 'button', class: 'btn btn-secondary', text: 'Export capture audio', onclick: () => exportAudio() });
   const referenceFile = h('input', { id: 'pc-reference-file', type: 'file', accept: 'audio/*,.wav,.aiff,.aif,.flac,.mp3',
     'aria-describedby': 'pc-reference-help pc-reference-status', onchange: event => {
       const file = event.target.files?.[0] || null;
@@ -73,6 +75,9 @@ export function createPlayerCaptureScreen(section, {
     h('div', { class: 'field' }, h('span', { class: 'field-label', text: 'Input selected in the top bar' }), device),
     pair.el,
     input('duration', 'Duration (seconds)', { type: 'number', min: 1, max: CDJ_MAX_CAPTURE_SECONDS, step: 1, value: 5 }),
+    h('div', { class: 'field' },
+      input('keep-audio', 'Keep captured audio for local export', { type: 'checkbox', 'aria-describedby': 'pc-audio-export-help' }),
+      h('p', { id: 'pc-audio-export-help', class: 'hint', text: 'Off by default. Hold up to 18 MiB of captured samples for a local ZIP export. Clear, a new capture or leaving this screen discards the retained audio. Reference-file audio is not included.' })),
     input('manufacturer', 'Manufacturer (optional)'),
     input('model', 'Player model (optional)'),
     input('firmware', 'Firmware (optional)'),
@@ -98,8 +103,8 @@ export function createPlayerCaptureScreen(section, {
       setup,
       h('div', { class: 'pc-actions' }, start, cancel), status),
     result,
-    h('div', { class: 'pc-actions' }, exportButton, clear),
-    h('p', { class: 'hint', text: 'The export contains capture details and entered settings, including device names, any driver messages and the selected reference filename and hash. Audio is not saved or exported. Leaving this screen clears the details and reference selection.' }));
+    h('div', { class: 'pc-actions' }, exportButton, exportAudioButton, clear),
+    h('p', { class: 'hint', text: 'Export capture details saves metadata only, including entered settings, device names, any driver messages and the selected reference filename and hash. If enabled before capture, Export capture audio saves normalized samples and those details in a ZIP. Nothing is uploaded. Leaving this screen clears retained details, audio and reference selection.' }));
 
   function setStatus(message) { status.textContent = message; }
   function update() {
@@ -111,6 +116,7 @@ export function createPlayerCaptureScreen(section, {
     cancel.disabled = !current || current.controller.signal.aborted;
     clear.disabled = Boolean(current) || !last;
     exportButton.disabled = Boolean(current) || !last || !visible;
+    exportAudioButton.disabled = Boolean(current) || !last?.audioExport || !visible;
     if (!current) device.textContent = settings.deviceName || 'System default input';
   }
   function discard() { last = null; result.replaceChildren(); result.hidden = true; update(); }
@@ -180,6 +186,7 @@ export function createPlayerCaptureScreen(section, {
       ['Selected reference file', last.selectedReference?.fileName || 'Not selected'],
       ['Selected-file SHA-256', last.selectedReference?.sha256 || 'Not available'],
       ['Played reference identity', 'Not verified'],
+      ['Captured audio export', last.audioExport ? 'Ready in memory; not yet saved' : last.audioExportError ? `Unavailable: ${last.audioExportError}` : 'Not retained'],
       ['Entered displayed pitch', r.pitch.displayedPercent == null ? 'Unknown' : `${r.pitch.displayedPercent}%`],
       ['Entered Key Lock / effects', `${processing(r.processing.keylock)} / ${processing(r.processing.fx)}`],
     ];
@@ -206,6 +213,7 @@ export function createPlayerCaptureScreen(section, {
     // Snapshot operator assertions and shared input selection before any await.
     const deviceName = settings.deviceName || null;
     const referenceSnapshot = selectedReference;
+    const keepAudio = Boolean(fields['keep-audio'].checked);
     const operator = {
       asset: { manufacturer: textOrNull(fields.manufacturer), model: textOrNull(fields.model), firmware: textOrNull(fields.firmware) },
       source: { medium: fields.medium.value || null, referenceId: textOrNull(fields.reference) || referenceSnapshot?.fileName || null,
@@ -227,10 +235,22 @@ export function createPlayerCaptureScreen(section, {
         },
       });
       if (!active(request)) return;
-      // Deliberately retain no reference to captured.audio or the full return object.
-      last = { acquisition: captured.acquisition, record: captured.record, selectedReference: referenceSnapshot };
+      let audioExport = null, audioExportError = null;
+      if (keepAudio) {
+        setStatus('Preparing the local audio export…');
+        try {
+          audioExport = await prepareAudioExport(captured, { selectedReference: referenceSnapshot, signal: request.controller.signal });
+        } catch (error) {
+          if (!active(request)) return;
+          audioExportError = String(error?.message || error).slice(0, 300);
+        }
+      }
+      if (!active(request)) return;
+      // Retain only the optional bounded archive, never mutable capture arrays.
+      last = { acquisition: captured.acquisition, record: captured.record, selectedReference: referenceSnapshot, audioExport, audioExportError };
       renderDetails();
-      setStatus('Capture details are ready. Audio has not been saved.');
+      setStatus(audioExport ? 'Capture details and audio export are ready in memory. Audio has not been saved.' :
+        audioExportError ? 'Capture details are ready. Audio export is unavailable; see the capture details.' : 'Capture details are ready. Audio has not been saved.');
     } catch (error) {
       if (active(request)) { discard(); setStatus(`Capture could not finish: ${error?.message || String(error)}`); }
     } finally {
@@ -248,6 +268,14 @@ export function createPlayerCaptureScreen(section, {
       save(`deckchek-player-capture-${last.acquisition.runId}.json`, JSON.stringify({ acquisition: last.acquisition, record: last.record, selectedReference: last.selectedReference }, null, 2), 'application/json');
       setStatus('Capture details exported. The file contains metadata only.');
     } catch (error) { setStatus(`Export could not finish: ${error?.message || String(error)}`); }
+  }
+  function exportAudio() {
+    if (disposed || !visible || current || !last?.audioExport) return;
+    try {
+      const archive = last.audioExport;
+      save(archive.fileName, new Uint8Array(archive.bytes), 'application/zip');
+      setStatus('Audio ZIP download requested. The capture remains provisional and is held in memory until cleared.');
+    } catch (error) { setStatus(`Audio export could not finish: ${String(error?.message || error).slice(0, 300)}`); }
   }
   const offSettings = on('settings', ({ key } = {}) => { if (key === 'deviceName') update(); });
   update();
@@ -271,7 +299,7 @@ function showPlayerGuide() {
       h('h3', { text: 'Reference identity' }),
       h('p', { text: 'An optional reference file is read locally to identify its exact bytes with SHA-256. This does not verify audio content or what the player is playing. The file is not saved or uploaded.' }),
       h('h3', { text: 'Export and reset' }),
-      h('p', { text: 'Export capture details saves metadata, including entered settings, the selected file name and hash, device names and any driver messages. Audio is not included. Leaving this screen clears the captured details and selected-file identity.' }),
+      h('p', { text: 'Export capture details saves metadata, including entered settings, the selected file name and hash, device names and any driver messages. To export audio too, enable Keep captured audio before starting. Up to 18 MiB of normalized samples can be held in memory for a local ZIP with format details and SHA-256 checksums. These hashes do not authenticate the capture or qualify a measurement; reference-file audio is not included. Clear, a new capture or leaving this screen discards retained details and audio. Cancel prevents a pending export from appearing.' }),
       h('h3', { text: 'Shortcuts' }),
       h('dl', { class: 'kv' },
         h('dt', { text: 'Esc' }), h('dd', { text: 'Cancel the active capture or reference-file read' }),

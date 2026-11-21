@@ -1,0 +1,676 @@
+TAP version 13
+# Subtest: AC-7 shared vectors: canonical text and sha256 match byte for byte
+ok 1 - AC-7 shared vectors: canonical text and sha256 match byte for byte
+  ---
+  duration_ms: 17.406383
+  type: 'test'
+  ...
+# Subtest: AC-7 rejection vectors: non-integers, unsafe integers, lone surrogates, too deep
+ok 2 - AC-7 rejection vectors: non-integers, unsafe integers, lone surrogates, too deep
+  ---
+  duration_ms: 0.946382
+  type: 'test'
+  ...
+# Subtest: NaN and the infinities are rejected
+ok 3 - NaN and the infinities are rejected
+  ---
+  duration_ms: 0.243516
+  type: 'test'
+  ...
+# Subtest: non-canonical texts (unsorted keys, whitespace, escapes) are detected
+ok 4 - non-canonical texts (unsorted keys, whitespace, escapes) are detected
+  ---
+  duration_ms: 0.408224
+  type: 'test'
+  ...
+# Subtest: values JSON cannot carry are rejected, never dropped
+ok 5 - values JSON cannot carry are rejected, never dropped
+  ---
+  duration_ms: 0.428314
+  type: 'test'
+  ...
+# Subtest: error paths point at the offending value
+ok 6 - error paths point at the offending value
+  ---
+  duration_ms: 0.269696
+  type: 'test'
+  ...
+# Subtest: sha256 vectors: empty, abc, two-block, million a, bytes and strings
+ok 7 - sha256 vectors: empty, abc, two-block, million a, bytes and strings
+  ---
+  duration_ms: 38.212859
+  type: 'test'
+  ...
+# Subtest: sha256Hex falls back to pure JS when crypto.subtle is unavailable or throws
+ok 8 - sha256Hex falls back to pure JS when crypto.subtle is unavailable or throws
+  ---
+  duration_ms: 0.347833
+  type: 'test'
+  ...
+# Subtest: regression: a 1 MB key over 100k items canonicalises in linear time (FS-20 review, mirror of canonical.rs)
+ok 9 - regression: a 1 MB key over 100k items canonicalises in linear time (FS-20 review, mirror of canonical.rs)
+  ---
+  duration_ms: 58.258921
+  type: 'test'
+  ...
+# Subtest: acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+ok 10 - acquisition owns one capture and binds nominal observations rather than requested or caller metadata
+  ---
+  duration_ms: 5.925337
+  type: 'test'
+  ...
+# Subtest: metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+ok 11 - metadata is frozen and detached from request, native metadata, counters and ephemeral sample mutations
+  ---
+  duration_ms: 3.969207
+  type: 'test'
+  ...
+# Subtest: complete native observations remain unverified even when continuity counters are observed
+ok 12 - complete native observations remain unverified even when continuity counters are observed
+  ---
+  duration_ms: 0.59877
+  type: 'test'
+  ...
+# Subtest: compatibility defaults and absent nativeFields never become observed capture provenance
+ok 13 - compatibility defaults and absent nativeFields never become observed capture provenance
+  ---
+  duration_ms: 1.913536
+  type: 'test'
+  ...
+# Subtest: pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+ok 14 - pair routing and unequal channel lengths are explicit; only the primary pair has sample provenance
+  ---
+  duration_ms: 2.143501
+  type: 'test'
+  ...
+# Subtest: capture fault counters and bounded diagnostic text remain visible without a player verdict
+ok 15 - capture fault counters and bounded diagnostic text remain visible without a player verdict
+  ---
+  duration_ms: 0.501394
+  type: 'test'
+  ...
+# Subtest: incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+ok 16 - incomplete or inconsistent counters stay unavailable or incomplete rather than zero-loss
+  ---
+  duration_ms: 1.190709
+  type: 'test'
+  ...
+# Subtest: invalid requests, providers and identities are rejected before capture starts
+ok 17 - invalid requests, providers and identities are rejected before capture starts
+  ---
+  duration_ms: 1.102908
+  type: 'test'
+  ...
+# Subtest: pre-aborted acquisition opens nothing
+ok 18 - pre-aborted acquisition opens nothing
+  ---
+  duration_ms: 0.340632
+  type: 'test'
+  ...
+# Subtest: cancellation releases a capture whose start resolves late, without returning a record
+ok 19 - cancellation releases a capture whose start resolves late, without returning a record
+  ---
+  duration_ms: 2.05559
+  type: 'test'
+  ...
+# Subtest: cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+ok 20 - cancellation, preemption and unexpected capture loss discard the current run and cancel only its session
+  ---
+  duration_ms: 1.103498
+  type: 'test'
+  ...
+# Subtest: busy or failed starts leave another capture owner untouched
+ok 21 - busy or failed starts leave another capture owner untouched
+  ---
+  duration_ms: 0.569046
+  type: 'test'
+  ...
+# Subtest: wait, phase, clock and reduced-capacity failures release only the owned capture
+ok 22 - wait, phase, clock and reduced-capacity failures release only the owned capture
+  ---
+  duration_ms: 0.935536
+  type: 'test'
+  ...
+# Subtest: a pending stop cannot return a completed record after cancellation or preemption
+ok 23 - a pending stop cannot return a completed record after cancellation or preemption
+  ---
+  duration_ms: 1.880847
+  type: 'test'
+  ...
+# Subtest: normal stop status is not unexpected loss; preempted returned audio is discarded
+ok 24 - normal stop status is not unexpected loss; preempted returned audio is discarded
+  ---
+  duration_ms: 0.604909
+  type: 'test'
+  ...
+# Subtest: default duration timer is cleared on cancellation and abort listeners are detached
+ok 25 - default duration timer is cleared on cancellation and abort listeners are detached
+  ---
+  duration_ms: 0.899842
+  type: 'test'
+  ...
+# Subtest: completed metadata survives a backwards host clock without claiming negative sample duration
+ok 26 - completed metadata survives a backwards host clock without claiming negative sample duration
+  ---
+  duration_ms: 0.324027
+  type: 'test'
+  ...
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 27 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.384341
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 28 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 1.328897
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 29 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.035707
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 30 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.307251
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 31 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 0.499891
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 32 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 1.123358
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 33 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.422325
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 34 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.235584
+  type: 'test'
+  ...
+# Subtest: reference lists reject missing slots before JSON transport
+ok 35 - reference lists reject missing slots before JSON transport
+  ---
+  duration_ms: 1.270509
+  type: 'test'
+  ...
+# Subtest: unknown uncertainty magnitude has an explicit reason with a named method
+ok 36 - unknown uncertainty magnitude has an explicit reason with a named method
+  ---
+  duration_ms: 0.855757
+  type: 'test'
+  ...
+# Subtest: actual acquisition exports exact interleaved float32 bytes, independent hashes and provisional provenance
+ok 37 - actual acquisition exports exact interleaved float32 bytes, independent hashes and provisional provenance
+  ---
+  duration_ms: 12.031789
+  type: 'test'
+  ...
+# Subtest: samples and plain metadata are snapshotted before asynchronous hashing
+ok 38 - samples and plain metadata are snapshotted before asynchronous hashing
+  ---
+  duration_ms: 3.290634
+  type: 'test'
+  ...
+# Subtest: selected reference identity is retained without its bytes or a playback claim
+ok 39 - selected reference identity is retained without its bytes or a playback claim
+  ---
+  duration_ms: 3.035651
+  type: 'test'
+  ...
+# Subtest: incomplete capture counters remain in the archive and cannot grant eligibility
+ok 40 - incomplete capture counters remain in the archive and cannot grant eligibility
+  ---
+  duration_ms: 1.330274
+  type: 'test'
+  ...
+# Subtest: a reported mono source retains both returned channels and its explicit source mode
+ok 41 - a reported mono source retains both returned channels and its explicit source mode
+  ---
+  duration_ms: 1.379358
+  type: 'test'
+  ...
+# Subtest: compatibility defaults, unequal channels, changed rates and pair mismatches refuse audio export
+ok 42 - compatibility defaults, unequal channels, changed rates and pair mismatches refuse audio export
+  ---
+  duration_ms: 3.590693
+  type: 'test'
+  ...
+# Subtest: audio export enforces its byte bound and rejects oversized or accessor-backed metadata
+ok 43 - audio export enforces its byte bound and rejects oversized or accessor-backed metadata
+  ---
+  duration_ms: 0.813249
+  type: 'test'
+  ...
+# Subtest: the exact 18 MiB sample bound fits the unchanged 20 MiB ZIP cap
+ok 44 - the exact 18 MiB sample bound fits the unchanged 20 MiB ZIP cap
+  ---
+  duration_ms: 464.487136
+  type: 'test'
+  ...
+# Subtest: cancellation before preparation or while hashing prevents archive publication
+ok 45 - cancellation before preparation or while hashing prevents archive publication
+  ---
+  duration_ms: 5.341249
+  type: 'test'
+  ...
+# Subtest: browser preview keeps capture unavailable even if the disabled handler is invoked
+ok 46 - browser preview keeps capture unavailable even if the disabled handler is invoked
+  ---
+  duration_ms: 10.599132
+  type: 'test'
+  ...
+# Subtest: invalid duration is refused before acquisition, while the configured duration reaches the real controller
+ok 47 - invalid duration is refused before acquisition, while the configured duration reaches the real controller
+  ---
+  duration_ms: 6.397713
+  type: 'test'
+  ...
+# Subtest: real screen captures operator assertions and exports only provisional metadata with actual observations
+ok 48 - real screen captures operator assertions and exports only provisional metadata with actual observations
+  ---
+  duration_ms: 4.558304
+  type: 'test'
+  ...
+# Subtest: compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+ok 49 - compatibility defaults remain unknown rather than appearing as observed device, rate or duration
+  ---
+  duration_ms: 2.695061
+  type: 'test'
+  ...
+# Subtest: capture faults stay visible in metadata and never grant a qualified measurement
+ok 50 - capture faults stay visible in metadata and never grant a qualified measurement
+  ---
+  duration_ms: 2.771796
+  type: 'test'
+  ...
+# Subtest: request snapshots keep original input, pair and operator values when controls change during capture
+ok 51 - request snapshots keep original input, pair and operator values when controls change during capture
+  ---
+  duration_ms: 2.035442
+  type: 'test'
+  ...
+# Subtest: cancel during recording releases its session and makes export unavailable
+ok 52 - cancel during recording releases its session and makes export unavailable
+  ---
+  duration_ms: 1.537996
+  type: 'test'
+  ...
+# Subtest: route hide cancels a late-starting capture and the late session is released without result
+ok 53 - route hide cancels a late-starting capture and the late session is released without result
+  ---
+  duration_ms: 3.476253
+  type: 'test'
+  ...
+# Subtest: disabling the feature through the real shell aborts recording and hides the screen
+ok 54 - disabling the feature through the real shell aborts recording and hides the screen
+  ---
+  duration_ms: 2.216103
+  type: 'test'
+  ...
+# Subtest: hide and show cannot publish or export a result delivered after its view was invalidated
+ok 55 - hide and show cannot publish or export a result delivered after its view was invalidated
+  ---
+  duration_ms: 1.623775
+  type: 'test'
+  ...
+# Subtest: preemption exits the real acquisition without publishing a result
+ok 56 - preemption exits the real acquisition without publishing a result
+  ---
+  duration_ms: 2.008622
+  type: 'test'
+  ...
+# Subtest: input loss exits the real acquisition without publishing a result
+ok 57 - input loss exits the real acquisition without publishing a result
+  ---
+  duration_ms: 1.163184
+  type: 'test'
+  ...
+# Subtest: input-open failure displays a local error and does not preempt another capture
+ok 58 - input-open failure displays a local error and does not preempt another capture
+  ---
+  duration_ms: 1.165287
+  type: 'test'
+  ...
+# Subtest: clear discards finished metadata and a disposed screen cannot capture or export
+ok 59 - clear discards finished metadata and a disposed screen cannot capture or export
+  ---
+  duration_ms: 1.450455
+  type: 'test'
+  ...
+# Subtest: dispose during recording cancels and releases the owned input
+ok 60 - dispose during recording cancels and releases the owned input
+  ---
+  duration_ms: 1.976854
+  type: 'test'
+  ...
+# Subtest: production native detection and shared pair picker feed the selected input pair into acquisition
+ok 61 - production native detection and shared pair picker feed the selected input pair into acquisition
+  ---
+  duration_ms: 2.652808
+  type: 'test'
+  ...
+# Subtest: browser preview uses the default file inspector while native capture remains unavailable
+ok 62 - browser preview uses the default file inspector while native capture remains unavailable
+  ---
+  duration_ms: 14.23205
+  type: 'test'
+  ...
+# Subtest: selected-file metadata snapshots into capture with a filename fallback
+ok 63 - selected-file metadata snapshots into capture with a filename fallback
+  ---
+  duration_ms: 2.80086
+  type: 'test'
+  ...
+# Subtest: selected-file metadata snapshots into capture with the entered label
+ok 64 - selected-file metadata snapshots into capture with the entered label
+  ---
+  duration_ms: 1.674861
+  type: 'test'
+  ...
+# Subtest: pending reference read blocks capture and additional picker deliveries until the first read settles
+ok 65 - pending reference read blocks capture and additional picker deliveries until the first read settles
+  ---
+  duration_ms: 8.153185
+  type: 'test'
+  ...
+# Subtest: clear rejects a late reference descriptor and cannot export it
+ok 66 - clear rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.761351
+  type: 'test'
+  ...
+# Subtest: escape rejects a late reference descriptor and cannot export it
+ok 67 - escape rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.618827
+  type: 'test'
+  ...
+# Subtest: hide/show rejects a late reference descriptor and cannot export it
+ok 68 - hide/show rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.569533
+  type: 'test'
+  ...
+# Subtest: shell navigation rejects a late reference descriptor and cannot export it
+ok 69 - shell navigation rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 4.040558
+  type: 'test'
+  ...
+# Subtest: feature disable rejects a late reference descriptor and cannot export it
+ok 70 - feature disable rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 6.619195
+  type: 'test'
+  ...
+# Subtest: dispose rejects a late reference descriptor and cannot export it
+ok 71 - dispose rejects a late reference descriptor and cannot export it
+  ---
+  duration_ms: 1.258137
+  type: 'test'
+  ...
+# Subtest: inactive picker deliveries clear their input without reading a File
+ok 72 - inactive picker deliveries clear their input without reading a File
+  ---
+  duration_ms: 1.084556
+  type: 'test'
+  ...
+# Subtest: capture uses its selected reference snapshot and refuses picker or clear handlers while busy
+ok 73 - capture uses its selected reference snapshot and refuses picker or clear handlers while busy
+  ---
+  duration_ms: 1.841601
+  type: 'test'
+  ...
+# Subtest: new or cleared selection discards prior capture details, and failed reads leave no old reference
+ok 74 - new or cleared selection discards prior capture details, and failed reads leave no old reference
+  ---
+  duration_ms: 8.883941
+  type: 'test'
+  ...
+# Subtest: leaving after a completed reference selection clears it before another capture
+ok 75 - leaving after a completed reference selection clears it before another capture
+  ---
+  duration_ms: 2.952607
+  type: 'test'
+  ...
+# Subtest: audio retention is off by default and metadata-only capture never reads the audio property
+ok 76 - audio retention is off by default and metadata-only capture never reads the audio property
+  ---
+  duration_ms: 2.178146
+  type: 'test'
+  ...
+# Subtest: opted-in real acquisition prepares a local ZIP while Ctrl+E remains metadata-only
+ok 77 - opted-in real acquisition prepares a local ZIP while Ctrl+E remains metadata-only
+  ---
+  duration_ms: 4.656411
+  type: 'test'
+  ...
+# Subtest: each audio download receives independent bytes and Clear relinquishes the retained archive
+ok 78 - each audio download receives independent bytes and Clear relinquishes the retained archive
+  ---
+  duration_ms: 2.624936
+  type: 'test'
+  ...
+# Subtest: Cancel suppresses an archive that finishes after its capture was invalidated
+ok 79 - Cancel suppresses an archive that finishes after its capture was invalidated
+  ---
+  duration_ms: 1.796414
+  type: 'test'
+  ...
+# Subtest: hide and return suppresses an archive that finishes after its capture was invalidated
+ok 80 - hide and return suppresses an archive that finishes after its capture was invalidated
+  ---
+  duration_ms: 2.47459
+  type: 'test'
+  ...
+# Subtest: dispose suppresses an archive that finishes after its capture was invalidated
+ok 81 - dispose suppresses an archive that finishes after its capture was invalidated
+  ---
+  duration_ms: 1.461401
+  type: 'test'
+  ...
+# Subtest: an audio preparation failure leaves valid capture metadata exportable
+ok 82 - an audio preparation failure leaves valid capture metadata exportable
+  ---
+  duration_ms: 1.651626
+  type: 'test'
+  ...
+# Subtest: the retention choice is snapshotted before capture (initially false)
+ok 83 - the retention choice is snapshotted before capture (initially false)
+  ---
+  duration_ms: 1.216024
+  type: 'test'
+  ...
+# Subtest: the retention choice is snapshotted before capture (initially true)
+ok 84 - the retention choice is snapshotted before capture (initially true)
+  ---
+  duration_ms: 1.112879
+  type: 'test'
+  ...
+# Subtest: a new metadata-only capture and leaving the view cannot export a preceding archive
+ok 85 - a new metadata-only capture and leaving the view cannot export a preceding archive
+  ---
+  duration_ms: 8.831432
+  type: 'test'
+  ...
+# Subtest: a real selected File produces the exact known SHA-256 and only immutable metadata
+ok 86 - a real selected File produces the exact known SHA-256 and only immutable metadata
+  ---
+  duration_ms: 5.14182
+  type: 'test'
+  ...
+# Subtest: byte content determines identity while filename and MIME do not validate audio or playback
+ok 87 - byte content determines identity while filename and MIME do not validate audio or playback
+  ---
+  duration_ms: 2.577686
+  type: 'test'
+  ...
+# Subtest: invalid size and filename metadata is refused before any byte read
+ok 88 - invalid size and filename metadata is refused before any byte read
+  ---
+  duration_ms: 0.7271
+  type: 'test'
+  ...
+# Subtest: the exact 32 MiB bound is accepted and identified without retaining file bytes
+ok 89 - the exact 32 MiB bound is accepted and identified without retaining file bytes
+  ---
+  duration_ms: 255.278726
+  type: 'test'
+  ...
+# Subtest: actual read length and ArrayBuffer shape must match the selected file metadata
+ok 90 - actual read length and ArrayBuffer shape must match the selected file metadata
+  ---
+  duration_ms: 0.5336
+  type: 'test'
+  ...
+# Subtest: read failures remain failures and no descriptor is manufactured
+ok 91 - read failures remain failures and no descriptor is manufactured
+  ---
+  duration_ms: 0.170115
+  type: 'test'
+  ...
+# Subtest: already cancelled selection performs no file read
+ok 92 - already cancelled selection performs no file read
+  ---
+  duration_ms: 0.277276
+  type: 'test'
+  ...
+# Subtest: cancellation during a pending read suppresses its eventual descriptor without claiming to abort the read
+ok 93 - cancellation during a pending read suppresses its eventual descriptor without claiming to abort the read
+  ---
+  duration_ms: 0.290125
+  type: 'test'
+  ...
+# Subtest: cancellation while the digest is pending suppresses the completed hash
+ok 94 - cancellation while the digest is pending suppresses the completed hash
+  ---
+  duration_ms: 0.790736
+  type: 'test'
+  ...
+# Subtest: file name and byte length are snapshotted before the asynchronous read
+ok 95 - file name and byte length are snapshotted before the asynchronous read
+  ---
+  duration_ms: 13.403858
+  type: 'test'
+  ...
+# Subtest: crc32 known vectors
+ok 96 - crc32 known vectors
+  ---
+  duration_ms: 1.116253
+  type: 'test'
+  ...
+# Subtest: round trip through an independent reader keeps order, names and bytes
+ok 97 - round trip through an independent reader keeps order, names and bytes
+  ---
+  duration_ms: 1.341661
+  type: 'test'
+  ...
+# Subtest: ZIP end directory counts actual records emitted by array iterators
+ok 98 - ZIP end directory counts actual records emitted by array iterators
+  ---
+  duration_ms: 0.398728
+  type: 'test'
+  ...
+# Subtest: ZIP snapshots mutable byte payloads before later entry accessors run
+ok 99 - ZIP snapshots mutable byte payloads before later entry accessors run
+  ---
+  duration_ms: 0.46022
+  type: 'test'
+  ...
+# Subtest: output is deterministic for a fixed date
+ok 100 - output is deterministic for a fixed date
+  ---
+  duration_ms: 0.168432
+  type: 'test'
+  ...
+# Subtest: entry names: zip-slip, absolute, backslash and duplicates are rejected
+ok 101 - entry names: zip-slip, absolute, backslash and duplicates are rejected
+  ---
+  duration_ms: 0.491387
+  type: 'test'
+  ...
+# Subtest: ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filenames
+ok 102 - ZIP names reject lossy UTF-16 surrogates but retain valid Unicode filenames
+  ---
+  duration_ms: 0.507551
+  type: 'test'
+  ...
+# Subtest: ZIP entry names use one validated snapshot for duplicate checks and output
+ok 103 - ZIP entry names use one validated snapshot for duplicate checks and output
+  ---
+  duration_ms: 0.312218
+  type: 'test'
+  ...
+# Subtest: ZIP entry payloads reject unsupported types instead of silently inserting zero bytes
+ok 104 - ZIP entry payloads reject unsupported types instead of silently inserting zero bytes
+  ---
+  duration_ms: 0.362885
+  type: 'test'
+  ...
+# Subtest: invalid ZIP timestamps fail instead of encoding an impossible DOS month/day
+ok 105 - invalid ZIP timestamps fail instead of encoding an impossible DOS month/day
+  ---
+  duration_ms: 0.325689
+  type: 'test'
+  ...
+# Subtest: system unzip / python zipfile accept the archive (when available)
+ok 106 - system unzip / python zipfile accept the archive (when available)
+  ---
+  duration_ms: 29.070187
+  type: 'test'
+  ...
+# Subtest: ZIP size cap includes local records, directory and end record
+ok 107 - ZIP size cap includes local records, directory and end record
+  ---
+  duration_ms: 257.1024
+  type: 'test'
+  ...
+# Subtest: ZIP UTF-8 text payload fills the exact archive budget without truncation
+ok 108 - ZIP UTF-8 text payload fills the exact archive budget without truncation
+  ---
+  duration_ms: 367.579109
+  type: 'test'
+  ...
+# Subtest: ZIP text size preflight rejects oversize UTF-8 before encoding allocation
+ok 109 - ZIP text size preflight rejects oversize UTF-8 before encoding allocation
+  ---
+  duration_ms: 254.605947
+  type: 'test'
+  ...
+# Subtest: multibyte text fills the remaining archive budget exactly after an earlier entry
+ok 110 - multibyte text fills the remaining archive budget exactly after an earlier entry
+  ---
+  duration_ms: 567.846841
+  type: 'test'
+  ...
+# Subtest: DOS year clamping never creates an impossible leap-day date
+ok 111 - DOS year clamping never creates an impossible leap-day date
+  ---
+  duration_ms: 0.497516
+  type: 'test'
+  ...
+1..111
+# tests 111
+# suites 0
+# pass 111
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3156.879509
