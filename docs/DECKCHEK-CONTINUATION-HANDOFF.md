@@ -1,6 +1,24 @@
 # DeckChek continuation handoff
 
-## Current Ledger consolidation — 20 November 2026
+## Current CDJ calculation follow-up — 20 November 2026
+
+The [current continuation](engineering/CDJ04_CONTINUATION_2026-11-20.md) retains unchanged Ledger candidate #58 and
+original CDJ-04 prototype #57, and fixes three numerical-contract defects in the
+new isolated helper. Initial code/functional/defensive workers completed; three
+fresh successors accepted corrected combined source
+`abafd5565e00a2154b6b833e20ccd3a42a713ae7`, tree
+`1126a31bfc95aabc71ca5532bc8bed57b49ef7fc`. Durable equivalent source is
+`014b150b6c85a6795fb1ae015ea2eb6d97b3c029`.
+
+Fresh focused verification passed 11/11 on Node 22.23.4, with all 1,568 tracked
+hashes unchanged. Original 8/3 failure evidence and author 11/11 remain separate.
+This is an unwired calculation prototype; capture, full provenance, reporting
+and hardware remain open. Its own hosted gates are pending. Preserve #58's
+published head and source-specific results while the separate successor qualifies.
+Nine superseded input PRs are closed with branches retained; #54's final hosted
+gates remain open. Read live refs and the current report before integration.
+
+## Published Ledger candidate — 20 November 2026
 
 Main is `e49ea1bbafb5005fdf1dfcf60d885b82d0191471` after PR #46 merged.
 The [current Ledger continuation](engineering/LEDGER_CONSOLIDATION_2026-11-20.md) consolidates #47 and the #49–#56

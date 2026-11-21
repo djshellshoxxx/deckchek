@@ -1,0 +1,35 @@
+{
+  "source": "abafd5565e00a2154b6b833e20ccd3a42a713ae7",
+  "tree": "1126a31bfc95aabc71ca5532bc8bed57b49ef7fc",
+  "node": "v22.23.4",
+  "argv": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "--test-concurrency=1",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 0.25977691499429056,
+  "counts": {
+    "tests": "11",
+    "suites": "0",
+    "pass": "11",
+    "fail": "0",
+    "cancelled": "0",
+    "skipped": "0",
+    "todo": "0",
+    "duration_ms": "108.801208"
+  },
+  "trackedFiles": 1568,
+  "hashChanges": [],
+  "gitStatusAfter": "",
+  "logSha256": "eecb0cc5ea3b5d0c06aaf1d81ed94d6cb5c996815867d543e552085839c14c72",
+  "manifestSha256": "977505d1da260b82e6afd98a917ff7ad84ebdd81b4096498a39a31b41e8ff22f",
+  "selectedHashes": {
+    "app/player/pitch-display.js": "040a0703f8d68cecedae43616b977378f11baf5f6ac8e18be487e1bd85262988",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f",
+    "docs/engineering/CDJ04_DISPLAY_PROTOTYPE_2026-11-20.md": "d3328f3d88e64f26dc179c6acd7db381d12173e873270e6b6650e9b780b41f60",
+    "docs/SPEC-10-CDJ-media-player-diagnostics.md": "282ec2b87c54c556b2c4e9a486a8ba2678383628eb240dfde7ca50bd02f8975f",
+    "docs/SPEC-19-scientific-measurement-and-validation.md": "ed2926388ab9c418d303dddaab42e1d80e54e7f7a382057813da085cc81a5c5b"
+  }
+}

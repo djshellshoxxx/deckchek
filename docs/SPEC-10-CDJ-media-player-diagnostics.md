@@ -1,6 +1,12 @@
 # SPEC-10: CDJ and Media-Player Diagnostics — Consideration Backlog
 
-Status: proposed scope for consideration, not implemented or a release commitment.
+Status: proposed player workflow; not implemented as a production diagnostic or a release commitment.
+
+Implementation note, 20 November 2026: an isolated CDJ-04 calculation helper now
+has independently reviewed numeric guards and focused tests. It is not wired to
+capture, persistence, UI or reports. The [source-bound continuation](engineering/CDJ04_CONTINUATION_2026-11-20.md)
+records its exact scope; the complete workflow and acceptance gates below remain
+open.
 Date: 2026-10-06
 Related: SPEC-02 (DVS), SPEC-04 (database), SPEC-06 (reports), SPEC-08 (validation), SPEC-09 (roadmap).
 
