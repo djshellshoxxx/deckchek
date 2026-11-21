@@ -1,0 +1,8 @@
+{
+  "quality_fixture_prefix_sha256": "fcd2709dd3e010051f31e14dd8d2ad7507301ff84d1f7065826cb0659743917f",
+  "quality_fixture_transform": "Only the import path ../app/ becomes ../../app/; copied prefix registers no tests.",
+  "runner_recording_body_sha256": "6ffadb9f0f0e8b8690355862b7f51e8bdae85901ed3e26c2f6093f1dfedf2d52",
+  "runner_recording_transform": "None. Exact function body is included.",
+  "tool_sha256": "ce4fccd54e68baca6620701d81a26a504ab06d94b6f4252f498c54b161ab6bde",
+  "input_scope": "Three numerical captures reused for six analyzer calls; runner DOM/lifecycle and predecessor tests are not reproduced."
+}

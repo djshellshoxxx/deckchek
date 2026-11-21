@@ -7,8 +7,8 @@ All three initial workers and three fresh successors completed the
 Optional selected-file SHA-256 metadata and corrected PDF rounded-axis fallback
 passed their 132 focused cases; static code/defensive reviews accepted the
 bounded source. The first complete serial Node24.22.3 run nevertheless recorded
-**2,357 total / 2,354 pass / 2 fail / 1 optional skip**, across192files, with all
-1,943tracked hashes unchanged. The existing cubic THD assertion repeated #72;
+**2,357 total / 2,354 pass / 2 fail / 1 optional skip**, across 192 files, with all
+1,943 tracked hashes unchanged. The existing cubic THD assertion repeated #72;
 an audio-runner retry saved once but its measurement verdict failed. No cause,
 ownership defect or common cause is established. **Combined qualification is
 held for a separate audio-diagnosis trio.** No narrow rerun replaced that result.

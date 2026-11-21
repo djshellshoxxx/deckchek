@@ -1,0 +1,83 @@
+{
+  "repository": "djshellshoxxx/DeckChek",
+  "pullRequest": 74,
+  "sourceHead": "78403038c530a981b732d5ac0210539edf37fc77",
+  "testedMerge": "62457f033c4b5d1bff3586959703f87e9e42835e",
+  "tree": "5986c675b123203ecaf46f352d99a25b539c9f9f",
+  "testedMergeOrderedParents": [
+    "099c99c055322ef668be23e6ae50a2968614cc6d",
+    "78403038c530a981b732d5ac0210539edf37fc77"
+  ],
+  "runId": 44877877101,
+  "jobId": 136766494826,
+  "conclusion": "success",
+  "checksPassed": 1386,
+  "checksTotal": 1386,
+  "playerChecksPassed": 19,
+  "playerLogLines": [
+    "2026-11-21T07:09:07.5590989Z PASS  player: default-off hides the public route without adding a stored opt-in",
+    "2026-11-21T07:09:07.7259633Z PASS  player: Experimental features offers the new control unchecked",
+    "2026-11-21T07:09:07.8828550Z PASS  player: public opt-in persists and opens the capture preview",
+    "2026-11-21T07:09:07.8875024Z PASS  player: browser capture/export stay disabled with a desktop requirement",
+    "2026-11-21T07:09:07.8899695Z PASS  player: preview states the unmeasured and unsaved boundaries",
+    "2026-11-21T07:09:07.8916095Z PASS  player: desktop controls have accessible names and usable target sizes",
+    "2026-11-21T07:09:07.9989168Z PASS  player: browser preview has no horizontal overflow at phone width",
+    "2026-11-21T07:09:08.3036694Z PASS  player: public disable hides the active route and leaves it",
+    "2026-11-21T07:09:09.0617186Z PASS  player: live adapter receives one selected pair and bounded capture capacity",
+    "2026-11-21T07:09:10.3576242Z PASS  player: rendered metadata distinguishes requested and observed capture values",
+    "2026-11-21T07:09:10.3718582Z PASS  player: the real local download contains only acquisition and record metadata",
+    "2026-11-21T07:09:10.3719409Z PASS  player: exported observations remain nominal and the record stays unverified/report-ineligible",
+    "2026-11-21T07:09:10.3726000Z PASS  player: completing capture did not create a diagnostic History run",
+    "2026-11-21T07:09:10.5494070Z PASS  player: captured details have no horizontal overflow at phone width",
+    "2026-11-21T07:09:10.6577292Z PASS  player: Clear removes completed metadata and disables export",
+    "2026-11-21T07:09:10.7174139Z PASS  player: Escape releases only its own capture and leaves no export",
+    "2026-11-21T07:09:10.8445522Z PASS  player: navigating away cancels capture and returning shows no stale result",
+    "2026-11-21T07:09:11.1041328Z PASS  player: disabling the feature during recording releases the input and removes the route",
+    "2026-11-21T07:09:11.1051312Z PASS  player: this opt-in flow leaves Fleet disabled"
+  ],
+  "completeLogRawBytes": 717543,
+  "completeLogRawSha256": "026b2498bff86342e2606cc3d6122c220c0d82dd697f2c55f6f4eabed05d3910",
+  "artifact": {
+    "id": 14697405947,
+    "name": "ui-smoke-screenshots",
+    "bytes": 33781197,
+    "sha256": "9302e9848e12c196779c30e4741be7930d27ec1cb203fa5ea83e06b74a1dae17",
+    "members": 203,
+    "downloadDigestVerified": true,
+    "retention": "Four original player PNG members retained here; complete ZIP retained in current scratch and available from original Actions artifact until expiry."
+  },
+  "retainedFiles": [
+    {
+      "path": "player-preview-desktop.png",
+      "bytes": 167052,
+      "sha256": "834725e392eb6f7097174d62a1741f86ed1781167ff8da680b25a595be996e32"
+    },
+    {
+      "path": "player-preview-mobile.png",
+      "bytes": 81760,
+      "sha256": "861ea51605b1d8df8553622382c3286c1ab13f7aee4e3e7062de593fbca16db8"
+    },
+    {
+      "path": "player-result-desktop.png",
+      "bytes": 163224,
+      "sha256": "cb173b1c70e729561a995d4e977e42d38a1ba910fbbaf338231f69b97a4cd590"
+    },
+    {
+      "path": "player-result-mobile.png",
+      "bytes": 65460,
+      "sha256": "9e306f56de8dba7c1b2e5b45fc1cab0d6ef1f28b8f674f43c217850eddd8b04c"
+    },
+    {
+      "path": "pr74-ui-complete.log.gz",
+      "bytes": 125874,
+      "sha256": "e617ce96326ca37889435318eb0c15edec03bbff5d0468be98d373da4e73a0de"
+    }
+  ],
+  "visualReview": {
+    "desktop": "Player form and provisional result metadata remain legible in the retained 1440 by 1000 viewport captures.",
+    "mobile": "Player form and result panel content wraps within 420 by 900 viewport; visible shared top toolbar controls overlap the calibration chip. Browser no-document-overflow check does not establish absence of internal overlap.",
+    "followup": "Correct shared narrow topbar layout on a successor, preserving fixed PR74 head. Inspect contextual guide on player route; screenshot shows Quick Check guide."
+  },
+  "scope": "Real hosted Chromium rendering, browser opt-in and production player/acquisition adapter with modeled native boundary. No local browser rerun, physical capture, native hardware or scientific qualification. Reference-file/PDF successor changes are absent from this PR74 source.",
+  "recordedAtUTC": "2026-11-21T07:29:01.165160+00:00"
+}

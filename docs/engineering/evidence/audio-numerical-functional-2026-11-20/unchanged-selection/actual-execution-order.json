@@ -1,0 +1,137 @@
+{
+  "basis": "Observed # Subtest records in retained TAP, not inferred from argv order.",
+  "cases": [
+    {
+      "ordinal": 1,
+      "name": "stimulus: peak is exactly 1, segments are ordered, inside the buffer, edges faded"
+    },
+    {
+      "ordinal": 2,
+      "name": "A-weighting matches IEC 61672 reference gains"
+    },
+    {
+      "ordinal": 3,
+      "name": "clean pass-through: no findings, gain/delay recovered"
+    },
+    {
+      "ordinal": 4,
+      "name": "harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted"
+    },
+    {
+      "ordinal": 5,
+      "name": "noise floor, SNR and DC are measured"
+    },
+    {
+      "ordinal": 6,
+      "name": "frequency response roll-off, crosstalk, polarity, dropout and clock offset"
+    },
+    {
+      "ordinal": 7,
+      "name": "regression: opposite stereo response errors cannot cancel into a clean flatness result"
+    },
+    {
+      "ordinal": 8,
+      "name": "bad captures give an issue, never a crash"
+    },
+    {
+      "ordinal": 9,
+      "name": "thresholds and spec notes"
+    },
+    {
+      "ordinal": 10,
+      "name": "unavailable audio measurements never describe incomplete checks as all passed"
+    },
+    {
+      "ordinal": 11,
+      "name": "non-finite samples and malformed capture formats cannot become numerical evidence"
+    },
+    {
+      "ordinal": 12,
+      "name": "safePlayLevel never exceeds -12 dBFS and maps non-numeric input to the -12 dBFS default"
+    },
+    {
+      "ordinal": 13,
+      "name": "the exported test signal (WAV) peaks at -12 dBFS, never full scale, and its meta matches the file"
+    },
+    {
+      "ordinal": 14,
+      "name": "a recording made elsewhere may start several seconds early when maxLagSec allows it"
+    },
+    {
+      "ordinal": 15,
+      "name": "clipping is counted in every driven segment: an input that overloads only on the -12 dBFS step is REVIEW, not a device FAIL"
+    },
+    {
+      "ordinal": 16,
+      "name": "setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS"
+    },
+    {
+      "ordinal": 17,
+      "name": "keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run"
+    },
+    {
+      "ordinal": 18,
+      "name": "progress reserves the final stage until analysis completes and disappears with results"
+    },
+    {
+      "ordinal": 19,
+      "name": "bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once"
+    },
+    {
+      "ordinal": 20,
+      "name": "bug 1: a preempt during playback stops this run's voice and saves nothing"
+    },
+    {
+      "ordinal": 21,
+      "name": "bug 2: dispose with nothing running never stops other screens' playback"
+    },
+    {
+      "ordinal": 22,
+      "name": "bug 2: dispose during playback stops only the runner's own handle and cancels its own capture"
+    },
+    {
+      "ordinal": 23,
+      "name": "bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing"
+    },
+    {
+      "ordinal": 24,
+      "name": "bug 3: a capture result that arrives after dispose never renders or saves"
+    },
+    {
+      "ordinal": 25,
+      "name": "bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once"
+    },
+    {
+      "ordinal": 26,
+      "name": "bug 6: an attempt without measurements is shown but not saved, and Run again works"
+    },
+    {
+      "ordinal": 27,
+      "name": "bug 5: the saved test signal WAV peaks at -12 dBFS"
+    },
+    {
+      "ordinal": 28,
+      "name": "native capture faults are displayed and saved as REVIEW with their original quality evidence"
+    },
+    {
+      "ordinal": 29,
+      "name": "stereo response plots expose opposite channel errors instead of displaying a flat average"
+    },
+    {
+      "ordinal": 30,
+      "name": "bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves"
+    },
+    {
+      "ordinal": 31,
+      "name": "browser preview: no live run, but the WAV and file analysis stay available"
+    },
+    {
+      "ordinal": 32,
+      "name": "the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition"
+    },
+    {
+      "ordinal": 33,
+      "name": "FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip"
+    }
+  ]
+}

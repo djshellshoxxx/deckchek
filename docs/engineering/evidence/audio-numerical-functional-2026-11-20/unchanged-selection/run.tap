@@ -1,0 +1,224 @@
+TAP version 13
+# Subtest: stimulus: peak is exactly 1, segments are ordered, inside the buffer, edges faded
+ok 1 - stimulus: peak is exactly 1, segments are ordered, inside the buffer, edges faded
+  ---
+  duration_ms: 22.763128
+  type: 'test'
+  ...
+# Subtest: A-weighting matches IEC 61672 reference gains
+ok 2 - A-weighting matches IEC 61672 reference gains
+  ---
+  duration_ms: 36.908095
+  type: 'test'
+  ...
+# Subtest: clean pass-through: no findings, gain/delay recovered
+ok 3 - clean pass-through: no findings, gain/delay recovered
+  ---
+  duration_ms: 473.99188
+  type: 'test'
+  ...
+# Subtest: harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted
+ok 4 - harmonic distortion is measured (cubic nonlinearity) and chain floor is subtracted
+  ---
+  duration_ms: 800.000992
+  type: 'test'
+  ...
+# Subtest: noise floor, SNR and DC are measured
+ok 5 - noise floor, SNR and DC are measured
+  ---
+  duration_ms: 296.89112
+  type: 'test'
+  ...
+# Subtest: frequency response roll-off, crosstalk, polarity, dropout and clock offset
+ok 6 - frequency response roll-off, crosstalk, polarity, dropout and clock offset
+  ---
+  duration_ms: 1182.426088
+  type: 'test'
+  ...
+# Subtest: regression: opposite stereo response errors cannot cancel into a clean flatness result
+ok 7 - regression: opposite stereo response errors cannot cancel into a clean flatness result
+  ---
+  duration_ms: 986.7192
+  type: 'test'
+  ...
+# Subtest: bad captures give an issue, never a crash
+ok 8 - bad captures give an issue, never a crash
+  ---
+  duration_ms: 466.887106
+  type: 'test'
+  ...
+# Subtest: thresholds and spec notes
+ok 9 - thresholds and spec notes
+  ---
+  duration_ms: 0.868646
+  type: 'test'
+  ...
+# Subtest: unavailable audio measurements never describe incomplete checks as all passed
+ok 10 - unavailable audio measurements never describe incomplete checks as all passed
+  ---
+  duration_ms: 0.493532
+  type: 'test'
+  ...
+# Subtest: non-finite samples and malformed capture formats cannot become numerical evidence
+ok 11 - non-finite samples and malformed capture formats cannot become numerical evidence
+  ---
+  duration_ms: 90.488874
+  type: 'test'
+  ...
+# Subtest: safePlayLevel never exceeds -12 dBFS and maps non-numeric input to the -12 dBFS default
+ok 12 - safePlayLevel never exceeds -12 dBFS and maps non-numeric input to the -12 dBFS default
+  ---
+  duration_ms: 0.221673
+  type: 'test'
+  ...
+# Subtest: the exported test signal (WAV) peaks at -12 dBFS, never full scale, and its meta matches the file
+ok 13 - the exported test signal (WAV) peaks at -12 dBFS, never full scale, and its meta matches the file
+  ---
+  duration_ms: 401.337356
+  type: 'test'
+  ...
+# Subtest: a recording made elsewhere may start several seconds early when maxLagSec allows it
+ok 14 - a recording made elsewhere may start several seconds early when maxLagSec allows it
+  ---
+  duration_ms: 326.521541
+  type: 'test'
+  ...
+# Subtest: clipping is counted in every driven segment: an input that overloads only on the -12 dBFS step is REVIEW, not a device FAIL
+ok 15 - clipping is counted in every driven segment: an input that overloads only on the -12 dBFS step is REVIEW, not a device FAIL
+  ---
+  duration_ms: 548.893669
+  type: 'test'
+  ...
+# Subtest: setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+ok 16 - setup and measuring keep the safety copy visible; the level field never goes above -12 dBFS
+  ---
+  duration_ms: 257.860185
+  type: 'test'
+  ...
+# Subtest: keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+ok 17 - keyboard shortcuts start from the panel, preserve form controls, and Escape cancels only this run
+  ---
+  duration_ms: 18.152133
+  type: 'test'
+  ...
+# Subtest: progress reserves the final stage until analysis completes and disappears with results
+ok 18 - progress reserves the final stage until analysis completes and disappears with results
+  ---
+  duration_ms: 220.424747
+  type: 'test'
+  ...
+# Subtest: bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+not ok 19 - bug 1: a capture that cannot start plays nothing, saves nothing, and Try again then records and saves once
+  ---
+  duration_ms: 242.471977
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-audio-functional/tests/audio-runner-lifecycle.test.mjs:168:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    3 of 9 checks failed: balance, response, polarity.
+    
+    'fail' !== 'pass'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'pass'
+  actual: 'fail'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-audio-functional/tests/audio-runner-lifecycle.test.mjs:181:10)
+    async Test.run (node:internal/test_runner/test:1409:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+  ...
+# Subtest: bug 1: a preempt during playback stops this run's voice and saves nothing
+ok 20 - bug 1: a preempt during playback stops this run's voice and saves nothing
+  ---
+  duration_ms: 16.924197
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose with nothing running never stops other screens' playback
+ok 21 - bug 2: dispose with nothing running never stops other screens' playback
+  ---
+  duration_ms: 1.072132
+  type: 'test'
+  ...
+# Subtest: bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+ok 22 - bug 2: dispose during playback stops only the runner's own handle and cancels its own capture
+  ---
+  duration_ms: 13.87361
+  type: 'test'
+  ...
+# Subtest: bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+ok 23 - bug 4: a playBuffer that resolves after dispose has its late handle stopped; a handle-less one stops nothing
+  ---
+  duration_ms: 40.978966
+  type: 'test'
+  ...
+# Subtest: bug 3: a capture result that arrives after dispose never renders or saves
+ok 24 - bug 3: a capture result that arrives after dispose never renders or saves
+  ---
+  duration_ms: 13.195571
+  type: 'test'
+  ...
+# Subtest: bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+ok 25 - bug 3: Stop supersedes a run; its late completion is discarded and the next run saves once
+  ---
+  duration_ms: 255.581819
+  type: 'test'
+  ...
+# Subtest: bug 6: an attempt without measurements is shown but not saved, and Run again works
+ok 26 - bug 6: an attempt without measurements is shown but not saved, and Run again works
+  ---
+  duration_ms: 274.859259
+  type: 'test'
+  ...
+# Subtest: bug 5: the saved test signal WAV peaks at -12 dBFS
+ok 27 - bug 5: the saved test signal WAV peaks at -12 dBFS
+  ---
+  duration_ms: 70.349256
+  type: 'test'
+  ...
+# Subtest: native capture faults are displayed and saved as REVIEW with their original quality evidence
+ok 28 - native capture faults are displayed and saved as REVIEW with their original quality evidence
+  ---
+  duration_ms: 258.371844
+  type: 'test'
+  ...
+# Subtest: stereo response plots expose opposite channel errors instead of displaying a flat average
+ok 29 - stereo response plots expose opposite channel errors instead of displaying a flat average
+  ---
+  duration_ms: 438.446491
+  type: 'test'
+  ...
+# Subtest: bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+ok 30 - bug 3: a file decode that completes after dispose or after a newer pick never renders, toasts or saves
+  ---
+  duration_ms: 385.415675
+  type: 'test'
+  ...
+# Subtest: browser preview: no live run, but the WAV and file analysis stay available
+ok 31 - browser preview: no live run, but the WAV and file analysis stay available
+  ---
+  duration_ms: 1.701158
+  type: 'test'
+  ...
+# Subtest: the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+ok 32 - the generated audio:quality plan test runs in this runner at its -12 dBFS level and shows its condition
+  ---
+  duration_ms: 525.456843
+  type: 'test'
+  ...
+# Subtest: FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+ok 33 - FS-34 conditional test: Skip records a reason and starts nothing; an unconditional test has no Skip
+  ---
+  duration_ms: 0.979392
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 32
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8912.746189
