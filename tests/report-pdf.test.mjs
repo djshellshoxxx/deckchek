@@ -109,6 +109,7 @@ test('finite but unrepresentable chart axes fail closed with a visible PDF warni
   const extremeSeries = [
     [[0, 0], [Number.MIN_VALUE, 1]], // underflow during tick-step calculation
     [[-1e308, 0], [1e308, 1]], // overflow during span calculation
+    [[-8e307, 0], [8e307, 1]], // input span finite; rounded tick bounds span Infinity
   ];
   for (const points of extremeSeries) {
     const chart = { title: 'Unrepresentable axis', series: [{ label: 'Channel', points }] };
@@ -120,6 +121,8 @@ test('finite but unrepresentable chart axes fail closed with a visible PDF warni
   }
   const ordinary = niceTicks(1e-320, 2e-320);
   assert.ok(Number.isFinite(ordinary.step) && ordinary.step > 0, 'representable tiny axes remain supported');
+  const wide = niceTicks(-2e307, 2e307, 6);
+  assert.ok(Number.isFinite(wide.max - wide.min), 'representable large axes remain supported');
 });
 
 test('decimate keeps endpoints and caps the count', () => {
