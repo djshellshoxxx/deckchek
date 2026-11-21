@@ -124,3 +124,40 @@ test('capture sample-rate must be a safe integer before JSON transport', () => {
   const record = createCdjEvidenceRecord({ capture: { sampleRateHz: 48000 } });
   assert.equal(deserializeCdjEvidenceRecord(serializeCdjEvidenceRecord(record)).capture.sampleRateHz, 48000);
 });
+
+test('reference lists reject missing slots before JSON transport', () => {
+  const inputs = [
+    entries => ({ capture: { selectedPairs: entries } }),
+    entries => ({ capture: { rawEvidenceRefs: entries } }),
+    entries => ({ processing: { evidenceRefs: entries } }),
+    entries => ({ analysis: { uncertainty: { evidenceRefs: entries } } }),
+    entries => ({ quality: { evidenceRefs: entries } }),
+  ];
+  for (const input of inputs) {
+    const entries = ['reference-1', 'reference-2'];
+    const record = createCdjEvidenceRecord(input(entries));
+    entries[0] = 'later-edit';
+    assert.deepEqual(deserializeCdjEvidenceRecord(serializeCdjEvidenceRecord(record)), record);
+    assert.equal(serializeCdjEvidenceRecord(record).includes('later-edit'), false);
+    const incomplete = ['reference-1'];
+    incomplete.length = 2;
+    assert.throws(() => createCdjEvidenceRecord(input(incomplete)), TypeError);
+  }
+});
+
+test('unknown uncertainty magnitude has an explicit reason with a named method', () => {
+  for (const uncertainty of [
+    { method: 'fixture-budget-pending' },
+    { expandedPercentagePoints: null, method: 'fixture-budget-pending' },
+  ]) {
+    const input = complete();
+    input.analysis.uncertainty = uncertainty;
+    const record = createCdjEvidenceRecord(input);
+    assert.equal(record.analysis.uncertainty.expandedPercentagePoints, null);
+    assert.ok(record.qualification.reasons.includes('uncertainty_unknown'));
+    assert.equal(record.qualification.eligibleForReport, false);
+    assert.equal(record.qualification.measurement, null);
+    assert.deepEqual(deserializeCdjEvidenceRecord(serializeCdjEvidenceRecord(record)), record);
+  }
+  assert.equal(createCdjEvidenceRecord(complete()).qualification.reasons.includes('uncertainty_unknown'), false);
+});

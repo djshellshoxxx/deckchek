@@ -1,0 +1,177 @@
+(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 1 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.744706
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 2 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 6.931162
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 3 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.391021
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 4 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.359423
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 5 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 1.056657
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 6 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 0.497171
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 7 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.765847
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 8 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.523421
+  type: 'test'
+  ...
+# Subtest: reference lists reject missing slots before JSON transport
+not ok 9 - reference lists reject missing slots before JSON transport
+  ---
+  duration_ms: 1.476661
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-evidence-functional/tests/cdj-evidence-record.test.mjs:128:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception (TypeError).'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-evidence-functional/tests/cdj-evidence-record.test.mjs:144:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unknown uncertainty magnitude has an explicit reason with a named method
+not ok 10 - unknown uncertainty magnitude has an explicit reason with a named method
+  ---
+  duration_ms: 5.782546
+  type: 'test'
+  location: '/workspace/scratch/6f2247f2f463/deckchek-evidence-functional/tests/cdj-evidence-record.test.mjs:148:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(record.qualification.reasons.includes('uncertainty_unknown'))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///workspace/scratch/6f2247f2f463/deckchek-evidence-functional/tests/cdj-evidence-record.test.mjs:157:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# (node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+ok 11 - CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+  ---
+  duration_ms: 1.405784
+  type: 'test'
+  ...
+# Subtest: CDJ-04 retains signed negative speed and display error
+ok 12 - CDJ-04 retains signed negative speed and display error
+  ---
+  duration_ms: 0.304561
+  type: 'test'
+  ...
+# Subtest: CDJ-04 zero offset is not silently converted into turntable RPM
+ok 13 - CDJ-04 zero offset is not silently converted into turntable RPM
+  ---
+  duration_ms: 0.192862
+  type: 'test'
+  ...
+# Subtest: CDJ-04 fails closed on each missing, false or unknown quality gate
+ok 14 - CDJ-04 fails closed on each missing, false or unknown quality gate
+  ---
+  duration_ms: 0.512294
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes invalid frequency and nonfinite inputs
+ok 15 - CDJ-04 excludes invalid frequency and nonfinite inputs
+  ---
+  duration_ms: 0.263838
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicitly verified model pitch range and in-range display
+ok 16 - CDJ-04 requires explicitly verified model pitch range and in-range display
+  ---
+  duration_ms: 0.206892
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicit nonzero uncertainty and provenance
+ok 17 - CDJ-04 requires explicit nonzero uncertainty and provenance
+  ---
+  duration_ms: 0.271771
+  type: 'test'
+  ...
+# Subtest: CDJ-04 is stateless and does not mutate the input record
+ok 18 - CDJ-04 is stateless and does not mutate the input record
+  ---
+  duration_ms: 1.458474
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+ok 19 - CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+  ---
+  duration_ms: 0.422939
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a display error that overflows from finite numeric inputs
+ok 20 - CDJ-04 excludes a display error that overflows from finite numeric inputs
+  ---
+  duration_ms: 0.591313
+  type: 'test'
+  ...
+# Subtest: CDJ-04 rejects unsupported numeric types before deriving metrics
+ok 21 - CDJ-04 rejects unsupported numeric types before deriving metrics
+  ---
+  duration_ms: 0.305402
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 19
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 146.272134

@@ -1,0 +1,31 @@
+{
+  "head": "20e0fd3202ca74f11404ca3e53735b5b5bc2364f",
+  "tree": "c869db493a53227309201f0807385622a9b3f12d",
+  "node": "v22.23.4",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "exit_code": 0,
+  "tracked_files": 1578,
+  "tracked_hashes_unchanged": true,
+  "tracked_manifest_sha256": "656d62748ec2e3ff2eea9890cf5da762fba161997fd7f39618e075a9478ecf69",
+  "log_sha256": "05b2f2905b1a5dd021c28a09d3b665fcdc989c10664d108c99ef69d900c421a7",
+  "source_and_tests": {
+    "app/player/evidence-record.js": "579f81aa48b33ab0d9635bb77cee4d1a652ce3467ccecfcda4340798f7b8d719",
+    "tests/cdj-evidence-record.test.mjs": "7b2a4c3855b2ab0955d817e0c56ffb018432272ff79db0aaa2f8b822e8475942",
+    "app/player/pitch-display.js": "040a0703f8d68cecedae43616b977378f11baf5f6ac8e18be487e1bd85262988",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f"
+  },
+  "git_status_after": "",
+  "counts": {
+    "tests": 19,
+    "pass": 19,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  }
+}

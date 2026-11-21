@@ -41,11 +41,16 @@ const number = (value, label, { min = -Infinity, max = Infinity, integer = false
 const refs = (value, label) => {
   if (value == null) return [];
   if (!Array.isArray(value) || value.length > 32) throw new RangeError(`${label} must be a bounded array`);
-  return value.map((entry, i) => {
-    const ref = text(entry, `${label}[${i}]`, 240);
+  const snapshot = [];
+  for (let i = 0; i < value.length; i++) {
+    // Reference lists must be dense own data, copied into an ordinary array.
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(i));
+    if (!descriptor || !('value' in descriptor)) throw new TypeError(`${label}[${i}] must be an own data property`);
+    const ref = text(descriptor.value, `${label}[${i}]`, 240);
     if (!ref) throw new TypeError(`${label}[${i}] must not be blank`);
-    return ref;
-  });
+    snapshot.push(ref);
+  }
+  return snapshot;
 };
 const state = (value, label) => {
   if (value == null) return 'unknown';
@@ -159,6 +164,7 @@ export function createCdjEvidenceRecord(input = {}) {
     ['capture_routing_unknown', normalized.capture.routing],
     ['processing_unknown', normalized.processing.keylock !== 'unknown' && normalized.processing.fx !== 'unknown'],
     ['analysis_method_unknown', normalized.analysis.method],
+    ['uncertainty_unknown', normalized.analysis.uncertainty.expandedPercentagePoints != null],
     ['uncertainty_method_unknown', normalized.analysis.uncertainty.method],
   ];
   for (const [reason, value] of needs) if (!value) missing.push(reason);
@@ -173,8 +179,9 @@ export function createCdjEvidenceRecord(input = {}) {
 
 /** JSON transport only; does not write SQLite or register a report. */
 export function serializeCdjEvidenceRecord(record) {
-  if (record?.schemaVersion !== CDJ_EVIDENCE_SCHEMA) throw new RangeError('unsupported CDJ evidence schema');
-  return JSON.stringify(createCdjEvidenceRecord(record));
+  const snapshot = ownObject(record, 'evidence record');
+  if (snapshot.schemaVersion !== CDJ_EVIDENCE_SCHEMA) throw new RangeError('unsupported CDJ evidence schema');
+  return JSON.stringify(createCdjEvidenceRecord(snapshot));
 }
 
 /** Rebuild derived/qualification fields: serialized claims cannot grant eligibility. */

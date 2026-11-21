@@ -1,0 +1,43 @@
+{
+  "head": "9e282b1fa8f031f2f53a7d346e00a4a12a11e884",
+  "tree": "ea5a70d72ba204d9f399eb8c54b7dca3bc9d3d6f",
+  "node": "v22.23.4",
+  "command": [
+    "/workspace/scratch/6f2247f2f463/toolchain/node_modules/node-linux-x64/bin/node",
+    "--test",
+    "tests/cdj-evidence-record.test.mjs",
+    "tests/cdj-pitch-display.test.mjs"
+  ],
+  "exit_code": 0,
+  "counts": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "tracked_files": 1578,
+  "tracked_hashes_unchanged": true,
+  "tracked_manifest_sha256": "405eaec7c14252dbbb2bdf43263b369cf4703a1ea0a3c8ee7a3e2544f94a885c",
+  "log_sha256": "ab587b0f15f258b0541882b61318cfaac3d465fb5592d9504b833665a377729b",
+  "source_and_tests": {
+    "app/player/evidence-record.js": "52e7e28403610375ba3db26f2b7e94db3a334fb0b916205489442b754e9a4207",
+    "tests/cdj-evidence-record.test.mjs": "34021a157c944f98abe8a706d1afdbf47fad0c2541e4b654b7133d29279638ab",
+    "app/player/pitch-display.js": "040a0703f8d68cecedae43616b977378f11baf5f6ac8e18be487e1bd85262988",
+    "tests/cdj-pitch-display.test.mjs": "acdea851530a2471f3e9823a9aebd587b3f24225a93674778409cf05a2a2141f"
+  },
+  "syntax_checks": [
+    {
+      "path": "app/player/evidence-record.js",
+      "exit_code": 0,
+      "output": "(node:11) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "path": "tests/cdj-evidence-record.test.mjs",
+      "exit_code": 0,
+      "output": "(node:19) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ],
+  "git_status_after": ""
+}

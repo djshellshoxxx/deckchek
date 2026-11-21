@@ -1,0 +1,130 @@
+(node:7) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:14) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: empty provisional envelope explicitly retains unknowns and is not report-eligible
+ok 1 - empty provisional envelope explicitly retains unknowns and is not report-eligible
+  ---
+  duration_ms: 1.513657
+  type: 'test'
+  ...
+# Subtest: all caller assertions and evidence identifiers remain provisional rather than verified
+ok 2 - all caller assertions and evidence identifiers remain provisional rather than verified
+  ---
+  duration_ms: 4.70086
+  type: 'test'
+  ...
+# Subtest: JSON transport round trip retains full provenance, unknowns and units without mutation
+ok 3 - JSON transport round trip retains full provenance, unknowns and units without mutation
+  ---
+  duration_ms: 1.219102
+  type: 'test'
+  ...
+# Subtest: transport cannot promote forged qualified reports, alter units or introduce metrics
+ok 4 - transport cannot promote forged qualified reports, alter units or introduce metrics
+  ---
+  duration_ms: 0.348837
+  type: 'test'
+  ...
+# Subtest: invalid numeric and type inputs cannot be silently stringified to null
+ok 5 - invalid numeric and type inputs cannot be silently stringified to null
+  ---
+  duration_ms: 0.61589
+  type: 'test'
+  ...
+# Subtest: schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+ok 6 - schema, malformed timestamps, oversized arrays/strings and hostile JSON are rejected
+  ---
+  duration_ms: 0.321546
+  type: 'test'
+  ...
+# Subtest: inherited fields and exotic objects cannot spoof record provenance
+ok 7 - inherited fields and exotic objects cannot spoof record provenance
+  ---
+  duration_ms: 0.433014
+  type: 'test'
+  ...
+# Subtest: capture sample-rate must be a safe integer before JSON transport
+ok 8 - capture sample-rate must be a safe integer before JSON transport
+  ---
+  duration_ms: 0.376699
+  type: 'test'
+  ...
+# (node:15) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+ok 9 - CDJ-04 reports signed positive speed and percentage-point display error, without scoring
+  ---
+  duration_ms: 1.215706
+  type: 'test'
+  ...
+# Subtest: CDJ-04 retains signed negative speed and display error
+ok 10 - CDJ-04 retains signed negative speed and display error
+  ---
+  duration_ms: 0.221114
+  type: 'test'
+  ...
+# Subtest: CDJ-04 zero offset is not silently converted into turntable RPM
+ok 11 - CDJ-04 zero offset is not silently converted into turntable RPM
+  ---
+  duration_ms: 0.124087
+  type: 'test'
+  ...
+# Subtest: CDJ-04 fails closed on each missing, false or unknown quality gate
+ok 12 - CDJ-04 fails closed on each missing, false or unknown quality gate
+  ---
+  duration_ms: 0.309437
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes invalid frequency and nonfinite inputs
+ok 13 - CDJ-04 excludes invalid frequency and nonfinite inputs
+  ---
+  duration_ms: 0.176206
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicitly verified model pitch range and in-range display
+ok 14 - CDJ-04 requires explicitly verified model pitch range and in-range display
+  ---
+  duration_ms: 0.137978
+  type: 'test'
+  ...
+# Subtest: CDJ-04 requires explicit nonzero uncertainty and provenance
+ok 15 - CDJ-04 requires explicit nonzero uncertainty and provenance
+  ---
+  duration_ms: 0.187203
+  type: 'test'
+  ...
+# Subtest: CDJ-04 is stateless and does not mutate the input record
+ok 16 - CDJ-04 is stateless and does not mutate the input record
+  ---
+  duration_ms: 1.023065
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+ok 17 - CDJ-04 excludes a frequency ratio that underflows instead of reporting stopped playback
+  ---
+  duration_ms: 0.433955
+  type: 'test'
+  ...
+# Subtest: CDJ-04 excludes a display error that overflows from finite numeric inputs
+ok 18 - CDJ-04 excludes a display error that overflows from finite numeric inputs
+  ---
+  duration_ms: 0.617072
+  type: 'test'
+  ...
+# Subtest: CDJ-04 rejects unsupported numeric types before deriving metrics
+ok 19 - CDJ-04 rejects unsupported numeric types before deriving metrics
+  ---
+  duration_ms: 0.301485
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 117.747262

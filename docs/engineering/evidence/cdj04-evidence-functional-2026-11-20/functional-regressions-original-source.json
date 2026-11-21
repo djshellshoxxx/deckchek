@@ -1,0 +1,23 @@
+{
+  "source_head": "20e0fd3202ca74f11404ca3e53735b5b5bc2364f",
+  "source_tree": "c869db493a53227309201f0807385622a9b3f12d",
+  "test_scope": "original published61 module plus two new ordinary functional regression cases; test file is an uncommitted change",
+  "node": "v22.23.4",
+  "exit_code": 1,
+  "counts": {
+    "tests": 21,
+    "pass": 19,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "source_sha256": "579f81aa48b33ab0d9635bb77cee4d1a652ce3467ccecfcda4340798f7b8d719",
+  "tests_sha256": "34021a157c944f98abe8a706d1afdbf47fad0c2541e4b654b7133d29279638ab",
+  "log_sha256": "df9b7b583f399762cb82fa6b5011a6c4525a8825d76f2413e1fbc87b23977a52",
+  "failed_tests": [
+    "reference lists reject missing slots before JSON transport",
+    "unknown uncertainty magnitude has an explicit reason with a named method"
+  ],
+  "git_status": "M tests/cdj-evidence-record.test.mjs"
+}
